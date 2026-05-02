@@ -10,7 +10,7 @@ End-to-end RAG parameter sweep pipeline working with one chunker, one embedding 
 
 ## Acceptance criteria
 
-- [ ] FastAPI boots at localhost:8000
+- [ ] FastAPI boots at localhost:8001
 - [ ] GET /healthz returns `{"ok": true}`
 - [ ] MongoDB Atlas connection established
 - [ ] 6 Atlas collections created (chunks, experiments, run_status, collections, queries, results)
@@ -36,7 +36,7 @@ End-to-end RAG parameter sweep pipeline working with one chunker, one embedding 
 - `server/utils/logger.py` — Structured logging
 - `server/db/atlas.py` — MongoDB connection
 
-**Verification**: `uvicorn server.main:app --reload` → http://localhost:8000/healthz
+**Verification**: `uvicorn server.main:app --reload --port 8001` → http://localhost:8001/healthz
 
 ### Phase 2: MongoDB Atlas Setup (~10 min)
 

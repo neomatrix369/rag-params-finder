@@ -5,7 +5,7 @@ import httpx
 
 def get_server_url() -> str:
     """Get server URL from environment or use default."""
-    return os.environ.get("SERVER_URL", "http://localhost:8000")
+    return os.environ.get("SERVER_URL", "http://localhost:8001")
 
 
 def submit_experiment(config: dict) -> dict:
@@ -19,7 +19,7 @@ def submit_experiment(config: dict) -> dict:
             raise RuntimeError(
                 f"No route POST {url} (404). Either nothing is running at "
                 f"{server_url}, or it is not this project's API. Start it from the repo "
-                f"root with: uv run uvicorn server.main:app --reload "
+                f"root with: uv run uvicorn server.main:app --reload --port 8001 "
                 f"— then confirm GET {server_url}/healthz returns {{\"ok\": true}}."
             )
         response.raise_for_status()

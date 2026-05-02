@@ -60,17 +60,17 @@ cp .env.example .env
 # Edit .env with your credentials:
 #   VOYAGE_API_KEY=<your-key>
 #   MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/<db>
-#   SERVER_URL=http://localhost:8000
+#   SERVER_URL=http://localhost:8001
 ```
 
 ### 3. Start the Server
 
 ```bash
 # Terminal 1: FastAPI server
-uvicorn server.main:app --reload
+uvicorn server.main:app --reload --port 8001
 ```
 
-Server starts at `http://localhost:8000`. Visit `/docs` for OpenAPI documentation.
+Server starts at `http://localhost:8001`. Visit `/docs` for OpenAPI documentation.
 
 ### 4. Start the Dashboard (Optional)
 

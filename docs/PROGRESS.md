@@ -96,8 +96,8 @@ End-to-end pipeline working with one chunker (RECURSIVE), one embedding model (v
 ### Verification
 ```bash
 # Server
-uvicorn server.main:app --reload
-curl http://localhost:8000/healthz
+uvicorn server.main:app --reload --port 8001
+curl http://localhost:8001/healthz
 
 # CLI
 rag-params-finder run --config configs/example.yaml
