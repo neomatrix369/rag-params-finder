@@ -24,8 +24,12 @@ from server.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-async def run_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
-    """Execute all sweep runs for a pre-created experiment."""
+def run_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
+    """Execute all sweep runs for a pre-created experiment.
+
+    Declared as a sync function so FastAPI's BackgroundTasks runs it in a
+    threadpool instead of on the event loop (all callees are blocking I/O).
+    """
     runs = expand_sweep(config)
     run_ids: list[str] = []
     logger.info(f"Experiment {experiment_id}: {len(runs)} runs to execute")
@@ -35,7 +39,7 @@ async def run_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
         run_id = str(uuid.uuid4())
         run_ids.append(run_id)
         try:
-            await run_single(experiment_id, run_id, params)
+            _run_single(experiment_id, run_id, params)
         except Exception as e:
             failed += 1
             logger.error(f"Run {run_id} failed: {e}")
@@ -52,7 +56,7 @@ async def run_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
     return {"experiment_id": experiment_id, "run_ids": run_ids, "status": final_status}
 
 
-async def run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
+def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
     """Execute one run of the pipeline for a single parameter combination."""
     logger.info(
         f"Run {run_id}: {params.embedding_model} / {params.chunking_method.value} "
@@ -74,12 +78,15 @@ async def run_single(experiment_id: str, run_id: str, params: RunParams) -> None
     try:
         _update_phase(run_id, Phase.PARSING)
         text = load_all_files(params.data_paths)
+        logger.info(f"Run {run_id}: parsed {len(text)} chars from {len(params.data_paths)} path(s)")
 
         _update_phase(run_id, Phase.CHUNKING)
         chunks = chunk_text(text, params.chunking_method, params.chunk_size, params.overlap)
+        logger.info(f"Run {run_id}: chunked into {len(chunks)} chunks")
 
         _update_phase(run_id, Phase.EMBEDDING)
         embeddings = embed_documents(chunks, params.embedding_model)
+        logger.info(f"Run {run_id}: generated {len(embeddings)} embeddings")
 
         _update_phase(run_id, Phase.STORING)
         chunk_docs = [
@@ -102,9 +109,14 @@ async def run_single(experiment_id: str, run_id: str, params: RunParams) -> None
 
         _update_phase(run_id, Phase.QUERYING)
         queries = load_queries(params.queries_file)
+        logger.info(f"Run {run_id}: querying with {len(queries)} queries")
 
-        for q in queries:
+        for i, q in enumerate(queries, start=1):
             query_id = str(uuid.uuid4())
+            logger.debug(
+                f"Run {run_id} query {i}/{len(queries)}: "
+                f"persona={q.persona_id}, text='{q.text[:60]}...'"
+            )
             query_embedding = embed_query(q.text, params.embedding_model)
             search_results = dense_search(
                 query_embedding,
@@ -112,6 +124,7 @@ async def run_single(experiment_id: str, run_id: str, params: RunParams) -> None
                 params.embedding_model,
                 top_k=params.top_k_initial,
             )
+            logger.debug(f"Run {run_id} query {i}: dense search returned {len(search_results)} results")
 
             if params.rerank_model:
                 _update_phase(run_id, Phase.RERANKING)
@@ -121,6 +134,7 @@ async def run_single(experiment_id: str, run_id: str, params: RunParams) -> None
                     model=params.rerank_model,
                     top_k=params.top_k_final,
                 )
+                logger.debug(f"Run {run_id} query {i}: reranked to {len(search_results)} results")
             else:
                 search_results = search_results[: params.top_k_final]
 
