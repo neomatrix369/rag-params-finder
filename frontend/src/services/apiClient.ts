@@ -18,3 +18,14 @@ export async function getExperiment(experimentId: string): Promise<Experiment> {
   }
   return response.json();
 }
+
+export async function cancelExperiment(experimentId: string): Promise<{ status: string; message: string }> {
+  const response = await fetch(`${API_BASE_URL}/experiments/${experimentId}/cancel`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.detail || 'Failed to cancel experiment');
+  }
+  return response.json();
+}

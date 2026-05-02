@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     server_url: str = "http://localhost:8001"
     recover_on_boot: bool = False
 
+    # Voyage AI rate limits — free-tier defaults (no payment method).
+    # Override via VOYAGE_RPM_LIMIT / VOYAGE_TPM_LIMIT env vars or .env.
+    voyage_rpm_limit: int = 3
+    voyage_tpm_limit: int = 10_000
+
 
 settings = Settings()
 

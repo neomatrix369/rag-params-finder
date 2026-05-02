@@ -1,11 +1,13 @@
 import voyageai
 
+from server.core.rate_limiter import RateLimiter, call_with_retry, estimate_tokens
 from server.settings import settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 _client: voyageai.Client | None = None
+_limiter: RateLimiter | None = None
 
 
 def get_client() -> voyageai.Client:
@@ -19,17 +21,54 @@ def get_client() -> voyageai.Client:
     return _client
 
 
+def get_limiter() -> RateLimiter:
+    """Get shared Voyage AI rate limiter singleton."""
+    global _limiter
+    if _limiter is None:
+        _limiter = RateLimiter(
+            rpm=settings.voyage_rpm_limit,
+            tpm=settings.voyage_tpm_limit,
+        )
+        logger.info(
+            f"Rate limiter initialized: {settings.voyage_rpm_limit} RPM, "
+            f"{settings.voyage_tpm_limit} TPM"
+        )
+    return _limiter
+
+
+def _token_budget_per_request() -> int:
+    """Max tokens we try to fit into a single embed call to stay within TPM."""
+    limiter = get_limiter()
+    return limiter._tpm if limiter._tpm > 0 else 100_000
+
+
 def embed_documents(texts: list[str], model: str) -> list[list[float]]:
-    """Embed documents using Voyage AI."""
+    """Embed documents using Voyage AI, auto-batching to respect rate limits."""
     logger.info(f"Embedding {len(texts)} documents with model={model}")
 
     client = get_client()
-    result = client.embed(texts, model=model, input_type="document")
+    budget = _token_budget_per_request()
 
-    embeddings = result.embeddings
-    logger.info(f"Generated {len(embeddings)} embeddings, dim={len(embeddings[0])}")
+    batches = _split_into_batches(texts, budget)
+    if len(batches) > 1:
+        logger.info(f"Split {len(texts)} texts into {len(batches)} batches for rate limiting")
 
-    return embeddings
+    all_embeddings: list[list[float]] = []
+    for idx, batch in enumerate(batches):
+        tokens = estimate_tokens(batch)
+        logger.debug(f"Batch {idx + 1}/{len(batches)}: {len(batch)} texts, ~{tokens} tokens")
+        result = call_with_retry(
+            lambda b=batch: client.embed(b, model=model, input_type="document"),
+            limiter=get_limiter(),
+            estimated_tokens=tokens,
+        )
+        all_embeddings.extend(result.embeddings)
+
+    logger.info(
+        f"Generated {len(all_embeddings)} embeddings, "
+        f"dim={len(all_embeddings[0])}"
+    )
+    return all_embeddings
 
 
 def embed_query(text: str, model: str) -> list[float]:
@@ -37,9 +76,33 @@ def embed_query(text: str, model: str) -> list[float]:
     logger.info(f"Embedding query with model={model}")
 
     client = get_client()
-    result = client.embed([text], model=model, input_type="query")
+    tokens = estimate_tokens([text])
+    result = call_with_retry(
+        lambda: client.embed([text], model=model, input_type="query"),
+        limiter=get_limiter(),
+        estimated_tokens=tokens,
+    )
 
     embedding = result.embeddings[0]
     logger.info(f"Generated query embedding, dim={len(embedding)}")
-
     return embedding
+
+
+def _split_into_batches(texts: list[str], token_budget: int) -> list[list[str]]:
+    """Split texts into batches that each fit within the token budget."""
+    batches: list[list[str]] = []
+    current_batch: list[str] = []
+    current_tokens = 0
+
+    for text in texts:
+        text_tokens = estimate_tokens([text])
+        if current_batch and current_tokens + text_tokens > token_budget:
+            batches.append(current_batch)
+            current_batch = []
+            current_tokens = 0
+        current_batch.append(text)
+        current_tokens += text_tokens
+
+    if current_batch:
+        batches.append(current_batch)
+    return batches

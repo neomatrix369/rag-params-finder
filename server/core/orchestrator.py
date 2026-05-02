@@ -1,3 +1,4 @@
+import threading
 import time
 import uuid
 from datetime import datetime
@@ -23,6 +24,28 @@ from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+_cancel_events: dict[str, threading.Event] = {}
+
+
+class ExperimentCancelled(Exception):
+    pass
+
+
+def request_cancel(experiment_id: str) -> bool:
+    """Signal a running experiment to stop. Returns True if it was in-flight."""
+    event = _cancel_events.get(experiment_id)
+    if event is None:
+        return False
+    event.set()
+    return True
+
+
+def _check_cancelled(experiment_id: str) -> None:
+    """Raise ExperimentCancelled if this experiment has been cancelled."""
+    event = _cancel_events.get(experiment_id)
+    if event and event.is_set():
+        raise ExperimentCancelled(f"Experiment {experiment_id} was cancelled")
+
 
 def run_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
     """Execute all sweep runs for a pre-created experiment.
@@ -30,26 +53,61 @@ def run_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
     Declared as a sync function so FastAPI's BackgroundTasks runs it in a
     threadpool instead of on the event loop (all callees are blocking I/O).
     """
+    _cancel_events[experiment_id] = threading.Event()
+
+    try:
+        return _run_sweep_inner(experiment_id, config)
+    finally:
+        _cancel_events.pop(experiment_id, None)
+
+
+def _run_sweep_inner(experiment_id: str, config: ExperimentConfig) -> dict:
     runs = expand_sweep(config)
     run_ids: list[str] = []
     logger.info(f"Experiment {experiment_id}: {len(runs)} runs to execute")
 
     failed = 0
+    cancelled = False
     for params in runs:
+        try:
+            _check_cancelled(experiment_id)
+        except ExperimentCancelled:
+            cancelled = True
+            logger.info(f"Experiment {experiment_id} cancelled before run {len(run_ids) + 1}")
+            break
+
         run_id = str(uuid.uuid4())
         run_ids.append(run_id)
         try:
             _run_single(experiment_id, run_id, params)
+        except ExperimentCancelled:
+            cancelled = True
+            logger.info(f"Experiment {experiment_id} cancelled during run {run_id}")
+            break
         except Exception as e:
             failed += 1
             logger.error(f"Run {run_id} failed: {e}")
             if config.execution.on_error == "stop":
                 break
 
-    final_status = "complete" if failed == 0 else "partial" if failed < len(runs) else "failed"
+    if cancelled:
+        final_status = "cancelled"
+    elif failed == 0:
+        final_status = "complete"
+    elif failed < len(runs):
+        final_status = "partial"
+    else:
+        final_status = "failed"
+
+    completed_at = datetime.utcnow()
     get_collection(EXPERIMENTS_COLLECTION).update_one(
         {"_id": experiment_id},
-        {"$set": {"status": final_status, "run_count": len(runs), "failed_count": failed}},
+        {"$set": {
+            "status": final_status,
+            "run_count": len(runs),
+            "failed_count": failed,
+            "completed_at": completed_at,
+        }},
     )
     logger.info(f"Experiment {experiment_id} finished: {final_status}")
 
@@ -76,18 +134,22 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
     get_collection(RUN_STATUS_COLLECTION).insert_one(run_status.model_dump())
 
     try:
+        _check_cancelled(experiment_id)
         _update_phase(run_id, Phase.PARSING)
         text = load_all_files(params.data_paths)
         logger.info(f"Run {run_id}: parsed {len(text)} chars from {len(params.data_paths)} path(s)")
 
+        _check_cancelled(experiment_id)
         _update_phase(run_id, Phase.CHUNKING)
         chunks = chunk_text(text, params.chunking_method, params.chunk_size, params.overlap)
         logger.info(f"Run {run_id}: chunked into {len(chunks)} chunks")
 
+        _check_cancelled(experiment_id)
         _update_phase(run_id, Phase.EMBEDDING)
         embeddings = embed_documents(chunks, params.embedding_model)
         logger.info(f"Run {run_id}: generated {len(embeddings)} embeddings")
 
+        _check_cancelled(experiment_id)
         _update_phase(run_id, Phase.STORING)
         chunk_docs = [
             {
@@ -107,11 +169,13 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
         get_collection(CHUNKS_COLLECTION).insert_many(chunk_docs)
         logger.info(f"Stored {len(chunk_docs)} chunks")
 
+        _check_cancelled(experiment_id)
         _update_phase(run_id, Phase.QUERYING)
         queries = load_queries(params.queries_file)
         logger.info(f"Run {run_id}: querying with {len(queries)} queries")
 
         for i, q in enumerate(queries, start=1):
+            _check_cancelled(experiment_id)
             query_id = str(uuid.uuid4())
             logger.debug(
                 f"Run {run_id} query {i}/{len(queries)}: "
@@ -154,6 +218,10 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
 
         _update_phase(run_id, Phase.COMPLETE)
 
+    except ExperimentCancelled:
+        logger.info(f"Run {run_id} interrupted by cancellation")
+        _update_phase(run_id, Phase.INTERRUPTED, error_message="Cancelled by user")
+        raise
     except Exception as e:
         logger.error(f"Run {run_id} failed: {e}")
         _update_phase(run_id, Phase.FAILED, error_message=str(e))
