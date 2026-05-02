@@ -4,7 +4,7 @@ from datetime import datetime
 
 from server.core.chunkers import chunk_text
 from server.core.embedder import embed_documents, embed_query
-from server.core.pdf_parser import parse_pdf
+from server.core.data_loader import load_all_files
 from server.core.query_loader import load_queries
 from server.core.reranker import rerank_results
 from server.core.retriever import dense_search
@@ -73,7 +73,7 @@ async def run_single(experiment_id: str, run_id: str, params: RunParams) -> None
 
     try:
         _update_phase(run_id, Phase.PARSING)
-        text = parse_pdf(params.pdf_path)
+        text = load_all_files(params.data_paths)
 
         _update_phase(run_id, Phase.CHUNKING)
         chunks = chunk_text(text, params.chunking_method, params.chunk_size, params.overlap)

@@ -1,5 +1,6 @@
-import os
 import voyageai
+
+from server.settings import settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -11,10 +12,9 @@ def get_client() -> voyageai.Client:
     """Get Voyage AI client singleton."""
     global _client
     if _client is None:
-        api_key = os.environ.get("VOYAGE_API_KEY")
-        if not api_key:
-            raise ValueError("VOYAGE_API_KEY environment variable not set")
-        _client = voyageai.Client(api_key=api_key)
+        if not settings.voyage_api_key:
+            raise ValueError("VOYAGE_API_KEY not set in .env or environment")
+        _client = voyageai.Client(api_key=settings.voyage_api_key)
         logger.info("Voyage AI client initialized")
     return _client
 

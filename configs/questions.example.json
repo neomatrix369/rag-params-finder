@@ -3,31 +3,134 @@
     {
       "id": "current-student",
       "role": "Current Student",
-      "description": "Currently enrolled, navigating financial aid.",
+      "description": "Currently enrolled in school, navigating financial aid and loan options. Includes informal queries.",
       "questions": [
-        {
-          "text": "How much can I borrow for my degree program?",
-          "focus": "General"
-        },
-        {
-          "text": "What is the Student Aid Index (SAI)?",
-          "focus": "FAFSA"
-        }
+        { "text": "How much can I borrow for my degree program?", "focus": "General" },
+        { "text": "What's the difference between subsidized and unsubsidized loans?", "focus": "General" },
+        { "text": "When do I need to start repaying my loans?", "focus": "General" },
+        { "text": "Can I use loans for living expenses?", "focus": "General" },
+        { "text": "What is the Student Aid Index (SAI), and how does it affect my eligibility for federal student aid?", "focus": "FAFSA" },
+        { "text": "Can you explain how my academic calendar and payment periods influence when I receive my federal student loan disbursements?", "focus": "Loan Disbursements" },
+        { "text": "What are the key differences between Direct Subsidized and Unsubsidized Loans, and which one is more suitable for my situation?", "focus": "Loan Types" },
+        { "text": "Are veterinary clinical experiences allowed to be included in standard term periods for financial aid purposes?", "focus": "Clinical Program Requirements" },
+        { "text": "Whaat are the condishuns under wich a program meassuring progress in credit-hours is considdred to have a non-term calender?", "focus": "Non-traditional Programs (Informal)" },
+        { "text": "so like if a student gettin Pell Grant in a clock-hour or non-term credit-hour program, and they finish more weeks or hours faster than scheduled, do that mean they get more Pell Grant money or the payment periods change or what happen with the Pell Grant disbursement?", "focus": "Pell Grant (Informal)" },
+        { "text": "Wut are the disbursment timing rules for Title IV funds in subscription-based programs and how does Volume 8, Chapter 3 provide guidance for clinical work in standard terms?", "focus": "Disbursement Rules (Informal)" },
+        { "text": "how volume 8 chapter 6 and volume 8 chapter 3 talk about nonstandard terms and direct loan rules for subscription-based and clinical work programs?", "focus": "Regulatory Guidance (Informal)" }
       ]
     },
     {
       "id": "recent-graduate",
       "role": "Recent Graduate",
-      "description": "Recently graduated, entering repayment phase.",
+      "description": "Recently graduated, entering repayment phase. Often asks detailed, technical questions about regulations.",
       "questions": [
-        {
-          "text": "What are my repayment options after graduation?",
-          "focus": "General"
-        },
-        {
-          "text": "How do income-driven repayment plans work?",
-          "focus": "General"
-        }
+        { "text": "What are my repayment options after graduation?", "focus": "General" },
+        { "text": "How do income-driven repayment plans work?", "focus": "General" },
+        { "text": "Can I consolidate my federal student loans?", "focus": "General" },
+        { "text": "What happens during my grace period?", "focus": "General" },
+        { "text": "What are my repayment options for federal student loans after my grace period ends, and how do I choose the best one?", "focus": "Repayment Options" },
+        { "text": "I'm considering consolidating my federal student loans. What are the pros and cons, and how does the process work?", "focus": "Loan Consolidation" },
+        { "text": "My loan servicer is reporting missed payments from my grace period, but I thought payments weren't due yet. What should I do?", "focus": "Servicer Issues" },
+        { "text": "how do disbursement timing rules for federal student aid differ between clock-hour or non-term credit-hour programs and subscription-based programs, especially regarding when students become eligible for their next disbursement?", "focus": "Disbursement Timing" },
+        { "text": "What are the differences in disbursement timing requirements for federal student aid between clock-hour or non-term credit-hour programs and subscription-based programs?", "focus": "Disbursement Requirements" },
+        { "text": "How does the disbursement timing for federal student aid differ between standard clock-hour or non-term credit-hour programs and subscription-based programs, particularly regarding the requirements a student must meet before receiving subsequent disbursements?", "focus": "Disbursement Requirements" },
+        { "text": "How do the examples in Appendix A and Appendix B illustrate the differences in disbursement timing and eligibility requirements for students in clock-hour or non-term credit-hour programs versus subscription-based programs?", "focus": "Regulatory Examples" },
+        { "text": "How do the requirements for Pell Grant disbursement and calculation differ between clock-hour or non-term credit-hour programs and subscription-based academic calendars, and what are the implications for payment periods and academic progress measurement?", "focus": "Pell Grant Calculation" },
+        { "text": "How can borrowers address issues related to their student loan 'loan' when they experience lack of transparency, difficulty logging in, and poor customer service from lenders or servicers, especially in cases where there is little to no written confirmation of forbearance status and long wait times for assistance?", "focus": "Servicer Transparency" },
+        { "text": "How does the illegal student loan reporting after the Department of Education abolishment relate to the data breach involving personal info of students, and what rights are protected under the Department of Education's actions?", "focus": "Data Privacy & Legal" },
+        { "text": "How does the failure of XXXX and XXXX to conduct proper reinvestigations under the FCRA, as highlighted by the CFPB lawsuit, relate to the misconduct and errors made by XXXX in the transfer and handling of the account to Nelnet, and what implications does this have for borrower rights under the FCRA?", "focus": "FCRA & Borrower Rights" },
+        { "text": "How does the CFPB's involvement relate to the legal violations and improper reporting of student loan data by Nelnet and associated entities, as described in the context?", "focus": "CFPB & Legal Violations" },
+        { "text": "How does NelNet's repeated failure to process auto-debit payments, despite confirmation, relate to borrower rights and potential violations of privacy laws?", "focus": "Payment Processing Issues" }
+      ]
+    },
+    {
+      "id": "parent-family",
+      "role": "Parent/Family",
+      "description": "Parent or family member helping with education financing.",
+      "questions": [
+        { "text": "Should I take a PLUS loan or help my child borrow?", "focus": "General" },
+        { "text": "What are the credit requirements for Parent PLUS loans?", "focus": "General" },
+        { "text": "How can I help my child understand their loan responsibilities?", "focus": "General" },
+        { "text": "What tax benefits are available for education expenses?", "focus": "General" },
+        { "text": "As a parent, what information do I need to provide on the FAFSA, and how does my income affect my child's financial aid?", "focus": "FAFSA" },
+        { "text": "What are the eligibility requirements and responsibilities for taking out a Direct PLUS Loan for my child's education?", "focus": "PLUS Loans" },
+        { "text": "I'm concerned about the privacy of my personal and financial data related to my child's student loans. What protections are in place, and what if there's a data breach?", "focus": "Data Privacy" }
+      ]
+    },
+    {
+      "id": "active-borrower",
+      "role": "Active Borrower",
+      "description": "Currently repaying loans, managing payments.",
+      "questions": [
+        { "text": "Can I lower my monthly payment amount?", "focus": "General" },
+        { "text": "How do I apply for loan forgiveness programs?", "focus": "General" },
+        { "text": "What should I do if I'm having trouble making payments?", "focus": "General" },
+        { "text": "Can I pay off my loans early without penalties?", "focus": "General" },
+        { "text": "My monthly student loan payments have increased unexpectedly. How can I understand the reason for this change and explore options to lower them?", "focus": "Payment Management" },
+        { "text": "I've made payments, but my loan balance doesn't seem to be decreasing, or payments aren't being applied correctly. How can I get a full accounting of my loan and resolve these discrepancies?", "focus": "Loan Accounting" },
+        { "text": "My credit score was negatively impacted due to a reported delinquency, but I believe it was an error by my servicer. What steps can I take to dispute this and have it corrected?", "focus": "Credit Reporting" }
+      ]
+    },
+    {
+      "id": "public-service",
+      "role": "Public Service Worker",
+      "description": "Working in public service, eligible for PSLF or advocating for others.",
+      "questions": [
+        { "text": "Do I qualify for Public Service Loan Forgiveness?", "focus": "General" },
+        { "text": "How do I certify my employment for PSLF?", "focus": "General" },
+        { "text": "What payment plan is best for PSLF?", "focus": "General" },
+        { "text": "How many qualifying payments have I made?", "focus": "General" },
+        { "text": "What are the specific criteria for Public Service Loan Forgiveness (PSLF), and how do I ensure my employment qualifies?", "focus": "PSLF Eligibility" },
+        { "text": "How do I certify my employment for PSLF, and what should I do if my servicer isn't correctly tracking my qualifying payments?", "focus": "PSLF Certification" },
+        { "text": "Can you explain the process for consolidating loans for PSLF, and how does it affects my payment count?", "focus": "PSLF Consolidation" },
+        { "text": "As a consumer rights advocate, how should I address the issue of re-amortization delays for federal student loans after the COVID-19 forbearance ended, especially considering the significant increase in monthly payments from $180.00 to $360.00 and the potential financial hardship for many borrowers?", "focus": "Advocacy & Hardship" }
+      ]
+    },
+    {
+      "id": "financial-difficulty",
+      "role": "Financial Difficulty",
+      "description": "Experiencing financial hardship with loan payments.",
+      "questions": [
+        { "text": "I can't make my loan payments, what are my options?", "focus": "General" },
+        { "text": "How do I apply for deferment or forbearance?", "focus": "General" },
+        { "text": "What happens if I default on my federal student loans?", "focus": "General" },
+        { "text": "How can I rehabilitate defaulted loans?", "focus": "General" },
+        { "text": "I'm struggling to make my student loan payments. What are my options for temporary relief, such as forbearance or deferment?", "focus": "Financial Hardship" },
+        { "text": "What are the consequences of defaulting on a federal student loan, and what steps can I take to rehabilitate or resolve a defaulted loan?", "focus": "Loan Default" },
+        { "text": "I believe I qualify for a loan discharge due to school closure or misrepresentation. What is the process for applying for borrower defense to repayment?", "focus": "Loan Discharge" }
+      ]
+    },
+    {
+      "id": "general-user",
+      "role": "General User",
+      "description": "Seeking quick answers and general information about federal student aid.",
+      "questions": [
+        { "text": "What types of federal student loans are available?", "focus": "Basic Info" },
+        { "text": "How do I apply for federal student aid?", "focus": "Application Process" },
+        { "text": "What is the difference between federal and private student loans?", "focus": "Loan Comparison" },
+        { "text": "Where can I find my loan servicer contact information?", "focus": "Servicer Info" },
+        { "text": "What should I do if I'm having trouble with my loan servicer?", "focus": "Servicer Issues" },
+        { "text": "How can I check my federal student loan balance and payment history?", "focus": "Account Access" },
+        { "text": "What resources are available for understanding my repayment options?", "focus": "Resources" },
+        { "text": "How is the Pell Grant award calculated for students enrolled in subscription-based academic calendars?", "focus": "Pell Grant" },
+        { "text": "What is the issue with Aidvantage in the borrower's complaint?", "focus": "Servicer Issues" },
+        { "text": "How does FERPA protect student loan borrowers' personal data?", "focus": "Data Privacy" },
+        { "text": "What concerns does the borrower have regarding Nelnet's communication about their student loan issuer?", "focus": "Communication Issues" },
+        { "text": "How does the violation of the FCRA relate to the improper reporting and collection of student loans after the Department of Education's abolishment?", "focus": "Legal Protections" }
+      ]
+    },
+    {
+      "id": "disabled-student",
+      "role": "Disabled Student",
+      "description": "Seeking accessible information and support options.",
+      "questions": [
+        { "text": "What loan discharge options are available for students with disabilities?", "focus": "Disability Discharge" },
+        { "text": "How do I apply for Total and Permanent Disability discharge?", "focus": "TPD Discharge" },
+        { "text": "What documentation is needed to prove disability for loan discharge?", "focus": "Documentation" },
+        { "text": "Are there special repayment options for borrowers with disabilities?", "focus": "Repayment Options" },
+        { "text": "What accommodations are available for borrowers who need accessible communication formats?", "focus": "Accessibility" },
+        { "text": "How can I get help completing loan forms if I have a disability that affects my ability to process paperwork?", "focus": "Form Assistance" },
+        { "text": "What happens to my loans if my disability status changes after receiving a discharge?", "focus": "Status Changes" }
       ]
     }
   ]

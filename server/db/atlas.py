@@ -1,6 +1,7 @@
-import os
 from pymongo import MongoClient
 from pymongo.database import Database
+
+from server.settings import settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -12,10 +13,9 @@ _db: Database | None = None
 def get_mongo_client() -> MongoClient:
     global _client
     if _client is None:
-        mongodb_uri = os.environ.get("MONGODB_URI")
-        if not mongodb_uri:
-            raise ValueError("MONGODB_URI environment variable not set")
-        _client = MongoClient(mongodb_uri)
+        if not settings.mongodb_uri:
+            raise ValueError("MONGODB_URI not set in .env or environment")
+        _client = MongoClient(settings.mongodb_uri)
         logger.info("MongoDB client initialized")
     return _client
 

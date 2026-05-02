@@ -58,6 +58,9 @@ Thumbs.db
 *.pem
 credentials.json
 
+# Input data (PDFs, docs — user-supplied, not committed)
+input_data/
+
 # Reference predecessor (read-only)
 reference-predecessor/
 
