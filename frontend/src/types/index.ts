@@ -37,11 +37,14 @@ export interface EnvParams {
 }
 
 export interface SweepSummary {
+  database_provider: string;
+  embedding_provider: string;
   models: string[];
   chunking_methods: string[];
   chunk_sizes: number[];
   overlaps: number[];
   retrieval_methods: string[];
+  rerank_provider: string;
 }
 
 export interface Experiment {
@@ -75,11 +78,15 @@ export interface RunStatus {
   run_id: string;
   experiment_id: string;
   phase: Phase;
+  database_provider: string;
+  embedding_provider: string;
   embedding_model: string;
   chunking_method: ChunkingMethod;
   chunk_size: number;
   overlap: number;
   retrieval_method: RetrievalMethod;
+  rerank_provider: string;
+  rerank_model?: string | null;
   created_at: string;
   updated_at: string;
   elapsed_ms: number;
@@ -117,11 +124,14 @@ export interface QueryResult {
 
 export interface RankedConfig {
   rank: number;
+  database_provider: string;
+  embedding_provider: string;
   embedding_model: string;
   chunking_method: string;
   chunk_size: number;
   overlap: number;
   retrieval_method: string;
+  rerank_provider: string;
   max_score: number;
   avg_score: number;
   result_count: number;
@@ -131,11 +141,14 @@ export interface DetailedResult {
   rank: number;
   score: number;
   raw_score: number;
+  database_provider: string;
+  embedding_provider: string;
   embedding_model: string;
   chunking_method: string;
   chunk_size: number;
   overlap: number;
   retrieval_method: string;
+  rerank_provider: string;
   chunk_text: string;
   query_text: string;
   run_id: string;

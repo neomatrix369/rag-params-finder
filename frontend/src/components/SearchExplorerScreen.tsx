@@ -42,18 +42,24 @@ function BestParamsCard({ config }: { config: RankedConfig }) {
 
       <div className="flex items-start justify-between">
         <div className="space-y-3">
-          <div>
-            <div className="text-xs text-slate-400 uppercase tracking-wider">Winning Embedding Model</div>
-            <div className="text-lg font-bold">{config.embedding_model}</div>
+          <div className="flex gap-6">
+            <div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider">Database</div>
+              <div className="text-sm font-bold uppercase text-indigo-300">{config.database_provider || 'mongodb'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider">Embed Provider</div>
+              <div className="text-sm font-bold uppercase text-teal-300">{config.embedding_provider || 'local'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider">Embedding Model</div>
+              <div className="text-lg font-bold">{config.embedding_model}</div>
+            </div>
           </div>
           <div className="flex gap-8">
             <div>
               <div className="text-xs text-slate-400 uppercase tracking-wider">Chunking</div>
               <div className="text-sm font-semibold capitalize">{config.chunking_method}</div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-400 uppercase tracking-wider">Retrieval</div>
-              <div className="text-sm font-semibold capitalize">{config.retrieval_method}</div>
             </div>
             <div>
               <div className="text-xs text-slate-400 uppercase tracking-wider">Chunk Size</div>
@@ -62,6 +68,14 @@ function BestParamsCard({ config }: { config: RankedConfig }) {
             <div>
               <div className="text-xs text-slate-400 uppercase tracking-wider">Overlap</div>
               <div className="text-sm font-semibold">{config.overlap}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider">Retrieval</div>
+              <div className="text-sm font-semibold capitalize">{config.retrieval_method}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider">Rerank Provider</div>
+              <div className="text-sm font-bold uppercase text-teal-300">{config.rerank_provider || 'local'}</div>
             </div>
           </div>
         </div>
@@ -91,9 +105,19 @@ function ConfigCard({ config }: { config: RankedConfig }) {
       </div>
 
       <div className="space-y-2 text-sm">
-        <div>
-          <span className="text-xs text-slate-400 uppercase tracking-wider">Embedding Model</span>
-          <div className="font-mono text-slate-700 text-xs">{config.embedding_model}</div>
+        <div className="flex gap-2">
+          <div>
+            <span className="text-xs text-slate-400 uppercase tracking-wider">Database</span>
+            <div className="font-bold text-indigo-700 text-xs uppercase">{config.database_provider || 'mongodb'}</div>
+          </div>
+          <div>
+            <span className="text-xs text-slate-400 uppercase tracking-wider">Embed Prov</span>
+            <div className="font-bold text-teal-700 text-xs uppercase">{config.embedding_provider || 'local'}</div>
+          </div>
+          <div>
+            <span className="text-xs text-slate-400 uppercase tracking-wider">Embedding Model</span>
+            <div className="font-mono text-slate-700 text-xs">{config.embedding_model}</div>
+          </div>
         </div>
         <div className="flex gap-4">
           <div>
@@ -105,9 +129,15 @@ function ConfigCard({ config }: { config: RankedConfig }) {
             <div className="font-mono text-slate-700">{config.chunk_size}/{config.overlap}</div>
           </div>
         </div>
-        <div>
-          <span className="text-xs text-slate-400 uppercase tracking-wider">Retrieval</span>
-          <div className="font-medium text-slate-700 capitalize">{config.retrieval_method}</div>
+        <div className="flex gap-3">
+          <div>
+            <span className="text-xs text-slate-400 uppercase tracking-wider">Retrieval</span>
+            <div className="font-medium text-slate-700 capitalize">{config.retrieval_method}</div>
+          </div>
+          <div>
+            <span className="text-xs text-slate-400 uppercase tracking-wider">Rerank Prov</span>
+            <div className="font-bold text-teal-700 text-xs uppercase">{config.rerank_provider || 'local'}</div>
+          </div>
         </div>
         <div>
           <span className="text-xs text-slate-400 uppercase tracking-wider">Avg Score</span>
@@ -135,7 +165,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {topConfigs.map((c) => (
-          <ConfigCard key={`${c.embedding_model}-${c.chunking_method}-${c.chunk_size}-${c.overlap}-${c.retrieval_method}`} config={c} />
+          <ConfigCard key={`${c.database_provider}-${c.embedding_provider}-${c.embedding_model}-${c.chunking_method}-${c.chunk_size}-${c.overlap}-${c.retrieval_method}-${c.rerank_provider}`} config={c} />
         ))}
       </div>
 
@@ -150,10 +180,13 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Rank</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">DB</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Embed Prov</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Embedding Model</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Chunking</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Size/Overlap</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Retrieval</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Rerank Prov</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Max Score</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Avg Score</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Results</th>
@@ -163,10 +196,13 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
               {data.ranked_configs.map((c) => (
                 <tr key={`row-${c.rank}`} className="hover:bg-slate-50">
                   <td className="px-4 py-2.5 text-sm font-bold text-slate-600">#{c.rank}</td>
+                  <td className="px-4 py-2.5 text-xs font-bold text-indigo-700 uppercase">{c.database_provider || 'mongodb'}</td>
+                  <td className="px-4 py-2.5 text-xs font-bold text-teal-700 uppercase">{c.embedding_provider || 'local'}</td>
                   <td className="px-4 py-2.5 text-sm font-mono text-slate-700">{c.embedding_model}</td>
                   <td className="px-4 py-2.5 text-sm capitalize">{c.chunking_method}</td>
                   <td className="px-4 py-2.5 text-sm font-mono">{c.chunk_size}/{c.overlap}</td>
                   <td className="px-4 py-2.5"><MethodBadge method={c.retrieval_method} variant="retrieval" /></td>
+                  <td className="px-4 py-2.5 text-xs font-bold text-teal-700 uppercase">{c.rerank_provider || 'local'}</td>
                   <td className="px-4 py-2.5 text-sm font-bold">{c.max_score}%</td>
                   <td className="px-4 py-2.5 text-sm">{c.avg_score}%</td>
                   <td className="px-4 py-2.5 text-sm text-slate-500">{c.result_count}</td>

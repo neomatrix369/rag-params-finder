@@ -18,13 +18,16 @@ def _effective_score(result: dict) -> float:
     return float(result.get("dense_score", 0.0))
 
 
-def _run_config_key(run: dict) -> tuple[str, str, int, int, str]:
+def _run_config_key(run: dict) -> tuple[str, str, str, str, int, int, str, str]:
     return (
+        run.get("database_provider", "mongodb"),
+        run.get("embedding_provider", "local"),
         run["embedding_model"],
         run["chunking_method"],
         int(run["chunk_size"]),
         int(run["overlap"]),
         run["retrieval_method"],
+        run.get("rerank_provider", "local"),
     )
 
 
@@ -92,11 +95,14 @@ def analyze_results(
             detailed.append({
                 "score": normalized,
                 "raw_score": round(raw, 4),
+                "database_provider": run.get("database_provider", "mongodb"),
+                "embedding_provider": run.get("embedding_provider", "local"),
                 "embedding_model": chunk.get("embedding_model", run.get("embedding_model", "")),
                 "chunking_method": chunk.get("chunk_method", run.get("chunking_method", "")),
                 "chunk_size": run.get("chunk_size", 0),
                 "overlap": run.get("overlap", 0),
                 "retrieval_method": sr.get("retrieval_method", ""),
+                "rerank_provider": run.get("rerank_provider", "local"),
                 "chunk_text": chunk.get("text", ""),
                 "query_text": query_text,
                 "run_id": run_id,
@@ -110,13 +116,16 @@ def analyze_results(
 
     ranked_configs: list[dict[str, Any]] = []
     for key, scores in config_scores.items():
-        model, chunker, chunk_size, overlap, retrieval = key
+        db_provider, emb_provider, model, chunker, chunk_size, overlap, retrieval, rerank_provider = key
         ranked_configs.append({
+            "database_provider": db_provider,
+            "embedding_provider": emb_provider,
             "embedding_model": model,
             "chunking_method": chunker,
             "chunk_size": chunk_size,
             "overlap": overlap,
             "retrieval_method": retrieval,
+            "rerank_provider": rerank_provider,
             "max_score": max(scores) if scores else 0,
             "avg_score": round(sum(scores) / len(scores)) if scores else 0,
             "result_count": config_result_counts[key],

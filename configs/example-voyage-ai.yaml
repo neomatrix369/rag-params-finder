@@ -20,6 +20,8 @@ data_paths:                            # list of files and/or directories
 
 queries_file: ./configs/questions.example.json  # local path or URL (downloaded to ./configs/ on first use)
 
+database_provider: mongodb  # Currently only "mongodb" supported. Future: "pinecone", "weaviate", "qdrant"
+
 embedding:
   provider: voyage
   models:

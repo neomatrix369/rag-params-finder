@@ -125,11 +125,15 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
         run_id=run_id,
         experiment_id=experiment_id,
         phase=Phase.QUEUED,
+        database_provider=params.database_provider,
+        embedding_provider=params.embedding_provider,
         embedding_model=params.embedding_model,
         chunking_method=params.chunking_method,
         chunk_size=params.chunk_size,
         overlap=params.overlap,
         retrieval_method=params.retrieval_method,
+        rerank_provider=params.rerank_provider,
+        rerank_model=params.rerank_model,
     )
     get_collection(RUN_STATUS_COLLECTION).insert_one(run_status.model_dump())
 
