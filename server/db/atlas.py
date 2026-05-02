@@ -1,0 +1,43 @@
+import os
+from pymongo import MongoClient
+from pymongo.database import Database
+from server.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+_client: MongoClient | None = None
+_db: Database | None = None
+
+
+def get_mongo_client() -> MongoClient:
+    global _client
+    if _client is None:
+        mongodb_uri = os.environ.get("MONGODB_URI")
+        if not mongodb_uri:
+            raise ValueError("MONGODB_URI environment variable not set")
+        _client = MongoClient(mongodb_uri)
+        logger.info("MongoDB client initialized")
+    return _client
+
+
+def get_database() -> Database:
+    global _db
+    if _db is None:
+        client = get_mongo_client()
+        _db = client.get_database()
+        logger.info(f"Connected to database: {_db.name}")
+    return _db
+
+
+def get_collection(name: str):
+    db = get_database()
+    return db[name]
+
+
+# Collection names
+CHUNKS_COLLECTION = "chunks"
+EXPERIMENTS_COLLECTION = "experiments"
+RUN_STATUS_COLLECTION = "run_status"
+COLLECTIONS_COLLECTION = "collections"
+QUERIES_COLLECTION = "queries"
+RESULTS_COLLECTION = "results"

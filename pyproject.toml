@@ -1,0 +1,51 @@
+[project]
+name = "rag-params-finder"
+version = "0.1.0"
+description = "RAG parameter sweep experimentation tool with MongoDB Atlas Vector Search and Voyage AI"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pymongo>=4.6.1",
+    "voyageai>=0.2.3",
+    "pypdf>=4.0.1",
+    "langchain>=0.1.0",
+    "langchain-text-splitters>=0.0.1",
+    "nltk>=3.8.1",
+    "pyyaml>=6.0.1",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.1.0",
+    "typer>=0.9.0",
+    "httpx>=0.26.0",
+    "rich>=13.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.2.0",
+    "mypy>=1.8.0",
+]
+
+[project.scripts]
+rag-params-finder = "cli.main:app"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_backend"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

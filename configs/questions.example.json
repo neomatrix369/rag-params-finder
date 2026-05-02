@@ -1,0 +1,34 @@
+{
+  "personas": [
+    {
+      "id": "current-student",
+      "role": "Current Student",
+      "description": "Currently enrolled, navigating financial aid.",
+      "questions": [
+        {
+          "text": "How much can I borrow for my degree program?",
+          "focus": "General"
+        },
+        {
+          "text": "What is the Student Aid Index (SAI)?",
+          "focus": "FAFSA"
+        }
+      ]
+    },
+    {
+      "id": "recent-graduate",
+      "role": "Recent Graduate",
+      "description": "Recently graduated, entering repayment phase.",
+      "questions": [
+        {
+          "text": "What are my repayment options after graduation?",
+          "focus": "General"
+        },
+        {
+          "text": "How do income-driven repayment plans work?",
+          "focus": "General"
+        }
+      ]
+    }
+  ]
+}
