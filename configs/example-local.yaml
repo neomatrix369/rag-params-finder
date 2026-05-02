@@ -1,0 +1,46 @@
+# All-local experiment — no Voyage API key needed.
+# Uses sentence-transformers models that run on your machine.
+# First run downloads models from HuggingFace (~23MB each, cached after that).
+#
+# Supported embedding models:
+#   Provider "local":   all-MiniLM-L6-v2 (384-dim)
+#   Provider "voyage":  voyage-3.5-lite, voyage-3.5, voyage-context-3 (1024-dim, requires VOYAGE_API_KEY)
+#
+# Supported reranker models:
+#   Provider "local":   cross-encoder/ms-marco-MiniLM-L-6-v2
+#   Provider "voyage":  rerank-2.5-lite, rerank-2.5 (requires VOYAGE_API_KEY)
+
+experiment_name: local-model-experiment
+
+data_paths:                            # list of files and/or directories
+  # - ./input_data/pdfs/Academic_Calenders_Cost_of_Attendance_and_Packaging.pdf
+  # - ./input_data/pdfs/The_Direct_Loan_Program.pdf
+  # - ./input_data/pdfs/Applications_and_Verification_Guide.pdf
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+  # - ./papers/                        # or a directory — all .pdf/.txt/.md/.csv files found recursively
+
+queries_file: ./configs/questions.example.json  # local path or URL (downloaded to ./configs/ on first use)
+
+embedding:
+  provider: local
+  models:
+    - all-MiniLM-L6-v2                 # 384-dim, sentence-transformers
+
+chunking:
+  methods:
+    - recursive
+  params:
+    chunk_sizes: [256, 512, 1024]
+    overlaps: [50, 100]
+
+retrieval:
+  methods:
+    - dense
+  top_k_initial: 20
+  top_k_final: 5
+  rerank_provider: local
+  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+
+execution:
+  parallelism: 1
+  on_error: continue

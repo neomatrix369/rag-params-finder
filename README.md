@@ -1,6 +1,6 @@
 # rag-params-finder
 
-**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search and Voyage AI.
+**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports both Voyage AI (hosted) and local sentence-transformers models.
 
 ## Overview
 
@@ -10,16 +10,18 @@
 
 1. Engineer configures experiment sweeps in YAML (embedding models × chunking methods × retrieval methods)
 2. CLI submits experiment to FastAPI server
-3. Server orchestrates: data loading (PDF/TXT/MD/CSV) → chunking → Voyage embedding → Atlas vector storage → query execution → reranking
+3. Server orchestrates: data loading (PDF/TXT/MD/CSV) → chunking → embedding (local or Voyage) → Atlas vector storage → query execution → reranking (local or Voyage)
 4. React dashboard displays live experiment status and results
 
 ### Key Features
 
 - **Multi-format data loading**: PDF, TXT, Markdown, CSV — files and/or directories (recursive scan)
 - **5 chunking methods**: Fixed, Recursive, Token, Sentence, Semantic (Voyage-aware)
-- **3 Voyage embedding models**: voyage-3.5-lite, voyage-3.5, voyage-context-3
+- **Voyage AI embedding models**: voyage-3.5-lite, voyage-3.5, voyage-context-3
+- **Free/local embedding models**: all-MiniLM-L6-v2 via sentence-transformers (no API key, no rate limits)
 - **3 retrieval methods**: Dense (vector search), Sparse (BM25), Hybrid (weighted combination)
 - **Voyage reranking**: rerank-2.5-lite for top-K refinement
+- **Free/local reranking**: cross-encoder/ms-marco-MiniLM-L-6-v2 via sentence-transformers
 - **URL-capable queries**: Queries file can be a local path or URL (auto-downloaded and cached)
 - **Centralized settings**: pydantic-settings-based config from `.env` or environment
 - **Auto-timestamped experiments**: Each run gets a unique timestamp suffix
@@ -37,7 +39,7 @@
 3. **MongoDB Atlas account** (free tier sufficient)
    - Create cluster at [cloud.mongodb.com](https://cloud.mongodb.com/)
    - Note: M0 (free tier) supports vector search
-4. **Voyage AI API key**
+4. **Voyage AI API key** *(only if using Voyage models — local models need no key)*
    - Get free key at [dash.voyageai.com](https://dash.voyageai.com/)
 
 ### 1. Clone and Install
@@ -107,8 +109,11 @@ Supported formats: `.pdf`, `.txt`, `.md`, `.csv`
 ### 6. Run an Experiment
 
 ```bash
-# Terminal 3: CLI
-rag-params-finder run --config configs/example.yaml
+# Terminal 3: CLI — local models (no API key needed)
+rag-params-finder run --config configs/example-local.yaml
+
+# Or with Voyage AI models (requires VOYAGE_API_KEY in .env)
+rag-params-finder run --config configs/example-voyage-ai.yaml
 ```
 
 The CLI will:
@@ -134,9 +139,9 @@ Open `http://localhost:5173` in your browser:
 │  (thin)      │                    │  • Sweep expansion             │
 │              │ ◀──polling reads── │  • Data loading (PDF/TXT/MD/CSV)│
 │  --detach:   │                    │  • Chunking (LangChain+custom) │
-│   skip       │                    │  • Embedding (Voyage)          │
+│   skip       │                    │  • Embedding (local/Voyage)    │
 │   polling    │                    │  • Atlas Vector Search         │
-│              │                    │  • Voyage rerank               │
+│              │                    │  • Reranking (local/Voyage)    │
 └──────────────┘                    │  • Run status tracking         │
                                      └────────────┬───────────────────┘
                                                   │
@@ -155,9 +160,9 @@ Open `http://localhost:5173` in your browser:
 
 ## Configuration
 
-See `configs/example.yaml` for a complete example.
+See `configs/example-local.yaml` (local models) or `configs/example-voyage-ai.yaml` (Voyage AI) for complete examples.
 
-**Minimal config**:
+**Minimal config** (local, no API key):
 
 ```yaml
 experiment_name: my-first-experiment  # timestamp suffix added automatically on each run
@@ -169,8 +174,9 @@ data_paths:                            # list of files and/or directories
 queries_file: ./configs/questions.example.json  # local path or URL (downloaded to ./configs/ on first use)
 
 embedding:
+  provider: local                      # "local" or "voyage"
   models:
-    - voyage-3.5-lite
+    - all-MiniLM-L6-v2
 
 chunking:
   methods:
@@ -184,7 +190,8 @@ retrieval:
     - dense
   top_k_initial: 20
   top_k_final: 5
-  rerank_model: rerank-2.5-lite
+  rerank_provider: local               # "local" or "voyage"
+  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
 ```
 
 **Queries file** (persona-based):
@@ -204,16 +211,58 @@ retrieval:
 }
 ```
 
+### Free/Local Models (No API Key)
+
+You can run experiments entirely offline using local embedding and reranking models from the `sentence-transformers` package. No Voyage API key or rate limits apply.
+
+| Model | Type | Dimensions | Size | Provider |
+|---|---|---|---|---|
+| `all-MiniLM-L6-v2` | Embedding | 384 | ~23MB | Local (sentence-transformers) |
+| `voyage-3.5-lite` | Embedding | 1024 | API | Voyage AI |
+| `voyage-3.5` | Embedding | 1024 | API | Voyage AI |
+| `voyage-context-3` | Embedding | 1024 | API | Voyage AI |
+| `cross-encoder/ms-marco-MiniLM-L-6-v2` | Reranker | - | ~23MB | Local (CrossEncoder) |
+| `rerank-2.5-lite` | Reranker | - | API | Voyage AI |
+
+**All-local config** (see `configs/example-local.yaml`):
+
+```yaml
+embedding:
+  provider: local
+  models:
+    - all-MiniLM-L6-v2
+
+retrieval:
+  rerank_provider: local
+  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+```
+
+Models are downloaded from HuggingFace on first use and cached locally. The `provider` field explicitly declares which backend handles embedding/reranking — the system validates that model names match the declared provider at config load time.
+
+**Atlas vector index for local models**: Local models produce 384-dim embeddings (vs 1024-dim for Voyage). You need a separate Atlas vector index named `vector_index_384`:
+
+```json
+{
+  "fields": [
+    { "type": "vector", "path": "embedding", "numDimensions": 384, "similarity": "cosine" },
+    { "type": "filter", "path": "experiment_id" },
+    { "type": "filter", "path": "embedding_model" }
+  ]
+}
+```
+
+The existing Voyage index should be renamed to `vector_index_1024`.
+
 ---
 
 ## CLI Usage
 
 ```bash
-# Submit experiment and watch progress
-rag-params-finder run --config configs/example.yaml
+# Submit experiment and watch progress (local models)
+rag-params-finder run --config configs/example-local.yaml
 
 # Submit and detach (check dashboard for status)
-rag-params-finder run --config configs/example.yaml --detach
+rag-params-finder run --config configs/example-local.yaml --detach
 
 # Manual recovery of interrupted runs
 rag-params-finder recover --experiment-id <id> --auto

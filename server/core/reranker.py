@@ -11,11 +11,25 @@ def rerank_results(
     search_results: list[SearchResult],
     model: str,
     top_k: int,
+    provider: str = "local",
 ) -> list[SearchResult]:
-    """Rerank search results using Voyage reranker and return top_k."""
+    """Rerank search results, dispatching to local or Voyage based on provider."""
     if not search_results:
         return []
 
+    if provider == "local":
+        from server.core.local_reranker import rerank_local
+        return rerank_local(query, search_results, model, top_k)
+    return _rerank_voyage(query, search_results, model, top_k)
+
+
+def _rerank_voyage(
+    query: str,
+    search_results: list[SearchResult],
+    model: str,
+    top_k: int,
+) -> list[SearchResult]:
+    """Rerank search results using Voyage reranker and return top_k."""
     logger.info(f"Reranking {len(search_results)} results with {model}, top_k={top_k}")
 
     client = get_client()

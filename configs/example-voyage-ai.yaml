@@ -1,3 +1,14 @@
+# Voyage AI experiment — requires VOYAGE_API_KEY in .env
+# Uses Voyage AI hosted models (fast, high quality, rate-limited by tier).
+#
+# Supported embedding models:
+#   Provider "local":   all-MiniLM-L6-v2 (384-dim)
+#   Provider "voyage":  voyage-3.5-lite, voyage-3.5, voyage-context-3 (1024-dim, requires VOYAGE_API_KEY)
+#
+# Supported reranker models:
+#   Provider "local":   cross-encoder/ms-marco-MiniLM-L-6-v2
+#   Provider "voyage":  rerank-2.5-lite, rerank-2.5 (requires VOYAGE_API_KEY)
+
 experiment_name: my-first-experiment  # timestamp suffix added automatically on each run
 
 data_paths:                            # list of files and/or directories
@@ -10,8 +21,9 @@ data_paths:                            # list of files and/or directories
 queries_file: ./configs/questions.example.json  # local path or URL (downloaded to ./configs/ on first use)
 
 embedding:
+  provider: voyage
   models:
-    - voyage-3.5-lite
+    - voyage-3.5-lite                  # 1024-dim
 
 chunking:
   methods:
@@ -25,6 +37,7 @@ retrieval:
     - dense
   top_k_initial: 20
   top_k_final: 5
+  rerank_provider: voyage
   rerank_model: rerank-2.5-lite
 
 execution:

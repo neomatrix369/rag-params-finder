@@ -1,8 +1,12 @@
 from itertools import product
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
+from server.core.model_registry import EMBEDDING_MODELS, RERANKER_MODELS
 from server.models.enums import ChunkingMethod, RetrievalMethod
+
+Provider = Literal["local", "voyage"]
 
 
 class ChunkParams(BaseModel):
@@ -11,7 +15,25 @@ class ChunkParams(BaseModel):
 
 
 class EmbeddingConfig(BaseModel):
-    models: list[str] = Field(default=["voyage-3.5-lite"])
+    provider: Provider = Field(default="local")
+    models: list[str] = Field(default=["all-MiniLM-L6-v2"])
+
+    @model_validator(mode="after")
+    def validate_models_match_provider(self) -> "EmbeddingConfig":
+        for model_id in self.models:
+            if model_id not in EMBEDDING_MODELS:
+                known = ", ".join(EMBEDDING_MODELS)
+                raise ValueError(
+                    f"Unknown embedding model '{model_id}'. Known: {known}"
+                )
+            registered_provider = EMBEDDING_MODELS[model_id]["provider"]
+            if registered_provider != self.provider:
+                raise ValueError(
+                    f"Embedding model '{model_id}' belongs to provider "
+                    f"'{registered_provider}', but config specifies "
+                    f"provider '{self.provider}'"
+                )
+        return self
 
 
 class ChunkingConfig(BaseModel):
@@ -23,7 +45,26 @@ class RetrievalConfig(BaseModel):
     methods: list[RetrievalMethod] = Field(default=[RetrievalMethod.DENSE])
     top_k_initial: int = Field(default=20)
     top_k_final: int = Field(default=5)
-    rerank_model: str | None = Field(default="rerank-2.5-lite")
+    rerank_provider: Provider = Field(default="local")
+    rerank_model: str | None = Field(default="cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+    @model_validator(mode="after")
+    def validate_rerank_model_matches_provider(self) -> "RetrievalConfig":
+        if self.rerank_model is None:
+            return self
+        if self.rerank_model not in RERANKER_MODELS:
+            known = ", ".join(RERANKER_MODELS)
+            raise ValueError(
+                f"Unknown reranker model '{self.rerank_model}'. Known: {known}"
+            )
+        registered_provider = RERANKER_MODELS[self.rerank_model]["provider"]
+        if registered_provider != self.rerank_provider:
+            raise ValueError(
+                f"Reranker model '{self.rerank_model}' belongs to provider "
+                f"'{registered_provider}', but config specifies "
+                f"rerank_provider '{self.rerank_provider}'"
+            )
+        return self
 
 
 class ExecutionConfig(BaseModel):
@@ -43,11 +84,13 @@ class ExperimentConfig(BaseModel):
 
 class RunParams(BaseModel):
     """Single-valued parameter set for one sweep run."""
+    embedding_provider: Provider
     embedding_model: str
     chunking_method: ChunkingMethod
     chunk_size: int
     overlap: int
     retrieval_method: RetrievalMethod
+    rerank_provider: Provider
     rerank_model: str | None
     top_k_initial: int
     top_k_final: int
@@ -66,11 +109,13 @@ def expand_sweep(config: ExperimentConfig) -> list[RunParams]:
     )
     return [
         RunParams(
+            embedding_provider=config.embedding.provider,
             embedding_model=model,
             chunking_method=method,
             chunk_size=size,
             overlap=overlap,
             retrieval_method=retrieval,
+            rerank_provider=config.retrieval.rerank_provider,
             rerank_model=config.retrieval.rerank_model,
             top_k_initial=config.retrieval.top_k_initial,
             top_k_final=config.retrieval.top_k_final,
