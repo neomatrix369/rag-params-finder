@@ -1,5 +1,9 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from server.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -15,3 +19,10 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+logger.info(f"Settings loaded: server_url={settings.server_url}")
+logger.debug(
+    f"Settings detail: mongodb_uri={'***' if settings.mongodb_uri else '(not set)'}, "
+    f"voyage_api_key={'***' if settings.voyage_api_key else '(not set)'}, "
+    f"recover_on_boot={settings.recover_on_boot}"
+)

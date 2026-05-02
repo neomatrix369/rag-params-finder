@@ -52,21 +52,25 @@ async def create_experiment(config: ExperimentConfig, background_tasks: Backgrou
 @router.get("")
 async def list_experiments():
     """List all experiments."""
+    logger.debug("GET /experiments — listing all")
     experiments = list(
         get_collection(EXPERIMENTS_COLLECTION)
         .find({}, {"_id": 0})
         .sort("created_at", -1)
     )
+    logger.info(f"Listed {len(experiments)} experiments")
     return {"experiments": experiments}
 
 
 @router.get("/{experiment_id}")
 async def get_experiment(experiment_id: str):
     """Get a single experiment with its run statuses."""
+    logger.debug(f"GET /experiments/{experiment_id}")
     experiment = get_collection(EXPERIMENTS_COLLECTION).find_one(
         {"experiment_id": experiment_id}, {"_id": 0}
     )
     if not experiment:
+        logger.warning(f"Experiment not found: {experiment_id}")
         return {"error": "Experiment not found"}, 404
 
     runs = list(
@@ -75,14 +79,17 @@ async def get_experiment(experiment_id: str):
         .sort("created_at", 1)
     )
     experiment["runs"] = runs
+    logger.debug(f"Experiment {experiment_id}: status={experiment.get('status')}, {len(runs)} runs")
     return experiment
 
 
 @router.get("/{experiment_id}/results")
 async def get_experiment_results(experiment_id: str):
     """Get all query results for an experiment."""
+    logger.debug(f"GET /experiments/{experiment_id}/results")
     results = list(
         get_collection(RESULTS_COLLECTION)
         .find({"experiment_id": experiment_id}, {"_id": 0})
     )
+    logger.info(f"Returning {len(results)} results for experiment {experiment_id}")
     return {"experiment_id": experiment_id, "results": results}

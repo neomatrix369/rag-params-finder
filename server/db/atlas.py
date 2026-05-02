@@ -30,6 +30,7 @@ def get_database() -> Database:
 
 
 def get_collection(name: str):
+    logger.debug(f"Accessing collection: {name}")
     db = get_database()
     return db[name]
 
