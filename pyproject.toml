@@ -35,6 +35,13 @@ dev = [
 [project.scripts]
 rag-params-finder = "cli.main:app"
 
+[tool.uv]
+environments = [
+    "sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'linux'",
+]
+
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"

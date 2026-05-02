@@ -1,3 +1,4 @@
+import certifi
 from pymongo import MongoClient
 from pymongo.database import Database
 
@@ -15,7 +16,7 @@ def get_mongo_client() -> MongoClient:
     if _client is None:
         if not settings.mongodb_uri:
             raise ValueError("MONGODB_URI not set in .env or environment")
-        _client = MongoClient(settings.mongodb_uri)
+        _client = MongoClient(settings.mongodb_uri, tlsCAFile=certifi.where())
         logger.info("MongoDB client initialized")
     return _client
 
