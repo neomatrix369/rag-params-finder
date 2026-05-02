@@ -134,7 +134,7 @@ Each run progresses through phases tracked in `run_status`:
 - `MONGODB_URI` — MongoDB Atlas connection string
 
 **CLI**:
-- `SERVER_URL` — FastAPI server URL (default: http://localhost:8000)
+- `SERVER_URL` — FastAPI server URL (default: http://localhost:8001)
 
 **Optional**:
 - `RECOVER_ON_BOOT` — Auto-retry interrupted runs on boot (default: false)
@@ -145,7 +145,7 @@ Each run progresses through phases tracked in `run_status`:
 
 1. Clone repo
 2. Create `.env` with VOYAGE_API_KEY + MONGODB_URI
-3. Start server: `uvicorn server.main:app --reload`
+3. Start server: `uvicorn server.main:app --reload --port 8001`
 4. Start dashboard: `cd frontend && npm run dev`
 5. Submit experiment: `rag-params-finder run --config configs/example.yaml`
 

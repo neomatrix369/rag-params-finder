@@ -68,3 +68,5 @@ frontend/.vite/
 frontend/coverage/
 
 ideate/
+.claude
+.cursor
