@@ -1,3 +1,5 @@
+import importlib.metadata
+
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -48,6 +50,12 @@ def run(
     except Exception as e:
         console.print(f"[red]Failed to submit experiment: {e}[/red]")
         raise typer.Exit(1)
+
+
+@app.command()
+def version():
+    """Print the installed package version."""
+    console.print(importlib.metadata.version("rag-params-finder"))
 
 
 if __name__ == "__main__":

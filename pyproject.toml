@@ -18,6 +18,7 @@ dependencies = [
     "typer>=0.9.0",
     "httpx>=0.26.0",
     "rich>=13.7.0",
+    "pymongo[srv]>=4.6.1",
 ]
 
 [project.optional-dependencies]
@@ -34,7 +35,10 @@ rag-params-finder = "cli.main:app"
 
 [build-system]
 requires = ["setuptools>=68.0"]
-build-backend = "setuptools.build_backend"
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["cli*", "server*"]
 
 [tool.ruff]
 line-length = 100
