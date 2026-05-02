@@ -1,8 +1,10 @@
 experiment_name: my-first-experiment  # timestamp suffix added automatically on each run
 
 data_paths:                            # list of files and/or directories
-  - ./input_data/pdfs/sample.pdf                  # individual file
-
+  - ./input_data/pdfs/Academic_Calenders_Cost_of_Attendance_and_Packaging.pdf
+  - ./input_data/pdfs/The_Direct_Loan_Program.pdf
+  - ./input_data/pdfs/Applications_and_Verification_Guide.pdf
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
   # - ./papers/                        # or a directory — all .pdf/.txt/.md/.csv files found recursively
 
 queries_file: ./configs/questions.example.json  # local path or URL (downloaded to ./configs/ on first use)
