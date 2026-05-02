@@ -29,15 +29,46 @@ export enum Phase {
 
 // Models
 
+export interface EnvParams {
+  server_url: string;
+  voyage_rpm_limit: number;
+  voyage_tpm_limit: number;
+  recover_on_boot: boolean;
+}
+
+export interface SweepSummary {
+  models: string[];
+  chunking_methods: string[];
+  chunk_sizes: number[];
+  overlaps: number[];
+  retrieval_methods: string[];
+}
+
 export interface Experiment {
   experiment_id: string;
   experiment_name: string;
   config: Record<string, unknown>;
   created_at: string;
+  started_at?: string;
+  completed_at?: string | null;
   status: string;
   run_count?: number;
   failed_count?: number;
   error?: string;
+  git_commit?: string;
+  git_branch?: string;
+  git_dirty?: boolean;
+  python_version?: string;
+  app_version?: string;
+  env_params?: EnvParams;
+  data_paths?: string[];
+  queries_file?: string;
+  rerank_model?: string | null;
+  top_k_initial?: number;
+  top_k_final?: number;
+  parallelism?: number;
+  on_error?: string;
+  sweep_summary?: SweepSummary;
 }
 
 export interface RunStatus {

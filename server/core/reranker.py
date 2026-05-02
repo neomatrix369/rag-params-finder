@@ -1,4 +1,5 @@
-from server.core.embedder import get_client
+from server.core.embedder import get_client, get_limiter
+from server.core.rate_limiter import call_with_retry, estimate_tokens
 from server.models.results import SearchResult
 from server.utils.logger import get_logger
 
@@ -20,7 +21,12 @@ def rerank_results(
     client = get_client()
     documents = [r.chunk.text for r in search_results]
 
-    rerank_response = client.rerank(query, documents, model=model, top_k=top_k)
+    tokens = estimate_tokens([query] + documents)
+    rerank_response = call_with_retry(
+        lambda: client.rerank(query, documents, model=model, top_k=top_k),
+        limiter=get_limiter(),
+        estimated_tokens=tokens,
+    )
 
     reranked: list[SearchResult] = []
     for rank, hit in enumerate(rerank_response.results, start=1):

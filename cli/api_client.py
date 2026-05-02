@@ -60,3 +60,22 @@ def get_run_status(run_id: str) -> dict:
         data = response.json()
         logger.debug(f"Run {run_id} phase={data.get('phase')}")
         return data
+
+
+def cancel_experiment(experiment_id: str) -> dict:
+    """Request cancellation of a running experiment."""
+    server_url = get_server_url()
+    url = f"{server_url}/experiments/{experiment_id}/cancel"
+    logger.info(f"POST {url}")
+
+    with httpx.Client() as client:
+        response = client.post(url, timeout=10.0)
+        if response.status_code == 404:
+            raise RuntimeError(f"Experiment {experiment_id} not found")
+        if response.status_code == 409:
+            detail = response.json().get("detail", "Experiment is not running")
+            raise RuntimeError(detail)
+        response.raise_for_status()
+        data = response.json()
+        logger.info(f"Cancel response: {data}")
+        return data

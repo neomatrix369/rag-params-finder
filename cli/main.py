@@ -7,7 +7,7 @@ from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
 
-from cli.api_client import get_experiment, submit_experiment
+from cli.api_client import cancel_experiment, get_experiment, submit_experiment
 from cli.config_loader import load_config
 from server.utils.logger import get_logger
 
@@ -15,7 +15,7 @@ app = typer.Typer(help="RAG Params Finder CLI")
 console = Console()
 logger = get_logger(__name__)
 
-TERMINAL_PHASES = {"complete", "failed", "interrupted"}
+TERMINAL_PHASES = {"complete", "failed", "interrupted", "cancelled"}
 POLL_INTERVAL_S = 2.0
 
 
@@ -27,6 +27,7 @@ def _build_runs_table(runs: list[dict]) -> Table:
     table.add_column("Size/Overlap")
     table.add_column("Retrieval")
     table.add_column("Phase")
+    table.add_column("Error", style="red", max_width=50)
 
     phase_styles = {
         "complete": "bold green",
@@ -37,6 +38,9 @@ def _build_runs_table(runs: list[dict]) -> Table:
     for run in runs:
         phase = run.get("phase", "unknown")
         style = phase_styles.get(phase, "cyan")
+        error_msg = run.get("error_message") or ""
+        if len(error_msg) > 80:
+            error_msg = error_msg[:77] + "..."
         table.add_row(
             run.get("run_id", "?")[:8],
             run.get("embedding_model", "?"),
@@ -44,6 +48,7 @@ def _build_runs_table(runs: list[dict]) -> Table:
             f"{run.get('chunk_size', '?')}/{run.get('overlap', '?')}",
             run.get("retrieval_method", "?"),
             f"[{style}]{phase}[/{style}]",
+            error_msg,
         )
     return table
 
@@ -54,6 +59,7 @@ def _watch_experiment(experiment_id: str) -> None:
     console.print(f"\n[cyan]Watching experiment {experiment_id[:8]}...[/cyan]\n")
 
     poll_count = 0
+    data: dict = {}
     with Live(console=console, refresh_per_second=1) as live:
         while True:
             poll_count += 1
@@ -72,17 +78,120 @@ def _watch_experiment(experiment_id: str) -> None:
             table = _build_runs_table(runs)
             live.update(table)
 
-            if status in TERMINAL_PHASES or status == "partial":
+            if status in TERMINAL_PHASES or status in ("partial", "cancelled"):
                 break
 
             all_done = runs and all(r.get("phase") in TERMINAL_PHASES for r in runs)
             if all_done:
+                time.sleep(POLL_INTERVAL_S)
+                try:
+                    data = get_experiment(experiment_id)
+                except Exception:
+                    pass
                 break
 
             time.sleep(POLL_INTERVAL_S)
 
-    logger.info(f"Experiment {experiment_id} finished: {status}")
-    console.print(f"\n[bold]Experiment finished: {status}[/bold]")
+    _print_summary(data)
+
+
+def _format_duration(started_at: str | None, completed_at: str | None) -> str:
+    """Human-readable duration between two ISO timestamps."""
+    if not started_at or not completed_at:
+        return "—"
+    from datetime import datetime as _dt
+    start = _dt.fromisoformat(started_at.replace("Z", "+00:00"))
+    end = _dt.fromisoformat(completed_at.replace("Z", "+00:00"))
+    secs = (end - start).total_seconds()
+    if secs < 60:
+        return f"{secs:.1f}s"
+    mins = int(secs // 60)
+    rem = int(secs % 60)
+    return f"{mins}m {rem}s"
+
+
+def _print_summary(data: dict) -> None:
+    """Print a final summary panel with success/failure breakdown."""
+    status = data.get("status", "unknown")
+    runs = data.get("runs", [])
+    name = data.get("experiment_name", "?")
+
+    completed = [r for r in runs if r.get("phase") == "complete"]
+    failed = [r for r in runs if r.get("phase") == "failed"]
+    other = [r for r in runs if r.get("phase") not in ("complete", "failed")]
+
+    status_style = {
+        "complete": "green",
+        "partial": "yellow",
+        "failed": "red",
+        "cancelled": "yellow",
+    }.get(status, "cyan")
+
+    lines = [f"[{status_style} bold]{status.upper()}[/{status_style} bold]  {name}"]
+    lines.append(f"  [green]{len(completed)} passed[/green]  "
+                 f"[red]{len(failed)} failed[/red]  "
+                 f"[dim]{len(other)} other[/dim]")
+
+    git_commit = data.get("git_commit")
+    git_branch = data.get("git_branch")
+    git_dirty = data.get("git_dirty", False)
+    started_at = data.get("started_at")
+    completed_at = data.get("completed_at")
+    env_params = data.get("env_params", {})
+
+    lines.append("")
+    lines.append("[bold]Metadata[/bold]")
+    if git_commit:
+        dirty_flag = " [yellow](dirty)[/yellow]" if git_dirty else ""
+        branch_info = f" ({git_branch})" if git_branch else ""
+        lines.append(f"  Git: [cyan]{git_commit}{branch_info}[/cyan]{dirty_flag}")
+    app_ver = data.get("app_version")
+    py_ver = data.get("python_version")
+    if app_ver or py_ver:
+        lines.append(f"  Version:  app={app_ver or '?'}  python={py_ver or '?'}")
+    if started_at:
+        lines.append(f"  Started:  {started_at}")
+    if completed_at:
+        lines.append(f"  Finished: {completed_at}")
+        lines.append(f"  Duration: {_format_duration(started_at, completed_at)}")
+    if env_params:
+        lines.append(f"  RPM/TPM:  {env_params.get('voyage_rpm_limit', '?')}/{env_params.get('voyage_tpm_limit', '?')}")
+
+    lines.append("")
+    lines.append("[bold]Config[/bold]")
+    data_paths = data.get("data_paths", [])
+    lines.append(f"  Data:     {len(data_paths)} path(s)")
+    for p in data_paths:
+        lines.append(f"            [dim]{p}[/dim]")
+    queries_file = data.get("queries_file")
+    if queries_file:
+        lines.append(f"  Queries:  {queries_file}")
+    rerank = data.get("rerank_model")
+    lines.append(f"  Rerank:   {rerank or 'none'}")
+    lines.append(f"  Top-K:    {data.get('top_k_initial', '?')} → {data.get('top_k_final', '?')}")
+    lines.append(f"  Parallel: {data.get('parallelism', '?')}  on_error: {data.get('on_error', '?')}")
+    sweep = data.get("sweep_summary", {})
+    if sweep:
+        lines.append(f"  Sweep:    {', '.join(sweep.get('models', []))} × "
+                     f"{', '.join(sweep.get('chunking_methods', []))} × "
+                     f"sizes {sweep.get('chunk_sizes', [])} × "
+                     f"overlaps {sweep.get('overlaps', [])}")
+
+    if failed:
+        lines.append("")
+        lines.append("[red bold]Failures:[/red bold]")
+        for r in failed:
+            run_id = r.get("run_id", "?")[:8]
+            model = r.get("embedding_model", "?")
+            err = r.get("error_message") or "unknown error"
+            lines.append(f"  [dim]{run_id}[/dim] ({model}): {err}")
+
+    logger.info(f"Experiment {data.get('experiment_id', '?')} finished: {status}")
+    console.print(Panel.fit(
+        "\n".join(lines),
+        title="Experiment Result",
+        border_style=status_style,
+    ))
 
 
 @app.command()
@@ -138,6 +247,32 @@ def run(
     except Exception as e:
         logger.error(f"Experiment submission failed: {e}", exc_info=True)
         console.print(f"[red]Failed to submit experiment: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def cancel(
+    experiment_id: str = typer.Argument(..., help="Experiment ID to cancel"),
+):
+    """Cancel a running experiment."""
+    logger.info(f"CLI cancel command: experiment_id={experiment_id}")
+    console.print(f"[cyan]Requesting cancellation for {experiment_id[:8]}...[/cyan]")
+
+    try:
+        response = cancel_experiment(experiment_id)
+        console.print(Panel.fit(
+            f"[yellow]⚠[/yellow]  Cancel requested for experiment [bold]{experiment_id[:8]}[/bold]\n"
+            f"{response.get('message', 'Experiment will stop after current phase')}",
+            title="Cancellation",
+            border_style="yellow",
+        ))
+    except RuntimeError as e:
+        logger.error(f"Cancel failed: {e}")
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        logger.error(f"Cancel request failed: {e}", exc_info=True)
+        console.print(f"[red]Failed to cancel experiment: {e}[/red]")
         raise typer.Exit(1)
 
 

@@ -87,6 +87,9 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    Git Commit
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
                     Created
                   </th>
                 </tr>
@@ -111,21 +114,31 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
                       ) : null}
                     </td>
                     <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-bold rounded ${
-                          exp.status === 'complete'
-                            ? 'bg-green-100 text-green-700'
-                            : exp.status === 'running'
-                            ? 'bg-blue-100 text-blue-700'
-                            : exp.status === 'partial'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : exp.status === 'failed'
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        {exp.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-bold rounded ${
+                            exp.status === 'complete'
+                              ? 'bg-green-100 text-green-700'
+                              : exp.status === 'running'
+                              ? 'bg-blue-100 text-blue-700'
+                              : exp.status === 'partial'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : exp.status === 'failed'
+                              ? 'bg-red-100 text-red-700'
+                              : exp.status === 'cancelled'
+                              ? 'bg-orange-100 text-orange-700'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {exp.status}
+                        </span>
+                        {(exp.status === 'failed' || exp.status === 'partial') && (
+                          <span className="text-xs text-red-400">click for details</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-500 font-mono">
+                      {exp.git_commit ?? '—'}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
                       {new Date(exp.created_at).toLocaleString()}
