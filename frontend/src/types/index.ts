@@ -35,6 +35,8 @@ export interface Experiment {
   config: Record<string, unknown>;
   created_at: string;
   status: string;
+  run_count?: number;
+  failed_count?: number;
   error?: string;
 }
 

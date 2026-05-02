@@ -1,5 +1,6 @@
-import httpx
 import os
+
+import httpx
 
 
 def get_server_url() -> str:
@@ -9,7 +10,6 @@ def get_server_url() -> str:
 
 def submit_experiment(config: dict) -> dict:
     """Submit experiment configuration to server."""
-
     server_url = get_server_url()
     url = f"{server_url}/experiments"
 
@@ -26,18 +26,23 @@ def submit_experiment(config: dict) -> dict:
         return response.json()
 
 
-def get_experiments() -> dict:
-    """Get list of experiments from server."""
-
+def get_experiment(experiment_id: str) -> dict:
+    """Get experiment details including run statuses."""
     server_url = get_server_url()
-    url = f"{server_url}/experiments"
+    url = f"{server_url}/experiments/{experiment_id}"
 
     with httpx.Client() as client:
         response = client.get(url, timeout=10.0)
-        if response.status_code == 404:
-            raise RuntimeError(
-                f"No route GET {url} (404). Start the API from the repo root: "
-                f"uv run uvicorn server.main:app --reload"
-            )
+        response.raise_for_status()
+        return response.json()
+
+
+def get_run_status(run_id: str) -> dict:
+    """Get current status of a single run."""
+    server_url = get_server_url()
+    url = f"{server_url}/runs/{run_id}/status"
+
+    with httpx.Client() as client:
+        response = client.get(url, timeout=10.0)
         response.raise_for_status()
         return response.json()

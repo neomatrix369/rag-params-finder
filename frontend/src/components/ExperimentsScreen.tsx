@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { getExperiments } from '../services/apiClient';
 import { Experiment } from '../types';
 
-export default function ExperimentsScreen() {
+export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string) => void }) {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +81,9 @@ export default function ExperimentsScreen() {
                     Experiment ID
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    Runs
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
@@ -92,13 +95,20 @@ export default function ExperimentsScreen() {
                 {experiments.map((exp) => (
                   <tr
                     key={exp.experiment_id}
-                    className="hover:bg-slate-50 transition-colors"
+                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                    onClick={() => onSelect?.(exp.experiment_id)}
                   >
                     <td className="px-6 py-4 text-sm font-medium text-slate-900">
                       {exp.experiment_name}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600 font-mono">
                       {exp.experiment_id.slice(0, 8)}...
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600 font-mono">
+                      {exp.run_count ?? '—'}
+                      {exp.failed_count ? (
+                        <span className="text-red-500 ml-1">({exp.failed_count} failed)</span>
+                      ) : null}
                     </td>
                     <td className="px-6 py-4">
                       <span
@@ -107,6 +117,8 @@ export default function ExperimentsScreen() {
                             ? 'bg-green-100 text-green-700'
                             : exp.status === 'running'
                             ? 'bg-blue-100 text-blue-700'
+                            : exp.status === 'partial'
+                            ? 'bg-yellow-100 text-yellow-700'
                             : exp.status === 'failed'
                             ? 'bg-red-100 text-red-700'
                             : 'bg-slate-100 text-slate-700'
