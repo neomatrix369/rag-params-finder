@@ -55,9 +55,17 @@ def analyze_results(
         for sr in qr.get("results", []):
             all_scores.append(_effective_score(sr))
 
+    # Normalize scores to 0-100 range
+    # For rerank scores (which can be negative), we need min-max normalization
+    # For dense scores (0-1 range), max normalization is fine
+    min_raw = min(all_scores) if all_scores else 0.0
     max_raw = max(all_scores) if all_scores else 1.0
-    if max_raw == 0:
-        max_raw = 1.0
+    score_range = max_raw - min_raw
+
+    if score_range == 0:
+        score_range = 1.0
+
+    logger.info(f"Score normalization: min={min_raw:.2f}, max={max_raw:.2f}, range={score_range:.2f}, scores={len(all_scores)}")
 
     config_scores: dict[tuple, list[float]] = defaultdict(list)
     config_result_counts: dict[tuple, int] = defaultdict(int)
@@ -74,7 +82,8 @@ def analyze_results(
 
         for sr in qr.get("results", []):
             raw = _effective_score(sr)
-            normalized = round((raw / max_raw) * 100)
+            # Use min-max normalization to handle scores that span negative to positive ranges
+            normalized = round(((raw - min_raw) / score_range) * 100)
 
             config_scores[key].append(normalized)
             config_result_counts[key] += 1
