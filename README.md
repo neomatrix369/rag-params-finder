@@ -10,15 +10,19 @@
 
 1. Engineer configures experiment sweeps in YAML (embedding models × chunking methods × retrieval methods)
 2. CLI submits experiment to FastAPI server
-3. Server orchestrates: PDF parsing → chunking → Voyage embedding → Atlas vector storage → query execution → reranking
+3. Server orchestrates: data loading (PDF/TXT/MD/CSV) → chunking → Voyage embedding → Atlas vector storage → query execution → reranking
 4. React dashboard displays live experiment status and results
 
 ### Key Features
 
+- **Multi-format data loading**: PDF, TXT, Markdown, CSV — files and/or directories (recursive scan)
 - **5 chunking methods**: Fixed, Recursive, Token, Sentence, Semantic (Voyage-aware)
 - **3 Voyage embedding models**: voyage-3.5-lite, voyage-3.5, voyage-context-3
 - **3 retrieval methods**: Dense (vector search), Sparse (BM25), Hybrid (weighted combination)
 - **Voyage reranking**: rerank-2.5-lite for top-K refinement
+- **URL-capable queries**: Queries file can be a local path or URL (auto-downloaded and cached)
+- **Centralized settings**: pydantic-settings-based config from `.env` or environment
+- **Auto-timestamped experiments**: Each run gets a unique timestamp suffix
 - **Live progress tracking**: Phase-based status updates
 - **MongoDB Atlas Vector Search**: Production-grade vector storage and retrieval
 
@@ -82,7 +86,25 @@ npm run dev
 
 Dashboard runs at `http://localhost:5173`.
 
-### 5. Run an Experiment
+### 5. Add Input Data
+
+Place your source documents in the `input_data/` directory (gitignored):
+
+```bash
+cp /path/to/my-document.pdf input_data/pdfs/
+```
+
+Then reference them in your config YAML:
+
+```yaml
+data_paths:
+  - ./input_data/pdfs/my-document.pdf   # individual file
+  # - ./input_data/pdfs/                # or a directory — scans recursively
+```
+
+Supported formats: `.pdf`, `.txt`, `.md`, `.csv`
+
+### 6. Run an Experiment
 
 ```bash
 # Terminal 3: CLI
@@ -90,11 +112,17 @@ rag-params-finder run --config configs/example.yaml
 ```
 
 The CLI will:
-- Submit experiment to server
+- Submit experiment to server (experiment name gets a timestamp suffix automatically)
 - Display experiment ID and run IDs
-- Exit (use `--watch` flag to monitor progress)
+- Poll run progress live (use `--detach` to skip polling)
 
-Check dashboard or query server endpoints to view results.
+### 7. View Results in the Dashboard
+
+Open `http://localhost:5173` in your browser:
+
+1. The **Experiments list** shows your submitted experiment with a status badge
+2. Click a row to open the **detail screen** — phase indicator dots show each run's progress (PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERANKING → COMPLETE)
+3. Once runs finish, drill into per-query results to compare dense vs rerank scores
 
 ---
 
@@ -104,11 +132,11 @@ Check dashboard or query server endpoints to view results.
 ┌──────────────┐    HTTP POST       ┌────────────────────────────────┐
 │  Python CLI  │ ──/experiments──▶ │  FastAPI Server (engine)        │
 │  (thin)      │                    │  • Sweep expansion             │
-│              │ ◀──polling reads── │  • PDF parsing (pypdf)         │
-│  --watch:    │                    │  • Chunking (LangChain+custom) │
-│   polls      │                    │  • Embedding (Voyage)          │
-│   /runs/*/   │                    │  • Atlas Vector Search         │
-│   status     │                    │  • Voyage rerank               │
+│              │ ◀──polling reads── │  • Data loading (PDF/TXT/MD/CSV)│
+│  --detach:   │                    │  • Chunking (LangChain+custom) │
+│   skip       │                    │  • Embedding (Voyage)          │
+│   polling    │                    │  • Atlas Vector Search         │
+│              │                    │  • Voyage rerank               │
 └──────────────┘                    │  • Run status tracking         │
                                      └────────────┬───────────────────┘
                                                   │
@@ -132,9 +160,13 @@ See `configs/example.yaml` for a complete example.
 **Minimal config**:
 
 ```yaml
-experiment_name: my-first-experiment
-pdf_path: ./papers/attention.pdf
-queries_file: ./configs/questions.example.json
+experiment_name: my-first-experiment  # timestamp suffix added automatically on each run
+
+data_paths:                            # list of files and/or directories
+  - ./input_data/pdfs/sample.pdf       # individual file
+  # - ./input_data/pdfs/               # or a directory — scans recursively for .pdf/.txt/.md/.csv
+
+queries_file: ./configs/questions.example.json  # local path or URL (downloaded to ./configs/ on first use)
 
 embedding:
   models:
@@ -205,12 +237,11 @@ rag-params-finder recover --experiment-id <id> --auto
 
 ## Dashboard
 
-Visit `http://localhost:5173` to:
+Open `http://localhost:5173` in your browser (requires the frontend dev server from step 4).
 
-- View experiment history
-- Monitor live runs (phase indicators)
-- Drill down into per-query results
-- Compare dense vs rerank scores
+**Experiments list** — table of all submitted experiments with status badges and run counts. Click any row to drill in.
+
+**Experiment detail** — shows every run in the sweep with phase indicator dots that update live (polls the server every 2 seconds). Once runs reach COMPLETE, expand per-query results to compare dense scores vs rerank scores.
 
 ---
 
@@ -236,19 +267,22 @@ pytest --cov=server --cov=cli --cov-report=html
 
 ```
 rag-params-finder/
-├── server/          # FastAPI engine
-│   ├── main.py      # App entry + boot recovery
-│   ├── api/         # Route handlers
-│   ├── core/        # Orchestration, chunking, embedding
-│   ├── models/      # Pydantic schemas
-│   └── db/          # Atlas connection
-├── cli/             # Python CLI client
-│   ├── main.py      # Typer entry
+├── server/              # FastAPI engine
+│   ├── main.py          # App entry + boot recovery
+│   ├── settings.py      # Centralized pydantic-settings config
+│   ├── api/             # Route handlers
+│   ├── core/            # Orchestration, chunking, embedding, data loading
+│   ├── models/          # Pydantic schemas
+│   └── db/              # Atlas connection
+├── cli/                 # Python CLI client
+│   ├── main.py          # Typer entry
 │   └── api_client.py
-├── frontend/        # React dashboard
+├── frontend/            # React dashboard
 │   └── src/
-├── configs/         # Example YAML and queries
-└── docs/            # Architecture, slices, ADRs
+├── configs/             # Example YAML and queries
+├── input_data/          # User-supplied documents (gitignored)
+│   └── pdfs/            # Place PDF files here
+└── docs/                # Architecture, slices, ADRs
 ```
 
 ---

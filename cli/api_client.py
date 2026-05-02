@@ -1,11 +1,11 @@
-import os
-
 import httpx
+
+from server.settings import settings
 
 
 def get_server_url() -> str:
-    """Get server URL from environment or use default."""
-    return os.environ.get("SERVER_URL", "http://localhost:8001")
+    """Get server URL from settings (.env or environment)."""
+    return settings.server_url
 
 
 def submit_experiment(config: dict) -> dict:

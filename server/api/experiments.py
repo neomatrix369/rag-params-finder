@@ -22,12 +22,14 @@ router = APIRouter()
 async def create_experiment(config: ExperimentConfig, background_tasks: BackgroundTasks):
     """Submit a new experiment sweep configuration."""
     experiment_id = str(uuid.uuid4())
+    timestamp_suffix = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    stamped_name = f"{config.experiment_name}_{timestamp_suffix}"
     runs = expand_sweep(config)
 
     experiment_doc = {
         "_id": experiment_id,
         "experiment_id": experiment_id,
-        "experiment_name": config.experiment_name,
+        "experiment_name": stamped_name,
         "config": config.model_dump(),
         "created_at": datetime.utcnow(),
         "status": "running",
@@ -35,13 +37,13 @@ async def create_experiment(config: ExperimentConfig, background_tasks: Backgrou
     }
     get_collection(EXPERIMENTS_COLLECTION).insert_one(experiment_doc)
 
-    logger.info(f"Experiment '{config.experiment_name}' ({experiment_id}): {len(runs)} runs")
+    logger.info(f"Experiment '{stamped_name}' ({experiment_id}): {len(runs)} runs")
     background_tasks.add_task(run_sweep, experiment_id, config)
 
     return {
         "status": "submitted",
         "experiment_id": experiment_id,
-        "experiment_name": config.experiment_name,
+        "experiment_name": stamped_name,
         "run_count": len(runs),
         "message": f"Experiment queued — {len(runs)} run(s) will execute",
     }

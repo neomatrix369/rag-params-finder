@@ -1,6 +1,11 @@
-experiment_name: my-first-experiment
-pdf_path: ./papers/sample.pdf
-queries_file: ./configs/questions.example.json
+experiment_name: my-first-experiment  # timestamp suffix added automatically on each run
+
+data_paths:                            # list of files and/or directories
+  - ./input_data/pdfs/sample.pdf                  # individual file
+
+  # - ./papers/                        # or a directory — all .pdf/.txt/.md/.csv files found recursively
+
+queries_file: ./configs/questions.example.json  # local path or URL (downloaded to ./configs/ on first use)
 
 embedding:
   models:

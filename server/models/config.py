@@ -33,7 +33,7 @@ class ExecutionConfig(BaseModel):
 
 class ExperimentConfig(BaseModel):
     experiment_name: str
-    pdf_path: str
+    data_paths: list[str]
     queries_file: str
     embedding: EmbeddingConfig
     chunking: ChunkingConfig
@@ -51,7 +51,7 @@ class RunParams(BaseModel):
     rerank_model: str | None
     top_k_initial: int
     top_k_final: int
-    pdf_path: str
+    data_paths: list[str]
     queries_file: str
 
 
@@ -74,7 +74,7 @@ def expand_sweep(config: ExperimentConfig) -> list[RunParams]:
             rerank_model=config.retrieval.rerank_model,
             top_k_initial=config.retrieval.top_k_initial,
             top_k_final=config.retrieval.top_k_final,
-            pdf_path=config.pdf_path,
+            data_paths=config.data_paths,
             queries_file=config.queries_file,
         )
         for model, method, size, overlap, retrieval in combos
