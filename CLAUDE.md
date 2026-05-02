@@ -216,6 +216,7 @@ Persona-based queries structure:
 - `server/core/embedder.py` — Provider dispatcher (local via sentence-transformers, Voyage via API)
 - `server/core/reranker.py` — Reranking dispatcher
 - `server/core/retriever.py` — Atlas Vector Search (dense/sparse/hybrid)
+- `server/core/results_analyzer.py` — Aggregates query results, normalizes scores (0-100 via min-max)
 - `server/models/config.py` — Pydantic experiment config with provider validation
 
 ### Frontend Core
@@ -264,6 +265,7 @@ Run backend tests: `pytest` (from project root with venv activated)
 4. **Queries file URL caching**: URL queries are downloaded to `configs/` and cached. Delete cached file to re-download.
 5. **Server must be running**: CLI requires server at `SERVER_URL` (default: http://localhost:8001)
 6. **Rate limits**: Voyage API has rate limits (RPM/TPM). Local models have no limits but are slower.
+7. **Score normalization**: Rerank scores can be negative (cross-encoder logits). System uses min-max normalization to map all scores to 0-100 range. Dense-only scores (cosine 0-1) also work correctly.
 
 ## Deployment Notes
 
