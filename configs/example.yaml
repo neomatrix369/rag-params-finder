@@ -1,0 +1,25 @@
+experiment_name: slice-1-skateboard
+pdf_path: ./papers/sample.pdf
+queries_file: ./configs/questions.example.json
+
+embedding:
+  models:
+    - voyage-3.5-lite
+
+chunking:
+  methods:
+    - recursive
+  params:
+    chunk_sizes: [512]
+    overlaps: [50]
+
+retrieval:
+  methods:
+    - dense
+  top_k_initial: 20
+  top_k_final: 5
+  rerank_model: null  # No reranking in Slice 1
+
+execution:
+  parallelism: 1
+  on_error: continue
