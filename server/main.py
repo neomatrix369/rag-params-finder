@@ -40,7 +40,7 @@ async def healthz():
     return {"ok": True}
 
 
-# Import and include routers
-from server.api import experiments
+from server.api import experiments, runs
 
 app.include_router(experiments.router, prefix="/experiments", tags=["experiments"])
+app.include_router(runs.router, prefix="/runs", tags=["runs"])

@@ -1,4 +1,4 @@
-experiment_name: slice-1-skateboard
+experiment_name: my-first-experiment
 pdf_path: ./papers/sample.pdf
 queries_file: ./configs/questions.example.json
 
@@ -10,15 +10,15 @@ chunking:
   methods:
     - recursive
   params:
-    chunk_sizes: [512]
-    overlaps: [50]
+    chunk_sizes: [256, 512, 1024]
+    overlaps: [50, 100]
 
 retrieval:
   methods:
     - dense
   top_k_initial: 20
   top_k_final: 5
-  rerank_model: null  # No reranking in Slice 1
+  rerank_model: rerank-2.5-lite
 
 execution:
   parallelism: 1

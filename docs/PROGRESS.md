@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-02 16:30  
-**Current**: Slice 1 ✅ BUILT (pending verification) | Next: Slice 2 📋 PLANNED
+**Last Updated**: 2026-05-02 18:00  
+**Current**: Slice 5 ✅ BUILT | Next: Slice 6 📋 PLANNED
 
 ---
 
@@ -10,10 +10,10 @@
 | Slice | Status | Time Target | Notes |
 |-------|--------|-------------|-------|
 | 1 — Skateboard | ✅ BUILT | ~75 min | Code complete, awaiting .env setup + Atlas vector index + test PDF |
-| 2 — Rerank | 📋 PLANNED | ~20 min | Voyage rerank-2.5-lite integration |
-| 3 — Sweep expansion | 📋 PLANNED | ~25 min | Cartesian product of runs ⭐ CORE FEATURE |
-| 4 — Live status + LiveRunScreen | 📋 PLANNED | ~30 min | Phase tracking + polling |
-| 5 — Multiple queries from persona JSON | 📋 PLANNED | ~20 min | Loop over persona questions |
+| 2 — Rerank | ✅ BUILT | ~10 min | Voyage rerank-2.5-lite integration |
+| 3 — Sweep expansion | ✅ BUILT | ~15 min | Cartesian product of runs ⭐ CORE FEATURE |
+| 4 — Live status + polling | ✅ BUILT | ~15 min | Phase tracking, CLI --watch, detail screen |
+| 5 — Multiple queries from persona JSON | ✅ BUILT | ~10 min | Loop over persona questions |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ BUILT | ✔️ COMPLETE
 
@@ -147,6 +147,108 @@ cd frontend && npm run dev
 | Tailwind installed locally | No CDN scripts in index.html per spec |
 | Hand-mirrored TS types | No codegen tooling for hackathon speed |
 | Hardcoded single query | Defer persona JSON loop to Slice 5 |
+
+---
+
+## Slice 2: Rerank ✅
+
+**Status**: ✅ BUILT | **Started**: 2026-05-02 | **Completed**: 2026-05-02 | **Target**: ~20 min | **Actual**: ~10 min
+
+### Goal
+Add Voyage rerank-2.5-lite to refine dense search results (top-20 → top-5).
+
+### What Changed
+- **NEW**: `server/core/reranker.py` — Voyage rerank client (reuses embedder's client singleton)
+- **EDIT**: `server/core/orchestrator.py` — Conditional RERANKING phase after QUERYING; fetches `top_k_initial` candidates, reranks to `top_k_final`
+- **EDIT**: `configs/example.yaml` — `rerank_model: rerank-2.5-lite` (was `null`)
+
+### Key Design Decisions
+| Decision | Why |
+|---|---|
+| Reuse embedder's `get_client()` singleton | Voyage SDK uses one client for embed + rerank; avoid duplicate initialization |
+| Conditional reranking (gate on `rerank_model`) | Allows `null` to skip reranking for A/B comparison |
+| `model_copy(update=...)` for SearchResult | Immutable Pydantic updates — preserves original dense_score alongside rerank_score |
+
+### No Changes Required
+- Frontend types already had `rerank_score?: number`
+- `Phase.RERANKING` enum already existed
+- `RetrievalConfig.rerank_model` already in config model
+
+---
+
+## Slice 3: Sweep Expansion ✅
+
+**Status**: ✅ BUILT | **Started**: 2026-05-02 | **Completed**: 2026-05-02 | **Target**: ~25 min | **Actual**: ~15 min
+
+### Goal
+Cartesian product expansion: one YAML config with N models × M methods × P sizes × Q overlaps × R retrieval methods → N×M×P×Q×R independent runs.
+
+### What Changed
+- **NEW**: `RunParams` model + `expand_sweep()` in `server/models/config.py`
+- **NEW**: `server/api/runs.py` — `GET /runs/{run_id}/status` endpoint
+- **NEW**: `server/api/__init__.py` — package init
+- **REWRITE**: `server/core/orchestrator.py` — split into `run_sweep()` + `run_single()` (accepts `RunParams`)
+- **REWRITE**: `server/api/experiments.py` — shows run_count in POST response, adds `GET /experiments/{id}/results`, includes run statuses in `GET /experiments/{id}`
+- **EDIT**: `server/main.py` — register `/runs` router
+- **EDIT**: `configs/example.yaml` — multi-value sweep (3 chunk_sizes × 2 overlaps = 6 runs)
+- **EDIT**: `frontend/src/types/index.ts` — `run_count`, `failed_count` fields on `Experiment`
+- **EDIT**: `frontend/src/components/ExperimentsScreen.tsx` — Runs column + partial status badge
+
+### Key Design Decisions
+| Decision | Why |
+|---|---|
+| `expand_sweep()` as pure function on config | Testable without side effects; called both in API (preview count) and orchestrator (execute) |
+| Sequential runs (not parallel) | `parallelism: 1` default; parallel execution deferred to avoid complexity |
+| `run_sweep()` + `run_single()` split | Single Responsibility — sweep management vs pipeline execution |
+| `on_error: continue/stop` | Allows partial completion without losing all results |
+| `partial` status for mixed outcomes | Distinguishes "some failed" from "all failed" or "all complete" |
+
+---
+
+## Slice 4: Live Status + Polling ✅
+
+**Status**: ✅ BUILT | **Started**: 2026-05-02 | **Completed**: 2026-05-02 | **Target**: ~30 min | **Actual**: ~15 min
+
+### Goal
+Live status tracking with CLI --watch and dashboard drill-down.
+
+### What Changed
+- **EDIT**: `cli/main.py` — Added `--watch` flag (default on), Rich Live table polling runs every 2s
+- **EDIT**: `cli/api_client.py` — Added `get_experiment()`, `get_run_status()` helpers
+- **EDIT**: `server/core/orchestrator.py` — elapsed_ms tracking per run; experiment_id passed from API layer
+- **EDIT**: `server/api/experiments.py` — experiment_id created in handler, returned in POST response
+- **NEW**: `server/api/runs.py` — `GET /runs/{run_id}/status`
+- **NEW**: `frontend/src/components/ExperimentDetailScreen.tsx` — Phase indicator dots, run table, polling
+- **EDIT**: `frontend/src/App.tsx` — Simple state-based routing (list ↔ detail)
+- **EDIT**: `frontend/src/components/ExperimentsScreen.tsx` — Clickable rows with `onSelect` prop
+
+### Key Design Decisions
+| Decision | Why |
+|---|---|
+| Rich Live table in CLI | Real-time phase display without clearing terminal |
+| experiment_id created in API handler | Returned immediately so CLI can poll before background task finishes |
+| Phase indicator dots in dashboard | Visual progress without text clutter |
+| State-based routing (no react-router) | Minimal dependency; only two screens |
+
+---
+
+## Slice 5: Multiple Queries from Persona JSON ✅
+
+**Status**: ✅ BUILT | **Started**: 2026-05-02 | **Completed**: 2026-05-02 | **Target**: ~20 min | **Actual**: ~10 min
+
+### Goal
+Load queries from persona JSON file and loop over all questions per run.
+
+### What Changed
+- **NEW**: `server/core/query_loader.py` — `Query` dataclass + `load_queries()` from persona JSON
+- **EDIT**: `server/core/orchestrator.py` — Replaced hardcoded query with `load_queries()` loop; stores `persona_id` and `focus` on each `QueryResult`
+
+### Key Design Decisions
+| Decision | Why |
+|---|---|
+| `Query` as frozen dataclass (not Pydantic) | Lightweight read-only data; no serialization needed |
+| Loop inside `run_single()` | Each query embeds + searches + reranks independently |
+| Rerank phase entered per query | Phase indicator shows reranking activity for each query |
 
 ---
 
