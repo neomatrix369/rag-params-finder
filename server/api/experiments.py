@@ -116,6 +116,40 @@ async def get_experiment_results(experiment_id: str):
     return {"experiment_id": experiment_id, "results": results}
 
 
+@router.get("/{experiment_id}/explore")
+async def explore_experiment(experiment_id: str, query: str | None = None):
+    """Aggregated results explorer — ranked configs + detailed results."""
+    from server.core.results_analyzer import analyze_results
+
+    logger.debug(f"GET /experiments/{experiment_id}/explore (query={query!r})")
+
+    experiment = get_collection(EXPERIMENTS_COLLECTION).find_one(
+        {"experiment_id": experiment_id}
+    )
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+
+    query_results = list(
+        get_collection(RESULTS_COLLECTION)
+        .find({"experiment_id": experiment_id}, {"_id": 0})
+    )
+    run_statuses = list(
+        get_collection(RUN_STATUS_COLLECTION)
+        .find({"experiment_id": experiment_id}, {"_id": 0})
+    )
+
+    explored = analyze_results(query_results, run_statuses, selected_query=query)
+    explored["experiment_id"] = experiment_id
+    explored["experiment_name"] = experiment.get("experiment_name", "")
+
+    logger.info(
+        f"Explore {experiment_id}: {explored['query_count']} queries, "
+        f"{explored['total_matches']} matches, "
+        f"{len(explored['ranked_configs'])} configs"
+    )
+    return explored
+
+
 @router.post("/{experiment_id}/cancel")
 async def cancel_experiment(experiment_id: str):
     """Cancel a running experiment."""

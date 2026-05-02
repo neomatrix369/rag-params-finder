@@ -1,6 +1,67 @@
+/**
+ * ExperimentDetailScreen
+ *
+ * Displays comprehensive experiment information with visual hierarchy:
+ * - Status badges, metric cards, and progress indicators
+ * - Themed metadata sections (Git, Config, Data, Sweep Dimensions)
+ * - Enhanced runs table with color-coded badges
+ * - Success/failure panels with large visual feedback
+ *
+ * Design Decisions:
+ * - "Embedding Models" (not "Models") to distinguish from reranking models
+ * - Voyage rate limit fields only shown when provider is "voyage"
+ * - Failed count always visible (even when 0) for consistency
+ * - Color system: Blue (primary), Green (success), Red (failure), Amber (warning), Purple (secondary)
+ */
 import { useEffect, useState } from 'react';
 import { cancelExperiment, getExperiment } from '../services/apiClient';
 import { RunStatus, Phase, EnvParams, SweepSummary } from '../types';
+
+// Icon components (minimal SVG)
+const icons = {
+  clock: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  check: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    </svg>
+  ),
+  x: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  ),
+  play: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  code: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+    </svg>
+  ),
+  database: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+    </svg>
+  ),
+  settings: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
+  grid: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+    </svg>
+  ),
+};
 
 interface ExperimentDetail {
   experiment_id: string;
@@ -25,6 +86,14 @@ interface ExperimentDetail {
   parallelism?: number;
   on_error?: string;
   sweep_summary?: SweepSummary;
+  config?: {
+    embedding?: {
+      provider?: string;
+    };
+    retrieval?: {
+      rerank_provider?: string;
+    };
+  };
 }
 
 const PHASE_ORDER: Phase[] = [
@@ -108,12 +177,124 @@ function MetadataItem({ label, value }: { label: string; value: string | number 
   );
 }
 
+// Status badge with color coding
+function StatusBadge({ status }: { status: string }) {
+  const config = {
+    complete: { bg: 'bg-green-100', text: 'text-green-800', icon: icons.check, ring: 'ring-green-600' },
+    running: { bg: 'bg-blue-100', text: 'text-blue-800', icon: icons.play, ring: 'ring-blue-600' },
+    failed: { bg: 'bg-red-100', text: 'text-red-800', icon: icons.x, ring: 'ring-red-600' },
+    partial: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: icons.x, ring: 'ring-yellow-600' },
+    cancelled: { bg: 'bg-gray-100', text: 'text-gray-800', icon: icons.x, ring: 'ring-gray-600' },
+  }[status] || { bg: 'bg-slate-100', text: 'text-slate-800', icon: icons.clock, ring: 'ring-slate-600' };
+
+  return (
+    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${config.bg} ${config.text} font-semibold ring-2 ${config.ring}`}>
+      {config.icon}
+      <span className="uppercase text-sm tracking-wide">{status}</span>
+    </div>
+  );
+}
+
+// Stat card for key metrics
+function StatCard({
+  label,
+  value,
+  icon,
+  trend,
+  color = 'blue'
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+  trend?: string;
+  color?: 'blue' | 'green' | 'purple' | 'amber';
+}) {
+  const colors = {
+    blue: 'bg-blue-50 text-blue-600 border-blue-200',
+    green: 'bg-green-50 text-green-600 border-green-200',
+    purple: 'bg-purple-50 text-purple-600 border-purple-200',
+    amber: 'bg-amber-50 text-amber-600 border-amber-200',
+  };
+
+  return (
+    <div className={`${colors[color]} rounded-xl p-4 border-2 shadow-sm`}>
+      <div className="flex items-start justify-between mb-2">
+        <div className="p-2 rounded-lg bg-white/80">
+          {icon}
+        </div>
+        {trend && <span className="text-xs font-medium opacity-75">{trend}</span>}
+      </div>
+      <div className="mt-2">
+        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-xs font-medium uppercase tracking-wide mt-1 opacity-75">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+// Progress ring
+function ProgressRing({ percent, size = 80 }: { percent: number; size?: number }) {
+  const radius = (size - 8) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percent / 100) * circumference;
+
+  return (
+    <div className="relative inline-flex items-center justify-center">
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="currentColor"
+          strokeWidth="4"
+          fill="none"
+          className="text-slate-200"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="currentColor"
+          strokeWidth="4"
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="text-green-500 transition-all duration-500"
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className="absolute text-lg font-bold text-slate-700">{Math.round(percent)}%</span>
+    </div>
+  );
+}
+
+// Dimension badge for sweep params
+function DimensionBadge({ label, values }: { label: string; values: (string | number)[] }) {
+  return (
+    <div className="bg-white rounded-lg border border-slate-200 p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+        <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">{label}</span>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {values.map((v, i) => (
+          <span key={i} className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium">
+            {String(v)}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ExperimentDetailScreen({
   experimentId,
   onBack,
+  onExplore,
 }: {
   experimentId: string;
   onBack: () => void;
+  onExplore?: () => void;
 }) {
   const [detail, setDetail] = useState<ExperimentDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -163,116 +344,203 @@ export default function ExperimentDetailScreen({
           ← Back to experiments
         </button>
 
-        <div className="mb-6">
+        {/* Header with status */}
+        <div className="mb-6 bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
           <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">
-                {detail?.experiment_name ?? 'Loading...'}
-              </h1>
-              <p className="text-sm text-slate-500 font-mono mt-1">{experimentId}</p>
-              {detail && (
-                <div className="flex gap-4 mt-2 text-sm text-slate-600">
-                  <span>Status: <strong>{detail.status}</strong></span>
-                  {detail.run_count != null && <span>Runs: {detail.run_count}</span>}
-                  {detail.failed_count ? (
-                    <span className="text-red-600">{detail.failed_count} failed</span>
-                  ) : null}
-                </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-slate-900">
+                  {detail?.experiment_name ?? 'Loading...'}
+                </h1>
+                {detail && <StatusBadge status={detail.status} />}
+              </div>
+              <p className="text-sm text-slate-500 font-mono">{experimentId}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {isTerminal && onExplore && (
+                <button
+                  onClick={onExplore}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold rounded-xl shadow-md transition-all transform hover:scale-105"
+                >
+                  🔍 Explore Results
+                </button>
+              )}
+              {isRunning && (
+                <button
+                  onClick={handleCancel}
+                  disabled={cancelling}
+                  className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-sm font-semibold rounded-xl shadow-md transition-all"
+                >
+                  {cancelling ? 'Cancelling...' : '⏹ Cancel Experiment'}
+                </button>
               )}
             </div>
-            {isRunning && (
-              <button
-                onClick={handleCancel}
-                disabled={cancelling}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                {cancelling ? 'Cancelling...' : 'Cancel Experiment'}
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Metadata panel */}
+        {/* Key metrics cards */}
         {detail && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <StatCard
+              label="Total Runs"
+              value={detail.run_count ?? 0}
+              icon={icons.grid}
+              color="blue"
+            />
+            <StatCard
+              label="Successful"
+              value={(detail.run_count ?? 0) - (detail.failed_count ?? 0)}
+              icon={icons.check}
+              color="green"
+            />
+            <StatCard
+              label="Failed"
+              value={detail.failed_count ?? 0}
+              icon={icons.x}
+              color="amber"
+            />
+            <StatCard
+              label="Duration"
+              value={formatDuration(detail.started_at, detail.completed_at)}
+              icon={icons.clock}
+              color="purple"
+            />
+          </div>
+        )}
+
+        {/* Progress visualization for running experiments */}
+        {detail && isRunning && detail.runs && detail.runs.length > 0 && (
+          <div className="mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-sm border border-blue-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 mb-1">Experiment Progress</h3>
+                <p className="text-sm text-slate-600">
+                  {detail.runs.filter(r => r.phase === Phase.COMPLETE).length} of {detail.runs.length} runs completed
+                </p>
+              </div>
+              <ProgressRing
+                percent={(detail.runs.filter(r => r.phase === Phase.COMPLETE).length / detail.runs.length) * 100}
+                size={100}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Metadata sections */}
+        {detail && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Git & Timeline */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+              <div className="flex items-center gap-2 mb-4">
+                {icons.code}
+                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                  Git & Timeline
+                </h2>
+              </div>
+              <div className="space-y-3">
+                <MetadataItem
+                  label="Git Commit"
+                  value={detail.git_commit
+                    ? `${detail.git_commit.slice(0, 8)}${detail.git_dirty ? ' (dirty)' : ''}`
+                    : undefined}
+                />
+                <MetadataItem label="Git Branch" value={detail.git_branch} />
+                <MetadataItem
+                  label="Started"
+                  value={detail.started_at ? new Date(detail.started_at).toLocaleString() : undefined}
+                />
+                <MetadataItem
+                  label="Completed"
+                  value={detail.completed_at ? new Date(detail.completed_at).toLocaleString() : undefined}
+                />
+                <MetadataItem label="App Version" value={detail.app_version} />
+                <MetadataItem label="Python" value={detail.python_version} />
+              </div>
+            </div>
+
+            {/* Sweep Configuration */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+              <div className="flex items-center gap-2 mb-4">
+                {icons.settings}
+                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                  Configuration
+                </h2>
+              </div>
+              <div className="space-y-3">
+                <MetadataItem label="Rerank Model" value={detail.rerank_model ?? 'none'} />
+                <MetadataItem label="Top-K Initial" value={detail.top_k_initial} />
+                <MetadataItem label="Top-K Final" value={detail.top_k_final} />
+                <MetadataItem label="Parallelism" value={detail.parallelism} />
+                <MetadataItem label="On Error" value={detail.on_error} />
+                <MetadataItem label="Queries" value={detail.queries_file} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Data Paths */}
+        {detail?.data_paths && detail.data_paths.length > 0 && (
           <div className="mb-6 bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-              Experiment Metadata
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              <MetadataItem
-                label="Git Commit"
-                value={detail.git_commit
-                  ? `${detail.git_commit}${detail.git_dirty ? ' (dirty)' : ''}`
-                  : undefined}
-              />
-              <MetadataItem label="Git Branch" value={detail.git_branch} />
-              <MetadataItem
-                label="Started"
-                value={detail.started_at ? new Date(detail.started_at).toLocaleString() : undefined}
-              />
-              <MetadataItem
-                label="Completed"
-                value={detail.completed_at ? new Date(detail.completed_at).toLocaleString() : undefined}
-              />
-              <MetadataItem
-                label="Duration"
-                value={formatDuration(detail.started_at, detail.completed_at)}
-              />
-              <MetadataItem label="Status" value={detail.status} />
-              <MetadataItem label="App Version" value={detail.app_version} />
-              <MetadataItem label="Python" value={detail.python_version} />
+            <div className="flex items-center gap-2 mb-3">
+              {icons.database}
+              <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                Data Sources
+              </h2>
             </div>
+            <div className="flex flex-wrap gap-2">
+              {detail.data_paths.map((p) => (
+                <span key={p} className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-slate-100 to-slate-50 border border-slate-200 text-slate-700 text-sm font-mono rounded-lg shadow-sm">
+                  📄 {p.split('/').pop()}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
-            {/* Sweep config */}
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-4 mb-2">
-              Sweep Configuration
+        {/* Sweep Dimensions - Visual Grid */}
+        {detail?.sweep_summary && (
+          <div className="mb-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl shadow-sm border border-purple-200 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              {icons.grid}
+              <h2 className="text-lg font-bold text-slate-800">
+                Sweep Dimensions
+              </h2>
+              <span className="ml-auto text-sm text-purple-700 font-semibold">
+                {detail.sweep_summary.models.length *
+                  detail.sweep_summary.chunking_methods.length *
+                  detail.sweep_summary.chunk_sizes.length *
+                  detail.sweep_summary.overlaps.length *
+                  detail.sweep_summary.retrieval_methods.length} combinations
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <DimensionBadge label="Embedding Models" values={detail.sweep_summary.models} />
+              <DimensionBadge label="Chunking" values={detail.sweep_summary.chunking_methods} />
+              <DimensionBadge label="Chunk Sizes" values={detail.sweep_summary.chunk_sizes} />
+              <DimensionBadge label="Overlaps" values={detail.sweep_summary.overlaps} />
+              <DimensionBadge label="Retrieval" values={detail.sweep_summary.retrieval_methods} />
+            </div>
+          </div>
+        )}
+
+        {/* Environment */}
+        {detail?.env_params && (
+          <div className="mb-6 bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+              Environment
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              <MetadataItem label="Rerank Model" value={detail.rerank_model ?? 'none'} />
-              <MetadataItem label="Top-K Initial" value={detail.top_k_initial} />
-              <MetadataItem label="Top-K Final" value={detail.top_k_final} />
-              <MetadataItem label="Parallelism" value={detail.parallelism} />
-              <MetadataItem label="On Error" value={detail.on_error} />
-              <MetadataItem label="Queries" value={detail.queries_file} />
-            </div>
-            {detail.data_paths && detail.data_paths.length > 0 && (
-              <div className="mt-2">
-                <span className="text-xs text-slate-400 uppercase tracking-wider">Data Paths</span>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {detail.data_paths.map((p) => (
-                    <span key={p} className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
-                      {p}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {detail.sweep_summary && (
-              <div className="mt-3">
-                <span className="text-xs text-slate-400 uppercase tracking-wider">Sweep Dimensions</span>
-                <div className="mt-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                  <MetadataItem label="Models" value={detail.sweep_summary.models.join(', ')} />
-                  <MetadataItem label="Chunkers" value={detail.sweep_summary.chunking_methods.join(', ')} />
-                  <MetadataItem label="Chunk Sizes" value={detail.sweep_summary.chunk_sizes.join(', ')} />
-                  <MetadataItem label="Overlaps" value={detail.sweep_summary.overlaps.join(', ')} />
-                  <MetadataItem label="Retrieval" value={detail.sweep_summary.retrieval_methods.join(', ')} />
-                </div>
-              </div>
-            )}
-
-            {detail.env_params && (
-              <>
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-4 mb-2">
-                  Environment
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  <MetadataItem label="Server URL" value={detail.env_params.server_url} />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <MetadataItem label="Server URL" value={detail.env_params.server_url} />
+              {/* Only show Voyage rate limits if using Voyage provider */}
+              {(detail.config?.embedding?.provider === 'voyage' ||
+                detail.config?.retrieval?.rerank_provider === 'voyage') && (
+                <>
                   <MetadataItem label="Voyage RPM" value={detail.env_params.voyage_rpm_limit} />
                   <MetadataItem label="Voyage TPM" value={detail.env_params.voyage_tpm_limit} />
-                  <MetadataItem label="Recover on Boot" value={String(detail.env_params.recover_on_boot)} />
-                </div>
-              </>
-            )}
+                </>
+              )}
+              <MetadataItem label="Recover on Boot" value={String(detail.env_params.recover_on_boot)} />
+            </div>
           </div>
         )}
 
@@ -282,76 +550,150 @@ export default function ExperimentDetailScreen({
           </div>
         )}
 
+        {/* Runs Table - Enhanced */}
         {detail?.runs && detail.runs.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-visible">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Run ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Model</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Chunker</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Size/Overlap</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Retrieval</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Phase</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Elapsed</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {detail.runs.map((run) => (
-                  <tr key={run.run_id} className={`hover:bg-slate-50 transition-colors ${run.phase === Phase.FAILED ? 'bg-red-50/50' : ''}`}>
-                    <td className="px-4 py-3 text-sm font-mono text-slate-600">
-                      {run.run_id.slice(0, 8)}
-                    </td>
-                    <td className="px-4 py-3 text-sm">{run.embedding_model}</td>
-                    <td className="px-4 py-3 text-sm">{run.chunking_method}</td>
-                    <td className="px-4 py-3 text-sm font-mono">{run.chunk_size}/{run.overlap}</td>
-                    <td className="px-4 py-3 text-sm">{run.retrieval_method}</td>
-                    <td className="px-4 py-3"><PhaseIndicator current={run.phase} /></td>
-                    <td className="px-4 py-3 text-sm text-slate-500">
-                      {run.elapsed_ms > 0 ? `${(run.elapsed_ms / 1000).toFixed(1)}s` : '—'}
-                    </td>
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
+              <h2 className="text-lg font-bold text-slate-800">
+                Run Details ({detail.runs.length})
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b-2 border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Run ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Embedding Model</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Chunker</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Size/Overlap</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Retrieval</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Phase</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Elapsed</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {detail.runs.map((run, idx) => {
+                    const isComplete = run.phase === Phase.COMPLETE;
+                    const isFailed = run.phase === Phase.FAILED;
+                    const rowBg = isFailed ? 'bg-red-50/50' : isComplete ? 'bg-green-50/30' : '';
+
+                    return (
+                      <tr key={run.run_id} className={`hover:bg-blue-50/40 transition-all duration-200 ${rowBg}`}>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center">
+                              {idx + 1}
+                            </span>
+                            <span className="text-sm font-mono text-slate-600">
+                              {run.run_id.slice(0, 8)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 text-xs font-medium">
+                            {run.embedding_model}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-purple-100 text-purple-800 text-xs font-medium">
+                            {run.chunking_method}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="text-sm font-mono text-slate-700 font-semibold">
+                            {run.chunk_size} / {run.overlap}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 text-xs font-medium">
+                            {run.retrieval_method}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <PhaseIndicator current={run.phase} />
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-1 text-sm text-slate-500">
+                            {icons.clock}
+                            <span className="font-medium">
+                              {run.elapsed_ms > 0 ? `${(run.elapsed_ms / 1000).toFixed(1)}s` : '—'}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {/* Failed runs detail */}
         {detail?.runs && detail.runs.filter(r => r.phase === Phase.FAILED).length > 0 && (
-          <div className="mt-6 bg-red-50 border border-red-200 rounded-xl p-5">
-            <h2 className="text-sm font-bold text-red-800 mb-3">
-              Failed Runs ({detail.runs.filter(r => r.phase === Phase.FAILED).length})
-            </h2>
+          <div className="mt-6 bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white">
+                {icons.x}
+              </div>
+              <h2 className="text-lg font-bold text-red-900">
+                Failed Runs ({detail.runs.filter(r => r.phase === Phase.FAILED).length})
+              </h2>
+            </div>
             <div className="space-y-3">
               {detail.runs.filter(r => r.phase === Phase.FAILED).map(run => (
-                <div key={run.run_id} className="bg-white border border-red-100 rounded-lg p-3">
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="text-xs font-mono text-slate-500">{run.run_id.slice(0, 8)}</span>
-                    <span className="text-xs text-slate-600">
-                      {run.embedding_model} / {run.chunking_method} / {run.chunk_size}+{run.overlap}
+                <div key={run.run_id} className="bg-white border-l-4 border-red-400 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-mono font-bold rounded">
+                      {run.run_id.slice(0, 8)}
+                    </span>
+                    <span className="text-sm text-slate-700 font-medium">
+                      {run.embedding_model} · {run.chunking_method} · {run.chunk_size}+{run.overlap}
                     </span>
                     {run.elapsed_ms > 0 && (
-                      <span className="text-xs text-slate-400">
-                        after {(run.elapsed_ms / 1000).toFixed(1)}s
+                      <span className="ml-auto text-xs text-slate-500 flex items-center gap-1">
+                        {icons.clock}
+                        {(run.elapsed_ms / 1000).toFixed(1)}s
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-red-700 font-mono whitespace-pre-wrap">
-                    {run.error_message || 'No error message recorded'}
-                  </p>
+                  <div className="bg-red-50 rounded-md p-3 border border-red-100">
+                    <p className="text-sm text-red-900 font-mono whitespace-pre-wrap">
+                      {run.error_message || 'No error message recorded'}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Success summary */}
+        {/* Success summary with explore CTA */}
         {isTerminal && detail?.runs && detail.runs.filter(r => r.phase === Phase.FAILED).length === 0 && (
-          <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-5">
-            <p className="text-sm text-green-800 font-medium">
-              All {detail.runs.length} run(s) completed successfully.
-            </p>
+          <div className="mt-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white">
+                  {icons.check}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-green-900">
+                    All Runs Completed Successfully!
+                  </h3>
+                  <p className="text-sm text-green-700 mt-1">
+                    {detail.runs.length} run(s) finished without errors
+                  </p>
+                </div>
+              </div>
+              {onExplore && (
+                <button
+                  onClick={onExplore}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold rounded-xl shadow-md transition-all transform hover:scale-105 flex items-center gap-2"
+                >
+                  🔍 Explore Results
+                </button>
+              )}
+            </div>
           </div>
         )}
 

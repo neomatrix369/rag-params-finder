@@ -57,6 +57,7 @@ Thumbs.db
 *.key
 *.pem
 credentials.json
+CLAUDE.local.md
 
 # Input data (PDFs, docs — user-supplied, not committed)
 input_data/
@@ -73,3 +74,4 @@ frontend/coverage/
 ideate/
 .claude
 .cursor
+CLAUDE.local.md

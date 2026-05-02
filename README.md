@@ -25,7 +25,8 @@
 - **URL-capable queries**: Queries file can be a local path or URL (auto-downloaded and cached)
 - **Centralized settings**: pydantic-settings-based config from `.env` or environment
 - **Auto-timestamped experiments**: Each run gets a unique timestamp suffix
-- **Live progress tracking**: Phase-based status updates
+- **Live progress tracking**: Phase-based status updates with visual progress indicators
+- **Rich experiment dashboard**: Metric cards, status badges, color-coded runs table
 - **MongoDB Atlas Vector Search**: Production-grade vector storage and retrieval
 
 ---

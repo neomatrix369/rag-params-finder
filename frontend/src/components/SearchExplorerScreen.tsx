@@ -1,0 +1,501 @@
+import { useCallback, useEffect, useState } from 'react';
+import { getExperimentExplore } from '../services/apiClient';
+import { DetailedResult, ExploreResponse, RankedConfig } from '../types';
+
+type Tab = 'hyperparameters' | 'detailed';
+
+function ScoreBar({ score }: { score: number }) {
+  return (
+    <div className="flex items-center gap-2 min-w-[120px]">
+      <div className="flex-1 h-2.5 bg-slate-200 rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full bg-green-500 transition-all duration-300"
+          style={{ width: `${Math.min(score, 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MethodBadge({ method, variant }: { method: string; variant: 'retrieval' | 'chunking' | 'model' }) {
+  const colors = {
+    retrieval: 'bg-orange-100 text-orange-700 border-orange-200',
+    chunking: 'bg-slate-100 text-slate-700 border-slate-200',
+    model: 'bg-blue-50 text-blue-700 border-blue-200',
+  };
+  return (
+    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded border ${colors[variant]}`}>
+      {method.toUpperCase()}
+    </span>
+  );
+}
+
+function BestParamsCard({ config }: { config: RankedConfig }) {
+  return (
+    <div className="bg-slate-800 rounded-xl p-6 text-white">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-yellow-400 text-lg">&#127942;</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+          Best Overall Parameters
+        </span>
+      </div>
+
+      <div className="flex items-start justify-between">
+        <div className="space-y-3">
+          <div>
+            <div className="text-xs text-slate-400 uppercase tracking-wider">Winning Embedding Model</div>
+            <div className="text-lg font-bold">{config.embedding_model}</div>
+          </div>
+          <div className="flex gap-8">
+            <div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider">Chunking</div>
+              <div className="text-sm font-semibold capitalize">{config.chunking_method}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider">Retrieval</div>
+              <div className="text-sm font-semibold capitalize">{config.retrieval_method}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider">Chunk Size</div>
+              <div className="text-sm font-semibold">{config.chunk_size}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider">Overlap</div>
+              <div className="text-sm font-semibold">{config.overlap}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-right">
+          <div className="text-xs text-slate-400 uppercase tracking-wider">Relevance Score</div>
+          <div className="text-5xl font-black">
+            {config.max_score}<span className="text-2xl text-slate-400">%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfigCard({ config }: { config: RankedConfig }) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div className="flex items-start justify-between mb-3">
+        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold">
+          #{config.rank}
+        </span>
+        <div className="text-right">
+          <span className="text-2xl font-black text-slate-800">{config.max_score}</span>
+          <span className="text-sm text-slate-400 ml-0.5">MAX SCORE</span>
+        </div>
+      </div>
+
+      <div className="space-y-2 text-sm">
+        <div>
+          <span className="text-xs text-slate-400 uppercase tracking-wider">Embedding Model</span>
+          <div className="font-mono text-slate-700 text-xs">{config.embedding_model}</div>
+        </div>
+        <div className="flex gap-4">
+          <div>
+            <span className="text-xs text-slate-400 uppercase tracking-wider">Chunking</span>
+            <div className="font-medium text-slate-700 capitalize">{config.chunking_method}</div>
+          </div>
+          <div>
+            <span className="text-xs text-slate-400 uppercase tracking-wider">Size/Overlap</span>
+            <div className="font-mono text-slate-700">{config.chunk_size}/{config.overlap}</div>
+          </div>
+        </div>
+        <div>
+          <span className="text-xs text-slate-400 uppercase tracking-wider">Retrieval</span>
+          <div className="font-medium text-slate-700 capitalize">{config.retrieval_method}</div>
+        </div>
+        <div>
+          <span className="text-xs text-slate-400 uppercase tracking-wider">Avg Score</span>
+          <div className="font-medium text-slate-700">{config.avg_score}%</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HyperparametersTab({ data }: { data: ExploreResponse }) {
+  const topConfigs = data.ranked_configs.slice(0, 3);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-bold text-slate-800 mb-1">Overall Corpus Performance</h3>
+        <p className="text-sm text-slate-500">
+          Top {Math.min(3, data.ranked_configs.length)} parameter configurations that yielded
+          the highest relevance scores across the entire result set.
+        </p>
+      </div>
+
+      {data.best_params && <BestParamsCard config={data.best_params} />}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {topConfigs.map((c) => (
+          <ConfigCard key={`${c.embedding_model}-${c.chunking_method}-${c.chunk_size}-${c.overlap}-${c.retrieval_method}`} config={c} />
+        ))}
+      </div>
+
+      {data.ranked_configs.length > 3 && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+            <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wider">
+              All Configurations ({data.ranked_configs.length})
+            </h4>
+          </div>
+          <table className="w-full">
+            <thead className="bg-slate-50 border-b border-slate-100">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Rank</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Embedding Model</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Chunking</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Size/Overlap</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Retrieval</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Max Score</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Avg Score</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Results</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {data.ranked_configs.map((c) => (
+                <tr key={`row-${c.rank}`} className="hover:bg-slate-50">
+                  <td className="px-4 py-2.5 text-sm font-bold text-slate-600">#{c.rank}</td>
+                  <td className="px-4 py-2.5 text-sm font-mono text-slate-700">{c.embedding_model}</td>
+                  <td className="px-4 py-2.5 text-sm capitalize">{c.chunking_method}</td>
+                  <td className="px-4 py-2.5 text-sm font-mono">{c.chunk_size}/{c.overlap}</td>
+                  <td className="px-4 py-2.5"><MethodBadge method={c.retrieval_method} variant="retrieval" /></td>
+                  <td className="px-4 py-2.5 text-sm font-bold">{c.max_score}%</td>
+                  <td className="px-4 py-2.5 text-sm">{c.avg_score}%</td>
+                  <td className="px-4 py-2.5 text-sm text-slate-500">{c.result_count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DetailedResultsTab({ results }: { results: DetailedResult[] }) {
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+
+  const toggleExpand = useCallback((rank: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(rank)) {
+        next.delete(rank);
+      } else {
+        next.add(rank);
+      }
+      return next;
+    });
+  }, []);
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="divide-y divide-slate-100">
+        {results.map((r) => {
+          const isExpanded = expanded.has(r.rank);
+          const truncatedText = r.chunk_text.length > 120
+            ? r.chunk_text.slice(0, 120) + '...'
+            : r.chunk_text;
+
+          return (
+            <div
+              key={r.rank}
+              className="flex items-start gap-4 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer"
+              onClick={() => toggleExpand(r.rank)}
+            >
+              <div className="flex items-center gap-3 shrink-0 pt-0.5">
+                <span className="inline-flex items-center justify-center w-8 h-6 rounded bg-blue-600 text-white text-xs font-bold">
+                  #{r.rank}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0 w-[140px] pt-0.5">
+                <ScoreBar score={r.score} />
+                <span className="text-sm font-bold text-slate-800 w-8 text-right">{r.score}</span>
+              </div>
+
+              <div className="shrink-0 pt-0.5">
+                <span className="text-xs font-mono text-slate-500">{r.embedding_model}</span>
+              </div>
+
+              <div className="shrink-0 pt-0.5">
+                <MethodBadge method={r.retrieval_method} variant="retrieval" />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-slate-600 leading-snug">
+                  &ldquo;{isExpanded ? r.chunk_text : truncatedText}&rdquo;
+                </p>
+              </div>
+
+              <div className="shrink-0 pt-0.5 text-right">
+                <span className="text-xs text-slate-400 uppercase tracking-wider">
+                  {r.chunking_method}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ConfigSidebar({ data, selectedMethods, onToggleMethod }: {
+  data: ExploreResponse;
+  selectedMethods: Set<string>;
+  onToggleMethod: (method: string) => void;
+}) {
+  const allMethods = [...new Set(data.ranked_configs.map((c) => c.retrieval_method))];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+          Target Configurations
+        </h3>
+        <div className="space-y-1.5">
+          {data.ranked_configs.map((c) => (
+            <div
+              key={`sidebar-${c.rank}`}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-700/50 text-white text-sm"
+            >
+              <div className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-xs truncate">
+                  {c.chunking_method}/{c.chunk_size}+{c.overlap}
+                </div>
+                <div className="text-xs text-slate-400">{c.result_count} results</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+          Search Parameters
+        </h3>
+        <div className="mb-2 text-xs text-slate-300 font-medium">Retrieval Methods</div>
+        <div className="space-y-1.5">
+          {allMethods.map((method) => (
+            <label
+              key={method}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-700/50 text-white text-sm cursor-pointer hover:bg-slate-700"
+            >
+              <input
+                type="checkbox"
+                checked={selectedMethods.has(method)}
+                onChange={() => onToggleMethod(method)}
+                className="rounded border-slate-500 text-blue-500 focus:ring-blue-500"
+              />
+              <span className="capitalize">{method}</span>
+              <span className="text-xs text-slate-400 ml-auto">
+                ({method === 'dense' ? 'Vector Similarity' : method === 'sparse' ? 'Keyword BM25' : 'Dense + Sparse'})
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="text-xs text-slate-400 pt-2 border-t border-slate-700">
+        <div>Configs: {data.ranked_configs.length}</div>
+        <div>Total matches: {data.total_matches}</div>
+      </div>
+    </div>
+  );
+}
+
+export default function SearchExplorerScreen({
+  experimentId,
+  onBack,
+}: {
+  experimentId: string;
+  onBack: () => void;
+}) {
+  const [data, setData] = useState<ExploreResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<Tab>('hyperparameters');
+  const [selectedQuery, setSelectedQuery] = useState<string>('');
+  const [selectedMethods, setSelectedMethods] = useState<Set<string>>(new Set());
+
+  const loadData = useCallback(async (query?: string) => {
+    try {
+      setLoading(true);
+      const response = await getExperimentExplore(experimentId, query || undefined);
+      setData(response);
+      setError(null);
+
+      if (selectedMethods.size === 0) {
+        const methods = new Set(response.ranked_configs.map((c) => c.retrieval_method));
+        setSelectedMethods(methods);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load');
+    } finally {
+      setLoading(false);
+    }
+  }, [experimentId, selectedMethods.size]);
+
+  useEffect(() => {
+    loadData(selectedQuery || undefined);
+  }, [selectedQuery]);
+
+  const handleToggleMethod = useCallback((method: string) => {
+    setSelectedMethods((prev) => {
+      const next = new Set(prev);
+      if (next.has(method)) {
+        next.delete(method);
+      } else {
+        next.add(method);
+      }
+      return next;
+    });
+  }, []);
+
+  const filteredResults = data
+    ? data.detailed_results.filter((r) => selectedMethods.has(r.retrieval_method))
+    : [];
+
+  const filteredConfigs = data
+    ? data.ranked_configs.filter((c) => selectedMethods.has(c.retrieval_method))
+    : [];
+
+  const filteredData = data
+    ? { ...data, detailed_results: filteredResults, ranked_configs: filteredConfigs }
+    : null;
+
+  return (
+    <div className="min-h-screen bg-slate-900 flex">
+      {/* Left sidebar */}
+      <aside className="w-72 bg-slate-800 border-r border-slate-700 p-5 overflow-y-auto shrink-0">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+              <span className="text-white text-xs font-bold">P</span>
+            </div>
+            <div>
+              <div className="text-white font-bold text-sm">Explorer</div>
+              <div className="text-slate-400 text-xs uppercase tracking-wider">Search Explorer</div>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={onBack}
+          className="w-full mb-6 px-3 py-2 text-sm text-blue-400 hover:text-blue-300 text-left flex items-center gap-1"
+        >
+          &larr; Back to experiment
+        </button>
+
+        {data && (
+          <ConfigSidebar
+            data={data}
+            selectedMethods={selectedMethods}
+            onToggleMethod={handleToggleMethod}
+          />
+        )}
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 bg-slate-50 overflow-y-auto">
+        <div className="p-8 max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-slate-900">Search Explorer</h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Analyze how different retrieval methods and parameters perform on your indexed content.
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+              {error}
+            </div>
+          )}
+
+          {/* Query selector */}
+          {data && data.queries.length > 0 && (
+            <div className="mb-6 flex items-center gap-4">
+              <div className="flex-1">
+                <select
+                  value={selectedQuery}
+                  onChange={(e) => setSelectedQuery(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All queries ({data.queries.length})</option>
+                  {data.queries.map((q) => (
+                    <option key={q} value={q}>
+                      {q.length > 80 ? q.slice(0, 80) + '...' : q}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div className="flex items-center gap-0 mb-6 border-b border-slate-200">
+            <button
+              onClick={() => setActiveTab('hyperparameters')}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'hyperparameters'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Hyperparameters
+            </button>
+            <button
+              onClick={() => setActiveTab('detailed')}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'detailed'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Detailed Results
+            </button>
+
+            {data && (
+              <span className="ml-auto text-xs text-slate-400">
+                {filteredResults.length} MATCHES
+              </span>
+            )}
+          </div>
+
+          {/* Loading */}
+          {loading && !data && (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-slate-500">Loading results...</div>
+            </div>
+          )}
+
+          {/* Content */}
+          {filteredData && activeTab === 'hyperparameters' && (
+            <HyperparametersTab data={filteredData} />
+          )}
+
+          {filteredData && activeTab === 'detailed' && (
+            <DetailedResultsTab results={filteredData.detailed_results} />
+          )}
+
+          {data && data.total_matches === 0 && (
+            <div className="text-center py-20 text-slate-400">
+              <div className="text-lg mb-2">No results found</div>
+              <div className="text-sm">This experiment has no query results stored yet.</div>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}

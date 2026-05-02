@@ -112,3 +112,44 @@ export interface QueryResult {
   results: SearchResult[];
   top_k: number;
 }
+
+// Explorer response types (from GET /experiments/{id}/explore)
+
+export interface RankedConfig {
+  rank: number;
+  embedding_model: string;
+  chunking_method: string;
+  chunk_size: number;
+  overlap: number;
+  retrieval_method: string;
+  max_score: number;
+  avg_score: number;
+  result_count: number;
+}
+
+export interface DetailedResult {
+  rank: number;
+  score: number;
+  raw_score: number;
+  embedding_model: string;
+  chunking_method: string;
+  chunk_size: number;
+  overlap: number;
+  retrieval_method: string;
+  chunk_text: string;
+  query_text: string;
+  run_id: string;
+  rerank_score?: number | null;
+  dense_score: number;
+}
+
+export interface ExploreResponse {
+  experiment_id: string;
+  experiment_name: string;
+  query_count: number;
+  total_matches: number;
+  queries: string[];
+  best_params: RankedConfig | null;
+  ranked_configs: RankedConfig[];
+  detailed_results: DetailedResult[];
+}
