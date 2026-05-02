@@ -49,11 +49,14 @@ async def create_experiment(config: ExperimentConfig, background_tasks: Backgrou
         "parallelism": config.execution.parallelism,
         "on_error": config.execution.on_error,
         "sweep_summary": {
+            "database_provider": config.database_provider,
+            "embedding_provider": config.embedding.provider,
             "models": config.embedding.models,
             "chunking_methods": [m.value for m in config.chunking.methods],
             "chunk_sizes": config.chunking.params.chunk_sizes,
             "overlaps": config.chunking.params.overlaps,
             "retrieval_methods": [m.value for m in config.retrieval.methods],
+            "rerank_provider": config.retrieval.rerank_provider,
         },
     }
     get_collection(EXPERIMENTS_COLLECTION).insert_one(experiment_doc)

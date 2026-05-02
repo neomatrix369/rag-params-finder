@@ -514,11 +514,14 @@ export default function ExperimentDetailScreen({
               </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <DimensionBadge label="Database Provider" values={[detail.sweep_summary.database_provider || 'mongodb']} />
+              <DimensionBadge label="Embedding Provider" values={[detail.sweep_summary.embedding_provider || 'local']} />
               <DimensionBadge label="Embedding Models" values={detail.sweep_summary.models} />
               <DimensionBadge label="Chunking" values={detail.sweep_summary.chunking_methods} />
               <DimensionBadge label="Chunk Sizes" values={detail.sweep_summary.chunk_sizes} />
               <DimensionBadge label="Overlaps" values={detail.sweep_summary.overlaps} />
               <DimensionBadge label="Retrieval" values={detail.sweep_summary.retrieval_methods} />
+              <DimensionBadge label="Rerank Provider" values={[detail.sweep_summary.rerank_provider || 'local']} />
             </div>
           </div>
         )}
@@ -563,10 +566,13 @@ export default function ExperimentDetailScreen({
                 <thead className="bg-slate-50 border-b-2 border-slate-200">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Run ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Database</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Embed Prov</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Embedding Model</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Chunker</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Size/Overlap</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Retrieval</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Rerank Prov</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Phase</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Elapsed</th>
                   </tr>
@@ -590,6 +596,16 @@ export default function ExperimentDetailScreen({
                           </div>
                         </td>
                         <td className="px-4 py-4">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-100 text-indigo-800 text-xs font-bold uppercase">
+                            {run.database_provider || 'mongodb'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-teal-100 text-teal-800 text-xs font-medium uppercase">
+                            {run.embedding_provider || 'local'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
                           <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 text-xs font-medium">
                             {run.embedding_model}
                           </span>
@@ -607,6 +623,11 @@ export default function ExperimentDetailScreen({
                         <td className="px-4 py-4">
                           <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 text-xs font-medium">
                             {run.retrieval_method}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-teal-100 text-teal-800 text-xs font-medium uppercase">
+                            {run.rerank_provider || 'local'}
                           </span>
                         </td>
                         <td className="px-4 py-4">

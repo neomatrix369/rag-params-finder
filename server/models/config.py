@@ -7,6 +7,7 @@ from server.core.model_registry import EMBEDDING_MODELS, RERANKER_MODELS
 from server.models.enums import ChunkingMethod, RetrievalMethod
 
 Provider = Literal["local", "voyage"]
+DatabaseProvider = Literal["mongodb"]  # Future: "pinecone", "weaviate", "qdrant"
 
 
 class ChunkParams(BaseModel):
@@ -76,6 +77,7 @@ class ExperimentConfig(BaseModel):
     experiment_name: str
     data_paths: list[str]
     queries_file: str
+    database_provider: DatabaseProvider = Field(default="mongodb")
     embedding: EmbeddingConfig
     chunking: ChunkingConfig
     retrieval: RetrievalConfig
@@ -84,6 +86,7 @@ class ExperimentConfig(BaseModel):
 
 class RunParams(BaseModel):
     """Single-valued parameter set for one sweep run."""
+    database_provider: DatabaseProvider
     embedding_provider: Provider
     embedding_model: str
     chunking_method: ChunkingMethod
@@ -109,6 +112,7 @@ def expand_sweep(config: ExperimentConfig) -> list[RunParams]:
     )
     return [
         RunParams(
+            database_provider=config.database_provider,
             embedding_provider=config.embedding.provider,
             embedding_model=model,
             chunking_method=method,
