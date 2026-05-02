@@ -60,14 +60,12 @@ def create_indexes():
 
     logger.info("Standard indexes created")
 
-    # Vector index creation note
-    logger.info("Vector index must be created manually in Atlas UI:")
+    # Vector indexes must be created manually in Atlas UI — one per embedding dimension.
+    logger.info("Vector indexes must be created manually in Atlas UI:")
     logger.info("  Collection: chunks")
-    logger.info("  Field: embedding")
-    logger.info("  Type: vector")
-    logger.info("  Dimensions: 1024")
-    logger.info("  Similarity: cosine")
-    logger.info("  Filters: experiment_id, embedding_model")
+    logger.info("  Index 1: 'vector_index_1024' — numDimensions=1024 (Voyage models)")
+    logger.info("  Index 2: 'vector_index_384'  — numDimensions=384  (local models, e.g. all-MiniLM-L6-v2)")
+    logger.info("  Both indexes: path=embedding, similarity=cosine, filters=[experiment_id, embedding_model]")
     logger.info("  See: https://www.mongodb.com/docs/atlas/atlas-vector-search/create-index/")
 
 

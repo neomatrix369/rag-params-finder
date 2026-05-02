@@ -1,3 +1,4 @@
+from server.core.model_registry import get_index_name
 from server.db.atlas import get_collection, CHUNKS_COLLECTION
 from server.models.results import Chunk, SearchResult
 from server.utils.logger import get_logger
@@ -13,14 +14,18 @@ def dense_search(
 ) -> list[SearchResult]:
     """Perform dense vector search using Atlas $vectorSearch."""
 
-    logger.info(f"Dense search for experiment={experiment_id}, model={embedding_model}, k={top_k}")
+    index_name = get_index_name(embedding_model)
+    logger.info(
+        f"Dense search for experiment={experiment_id}, model={embedding_model}, "
+        f"index={index_name}, k={top_k}"
+    )
 
     chunks_collection = get_collection(CHUNKS_COLLECTION)
 
     pipeline = [
         {
             "$vectorSearch": {
-                "index": "vector_index",  # Must match Atlas index name
+                "index": index_name,
                 "path": "embedding",
                 "queryVector": query_embedding,
                 "numCandidates": top_k * 2,  # 2x candidates for better recall

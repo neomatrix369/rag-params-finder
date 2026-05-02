@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-02 18:00  
-**Current**: Slice 5 ✅ BUILT | Next: Slice 6 📋 PLANNED
+**Last Updated**: 2026-05-02 19:54  
+**Current**: Slice 7 ✅ BUILT (verified end-to-end) | Next: Slice 6 📋 PLANNED
 
 ---
 
@@ -14,6 +14,7 @@
 | 3 — Sweep expansion | ✅ BUILT | ~15 min | Cartesian product of runs ⭐ CORE FEATURE |
 | 4 — Live status + polling | ✅ BUILT | ~15 min | Phase tracking, CLI --watch, detail screen |
 | 5 — Multiple queries from persona JSON | ✅ BUILT | ~10 min | Loop over persona questions |
+| 7 — Free/OS embedding + reranking models | ✅ BUILT | ~15 min | Local sentence-transformers, no API key needed |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ BUILT | ✔️ COMPLETE
 
@@ -252,6 +253,46 @@ Load queries from persona JSON file and loop over all questions per run.
 
 ---
 
+## Slice 7: Free/OS Embedding + Reranking Models ✅
+
+**Status**: ✅ BUILT | **Started**: 2026-05-02 | **Completed**: 2026-05-02 | **Target**: ~15 min
+
+### Goal
+Add local sentence-transformers models (embedding + reranking) as alternatives to Voyage AI. No API key, no rate limits. Explicit `provider` field in YAML configs drives routing.
+
+### What Changed
+- **NEW**: `server/core/model_registry.py` — Unified registry for embedding and reranker models (provider, dimensions, HuggingFace ID)
+- **NEW**: `server/core/local_embedder.py` — sentence-transformers SentenceTransformer wrapper (lazy-load, cached)
+- **NEW**: `server/core/local_reranker.py` — sentence-transformers CrossEncoder wrapper (lazy-load, cached)
+- **NEW**: `configs/example-local.yaml` — All-local experiment config (no Voyage key needed)
+- **NEW**: `configs/example-voyage-ai.yaml` — Preserved Voyage AI config for reference
+- **EDIT**: `server/models/config.py` — Added `provider` field to `EmbeddingConfig`, `rerank_provider` to `RetrievalConfig`; Pydantic validators cross-check model names match declared provider; `RunParams` carries `embedding_provider` and `rerank_provider`
+- **EDIT**: `server/core/embedder.py` — Accepts `provider` param directly (no longer queries registry at runtime)
+- **EDIT**: `server/core/reranker.py` — Accepts `provider` param directly
+- **EDIT**: `server/core/orchestrator.py` — Passes `embedding_provider` and `rerank_provider` from `RunParams`
+- **EDIT**: `cli/config_loader.py` — Validates models against registry at load time; cross-checks declared provider
+- **EDIT**: `server/core/retriever.py` — Dynamic vector index name via `get_index_name(model)` (supports `vector_index_1024` and `vector_index_384`)
+- **EDIT**: `server/db/indexes.py` — Updated log messages for multi-dimension indexes
+- **EDIT**: `pyproject.toml` — Added `sentence-transformers>=2.6.0` dependency
+- **EDIT**: `.env.example` — Documented that Voyage key is optional with local models
+- **EDIT**: `README.md` — Updated for provider-based config, removed references to deleted `configs/example.yaml`
+- **REMOVED**: `configs/example.yaml` — Replaced by `configs/example-local.yaml`
+
+### Key Design Decisions
+| Decision | Why |
+|---|---|
+| Explicit `provider` field in YAML | Config is source of truth for routing — no reliance on model-name-to-provider lookups at runtime |
+| Provider flows through RunParams → orchestrator → embedder/reranker | End-to-end explicit routing; server reload issues can't break dispatch |
+| Pydantic model_validator cross-checks provider vs model name | Fast-fail at config parse time with clear error messages |
+| `sentence-transformers` for both embedding and reranking | Single package; SentenceTransformer for embeddings, CrossEncoder for reranking |
+| `all-MiniLM-L6-v2` as first local model | Well-known, fast, 384-dim, ~23MB — proves the abstraction |
+| `cross-encoder/ms-marco-MiniLM-L-6-v2` for local reranking | ~23MB, MS MARCO trained, good quality |
+| Separate vector indexes per dimension | Atlas requires exact `numDimensions`; `vector_index_1024` (Voyage) + `vector_index_384` (local) |
+| Lazy-load and cache models | First run downloads from HuggingFace; subsequent runs instant |
+| `numpy<2` pinned | torch requires NumPy 1.x ABI; NumPy 2.x causes `_ARRAY_API not found` crashes |
+
+---
+
 ## Deferred
 
 - All SHOULD/COULD slices
@@ -274,6 +315,12 @@ Load queries from persona JSON file and loop over all questions per run.
 | 2026-05-02 | 1 | Hardcoded query in Slice 1 | Defer persona JSON parsing to Slice 5 for skateboard speed |
 | 2026-05-02 | 1 | Atlas vector index manual | Pymongo doesn't support vector index creation; requires Atlas UI |
 | 2026-05-02 | 1 | Placeholder chunkers | Create stub files with NotImplementedError to avoid import errors |
+| 2026-05-02 | 7 | sentence-transformers for local models | Same package provides SentenceTransformer + CrossEncoder; no extra dep |
+| 2026-05-02 | 7 | Explicit `provider` field in YAML config | Config drives routing end-to-end; eliminates runtime model-name lookup failures |
+| 2026-05-02 | 7 | Provider passed through RunParams → orchestrator → embedder/reranker | Explicit routing; stale server code can't misroute to wrong provider |
+| 2026-05-02 | 7 | Separate vector indexes per dimension | Atlas requires exact numDimensions match; vector_index_1024 + vector_index_384 |
+| 2026-05-02 | 7 | all-MiniLM-L6-v2 as first local model | Well-known, fast, 384-dim, proves the abstraction |
+| 2026-05-02 | 7 | numpy<2 compatibility pin | torch compiled against NumPy 1.x ABI; 2.x breaks with _ARRAY_API errors |
 
 ---
 

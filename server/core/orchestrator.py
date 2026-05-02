@@ -146,7 +146,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
 
         _check_cancelled(experiment_id)
         _update_phase(run_id, Phase.EMBEDDING)
-        embeddings = embed_documents(chunks, params.embedding_model)
+        embeddings = embed_documents(chunks, params.embedding_model, params.embedding_provider)
         logger.info(f"Run {run_id}: generated {len(embeddings)} embeddings")
 
         _check_cancelled(experiment_id)
@@ -181,7 +181,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
                 f"Run {run_id} query {i}/{len(queries)}: "
                 f"persona={q.persona_id}, text='{q.text[:60]}...'"
             )
-            query_embedding = embed_query(q.text, params.embedding_model)
+            query_embedding = embed_query(q.text, params.embedding_model, params.embedding_provider)
             search_results = dense_search(
                 query_embedding,
                 experiment_id,
@@ -197,6 +197,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
                     search_results=search_results,
                     model=params.rerank_model,
                     top_k=params.top_k_final,
+                    provider=params.rerank_provider,
                 )
                 logger.debug(f"Run {run_id} query {i}: reranked to {len(search_results)} results")
             else:
