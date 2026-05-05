@@ -24,9 +24,7 @@ class EmbeddingConfig(BaseModel):
         for model_id in self.models:
             if model_id not in EMBEDDING_MODELS:
                 known = ", ".join(EMBEDDING_MODELS)
-                raise ValueError(
-                    f"Unknown embedding model '{model_id}'. Known: {known}"
-                )
+                raise ValueError(f"Unknown embedding model '{model_id}'. Known: {known}")
             registered_provider = EMBEDDING_MODELS[model_id]["provider"]
             if registered_provider != self.provider:
                 raise ValueError(
@@ -55,9 +53,7 @@ class RetrievalConfig(BaseModel):
             return self
         if self.rerank_model not in RERANKER_MODELS:
             known = ", ".join(RERANKER_MODELS)
-            raise ValueError(
-                f"Unknown reranker model '{self.rerank_model}'. Known: {known}"
-            )
+            raise ValueError(f"Unknown reranker model '{self.rerank_model}'. Known: {known}")
         registered_provider = RERANKER_MODELS[self.rerank_model]["provider"]
         if registered_provider != self.rerank_provider:
             raise ValueError(
@@ -86,6 +82,7 @@ class ExperimentConfig(BaseModel):
 
 class RunParams(BaseModel):
     """Single-valued parameter set for one sweep run."""
+
     database_provider: DatabaseProvider
     embedding_provider: Provider
     embedding_model: str

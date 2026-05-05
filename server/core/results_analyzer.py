@@ -49,9 +49,7 @@ def analyze_results(
     run_params = {r["run_id"]: r for r in run_statuses}
 
     if selected_query:
-        query_results = [
-            qr for qr in query_results if qr.get("query_text") == selected_query
-        ]
+        query_results = [qr for qr in query_results if qr.get("query_text") == selected_query]
 
     all_scores: list[float] = []
     for qr in query_results:
@@ -84,7 +82,11 @@ def analyze_results(
         query_text = qr.get("query_text", "")
         queries_seen.add(query_text)
 
-        key = _run_config_key(run) if run else ("unknown", "unknown", 0, 0, "unknown")
+        key = (
+            _run_config_key(run)
+            if run
+            else ("unknown", "unknown", "unknown", "unknown", 0, 0, "unknown", "unknown")
+        )
 
         for sr in qr.get("results", []):
             raw = _effective_score(sr)
@@ -95,23 +97,25 @@ def analyze_results(
             config_result_counts[key] += 1
 
             chunk = sr.get("chunk", {})
-            detailed.append({
-                "score": normalized,
-                "raw_score": round(raw, 4),
-                "database_provider": run.get("database_provider", "mongodb"),
-                "embedding_provider": run.get("embedding_provider", "local"),
-                "embedding_model": chunk.get("embedding_model", run.get("embedding_model", "")),
-                "chunking_method": chunk.get("chunk_method", run.get("chunking_method", "")),
-                "chunk_size": run.get("chunk_size", 0),
-                "overlap": run.get("overlap", 0),
-                "retrieval_method": sr.get("retrieval_method", ""),
-                "rerank_provider": run.get("rerank_provider", "local"),
-                "chunk_text": chunk.get("text", ""),
-                "query_text": query_text,
-                "run_id": run_id,
-                "rerank_score": sr.get("rerank_score"),
-                "dense_score": sr.get("dense_score", 0),
-            })
+            detailed.append(
+                {
+                    "score": normalized,
+                    "raw_score": round(raw, 4),
+                    "database_provider": run.get("database_provider", "mongodb"),
+                    "embedding_provider": run.get("embedding_provider", "local"),
+                    "embedding_model": chunk.get("embedding_model", run.get("embedding_model", "")),
+                    "chunking_method": chunk.get("chunk_method", run.get("chunking_method", "")),
+                    "chunk_size": run.get("chunk_size", 0),
+                    "overlap": run.get("overlap", 0),
+                    "retrieval_method": sr.get("retrieval_method", ""),
+                    "rerank_provider": run.get("rerank_provider", "local"),
+                    "chunk_text": chunk.get("text", ""),
+                    "query_text": query_text,
+                    "run_id": run_id,
+                    "rerank_score": sr.get("rerank_score"),
+                    "dense_score": sr.get("dense_score", 0),
+                }
+            )
 
     detailed.sort(key=lambda d: d["score"], reverse=True)
     for i, d in enumerate(detailed, start=1):
@@ -120,22 +124,30 @@ def analyze_results(
     ranked_configs: list[dict[str, Any]] = []
     for key, scores in config_scores.items():
         (
-            db_provider, emb_provider, model, chunker,
-            chunk_size, overlap, retrieval, rerank_provider,
+            db_provider,
+            emb_provider,
+            model,
+            chunker,
+            chunk_size,
+            overlap,
+            retrieval,
+            rerank_provider,
         ) = key
-        ranked_configs.append({
-            "database_provider": db_provider,
-            "embedding_provider": emb_provider,
-            "embedding_model": model,
-            "chunking_method": chunker,
-            "chunk_size": chunk_size,
-            "overlap": overlap,
-            "retrieval_method": retrieval,
-            "rerank_provider": rerank_provider,
-            "max_score": max(scores) if scores else 0,
-            "avg_score": round(sum(scores) / len(scores)) if scores else 0,
-            "result_count": config_result_counts[key],
-        })
+        ranked_configs.append(
+            {
+                "database_provider": db_provider,
+                "embedding_provider": emb_provider,
+                "embedding_model": model,
+                "chunking_method": chunker,
+                "chunk_size": chunk_size,
+                "overlap": overlap,
+                "retrieval_method": retrieval,
+                "rerank_provider": rerank_provider,
+                "max_score": max(scores) if scores else 0,
+                "avg_score": round(sum(scores) / len(scores)) if scores else 0,
+                "result_count": config_result_counts[key],
+            }
+        )
 
     ranked_configs.sort(key=lambda c: c["max_score"], reverse=True)
     for i, c in enumerate(ranked_configs, start=1):

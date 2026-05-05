@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import httpx
 
 from server.settings import settings
@@ -11,7 +13,7 @@ def get_server_url() -> str:
     return settings.server_url
 
 
-def submit_experiment(config: dict) -> dict:
+def submit_experiment(config: dict[str, Any]) -> dict[str, Any]:
     """Submit experiment configuration to server."""
     server_url = get_server_url()
     url = f"{server_url}/experiments"
@@ -26,15 +28,15 @@ def submit_experiment(config: dict) -> dict:
                 f"No route POST {url} (404). Either nothing is running at "
                 f"{server_url}, or it is not this project's API. Start it from the repo "
                 f"root with: uv run uvicorn server.main:app --reload --port 8001 "
-                f"— then confirm GET {server_url}/healthz returns {{\"ok\": true}}."
+                f'— then confirm GET {server_url}/healthz returns {{"ok": true}}.'
             )
         response.raise_for_status()
-        data = response.json()
+        data: dict[str, Any] = cast(dict[str, Any], response.json())
         logger.info(f"Experiment submitted: {data.get('experiment_id', '?')}")
         return data
 
 
-def get_experiment(experiment_id: str) -> dict:
+def get_experiment(experiment_id: str) -> dict[str, Any]:
     """Get experiment details including run statuses."""
     server_url = get_server_url()
     url = f"{server_url}/experiments/{experiment_id}"
@@ -43,12 +45,12 @@ def get_experiment(experiment_id: str) -> dict:
     with httpx.Client() as client:
         response = client.get(url, timeout=10.0)
         response.raise_for_status()
-        data = response.json()
+        data: dict[str, Any] = cast(dict[str, Any], response.json())
         logger.debug(f"Experiment status={data.get('status')}, runs={len(data.get('runs', []))}")
         return data
 
 
-def get_run_status(run_id: str) -> dict:
+def get_run_status(run_id: str) -> dict[str, Any]:
     """Get current status of a single run."""
     server_url = get_server_url()
     url = f"{server_url}/runs/{run_id}/status"
@@ -57,12 +59,12 @@ def get_run_status(run_id: str) -> dict:
     with httpx.Client() as client:
         response = client.get(url, timeout=10.0)
         response.raise_for_status()
-        data = response.json()
+        data: dict[str, Any] = cast(dict[str, Any], response.json())
         logger.debug(f"Run {run_id} phase={data.get('phase')}")
         return data
 
 
-def cancel_experiment(experiment_id: str) -> dict:
+def cancel_experiment(experiment_id: str) -> dict[str, Any]:
     """Request cancellation of a running experiment."""
     server_url = get_server_url()
     url = f"{server_url}/experiments/{experiment_id}/cancel"
@@ -76,6 +78,6 @@ def cancel_experiment(experiment_id: str) -> dict:
             detail = response.json().get("detail", "Experiment is not running")
             raise RuntimeError(detail)
         response.raise_for_status()
-        data = response.json()
+        data: dict[str, Any] = cast(dict[str, Any], response.json())
         logger.info(f"Cancel response: {data}")
         return data

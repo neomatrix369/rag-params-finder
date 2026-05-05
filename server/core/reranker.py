@@ -19,6 +19,7 @@ def rerank_results(
 
     if provider == "local":
         from server.core.local_reranker import rerank_local
+
         return rerank_local(query, search_results, model, top_k)
     return _rerank_voyage(query, search_results, model, top_k)
 
@@ -46,10 +47,12 @@ def _rerank_voyage(
     for rank, hit in enumerate(rerank_response.results, start=1):
         original = search_results[hit.index]
         reranked.append(
-            original.model_copy(update={
-                "rerank_score": hit.relevance_score,
-                "rank": rank,
-            })
+            original.model_copy(
+                update={
+                    "rerank_score": hit.relevance_score,
+                    "rank": rank,
+                }
+            )
         )
 
     logger.info(f"Reranking complete: {len(reranked)} results returned")

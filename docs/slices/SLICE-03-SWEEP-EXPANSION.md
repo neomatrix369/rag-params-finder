@@ -1,8 +1,8 @@
 # SLICE 03 — Sweep Expansion
 
-**MoSCoW:** MUST ⭐ (core feature)  
-**Target time:** ~25 min  
-**Actual time:** ~15 min  
+**MoSCoW:** MUST ⭐ (core feature)
+**Target time:** ~25 min
+**Actual time:** ~15 min
 **Status:** ✅ COMPLETE (2026-05-02)
 
 ---

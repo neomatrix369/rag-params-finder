@@ -1,7 +1,7 @@
 # Graphiti Memory Export — rag-params-finder Slice 1
 
-**Group ID**: `rag-params-finder-slice-1`  
-**Date**: 2026-05-02  
+**Group ID**: `rag-params-finder-slice-1`
+**Date**: 2026-05-02
 **Context**: Hackathon MVP build following Lean Skateboard approach
 
 ---
@@ -69,8 +69,8 @@ End-to-end pipeline with **one chunker, one model, one query** — prove archite
 
 ### 1. Architecture
 
-**Decision**: Two-process architecture (thin CLI + FastAPI server)  
-**Why**: Clean separation of concerns, server handles all heavy lifting  
+**Decision**: Two-process architecture (thin CLI + FastAPI server)
+**Why**: Clean separation of concerns, server handles all heavy lifting
 **Impact**: Secrets stay server-side only (VOYAGE_API_KEY, MONGODB_URI never in CLI)
 
 ### 2. Technology Choices
@@ -85,53 +85,53 @@ End-to-end pipeline with **one chunker, one model, one query** — prove archite
 
 ### 3. Frontend Stack
 
-**Decision**: Tailwind CSS installed locally (postcss + autoprefixer)  
-**Why**: Spec explicitly prohibits CDN scripts in index.html  
+**Decision**: Tailwind CSS installed locally (postcss + autoprefixer)
+**Why**: Spec explicitly prohibits CDN scripts in index.html
 **Impact**: Requires build pipeline, but proper production setup
 
-**Decision**: Hand-mirror TypeScript types from Pydantic (no codegen)  
-**Why**: Only 5 types + 3 enums; codegen tooling (typeshare, quicktype) overkill for hackathon  
+**Decision**: Hand-mirror TypeScript types from Pydantic (no codegen)
+**Why**: Only 5 types + 3 enums; codegen tooling (typeshare, quicktype) overkill for hackathon
 **Impact**: Must manually sync if server models change
 
-**Decision**: Polling at 0.5Hz for experiments list  
-**Why**: Simpler than SSE for MVP, sufficient latency  
+**Decision**: Polling at 0.5Hz for experiments list
+**Why**: Simpler than SSE for MVP, sufficient latency
 **Deferred**: SSE migration to post-MVP
 
 ### 4. MongoDB Atlas
 
-**Decision**: 6 collections (chunks, experiments, run_status, collections, queries, results)  
+**Decision**: 6 collections (chunks, experiments, run_status, collections, queries, results)
 **Why**: Normalized schema for clarity, denormalization not needed at this scale
 
-**Critical Learning**: Vector index must be created MANUALLY in Atlas UI  
-**Why**: Pymongo doesn't support vector index creation programmatically  
+**Critical Learning**: Vector index must be created MANUALLY in Atlas UI
+**Why**: Pymongo doesn't support vector index creation programmatically
 **Impact**: README must document this manual step for judges
 
-**Critical Learning**: Always filter by `embedding_model` on vector searches  
-**Why**: Different Voyage models produce incompatible vectors (voyage-3.5-lite = 1024-dim, different from voyage-3.5)  
+**Critical Learning**: Always filter by `embedding_model` on vector searches
+**Why**: Different Voyage models produce incompatible vectors (voyage-3.5-lite = 1024-dim, different from voyage-3.5)
 **Impact**: Query filter: `{"experiment_id": exp_id, "embedding_model": model}`
 
 ### 5. Voyage AI
 
-**Decision**: Use `input_type="document"` for chunks, `input_type="query"` for queries  
-**Why**: Voyage API optimizes embeddings based on input type  
+**Decision**: Use `input_type="document"` for chunks, `input_type="query"` for queries
+**Why**: Voyage API optimizes embeddings based on input type
 **Impact**: Better retrieval quality vs. generic embeddings
 
-**Decision**: voyage-3.5-lite produces 1024-dim vectors  
-**Why**: Different from predecessor's Transformers.js (384-dim)  
+**Decision**: voyage-3.5-lite produces 1024-dim vectors
+**Why**: Different from predecessor's Transformers.js (384-dim)
 **Impact**: Vector index must be configured for 1024 dimensions
 
 ### 6. Slice Execution Pattern
 
-**Decision**: Create placeholder stub files for unimplemented chunkers  
-**Why**: Avoid import errors when dispatcher references them  
+**Decision**: Create placeholder stub files for unimplemented chunkers
+**Why**: Avoid import errors when dispatcher references them
 **Pattern**: `raise NotImplementedError("Will be implemented in Slice 6")`
 
-**Decision**: Hardcoded single query in Slice 1  
-**Why**: Defer persona JSON parsing to Slice 5 for skateboard speed  
+**Decision**: Hardcoded single query in Slice 1
+**Why**: Defer persona JSON parsing to Slice 5 for skateboard speed
 **Impact**: Fast end-to-end proof, complexity added incrementally
 
-**Decision**: Update PROGRESS.md continuously, not at end  
-**Why**: Learnings from predecessor — maintain resumable state at all times  
+**Decision**: Update PROGRESS.md continuously, not at end
+**Why**: Learnings from predecessor — maintain resumable state at all times
 **Impact**: Can interrupt/resume work cleanly
 
 ---

@@ -100,6 +100,7 @@ def _format_duration(started_at: str | None, completed_at: str | None) -> str:
     if not started_at or not completed_at:
         return "—"
     from datetime import datetime as _dt
+
     start = _dt.fromisoformat(started_at.replace("Z", "+00:00"))
     end = _dt.fromisoformat(completed_at.replace("Z", "+00:00"))
     secs = (end - start).total_seconds()
@@ -128,9 +129,11 @@ def _print_summary(data: dict) -> None:
     }.get(status, "cyan")
 
     lines = [f"[{status_style} bold]{status.upper()}[/{status_style} bold]  {name}"]
-    lines.append(f"  [green]{len(completed)} passed[/green]  "
-                 f"[red]{len(failed)} failed[/red]  "
-                 f"[dim]{len(other)} other[/dim]")
+    lines.append(
+        f"  [green]{len(completed)} passed[/green]  "
+        f"[red]{len(failed)} failed[/red]  "
+        f"[dim]{len(other)} other[/dim]"
+    )
 
     git_commit = data.get("git_commit")
     git_branch = data.get("git_branch")
@@ -176,10 +179,12 @@ def _print_summary(data: dict) -> None:
     lines.append(f"  Parallel: {parallel}  on_error: {on_error}")
     sweep = data.get("sweep_summary", {})
     if sweep:
-        lines.append(f"  Sweep:    {', '.join(sweep.get('models', []))} × "
-                     f"{', '.join(sweep.get('chunking_methods', []))} × "
-                     f"sizes {sweep.get('chunk_sizes', [])} × "
-                     f"overlaps {sweep.get('overlaps', [])}")
+        lines.append(
+            f"  Sweep:    {', '.join(sweep.get('models', []))} × "
+            f"{', '.join(sweep.get('chunking_methods', []))} × "
+            f"sizes {sweep.get('chunk_sizes', [])} × "
+            f"overlaps {sweep.get('overlaps', [])}"
+        )
 
     if failed:
         lines.append("")
@@ -191,11 +196,13 @@ def _print_summary(data: dict) -> None:
             lines.append(f"  [dim]{run_id}[/dim] ({model}): {err}")
 
     logger.info(f"Experiment {data.get('experiment_id', '?')} finished: {status}")
-    console.print(Panel.fit(
-        "\n".join(lines),
-        title="Experiment Result",
-        border_style=status_style,
-    ))
+    console.print(
+        Panel.fit(
+            "\n".join(lines),
+            title="Experiment Result",
+            border_style=status_style,
+        )
+    )
 
 
 @app.command()
@@ -217,13 +224,15 @@ def run(
 
         run_count = response.get("run_count", "?")
         logger.info(f"Submitted: name={response.get('experiment_name')}, runs={run_count}")
-        console.print(Panel.fit(
-            f"[green]✓[/green] Experiment submitted: {response['experiment_name']}\n"
-            f"Runs: {run_count}\n"
-            f"Status: {response['status']}",
-            title="Submitted",
-            border_style="green",
-        ))
+        console.print(
+            Panel.fit(
+                f"[green]✓[/green] Experiment submitted: {response['experiment_name']}\n"
+                f"Runs: {run_count}\n"
+                f"Status: {response['status']}",
+                title="Submitted",
+                border_style="green",
+            )
+        )
 
         if detach:
             logger.info("Detached mode — exiting without watching")
@@ -265,12 +274,14 @@ def cancel(
     try:
         response = cancel_experiment(experiment_id)
         eid = experiment_id[:8]
-        console.print(Panel.fit(
-            f"[yellow]⚠[/yellow]  Cancel requested for experiment [bold]{eid}[/bold]\n"
-            f"{response.get('message', 'Experiment will stop after current phase')}",
-            title="Cancellation",
-            border_style="yellow",
-        ))
+        console.print(
+            Panel.fit(
+                f"[yellow]⚠[/yellow]  Cancel requested for experiment [bold]{eid}[/bold]\n"
+                f"{response.get('message', 'Experiment will stop after current phase')}",
+                title="Cancellation",
+                border_style="yellow",
+            )
+        )
     except RuntimeError as e:
         logger.error(f"Cancel failed: {e}")
         console.print(f"[red]Error: {e}[/red]")

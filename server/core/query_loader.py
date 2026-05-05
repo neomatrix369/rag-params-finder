@@ -63,11 +63,13 @@ def load_queries(queries_file: str) -> list[Query]:
     for persona in data.get("personas", []):
         persona_id = persona["id"]
         for question in persona.get("questions", []):
-            queries.append(Query(
-                text=question["text"],
-                persona_id=persona_id,
-                focus=question.get("focus"),
-            ))
+            queries.append(
+                Query(
+                    text=question["text"],
+                    persona_id=persona_id,
+                    focus=question.get("focus"),
+                )
+            )
 
     logger.info(f"Loaded {len(queries)} queries from {path}")
     return queries

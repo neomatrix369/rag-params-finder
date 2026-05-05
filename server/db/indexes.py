@@ -1,4 +1,5 @@
 import time
+from typing import TypedDict
 
 from pymongo import ASCENDING, IndexModel
 from pymongo.collection import Collection
@@ -16,6 +17,13 @@ from server.db.atlas import (
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+class _VectorIndexConfig(TypedDict):
+    name: str
+    dimensions: int
+    desc: str
+
 
 STANDARD_INDEX_SPEC: dict[str, list[IndexModel]] = {
     EXPERIMENTS_COLLECTION: [
@@ -41,7 +49,7 @@ STANDARD_INDEX_SPEC: dict[str, list[IndexModel]] = {
     ],
 }
 
-VECTOR_INDEX_CONFIGS = [
+VECTOR_INDEX_CONFIGS: list[_VectorIndexConfig] = [
     {"name": "vector_index_1024", "dimensions": 1024, "desc": "Voyage models"},
     {"name": "vector_index_384", "dimensions": 384, "desc": "local models (e.g. all-MiniLM-L6-v2)"},
 ]
@@ -123,10 +131,9 @@ def _wait_for_indexes_ready(collection, names: list[str], timeout_s: int = 120) 
         except Exception:
             statuses = {}
 
-        all_ready = all(
-            s == "READY" or s is True
-            for s in statuses.values()
-        ) and len(statuses) == len(names)
+        all_ready = all(s == "READY" or s is True for s in statuses.values()) and len(
+            statuses
+        ) == len(names)
 
         if all_ready:
             logger.info(f"Vector indexes active: {names}")
@@ -146,9 +153,7 @@ def _wait_for_indexes_ready(collection, names: list[str], timeout_s: int = 120) 
 
 def _log_manual_instructions() -> None:
     for cfg in VECTOR_INDEX_CONFIGS:
-        logger.info(
-            f"  Index '{cfg['name']}': numDimensions={cfg['dimensions']} ({cfg['desc']})"
-        )
+        logger.info(f"  Index '{cfg['name']}': numDimensions={cfg['dimensions']} ({cfg['desc']})")
     logger.info("  path=embedding, similarity=cosine, filters=[experiment_id, embedding_model]")
     logger.info("  See: https://www.mongodb.com/docs/atlas/atlas-vector-search/create-index/")
 

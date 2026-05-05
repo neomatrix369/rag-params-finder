@@ -1,8 +1,8 @@
 # SLICE 05 — Multiple Queries from Persona JSON
 
-**MoSCoW:** MUST  
-**Target time:** ~20 min  
-**Actual time:** ~10 min  
+**MoSCoW:** MUST
+**Target time:** ~20 min
+**Actual time:** ~10 min
 **Status:** ✅ COMPLETE (2026-05-02)
 
 ---

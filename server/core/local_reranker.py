@@ -44,17 +44,21 @@ def rerank_local(
     scores = model.predict(pairs)
 
     scored_indices = sorted(
-        enumerate(scores), key=lambda x: float(x[1]), reverse=True,
+        enumerate(scores),
+        key=lambda x: float(x[1]),
+        reverse=True,
     )[:top_k]
 
     reranked: list[SearchResult] = []
     for rank, (orig_idx, score) in enumerate(scored_indices, start=1):
         original = search_results[orig_idx]
         reranked.append(
-            original.model_copy(update={
-                "rerank_score": float(score),
-                "rank": rank,
-            })
+            original.model_copy(
+                update={
+                    "rerank_score": float(score),
+                    "rank": rank,
+                }
+            )
         )
 
     logger.info(f"Local reranking complete: {len(reranked)} results returned")

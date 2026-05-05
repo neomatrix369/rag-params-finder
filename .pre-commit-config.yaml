@@ -1,0 +1,61 @@
+# Maturity: Serious-lite — mirrors CI checks that are fast enough for local runs.
+# Principle: one tool per concern, every tool earns its seconds.
+# Intentionally excluded (CI-only): pytest (slow/integration), npm audit (network).
+#
+# Install:  pip install pre-commit && pre-commit install
+# Run all:  pre-commit run --all-files
+
+repos:
+  # ── Hygiene ──────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        # Vite/TS configs use comments (JSONC); not valid strict JSON.
+        exclude: ^frontend/tsconfig(\.(app|node))?\.json$
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: detect-private-key
+      - id: debug-statements
+
+  # ── Secrets ──────────────────────────────────────────────
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.22.1
+    hooks:
+      - id: gitleaks
+
+  # ── Python lint + format (one tool, replaces black+isort+pylint) ─
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  # ── Python type check ─────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy type check
+        entry: mypy server/ cli/
+        language: system
+        pass_filenames: false
+        types: [python]
+
+  # ── Frontend (Vite + React + TypeScript) ─────────────────
+  # Uses npm scripts so versions match package-lock.json (run npm ci in frontend/).
+  # verify = tsc --noEmit && vite build; wire in eslint once eslint.config.js added (Slice 8).
+  - repo: local
+    hooks:
+      - id: frontend-verify
+        name: frontend verify (tsc + build)
+        entry: npm --prefix frontend run verify
+        language: system
+        pass_filenames: false
+        files: ^frontend/
+        exclude: ^frontend/node_modules/

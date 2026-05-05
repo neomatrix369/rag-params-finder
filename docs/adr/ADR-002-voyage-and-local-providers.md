@@ -1,7 +1,7 @@
 # ADR-002: Dual Embedding/Reranking Providers (Voyage AI + Local)
 
-**Status**: Accepted (evolved from Voyage-only in Slice 1 → dual-provider in Slice 7)  
-**Date**: 2026-05-02  
+**Status**: Accepted (evolved from Voyage-only in Slice 1 → dual-provider in Slice 7)
+**Date**: 2026-05-02
 **Slices**: 1 (Voyage only), 7 (local sentence-transformers added)
 
 ---

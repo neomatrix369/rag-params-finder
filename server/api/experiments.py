@@ -78,9 +78,7 @@ async def list_experiments():
     """List all experiments."""
     logger.debug("GET /experiments — listing all")
     experiments = list(
-        get_collection(EXPERIMENTS_COLLECTION)
-        .find({}, {"_id": 0})
-        .sort("created_at", -1)
+        get_collection(EXPERIMENTS_COLLECTION).find({}, {"_id": 0}).sort("created_at", -1)
     )
     logger.debug(f"Listed {len(experiments)} experiments")
     return {"experiments": experiments}
@@ -112,8 +110,7 @@ async def get_experiment_results(experiment_id: str):
     """Get all query results for an experiment."""
     logger.debug(f"GET /experiments/{experiment_id}/results")
     results = list(
-        get_collection(RESULTS_COLLECTION)
-        .find({"experiment_id": experiment_id}, {"_id": 0})
+        get_collection(RESULTS_COLLECTION).find({"experiment_id": experiment_id}, {"_id": 0})
     )
     logger.info(f"Returning {len(results)} results for experiment {experiment_id}")
     return {"experiment_id": experiment_id, "results": results}
@@ -126,19 +123,15 @@ async def explore_experiment(experiment_id: str, query: str | None = None):
 
     logger.debug(f"GET /experiments/{experiment_id}/explore (query={query!r})")
 
-    experiment = get_collection(EXPERIMENTS_COLLECTION).find_one(
-        {"experiment_id": experiment_id}
-    )
+    experiment = get_collection(EXPERIMENTS_COLLECTION).find_one({"experiment_id": experiment_id})
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
 
     query_results = list(
-        get_collection(RESULTS_COLLECTION)
-        .find({"experiment_id": experiment_id}, {"_id": 0})
+        get_collection(RESULTS_COLLECTION).find({"experiment_id": experiment_id}, {"_id": 0})
     )
     run_statuses = list(
-        get_collection(RUN_STATUS_COLLECTION)
-        .find({"experiment_id": experiment_id}, {"_id": 0})
+        get_collection(RUN_STATUS_COLLECTION).find({"experiment_id": experiment_id}, {"_id": 0})
     )
 
     explored = analyze_results(query_results, run_statuses, selected_query=query)
@@ -158,9 +151,7 @@ async def cancel_experiment(experiment_id: str):
     """Cancel a running experiment."""
     logger.info(f"POST /experiments/{experiment_id}/cancel")
 
-    experiment = get_collection(EXPERIMENTS_COLLECTION).find_one(
-        {"experiment_id": experiment_id}
-    )
+    experiment = get_collection(EXPERIMENTS_COLLECTION).find_one({"experiment_id": experiment_id})
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
 
@@ -178,9 +169,7 @@ async def cancel_experiment(experiment_id: str):
             {"$set": {"status": "cancelled", "completed_at": datetime.utcnow()}},
         )
 
-    logger.info(
-        f"Experiment {experiment_id} cancel requested (in-flight={signalled})"
-    )
+    logger.info(f"Experiment {experiment_id} cancel requested (in-flight={signalled})")
     return {
         "status": "cancel_requested",
         "experiment_id": experiment_id,

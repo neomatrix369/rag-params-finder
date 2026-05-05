@@ -65,7 +65,7 @@ nvm use 22
 2. Navigate to **API Keys** → create new key
 3. Copy the `vo-...` key into your `.env`
 
-**Rate limits (free tier)**: 300 RPM, 1 M TPM  
+**Rate limits (free tier)**: 300 RPM, 1 M TPM
 **Costs (approximate)**: `voyage-3.5-lite` $0.06/1M tokens · `voyage-3.5` $0.12/1M tokens · `rerank-2.5-lite` $0.02/1K queries
 
 ---
