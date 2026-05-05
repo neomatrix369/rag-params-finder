@@ -9,11 +9,16 @@
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 
+[![CI](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions)
+[![License: MIT](https://img.shields.io/github/license/neomatrix369/rag-params-finder)](https://github.com/neomatrix369/rag-params-finder/blob/main/LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/neomatrix369/rag-params-finder)](https://github.com/neomatrix369/rag-params-finder/commits/main)
+[![Stars](https://img.shields.io/github/stars/neomatrix369/rag-params-finder?style=social)](https://github.com/neomatrix369/rag-params-finder)
+
 **RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports both Voyage AI (hosted) and local sentence-transformers models (no API key needed).
 
 ---
 
-## Screenshots
+## 📸 Screenshots
 
 | Screen | Description |
 |:---:|:---|
@@ -23,13 +28,13 @@
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 **Prerequisites:** Python 3.12+, Node.js 22+, MongoDB Atlas account (free tier)
 
 ```bash
 # 1. Clone and install
-git clone <repository-url>
+git clone https://github.com/neomatrix369/rag-params-finder.git
 cd rag-params-finder
 uv venv && source .venv/bin/activate
 uv pip install -e .
@@ -52,7 +57,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 ---
 
-## Key Features
+## ⚡ Key Features
 
 - **5 chunking methods**: Fixed, Recursive, Token, Sentence, Semantic
 - **3 retrieval methods**: Dense (vector search), Sparse (BM25), Hybrid (70/30 weighted)
@@ -66,7 +71,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 ---
 
-## Documentation
+## 📖 Documentation
 
 | Document | Description |
 |----------|-------------|
@@ -79,7 +84,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ```
 ┌──────────────┐    HTTP POST       ┌─────────────────────────────────┐
@@ -104,7 +109,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 ---
 
-## Configuration
+## ⚙️ Configuration
 
 See `configs/example-local.yaml` (local models, no key needed) or `configs/example-voyage-ai.yaml` (Voyage AI).
 
@@ -141,7 +146,7 @@ Place source documents in `input_data/` (gitignored). Supported formats: `.pdf`,
 
 ---
 
-## Models
+## 🤖 Models
 
 | Model | Type | Dimensions | Provider |
 |-------|------|-----------|----------|
@@ -154,11 +159,11 @@ Place source documents in `input_data/` (gitignored). Supported formats: `.pdf`,
 
 Local models are downloaded from HuggingFace on first use and cached in `~/.cache/huggingface/`. The `provider` field in the config is the source of truth — the system validates that model names match the declared provider at load time.
 
-**Atlas vector indexes**: local models need `vector_index_384` (384-dim); Voyage models need `vector_index_1024` (1024-dim). See [Troubleshooting](#troubleshooting) for the index JSON.
+**Atlas vector indexes**: local models need `vector_index_384` (384-dim); Voyage models need `vector_index_1024` (1024-dim). See [Troubleshooting](#-troubleshooting) for the index JSON.
 
 ---
 
-## Chunking Methods
+## ✂️ Chunking Methods
 
 | Method | Algorithm | Best For |
 |--------|-----------|----------|
@@ -168,7 +173,7 @@ Local models are downloaded from HuggingFace on first use and cached in `~/.cach
 | `sentence` | NLTK sentence tokenizer | Narrative text, Q&A pairs |
 | `semantic` | Groups sentences by embedding similarity; Voyage-aware | Topic-coherent chunks |
 
-## Retrieval Methods
+## 🔍 Retrieval Methods
 
 | Method | Algorithm | Strengths |
 |--------|-----------|-----------|
@@ -176,7 +181,7 @@ Local models are downloaded from HuggingFace on first use and cached in `~/.cach
 | `sparse` | BM25 full-text search (Atlas Search) | Keyword precision, rare/domain-specific terms |
 | `hybrid` | Weighted combination — 70% dense + 30% sparse | Balanced recall and precision |
 
-## Reranking
+## 🔄 Reranking
 
 After initial retrieval returns `top_k_initial` candidates, a cross-encoder re-scores each chunk and reorders the final `top_k_final` results.
 
@@ -187,7 +192,7 @@ After initial retrieval returns `top_k_initial` candidates, a cross-encoder re-s
 
 ---
 
-## CLI Usage
+## 💻 CLI Usage
 
 ```bash
 # Submit and watch progress
@@ -202,7 +207,7 @@ rag-params-finder recover --experiment-id <id> --auto
 
 ---
 
-## API Endpoints
+## 🔌 API Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
@@ -218,7 +223,7 @@ Server OpenAPI docs: `http://localhost:8001/docs`
 
 ---
 
-## Development
+## 🛠️ Development
 
 ```bash
 # Backend quality gates
@@ -251,7 +256,7 @@ rag-params-finder/
 
 ---
 
-## Troubleshooting
+## 🐛 Troubleshooting
 
 ### Vector index not found
 
@@ -317,7 +322,7 @@ rag-params-finder/
 
 ---
 
-## Built With
+## 🧱 Built With
 
 **Backend**
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
@@ -355,13 +360,28 @@ rag-params-finder/
 
 ---
 
-## License
+## 🤝 Contributing
+
+Contributions are welcome — please open an issue first to discuss what you'd like to change.
+
+Areas where help would be appreciated:
+
+- **Complete remaining chunkers**: `sentence`, `token`, and `semantic` methods are stubbed — PRs to implement them are very welcome
+- **Sparse/hybrid retrieval**: BM25 + Atlas FTS wiring for the `sparse` and `hybrid` retrieval paths
+- **Test suite**: pytest fixtures with mock MongoDB and pre-computed embedding fixtures
+- **SSE live updates**: replace the 2-second polling loop with Server-Sent Events
+- **Docker Compose**: one-command `docker compose up` setup (server + dashboard + optional mongo)
+- **Parallelism > 1**: Celery or equivalent to run sweep runs concurrently
+
+---
+
+## 📄 License
 
 MIT
 
 ---
 
-## Credits
+## 🙏 Credits
 
 Inspired by [pre-rag-explorer-dashboard](https://github.com/neomatrix369/pre-rag-explorer-dashboard) — a browser-based RAG exploration tool.
 
