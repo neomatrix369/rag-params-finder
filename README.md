@@ -2,10 +2,12 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-2.6+-E92063?logo=pydantic&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 
 **RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports both Voyage AI (hosted) and local sentence-transformers models (no API key needed).
 
@@ -319,9 +321,18 @@ rag-params-finder/
 
 **Backend**
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Uvicorn](https://img.shields.io/badge/Uvicorn-ASGI_server-499848?logo=gunicorn&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-E92063?logo=pydantic&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
-![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?logoColor=white)
+![PyMongo](https://img.shields.io/badge/PyMongo-4.6+-47A248?logo=mongodb&logoColor=white)
+![LangChain](https://img.shields.io/badge/LangChain_Text_Splitters-1C3C3C?logoColor=white)
+![HTTPX](https://img.shields.io/badge/HTTPX-async_HTTP-2C2D72?logoColor=white)
+![pypdf](https://img.shields.io/badge/pypdf-PDF_parsing-00897B?logoColor=white)
+
+**CLI**
+![Typer](https://img.shields.io/badge/Typer-CLI_framework-009688?logo=fastapi&logoColor=white)
+![Rich](https://img.shields.io/badge/Rich-terminal_UI-FAE04E?logoColor=black)
 
 **Frontend**
 ![React](https://img.shields.io/badge/React_19-61DAFB?logo=react&logoColor=white)
@@ -330,8 +341,17 @@ rag-params-finder/
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white)
 
 **AI/ML**
-![Voyage AI](https://img.shields.io/badge/Voyage_AI-Embeddings_&_Reranking-FF6B6B)
-![HuggingFace](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
+![Voyage AI](https://img.shields.io/badge/Voyage_AI-embeddings_%26_reranking-FF6B6B)
+![sentence-transformers](https://img.shields.io/badge/sentence--transformers-local_models-FF9D00?logo=huggingface&logoColor=white)
+![NLTK](https://img.shields.io/badge/NLTK-sentence_chunking-154F5B?logoColor=white)
+
+**Dev Tools**
+![uv](https://img.shields.io/badge/uv-package_manager-DE5FE9?logoColor=white)
+![ruff](https://img.shields.io/badge/ruff-linter-D7FF64?logoColor=black)
+![mypy](https://img.shields.io/badge/mypy-type_checker-2A6DB2?logoColor=white)
+![pytest](https://img.shields.io/badge/pytest-testing-0A9EDC?logo=pytest&logoColor=white)
+![ESLint](https://img.shields.io/badge/ESLint-4B32C3?logo=eslint&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI-2088FF?logo=githubactions&logoColor=white)
 
 ---
 
