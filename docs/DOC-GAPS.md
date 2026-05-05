@@ -1,7 +1,7 @@
 # Documentation Gap Tracker
 
 **Created**: 2026-05-05  
-**Last Updated**: 2026-05-05  
+**Last Updated**: 2026-05-05 (README rewritten for simplicity; ARCHITECTURE.md updated for local models)  
 **Reference**: Gap analysis vs [pre-rag-explorer-dashboard](https://github.com/neomatrix369/pre-rag-explorer-dashboard)
 
 Each item below is a concrete, actionable doc gap. Check the box when done and record the date.
@@ -147,5 +147,26 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 | 7 | Quality gates baseline record | ✅ Done |
 | 8 | CI story (GitHub Actions) | ✅ Done |
 | 9 | AGENTS.md + slice playbook | ✅ Done |
+| 10 | README simplified; detail preserved in Reference Guide | ✅ Done |
 
 **Legend**: 📋 Open | 🔨 In Progress | ✅ Done
+
+---
+
+## Gap 10 — Reference Guide (detail preserved from README simplification)
+
+**Priority**: Done (created 2026-05-05)
+
+README was simplified for quick scanning (aligned with pre-rag-explorer-dashboard style). All condensed content moved to `docs/REFERENCE.md`:
+
+- [x] Step-by-step setup guide (all 7 original quickstart steps)
+- [x] Full annotated YAML config with all fields explained
+- [x] Queries file persona JSON format with examples
+- [x] All-local config YAML example
+- [x] Dashboard screen-by-screen reference (Experiments list, Detail, Search Explorer)
+- [x] Expanded project structure (all files with descriptions)
+- [x] Expanded troubleshooting (full debug steps, MongoDB cleanup queries)
+- [x] Environment variables reference table
+- [x] MongoDB Atlas collections table with cleanup instructions
+- [x] Atlas vector index JSON for both 384-dim and 1024-dim (with all filter fields)
+- [x] README → Documentation table updated to link to `docs/REFERENCE.md`

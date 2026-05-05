@@ -23,9 +23,10 @@ React Dashboard ← (polling) ← FastAPI Server
 ### Backend (Server + CLI)
 - **FastAPI** — REST API server
 - **Python 3.12** — Language runtime
-- **Voyage AI** — Embeddings (voyage-3.5-lite/3.5/context-3) + Reranking (rerank-2.5-lite)
+- **Voyage AI** — Embeddings (voyage-3.5-lite/3.5/context-3) + Reranking (rerank-2.5-lite/2.5)
+- **sentence-transformers** — Local embeddings (`all-MiniLM-L6-v2`, 384-dim) + Local reranking (`cross-encoder/ms-marco-MiniLM-L-6-v2`)
 - **MongoDB Atlas** — Vector storage + search
-- **LangChain** — Text splitters (FIXED, RECURSIVE, TOKEN, SENTENCE)
+- **LangChain** — Text splitters (recursive, fixed, token, sentence)
 - **Typer** — CLI framework
 - **Rich** — CLI output formatting
 
@@ -45,15 +46,18 @@ React Dashboard ← (polling) ← FastAPI Server
 #### Core Services (`core/`)
 - `orchestrator.py` — End-to-end pipeline executor
 - `pdf_parser.py` — pypdf wrapper
+- `model_registry.py` — Unified registry for embedding + reranking models (provider, dimensions, HuggingFace ID)
 - `chunkers/` — 5 chunking methods
   - `recursive.py` — LangChain RecursiveCharacterTextSplitter
-  - `fixed.py` — Fixed-size chunks
+  - `fixed.py` — Fixed-size character windows
   - `token.py` — Token-based (tiktoken)
   - `sentence.py` — NLTK sentence-based
-  - `semantic.py` — NET-NEW: Voyage-aware sentence grouping
+  - `semantic.py` — Sentence grouping by embedding similarity (Voyage-aware)
 - `embedder.py` — Voyage embedding client
+- `local_embedder.py` — sentence-transformers embedding client (lazy-load, cached)
 - `reranker.py` — Voyage reranking client
-- `retriever.py` — Atlas Vector Search (DENSE/SPARSE/HYBRID)
+- `local_reranker.py` — sentence-transformers CrossEncoder reranker (lazy-load, cached)
+- `retriever.py` — Atlas Vector Search (dense/sparse/hybrid); dynamic index selection by model dimension
 
 #### Models (`models/`)
 - `enums.py` — ChunkingMethod, RetrievalMethod, Phase
@@ -141,15 +145,13 @@ Each run progresses through phases tracked in `run_status`:
 
 ## Deployment Model
 
-**Judge runs locally** with their own credentials:
+**Runs locally** — no hosted deployment:
 
-1. Clone repo
-2. Create `.env` with VOYAGE_API_KEY + MONGODB_URI
+1. Clone repo and install (`uv pip install -e .` + `npm install` in `frontend/`)
+2. Create `.env` with `MONGODB_URI` (required) and `VOYAGE_API_KEY` (optional — local models need no key)
 3. Start server: `uvicorn server.main:app --reload --port 8001`
 4. Start dashboard: `cd frontend && npm run dev`
-5. Submit experiment: `rag-params-finder run --config configs/example.yaml`
-
-No hosted deployment — fully local execution.
+5. Submit experiment: `rag-params-finder run --config configs/example-local.yaml`
 
 ## Design Decisions
 
