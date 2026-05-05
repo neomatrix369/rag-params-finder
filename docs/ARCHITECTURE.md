@@ -154,9 +154,9 @@ No hosted deployment — fully local execution.
 ## Design Decisions
 
 See `docs/adr/` for Architecture Decision Records:
-- ADR-001: Two-process architecture (CLI + Server)
-- ADR-002: Voyage-only embeddings
-- ADR-003: Atlas-only vector store
+- [ADR-001](adr/ADR-001-two-process-architecture.md): Two-process architecture (CLI + Server)
+- [ADR-002](adr/ADR-002-voyage-and-local-providers.md): Dual embedding/reranking providers (Voyage AI + local sentence-transformers)
+- [ADR-003](adr/ADR-003-mongodb-atlas-vector-store.md): MongoDB Atlas as the vector store
 
 ## Future Enhancements
 

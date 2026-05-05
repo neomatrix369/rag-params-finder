@@ -2,7 +2,7 @@
 
 **MoSCoW:** MUST  
 **Target time:** ~75 min  
-**Status:** IN PROGRESS
+**Status:** ✅ COMPLETE (2026-05-02)
 
 ## Goal
 
@@ -10,17 +10,17 @@ End-to-end RAG parameter sweep pipeline working with one chunker, one embedding 
 
 ## Acceptance criteria
 
-- [ ] FastAPI boots at localhost:8001
-- [ ] GET /healthz returns `{"ok": true}`
-- [ ] MongoDB Atlas connection established
-- [ ] 6 Atlas collections created (chunks, experiments, run_status, collections, queries, results)
-- [ ] Vector index created on chunks.embedding (1024-dim, cosine similarity)
-- [ ] POST /experiments accepts minimal YAML config
-- [ ] Experiment runs as BackgroundTask
-- [ ] Pipeline executes: PDF parse → RECURSIVE chunk → Voyage embed → Atlas write → query embed → DENSE search → write results
-- [ ] CLI command `rag-params-finder run --config configs/example.yaml` submits successfully
-- [ ] React dashboard ExperimentsScreen polls GET /experiments and renders one row
-- [ ] README Quickstart section complete (judge can clone and run)
+- [x] FastAPI boots at localhost:8001
+- [x] GET /healthz returns `{"ok": true}`
+- [x] MongoDB Atlas connection established
+- [x] 6 Atlas collections created (chunks, experiments, run_status, collections, queries, results)
+- [x] Vector index created on chunks.embedding (1024-dim, cosine similarity)
+- [x] POST /experiments accepts minimal YAML config
+- [x] Experiment runs as BackgroundTask
+- [x] Pipeline executes: PDF parse → RECURSIVE chunk → Voyage embed → Atlas write → query embed → DENSE search → write results
+- [x] CLI command `rag-params-finder run --config configs/example-local.yaml` submits successfully
+- [x] React dashboard ExperimentsScreen polls GET /experiments and renders one row
+- [x] README Quickstart section complete (judge can clone and run)
 
 ## Implementation Plan
 

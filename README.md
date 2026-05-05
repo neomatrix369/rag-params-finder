@@ -31,6 +31,16 @@
 
 ---
 
+## Screenshots
+
+| Screen | Description |
+|---|---|
+| ![Experiments list](docs/images/01-experiments-list.png) | **Experiments list** — all submitted sweeps with status badges (complete / running / failed / partial) and per-experiment run counts |
+| ![Experiment detail](docs/images/02-experiment-detail.png) | **Experiment detail** — metric cards (total / successful / failed runs), live phase indicator dots (QUEUED → PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERANKING → COMPLETE), and the full runs table |
+| ![Search Explorer](docs/images/03-search-explorer.png) | **Search Explorer** — best-parameters card with overall relevance score, ranked config cards with score bars, and per-query detailed results |
+
+---
+
 ## Quickstart
 
 ### Prerequisites
@@ -135,16 +145,16 @@ Open `http://localhost:5173` in your browser:
 ## Architecture
 
 ```
-┌──────────────┐    HTTP POST       ┌────────────────────────────────┐
-│  Python CLI  │ ──/experiments──▶ │  FastAPI Server (engine)        │
-│  (thin)      │                    │  • Sweep expansion             │
+┌──────────────┐    HTTP POST       ┌─────────────────────────────────┐
+│  Python CLI  │ ──/experiments──▶  │  FastAPI Server (engine)        │
+│  (thin)      │                    │  • Sweep expansion              │
 │              │ ◀──polling reads── │  • Data loading (PDF/TXT/MD/CSV)│
-│  --detach:   │                    │  • Chunking (LangChain+custom) │
-│   skip       │                    │  • Embedding (local/Voyage)    │
-│   polling    │                    │  • Atlas Vector Search         │
-│              │                    │  • Reranking (local/Voyage)    │
-└──────────────┘                    │  • Run status tracking         │
-                                     └────────────┬───────────────────┘
+│  --detach:   │                    │  • Chunking (LangChain+custom)  │
+│   skip       │                    │  • Embedding (local/Voyage)     │
+│   polling    │                    │  • Atlas Vector Search          │
+│              │                    │  • Reranking (local/Voyage)     │
+└──────────────┘                    │  • Run status tracking          │
+                                    └─────────────┬───────────────────┘
                                                   │
                                                   ▼
                                      ┌─────────────────────────────────┐
@@ -256,6 +266,37 @@ The existing Voyage index should be renamed to `vector_index_1024`.
 
 ---
 
+## Chunking Methods
+
+| Method | Algorithm | Best For |
+|---|---|---|
+| `recursive` | LangChain `RecursiveCharacterTextSplitter` — splits on `\n\n` → `\n` → space (default) | General prose; most documents |
+| `fixed` | Fixed-size character windows with configurable overlap | Baseline comparisons; predictable token budgets |
+| `token` | tiktoken-based splits at token boundaries | Token-budget-sensitive pipelines (OpenAI models) |
+| `sentence` | NLTK sentence tokenizer | Narrative text, Q&A pairs |
+| `semantic` | Groups sentences by embedding similarity; Voyage-aware | Topic-coherent chunks; highest quality, slowest |
+
+## Retrieval Methods
+
+| Method | Algorithm | Strengths |
+|---|---|---|
+| `dense` | Cosine similarity on embeddings (Atlas Vector Search) | Captures semantic meaning and paraphrases |
+| `sparse` | BM25 full-text search (Atlas Search) | Keyword precision; handles rare or domain-specific terms |
+| `hybrid` | Weighted combination — 70% dense + 30% sparse | Balanced recall and precision; default recommendation |
+
+## Reranking
+
+After initial retrieval returns the top-K candidates, a cross-encoder reranker re-scores each chunk against the query and reorders the final result list. Two options:
+
+| Option | Model | Requires |
+|---|---|---|
+| Local | `cross-encoder/ms-marco-MiniLM-L-6-v2` (sentence-transformers, ~23 MB) | No API key; runs on CPU |
+| Voyage | `rerank-2.5-lite` or `rerank-2.5` | `VOYAGE_API_KEY` in `.env` |
+
+Set `rerank_provider: local` or `rerank_provider: voyage` in your config. Reranking is always applied to the top-`top_k_initial` results; `top_k_final` controls how many survive.
+
+---
+
 ## CLI Usage
 
 ```bash
@@ -334,6 +375,69 @@ rag-params-finder/
 │   └── pdfs/            # Place PDF files here
 └── docs/                # Architecture, slices, ADRs
 ```
+
+---
+
+## Troubleshooting
+
+### Vector index not found
+
+**Symptom**: server logs show `Search index 'vector_index' not found` or queries return no results.
+
+**Fix**: The Atlas vector index must be created manually after the cluster is provisioned.
+1. Atlas UI → your cluster → **Browse Collections** → `chunks` collection → **Search Indexes** tab
+2. **Create Search Index** → JSON Editor → paste the index definition from [Configure Environment](#2-configure-environment) in `CLAUDE.local.md`
+3. Index name must be exactly `vector_index_1024` (Voyage, 1024-dim) or `vector_index_384` (local, 384-dim)
+4. Wait ~1–2 minutes for the index to build before running queries
+
+### Dimension mismatch (local vs Voyage models)
+
+**Symptom**: vector search fails with a dimension error, or results are nonsensical.
+
+**Cause**: local models produce 384-dim embeddings; Voyage models produce 1024-dim. Vectors from different models cannot be compared.
+
+**Fix**:
+- Each embedding model requires its own Atlas vector index: `vector_index_384` (local) and `vector_index_1024` (Voyage)
+- Never mix providers within the same experiment config
+- The system validates provider/model consistency at config load time — fix any validation errors before submitting
+
+### Voyage API rate limit hit
+
+**Symptom**: `voyageai.error.RateLimitError: Rate limit exceeded` in server logs; run status shows `failed`.
+
+**Fix**:
+- Check usage at [dash.voyageai.com/usage](https://dash.voyageai.com/usage)
+- Free tier: 300 RPM / 1 M TPM. Reduce experiment parallelism or switch to `provider: local` for testing
+- Set `VOYAGE_RPM_LIMIT` and `VOYAGE_TPM_LIMIT` in `.env` to match your tier; the server uses these to throttle requests
+
+### Dashboard stuck on "Loading…"
+
+**Symptom**: browser shows a loading spinner indefinitely or a "Failed to fetch" error.
+
+**Possible causes and fixes**:
+
+| Cause | Fix |
+|---|---|
+| Server not running | Start with `uvicorn server.main:app --reload --port 8001`; verify at `http://localhost:8001/healthz` |
+| Wrong server port | Check `SERVER_URL` in `.env` matches the port uvicorn is using |
+| CORS error | Hard-refresh the browser (`Cmd+Shift+R`); restart server with `--reload` |
+| Frontend pointing at wrong API URL | Check `frontend/src/services/apiClient.ts` base URL matches server port |
+
+### Chunks not appearing in Atlas
+
+**Symptom**: experiment completes (status `complete`) but the `chunks` collection in Atlas is empty or the run count is zero.
+
+**Possible causes**:
+- MongoDB connection lost during the STORING phase — check server logs for `pymongo` errors
+- Atlas free-tier storage quota exceeded (512 MB limit on M0) — check **Metrics → Storage** in the Atlas UI
+- Vector index not yet built — chunks are stored but queries fail silently
+
+**Debug steps**:
+```bash
+# Tail server logs for MongoDB errors
+tail -f server.log | grep -i "mongo\|store\|chunk"
+```
+Then check Atlas UI → **Metrics → Operations** for write failures.
 
 ---
 

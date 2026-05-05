@@ -274,9 +274,95 @@ Run backend tests: `pytest` (from project root with venv activated)
 - **MongoDB Atlas**: Free tier (M0) supports vector search. Index must be created manually in Atlas UI.
 - **Docker**: No containerization yet. Run directly with uvicorn + vite.
 
+## Slice Execution Playbook
+
+Follow this sequence for every slice — no skipping.
+
+### Pre-slice checklist
+```
+[ ] Read docs/PROGRESS.md — confirm current state and which slice is next
+[ ] Read or create the slice spec in docs/slices/SLICE-XX-*.md
+[ ] Run all quality gates — confirm zero regressions before starting
+[ ] Note the exact acceptance criteria — these are the exit conditions
+```
+
+### Decision log template
+Record every non-obvious choice in PROGRESS.md → Decision Log:
+```
+| <date> | <slice> | <decision> | <why> |
+```
+
+### Verify-all commands (run before each commit)
+```bash
+# Backend
+uv run ruff check .
+uv run mypy server/ cli/
+uv run pytest --tb=short -q
+
+# Frontend
+cd frontend && npm run typecheck && npm run build
+```
+
+### Post-slice checklist
+```
+[ ] All acceptance criteria checked ✅
+[ ] Quality gates pass (zero regressions)
+[ ] Slice status updated in docs/PROGRESS.md (🔨 → ✅ COMPLETE)
+[ ] Decisions logged in PROGRESS.md Decision Log
+[ ] Committed with a short, specific message
+```
+
+## Quality Gates Baseline
+
+Run these before committing any slice. All gates must pass (zero regressions).
+
+### Backend
+
+```bash
+# Install dev dependencies first (one-time after clone)
+uv pip install -e ".[dev]"
+
+# Lint — expected: 0 errors, 0 warnings
+uv run ruff check .
+
+# Type check — expected: 0 errors (disallow_untyped_defs=false, so typed defs are checked)
+uv run mypy server/ cli/
+
+# Tests — expected: currently 0 tests collected (no test suite yet — see Gap 7 in docs/DOC-GAPS.md)
+uv run pytest --tb=short -q
+```
+
+**Baseline (2026-05-05)**:
+- `ruff check .` → 0 errors *(dev deps must be installed)*
+- `mypy server/ cli/` → 0 errors *(dev deps must be installed)*
+- `pytest` → 0 tests collected (test suite not yet written)
+
+### Frontend
+
+```bash
+cd frontend
+
+# Type check — expected: 0 errors
+npm run typecheck
+
+# Build — expected: ✓ built in ~2s, 34 modules
+npm run build
+
+# Security audit — expected: 0 vulnerabilities at high+ severity
+npm audit --audit-level=high
+```
+
+**Baseline (2026-05-05)**:
+- `npm run typecheck` → 0 errors ✓ (`tsconfig.json` includes `vite/client.d.ts` for `import.meta.env`)
+- `npm run build` → ✓ built in ~1.8 s, 34 modules, 238 kB JS / 25 kB CSS
+- `npm audit --audit-level=high` → 0 vulnerabilities ✓
+
+**Note**: `npm run lint` requires an ESLint config (`eslint.config.js`) — not yet set up. Add during Slice 8 or CI work.
+
 ## Further Reading
 
 - `docs/ARCHITECTURE.md` — Detailed system architecture
+- `docs/adr/` — Architecture Decision Records (ADR-001, ADR-002, ADR-003)
 - `README.md` — Setup guide and quickstart
-- `docs/PROGRESS.md` — Development progress tracking
+- `docs/PROGRESS.md` — Development progress tracking and forward roadmap
 - Component header comments — UI design decisions and rationale
