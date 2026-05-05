@@ -102,12 +102,14 @@ def _run_sweep_inner(experiment_id: str, config: ExperimentConfig) -> dict:
     completed_at = datetime.utcnow()
     get_collection(EXPERIMENTS_COLLECTION).update_one(
         {"_id": experiment_id},
-        {"$set": {
-            "status": final_status,
-            "run_count": len(runs),
-            "failed_count": failed,
-            "completed_at": completed_at,
-        }},
+        {
+            "$set": {
+                "status": final_status,
+                "run_count": len(runs),
+                "failed_count": failed,
+                "completed_at": completed_at,
+            }
+        },
     )
     logger.info(f"Experiment {experiment_id} finished: {final_status}")
 
@@ -253,9 +255,7 @@ def _update_phase(run_id: str, phase: Phase, error_message: str | None = None) -
         "elapsed_ms": elapsed_ms,
         "error_message": error_message,
     }
-    get_collection(RUN_STATUS_COLLECTION).update_one(
-        {"run_id": run_id}, {"$set": update}
-    )
+    get_collection(RUN_STATUS_COLLECTION).update_one({"run_id": run_id}, {"$set": update})
 
     if phase in (Phase.COMPLETE, Phase.FAILED, Phase.INTERRUPTED):
         _run_start_times.pop(run_id, None)

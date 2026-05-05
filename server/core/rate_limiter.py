@@ -90,8 +90,7 @@ def call_with_retry[T](fn: Callable[[], T], limiter: RateLimiter, estimated_toke
             if attempt == MAX_RETRIES:
                 raise
             logger.warning(
-                f"Voyage 429 on attempt {attempt}/{MAX_RETRIES}, "
-                f"backing off {backoff:.0f}s — {exc}"
+                f"Voyage 429 on attempt {attempt}/{MAX_RETRIES}, backing off {backoff:.0f}s — {exc}"
             )
             time.sleep(backoff)
             backoff *= 2

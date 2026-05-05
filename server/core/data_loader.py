@@ -24,7 +24,8 @@ def resolve_data_paths(data_paths: list[str]) -> list[Path]:
 
         if path.is_dir():
             found = sorted(
-                f for f in path.rglob("*")
+                f
+                for f in path.rglob("*")
                 if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
             )
             if not found:

@@ -1,4 +1,7 @@
+from typing import cast
+
 import voyageai
+from voyageai.object import EmbeddingsObject
 
 from server.core.rate_limiter import RateLimiter, call_with_retry, estimate_tokens
 from server.settings import settings
@@ -46,6 +49,7 @@ def embed_documents(texts: list[str], model: str, provider: str = "local") -> li
     """Embed documents, dispatching to local or Voyage AI based on provider."""
     if provider == "local":
         from server.core.local_embedder import embed_documents_local
+
         return embed_documents_local(texts, model)
     return _embed_documents_voyage(texts, model)
 
@@ -54,6 +58,7 @@ def embed_query(text: str, model: str, provider: str = "local") -> list[float]:
     """Embed a single query, dispatching to local or Voyage AI based on provider."""
     if provider == "local":
         from server.core.local_embedder import embed_query_local
+
         return embed_query_local(text, model)
     return _embed_query_voyage(text, model)
 
@@ -73,17 +78,14 @@ def _embed_documents_voyage(texts: list[str], model: str) -> list[list[float]]:
     for idx, batch in enumerate(batches):
         tokens = estimate_tokens(batch)
         logger.debug(f"Batch {idx + 1}/{len(batches)}: {len(batch)} texts, ~{tokens} tokens")
-        result = call_with_retry(
-            lambda b=batch: client.embed(b, model=model, input_type="document"),
-            limiter=get_limiter(),
-            estimated_tokens=tokens,
-        )
-        all_embeddings.extend(result.embeddings)
 
-    logger.info(
-        f"Generated {len(all_embeddings)} embeddings, "
-        f"dim={len(all_embeddings[0])}"
-    )
+        def _embed_batch() -> EmbeddingsObject:
+            return client.embed(batch, model=model, input_type="document")
+
+        result = call_with_retry(_embed_batch, limiter=get_limiter(), estimated_tokens=tokens)
+        all_embeddings.extend(cast(list[list[float]], result.embeddings))
+
+    logger.info(f"Generated {len(all_embeddings)} embeddings, dim={len(all_embeddings[0])}")
     return all_embeddings
 
 
@@ -99,7 +101,7 @@ def _embed_query_voyage(text: str, model: str) -> list[float]:
         estimated_tokens=tokens,
     )
 
-    embedding = result.embeddings[0]
+    embedding = cast(list[float], result.embeddings[0])
     logger.info(f"Generated query embedding, dim={len(embedding)}")
     return embedding
 

@@ -1,7 +1,7 @@
 # SLICE 01 — Skateboard
 
-**MoSCoW:** MUST  
-**Target time:** ~75 min  
+**MoSCoW:** MUST
+**Target time:** ~75 min
 **Status:** ✅ COMPLETE (2026-05-02)
 
 ## Goal

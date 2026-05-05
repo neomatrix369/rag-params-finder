@@ -12,9 +12,7 @@ router = APIRouter()
 async def get_run_status(run_id: str):
     """Get current status/phase of a single run."""
     logger.debug(f"GET /runs/{run_id}/status")
-    status = get_collection(RUN_STATUS_COLLECTION).find_one(
-        {"run_id": run_id}, {"_id": 0}
-    )
+    status = get_collection(RUN_STATUS_COLLECTION).find_one({"run_id": run_id}, {"_id": 0})
     if not status:
         logger.warning(f"Run not found: {run_id}")
         return {"error": "Run not found"}, 404

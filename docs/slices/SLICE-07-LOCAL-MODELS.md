@@ -1,8 +1,8 @@
 # SLICE 07 — Free/Local Embedding + Reranking Models
 
-**MoSCoW:** MUST  
-**Target time:** ~15 min  
-**Actual time:** ~15 min  
+**MoSCoW:** MUST
+**Target time:** ~15 min
+**Actual time:** ~15 min
 **Status:** ✅ COMPLETE (2026-05-02)
 
 ---

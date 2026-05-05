@@ -1,7 +1,7 @@
 # Documentation Gap Tracker
 
-**Created**: 2026-05-05  
-**Last Updated**: 2026-05-05 (README rewritten for simplicity; ARCHITECTURE.md updated for local models)  
+**Created**: 2026-05-05
+**Last Updated**: 2026-05-05 (README rewritten for simplicity; ARCHITECTURE.md updated for local models)
 **Reference**: Gap analysis vs [pre-rag-explorer-dashboard](https://github.com/neomatrix369/pre-rag-explorer-dashboard)
 
 Each item below is a concrete, actionable doc gap. Check the box when done and record the date.

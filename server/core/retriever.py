@@ -7,10 +7,7 @@ logger = get_logger(__name__)
 
 
 def dense_search(
-    query_embedding: list[float],
-    experiment_id: str,
-    embedding_model: str,
-    top_k: int = 20
+    query_embedding: list[float], experiment_id: str, embedding_model: str, top_k: int = 20
 ) -> list[SearchResult]:
     """Perform dense vector search using Atlas $vectorSearch."""
 
@@ -32,8 +29,8 @@ def dense_search(
                 "limit": top_k,
                 "filter": {
                     "experiment_id": {"$eq": experiment_id},
-                    "embedding_model": {"$eq": embedding_model}
-                }
+                    "embedding_model": {"$eq": embedding_model},
+                },
             }
         },
         {
@@ -44,9 +41,9 @@ def dense_search(
                 "index": 1,
                 "embedding_model": 1,
                 "chunk_method": 1,
-                "score": {"$meta": "vectorSearchScore"}
+                "score": {"$meta": "vectorSearchScore"},
             }
-        }
+        },
     ]
 
     results = list(chunks_collection.aggregate(pipeline))
@@ -59,14 +56,14 @@ def dense_search(
             text=doc["text"],
             index=doc["index"],
             embedding_model=doc["embedding_model"],
-            chunk_method=doc["chunk_method"]
+            chunk_method=doc["chunk_method"],
         )
         search_result = SearchResult(
             chunk=chunk,
             dense_score=doc["score"],
             rerank_score=None,  # No reranking in Slice 1
             retrieval_method="dense",
-            rank=rank
+            rank=rank,
         )
         search_results.append(search_result)
 

@@ -5,10 +5,7 @@ logger = get_logger(__name__)
 
 
 def chunk_text(
-    text: str,
-    method: ChunkingMethod,
-    chunk_size: int = 512,
-    overlap: int = 50
+    text: str, method: ChunkingMethod, chunk_size: int = 512, overlap: int = 50
 ) -> list[str]:
     """Dispatch to appropriate chunking method."""
 
@@ -19,18 +16,23 @@ def chunk_text(
 
     if method == ChunkingMethod.RECURSIVE:
         from server.core.chunkers.recursive import chunk_recursive
+
         chunks = chunk_recursive(text, chunk_size, overlap)
     elif method == ChunkingMethod.FIXED:
         from server.core.chunkers.fixed import chunk_fixed
+
         chunks = chunk_fixed(text, chunk_size, overlap)
     elif method == ChunkingMethod.TOKEN:
         from server.core.chunkers.token import chunk_token
+
         chunks = chunk_token(text, chunk_size, overlap)
     elif method == ChunkingMethod.SENTENCE:
         from server.core.chunkers.sentence import chunk_sentence
+
         chunks = chunk_sentence(text, chunk_size, overlap)
     elif method == ChunkingMethod.SEMANTIC:
         from server.core.chunkers.semantic import chunk_semantic
+
         chunks = chunk_semantic(text, chunk_size)
     else:
         raise ValueError(f"Unknown chunking method: {method}")

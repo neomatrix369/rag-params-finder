@@ -1,8 +1,8 @@
 # SLICE 04 — Live Status + Polling
 
-**MoSCoW:** MUST  
-**Target time:** ~30 min  
-**Actual time:** ~15 min  
+**MoSCoW:** MUST
+**Target time:** ~30 min
+**Actual time:** ~15 min
 **Status:** ✅ COMPLETE (2026-05-02)
 
 ---

@@ -1,7 +1,7 @@
 # ADR-001: Two-Process Architecture (CLI + Server)
 
-**Status**: Accepted  
-**Date**: 2026-05-02  
+**Status**: Accepted
+**Date**: 2026-05-02
 **Slice**: 1 — Skateboard
 
 ---
