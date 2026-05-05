@@ -4,7 +4,6 @@ import threading
 import time
 from collections import deque
 from collections.abc import Callable
-from typing import TypeVar
 
 from voyageai.error import RateLimitError
 
@@ -15,8 +14,6 @@ logger = get_logger(__name__)
 CHARS_PER_TOKEN_ESTIMATE = 4
 MAX_RETRIES = 5
 INITIAL_BACKOFF_S = 25.0
-
-T = TypeVar("T")
 
 
 class RateLimiter:
@@ -82,7 +79,7 @@ class RateLimiter:
             self._lock.acquire()
 
 
-def call_with_retry(fn: Callable[[], T], limiter: RateLimiter, estimated_tokens: int = 0) -> T:
+def call_with_retry[T](fn: Callable[[], T], limiter: RateLimiter, estimated_tokens: int = 0) -> T:
     """Wait for rate-limit clearance, call *fn*, and retry on 429s with backoff."""
     backoff = INITIAL_BACKOFF_S
     for attempt in range(1, MAX_RETRIES + 1):

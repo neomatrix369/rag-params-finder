@@ -1,5 +1,5 @@
 from server.core.model_registry import get_index_name
-from server.db.atlas import get_collection, CHUNKS_COLLECTION
+from server.db.atlas import CHUNKS_COLLECTION, get_collection
 from server.models.results import Chunk, SearchResult
 from server.utils.logger import get_logger
 

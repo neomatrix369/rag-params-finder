@@ -1,5 +1,6 @@
-import yaml
 from pathlib import Path
+
+import yaml
 
 from server.core.model_registry import (
     EMBEDDING_MODELS,
@@ -19,7 +20,7 @@ def load_config(config_path: str) -> dict:
         logger.error(f"Config file not found: {config_path}")
         raise FileNotFoundError(f"Config file not found: {config_path}")
 
-    with open(path, "r") as f:
+    with open(path) as f:
         config = yaml.safe_load(f)
 
     logger.info(f"Loaded config from {config_path} ({len(config)} top-level keys)")

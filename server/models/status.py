@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Literal
+
 from pydantic import BaseModel, Field
-from server.models.enums import Phase, ChunkingMethod, RetrievalMethod
+
+from server.models.enums import ChunkingMethod, Phase, RetrievalMethod
 
 Provider = Literal["local", "voyage"]
 DatabaseProvider = Literal["mongodb"]  # Future: "pinecone", "weaviate", "qdrant"

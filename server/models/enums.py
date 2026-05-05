@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ChunkingMethod(str, Enum):
+class ChunkingMethod(StrEnum):
     FIXED = "fixed"
     RECURSIVE = "recursive"
     TOKEN = "token"
@@ -9,13 +9,13 @@ class ChunkingMethod(str, Enum):
     SEMANTIC = "semantic"
 
 
-class RetrievalMethod(str, Enum):
+class RetrievalMethod(StrEnum):
     DENSE = "dense"
     SPARSE = "sparse"
     HYBRID = "hybrid"
 
 
-class Phase(str, Enum):
+class Phase(StrEnum):
     QUEUED = "queued"
     PARSING = "parsing"
     CHUNKING = "chunking"

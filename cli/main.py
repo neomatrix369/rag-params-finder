@@ -155,7 +155,9 @@ def _print_summary(data: dict) -> None:
         lines.append(f"  Finished: {completed_at}")
         lines.append(f"  Duration: {_format_duration(started_at, completed_at)}")
     if env_params:
-        lines.append(f"  RPM/TPM:  {env_params.get('voyage_rpm_limit', '?')}/{env_params.get('voyage_tpm_limit', '?')}")
+        rpm = env_params.get("voyage_rpm_limit", "?")
+        tpm = env_params.get("voyage_tpm_limit", "?")
+        lines.append(f"  RPM/TPM:  {rpm}/{tpm}")
 
     lines.append("")
     lines.append("[bold]Config[/bold]")
@@ -169,7 +171,9 @@ def _print_summary(data: dict) -> None:
     rerank = data.get("rerank_model")
     lines.append(f"  Rerank:   {rerank or 'none'}")
     lines.append(f"  Top-K:    {data.get('top_k_initial', '?')} → {data.get('top_k_final', '?')}")
-    lines.append(f"  Parallel: {data.get('parallelism', '?')}  on_error: {data.get('on_error', '?')}")
+    parallel = data.get("parallelism", "?")
+    on_error = data.get("on_error", "?")
+    lines.append(f"  Parallel: {parallel}  on_error: {on_error}")
     sweep = data.get("sweep_summary", {})
     if sweep:
         lines.append(f"  Sweep:    {', '.join(sweep.get('models', []))} × "
@@ -260,8 +264,9 @@ def cancel(
 
     try:
         response = cancel_experiment(experiment_id)
+        eid = experiment_id[:8]
         console.print(Panel.fit(
-            f"[yellow]⚠[/yellow]  Cancel requested for experiment [bold]{experiment_id[:8]}[/bold]\n"
+            f"[yellow]⚠[/yellow]  Cancel requested for experiment [bold]{eid}[/bold]\n"
             f"{response.get('message', 'Experiment will stop after current phase')}",
             title="Cancellation",
             border_style="yellow",
