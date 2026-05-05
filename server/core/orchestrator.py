@@ -4,8 +4,8 @@ import uuid
 from datetime import datetime
 
 from server.core.chunkers import chunk_text
-from server.core.embedder import embed_documents, embed_query
 from server.core.data_loader import load_all_files
+from server.core.embedder import embed_documents, embed_query
 from server.core.query_loader import load_queries
 from server.core.reranker import rerank_results
 from server.core.retriever import dense_search
@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 _cancel_events: dict[str, threading.Event] = {}
 
 
-class ExperimentCancelled(Exception):
+class ExperimentCancelledError(Exception):
     pass
 
 
@@ -44,7 +44,7 @@ def _check_cancelled(experiment_id: str) -> None:
     """Raise ExperimentCancelled if this experiment has been cancelled."""
     event = _cancel_events.get(experiment_id)
     if event and event.is_set():
-        raise ExperimentCancelled(f"Experiment {experiment_id} was cancelled")
+        raise ExperimentCancelledError(f"Experiment {experiment_id} was cancelled")
 
 
 def run_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
@@ -71,7 +71,7 @@ def _run_sweep_inner(experiment_id: str, config: ExperimentConfig) -> dict:
     for params in runs:
         try:
             _check_cancelled(experiment_id)
-        except ExperimentCancelled:
+        except ExperimentCancelledError:
             cancelled = True
             logger.info(f"Experiment {experiment_id} cancelled before run {len(run_ids) + 1}")
             break
@@ -80,7 +80,7 @@ def _run_sweep_inner(experiment_id: str, config: ExperimentConfig) -> dict:
         run_ids.append(run_id)
         try:
             _run_single(experiment_id, run_id, params)
-        except ExperimentCancelled:
+        except ExperimentCancelledError:
             cancelled = True
             logger.info(f"Experiment {experiment_id} cancelled during run {run_id}")
             break
@@ -192,7 +192,9 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
                 params.embedding_model,
                 top_k=params.top_k_initial,
             )
-            logger.debug(f"Run {run_id} query {i}: dense search returned {len(search_results)} results")
+            logger.debug(
+                f"Run {run_id} query {i}: dense search returned {len(search_results)} results"
+            )
 
             if params.rerank_model:
                 _update_phase(run_id, Phase.RERANKING)
@@ -223,7 +225,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
 
         _update_phase(run_id, Phase.COMPLETE)
 
-    except ExperimentCancelled:
+    except ExperimentCancelledError:
         logger.info(f"Run {run_id} interrupted by cancellation")
         _update_phase(run_id, Phase.INTERRUPTED, error_message="Cancelled by user")
         raise

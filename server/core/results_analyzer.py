@@ -68,7 +68,10 @@ def analyze_results(
     if score_range == 0:
         score_range = 1.0
 
-    logger.info(f"Score normalization: min={min_raw:.2f}, max={max_raw:.2f}, range={score_range:.2f}, scores={len(all_scores)}")
+    logger.info(
+        f"Score normalization: min={min_raw:.2f}, max={max_raw:.2f}, "
+        f"range={score_range:.2f}, scores={len(all_scores)}"
+    )
 
     config_scores: dict[tuple, list[float]] = defaultdict(list)
     config_result_counts: dict[tuple, int] = defaultdict(int)
@@ -116,7 +119,10 @@ def analyze_results(
 
     ranked_configs: list[dict[str, Any]] = []
     for key, scores in config_scores.items():
-        db_provider, emb_provider, model, chunker, chunk_size, overlap, retrieval, rerank_provider = key
+        (
+            db_provider, emb_provider, model, chunker,
+            chunk_size, overlap, retrieval, rerank_provider,
+        ) = key
         ranked_configs.append({
             "database_provider": db_provider,
             "embedding_provider": emb_provider,

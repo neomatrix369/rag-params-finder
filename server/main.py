@@ -1,8 +1,10 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
+
+from server.api import experiments, runs
 from server.db.indexes import ensure_indexes
 from server.utils.logger import get_logger
 
@@ -46,8 +48,6 @@ async def healthz():
     """Health check endpoint."""
     return {"ok": True}
 
-
-from server.api import experiments, runs
 
 app.include_router(experiments.router, prefix="/experiments", tags=["experiments"])
 app.include_router(runs.router, prefix="/runs", tags=["runs"])

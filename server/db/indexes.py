@@ -138,7 +138,9 @@ def _wait_for_indexes_ready(collection, names: list[str], timeout_s: int = 120) 
 
         time.sleep(5)
 
-    logger.warning(f"Timed out waiting for vector indexes after {timeout_s}s — they may still be building")
+    logger.warning(
+        f"Timed out waiting for vector indexes after {timeout_s}s — they may still be building"
+    )
     return False
 
 
