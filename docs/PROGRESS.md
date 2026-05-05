@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-02 19:54  
-**Current**: Slice 7 ✅ BUILT (verified end-to-end) | Next: Slice 6 📋 PLANNED
+**Last Updated**: 2026-05-05  
+**Current**: Slices 1–5, 7 ✅ COMPLETE (verified end-to-end) | Next: Slice 6 📋 PLANNED (other chunkers)
 
 ---
 
@@ -9,14 +9,15 @@
 
 | Slice | Status | Time Target | Notes |
 |-------|--------|-------------|-------|
-| 1 — Skateboard | ✅ BUILT | ~75 min | Code complete, awaiting .env setup + Atlas vector index + test PDF |
-| 2 — Rerank | ✅ BUILT | ~10 min | Voyage rerank-2.5-lite integration |
-| 3 — Sweep expansion | ✅ BUILT | ~15 min | Cartesian product of runs ⭐ CORE FEATURE |
-| 4 — Live status + polling | ✅ BUILT | ~15 min | Phase tracking, CLI --watch, detail screen |
-| 5 — Multiple queries from persona JSON | ✅ BUILT | ~10 min | Loop over persona questions |
-| 7 — Free/OS embedding + reranking models | ✅ BUILT | ~15 min | Local sentence-transformers, no API key needed |
+| 1 — Skateboard | ✅ COMPLETE | ~75 min | End-to-end pipeline verified |
+| 2 — Rerank | ✅ COMPLETE | ~10 min | Voyage + local reranking |
+| 3 — Sweep expansion | ✅ COMPLETE | ~15 min | Cartesian product of runs ⭐ CORE FEATURE |
+| 4 — Live status + polling | ✅ COMPLETE | ~15 min | Phase tracking, CLI --watch, detail screen |
+| 5 — Multiple queries from persona JSON | ✅ COMPLETE | ~10 min | Loop over persona questions |
+| 6 — Additional chunkers | 📋 PLANNED | ~30 min | fixed, token, sentence, semantic (stubs exist) |
+| 7 — Free/local embedding + reranking | ✅ COMPLETE | ~15 min | sentence-transformers, no API key needed |
 
-**Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ BUILT | ✔️ COMPLETE
+**Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE
 
 ---
 
@@ -334,23 +335,33 @@ Add local sentence-transformers models (embedding + reranking) as alternatives t
 
 ---
 
-## Next Actions
+## Forward Roadmap
 
-**Immediate**:
-1. ✅ Slice 1 code complete
-2. ⏳ Commit Slice 1 files
-3. ⏳ Set up .env with Voyage API key + MongoDB URI
-4. ⏳ Create Atlas vector index (manual in UI)
-5. ⏳ Add sample PDF to `papers/sample.pdf`
-6. ⏳ End-to-end verification test
+| Slice | Goal | Priority | Est. |
+|-------|------|----------|------|
+| 6 — Additional chunkers | Implement fixed, token, sentence, semantic (stubs already exist) | Should | ~30 min |
+| 8 — SPARSE/HYBRID retrieval | BM25 + hybrid weighted search via Atlas FTS | Should | ~25 min |
+| 9 — Search Explorer dashboard | Best-params card, ranked configs, per-query results view | Should | ~30 min |
+| 10 — Run recovery | Auto-retry interrupted runs on server boot; `rag-params-finder recover` CLI command | Could | ~30 min |
+| 11 — Dashboard-triggered runs | Submit experiments from the React UI, not just CLI | Could | ~45 min |
+| 12 — SSE live updates | Replace 2 s polling with Server-Sent Events | Could | ~20 min |
+| 13 — Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` | Could | ~15 min |
+| 14 — Docker Compose | One-command local setup | Won't (now) | ~30 min |
+| 15 — CI/CD | GitHub Actions: ruff, mypy, pytest, npm lint/build | Should | ~20 min |
 
-**Pipeline**:
-- Slice 2: Rerank integration (~20 min)
-- Slice 3: Sweep expansion ⭐ (~25 min) — THE CORE FEATURE
-- Slice 4: Live status tracking (~30 min)
-- Slice 5: Multiple queries (~20 min)
-- Slice 6: Other chunkers (~30 min)
-- Slice 7: Multiple models (~15 min)
-- Slice 8: SPARSE/HYBRID (~25 min)
-- Slice 9: Docs polish (~30 min)
-- Slice 10: Recovery (~30 min)
+---
+
+## Interrupt Recovery Checklist
+
+Use this when resuming a session mid-slice:
+
+```
+[ ] Read docs/PROGRESS.md — note current slice and last known state
+[ ] Run quality gates to confirm no regressions:
+      backend: uv run ruff check . && uv run mypy server/ cli/ && uv run pytest
+      frontend: npm run typecheck && npm run build
+[ ] Check git status — any uncommitted changes?
+[ ] Read the current slice spec in docs/slices/SLICE-XX-*.md
+[ ] Resume from the last incomplete acceptance criterion
+[ ] Verify after every change before moving to the next criterion
+```
