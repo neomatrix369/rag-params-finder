@@ -356,7 +356,7 @@ Add local sentence-transformers models (embedding + reranking) as alternatives t
 Use this when resuming a session mid-slice:
 
 ```
-[ ] Read docs/PROGRESS.md — note current slice and last known state
+[ ] Read docs/_internal/PROGRESS.md — note current slice and last known state
 [ ] Run quality gates to confirm no regressions:
       backend: uv run ruff check . && uv run mypy server/ cli/ && uv run pytest
       frontend: npm run typecheck && npm run build
