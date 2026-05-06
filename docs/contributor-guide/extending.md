@@ -1,5 +1,10 @@
 # Extending the System
 
+![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
+![sentence-transformers](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
+
 How to add new embedding models, chunking methods, retrieval methods, and API endpoints.
 
 ---

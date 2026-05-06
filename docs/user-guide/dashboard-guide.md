@@ -1,5 +1,10 @@
 # Dashboard Guide
 
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
+
 The React dashboard at `http://localhost:5173` provides a read-only view of experiments and results. It polls the server every 2 seconds while any experiment is running.
 
 ---

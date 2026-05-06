@@ -1,5 +1,12 @@
 # Development Guide
 
+![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
+![uv](https://img.shields.io/badge/uv-package_manager-DE5FE9?logoColor=white)
+![ruff](https://img.shields.io/badge/ruff-linter-D7FF64?logoColor=black)
+![mypy](https://img.shields.io/badge/mypy-type_checker-2A6DB2?logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI-2088FF?logo=githubactions&logoColor=white)
+
 Dev environment setup, quality gates, testing strategy, and the slice workflow for contributors.
 
 ---
