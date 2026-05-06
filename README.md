@@ -14,7 +14,38 @@
 [![Last Commit](https://img.shields.io/github/last-commit/neomatrix369/rag-params-finder)](https://github.com/neomatrix369/rag-params-finder/commits/main)
 [![Stars](https://img.shields.io/github/stars/neomatrix369/rag-params-finder?style=social)](https://github.com/neomatrix369/rag-params-finder)
 
+> Find your optimal RAG configuration — **before** you build your RAG application.
+
 **RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports Voyage AI (hosted) and local sentence-transformers (no API key needed).
+
+Most RAG projects start with a guess: pick an embedding model, pick a chunking method, a retrieval method (or a re-ranker), realise it's wrong, refactor. That loop is
+slow and expensive.
+
+`rag-params-finder` inverts it.
+
+Give it your data and your questions. It runs every combination — embedding
+model × chunking method × retrieval method — stores the retrieval scores and
+shows you exactly which configuration performs best.
+**Before you write a single line of your RAG application.**
+
+## Why this matters
+
+| What you avoid | What you get instead |
+|---|---|
+| No LLM calls | Embedding only — 10–100× cheaper |
+| No eval framework setup | One YAML config, one CLI command |
+| No deployed RAG app needed | Just your data, your questions, your credentials |
+| No guessing | Actual retrieval scores across every config, side by side |
+| No throwaway experiments | Results persist — compare runs across sessions |
+
+## What it sweeps
+
+- **Embedding models**: `voyage-3.5-lite`, `voyage-3.5`, `voyage-context-3`
+- **Chunking methods**: Fixed · Recursive · Token · Sentence · Semantic
+- **Retrieval methods**: Dense · Sparse · Hybrid
+- **Questions**: Persona-organised — realistic, not synthetic
+
+One YAML. N experiments. Evidence-based decision. Ship the right config first.
 
 ---
 
