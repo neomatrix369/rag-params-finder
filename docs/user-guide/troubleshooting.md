@@ -1,5 +1,9 @@
 # Troubleshooting
 
+![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
+![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+
 Common errors and how to fix them.
 
 ---

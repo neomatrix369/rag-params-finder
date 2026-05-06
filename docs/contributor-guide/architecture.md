@@ -1,5 +1,14 @@
 # Architecture
 
+![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-E92063?logo=pydantic&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
+![React](https://img.shields.io/badge/React_19-61DAFB?logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite_6-646CFF?logo=vite&logoColor=white)
+![Voyage AI](https://img.shields.io/badge/Voyage_AI-embeddings_%26_reranking-FF6B6B)
+![sentence-transformers](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
+
 System design, data flow, module structure, and design decisions for `rag-params-finder`.
 
 ---
