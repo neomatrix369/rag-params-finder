@@ -2,10 +2,17 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-2.6+-E92063?logo=pydantic&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
+
 [![CI](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions)
 [![License: MIT](https://img.shields.io/github/license/neomatrix369/rag-params-finder)](https://github.com/neomatrix369/rag-params-finder/blob/main/LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/neomatrix369/rag-params-finder)](https://github.com/neomatrix369/rag-params-finder/commits/main)
+[![Stars](https://img.shields.io/github/stars/neomatrix369/rag-params-finder?style=social)](https://github.com/neomatrix369/rag-params-finder)
 
 **RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports Voyage AI (hosted) and local sentence-transformers (no API key needed).
 
