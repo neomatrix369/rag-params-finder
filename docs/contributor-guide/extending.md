@@ -1,0 +1,193 @@
+# Extending the System
+
+How to add new embedding models, chunking methods, retrieval methods, and API endpoints.
+
+---
+
+## 🤖 Adding a New Embedding Model
+
+### 1. Register the model
+
+In `server/core/model_registry.py`, add to `EMBEDDING_MODELS`:
+
+```python
+EMBEDDING_MODELS = {
+    "my-new-model": ModelEntry(
+        provider="local",          # or "voyage"
+        dimensions=768,
+        huggingface_id="org/my-new-model",  # for local models
+    ),
+    ...
+}
+```
+
+### 2. Add provider support (if new provider)
+
+If the model uses a provider not yet supported, update `server/models/config.py` → `Provider` type and add dispatch logic in the embedder.
+
+### 3. Update the embedder dispatcher
+
+In `server/core/embedder.py` (Voyage) or `server/core/local_embedder.py` (sentence-transformers): verify the model name routes correctly through the existing dispatch logic. For most new models of an existing provider type, no changes are needed.
+
+### 4. Create an Atlas vector index
+
+A new dimension size requires a new Atlas vector index. See [getting-started.md](../user-guide/getting-started.md#2-create-the-atlas-vector-index) for the index JSON format.
+
+### 5. Add an example config
+
+Add `configs/example-<model-name>.yaml` showing the new model in use.
+
+---
+
+## ✂️ Adding a New Chunking Method
+
+### 1. Create the chunker module
+
+Create `server/core/chunkers/my_method.py`:
+
+```python
+from typing import List
+
+
+def chunk_text(text: str, chunk_size: int, overlap: int) -> List[str]:
+    """Return a list of text chunks."""
+    # implementation here
+    ...
+```
+
+### 2. Register the enum
+
+In `server/models/enums.py`, add to `ChunkingMethod`:
+
+```python
+class ChunkingMethod(str, Enum):
+    recursive = "recursive"
+    fixed = "fixed"
+    my_method = "my_method"   # add here
+    ...
+```
+
+### 3. Wire the dispatcher
+
+In `server/core/orchestrator.py`, add a branch in `get_chunker()`:
+
+```python
+def get_chunker(method: ChunkingMethod):
+    if method == ChunkingMethod.my_method:
+        from server.core.chunkers.my_method import chunk_text
+        return chunk_text
+    ...
+```
+
+### 4. Mirror the enum in TypeScript
+
+In `frontend/src/types/index.ts`, add to `ChunkingMethod`:
+
+```typescript
+export type ChunkingMethod = "recursive" | "fixed" | "my_method" | ...;
+```
+
+---
+
+## 🔍 Adding a New Retrieval Method
+
+### 1. Implement the retrieval function
+
+In `server/core/retriever.py`, add a new function alongside the existing `dense_search()`, `sparse_search()`, and `hybrid_search()`.
+
+### 2. Register the enum
+
+In `server/models/enums.py`, add to `RetrievalMethod`:
+
+```python
+class RetrievalMethod(str, Enum):
+    dense = "dense"
+    sparse = "sparse"
+    hybrid = "hybrid"
+    my_method = "my_method"   # add here
+```
+
+### 3. Wire the dispatcher
+
+In `server/core/orchestrator.py`, add a branch in the retrieval dispatch section of `run_single()`.
+
+### 4. Mirror in TypeScript
+
+In `frontend/src/types/index.ts`, add to `RetrievalMethod`.
+
+---
+
+## 🔌 Adding a New API Endpoint
+
+### 1. Create the route handler
+
+Add to an existing router in `server/api/` (e.g., `experiments.py`) or create a new file:
+
+```python
+@router.get("/experiments/{experiment_id}/my-endpoint")
+async def my_endpoint(experiment_id: str, db=Depends(get_db)):
+    ...
+```
+
+### 2. Register the router
+
+If creating a new router file, register it in `server/main.py`:
+
+```python
+from server.api import my_router
+app.include_router(my_router)
+```
+
+### 3. Add the client method (if CLI needs it)
+
+In `cli/api_client.py`:
+```python
+def get_my_data(experiment_id: str) -> dict:
+    return self._get(f"/experiments/{experiment_id}/my-endpoint")
+```
+
+### 4. Add the fetch function (if dashboard needs it)
+
+In `frontend/src/services/apiClient.ts`:
+```typescript
+export async function fetchMyData(experimentId: string): Promise<MyType> {
+    const res = await fetch(`${BASE_URL}/experiments/${experimentId}/my-endpoint`);
+    return res.json();
+}
+```
+
+---
+
+## ⚠️ Common Gotchas
+
+| Gotcha | What to watch for |
+|---|---|
+| Vector dimension mismatch | Local models are 384-dim; Voyage models are 1024-dim. Cannot mix in the same experiment. Each dimension needs its own Atlas vector index. |
+| Provider/model mismatch | Config validation fails if `provider: local` is paired with a Voyage model name. The `model_registry.py` cross-checks this at load time. |
+| Missing embeddings filter | Always filter Atlas vector search by `embedding_model` — different models produce incompatible vectors that must not be compared. |
+| Queries file URL caching | URL-sourced query files are downloaded to `configs/` and cached by hash. Delete the cached file to force re-download. |
+| Server must be running | The CLI requires the server at `SERVER_URL` (default: `http://localhost:8001`). All commands fail if the server is down. |
+| Rate limits on Voyage | Free tier: 300 RPM / 1M TPM. Set `VOYAGE_RPM_LIMIT` and `VOYAGE_TPM_LIMIT` in `.env` to throttle. |
+| Score normalization | Rerank scores (cross-encoder logits) can be negative. The system uses min-max normalization to map all scores to 0–100. |
+| TypeScript types are hand-mirrored | When changing Python models (`server/models/`), manually update `frontend/src/types/index.ts`. There is no codegen. |
+
+---
+
+## 🏛️ Dependency Direction
+
+Outer layers call inward — never the reverse:
+
+```
+CLI / Dashboard → API handlers → orchestrator → core services → models / db
+```
+
+Engines (`orchestrator`, `retriever`, `embedder`) must not import from `api/` or depend on FastAPI objects. Keep handlers thin: validate input, call inward, return response.
+
+---
+
+## 👉 See Also
+
+- [Architecture](architecture.md) — understand the module map and pipeline before extending
+- [Development Guide](development.md) — quality gates to run after making changes
+- [Configuration Reference](../user-guide/configuration.md) — user-facing impact of new models and methods
+- [Local Environment](local-environment.md) — Atlas index setup for new embedding dimensions
