@@ -6,7 +6,12 @@ from pydantic import ValidationError
 
 from cli.config_loader import load_config
 from server.core import retriever
-from server.core.kimchi_embedder import _normalize_base_url, _parse_embeddings, _to_api_model_name
+from server.core.kimchi_embedder import (
+    _build_embedding_payload,
+    _normalize_base_url,
+    _parse_embeddings,
+    _to_api_model_name,
+)
 from server.core.model_registry import EMBEDDING_MODELS
 from server.models.config import ExperimentConfig
 
@@ -88,9 +93,18 @@ def test_kimchi_base_url_normalization(raw_base_url: str, normalized: str) -> No
     assert _normalize_base_url(raw_base_url) == normalized
 
 
-def test_kimchi_api_model_name_strips_internal_provider_prefix() -> None:
-    assert _to_api_model_name("mistral/codestral-embed") == "codestral-embed"
+def test_kimchi_api_model_name_passes_full_litellm_identifier() -> None:
+    # CAST.ai's LiteLLM gateway routes by provider/model — the prefix must be kept.
+    assert _to_api_model_name("mistral/codestral-embed") == "mistral/codestral-embed"
+    assert _to_api_model_name("openai/text-embedding-3-large") == "openai/text-embedding-3-large"
     assert _to_api_model_name("text-embedding-3-large") == "text-embedding-3-large"
+
+
+def test_kimchi_embedding_payload_matches_cast_template() -> None:
+    assert _build_embedding_payload("mistral/codestral-embed", "Text to embed") == {
+        "model": "mistral/codestral-embed",
+        "input": "Text to embed",
+    }
 
 
 def test_dense_search_uses_runtime_embedding_dimension(monkeypatch: pytest.MonkeyPatch) -> None:
