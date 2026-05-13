@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from cli.config_loader import load_config
 from server.core import retriever
-from server.core.kimchi_embedder import _parse_embeddings
+from server.core.kimchi_embedder import _normalize_base_url, _parse_embeddings, _to_api_model_name
 from server.core.model_registry import EMBEDDING_MODELS
 from server.models.config import ExperimentConfig
 
@@ -70,6 +70,27 @@ def test_kimchi_response_parsing_preserves_embedding_order() -> None:
     }
 
     assert _parse_embeddings(body, expected_count=2) == [[1.0, 2.0], [3.0, 4.0]]
+
+
+@pytest.mark.parametrize(
+    ("raw_base_url", "normalized"),
+    [
+        ("https://llm.cast.ai/openai", "https://llm.cast.ai/openai"),
+        ("https://llm.cast.ai/openai/v1", "https://llm.cast.ai/openai"),
+        ("https://llm.cast.ai/openai/v1/embeddings", "https://llm.cast.ai/openai"),
+        (
+            "https://api.cast.ai/v1/llm/openai/supported-providers",
+            "https://llm.cast.ai/openai",
+        ),
+    ],
+)
+def test_kimchi_base_url_normalization(raw_base_url: str, normalized: str) -> None:
+    assert _normalize_base_url(raw_base_url) == normalized
+
+
+def test_kimchi_api_model_name_strips_internal_provider_prefix() -> None:
+    assert _to_api_model_name("mistral/codestral-embed") == "codestral-embed"
+    assert _to_api_model_name("text-embedding-3-large") == "text-embedding-3-large"
 
 
 def test_dense_search_uses_runtime_embedding_dimension(monkeypatch: pytest.MonkeyPatch) -> None:

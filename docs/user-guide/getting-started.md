@@ -61,7 +61,7 @@ VOYAGE_RPM_LIMIT=2000
 VOYAGE_TPM_LIMIT=16000000
 
 # Optional — only needed for Kimchi-hosted embedding models
-KIMCHI_BASE_URL=https://api.navy
+KIMCHI_BASE_URL=https://llm.cast.ai/openai
 KIMCHI_API_KEY=kimchi-xxxxxxxxxxxxxxxxxxxxxxxx
 KIMCHI_RPM_LIMIT=60
 KIMCHI_TPM_LIMIT=0

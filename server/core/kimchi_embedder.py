@@ -31,8 +31,9 @@ def get_client() -> httpx.Client:
         if not settings.kimchi_api_key:
             raise ValueError("KIMCHI_API_KEY not set in .env or environment")
 
+        base_url = _normalize_base_url(settings.kimchi_base_url)
         _client = httpx.Client(
-            base_url=settings.kimchi_base_url.rstrip("/"),
+            base_url=base_url,
             headers={
                 "Authorization": f"Bearer {settings.kimchi_api_key}",
                 "Content-Type": "application/json",
@@ -41,6 +42,26 @@ def get_client() -> httpx.Client:
         )
         logger.info("Kimchi embedding client initialized")
     return _client
+
+
+def _normalize_base_url(raw_base_url: str) -> str:
+    """Normalize an OpenAI-compatible base URL to the provider root.
+
+    The adapter always posts to /v1/embeddings. Users often copy SDK base URLs
+    that already end in /v1, or full endpoint URLs that end in /v1/embeddings.
+    """
+    base_url = raw_base_url.rstrip("/")
+    if "supported-providers" in base_url:
+        logger.warning(
+            "KIMCHI_BASE_URL points to the CAST provider discovery endpoint; "
+            "using https://llm.cast.ai/openai for embeddings instead"
+        )
+        return "https://llm.cast.ai/openai"
+    if base_url.endswith("/v1/embeddings"):
+        return base_url[: -len("/v1/embeddings")]
+    if base_url.endswith("/v1"):
+        return base_url[: -len("/v1")]
+    return base_url
 
 
 def get_limiter() -> RateLimiter:
@@ -90,7 +111,7 @@ def _embed(texts: list[str], model: str) -> list[list[float]]:
 
     client = get_client()
     tokens = estimate_tokens(texts)
-    payload = {"model": model, "input": texts}
+    payload = {"model": _to_api_model_name(model), "input": texts}
 
     def _request() -> httpx.Response:
         return client.post("/v1/embeddings", json=payload)
@@ -115,6 +136,11 @@ def _call_with_retry(
                     request=response.request,
                     response=response,
                 )
+            if response.status_code >= 400:
+                raise ValueError(
+                    f"Kimchi embeddings request failed with HTTP {response.status_code}: "
+                    f"{response.text}"
+                )
             response.raise_for_status()
             return response
         except httpx.HTTPStatusError as exc:
@@ -129,6 +155,13 @@ def _call_with_retry(
             time.sleep(backoff)
             backoff *= 2
     raise RuntimeError("unreachable")
+
+
+def _to_api_model_name(model: str) -> str:
+    """Convert internal provider-prefixed IDs to CAST/OpenAI model names."""
+    if "/" not in model:
+        return model
+    return model.split("/", 1)[1]
 
 
 def _parse_embeddings(body: dict[str, Any], expected_count: int) -> list[list[float]]:

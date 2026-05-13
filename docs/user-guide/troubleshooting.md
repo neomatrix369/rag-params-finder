@@ -137,6 +137,8 @@ embedding:
 
 **Fix**:
 - Set both values in `.env`; never put them in config YAML.
+- Use `KIMCHI_BASE_URL=https://llm.cast.ai/openai`. Do not use the
+  `supported-providers` discovery URL as the embeddings base URL.
 - Confirm the server was restarted after editing `.env`.
 - Use `configs/example-kimchi.yaml` only when `embedding.provider: kimchi` should call the hosted Kimchi service.
 

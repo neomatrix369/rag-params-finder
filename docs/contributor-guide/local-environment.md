@@ -80,7 +80,7 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # Kimchi (OPTIONAL — only if using Kimchi models)
-KIMCHI_BASE_URL=https://api.navy
+KIMCHI_BASE_URL=https://llm.cast.ai/openai
 KIMCHI_API_KEY=kimchi-xxxxxxxxxxxxxxxxxxxxxxxx
 
 # Server URL (used by CLI, default is localhost:8001)
