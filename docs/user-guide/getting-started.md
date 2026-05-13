@@ -57,7 +57,7 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # Optional — only needed for Kimchi-hosted embedding models
-KIMCHI_BASE_URL=https://api.navy
+KIMCHI_BASE_URL=https://llm.cast.ai/openai
 KIMCHI_API_KEY=kimchi-xxxxxxxxxxxxxxxxxxxxxxxx
 
 # Optional — defaults shown
