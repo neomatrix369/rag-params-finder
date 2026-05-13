@@ -60,25 +60,37 @@ def _token_budget_per_request() -> int:
 
 
 def embed_documents(texts: list[str], model: str, provider: str = "local") -> list[list[float]]:
-    """Embed documents, dispatching to local or Voyage AI based on provider."""
+    """Embed documents, dispatching to the configured provider."""
     if provider == "local":
         from server.core.local_embedder import embed_documents_local
 
         return embed_documents_local(texts, model)
-    if is_contextualized_embedding(model):
-        return _embed_documents_voyage_context(texts, model)
-    return _embed_documents_voyage(texts, model)
+    if provider == "voyage":
+        if is_contextualized_embedding(model):
+            return _embed_documents_voyage_context(texts, model)
+        return _embed_documents_voyage(texts, model)
+    if provider == "kimchi":
+        from server.core.kimchi_embedder import embed_documents_kimchi
+
+        return embed_documents_kimchi(texts, model)
+    raise ValueError(f"Unsupported embedding provider '{provider}'")
 
 
 def embed_query(text: str, model: str, provider: str = "local") -> list[float]:
-    """Embed a single query, dispatching to local or Voyage AI based on provider."""
+    """Embed a single query, dispatching to the configured provider."""
     if provider == "local":
         from server.core.local_embedder import embed_query_local
 
         return embed_query_local(text, model)
-    if is_contextualized_embedding(model):
-        return _embed_query_voyage_context(text, model)
-    return _embed_query_voyage(text, model)
+    if provider == "voyage":
+        if is_contextualized_embedding(model):
+            return _embed_query_voyage_context(text, model)
+        return _embed_query_voyage(text, model)
+    if provider == "kimchi":
+        from server.core.kimchi_embedder import embed_query_kimchi
+
+        return embed_query_kimchi(text, model)
+    raise ValueError(f"Unsupported embedding provider '{provider}'")
 
 
 def _embed_documents_voyage(texts: list[str], model: str) -> list[list[float]]:
