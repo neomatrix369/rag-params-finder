@@ -116,6 +116,30 @@ def create_vector_indexes() -> bool:
     return _wait_for_indexes_ready(chunks, names)
 
 
+def ensure_vector_index(dimensions: int) -> bool:
+    """Ensure a vector search index exists for a runtime-detected dimension."""
+    name = f"vector_index_{dimensions}"
+    chunks = get_collection(CHUNKS_COLLECTION)
+    existing = _get_existing_search_indexes(chunks)
+    if name in existing:
+        return True
+
+    try:
+        chunks.create_search_indexes(models=[_build_vector_index_model(name, dimensions)])
+        logger.info(f"Created vector search index: {name}")
+    except Exception as e:
+        err_str = str(e)
+        if "CommandNotFound" in err_str or "no such command" in err_str.lower():
+            logger.warning(
+                "Programmatic vector index creation not supported on this cluster tier (M0/M2/M5). "
+                f"Create index '{name}' manually in the Atlas UI with numDimensions={dimensions}."
+            )
+            return False
+        raise
+
+    return _wait_for_indexes_ready(chunks, [name])
+
+
 def _wait_for_indexes_ready(collection, names: list[str], timeout_s: int = 120) -> bool:
     """Poll until all named search indexes reach 'READY' status."""
     logger.info(f"Waiting for vector indexes to become active (timeout {timeout_s}s)...")

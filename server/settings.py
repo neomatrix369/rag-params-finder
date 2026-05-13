@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     voyage_rpm_limit: int = 3
     voyage_tpm_limit: int = 10_000
 
+    # Kimchi OpenAI-compatible embeddings endpoint.
+    kimchi_base_url: str = ""
+    kimchi_api_key: str = ""
+    kimchi_rpm_limit: int = 60
+    kimchi_tpm_limit: int = 0
+
 
 settings = Settings()
 
@@ -29,5 +35,7 @@ logger.info(f"Settings loaded: server_url={settings.server_url}")
 logger.debug(
     f"Settings detail: mongodb_uri={'***' if settings.mongodb_uri else '(not set)'}, "
     f"voyage_api_key={'***' if settings.voyage_api_key else '(not set)'}, "
+    f"kimchi_base_url={settings.kimchi_base_url or '(not set)'}, "
+    f"kimchi_api_key={'***' if settings.kimchi_api_key else '(not set)'}, "
     f"recover_on_boot={settings.recover_on_boot}"
 )

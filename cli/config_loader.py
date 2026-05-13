@@ -45,8 +45,9 @@ def _validate_models(config: dict) -> None:
                 f"Embedding model '{model_id}' belongs to provider "
                 f"'{info['provider']}', but config declares provider '{declared_provider}'"
             )
+        dimensions = info["dimensions"] if info["dimensions"] is not None else "runtime"
         logger.info(
-            f"Embedding model '{model_id}' → provider={declared_provider}, dim={info['dimensions']}"
+            f"Embedding model '{model_id}' → provider={declared_provider}, dim={dimensions}"
         )
 
     retrieval_cfg = config.get("retrieval", {})
