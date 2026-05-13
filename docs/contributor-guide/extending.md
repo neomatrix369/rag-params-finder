@@ -18,9 +18,9 @@ In `server/core/model_registry.py`, add to `EMBEDDING_MODELS`:
 ```python
 EMBEDDING_MODELS = {
     "my-new-model": {
-        "provider": "local",          # or "voyage"
-        "dimensions": 768,
-        "huggingface_id": "org/my-new-model",  # for local models; None for Voyage
+        "provider": "local",          # or "voyage" / "kimchi"
+        "dimensions": 768,            # use None for runtime-detected hosted dimensions
+        "huggingface_id": "org/my-new-model",  # for local models; None for Voyage/Kimchi
         "description": "Short label for docs",
         "contextualized": False,      # True only for voyage-context-* (contextualized_embed API)
     },
@@ -30,11 +30,11 @@ EMBEDDING_MODELS = {
 
 ### 2. Add provider support (if new provider)
 
-If the model uses a provider not yet supported, update `server/models/config.py` → `Provider` type and add dispatch logic in the embedder.
+If the model uses a provider not yet supported, update `server/models/config.py` → `Provider` type and add dispatch logic in the embedder. Hosted providers must read credentials from `server/settings.py`, not from YAML configs.
 
 ### 3. Update the embedder dispatcher
 
-In `server/core/embedder.py` (Voyage) or `server/core/local_embedder.py` (sentence-transformers): verify the model name routes correctly through the existing dispatch logic. For most new models of an existing provider type, no changes are needed.
+In `server/core/embedder.py`, verify the model routes to local, Voyage, or Kimchi. For most new models of an existing provider type, registry/config changes are enough.
 
 **Contextualized models** (`contextualized: True`, e.g. `voyage-context-3`):
 
@@ -45,7 +45,7 @@ In `server/core/embedder.py` (Voyage) or `server/core/local_embedder.py` (senten
 
 ### 4. Create an Atlas vector index
 
-A new dimension size requires a new Atlas vector index. See [getting-started.md](../user-guide/getting-started.md#2-create-the-atlas-vector-index) for the index JSON format.
+A new dimension size requires a new Atlas vector index. Known dimensions can be registered statically; hosted models with `dimensions=None` use the runtime embedding length and route to `vector_index_<dimension>`. See [getting-started.md](../user-guide/getting-started.md#2-create-the-atlas-vector-index) for the index JSON format.
 
 ### 5. Update the example configs
 
@@ -179,9 +179,10 @@ export async function fetchMyData(experimentId: string): Promise<MyType> {
 
 | Gotcha | What to watch for |
 |---|---|
-| Vector dimension mismatch | Local models are 384-dim; Voyage models are 1024-dim. Cannot mix in the same experiment. Each dimension needs its own Atlas vector index. |
-| Provider/model mismatch | Config validation fails if `provider: local` is paired with a Voyage model name. The `model_registry.py` cross-checks this at load time. |
+| Vector dimension mismatch | Local models are 384-dim, Voyage models are 1024-dim, and Kimchi dimensions are runtime-detected. Each dimension needs its own Atlas vector index. |
+| Provider/model mismatch | Config validation fails if `provider` is paired with a model registered to another provider. The `model_registry.py` cross-checks this at load time. |
 | Missing embeddings filter | Always filter Atlas vector search by `embedding_model` — different models produce incompatible vectors that must not be compared. |
+| Hosted provider secrets | Keep `VOYAGE_API_KEY`, `KIMCHI_API_KEY`, and base URLs in `.env`/server settings; never commit secrets or add them to YAML configs. |
 | Queries file URL caching | URL-sourced query files are downloaded to `configs/` and cached by hash. Delete the cached file to force re-download. |
 | Server must be running | The CLI requires the server at `SERVER_URL` (default: `http://localhost:8001`). All commands fail if the server is down. |
 | Rate limits on Voyage | Free tier: 3 RPM / 10k TPM (defaults). Tier 1: 2,000 RPM + model TPM — set `VOYAGE_RPM_LIMIT` / `VOYAGE_TPM_LIMIT` in `.env`. |
