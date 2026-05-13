@@ -18,6 +18,7 @@ Everything you need to run your first RAG parameter sweep experiment.
 | Node.js | 22+ | Install via [nodejs.org](https://nodejs.org/) or `nvm install 22` |
 | MongoDB Atlas | Free tier (M0) | [cloud.mongodb.com](https://cloud.mongodb.com/) — free tier fully supports vector search |
 | Voyage AI API key | Optional | [dash.voyageai.com](https://dash.voyageai.com) — only needed for Voyage models; local models need no key |
+| Kimchi API key | Optional | Only needed for Kimchi-hosted embedding sweeps |
 
 ---
 
@@ -55,10 +56,16 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?
 # Optional — only needed for Voyage models
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
+# Optional — only needed for Kimchi-hosted embedding models
+KIMCHI_BASE_URL=https://your-kimchi-host.example
+KIMCHI_API_KEY=kimchi-xxxxxxxxxxxxxxxxxxxxxxxx
+
 # Optional — defaults shown
 SERVER_URL=http://localhost:8001
 VOYAGE_RPM_LIMIT=300
 VOYAGE_TPM_LIMIT=1000000
+KIMCHI_RPM_LIMIT=60
+KIMCHI_TPM_LIMIT=0
 RECOVER_ON_BOOT=false
 LOG_LEVEL=INFO
 ```
@@ -104,7 +111,12 @@ For **local models** (384-dim), name: `vector_index_384`:
 }
 ```
 
-Both indexes can coexist on the same collection. Wait ~1–2 minutes for the index to build before running queries.
+For **Kimchi models**, dimensions are detected at runtime. The server will try to create
+`vector_index_<dimension>` automatically when the first query embedding is generated. If
+your Atlas tier does not support programmatic search index creation, create the same JSON
+shape manually with the dimension from the server log.
+
+All vector indexes can coexist on the same collection. Wait ~1–2 minutes for the index to build before running queries.
 
 ---
 
@@ -151,6 +163,9 @@ rag-params-finder run --config configs/example-local.yaml
 
 # Voyage AI models — requires VOYAGE_API_KEY in .env
 rag-params-finder run --config configs/example-voyage-ai.yaml
+
+# Kimchi-hosted embeddings — requires KIMCHI_BASE_URL and KIMCHI_API_KEY in .env
+rag-params-finder run --config configs/example-kimchi.yaml
 
 # Submit and detach (check dashboard for status instead)
 rag-params-finder run --config configs/example-local.yaml --detach

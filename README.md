@@ -16,7 +16,7 @@
 
 > Find your optimal RAG configuration — **before** you build your RAG application.
 
-**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports Voyage AI (hosted) and local sentence-transformers (no API key needed).
+**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports Voyage AI, Kimchi-hosted embedding models, and local sentence-transformers (no API key needed).
 
 Most RAG projects start with a guess: pick an embedding model, pick a chunking method, a retrieval method (or a re-ranker), realise it's wrong, refactor. That loop is
 slow and expensive.
@@ -40,7 +40,7 @@ shows you exactly which configuration performs best.
 
 ## What it sweeps
 
-- **Embedding models**: `voyage-3.5-lite`, `voyage-3.5`, `voyage-context-3`
+- **Embedding models**: local, Voyage AI, and Kimchi-hosted model sweeps
 - **Chunking methods**: Fixed · Recursive · Token · Sentence · Semantic
 - **Retrieval methods**: Dense · Sparse · Hybrid
 - **Questions**: Persona-organised — realistic, not synthetic
@@ -73,7 +73,8 @@ cd frontend && npm install && cd ..
 
 # Configure
 cp .env.example .env
-# Edit .env: add MONGODB_URI (required) and VOYAGE_API_KEY (optional)
+# Edit .env: add MONGODB_URI (required);
+# add VOYAGE_API_KEY or KIMCHI_API_KEY/KIMCHI_BASE_URL for hosted models
 
 # Start
 uvicorn server.main:app --reload --port 8001   # Terminal 1
@@ -81,6 +82,9 @@ cd frontend && npm run dev                      # Terminal 2
 
 # Run an experiment (no API key needed)
 rag-params-finder run --config configs/example-local.yaml
+
+# Or sweep Kimchi-hosted embedding models
+rag-params-finder run --config configs/example-kimchi.yaml
 ```
 
 Open `http://localhost:5173` to watch live progress and explore results.
@@ -108,6 +112,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 - **5 chunking methods**: Fixed, Recursive, Token, Sentence, Semantic
 - **3 retrieval methods**: Dense (vector search), Sparse (BM25), Hybrid (70/30 weighted)
 - **Voyage AI models**: `voyage-3.5-lite`, `voyage-3.5`, `voyage-context-3` + `rerank-2.5-lite`
+- **Kimchi embeddings**: OpenAI-compatible hosted embedding catalog via `configs/example-kimchi.yaml`
 - **Local models** (no API key): `all-MiniLM-L6-v2` + `cross-encoder/ms-marco-MiniLM-L-6-v2`
 - **Multi-format data loading**: PDF, TXT, Markdown, CSV — files or directories
 - **Cartesian sweep**: one YAML config → N models × M methods × P sizes × Q overlaps runs
@@ -121,7 +126,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 **Frontend**: React 19 · TypeScript 5.8 · Vite 6 · Tailwind CSS
 
-**AI/ML**: Voyage AI · sentence-transformers · MongoDB Atlas Vector Search
+**AI/ML**: Voyage AI · Kimchi embeddings · sentence-transformers · MongoDB Atlas Vector Search
 
 **Dev tools**: uv · ruff · mypy · pytest · GitHub Actions
 

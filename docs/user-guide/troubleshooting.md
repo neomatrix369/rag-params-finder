@@ -12,7 +12,7 @@ Common errors and how to fix them.
 
 **Symptom**: server logs show `Search index 'vector_index' not found` or queries return no results.
 
-**Cause**: The Atlas vector index must be created manually — the server cannot create it automatically.
+**Cause**: The Atlas vector index must exist with the same number of dimensions as the embedding vector.
 
 **Fix**:
 
@@ -48,20 +48,22 @@ Common errors and how to fix them.
 }
 ```
 
-Both indexes can coexist on the same `chunks` collection — the server selects the correct one automatically based on the model. Wait **~1–2 minutes** for the index to build before running queries.
+For Kimchi models, dimensions are detected at runtime and the server routes to `vector_index_<dimension>`. If programmatic index creation is unsupported on your Atlas tier, copy the dimension from the server log and create the matching index manually.
+
+All indexes can coexist on the same `chunks` collection. Wait **~1–2 minutes** for the index to build before running queries.
 
 ---
 
-## ⚠️ Dimension mismatch (local vs Voyage models)
+## ⚠️ Dimension mismatch
 
 **Symptom**: vector search fails with a dimension error, or results are nonsensical.
 
-**Cause**: local models produce 384-dim embeddings; Voyage models produce 1024-dim. Vectors from different models cannot be compared in the same search index.
+**Cause**: local models produce 384-dim embeddings, Voyage models produce 1024-dim embeddings, and Kimchi-hosted models vary by model. Vectors from different models cannot be compared in the same search index.
 
 **Fix**:
-- Each embedding model needs its own Atlas vector index (`vector_index_384` or `vector_index_1024`)
+- Each embedding dimension needs its own Atlas vector index (`vector_index_384`, `vector_index_1024`, or `vector_index_<runtime-dim>`)
 - Never mix providers within the same experiment config (the system validates this at config load time)
-- The server automatically routes to the correct index via `get_index_name(model)` in `server/core/retriever.py`
+- The server automatically routes to the correct index from the query embedding length in `server/core/retriever.py`
 
 ---
 
@@ -85,12 +87,29 @@ embedding:
   models:
     - voyage-3.5-lite
 
+# Correct — kimchi provider with prefixed Kimchi model ID
+embedding:
+  provider: kimchi
+  models:
+    - openai/text-embedding-3-large
+
 # Wrong — will fail validation immediately
 embedding:
   provider: local
   models:
     - voyage-3.5-lite   # ERROR: voyage model with local provider
 ```
+
+---
+
+## 🍜 Kimchi credentials missing
+
+**Symptom**: run fails during the EMBEDDING phase with `KIMCHI_BASE_URL not set` or `KIMCHI_API_KEY not set`.
+
+**Fix**:
+- Set both values in `.env`; never put them in config YAML.
+- Confirm the server was restarted after editing `.env`.
+- Use `configs/example-kimchi.yaml` only when `embedding.provider: kimchi` should call the hosted Kimchi service.
 
 ---
 
@@ -158,9 +177,13 @@ db.results.deleteMany({experiment_id: exp_id})
 |---|---|---|---|
 | `MONGODB_URI` | Yes | — | MongoDB Atlas connection string |
 | `VOYAGE_API_KEY` | No | — | Voyage AI API key (only if using Voyage models) |
+| `KIMCHI_BASE_URL` | No | — | Kimchi OpenAI-compatible embeddings endpoint |
+| `KIMCHI_API_KEY` | No | — | Kimchi API key (only if using Kimchi models) |
 | `SERVER_URL` | No | `http://localhost:8001` | FastAPI server URL (used by CLI) |
 | `VOYAGE_RPM_LIMIT` | No | `300` | Voyage requests-per-minute limit (throttle guard) |
 | `VOYAGE_TPM_LIMIT` | No | `1000000` | Voyage tokens-per-minute limit |
+| `KIMCHI_RPM_LIMIT` | No | `60` | Kimchi requests-per-minute limit |
+| `KIMCHI_TPM_LIMIT` | No | `0` | Kimchi tokens-per-minute limit; `0` disables token throttling |
 | `RECOVER_ON_BOOT` | No | `false` | Auto-retry interrupted runs when server starts |
 | `LOG_LEVEL` | No | `INFO` | Logging verbosity (`DEBUG` for verbose output) |
 
@@ -170,7 +193,7 @@ db.results.deleteMany({experiment_id: exp_id})
 
 | Collection | Purpose | Key Indexes |
 |---|---|---|
-| `chunks` | Text chunks + embeddings | Vector index on `embedding` (cosine, 384 or 1024-dim) + filter fields |
+| `chunks` | Text chunks + embeddings | Vector index on `embedding` (`vector_index_<dimension>`) + filter fields |
 | `experiments` | Experiment metadata + sweep config | `created_at`, `status` |
 | `run_status` | Per-run phase tracking | `experiment_id`, `phase` |
 | `results` | Per-query top-K results | `experiment_id`, `query_id` |

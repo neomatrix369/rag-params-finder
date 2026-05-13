@@ -32,6 +32,9 @@ rag-params-finder run --config configs/example-local.yaml --detach
 
 # Voyage AI experiment (requires VOYAGE_API_KEY in .env)
 rag-params-finder run --config configs/example-voyage-ai.yaml
+
+# Kimchi-hosted embedding sweep (requires KIMCHI_BASE_URL and KIMCHI_API_KEY)
+rag-params-finder run --config configs/example-kimchi.yaml
 ```
 
 When not detached, the CLI renders a live Rich table showing each run's current phase:
