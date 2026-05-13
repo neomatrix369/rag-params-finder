@@ -70,6 +70,18 @@ The `text_search_index`, `vector_index_384`, and `vector_index_1024` all coexist
 
 ---
 
+## 🍜 Kimchi Setup
+
+Kimchi is optional and only needed for `embedding.provider: kimchi`.
+
+1. Get the OpenAI-compatible Kimchi embeddings base URL.
+2. Create an API key for the service.
+3. Copy both into `.env` as `KIMCHI_BASE_URL` and `KIMCHI_API_KEY`.
+
+Kimchi model dimensions are detected at runtime. If Atlas cannot create search indexes programmatically on your cluster tier, create `vector_index_<dimension>` manually after the server logs the detected dimension.
+
+---
+
 ## 🔑 Full .env Reference
 
 ```bash
@@ -79,12 +91,18 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?
 # Voyage AI (OPTIONAL — only if using Voyage models)
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
+# Kimchi (OPTIONAL — only if using Kimchi models)
+KIMCHI_BASE_URL=https://your-kimchi-host.example
+KIMCHI_API_KEY=kimchi-xxxxxxxxxxxxxxxxxxxxxxxx
+
 # Server URL (used by CLI, default is localhost:8001)
 SERVER_URL=http://localhost:8001
 
 # Rate limits (Voyage only — free-tier defaults in .env.example; uncomment Tier 1 block for Voyage sweep)
 # VOYAGE_RPM_LIMIT=2000
 # VOYAGE_TPM_LIMIT=16000000
+KIMCHI_RPM_LIMIT=60
+KIMCHI_TPM_LIMIT=0
 
 # Optional — Atlas Admin API for dashboard tier + storage quota
 # ATLAS_PUBLIC_KEY=

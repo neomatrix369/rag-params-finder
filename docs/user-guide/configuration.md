@@ -10,12 +10,13 @@ All YAML fields, sweep expansion rules, and queries file format.
 
 ## ⚙️ Experiment Config (YAML)
 
-Place config files in `configs/`. Two ready-to-run configs are provided, one per vector-DB × provider combination:
+Place config files in `configs/`. Ready-to-run configs:
 
 | Config file | Vector DB | Embedding provider | Chunking | Retrieval | Runs | API key? |
 |---|---|---|---|---|---|---|
 | `example-mongodb-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid | 90 | No |
-| `example-mongodb-voyage.yaml` | MongoDB Atlas | Voyage AI (all 3 models) | all 5 methods | dense · sparse · hybrid | 90 | Yes |
+| `example-mongodb-voyage.yaml` | MongoDB Atlas | Voyage AI (all models) | all 5 methods | dense · sparse · hybrid | 90 | Yes |
+| `example-kimchi.yaml` | MongoDB Atlas | Kimchi-hosted embeddings | all 5 methods | dense · sparse · hybrid | varies | Yes |
 
 Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retrieval method runs as an independent experiment.
 
@@ -32,9 +33,9 @@ queries_file: ./configs/questions.example.json  # local path or URL
                                                  # URL downloads to ./configs/ on first use and caches
 
 embedding:
-  provider: local                    # "local" (sentence-transformers) or "voyage"
+  provider: local                    # "local", "voyage", or "kimchi"
   models:
-    - all-MiniLM-L6-v2               # must match provider: local models can't be paired with provider: voyage
+    - all-MiniLM-L6-v2               # models must match the declared provider
 
 chunking:
   methods:
@@ -117,6 +118,8 @@ Canonical list: `server/core/model_registry.py` (`EMBEDDING_MODELS`, `RERANKER_M
 | `voyage-3.5` | 1024 | `voyage` | Previous-gen standard |
 | `voyage-3` | 1024 | `voyage` | Voyage 3 general |
 | `voyage-multilingual-2` | 1024 | `voyage` | Multilingual |
+| **Kimchi-hosted** | | | |
+| `mistral/codestral-embed` and other prefixed IDs | Runtime | `kimchi` | OpenAI-compatible hosted embeddings — see `model_registry.py` |
 
 ### Reranker models
 
@@ -132,7 +135,7 @@ Canonical list: `server/core/model_registry.py` (`EMBEDDING_MODELS`, `RERANKER_M
 
 **Provider/model must match.** The system validates at config load time — a `provider: local` config with a Voyage model name will fail immediately with a clear error.
 
-**Atlas vector index** selection is automatic: local models (384-dim) use `vector_index_384`; Voyage models (1024-dim) use `vector_index_1024`. Both can coexist on the same `chunks` collection.
+**Atlas vector index** selection is automatic: local models (384-dim) use `vector_index_384`; Voyage models (1024-dim) use `vector_index_1024`; Kimchi models use the runtime embedding length and route to `vector_index_<dimension>`. All can coexist on the same `chunks` collection.
 
 **Search index preflight:** on submit, the server derives required index names from your config and validates cluster capacity before any run starts:
 
@@ -236,6 +239,29 @@ For a targeted subset, copy the file and trim the `methods` or `chunk_sizes` lis
 To **continue an incomplete sweep** without re-submitting YAML, pause and resume the same experiment (CLI or dashboard) — completed parameter combinations are skipped automatically.
 
 To **re-run only failed combinations inside an existing experiment** *(same `experiment_id`, keep successful runs)*, see the planned workflow in [`../slices/SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) — today this requires manual YAML reshaping, pause/resume for not-yet-started combos, or a new submit.
+
+---
+
+## 🍜 Kimchi Config
+
+`configs/example-kimchi.yaml` sweeps the Kimchi-hosted embedding catalog with prefixed model IDs such as `mistral/codestral-embed`, `openai/text-embedding-3-large`, and `hosted_vllm/bge-m3`.
+
+```yaml
+embedding:
+  provider: kimchi
+  models:
+    - mistral/codestral-embed
+    - openai/text-embedding-3-large
+
+retrieval:
+  methods: [dense]
+  top_k_initial: 20
+  top_k_final: 5
+  rerank_provider: local
+  rerank_model: null
+```
+
+Kimchi support is embeddings-only. Set `KIMCHI_BASE_URL` and `KIMCHI_API_KEY` server-side in `.env`; do not put secrets in YAML config files.
 
 ---
 

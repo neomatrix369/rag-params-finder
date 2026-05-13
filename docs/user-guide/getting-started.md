@@ -18,6 +18,7 @@ Everything you need to run your first RAG parameter sweep experiment.
 | Node.js | 22+ | Install via [nodejs.org](https://nodejs.org/) or `nvm install 22` |
 | MongoDB Atlas | Free tier (M0) | **Required** — see [Cloud Account Setup](cloud-setup.md#mongodb-atlas-required) |
 | Voyage AI | Optional | Only for Voyage models — see [Cloud Account Setup](cloud-setup.md#voyage-ai-optional) |
+| Kimchi API key | Optional | Only for Kimchi-hosted embedding sweeps |
 
 **New to Atlas or Voyage?** Start with **[Cloud Account Setup](cloud-setup.md)** — account creation, connection string, search indexes, API key, and Tier 1 billing (~15 min).
 
@@ -60,6 +61,12 @@ VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 VOYAGE_RPM_LIMIT=2000
 VOYAGE_TPM_LIMIT=16000000
 
+# Optional — only needed for Kimchi-hosted embedding models
+KIMCHI_BASE_URL=https://your-kimchi-host.example
+KIMCHI_API_KEY=kimchi-xxxxxxxxxxxxxxxxxxxxxxxx
+KIMCHI_RPM_LIMIT=60
+KIMCHI_TPM_LIMIT=0
+
 SERVER_URL=http://localhost:8001
 ```
 
@@ -82,6 +89,13 @@ rag-params-finder indexes reset --all       # drop all chunks indexes + recreate
 ```
 
 The server **preflights search indexes** when you submit a sweep: it derives required index names from your YAML (embedding dimensions + sparse/hybrid retrieval), checks cluster capacity, and rejects the experiment with **HTTP 422** if indexes are missing or quota is exhausted — before any embedding work starts.
+
+For **Kimchi models**, dimensions are detected at runtime. The server will try to create
+`vector_index_<dimension>` automatically when the first query embedding is generated. If
+your Atlas tier does not support programmatic search index creation, create the same JSON
+shape manually with the dimension from the server log.
+
+All vector indexes can coexist on the same collection. Wait ~1–2 minutes for the index to build before running queries.
 
 ---
 
@@ -130,6 +144,9 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 # Voyage sweep — checklist items 1–9
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
+
+# Kimchi-hosted embeddings — requires KIMCHI_BASE_URL and KIMCHI_API_KEY in .env
+rag-params-finder run --config configs/example-kimchi.yaml
 
 # Submit and detach (check dashboard for status instead)
 rag-params-finder run --config configs/example-mongodb-local.yaml --detach

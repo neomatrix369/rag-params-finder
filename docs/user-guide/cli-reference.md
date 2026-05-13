@@ -36,6 +36,9 @@ rag-params-finder run --config configs/example-mongodb-local.yaml --no-watch
 
 # Voyage AI experiment (requires VOYAGE_API_KEY in .env)
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
+
+# Kimchi-hosted embedding sweep (requires KIMCHI_BASE_URL and KIMCHI_API_KEY)
+rag-params-finder run --config configs/example-kimchi.yaml
 ```
 
 When watching, the CLI renders a live Rich table showing each run's current phase:

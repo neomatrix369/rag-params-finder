@@ -190,6 +190,7 @@ Two independent provider settings in each experiment config:
 **Embedding provider** (`embedding.provider`):
 - `local` → `server/core/local_embedder.py` → sentence-transformers `all-MiniLM-L6-v2` (384-dim)
 - `voyage` → `server/core/embedder.py` → Voyage AI API (1024-dim); `voyage-context-3` uses `contextualized_embed()` with per-document segment splitting (32K-token window)
+- `kimchi` → `server/core/kimchi_embedder.py` → OpenAI-compatible Kimchi embeddings (runtime-detected dim)
 
 **Reranking provider** (`retrieval.rerank_provider`):
 - `local` → `server/core/local_reranker.py` → CrossEncoder `cross-encoder/ms-marco-MiniLM-L-6-v2`
@@ -203,7 +204,7 @@ Provider flows explicitly through `RunParams` → `orchestrator` → embedder/re
 
 | Collection | Purpose | Key Indexes |
 |---|---|---|
-| `chunks` | Text chunks + embeddings | Vector index on `embedding` (384 or 1024-dim cosine) + filter fields |
+| `chunks` | Text chunks + embeddings | Vector index on `embedding` (`vector_index_<dimension>`) + filter fields |
 | `experiments` | Experiment metadata + sweep config | `created_at`, `status` |
 | `run_status` | Per-run phase tracking | `experiment_id`, `phase` |
 | `results` | Per-query top-K results | `experiment_id`, `query_id` |
@@ -226,7 +227,7 @@ See `docs/adr/` for Architecture Decision Records:
 |---|---|
 | FastAPI `BackgroundTasks` (not Celery) | No queue infrastructure needed while sweep runs execute sequentially *(see [`SLICE-16`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) for honoring `parallelism > 1` and optional Celery path)* |
 | Hand-mirrored TypeScript types | No codegen tooling (typeshare/quicktype); 5 types + 3 enums is manageable manually |
-| Separate vector indexes per dimension | Atlas requires exact `numDimensions` — `vector_index_1024` (Voyage) and `vector_index_384` (local) coexist on the same collection |
+| Separate vector indexes per dimension | Atlas requires exact `numDimensions`; local, Voyage, and runtime-detected Kimchi dimensions each use `vector_index_<dimension>` |
 | Lazy-load + cache for local models | First run downloads from HuggingFace; subsequent runs instant — avoids blocking server startup |
 | `numpy<2` pinned | torch compiled against NumPy 1.x ABI; NumPy 2.x causes `_ARRAY_API not found` crashes |
 | Shared `DashboardShell` + `AppPageChrome` components | Unified header, navigation, and page layout across all screens — consistent UX, easier maintenance |
