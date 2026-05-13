@@ -110,15 +110,23 @@ def _embed(texts: list[str], model: str) -> list[list[float]]:
         return []
 
     client = get_client()
-    tokens = estimate_tokens(texts)
-    payload = {"model": _to_api_model_name(model), "input": texts}
+    return [_embed_one(client, text, model) for text in texts]
+
+
+def _embed_one(client: httpx.Client, text: str, model: str) -> list[float]:
+    tokens = estimate_tokens([text])
+    payload = _build_embedding_payload(model, text)
 
     def _request() -> httpx.Response:
         return client.post("/v1/embeddings", json=payload)
 
     response = _call_with_retry(_request, estimated_tokens=tokens)
     body = response.json()
-    return _parse_embeddings(body, expected_count=len(texts))
+    return _parse_embeddings(body, expected_count=1)[0]
+
+
+def _build_embedding_payload(model: str, text: str) -> dict[str, str]:
+    return {"model": _to_api_model_name(model), "input": text}
 
 
 def _call_with_retry(
@@ -158,10 +166,13 @@ def _call_with_retry(
 
 
 def _to_api_model_name(model: str) -> str:
-    """Convert internal provider-prefixed IDs to CAST/OpenAI model names."""
-    if "/" not in model:
-        return model
-    return model.split("/", 1)[1]
+    """Return the model name as-is for the CAST/LiteLLM API.
+
+    CAST.ai's LiteLLM gateway routes by the full provider/model string
+    (e.g. "mistral/codestral-embed"). Stripping the prefix causes a 400
+    "no registered providers found" error.
+    """
+    return model
 
 
 def _parse_embeddings(body: dict[str, Any], expected_count: int) -> list[list[float]]:
