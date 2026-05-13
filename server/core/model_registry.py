@@ -15,8 +15,8 @@ logger = get_logger(__name__)
 
 
 class EmbeddingModelInfo(TypedDict):
-    provider: str  # "voyage" | "local"
-    dimensions: int
+    provider: str  # "voyage" | "local" | "kimchi"
+    dimensions: int | None
     huggingface_id: str | None
     description: str
     contextualized: bool  # uses contextualized_embed() API (e.g. voyage-context-3)
@@ -26,6 +26,56 @@ class RerankerModelInfo(TypedDict):
     provider: str  # "voyage" | "local"
     huggingface_id: str | None
     description: str
+
+
+_KIMCHI_EMBEDDING_MODELS = [
+    ("mistral/codestral-embed", "Kimchi-hosted Mistral Codestral embedding"),
+    ("mistral/mistral-embed", "Kimchi-hosted Mistral embedding"),
+    ("mistral/codestral-embed-2505", "Kimchi-hosted Mistral Codestral 2505 embedding"),
+    ("databricks/databricks-gte-large-en", "Kimchi-hosted Databricks GTE large English"),
+    ("databricks/databricks-bge-large-en", "Kimchi-hosted Databricks BGE large English"),
+    (
+        "vertex_ai-language-models/gemini-flash-experimental",
+        "Kimchi-hosted Vertex AI Gemini Flash experimental embedding",
+    ),
+    ("gemini/gemini-embedding-2-preview", "Kimchi-hosted Gemini embedding 2 preview"),
+    ("gemini/gemini-embedding-001", "Kimchi-hosted Gemini embedding 001"),
+    ("gemini/gemini-embedding-2", "Kimchi-hosted Gemini embedding 2"),
+    ("perplexity/pplx-embed-v1-0.6b", "Kimchi-hosted Perplexity PPLX embed v1 0.6B"),
+    ("perplexity/pplx-embed-v1-4b", "Kimchi-hosted Perplexity PPLX embed v1 4B"),
+    ("azure/text-embedding-3-large", "Kimchi-hosted Azure text-embedding-3-large"),
+    ("azure/text-embedding-ada-002", "Kimchi-hosted Azure text-embedding-ada-002"),
+    ("azure/ada", "Kimchi-hosted Azure Ada embedding"),
+    ("bedrock/marengo-embed-2-7", "Kimchi-hosted Bedrock Marengo Embed 2.7"),
+    ("bedrock/titan-embed-text-v2", "Kimchi-hosted Bedrock Titan Embed Text v2"),
+    ("bedrock/embed-v4:0", "Kimchi-hosted Bedrock Embed v4"),
+    ("bedrock/embed-english-v3", "Kimchi-hosted Bedrock Embed English v3"),
+    ("bedrock/embed-multilingual-v3", "Kimchi-hosted Bedrock Embed Multilingual v3"),
+    ("bedrock/titan-embed-image-v1", "Kimchi-hosted Bedrock Titan Embed Image v1"),
+    (
+        "bedrock/nova-2-multimodal-embeddings-v1:0",
+        "Kimchi-hosted Bedrock Nova 2 multimodal embeddings v1",
+    ),
+    ("bedrock/titan-embed-text-v1", "Kimchi-hosted Bedrock Titan Embed Text v1"),
+    ("openai/text-embedding-3-large", "Kimchi-hosted OpenAI text-embedding-3-large"),
+    ("openai/text-embedding-ada-002", "Kimchi-hosted OpenAI text-embedding-ada-002"),
+    ("openai/text-embedding-3-small", "Kimchi-hosted OpenAI text-embedding-3-small"),
+    ("openai/text-embedding-ada-002-v2", "Kimchi-hosted OpenAI text-embedding-ada-002-v2"),
+    ("hosted_vllm/gte-qwen2-7b-instruct", "Kimchi-hosted vLLM GTE Qwen2 7B instruct"),
+    (
+        "hosted_vllm/multilingual-e5-large-instruct",
+        "Kimchi-hosted vLLM multilingual E5 large instruct",
+    ),
+    ("hosted_vllm/bge-base-en-v1.5", "Kimchi-hosted vLLM BGE base English v1.5"),
+    ("hosted_vllm/multilingual-e5-large", "Kimchi-hosted vLLM multilingual E5 large"),
+    ("hosted_vllm/bge-m3", "Kimchi-hosted vLLM BGE M3"),
+    (
+        "azure_ai/Cohere-embed-v3-multilingual",
+        "Kimchi-hosted Azure AI Cohere Embed v3 multilingual",
+    ),
+    ("azure_ai/embed-v-4-0", "Kimchi-hosted Azure AI Embed v4.0"),
+    ("azure_ai/Cohere-embed-v3-english", "Kimchi-hosted Azure AI Cohere Embed v3 English"),
+]
 
 
 EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
@@ -124,6 +174,15 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "description": "Fast general-purpose sentence embeddings (384-dim, ~23MB)",
         "contextualized": False,
     },
+    **{
+        model_id: {
+            "provider": "kimchi",
+            "dimensions": None,
+            "huggingface_id": None,
+            "description": description,
+        }
+        for model_id, description in _KIMCHI_EMBEDDING_MODELS
+    },
 }
 
 RERANKER_MODELS: dict[str, RerankerModelInfo] = {
@@ -178,7 +237,13 @@ def get_provider(model_id: str) -> str:
 
 
 def get_dimensions(model_id: str) -> int:
-    return get_model_info(model_id)["dimensions"]
+    dimensions = get_model_info(model_id)["dimensions"]
+    if dimensions is None:
+        raise ValueError(
+            f"Embedding model '{model_id}' has runtime-detected dimensions. "
+            "Use get_index_name_for_dimensions(len(embedding)) after embedding."
+        )
+    return dimensions
 
 
 def is_contextualized_embedding(model_id: str) -> bool:
@@ -194,6 +259,10 @@ def list_embedding_models(*, provider: str | None = None) -> list[str]:
 def get_index_name(model_id: str) -> str:
     dims = get_dimensions(model_id)
     return f"vector_index_{dims}"
+
+
+def get_index_name_for_dimensions(dimensions: int) -> str:
+    return f"vector_index_{dimensions}"
 
 
 def get_reranker_info(model_id: str) -> RerankerModelInfo:
