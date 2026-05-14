@@ -42,9 +42,7 @@ def _minimal_config(provider: str, models: list[str]) -> dict[str, Any]:
 
 
 def test_kimchi_provider_model_validation_succeeds() -> None:
-    config = ExperimentConfig.model_validate(
-        _minimal_config("kimchi", ["mistral/codestral-embed"])
-    )
+    config = ExperimentConfig.model_validate(_minimal_config("kimchi", ["mistral/codestral-embed"]))
 
     assert config.embedding.provider == "kimchi"
     assert config.embedding.models == ["mistral/codestral-embed"]
@@ -53,17 +51,15 @@ def test_kimchi_provider_model_validation_succeeds() -> None:
 
 def test_provider_model_mismatch_still_fails() -> None:
     with pytest.raises(ValidationError, match="belongs to provider 'kimchi'"):
-        ExperimentConfig.model_validate(
-            _minimal_config("local", ["mistral/codestral-embed"])
-        )
+        ExperimentConfig.model_validate(_minimal_config("local", ["mistral/codestral-embed"]))
 
 
 def test_example_kimchi_config_loads() -> None:
     config = load_config("configs/example-kimchi.yaml")
 
     assert config["embedding"]["provider"] == "kimchi"
-    assert len(config["embedding"]["models"]) == 34
-    assert len(set(config["embedding"]["models"])) == 34
+    assert len(config["embedding"]["models"]) == 4
+    assert len(set(config["embedding"]["models"])) == 4
 
 
 def test_kimchi_response_parsing_preserves_embedding_order() -> None:
