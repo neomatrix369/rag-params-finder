@@ -1,5 +1,6 @@
-from server.core.model_registry import get_index_name
+from server.core.model_registry import get_index_name_for_dimensions
 from server.db.atlas import CHUNKS_COLLECTION, get_collection
+from server.db.indexes import ensure_vector_index
 from server.models.results import Chunk, SearchResult
 from server.utils.logger import get_logger
 
@@ -11,7 +12,9 @@ def dense_search(
 ) -> list[SearchResult]:
     """Perform dense vector search using Atlas $vectorSearch."""
 
-    index_name = get_index_name(embedding_model)
+    dimensions = len(query_embedding)
+    index_name = get_index_name_for_dimensions(dimensions)
+    ensure_vector_index(dimensions)
     logger.info(
         f"Dense search for experiment={experiment_id}, model={embedding_model}, "
         f"index={index_name}, k={top_k}"

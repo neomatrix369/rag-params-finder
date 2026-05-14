@@ -13,6 +13,7 @@ All YAML fields, sweep expansion rules, and queries file format.
 Place config files in `configs/`. Two examples are provided:
 - `configs/example-local.yaml` — local models, no API key needed
 - `configs/example-voyage-ai.yaml` — Voyage AI models, requires `VOYAGE_API_KEY`
+- `configs/example-kimchi.yaml` — Kimchi-hosted embeddings, requires `KIMCHI_API_KEY`
 
 ### Full annotated config
 
@@ -27,9 +28,9 @@ queries_file: ./configs/questions.example.json  # local path or URL
                                                  # URL downloads to ./configs/ on first use and caches
 
 embedding:
-  provider: local                    # "local" (sentence-transformers) or "voyage"
+  provider: local                    # "local", "voyage", or "kimchi"
   models:
-    - all-MiniLM-L6-v2               # must match provider: local models can't be paired with provider: voyage
+    - all-MiniLM-L6-v2               # models must match the declared provider
 
 chunking:
   methods:
@@ -91,13 +92,14 @@ Each run is tracked independently through the pipeline phases and has its own re
 | `voyage-3.5-lite` | Embedding | 1024 | `voyage` | Cheapest Voyage embedding |
 | `voyage-3.5` | Embedding | 1024 | `voyage` | Higher accuracy |
 | `voyage-context-3` | Embedding | 1024 | `voyage` | Long-context optimized |
+| `mistral/codestral-embed` and other prefixed IDs | Embedding | Runtime | `kimchi` | Kimchi-hosted OpenAI-compatible embeddings |
 | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Reranker | — | `local` | ~23 MB, no API key |
 | `rerank-2.5-lite` | Reranker | — | `voyage` | Fastest Voyage reranker |
 | `rerank-2.5` | Reranker | — | `voyage` | Higher accuracy reranker |
 
 **Provider/model must match.** The system validates at config load time — a `provider: local` config with a Voyage model name will fail immediately with a clear error.
 
-**Atlas vector index** selection is automatic: local models (384-dim) use `vector_index_384`; Voyage models (1024-dim) use `vector_index_1024`. Both can coexist on the same `chunks` collection.
+**Atlas vector index** selection is automatic: local models (384-dim) use `vector_index_384`; Voyage models (1024-dim) use `vector_index_1024`; Kimchi models use the runtime embedding length and route to `vector_index_<dimension>`. All can coexist on the same `chunks` collection.
 
 ---
 
@@ -190,6 +192,29 @@ retrieval:
 execution:
   on_error: continue
 ```
+
+---
+
+## 🍜 Kimchi Config
+
+`configs/example-kimchi.yaml` sweeps the Kimchi-hosted embedding catalog with prefixed model IDs such as `mistral/codestral-embed`, `openai/text-embedding-3-large`, and `hosted_vllm/bge-m3`.
+
+```yaml
+embedding:
+  provider: kimchi
+  models:
+    - mistral/codestral-embed
+    - openai/text-embedding-3-large
+
+retrieval:
+  methods: [dense]
+  top_k_initial: 20
+  top_k_final: 5
+  rerank_provider: local
+  rerank_model: null
+```
+
+Kimchi support is embeddings-only. Set `KIMCHI_BASE_URL` and `KIMCHI_API_KEY` server-side in `.env`; do not put secrets in YAML config files.
 
 ---
 

@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-05
-**Current**: Slices 1–5, 7 ✅ COMPLETE (verified end-to-end) | Next: Slice 6 📋 PLANNED (other chunkers)
+**Last Updated**: 2026-05-13
+**Current**: Slices 1–5, 7, 16 ✅ COMPLETE | Next: Slice 6 📋 PLANNED (other chunkers)
 
 ---
 
@@ -16,6 +16,7 @@
 | 5 — Multiple queries from persona JSON | ✅ COMPLETE | ~10 min | Loop over persona questions |
 | 6 — Additional chunkers | 📋 PLANNED | ~30 min | fixed, token, sentence, semantic (stubs exist) |
 | 7 — Free/local embedding + reranking | ✅ COMPLETE | ~15 min | sentence-transformers, no API key needed |
+| 16 — Kimchi embedding provider | ✅ COMPLETE | ~45 min | OpenAI-compatible hosted embeddings + dynamic dimensions |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE
 
@@ -322,6 +323,10 @@ Add local sentence-transformers models (embedding + reranking) as alternatives t
 | 2026-05-02 | 7 | Separate vector indexes per dimension | Atlas requires exact numDimensions match; vector_index_1024 + vector_index_384 |
 | 2026-05-02 | 7 | all-MiniLM-L6-v2 as first local model | Well-known, fast, 384-dim, proves the abstraction |
 | 2026-05-02 | 7 | numpy<2 compatibility pin | torch compiled against NumPy 1.x ABI; 2.x breaks with _ARRAY_API errors |
+| 2026-05-13 | 16 | Kimchi model IDs are prefixed by upstream family | Avoid collisions across models with similar names |
+| 2026-05-13 | 16 | Kimchi dimensions are runtime-detected | Hosted catalog spans multiple upstream embedding families |
+| 2026-05-13 | 16 | Kimchi is embeddings-only | Avoid unsupported reranker semantics; set `rerank_model: null` |
+| 2026-05-13 | 16 | Dynamic indexes use `vector_index_<dimension>` | Atlas indexes require exact embedding dimensionality |
 
 ---
 

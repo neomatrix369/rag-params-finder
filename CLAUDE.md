@@ -75,9 +75,10 @@ rag-params-finder recover --experiment-id <id> --auto
 ## Provider System
 
 **Two independent provider settings**:
-- `embedding.provider`: "local" or "voyage"
+- `embedding.provider`: "local", "voyage", or "kimchi"
   - Local → `server/core/local_embedder.py` → `all-MiniLM-L6-v2` (384-dim)
   - Voyage → `server/core/embedder.py` → `voyage-3.5-lite|voyage-3.5|voyage-context-3` (1024-dim)
+  - Kimchi → `server/core/kimchi_embedder.py` → OpenAI-compatible hosted embeddings (runtime-detected dim)
 - `retrieval.rerank_provider`: "local" or "voyage"
   - Local → `server/core/local_reranker.py` → `cross-encoder/ms-marco-MiniLM-L-6-v2`
   - Voyage → `server/core/reranker.py` → `rerank-2.5-lite|rerank-2.5`
@@ -88,7 +89,7 @@ Provider/model must match — registry in `model_registry.py` validates at confi
 
 | Collection | Purpose | Key Index |
 |---|---|---|
-| `chunks` | Text chunks + embeddings | Vector index on `embedding` (384 or 1024-dim cosine) + filters |
+| `chunks` | Text chunks + embeddings | Vector index on `embedding` (`vector_index_<dimension>` cosine) + filters |
 | `experiments` | Experiment metadata | `created_at`, `status` |
 | `run_status` | Per-run phase tracking | `experiment_id`, `phase` |
 | `results` | Query results (top-K chunks) | `experiment_id`, `query_id` |

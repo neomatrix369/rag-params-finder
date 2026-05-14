@@ -1,0 +1,82 @@
+# Kimchi experiment — requires KIMCHI_BASE_URL and KIMCHI_API_KEY in .env.
+# Uses Kimchi-hosted embedding models through an OpenAI-compatible embeddings API.
+#
+# Supported embedding providers:
+#   Provider "local":   all-MiniLM-L6-v2 (384-dim)
+#   Provider "voyage":  voyage-3.5-lite, voyage-3.5, voyage-context-3
+#                       (1024-dim, requires VOYAGE_API_KEY)
+#   Provider "kimchi":  hosted models below
+#                       (runtime-detected dimensions, requires KIMCHI_API_KEY)
+
+experiment_name: kimchi-model-sweep
+
+data_paths:
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+
+queries_file: ./configs/questions.example.json
+
+database_provider: mongodb
+
+embedding:
+  provider: kimchi
+  models:
+    - openai/text-embedding-3-large
+    - openai/text-embedding-ada-002
+    - openai/text-embedding-3-small
+    - openai/text-embedding-ada-002-v2
+
+# parked: models pending provider availability confirmation in this CAST.ai account.
+# Move entries back into embedding.models once the provider is verified via:
+#   curl -s https://api.cast.ai/v1/llm/openai/supported-providers \
+#     -H "X-API-Key: $KIMCHI_API_KEY" | python3 -m json.tool
+#
+# parked:
+#   - mistral/codestral-embed
+#   - mistral/mistral-embed
+#   - mistral/codestral-embed-2505
+#   - databricks/databricks-gte-large-en
+#   - databricks/databricks-bge-large-en
+#   - vertex_ai-language-models/gemini-flash-experimental
+#   - gemini/gemini-embedding-2-preview
+#   - gemini/gemini-embedding-001
+#   - gemini/gemini-embedding-2
+#   - perplexity/pplx-embed-v1-0.6b
+#   - perplexity/pplx-embed-v1-4b
+#   - azure/text-embedding-3-large
+#   - azure/text-embedding-ada-002
+#   - azure/ada
+#   - bedrock/marengo-embed-2-7
+#   - bedrock/titan-embed-text-v2
+#   - bedrock/embed-v4:0
+#   - bedrock/embed-english-v3
+#   - bedrock/embed-multilingual-v3
+#   - bedrock/titan-embed-image-v1
+#   - bedrock/nova-2-multimodal-embeddings-v1:0
+#   - bedrock/titan-embed-text-v1
+#   - hosted_vllm/gte-qwen2-7b-instruct
+#   - hosted_vllm/multilingual-e5-large-instruct
+#   - hosted_vllm/bge-base-en-v1.5
+#   - hosted_vllm/multilingual-e5-large
+#   - hosted_vllm/bge-m3
+#   - azure_ai/Cohere-embed-v3-multilingual
+#   - azure_ai/embed-v-4-0
+#   - azure_ai/Cohere-embed-v3-english
+
+chunking:
+  methods:
+    - recursive
+  params:
+    chunk_sizes: [256, 512, 1024]
+    overlaps: [50, 100]
+
+retrieval:
+  methods:
+    - dense
+  top_k_initial: 20
+  top_k_final: 5
+  rerank_provider: local
+  rerank_model: null
+
+execution:
+  parallelism: 1
+  on_error: continue
