@@ -7,6 +7,7 @@ import {
 import AppPageChrome from './AppPageChrome';
 import DashboardShell from './DashboardShell';
 import LoadingFeedbackPanel from './LoadingFeedbackPanel';
+import PollingIndicator from './PollingIndicator';
 import type { FeedEntry } from './LoadingFeedbackPanel';
 import {
   getExperiment,
@@ -382,6 +383,7 @@ export default function SearchExplorerScreen({
   const [error, setError] = useState<string | null>(null);
   /** True on first paint so we never flash an empty canvas before the fetch effect runs */
   const [loading, setLoading] = useState(true);
+  const [isPolling, setIsPolling] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('hyperparameters');
   const [selectedQuery, setSelectedQuery] = useState<string>('');
   const [selectedMethods, setSelectedMethods] = useState<Set<string>>(new Set());
@@ -489,6 +491,7 @@ export default function SearchExplorerScreen({
     }
     const id = window.setInterval(() => {
       void (async () => {
+        setIsPolling(true);
         try {
           const exp = await getExperiment(experimentId);
           if (exp.status !== 'running') {
@@ -509,6 +512,8 @@ export default function SearchExplorerScreen({
           });
         } catch {
           /* ignore transient poll errors */
+        } finally {
+          setIsPolling(false);
         }
       })();
     }, DETAIL_POLL_MS);
@@ -585,11 +590,21 @@ export default function SearchExplorerScreen({
             </div>
           )}
 
-          {loading && !data && (
+          {pollWhileRunning && !loading && (
+            <div className="mb-4 flex items-center justify-end">
+              <PollingIndicator active={isPolling} />
+            </div>
+          )}
+
+          {loading && (
             <div className="mb-8 flex justify-center">
               <LoadingFeedbackPanel
-                title="Loading results…"
-                subtitle="Explorer builds ranked configs plus detailed hits from Mongo — response can be megabytes."
+                title={data ? "Refreshing results…" : "Loading results…"}
+                subtitle={
+                  data
+                    ? "Re-fetching explorer data (query filter changed or refresh triggered)."
+                    : "Explorer builds ranked configs plus detailed hits from Mongo — response can be megabytes."
+                }
                 footer="Shows byte progress once headers arrive (Content-Length yields a %) or an indeterminate bar until then."
                 feed={feed}
                 receivedBytes={receivedBytes}
