@@ -325,6 +325,13 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
 
 function DetailedResultsTab({ results }: { results: DetailedResult[] }) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
+
+  const handleItemsPerPageChange = useCallback((items: number) => {
+    setItemsPerPage(items);
+    setCurrentPage(1);
+  }, []);
 
   const toggleExpand = useCallback((rank: number) => {
     setExpanded((prev) => {
@@ -338,10 +345,14 @@ function DetailedResultsTab({ results }: { results: DetailedResult[] }) {
     });
   }, []);
 
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedResults = results.slice(startIndex, endIndex);
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="divide-y divide-slate-100">
-        {results.map((r) => {
+        {paginatedResults.map((r) => {
           const isExpanded = expanded.has(r.rank);
           const truncatedText = r.chunk_text.length > 120
             ? r.chunk_text.slice(0, 120) + '...'
@@ -387,6 +398,13 @@ function DetailedResultsTab({ results }: { results: DetailedResult[] }) {
           );
         })}
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalItems={results.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={handleItemsPerPageChange}
+      />
     </div>
   );
 }
