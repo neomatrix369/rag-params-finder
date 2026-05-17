@@ -179,6 +179,8 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 For a targeted subset, copy the file and trim the `methods` or `chunk_sizes` lists before running.
 
+To **re-run only failed combinations inside an existing experiment** *(same `experiment_id`, keep successful runs)*, see the planned workflow in [`../slices/SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) — today this still requires manual YAML reshaping or a new submit.
+
 ---
 
 ## 💰 Voyage AI Cost Estimates
