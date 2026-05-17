@@ -132,10 +132,16 @@ rag-params-finder/
 └── frontend/src/
     ├── App.tsx              # root component (screen routing)
     ├── components/
-    │   ├── ExperimentsScreen.tsx       # list view (polling every 2s)
-    │   ├── ExperimentDetailScreen.tsx  # detail view (runs table, phase dots, metrics)
-    │   └── SearchExplorerScreen.tsx    # results analysis (ranked configs, per-query)
-    ├── services/apiClient.ts  # fetch wrapper (all server API calls)
+    │   ├── DashboardShell.tsx          # shared dashboard shell (header, nav)
+    │   ├── AppPageChrome.tsx           # shared page chrome wrapper
+    │   ├── LoadingFeedbackPanel.tsx    # progress panel (byte-level progress, activity feed)
+    │   ├── PollingIndicator.tsx        # subtle "Syncing..." indicator during polls
+    │   ├── ExperimentsScreen.tsx       # list view (polling every 2s, paginated)
+    │   ├── ExperimentDetailScreen.tsx  # detail view (runs table, phase dots, metrics, paginated)
+    │   └── SearchExplorerScreen.tsx    # results analysis (ranked configs, per-query, paginated)
+    ├── services/
+    │   ├── apiClient.ts       # fetch wrapper (all server API calls)
+    │   └── fetchWithProgress.ts  # streamed fetch with byte-level progress tracking
     └── types/index.ts         # hand-mirrored TypeScript types from Python models
 ```
 
@@ -204,6 +210,10 @@ See `docs/adr/` for Architecture Decision Records:
 | Separate vector indexes per dimension | Atlas requires exact `numDimensions` — `vector_index_1024` (Voyage) and `vector_index_384` (local) coexist on the same collection |
 | Lazy-load + cache for local models | First run downloads from HuggingFace; subsequent runs instant — avoids blocking server startup |
 | `numpy<2` pinned | torch compiled against NumPy 1.x ABI; NumPy 2.x causes `_ARRAY_API not found` crashes |
+| Shared `DashboardShell` + `AppPageChrome` components | Unified header, navigation, and page layout across all screens — consistent UX, easier maintenance |
+| `fetchWithProgress` for streamed downloads | ReadableStream byte-level progress → visible loading bars; better UX than spinner for large payloads |
+| Pagination on all screens | Prevents DOM overload and cognitive fatigue; default 10 items per page (experiments/runs), 5 per page (configs) |
+| Dual loading indicators (panel + polling badge) | Initial load → full progress panel; background polls → subtle "Syncing..." badge; clear state transitions |
 
 ---
 
