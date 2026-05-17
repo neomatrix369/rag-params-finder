@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { getExperimentExplore } from '../services/apiClient';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { DETAIL_POLL_MS } from '../constants';
+import { getExperiment, getExperimentExplore } from '../services/apiClient';
 import { DetailedResult, ExploreResponse, RankedConfig } from '../types';
 
 type Tab = 'hyperparameters' | 'detailed';
@@ -362,28 +363,72 @@ export default function SearchExplorerScreen({
   const [activeTab, setActiveTab] = useState<Tab>('hyperparameters');
   const [selectedQuery, setSelectedQuery] = useState<string>('');
   const [selectedMethods, setSelectedMethods] = useState<Set<string>>(new Set());
+  const [pollWhileRunning, setPollWhileRunning] = useState(true);
 
-  const loadData = useCallback(async (query?: string) => {
-    try {
-      setLoading(true);
-      const response = await getExperimentExplore(experimentId, query || undefined);
-      setData(response);
-      setError(null);
-
-      if (selectedMethods.size === 0) {
-        const methods = new Set(response.ranked_configs.map((c) => c.retrieval_method));
-        setSelectedMethods(methods);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load');
-    } finally {
-      setLoading(false);
-    }
-  }, [experimentId, selectedMethods.size]);
+  const selectedQueryRef = useRef(selectedQuery);
+  selectedQueryRef.current = selectedQuery;
 
   useEffect(() => {
-    loadData(selectedQuery || undefined);
-  }, [selectedQuery]);
+    setPollWhileRunning(true);
+  }, [experimentId]);
+
+  const loadExplore = useCallback(
+    async (opts: { silent?: boolean } = {}) => {
+      const silent = opts.silent ?? false;
+      if (!silent) {
+        setLoading(true);
+      }
+      try {
+        const response = await getExperimentExplore(
+          experimentId,
+          selectedQueryRef.current || undefined,
+        );
+        setData(response);
+        setError(null);
+        setSelectedMethods((prev) => {
+          if (prev.size > 0) {
+            return prev;
+          }
+          return new Set(response.ranked_configs.map((c) => c.retrieval_method));
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to load';
+        if (!silent) {
+          setError(msg);
+        }
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [experimentId],
+  );
+
+  useEffect(() => {
+    void loadExplore({ silent: false });
+  }, [selectedQuery, loadExplore]);
+
+  useEffect(() => {
+    if (!pollWhileRunning) {
+      return;
+    }
+    const id = window.setInterval(() => {
+      void (async () => {
+        try {
+          const exp = await getExperiment(experimentId);
+          if (exp.status !== 'running') {
+            setPollWhileRunning(false);
+            return;
+          }
+          await loadExplore({ silent: true });
+        } catch {
+          /* ignore transient poll errors */
+        }
+      })();
+    }, DETAIL_POLL_MS);
+    return () => window.clearInterval(id);
+  }, [experimentId, loadExplore, pollWhileRunning]);
 
   const handleToggleMethod = useCallback((method: string) => {
     setSelectedMethods((prev) => {

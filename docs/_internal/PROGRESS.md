@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-17 (config reorganisation)
-**Current**: Slices 1–7 ✅ COMPLETE | Next: Slice 9 📋 PLANNED (Search Explorer dashboard)
+**Last Updated**: 2026-05-17 (Slice 16 — parallel sweep planned)
+**Current**: Slices 1–7 ✅ COMPLETE | Next: Slice 9 📋 PLANNED (Search Explorer dashboard) · Slice 16 📋 PLANNED (honor `parallelism`)
 
 ---
 
@@ -16,6 +16,7 @@
 | 5 — Multiple queries from persona JSON | ✅ COMPLETE | ~10 min | Loop over persona questions |
 | 6 — Additional chunkers + retrieval | ✅ COMPLETE | ~45 min | fixed, token, sentence, semantic + sparse/hybrid + 5 new configs |
 | 7 — Free/local embedding + reranking | ✅ COMPLETE | ~15 min | sentence-transformers, no API key needed |
+| 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE
 
@@ -200,7 +201,7 @@ Cartesian product expansion: one YAML config with N models × M methods × P siz
 | Decision | Why |
 |---|---|
 | `expand_sweep()` as pure function on config | Testable without side effects; called both in API (preview count) and orchestrator (execute) |
-| Sequential runs (not parallel) | `parallelism: 1` default; parallel execution deferred to avoid complexity |
+| Sequential runs (not parallel) | `parallelism` stored on experiments but orchestrator ignores it pending [Slice 16](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 | `run_sweep()` + `run_single()` split | Single Responsibility — sweep management vs pipeline execution |
 | `on_error: continue/stop` | Allows partial completion without losing all results |
 | `partial` status for mixed outcomes | Distinguishes "some failed" from "all failed" or "all complete" |
@@ -326,6 +327,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 ## Deferred
 
+- Parallel sweep concurrency *(Slice 16 — [`docs/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md))*
 - All SHOULD/COULD slices
 - Error handling (basic only in Slice 1)
 - Logging structure (prints for now)
@@ -357,6 +359,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-17 | 6 | sparse/hybrid require text_search_index | Atlas $search is the BM25 engine; full-text + vector indexes can coexist on same collection |
 | 2026-05-17 | 6 | query_embedding optional in search() dispatcher | Avoids embedding API call for sparse retrieval runs |
 | 2026-05-17 | — | Reorganise configs: 1 file per DB×provider | Replaced 7 single-purpose example files with `example-mongodb-local.yaml` and `example-mongodb-voyage.yaml`; each covers all embedding models, all chunking methods, and all retrieval methods for that DB+provider |
+| 2026-05-17 | — | Slice 16 spec for parallel sweep runs | Formalized deferred work: bounded in-process parallelism vs Celery; honor `execution.parallelism`; specs in [`docs/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 
 ---
 
@@ -383,6 +386,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 13 — Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` | Could | ~15 min |
 | 14 — Docker Compose | One-command local setup | Won't (now) | ~30 min |
 | 15 — CI/CD | GitHub Actions: ruff, mypy, pytest, npm lint/build | Should | ~20 min |
+| 16 — Parallel sweep (`parallelism` > 1) | Bounded concurrent `_run_single` (+ optional Celery upgrade path); Atlas/Voyage-rate-limit aware | Should | ~2–4 h |
 
 ---
 

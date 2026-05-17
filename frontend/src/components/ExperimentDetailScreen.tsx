@@ -358,13 +358,19 @@ export default function ExperimentDetailScreen({
               </div>
               <p className="text-sm text-slate-500 font-mono">{experimentId}</p>
             </div>
-            <div className="flex items-center gap-3">
-              {isTerminal && onExplore && (
+            <div className="flex items-center gap-3 flex-wrap justify-end">
+              {(isTerminal || isRunning) && onExplore && (
                 <button
+                  type="button"
                   onClick={onExplore}
+                  title={
+                    isRunning
+                      ? 'Opens Search Explorer with data stored so far; more results appear as runs finish.'
+                      : undefined
+                  }
                   className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold rounded-xl shadow-md transition-all transform hover:scale-105"
                 >
-                  🔍 Explore Results
+                  {isRunning ? '🔍 Explore live results' : '🔍 Explore Results'}
                 </button>
               )}
               {isRunning && (

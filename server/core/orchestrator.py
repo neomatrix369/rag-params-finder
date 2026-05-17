@@ -62,6 +62,8 @@ def run_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
 
 
 def _run_sweep_inner(experiment_id: str, config: ExperimentConfig) -> dict:
+    # execution.parallelism is stored on experiments but honored only after Slice 16
+    # (bounded concurrent runs). See docs/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md
     runs = expand_sweep(config)
     run_ids: list[str] = []
     logger.info(f"Experiment {experiment_id}: {len(runs)} runs to execute")
