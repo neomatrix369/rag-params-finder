@@ -55,9 +55,14 @@ retrieval:
   rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
 
 execution:
-  parallelism: 1                     # only 1 supported currently
+  parallelism: 1                     # use 1 until Slice 16; see "### Parallelism" below
   on_error: continue                 # "continue" (partial results) or "stop" (halt experiment)
 ```
+
+### Parallelism (`execution.parallelism`)
+
+- **Current behavior**: The value is stored on each experiment *(and visible in the dashboard)* but **`server/core/orchestrator.py` always runs sweep runs sequentially** — values greater than `1` have **no throughput effect** until implemented.
+- **Planned work**: **[Slice 16 — Parallel Sweep Runs](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md)** specifies bounded concurrent execution of `_run_single`, cancellation + `on_error` semantics across workers, Atlas/Voyage rate-limit considerations, and an optional Celery-style queue path for larger deployments.
 
 ---
 
