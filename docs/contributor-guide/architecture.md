@@ -211,6 +211,7 @@ See `docs/adr/` for Architecture Decision Records:
 
 | Enhancement | Notes |
 |---|---|
+| Run recovery (failed / interrupted runs) | Planned as [Slice 10 — Run Recovery](../slices/SLICE-10-RUN-RECOVERY.md): `recover` CLI + API; per-`run_id` artifact scrub; **`RECOVER_ON_BOOT`** = **INTERRUPTED** only |
 | SSE live updates | Replace 2-second polling with Server-Sent Events |
 | Parallel sweep (`execution.parallelism` > 1) | Planned as [Slice 16 — Parallel Sweep Runs](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md); bounded in-process pool first; **Celery + Redis** when multi-process fairness or isolation is needed |
 | Dashboard-triggered runs | Submit experiments from the React UI, not just CLI |

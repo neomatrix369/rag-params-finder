@@ -58,6 +58,14 @@ Posts `POST /experiments/{experiment_id}/cancel`. A running experiment stops aft
 
 ---
 
+### `recover` — Retry failed runs *(planned, Slice 10)*
+
+**Not implemented yet.** When shipped, this command will re-execute only runs in **FAILED** *(and optionally **INTERRUPTED**)* phase for an existing experiment, scrubbing stale `chunks` / `results` for those `run_id`s and leaving **COMPLETE** runs untouched. Config comes from the stored experiment document — no YAML trimming required.
+
+Spec and acceptance criteria: [`../slices/SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md).
+
+---
+
 ### `version` — Print package version
 
 ```bash
@@ -89,6 +97,7 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 | GET | `/experiments/{id}/results` | Get query results for an experiment |
 | GET | `/experiments/{id}/explore` | Get data for the Search Explorer screen |
 | POST | `/experiments/{id}/cancel` | Request cancellation while status is running |
+| POST | `/experiments/{id}/recover` | Retry failed / interrupted runs only *(planned — Slice 10)* |
 | GET | `/runs/{id}/status` | Get a single run's current phase |
 
 ---
