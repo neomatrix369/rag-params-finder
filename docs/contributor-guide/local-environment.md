@@ -31,6 +31,28 @@ See [getting-started.md](../user-guide/getting-started.md#2-create-the-atlas-vec
 
 Atlas UI → Browse Collections → `chunks` collection → **Search Indexes** tab. Status shows `ACTIVE` when ready.
 
+### Atlas Full Text Search Index (sparse/hybrid retrieval)
+
+Required for `sparse` and `hybrid` retrieval methods. Create once in the Atlas UI:
+
+1. Same **Search Indexes** tab → **Create Search Index** → JSON Editor
+2. Name: `text_search_index`
+
+```json
+{
+  "mappings": {
+    "dynamic": false,
+    "fields": {
+      "text": [{ "type": "string" }],
+      "experiment_id": [{ "type": "token" }],
+      "embedding_model": [{ "type": "token" }]
+    }
+  }
+}
+```
+
+The `text_search_index`, `vector_index_384`, and `vector_index_1024` all coexist on the same `chunks` collection. Skip this index if you only use `dense` retrieval.
+
 ---
 
 ## 🤖 Voyage AI Setup

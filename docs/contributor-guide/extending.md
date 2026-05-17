@@ -38,9 +38,9 @@ In `server/core/embedder.py` (Voyage) or `server/core/local_embedder.py` (senten
 
 A new dimension size requires a new Atlas vector index. See [getting-started.md](../user-guide/getting-started.md#2-create-the-atlas-vector-index) for the index JSON format.
 
-### 5. Add an example config
+### 5. Update the example configs
 
-Add `configs/example-<model-name>.yaml` showing the new model in use.
+Add the new model to `configs/example-mongodb-local.yaml` or `configs/example-mongodb-voyage.yaml` (whichever provider it belongs to), so users can immediately try it.
 
 ---
 
@@ -74,14 +74,12 @@ class ChunkingMethod(str, Enum):
 
 ### 3. Wire the dispatcher
 
-In `server/core/orchestrator.py`, add a branch in `get_chunker()`:
+In `server/core/chunkers/__init__.py`, add a branch in `chunk_text()`:
 
 ```python
-def get_chunker(method: ChunkingMethod):
-    if method == ChunkingMethod.my_method:
-        from server.core.chunkers.my_method import chunk_text
-        return chunk_text
-    ...
+elif method == ChunkingMethod.my_method:
+    from server.core.chunkers.my_method import chunk_my_method
+    chunks = chunk_my_method(text, chunk_size, overlap)
 ```
 
 ### 4. Mirror the enum in TypeScript
@@ -114,7 +112,12 @@ class RetrievalMethod(str, Enum):
 
 ### 3. Wire the dispatcher
 
-In `server/core/orchestrator.py`, add a branch in the retrieval dispatch section of `run_single()`.
+In `server/core/retriever.py`, add a branch in the `search()` dispatcher:
+
+```python
+if method == RetrievalMethod.my_method:
+    return my_method_search(query_text, experiment_id, embedding_model, top_k)
+```
 
 ### 4. Mirror in TypeScript
 

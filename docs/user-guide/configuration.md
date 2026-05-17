@@ -10,17 +10,14 @@ All YAML fields, sweep expansion rules, and queries file format.
 
 ## ⚙️ Experiment Config (YAML)
 
-Place config files in `configs/`. Seven ready-to-run examples are provided:
+Place config files in `configs/`. Two ready-to-run configs are provided, one per vector-DB × provider combination:
 
-| Config file | Purpose | API key? |
-|---|---|---|
-| `example-local.yaml` | Single local model, recursive chunker, dense retrieval | No |
-| `example-voyage-ai.yaml` | Single Voyage model (voyage-3.5-lite), recursive chunker, dense + rerank | Yes |
-| `example-voyage-all-models.yaml` | All 3 Voyage models side-by-side | Yes |
-| `example-chunking-methods.yaml` | All 5 chunking strategies, local model | No |
-| `example-retrieval-methods.yaml` | All 3 retrieval methods (dense / sparse / hybrid) | No |
-| `example-full-sweep-local.yaml` | Full grid: 5 methods × 3 sizes × 2 overlaps × 3 retrieval = 90 runs | No |
-| `example-full-sweep-voyage.yaml` | Full grid with all 3 Voyage models (narrower params) | Yes |
+| Config file | Vector DB | Embedding provider | Chunking | Retrieval | Runs | API key? |
+|---|---|---|---|---|---|---|
+| `example-mongodb-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid | 90 | No |
+| `example-mongodb-voyage.yaml` | MongoDB Atlas | Voyage AI (all 3 models) | all 5 methods | dense · sparse · hybrid | 90 | Yes |
+
+Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retrieval method runs as an independent experiment.
 
 ### Full annotated config
 
@@ -117,7 +114,7 @@ Each run is tracked independently through the pipeline phases and has its own re
 | `fixed` | Fixed-size character windows with configurable overlap | Baseline comparisons |
 | `token` | tiktoken-based splits at token boundaries | Token-budget-sensitive pipelines |
 | `sentence` | NLTK sentence tokenizer | Narrative text, Q&A pairs |
-| `semantic` | Groups sentences by embedding similarity; Voyage-aware | Topic-coherent chunks |
+| `semantic` | Groups sentences by cosine similarity of `all-MiniLM-L6-v2` embeddings; `overlap` is ignored | Topic-coherent chunks |
 
 ---
 
@@ -167,37 +164,15 @@ Each query is executed independently per run. Results are stored with `persona_i
 
 ---
 
-## 🏠 All-Local Config (No API Key)
+## 🏠 Quick Start (No API Key)
 
-```yaml
-experiment_name: local-sweep
+Use `configs/example-mongodb-local.yaml` — it covers all 5 chunking methods and all 3 retrieval methods with the local model. No Voyage API key needed.
 
-data_paths:
-  - ./input_data/pdfs/sample.pdf
-
-queries_file: ./configs/questions.example.json
-
-embedding:
-  provider: local
-  models:
-    - all-MiniLM-L6-v2              # 384-dim; requires vector_index_384 in Atlas
-
-chunking:
-  methods: [recursive, fixed]
-  params:
-    chunk_sizes: [512, 1024]
-    overlaps: [0, 50]
-
-retrieval:
-  methods: [dense]
-  top_k_initial: 20
-  top_k_final: 5
-  rerank_provider: local
-  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
-
-execution:
-  on_error: continue
+```bash
+rag-params-finder run --config configs/example-mongodb-local.yaml
 ```
+
+For a targeted subset, copy the file and trim the `methods` or `chunk_sizes` lists before running.
 
 ---
 

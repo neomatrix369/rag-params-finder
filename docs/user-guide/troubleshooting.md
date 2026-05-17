@@ -52,6 +52,37 @@ Both indexes can coexist on the same `chunks` collection — the server selects 
 
 ---
 
+## 🔍 Full Text Search index not found (sparse/hybrid)
+
+**Symptom**: server logs show `Search index 'text_search_index' not found` or sparse/hybrid runs fail immediately.
+
+**Cause**: Sparse and hybrid retrieval use Atlas Search (BM25), which requires a separate full-text search index. It must be created manually — it is different from the vector index.
+
+**Fix**:
+
+1. Atlas UI → your cluster → **Browse Collections** → `chunks` collection → **Search Indexes** tab
+2. **Create Search Index** → JSON Editor → name: `text_search_index`
+3. Paste:
+
+```json
+{
+  "mappings": {
+    "dynamic": false,
+    "fields": {
+      "text": [{ "type": "string" }],
+      "experiment_id": [{ "type": "token" }],
+      "embedding_model": [{ "type": "token" }]
+    }
+  }
+}
+```
+
+Wait ~1–2 minutes. The `text_search_index` and your vector indexes coexist on the same `chunks` collection.
+
+**Note**: If you only use `dense` retrieval, you do not need this index.
+
+---
+
 ## ⚠️ Dimension mismatch (local vs Voyage models)
 
 **Symptom**: vector search fails with a dimension error, or results are nonsensical.

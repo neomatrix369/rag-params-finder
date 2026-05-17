@@ -65,9 +65,7 @@ def sparse_search(
     with field mappings for 'text' (string), 'experiment_id' (token), and
     'embedding_model' (token).  See CLAUDE.local.md for index creation steps.
     """
-    logger.info(
-        f"Sparse search for experiment={experiment_id}, model={embedding_model}, k={top_k}"
-    )
+    logger.info(f"Sparse search for experiment={experiment_id}, model={embedding_model}, k={top_k}")
 
     chunks_collection = get_collection(CHUNKS_COLLECTION)
 
@@ -76,9 +74,7 @@ def sparse_search(
             "$search": {
                 "index": _SPARSE_INDEX_NAME,
                 "compound": {
-                    "must": [
-                        {"text": {"query": query_text, "path": "text"}}
-                    ],
+                    "must": [{"text": {"query": query_text, "path": "text"}}],
                     "filter": [
                         {"equals": {"path": "experiment_id", "value": experiment_id}},
                         {"equals": {"path": "embedding_model", "value": embedding_model}},
@@ -120,9 +116,7 @@ def hybrid_search(
     k=60 is the standard default from the original RRF paper; it softens the
     advantage of rank-1 results and reduces sensitivity to outliers.
     """
-    logger.info(
-        f"Hybrid search for experiment={experiment_id}, model={embedding_model}, k={top_k}"
-    )
+    logger.info(f"Hybrid search for experiment={experiment_id}, model={embedding_model}, k={top_k}")
 
     dense_results = dense_search(query_embedding, experiment_id, embedding_model, top_k)
     sparse_results = sparse_search(query_text, experiment_id, embedding_model, top_k)
