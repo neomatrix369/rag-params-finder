@@ -68,9 +68,18 @@ LOG_LEVEL=INFO
 3. **Network Access** → add your IP (or `0.0.0.0/0` for local dev)
 4. **Connect → Compass** → copy the SRV connection string into `MONGODB_URI`
 
-### 2. Create the Atlas vector index
+### 2. Indexes are created automatically
 
-The vector search index must be created manually in the Atlas UI — the server cannot do this automatically.
+The server **automatically creates all required indexes** on startup:
+- `vector_index_1024` (Voyage models, 1024-dim)
+- `vector_index_384` (local models, 384-dim)
+- `text_search_index` (sparse/hybrid retrieval)
+
+**On paid clusters (M10+)**: Indexes are created programmatically. Check server logs to confirm creation.
+
+**On free-tier clusters (M0/M2/M5)**: Programmatic index creation is not supported. You'll see a warning in server logs. Create indexes manually:
+
+#### Manual index creation (M0/M2/M5 only)
 
 1. Atlas UI → your cluster → **Browse Collections** → `chunks` collection → **Search Indexes** tab
 2. **Create Search Index** → JSON Editor
@@ -81,10 +90,7 @@ For **Voyage AI models** (1024-dim), name: `vector_index_1024`:
   "fields": [
     { "type": "vector", "path": "embedding", "numDimensions": 1024, "similarity": "cosine" },
     { "type": "filter", "path": "experiment_id" },
-    { "type": "filter", "path": "embedding_model" },
-    { "type": "filter", "path": "chunking_method" },
-    { "type": "filter", "path": "chunk_size" },
-    { "type": "filter", "path": "overlap" }
+    { "type": "filter", "path": "embedding_model" }
   ]
 }
 ```
@@ -95,24 +101,12 @@ For **local models** (384-dim), name: `vector_index_384`:
   "fields": [
     { "type": "vector", "path": "embedding", "numDimensions": 384, "similarity": "cosine" },
     { "type": "filter", "path": "experiment_id" },
-    { "type": "filter", "path": "embedding_model" },
-    { "type": "filter", "path": "chunking_method" },
-    { "type": "filter", "path": "chunk_size" },
-    { "type": "filter", "path": "overlap" }
+    { "type": "filter", "path": "embedding_model" }
   ]
 }
 ```
 
-Both indexes can coexist on the same collection. Wait ~1–2 minutes for the index to build before running queries.
-
-### 3. Create the Atlas Full Text Search index (sparse/hybrid only)
-
-**Required only if you use `sparse` or `hybrid` retrieval.** Skip this step if you only use `dense`.
-
-1. Same collection view → **Search Indexes** tab → **Create Search Index** → JSON Editor
-2. Name: `text_search_index`
-3. Paste this definition:
-
+For **sparse/hybrid retrieval**, name: `text_search_index`:
 ```json
 {
   "mappings": {
@@ -126,7 +120,7 @@ Both indexes can coexist on the same collection. Wait ~1–2 minutes for the ind
 }
 ```
 
-Wait ~1–2 minutes. The `text_search_index` and both vector indexes can all coexist on the same `chunks` collection.
+Wait ~1–2 minutes for indexes to become active. All three indexes coexist on the same `chunks` collection.
 
 ---
 

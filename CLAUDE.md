@@ -70,8 +70,14 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `cli/main.py` | Typer app (`run`, `cancel`, `version`) |
 | `cli/config_loader.py` | YAML parser + model registry validation |
 | `frontend/src/App.tsx` | Root component (screen routing) |
+| `frontend/src/components/DashboardShell.tsx` | Shared header and navigation wrapper |
+| `frontend/src/components/AppPageChrome.tsx` | Shared page wrapper (title, back button, actions) |
+| `frontend/src/components/LoadingFeedbackPanel.tsx` | Network loading progress panel with byte-level tracking |
+| `frontend/src/components/ExperimentProgressCard.tsx` | Reusable experiment progress card with circular indicator |
+| `frontend/src/components/PollingIndicator.tsx` | Subtle "Syncing..." badge during background polls |
 | `frontend/src/types/index.ts` | Hand-mirrored TypeScript types from Python models |
 | `frontend/src/services/apiClient.ts` | Fetch wrapper (all server API calls) |
+| `frontend/src/services/fetchWithProgress.ts` | ReadableStream-based fetch with progress tracking |
 
 ## Provider System
 

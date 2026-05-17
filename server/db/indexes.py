@@ -56,6 +56,8 @@ VECTOR_INDEX_CONFIGS: list[_VectorIndexConfig] = [
     {"name": "vector_index_384", "dimensions": 384, "desc": "local models (e.g. all-MiniLM-L6-v2)"},
 ]
 
+TEXT_SEARCH_INDEX_NAME = "text_search_index"
+
 
 def _build_vector_index_model(name: str, dimensions: int) -> SearchIndexModel:
     return SearchIndexModel(
@@ -160,6 +162,51 @@ def _log_manual_instructions() -> None:
     logger.info("  See: https://www.mongodb.com/docs/atlas/atlas-vector-search/create-index/")
 
 
+def create_text_search_index() -> bool:
+    """Create Atlas Search (BM25) index for sparse and hybrid retrieval.
+
+    Returns True if index is confirmed active, False if creation was skipped
+    (e.g. free-tier cluster) or index is still building.
+    """
+    chunks = get_collection(CHUNKS_COLLECTION)
+    existing = _get_existing_search_indexes(chunks)
+
+    if TEXT_SEARCH_INDEX_NAME in existing:
+        logger.info(f"Text search index '{TEXT_SEARCH_INDEX_NAME}' already exists")
+        return True
+
+    model = SearchIndexModel(
+        definition={
+            "mappings": {
+                "dynamic": False,
+                "fields": {
+                    "text": [{"type": "string"}],
+                    "experiment_id": [{"type": "token"}],
+                    "embedding_model": [{"type": "token"}],
+                },
+            }
+        },
+        name=TEXT_SEARCH_INDEX_NAME,
+        type="search",
+    )
+
+    try:
+        chunks.create_search_indexes(models=[model])
+        logger.info(f"Created text search index: {TEXT_SEARCH_INDEX_NAME}")
+    except Exception as e:
+        err_str = str(e)
+        if "CommandNotFound" in err_str or "no such command" in err_str.lower():
+            logger.warning(
+                f"Programmatic search index creation not supported on this cluster tier "
+                f"(M0/M2/M5). Create '{TEXT_SEARCH_INDEX_NAME}' manually in the Atlas UI. "
+                f"See: docs/user-guide/getting-started.md"
+            )
+            return False
+        raise
+
+    return _wait_for_indexes_ready(chunks, [TEXT_SEARCH_INDEX_NAME])
+
+
 def _desired_keys(models: list[IndexModel]) -> set[tuple[tuple[str, int], ...]]:
     """Extract the key tuples we want so we can compare with what exists."""
     return {tuple(m.document["key"].items()) for m in models}
@@ -196,6 +243,7 @@ def _ensure_standard_indexes() -> None:
 
 
 def ensure_indexes() -> None:
-    """Ensure all indexes exist — standard + vector search. Skips what's already present."""
+    """Ensure all indexes exist — standard + vector + text search. Skips what's already present."""
     _ensure_standard_indexes()
     create_vector_indexes()
+    create_text_search_index()

@@ -56,9 +56,11 @@ Both indexes can coexist on the same `chunks` collection — the server selects 
 
 **Symptom**: server logs show `Search index 'text_search_index' not found` or sparse/hybrid runs fail immediately.
 
-**Cause**: Sparse and hybrid retrieval use Atlas Search (BM25), which requires a separate full-text search index. It must be created manually — it is different from the vector index.
+**Cause**: The server attempts to create this index automatically on startup, but programmatic creation is not supported on **free-tier clusters (M0/M2/M5)**.
 
 **Fix**:
+
+If you're on a free-tier cluster and see this error:
 
 1. Atlas UI → your cluster → **Browse Collections** → `chunks` collection → **Search Indexes** tab
 2. **Create Search Index** → JSON Editor → name: `text_search_index`
@@ -78,6 +80,8 @@ Both indexes can coexist on the same `chunks` collection — the server selects 
 ```
 
 Wait ~1–2 minutes. The `text_search_index` and your vector indexes coexist on the same `chunks` collection.
+
+**On paid clusters (M10+)**: If this error occurs, check server logs for creation failures and restart the server.
 
 **Note**: If you only use `dense` retrieval, you do not need this index.
 

@@ -1,12 +1,11 @@
 from server.core.model_registry import get_index_name
 from server.db.atlas import CHUNKS_COLLECTION, get_collection
+from server.db.indexes import TEXT_SEARCH_INDEX_NAME
 from server.models.enums import RetrievalMethod
 from server.models.results import Chunk, SearchResult
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
-
-_SPARSE_INDEX_NAME = "text_search_index"
 _RRF_K = 60  # Reciprocal Rank Fusion constant — higher value smooths rank differences
 _CANDIDATES_MULTIPLIER = 2  # numCandidates = top_k * multiplier for Atlas $vectorSearch
 
@@ -73,7 +72,7 @@ def sparse_search(
     pipeline = [
         {
             "$search": {
-                "index": _SPARSE_INDEX_NAME,
+                "index": TEXT_SEARCH_INDEX_NAME,
                 "compound": {
                     "must": [{"text": {"query": query_text, "path": "text"}}],
                     "filter": [
