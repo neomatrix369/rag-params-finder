@@ -308,11 +308,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 - **IMPL**: `server/core/chunkers/semantic.py` — sentence-transformers cosine similarity grouping; chunk_size as hard cap; overlap ignored (semantic boundaries decide splits)
 - **EDIT**: `server/core/retriever.py` — added `sparse_search()` (Atlas $search BM25), `hybrid_search()` (RRF merge, k=60), `search()` dispatcher, `_to_search_results()` helper
 - **EDIT**: `server/core/orchestrator.py` — use `search()` dispatcher; conditionally embed query (only for dense/hybrid); import `RetrievalMethod`
-- **NEW**: `configs/example-voyage-all-models.yaml`
-- **NEW**: `configs/example-chunking-methods.yaml`
-- **NEW**: `configs/example-retrieval-methods.yaml`
-- **NEW**: `configs/example-full-sweep-local.yaml`
-- **NEW**: `configs/example-full-sweep-voyage.yaml`
+- **NEW** *(later replaced — see config reorganisation below)*: `configs/example-voyage-all-models.yaml`, `example-chunking-methods.yaml`, `example-retrieval-methods.yaml`, `example-full-sweep-local.yaml`, `example-full-sweep-voyage.yaml`
 - **EDIT**: `docs/user-guide/configuration.md` — Config File Index table, fixed hybrid description
 - **EDIT**: `CLAUDE.local.md` — Atlas Full Text Search index setup
 - **EDIT**: `README.md` — updated Quick Start config references
@@ -360,7 +356,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-17 | 6 | RRF k=60 for hybrid retrieval | Standard value from original RRF paper; robust default, smooths rank-1 outliers |
 | 2026-05-17 | 6 | sparse/hybrid require text_search_index | Atlas $search is the BM25 engine; full-text + vector indexes can coexist on same collection |
 | 2026-05-17 | 6 | query_embedding optional in search() dispatcher | Avoids embedding API call for sparse retrieval runs |
-| 2026-05-17 | — | Reorganise configs: 1 file per DB×provider | Replaces 7 single-purpose example files; each config now covers all embedding models, all chunking methods, and all retrieval methods for that DB+provider combination |
+| 2026-05-17 | — | Reorganise configs: 1 file per DB×provider | Replaced 7 single-purpose example files with `example-mongodb-local.yaml` and `example-mongodb-voyage.yaml`; each covers all embedding models, all chunking methods, and all retrieval methods for that DB+provider |
 
 ---
 
