@@ -1,4 +1,7 @@
 import { Experiment, ExploreResponse } from '../types';
+import { fetchJsonWithProgress, type FetchProgressUpdate } from './fetchWithProgress';
+
+export { formatBytes } from './fetchWithProgress';
 
 /**
  * Resolve API origin: explicit VITE_API_URL wins.
@@ -43,88 +46,16 @@ function rethrowWithFetchHint(url: string, err: unknown): never {
   throw err;
 }
 
-/** Throttle high-frequency byte progress callbacks (streaming body). */
-const BYTE_PROGRESS_INTERVAL_MS = 200;
+export type ExperimentProgressCallback = (u: FetchProgressUpdate) => void;
 
-export type ExperimentsListProgressUpdate =
-  | { type: 'message'; text: string; variant?: 'default' | 'warning' }
-  | {
-      type: 'downloading';
-      receivedBytes: number;
-      totalBytes: number | null;
-    };
-
-function parseContentLength(response: Response): number | null {
-  const hdr = response.headers.get('Content-Length');
-  const n = hdr !== null ? Number.parseInt(hdr, 10) : NaN;
-  if (Number.isNaN(n) || n < 0) return null;
-  return n;
+function emit(cb: ExperimentProgressCallback | undefined, u: FetchProgressUpdate) {
+  cb?.(u);
 }
 
-export function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
-}
-
-async function readBodyAsTextTracked(
-  response: Response,
-  onChunkProgress: (receivedBytes: number, totalBytes: number | null) => void,
-  signal?: AbortSignal,
-): Promise<string> {
-  const validTotal = parseContentLength(response);
-
-  if (!response.body) {
-    const text = await response.text();
-    onChunkProgress(text.length, validTotal);
-    return text;
-  }
-
-  const reader = response.body.getReader();
-  const parts: Uint8Array[] = [];
-  let received = 0;
-  let lastEmit = 0;
-
-  const emitProgress = () => {
-    const now =
-      typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
-    if (now - lastEmit >= BYTE_PROGRESS_INTERVAL_MS) {
-      lastEmit = now;
-      onChunkProgress(received, validTotal);
-    }
-  };
-
-  while (true) {
-    if (signal?.aborted) {
-      reader.cancel().catch(() => undefined);
-      throw new DOMException('Aborted', 'AbortError');
-    }
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (!value) continue;
-    parts.push(value);
-    received += value.length;
-    emitProgress();
-  }
-
-  onChunkProgress(received, validTotal);
-
-  let length = 0;
-  for (const p of parts) length += p.length;
-  const merged = new Uint8Array(length);
-  let off = 0;
-  for (const p of parts) {
-    merged.set(p, off);
-    off += p.length;
-  }
-
-  return new TextDecoder().decode(merged);
-}
-
-export async function getExperiments(): Promise<Experiment[]> {
+export async function getExperiments(signal?: AbortSignal): Promise<Experiment[]> {
   let response: Response;
   try {
-    response = await fetch(EXPERIMENTS_URL);
+    response = await fetch(EXPERIMENTS_URL, { signal });
   } catch (err) {
     rethrowWithFetchHint(EXPERIMENTS_URL, err);
   }
@@ -133,96 +64,117 @@ export async function getExperiments(): Promise<Experiment[]> {
   return data.experiments || [];
 }
 
-/**
- * Loads the experiments list while reporting download / parse milestones.
- * When the server sends Content-Length, reports received vs total bytes.
- */
 export async function getExperimentsWithProgress(
-  onProgress: (u: ExperimentsListProgressUpdate) => void,
+  onProgress: ExperimentProgressCallback | undefined,
   signal?: AbortSignal,
 ): Promise<Experiment[]> {
-  onProgress({
-    type: 'message',
-    text: `GET ${EXPERIMENTS_URL}`,
-  });
-
-  let response: Response;
+  emit(onProgress, { type: 'message', text: `GET ${EXPERIMENTS_URL}` });
+  let data: { experiments?: Experiment[] };
   try {
-    response = await fetch(EXPERIMENTS_URL, { signal });
+    data = await fetchJsonWithProgress<{ experiments?: Experiment[] }>(
+      EXPERIMENTS_URL,
+      { signal },
+      (u) => emit(onProgress, u),
+    );
   } catch (err) {
     rethrowWithFetchHint(EXPERIMENTS_URL, err);
   }
-
-  if (!response.ok) throw new Error(`Failed to fetch experiments (${response.status})`);
-
-  let lastEmitted = -1;
-  const text = await readBodyAsTextTracked(
-    response,
-    (received, total) => {
-      if (received === lastEmitted) return;
-      lastEmitted = received;
-      onProgress({
-        type: 'downloading',
-        receivedBytes: received,
-        totalBytes: total,
-      });
-    },
-    signal,
-  );
-
-  const hdrTotal = parseContentLength(response);
-
-  const downloadNote =
-    hdrTotal !== null
-      ? `Download complete (${formatBytes(text.length)} of ${formatBytes(hdrTotal)})`
-      : `Response body read (${formatBytes(text.length)})`;
-
-  onProgress({
-    type: 'message',
-    text: `${downloadNote}. Parsing JSON…`,
-  });
-
-  const data = JSON.parse(text) as { experiments?: Experiment[] };
   const experiments = data.experiments || [];
-
-  onProgress({
+  emit(onProgress, {
     type: 'message',
     text: `Parsed ${experiments.length} experiment record(s).`,
   });
-
   return experiments;
 }
 
-export async function getExperiment(experimentId: string): Promise<Experiment> {
+export async function getExperiment(experimentId: string, signal?: AbortSignal): Promise<Experiment> {
   const url = `${API_BASE_URL}/experiments/${experimentId}`;
   let response: Response;
   try {
-    response = await fetch(url);
+    response = await fetch(url, { signal });
   } catch (err) {
     rethrowWithFetchHint(url, err);
   }
-  if (!response.ok) {
-    throw new Error('Failed to fetch experiment');
-  }
+  if (!response.ok) throw new Error('Failed to fetch experiment');
   return response.json();
+}
+
+export async function getExperimentWithProgress(
+  experimentId: string,
+  onProgress: ExperimentProgressCallback | undefined,
+  signal?: AbortSignal,
+): Promise<Experiment> {
+  const url = `${API_BASE_URL}/experiments/${experimentId}`;
+  emit(onProgress, { type: 'message', text: `GET ${url}` });
+  let data: Experiment;
+  try {
+    data = await fetchJsonWithProgress<Experiment>(url, { signal }, (u) => emit(onProgress, u));
+  } catch (err) {
+    rethrowWithFetchHint(url, err);
+  }
+
+  const runCount =
+    typeof (data as { run_count?: number }).run_count === 'number'
+      ? (data as { run_count: number }).run_count
+      : 0;
+  const runs = (data as { runs?: unknown[] }).runs;
+
+  emit(onProgress, {
+    type: 'message',
+    text:
+      Array.isArray(runs) && runs.length > 0
+        ? `Parsed experiment (${runCount} configured runs · ${runs.length} run rows).`
+        : `Parsed experiment.`,
+  });
+
+  return data;
 }
 
 export async function getExperimentExplore(
   experimentId: string,
   query?: string,
+  signal?: AbortSignal,
 ): Promise<ExploreResponse> {
   const params = query ? `?query=${encodeURIComponent(query)}` : '';
   const url = `${API_BASE_URL}/experiments/${experimentId}/explore${params}`;
   let response: Response;
   try {
-    response = await fetch(url);
+    response = await fetch(url, { signal });
   } catch (err) {
     rethrowWithFetchHint(url, err);
   }
-  if (!response.ok) {
-    throw new Error('Failed to fetch experiment explore data');
-  }
+  if (!response.ok) throw new Error('Failed to fetch experiment explore data');
   return response.json();
+}
+
+export async function getExperimentExploreWithProgress(
+  experimentId: string,
+  query: string | undefined,
+  onProgress: ExperimentProgressCallback | undefined,
+  signal?: AbortSignal,
+): Promise<ExploreResponse> {
+  const params = query ? `?query=${encodeURIComponent(query)}` : '';
+  const url = `${API_BASE_URL}/experiments/${experimentId}/explore${params}`;
+  const qSnippet =
+    query && query.length > 0 ? ` (${query.length > 60 ? `${query.slice(0, 60)}…` : query})` : '';
+  emit(onProgress, {
+    type: 'message',
+    text: `GET explore for ${experimentId.slice(0, 8)}…${qSnippet}`,
+  });
+
+  let data: ExploreResponse;
+  try {
+    data = await fetchJsonWithProgress<ExploreResponse>(url, { signal }, (u) => emit(onProgress, u));
+  } catch (err) {
+    rethrowWithFetchHint(url, err);
+  }
+
+  emit(onProgress, {
+    type: 'message',
+    text: `Explorer payload: ${data.ranked_configs.length} configs · ${data.total_matches} matches · ${data.query_count} quer${data.query_count === 1 ? 'y' : 'ies'}.`,
+  });
+
+  return data;
 }
 
 export async function cancelExperiment(
@@ -238,8 +190,9 @@ export async function cancelExperiment(
     rethrowWithFetchHint(url, err);
   }
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.detail || 'Failed to cancel experiment');
+    const parsed = await response.json().catch(() => ({}));
+    const detail = typeof parsed.detail === 'string' ? parsed.detail : undefined;
+    throw new Error(detail || 'Failed to cancel experiment');
   }
   return response.json();
 }

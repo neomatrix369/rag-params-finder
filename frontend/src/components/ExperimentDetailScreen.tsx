@@ -13,10 +13,25 @@
  * - Failed count always visible (even when 0) for consistency
  * - Color system: Blue (primary), Green (success), Red (failure), Amber (warning), Purple (secondary)
  */
-import { useEffect, useState } from 'react';
-import { DETAIL_POLL_MS } from '../constants';
-import { cancelExperiment, getExperiment } from '../services/apiClient';
+import { useEffect, useRef, useState } from 'react';
+import { DETAIL_POLL_MS, LOADING_STALL_AFTER_MS, LOADING_STALL_REPEAT_MS } from '../constants';
+import LoadingFeedbackPanel from './LoadingFeedbackPanel';
+import type { FeedEntry } from './LoadingFeedbackPanel';
+import {
+  cancelExperiment,
+  getExperiment,
+  getExperimentWithProgress,
+  type ExperimentProgressCallback,
+} from '../services/apiClient';
 import { RunStatus, Phase, EnvParams, SweepSummary, ExperimentStatus } from '../types';
+import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
+
+let detailFeedSeq = 0;
+
+function appendDetailFeed(prev: FeedEntry[], text: string, variant: FeedEntry['variant']): FeedEntry[] {
+  detailFeedSeq += 1;
+  return [...prev, { id: `${Date.now()}-${detailFeedSeq}`, text, variant }];
+}
 
 // Icon components (minimal SVG)
 const icons = {
@@ -299,23 +314,106 @@ export default function ExperimentDetailScreen({
 }) {
   const [detail, setDetail] = useState<ExperimentDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hydrating, setHydrating] = useState(true);
   const [cancelling, setCancelling] = useState(false);
 
-  useEffect(() => {
-    loadDetail();
-    const interval = setInterval(loadDetail, DETAIL_POLL_MS);
-    return () => clearInterval(interval);
-  }, [experimentId]);
+  const [loadFeed, setLoadFeed] = useState<FeedEntry[]>([]);
+  const [receivedBytes, setReceivedBytes] = useState<number | null>(null);
+  const [totalBytes, setTotalBytes] = useState<number | null>(null);
 
-  async function loadDetail() {
-    try {
-      const data = await getExperiment(experimentId) as unknown as ExperimentDetail;
-      setDetail(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load');
+  const aliveRef = useRef(true);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    aliveRef.current = true;
+    const abortHydrate = new AbortController();
+
+    const stall = createStallWatcher({
+      alive: () => aliveRef.current,
+      afterMs: LOADING_STALL_AFTER_MS,
+      repeatMs: LOADING_STALL_REPEAT_MS,
+      onWarning: (text) => setLoadFeed((f) => appendDetailFeed(f, text, 'warning')),
+    });
+
+    const applyProg: ExperimentProgressCallback = (u: FetchProgressUpdate) => {
+      if (!aliveRef.current) return;
+      if (u.type === 'downloading') {
+        setReceivedBytes(u.receivedBytes);
+        setTotalBytes(u.totalBytes);
+        return;
+      }
+      setLoadFeed((f) =>
+        appendDetailFeed(f, u.text, u.variant === 'warning' ? 'warning' : 'default'),
+      );
+    };
+
+    async function pollQuietly() {
+      if (!aliveRef.current) return;
+      try {
+        const next = await getExperiment(experimentId);
+        if (!aliveRef.current) return;
+        setDetail(next as unknown as ExperimentDetail);
+        setError(null);
+      } catch {
+        if (!aliveRef.current) return;
+        setError('Could not refresh experiment — transient network or server error.');
+      }
     }
-  }
+
+    async function hydrate() {
+      setHydrating(true);
+      setError(null);
+      setDetail(null);
+      setLoadFeed([{ id: 'h0', text: 'Fetching experiment and run rows…', variant: 'default' }]);
+      setReceivedBytes(null);
+      setTotalBytes(null);
+      stall.start();
+
+      if (pollRef.current !== null) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+
+      try {
+        const loaded = await getExperimentWithProgress(
+          experimentId,
+          applyProg,
+          abortHydrate.signal,
+        );
+        stall.stop();
+        if (!aliveRef.current) return;
+        setDetail(loaded as unknown as ExperimentDetail);
+        setLoadFeed((f) => appendDetailFeed(f, 'Hydrated UI — polling for live phase updates.', 'default'));
+      } catch (err) {
+        stall.stop();
+        if (!aliveRef.current) return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        const msg =
+          err instanceof Error ? err.message : 'Failed to load experiment';
+        setError(msg);
+        setLoadFeed((f) => appendDetailFeed(f, `Failed: ${msg}`, 'warning'));
+      } finally {
+        stall.stop();
+        if (!aliveRef.current) return;
+        setHydrating(false);
+
+        pollRef.current = window.setInterval(pollQuietly, DETAIL_POLL_MS);
+        void pollQuietly();
+      }
+    }
+
+    void hydrate();
+
+    return () => {
+      aliveRef.current = false;
+      abortHydrate.abort();
+      stall.stop();
+      if (pollRef.current !== null) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [experimentId]);
 
   async function handleCancel() {
     if (!confirm('Cancel this experiment? Runs in progress will stop after the current phase.')) {
@@ -324,7 +422,9 @@ export default function ExperimentDetailScreen({
     setCancelling(true);
     try {
       await cancelExperiment(experimentId);
-      await loadDetail();
+      const refreshed = await getExperiment(experimentId);
+      setDetail(refreshed as unknown as ExperimentDetail);
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to cancel');
     } finally {
@@ -336,9 +436,68 @@ export default function ExperimentDetailScreen({
   const isTerminal = detail && TERMINAL_STATUSES.includes(detail.status);
   const isRunning = detail?.status === 'running';
 
+  if (hydrating && !detail && !error) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8">
+        <button
+          onClick={onBack}
+          type="button"
+          className="mb-8 text-sm text-blue-600 hover:text-blue-800"
+        >
+          ← Back to experiments
+        </button>
+        <div className="flex justify-center px-4">
+          <LoadingFeedbackPanel
+            title="Loading experiment detail"
+            subtitle={`Experiment · ${experimentId}`}
+            feed={loadFeed}
+            receivedBytes={receivedBytes}
+            totalBytes={totalBytes}
+            footer={`After hydrate, polls every ${DETAIL_POLL_MS / 1000}s while this screen stays open.`}
+            theme="light"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (!hydrating && !detail && error) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8">
+        <button
+          onClick={onBack}
+          type="button"
+          className="mb-8 text-sm text-blue-600 hover:text-blue-800"
+        >
+          ← Back to experiments
+        </button>
+        <div className="mx-auto max-w-lg rounded-xl border border-red-200 bg-red-50 px-6 py-4 text-red-800">
+          {error}
+        </div>
+        {loadFeed.length > 0 && (
+          <div className="mt-8 flex justify-center">
+            <LoadingFeedbackPanel
+              title="Diagnostics"
+              subtitle="Steps before failure"
+              feed={loadFeed}
+              receivedBytes={receivedBytes}
+              totalBytes={totalBytes}
+              expectPayloadProgress={false}
+              theme="light"
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (!detail) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="mx-auto max-w-7xl">
         <button
           onClick={onBack}
           className="mb-4 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
@@ -351,10 +510,8 @@ export default function ExperimentDetailScreen({
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-slate-900">
-                  {detail?.experiment_name ?? 'Loading...'}
-                </h1>
-                {detail && <StatusBadge status={detail.status} />}
+                <h1 className="text-3xl font-bold text-slate-900">{detail.experiment_name}</h1>
+                <StatusBadge status={detail.status} />
               </div>
               <p className="text-sm text-slate-500 font-mono">{experimentId}</p>
             </div>
@@ -727,7 +884,7 @@ export default function ExperimentDetailScreen({
         )}
 
         {!isTerminal && (
-          <div className="mt-4 text-xs text-slate-500 text-center">
+          <div className="mt-4 text-center text-xs text-slate-500">
             Polling every {DETAIL_POLL_MS / 1000}s <span className="animate-pulse">●</span>
           </div>
         )}
