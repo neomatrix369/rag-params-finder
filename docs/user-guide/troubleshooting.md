@@ -192,7 +192,7 @@ db.results.deleteMany({experiment_id: exp_id})
 | `SERVER_URL` | No | `http://localhost:8001` | FastAPI server URL (used by CLI) |
 | `VOYAGE_RPM_LIMIT` | No | `300` | Voyage requests-per-minute limit (throttle guard) |
 | `VOYAGE_TPM_LIMIT` | No | `1000000` | Voyage tokens-per-minute limit |
-| `RECOVER_ON_BOOT` | No | `false` | Auto-retry interrupted runs when server starts |
+| `RECOVER_ON_BOOT` | No | `false` | Persisted into experiment metadata for the dashboard only; **does not** start or retry runs on server boot yet (planned Slice 10) |
 | `LOG_LEVEL` | No | `INFO` | Logging verbosity (`DEBUG` for verbose output) |
 
 ---
