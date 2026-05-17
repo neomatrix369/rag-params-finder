@@ -7,6 +7,7 @@ import {
 import AppPageChrome from './AppPageChrome';
 import DashboardShell from './DashboardShell';
 import LoadingFeedbackPanel from './LoadingFeedbackPanel';
+import PollingIndicator from './PollingIndicator';
 import type { FeedEntry } from './LoadingFeedbackPanel';
 import {
   getExperiment,
@@ -170,8 +171,85 @@ function ConfigCard({ config }: { config: RankedConfig }) {
   );
 }
 
+function Pagination({
+  currentPage,
+  totalItems,
+  itemsPerPage,
+  onPageChange,
+  onItemsPerPageChange,
+}: {
+  currentPage: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (items: number) => void;
+}) {
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  return (
+    <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200">
+      <div className="flex items-center gap-4">
+        <span className="text-sm text-slate-600">
+          Showing <span className="font-medium">{startItem}</span> to{' '}
+          <span className="font-medium">{endItem}</span> of{' '}
+          <span className="font-medium">{totalItems}</span>
+        </span>
+        <div className="flex items-center gap-2">
+          <label htmlFor="items-per-page" className="text-sm text-slate-600">
+            Per page:
+          </label>
+          <select
+            id="items-per-page"
+            value={itemsPerPage}
+            onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+            className="rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value={10}>10</option>
+            <option value={15}>15</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+        >
+          Previous
+        </button>
+        <span className="text-sm text-slate-600">
+          Page <span className="font-medium">{currentPage}</span> of{' '}
+          <span className="font-medium">{totalPages}</span>
+        </span>
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function HyperparametersTab({ data }: { data: ExploreResponse }) {
   const topConfigs = data.ranked_configs.slice(0, 3);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
+
+  const handleItemsPerPageChange = useCallback((items: number) => {
+    setItemsPerPage(items);
+    setCurrentPage(1);
+  }, []);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedConfigs = data.ranked_configs.slice(startIndex, endIndex);
 
   return (
     <div className="space-y-6">
@@ -215,7 +293,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {data.ranked_configs.map((c) => (
+              {paginatedConfigs.map((c) => (
                 <tr key={`row-${c.rank}`} className="hover:bg-slate-50">
                   <td className="px-4 py-2.5 text-sm font-bold text-slate-600">#{c.rank}</td>
                   <td className="px-4 py-2.5 text-xs font-bold text-indigo-700 uppercase">{c.database_provider || 'mongodb'}</td>
@@ -232,6 +310,13 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
               ))}
             </tbody>
           </table>
+          <Pagination
+            currentPage={currentPage}
+            totalItems={data.ranked_configs.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
         </div>
       )}
     </div>
@@ -240,6 +325,13 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
 
 function DetailedResultsTab({ results }: { results: DetailedResult[] }) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
+
+  const handleItemsPerPageChange = useCallback((items: number) => {
+    setItemsPerPage(items);
+    setCurrentPage(1);
+  }, []);
 
   const toggleExpand = useCallback((rank: number) => {
     setExpanded((prev) => {
@@ -253,10 +345,14 @@ function DetailedResultsTab({ results }: { results: DetailedResult[] }) {
     });
   }, []);
 
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedResults = results.slice(startIndex, endIndex);
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="divide-y divide-slate-100">
-        {results.map((r) => {
+        {paginatedResults.map((r) => {
           const isExpanded = expanded.has(r.rank);
           const truncatedText = r.chunk_text.length > 120
             ? r.chunk_text.slice(0, 120) + '...'
@@ -302,6 +398,13 @@ function DetailedResultsTab({ results }: { results: DetailedResult[] }) {
           );
         })}
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalItems={results.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={handleItemsPerPageChange}
+      />
     </div>
   );
 }
@@ -312,15 +415,28 @@ function ConfigSidebar({ data, selectedMethods, onToggleMethod }: {
   onToggleMethod: (method: string) => void;
 }) {
   const allMethods = [...new Set(data.ranked_configs.map((c) => c.retrieval_method))];
+  const [configsExpanded, setConfigsExpanded] = useState(false);
+
+  const displayedConfigs = configsExpanded
+    ? data.ranked_configs
+    : data.ranked_configs.slice(0, 5);
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-          Target Configurations
-        </h3>
+        <button
+          onClick={() => setConfigsExpanded(!configsExpanded)}
+          className="w-full flex items-center justify-between mb-3 text-left hover:text-slate-200 transition-colors"
+        >
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Target Configurations
+          </h3>
+          <span className="text-slate-400 text-xs">
+            {configsExpanded ? '▲' : '▼'} {data.ranked_configs.length}
+          </span>
+        </button>
         <div className="space-y-1.5">
-          {data.ranked_configs.map((c) => (
+          {displayedConfigs.map((c) => (
             <div
               key={`sidebar-${c.rank}`}
               className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-700/50 text-white text-sm"
@@ -334,6 +450,14 @@ function ConfigSidebar({ data, selectedMethods, onToggleMethod }: {
               </div>
             </div>
           ))}
+          {!configsExpanded && data.ranked_configs.length > 5 && (
+            <button
+              onClick={() => setConfigsExpanded(true)}
+              className="w-full px-3 py-2 rounded-lg bg-slate-700/30 text-slate-300 text-xs hover:bg-slate-700/50 transition-colors"
+            >
+              + {data.ranked_configs.length - 5} more
+            </button>
+          )}
         </div>
       </div>
 
@@ -382,6 +506,7 @@ export default function SearchExplorerScreen({
   const [error, setError] = useState<string | null>(null);
   /** True on first paint so we never flash an empty canvas before the fetch effect runs */
   const [loading, setLoading] = useState(true);
+  const [isPolling, setIsPolling] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('hyperparameters');
   const [selectedQuery, setSelectedQuery] = useState<string>('');
   const [selectedMethods, setSelectedMethods] = useState<Set<string>>(new Set());
@@ -489,6 +614,7 @@ export default function SearchExplorerScreen({
     }
     const id = window.setInterval(() => {
       void (async () => {
+        setIsPolling(true);
         try {
           const exp = await getExperiment(experimentId);
           if (exp.status !== 'running') {
@@ -509,6 +635,8 @@ export default function SearchExplorerScreen({
           });
         } catch {
           /* ignore transient poll errors */
+        } finally {
+          setIsPolling(false);
         }
       })();
     }, DETAIL_POLL_MS);
@@ -585,11 +713,21 @@ export default function SearchExplorerScreen({
             </div>
           )}
 
-          {loading && !data && (
+          {pollWhileRunning && !loading && (
+            <div className="mb-4 flex items-center justify-end">
+              <PollingIndicator active={isPolling} />
+            </div>
+          )}
+
+          {loading && (
             <div className="mb-8 flex justify-center">
               <LoadingFeedbackPanel
-                title="Loading results…"
-                subtitle="Explorer builds ranked configs plus detailed hits from Mongo — response can be megabytes."
+                title={data ? "Refreshing results…" : "Loading results…"}
+                subtitle={
+                  data
+                    ? "Re-fetching explorer data (query filter changed or refresh triggered)."
+                    : "Explorer builds ranked configs plus detailed hits from Mongo — response can be megabytes."
+                }
                 footer="Shows byte progress once headers arrive (Content-Length yields a %) or an indeterminate bar until then."
                 feed={feed}
                 receivedBytes={receivedBytes}
@@ -701,6 +839,25 @@ export default function SearchExplorerScreen({
 
           {filteredData && activeTab === 'detailed' && (
             <DetailedResultsTab results={filteredData.detailed_results} />
+          )}
+
+          {!loading && !data && !error && (
+            <div className="text-center py-20">
+              <div className="mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
+                  <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div className="text-lg font-medium text-slate-700 mb-2">Waiting for results</div>
+              <div className="text-sm text-slate-500 max-w-md mx-auto">
+                {pollWhileRunning
+                  ? "The experiment is still running. Results will appear as soon as they're available."
+                  : "No explorer data available yet. Try refreshing the experiment detail page."}
+              </div>
+            </div>
           )}
 
           {data && data.total_matches === 0 && (
