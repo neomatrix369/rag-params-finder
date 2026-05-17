@@ -15,6 +15,8 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { DETAIL_POLL_MS, LOADING_STALL_AFTER_MS, LOADING_STALL_REPEAT_MS } from '../constants';
+import AppPageChrome from './AppPageChrome';
+import DashboardShell from './DashboardShell';
 import LoadingFeedbackPanel from './LoadingFeedbackPanel';
 import type { FeedEntry } from './LoadingFeedbackPanel';
 import {
@@ -436,20 +438,49 @@ export default function ExperimentDetailScreen({
   const isTerminal = detail && TERMINAL_STATUSES.includes(detail.status);
   const isRunning = detail?.status === 'running';
 
+  const backToList = (
+    <button
+      type="button"
+      onClick={onBack}
+      className="mb-6 w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-blue-400 hover:bg-slate-700/55 hover:text-blue-300"
+    >
+      ← All experiments
+    </button>
+  );
+
+  function experimentRailBlurb(extra: string) {
+    return (
+      <>
+        <div className="mb-6">
+          <div className="text-sm font-semibold text-slate-200">Sidebar</div>
+          <div className="mt-0.5 text-[11px] uppercase tracking-wider text-slate-500">Experiment</div>
+        </div>
+        {backToList}
+        <p className="mt-4 text-xs leading-relaxed text-slate-400">{extra}</p>
+      </>
+    );
+  }
+
   if (hydrating && !detail && !error) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8">
-        <button
-          onClick={onBack}
-          type="button"
-          className="mb-8 text-sm text-blue-600 hover:text-blue-800"
-        >
-          ← Back to experiments
-        </button>
-        <div className="flex justify-center px-4">
+      <DashboardShell
+        asideWidthClass="w-56 lg:w-60"
+        header={
+          <AppPageChrome
+            tone="darkFrame"
+            pageEyebrow="Experiment"
+            pageTitle="Loading"
+            pageMeta={<span className="font-mono">{experimentId}</span>}
+            pageHint="Fetching runs, configuration, and live progress from the API."
+            showDashboardFootnote={false}
+          />
+        }
+        sidebar={experimentRailBlurb('Hydrating payloads from Mongo + your orchestration backend.')}
+      >
+        <div className="flex justify-center pb-8 pt-2">
           <LoadingFeedbackPanel
             title="Loading experiment detail"
-            subtitle={`Experiment · ${experimentId}`}
+            subtitle="Pulling run status, sweep config, and payloads from your server."
             feed={loadFeed}
             receivedBytes={receivedBytes}
             totalBytes={totalBytes}
@@ -457,20 +488,26 @@ export default function ExperimentDetailScreen({
             theme="light"
           />
         </div>
-      </div>
+      </DashboardShell>
     );
   }
 
   if (!hydrating && !detail && error) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8">
-        <button
-          onClick={onBack}
-          type="button"
-          className="mb-8 text-sm text-blue-600 hover:text-blue-800"
-        >
-          ← Back to experiments
-        </button>
+      <DashboardShell
+        asideWidthClass="w-56 lg:w-60"
+        header={
+          <AppPageChrome
+            tone="darkFrame"
+            pageEyebrow="Experiment"
+            pageTitle="Could not load"
+            pageMeta={<span className="font-mono">{experimentId}</span>}
+            pageHint="Check server connectivity or permissions. Diagnostics below may show which step failed."
+            showDashboardFootnote={false}
+          />
+        }
+        sidebar={experimentRailBlurb('Check that the FastAPI server is up and reachable from this dashboard.')}
+      >
         <div className="mx-auto max-w-lg rounded-xl border border-red-200 bg-red-50 px-6 py-4 text-red-800">
           {error}
         </div>
@@ -487,7 +524,7 @@ export default function ExperimentDetailScreen({
             />
           </div>
         )}
-      </div>
+      </DashboardShell>
     );
   }
 
@@ -496,26 +533,42 @@ export default function ExperimentDetailScreen({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="mx-auto max-w-7xl">
-        <button
-          onClick={onBack}
-          className="mb-4 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-        >
-          ← Back to experiments
-        </button>
+    <DashboardShell
+      asideWidthClass="w-56 lg:w-60"
+      contentMaxWidthClass="max-w-7xl"
+      header={
+        <AppPageChrome
+          tone="darkFrame"
+          pageEyebrow="Experiment"
+          pageTitle={detail.experiment_name}
+          pageMeta={<span className="font-mono">{experimentId}</span>}
+          pageHint={
+            isRunning
+              ? `Live updates every ${DETAIL_POLL_MS / 1000}s until this batch reaches a terminal status.`
+              : 'Runs, sweep metadata, and stored results appear in the sections below.'
+          }
+          showDashboardFootnote={false}
+        />
+      }
+      sidebar={experimentRailBlurb(
+        isRunning
+          ? 'Cancel stays available until every run leaves the running phases.'
+          : isTerminal && onExplore
+          ? 'Open Explore results when you want aggregated rankings for this sweep.'
+          : 'Status, configs, failures, and the run table populate the pane on the right.',
+      )}
+    >
 
-        {/* Header with status */}
-        <div className="mb-6 bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-slate-900">{detail.experiment_name}</h1>
-                <StatusBadge status={detail.status} />
-              </div>
-              <p className="text-sm text-slate-500 font-mono">{experimentId}</p>
+        {/* Header with status + primary actions */}
+        <div className="mb-5 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
+              <StatusBadge status={detail.status} />
+              <p className="text-xs leading-snug text-slate-500">
+                Runs table lists each sweep combo and pipeline phase below.
+              </p>
             </div>
-            <div className="flex items-center gap-3 flex-wrap justify-end">
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
               {(isTerminal || isRunning) && onExplore && (
                 <button
                   type="button"
@@ -532,6 +585,7 @@ export default function ExperimentDetailScreen({
               )}
               {isRunning && (
                 <button
+                  type="button"
                   onClick={handleCancel}
                   disabled={cancelling}
                   className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-sm font-semibold rounded-xl shadow-md transition-all"
@@ -888,7 +942,6 @@ export default function ExperimentDetailScreen({
             Polling every {DETAIL_POLL_MS / 1000}s <span className="animate-pulse">●</span>
           </div>
         )}
-      </div>
-    </div>
+    </DashboardShell>
   );
 }
