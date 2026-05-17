@@ -1,7 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DETAIL_POLL_MS } from '../constants';
-import { getExperiment, getExperimentExplore } from '../services/apiClient';
+import {
+  DETAIL_POLL_MS,
+  LOADING_STALL_AFTER_MS,
+  LOADING_STALL_REPEAT_MS,
+} from '../constants';
+import LoadingFeedbackPanel from './LoadingFeedbackPanel';
+import type { FeedEntry } from './LoadingFeedbackPanel';
+import {
+  getExperiment,
+  getExperimentExplore,
+  getExperimentExploreWithProgress,
+  type ExperimentProgressCallback,
+} from '../services/apiClient';
+import { createStallWatcher, formatBytes, type FetchProgressUpdate } from '../services/fetchWithProgress';
 import { DetailedResult, ExploreResponse, RankedConfig } from '../types';
+
+let xfSeq = 0;
+
+function xfAppend(prev: FeedEntry[], text: string, variant: FeedEntry['variant']): FeedEntry[] {
+  xfSeq += 1;
+  return [...prev, { id: `${Date.now()}-${xfSeq}`, text, variant }];
+}
 
 type Tab = 'hyperparameters' | 'detailed';
 
@@ -359,55 +378,108 @@ export default function SearchExplorerScreen({
 }) {
   const [data, setData] = useState<ExploreResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** True on first paint so we never flash an empty canvas before the fetch effect runs */
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('hyperparameters');
   const [selectedQuery, setSelectedQuery] = useState<string>('');
   const [selectedMethods, setSelectedMethods] = useState<Set<string>>(new Set());
   const [pollWhileRunning, setPollWhileRunning] = useState(true);
+  const [feed, setFeed] = useState<FeedEntry[]>([]);
+  const [receivedBytes, setReceivedBytes] = useState<number | null>(null);
+  const [totalBytes, setTotalBytes] = useState<number | null>(null);
 
   const selectedQueryRef = useRef(selectedQuery);
   selectedQueryRef.current = selectedQuery;
 
+  const prevExperimentRef = useRef('');
+  const aliveRef = useRef(true);
+
   useEffect(() => {
     setPollWhileRunning(true);
+    setSelectedQuery('');
   }, [experimentId]);
 
-  const loadExplore = useCallback(
-    async (opts: { silent?: boolean } = {}) => {
-      const silent = opts.silent ?? false;
-      if (!silent) {
-        setLoading(true);
+  useEffect(() => {
+    aliveRef.current = true;
+    const abort = new AbortController();
+    let switchedExperiment = prevExperimentRef.current !== experimentId;
+    if (switchedExperiment) {
+      prevExperimentRef.current = experimentId;
+      setData(null);
+    }
+
+    const stall = createStallWatcher({
+      alive: () => aliveRef.current,
+      afterMs: LOADING_STALL_AFTER_MS,
+      repeatMs: LOADING_STALL_REPEAT_MS,
+      onWarning: (text) => setFeed((f) => xfAppend(f, text, 'warning')),
+    });
+
+    const applyProg: ExperimentProgressCallback = (u: FetchProgressUpdate) => {
+      if (!aliveRef.current) return;
+      if (u.type === 'downloading') {
+        setReceivedBytes(u.receivedBytes);
+        setTotalBytes(u.totalBytes);
+        return;
       }
-      try {
-        const response = await getExperimentExplore(
-          experimentId,
-          selectedQueryRef.current || undefined,
+      setFeed((f) => xfAppend(f, u.text, u.variant === 'warning' ? 'warning' : 'default'));
+    };
+
+    async function fetchExplore() {
+      setLoading(true);
+      setReceivedBytes(null);
+      setTotalBytes(null);
+      if (switchedExperiment) {
+        setFeed([{ id: 'x0', text: 'Fetching explorer aggregates (Mongo + analyzer)…', variant: 'default' }]);
+      } else {
+        setFeed((f) =>
+          xfAppend(
+            f,
+            `Refreshing explorer${selectedQuery ? ' (filtered query)' : ''}…`,
+            'default',
+          ),
         );
-        setData(response);
-        setError(null);
+      }
+      setError(null);
+      stall.start();
+      try {
+        const payload = await getExperimentExploreWithProgress(
+          experimentId,
+          selectedQuery || undefined,
+          applyProg,
+          abort.signal,
+        );
+        stall.stop();
+        if (!aliveRef.current) return;
+        setFeed((f) => xfAppend(f, 'Explorer snapshot ready.', 'default'));
+        setData(payload);
+
         setSelectedMethods((prev) => {
-          if (prev.size > 0) {
-            return prev;
-          }
-          return new Set(response.ranked_configs.map((c) => c.retrieval_method));
+          if (prev.size > 0) return prev;
+          return new Set(payload.ranked_configs.map((c) => c.retrieval_method));
         });
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to load';
-        if (!silent) {
-          setError(msg);
-        }
+        stall.stop();
+        if (!aliveRef.current) return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        const msg =
+          err instanceof Error ? err.message : 'Failed to fetch experiment explore data';
+        setError(msg);
+        setFeed((f) => xfAppend(f, `Failed: ${msg}`, 'warning'));
       } finally {
-        if (!silent) {
-          setLoading(false);
-        }
+        stall.stop();
+        if (aliveRef.current) setLoading(false);
       }
-    },
-    [experimentId],
-  );
+    }
 
-  useEffect(() => {
-    void loadExplore({ silent: false });
-  }, [selectedQuery, loadExplore]);
+    void fetchExplore();
+
+    return () => {
+      aliveRef.current = false;
+      abort.abort();
+      stall.stop();
+    };
+  }, [experimentId, selectedQuery]);
 
   useEffect(() => {
     if (!pollWhileRunning) {
@@ -421,23 +493,36 @@ export default function SearchExplorerScreen({
             setPollWhileRunning(false);
             return;
           }
-          await loadExplore({ silent: true });
+          const response = await getExperimentExplore(
+            experimentId,
+            selectedQueryRef.current || undefined,
+          );
+          setData(response);
+          setError(null);
+          setSelectedMethods((prev) => {
+            if (prev.size > 0) {
+              return prev;
+            }
+            return new Set(response.ranked_configs.map((c) => c.retrieval_method));
+          });
         } catch {
           /* ignore transient poll errors */
         }
       })();
     }, DETAIL_POLL_MS);
     return () => window.clearInterval(id);
-  }, [experimentId, loadExplore, pollWhileRunning]);
+  }, [experimentId, pollWhileRunning]);
 
   const handleToggleMethod = useCallback((method: string) => {
     setSelectedMethods((prev) => {
       const next = new Set(prev);
       if (next.has(method)) {
+        /** Never leave zero methods checked — avoids a blank explorer body */
+        if (next.size <= 1) return prev;
         next.delete(method);
-      } else {
-        next.add(method);
+        return next;
       }
+      next.add(method);
       return next;
     });
   }, []);
@@ -503,6 +588,20 @@ export default function SearchExplorerScreen({
             </div>
           )}
 
+          {loading && !data && (
+            <div className="mb-8 flex justify-center">
+              <LoadingFeedbackPanel
+                title="Loading results…"
+                subtitle="Explorer builds ranked configs plus detailed hits from Mongo — response can be megabytes."
+                footer="Shows byte progress once headers arrive (Content-Length yields a %) or an indeterminate bar until then."
+                feed={feed}
+                receivedBytes={receivedBytes}
+                totalBytes={totalBytes}
+                theme="light"
+              />
+            </div>
+          )}
+
           {/* Query selector */}
           {data && data.queries.length > 0 && (
             <div className="mb-6 flex items-center gap-4">
@@ -553,10 +652,48 @@ export default function SearchExplorerScreen({
             )}
           </div>
 
-          {/* Loading */}
-          {loading && !data && (
-            <div className="flex items-center justify-center py-20">
-              <div className="text-slate-500">Loading results...</div>
+          {loading && data && (
+            <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50/90 px-4 py-3 text-sm shadow-sm backdrop-blur">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-semibold text-blue-900">Refreshing explorer data…</span>
+                <span aria-live="polite" className="font-mono text-xs text-slate-700">
+                  {feed.length ? feed[feed.length - 1]?.text.replace(/^—?\s*/, '') : 'waiting…'}
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2 font-mono text-[11px] text-slate-600">
+                <span>
+                  {receivedBytes !== null
+                    ? `${formatBytes(receivedBytes)}${
+                        totalBytes !== null ? ` / ${formatBytes(totalBytes)}` : ' · size unknown'
+                      }`
+                    : 'Starting request…'}
+                </span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-blue-100" role="progressbar">
+                <div
+                  className={`h-full rounded-full bg-sky-500 ${
+                    receivedBytes !== null &&
+                    totalBytes !== null &&
+                    totalBytes > 0 &&
+                    receivedBytes <= totalBytes
+                      ? 'transition-[width] duration-150'
+                      : 'w-2/5 animate-pulse'
+                  }`}
+                  style={
+                    receivedBytes !== null &&
+                    totalBytes !== null &&
+                    totalBytes > 0 &&
+                    receivedBytes <= totalBytes
+                      ? {
+                          width: `${Math.min(
+                            100,
+                            Math.max(2, Math.round((100 * receivedBytes) / totalBytes)),
+                          )}%`,
+                        }
+                      : undefined
+                  }
+                />
+              </div>
             </div>
           )}
 
