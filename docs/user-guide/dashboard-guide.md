@@ -7,6 +7,11 @@
 
 The React dashboard at `http://localhost:5173` provides a read-only view of experiments and results. It polls the server every 2 seconds while any experiment is running.
 
+All screens feature:
+- **Loading feedback panels** with progress bars during initial data loads
+- **Polling indicators** (subtle "Syncing..." badge) during background refreshes
+- **Pagination** for long lists (10 items per page by default)
+
 ---
 
 ## 🖥️ Screens
@@ -21,6 +26,8 @@ The landing screen shows all submitted experiments, newest first.
 | Status | Color-coded badge (see below) |
 | Runs | Total runs / successful runs / failed runs |
 | Created | Submission timestamp |
+
+**Pagination**: Shows 10 experiments per page. Navigate using Previous/Next buttons at the bottom.
 
 Click any row to open the Experiment Detail screen.
 
@@ -61,6 +68,8 @@ QUEUED → PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERAN
 
 **Runs table**: each row is one config combination (model + chunking method + chunk size + overlap + retrieval method). Expand a row to see per-query results with dense scores and rerank scores.
 
+**Pagination**: Shows 10 runs per page. Navigate using Previous/Next buttons below the table.
+
 ---
 
 ### 🔍 Search Explorer
@@ -70,6 +79,8 @@ Opened from the Experiment Detail screen once at least one run is complete. Load
 **Best parameters card**: the top-scoring config combination with its overall relevance score, highlighted at the top of the screen.
 
 **Ranked config cards**: all config combinations ordered by score, with score bars for visual comparison. Each card shows the embedding model, chunking method, chunk size, overlap, and retrieval method.
+
+**Pagination**: Shows 5 configurations per page. Navigate using Previous/Next buttons below the cards.
 
 **Per-query results**: expand any config card to see the detailed ranked chunks for each query, with individual dense and rerank scores.
 
@@ -95,6 +106,44 @@ This allows direct comparison of configs that used different models or retrieval
 | Search Explorer | No | — | Loads once |
 
 Terminal statuses: `complete`, `failed`, `partial`, `cancelled`
+
+---
+
+## 🔄 Loading States & Progress Feedback
+
+### Initial Load
+
+When opening any screen, a **Loading Feedback Panel** appears showing:
+- Operation title (e.g., "Loading experiments")
+- Progress bar with byte-level download progress
+- Activity feed with fetch milestones (start → headers → chunks → complete)
+
+The panel automatically hides when loading completes.
+
+### Background Polling
+
+After the initial load completes, a subtle **"Syncing..."** indicator appears briefly at the bottom (Experiments List) or top-right (Experiment Detail, Search Explorer) during background refreshes every 2 seconds. This indicator:
+- Shows a blue pulsing dot + "Syncing..." text
+- Appears only during the poll (100–500ms)
+- Does not block interaction with the page
+
+### Re-query Progress (Search Explorer)
+
+When changing the query filter dropdown in Search Explorer, the Loading Feedback Panel re-appears with:
+- Title: "Refreshing results…"
+- Subtitle: "Re-fetching explorer data (query filter changed or refresh triggered)."
+- Progress tracking same as initial load
+
+### Experiment Execution Progress
+
+For **running experiments**, the Experiment Detail screen shows an **Experiment Progress Card** with:
+- Circular progress indicator (e.g., "50%")
+- Completion status (e.g., "1 of 2 runs completed")
+- Visual feedback: blue gradient background, green progress ring
+
+This card appears **only when status is "running"** and updates every 2 seconds via background polling. Once the experiment completes, the card is replaced with a success/failure summary.
+
+**Note**: This is distinct from network loading — the Loading Feedback Panel tracks API data transfer, while the Experiment Progress Card tracks pipeline execution (runs completing).
 
 ---
 
