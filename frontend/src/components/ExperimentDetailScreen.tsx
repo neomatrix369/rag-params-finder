@@ -13,7 +13,7 @@
  * - Failed count always visible (even when 0) for consistency
  * - Color system: Blue (primary), Green (success), Red (failure), Amber (warning), Purple (secondary)
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { DETAIL_POLL_MS, LOADING_STALL_AFTER_MS, LOADING_STALL_REPEAT_MS } from '../constants';
 import AppPageChrome from './AppPageChrome';
 import DashboardShell from './DashboardShell';
@@ -118,6 +118,72 @@ const PHASE_ORDER: Phase[] = [
   Phase.QUEUED, Phase.PARSING, Phase.CHUNKING, Phase.EMBEDDING,
   Phase.STORING, Phase.QUERYING, Phase.RERANKING, Phase.COMPLETE,
 ];
+
+function Pagination({
+  currentPage,
+  totalItems,
+  itemsPerPage,
+  onPageChange,
+  onItemsPerPageChange,
+}: {
+  currentPage: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (items: number) => void;
+}) {
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  return (
+    <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200">
+      <div className="flex items-center gap-4">
+        <span className="text-sm text-slate-600">
+          Showing <span className="font-medium">{startItem}</span> to{' '}
+          <span className="font-medium">{endItem}</span> of{' '}
+          <span className="font-medium">{totalItems}</span>
+        </span>
+        <div className="flex items-center gap-2">
+          <label htmlFor="runs-per-page" className="text-sm text-slate-600">
+            Per page:
+          </label>
+          <select
+            id="runs-per-page"
+            value={itemsPerPage}
+            onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+            className="rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value={10}>10</option>
+            <option value={15}>15</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+        >
+          Previous
+        </button>
+        <span className="text-sm text-slate-600">
+          Page <span className="font-medium">{currentPage}</span> of{' '}
+          <span className="font-medium">{totalPages}</span>
+        </span>
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function PhaseIndicator({ current }: { current: Phase }) {
   const currentIdx = PHASE_ORDER.indexOf(current);
@@ -322,6 +388,14 @@ export default function ExperimentDetailScreen({
   const [loadFeed, setLoadFeed] = useState<FeedEntry[]>([]);
   const [receivedBytes, setReceivedBytes] = useState<number | null>(null);
   const [totalBytes, setTotalBytes] = useState<number | null>(null);
+
+  const [runsCurrentPage, setRunsCurrentPage] = useState(1);
+  const [runsItemsPerPage, setRunsItemsPerPage] = useState(15);
+
+  const handleRunsItemsPerPageChange = useCallback((items: number) => {
+    setRunsItemsPerPage(items);
+    setRunsCurrentPage(1);
+  }, []);
 
   const aliveRef = useRef(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -773,101 +847,115 @@ export default function ExperimentDetailScreen({
         )}
 
         {/* Runs Table - Enhanced */}
-        {detail?.runs && detail.runs.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
-              <h2 className="text-lg font-bold text-slate-800">
-                Run Details ({detail.runs.length})
-              </h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b-2 border-slate-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Run ID</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Database</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Embed Prov</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Embedding Model</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Chunker</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Size/Overlap</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Retrieval</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Rerank Prov</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Phase</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Elapsed</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {detail.runs.map((run, idx) => {
-                    const isComplete = run.phase === Phase.COMPLETE;
-                    const isFailed = run.phase === Phase.FAILED;
-                    const rowBg = isFailed ? 'bg-red-50/50' : isComplete ? 'bg-green-50/30' : '';
+        {detail?.runs && detail.runs.length > 0 && (() => {
+          const startIndex = (runsCurrentPage - 1) * runsItemsPerPage;
+          const endIndex = startIndex + runsItemsPerPage;
+          const paginatedRuns = detail.runs.slice(startIndex, endIndex);
 
-                    return (
-                      <tr key={run.run_id} className={`hover:bg-blue-50/40 transition-all duration-200 ${rowBg}`}>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center">
-                              {idx + 1}
+          return (
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
+                <h2 className="text-lg font-bold text-slate-800">
+                  Run Details ({detail.runs.length})
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b-2 border-slate-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Run ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Database</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Embed Prov</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Embedding Model</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Chunker</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Size/Overlap</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Retrieval</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Rerank Prov</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Phase</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Elapsed</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {paginatedRuns.map((run, idx) => {
+                      const isComplete = run.phase === Phase.COMPLETE;
+                      const isFailed = run.phase === Phase.FAILED;
+                      const rowBg = isFailed ? 'bg-red-50/50' : isComplete ? 'bg-green-50/30' : '';
+                      const absoluteIndex = startIndex + idx;
+
+                      return (
+                        <tr key={run.run_id} className={`hover:bg-blue-50/40 transition-all duration-200 ${rowBg}`}>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center">
+                                {absoluteIndex + 1}
+                              </span>
+                              <span className="text-sm font-mono text-slate-600">
+                                {run.run_id.slice(0, 8)}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-100 text-indigo-800 text-xs font-bold uppercase">
+                              {run.database_provider || 'mongodb'}
                             </span>
-                            <span className="text-sm font-mono text-slate-600">
-                              {run.run_id.slice(0, 8)}
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-teal-100 text-teal-800 text-xs font-medium uppercase">
+                              {run.embedding_provider || 'local'}
                             </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-100 text-indigo-800 text-xs font-bold uppercase">
-                            {run.database_provider || 'mongodb'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-teal-100 text-teal-800 text-xs font-medium uppercase">
-                            {run.embedding_provider || 'local'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 text-xs font-medium">
-                            {run.embedding_model}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-purple-100 text-purple-800 text-xs font-medium">
-                            {run.chunking_method}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="text-sm font-mono text-slate-700 font-semibold">
-                            {run.chunk_size} / {run.overlap}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 text-xs font-medium">
-                            {run.retrieval_method}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-teal-100 text-teal-800 text-xs font-medium uppercase">
-                            {run.rerank_provider || 'local'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <PhaseIndicator current={run.phase} />
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-1 text-sm text-slate-500">
-                            {icons.clock}
-                            <span className="font-medium">
-                              {run.elapsed_ms > 0 ? `${(run.elapsed_ms / 1000).toFixed(1)}s` : '—'}
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 text-xs font-medium">
+                              {run.embedding_model}
                             </span>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-purple-100 text-purple-800 text-xs font-medium">
+                              {run.chunking_method}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="text-sm font-mono text-slate-700 font-semibold">
+                              {run.chunk_size} / {run.overlap}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 text-xs font-medium">
+                              {run.retrieval_method}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-teal-100 text-teal-800 text-xs font-medium uppercase">
+                              {run.rerank_provider || 'local'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <PhaseIndicator current={run.phase} />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-1 text-sm text-slate-500">
+                              {icons.clock}
+                              <span className="font-medium">
+                                {run.elapsed_ms > 0 ? `${(run.elapsed_ms / 1000).toFixed(1)}s` : '—'}
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                currentPage={runsCurrentPage}
+                totalItems={detail.runs.length}
+                itemsPerPage={runsItemsPerPage}
+                onPageChange={setRunsCurrentPage}
+                onItemsPerPageChange={handleRunsItemsPerPageChange}
+              />
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Failed runs detail */}
         {detail?.runs && detail.runs.filter(r => r.phase === Phase.FAILED).length > 0 && (
