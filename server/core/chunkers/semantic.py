@@ -54,9 +54,7 @@ def chunk_semantic(text: str, chunk_size: int) -> list[str]:
             similarity = 0.0
 
         # Flush current group on semantic break or character cap overflow.
-        should_flush = similarity < _SIMILARITY_THRESHOLD or (
-            group_len + sentence_len > chunk_size
-        )
+        should_flush = similarity < _SIMILARITY_THRESHOLD or (group_len + sentence_len > chunk_size)
 
         if should_flush and group:
             chunks.append(" ".join(group))

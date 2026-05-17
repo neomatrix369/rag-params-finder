@@ -106,6 +106,29 @@ For **local models** (384-dim), name: `vector_index_384`:
 
 Both indexes can coexist on the same collection. Wait ~1–2 minutes for the index to build before running queries.
 
+### 3. Create the Atlas Full Text Search index (sparse/hybrid only)
+
+**Required only if you use `sparse` or `hybrid` retrieval.** Skip this step if you only use `dense`.
+
+1. Same collection view → **Search Indexes** tab → **Create Search Index** → JSON Editor
+2. Name: `text_search_index`
+3. Paste this definition:
+
+```json
+{
+  "mappings": {
+    "dynamic": false,
+    "fields": {
+      "text": [{ "type": "string" }],
+      "experiment_id": [{ "type": "token" }],
+      "embedding_model": [{ "type": "token" }]
+    }
+  }
+}
+```
+
+Wait ~1–2 minutes. The `text_search_index` and both vector indexes can all coexist on the same `chunks` collection.
+
 ---
 
 ## 📄 Add Your Documents
@@ -146,14 +169,14 @@ cd frontend && npm run dev
 ## ▶️ Run Your First Experiment
 
 ```bash
-# Local models — no API key needed
-rag-params-finder run --config configs/example-local.yaml
+# Local models — no API key needed (90 runs: all chunkers × all retrieval methods)
+rag-params-finder run --config configs/example-mongodb-local.yaml
 
 # Voyage AI models — requires VOYAGE_API_KEY in .env
-rag-params-finder run --config configs/example-voyage-ai.yaml
+rag-params-finder run --config configs/example-mongodb-voyage.yaml
 
 # Submit and detach (check dashboard for status instead)
-rag-params-finder run --config configs/example-local.yaml --detach
+rag-params-finder run --config configs/example-mongodb-local.yaml --detach
 ```
 
 The CLI will:

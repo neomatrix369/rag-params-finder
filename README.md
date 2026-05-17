@@ -79,14 +79,11 @@ cp .env.example .env
 uvicorn server.main:app --reload --port 8001   # Terminal 1
 cd frontend && npm run dev                      # Terminal 2
 
-# Run an experiment (no API key needed)
-rag-params-finder run --config configs/example-local.yaml
+# Full sweep — local models, no API key needed (90 runs)
+rag-params-finder run --config configs/example-mongodb-local.yaml
 
-# Compare all 5 chunking strategies
-rag-params-finder run --config configs/example-chunking-methods.yaml
-
-# Compare dense / sparse / hybrid retrieval
-rag-params-finder run --config configs/example-retrieval-methods.yaml
+# Full sweep — Voyage AI models, requires VOYAGE_API_KEY (90 runs)
+rag-params-finder run --config configs/example-mongodb-voyage.yaml
 ```
 
 Open `http://localhost:5173` to watch live progress and explore results.
