@@ -81,6 +81,12 @@ cd frontend && npm run dev                      # Terminal 2
 
 # Run an experiment (no API key needed)
 rag-params-finder run --config configs/example-local.yaml
+
+# Compare all 5 chunking strategies
+rag-params-finder run --config configs/example-chunking-methods.yaml
+
+# Compare dense / sparse / hybrid retrieval
+rag-params-finder run --config configs/example-retrieval-methods.yaml
 ```
 
 Open `http://localhost:5173` to watch live progress and explore results.
@@ -106,7 +112,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 ## ⚡ Key Features
 
 - **5 chunking methods**: Fixed, Recursive, Token, Sentence, Semantic
-- **3 retrieval methods**: Dense (vector search), Sparse (BM25), Hybrid (70/30 weighted)
+- **3 retrieval methods**: Dense (vector search), Sparse (BM25), Hybrid (Reciprocal Rank Fusion)
 - **Voyage AI models**: `voyage-3.5-lite`, `voyage-3.5`, `voyage-context-3` + `rerank-2.5-lite`
 - **Local models** (no API key): `all-MiniLM-L6-v2` + `cross-encoder/ms-marco-MiniLM-L-6-v2`
 - **Multi-format data loading**: PDF, TXT, Markdown, CSV — files or directories
@@ -131,7 +137,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 Contributions welcome — please open an issue first to discuss the change.
 
-Priority areas: additional chunkers (sentence, token, semantic are stubbed), sparse/hybrid retrieval wiring, test suite with mock MongoDB fixtures, SSE live updates, Docker Compose.
+Priority areas: test suite with mock MongoDB fixtures, Search Explorer dashboard enhancements, SSE live updates, Docker Compose.
 
 ---
 

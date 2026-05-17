@@ -10,9 +10,17 @@ All YAML fields, sweep expansion rules, and queries file format.
 
 ## ⚙️ Experiment Config (YAML)
 
-Place config files in `configs/`. Two examples are provided:
-- `configs/example-local.yaml` — local models, no API key needed
-- `configs/example-voyage-ai.yaml` — Voyage AI models, requires `VOYAGE_API_KEY`
+Place config files in `configs/`. Seven ready-to-run examples are provided:
+
+| Config file | Purpose | API key? |
+|---|---|---|
+| `example-local.yaml` | Single local model, recursive chunker, dense retrieval | No |
+| `example-voyage-ai.yaml` | Single Voyage model (voyage-3.5-lite), recursive chunker, dense + rerank | Yes |
+| `example-voyage-all-models.yaml` | All 3 Voyage models side-by-side | Yes |
+| `example-chunking-methods.yaml` | All 5 chunking strategies, local model | No |
+| `example-retrieval-methods.yaml` | All 3 retrieval methods (dense / sparse / hybrid) | No |
+| `example-full-sweep-local.yaml` | Full grid: 5 methods × 3 sizes × 2 overlaps × 3 retrieval = 90 runs | No |
+| `example-full-sweep-voyage.yaml` | Full grid with all 3 Voyage models (narrower params) | Yes |
 
 ### Full annotated config
 
@@ -119,7 +127,7 @@ Each run is tracked independently through the pipeline phases and has its own re
 |---|---|---|
 | `dense` | Cosine similarity on embeddings (Atlas Vector Search) | Semantic meaning, handles paraphrasing |
 | `sparse` | BM25 full-text search (Atlas Search) | Keyword precision, rare/domain-specific terms |
-| `hybrid` | Weighted combination — 70% dense + 30% sparse | Balanced recall and precision |
+| `hybrid` | Reciprocal Rank Fusion (RRF) of dense + sparse results | Balanced recall and precision |
 
 ---
 
