@@ -21,7 +21,7 @@ Agent session entry point for `rag-params-finder`.
 ```bash
 # Backend
 uvicorn server.main:app --reload --port 8001   # start server
-rag-params-finder run --config configs/example-local.yaml  # submit experiment
+rag-params-finder run --config configs/example-mongodb-local.yaml  # submit experiment
 uv pip install -e ".[dev]" && uv run ruff check . && uv run mypy server/ cli/ && uv run pytest
 
 # Frontend

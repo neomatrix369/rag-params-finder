@@ -43,7 +43,7 @@ cd frontend && npm run dev
 
 # Terminal 3: CLI submissions
 source .venv/bin/activate
-rag-params-finder run --config configs/example-local.yaml
+rag-params-finder run --config configs/example-mongodb-local.yaml
 ```
 
 ---
@@ -186,11 +186,10 @@ See `.github/workflows/ci.yml` for the full pipeline.
 
 Areas where help is most needed:
 
-- **Additional chunkers**: `sentence`, `token`, and `semantic` methods are stubbed with `NotImplementedError`
-- **Sparse/hybrid retrieval**: BM25 + Atlas FTS wiring for the `sparse` and `hybrid` paths
 - **Test suite**: pytest fixtures with mock MongoDB + pre-computed embedding fixtures
 - **SSE live updates**: replace the 2-second polling loop with Server-Sent Events
 - **Docker Compose**: one-command `docker compose up` setup
+- **Experiment cleanup CLI**: `rag-params-finder cleanup --older-than 30d`
 
 Please open an issue before starting work on large features to discuss the approach.
 

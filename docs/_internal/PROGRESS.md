@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-05
-**Current**: Slices 1–5, 7 ✅ COMPLETE (verified end-to-end) | Next: Slice 6 📋 PLANNED (other chunkers)
+**Last Updated**: 2026-05-17 (config reorganisation)
+**Current**: Slices 1–7 ✅ COMPLETE | Next: Slice 9 📋 PLANNED (Search Explorer dashboard)
 
 ---
 
@@ -14,7 +14,7 @@
 | 3 — Sweep expansion | ✅ COMPLETE | ~15 min | Cartesian product of runs ⭐ CORE FEATURE |
 | 4 — Live status + polling | ✅ COMPLETE | ~15 min | Phase tracking, CLI --watch, detail screen |
 | 5 — Multiple queries from persona JSON | ✅ COMPLETE | ~10 min | Loop over persona questions |
-| 6 — Additional chunkers | 📋 PLANNED | ~30 min | fixed, token, sentence, semantic (stubs exist) |
+| 6 — Additional chunkers + retrieval | ✅ COMPLETE | ~45 min | fixed, token, sentence, semantic + sparse/hybrid + 5 new configs |
 | 7 — Free/local embedding + reranking | ✅ COMPLETE | ~15 min | sentence-transformers, no API key needed |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE
@@ -294,6 +294,36 @@ Add local sentence-transformers models (embedding + reranking) as alternatives t
 
 ---
 
+## Slice 6: Additional Chunkers + Retrieval Methods ✅
+
+**Status**: ✅ COMPLETE | **Started**: 2026-05-17 | **Completed**: 2026-05-17 | **Target**: ~45 min
+
+### Goal
+Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/hybrid retrieval, create 5 new example configs covering every advertised feature.
+
+### What Changed
+- **IMPL**: `server/core/chunkers/fixed.py` — character-window slicing with configurable overlap
+- **IMPL**: `server/core/chunkers/token.py` — LangChain `TokenTextSplitter` (cl100k_base encoding)
+- **IMPL**: `server/core/chunkers/sentence.py` — NLTK `sent_tokenize` with character-budget grouping and overlap
+- **IMPL**: `server/core/chunkers/semantic.py` — sentence-transformers cosine similarity grouping; chunk_size as hard cap; overlap ignored (semantic boundaries decide splits)
+- **EDIT**: `server/core/retriever.py` — added `sparse_search()` (Atlas $search BM25), `hybrid_search()` (RRF merge, k=60), `search()` dispatcher, `_to_search_results()` helper
+- **EDIT**: `server/core/orchestrator.py` — use `search()` dispatcher; conditionally embed query (only for dense/hybrid); import `RetrievalMethod`
+- **NEW** *(later replaced — see config reorganisation below)*: `configs/example-voyage-all-models.yaml`, `example-chunking-methods.yaml`, `example-retrieval-methods.yaml`, `example-full-sweep-local.yaml`, `example-full-sweep-voyage.yaml`
+- **EDIT**: `docs/user-guide/configuration.md` — Config File Index table, fixed hybrid description
+- **EDIT**: `CLAUDE.local.md` — Atlas Full Text Search index setup
+- **EDIT**: `README.md` — updated Quick Start config references
+
+### Key Design Decisions
+| Decision | Why |
+|---|---|
+| semantic chunker always uses `all-MiniLM-L6-v2` | Provider-agnostic chunking; keeps chunking independent of embedding config |
+| semantic `overlap` param ignored | Semantic boundary is the split signal; character overlap would break topic coherence |
+| RRF k=60 | Standard value from original RRF paper; softens rank-1 advantage |
+| sparse/hybrid require Atlas Full Text Search index | Atlas $search is the BM25 engine; documented as manual prerequisite |
+| `query_embedding` optional in `search()` dispatcher | Sparse doesn't need embedding; avoids wasted API call |
+
+---
+
 ## Deferred
 
 - All SHOULD/COULD slices
@@ -322,6 +352,11 @@ Add local sentence-transformers models (embedding + reranking) as alternatives t
 | 2026-05-02 | 7 | Separate vector indexes per dimension | Atlas requires exact numDimensions match; vector_index_1024 + vector_index_384 |
 | 2026-05-02 | 7 | all-MiniLM-L6-v2 as first local model | Well-known, fast, 384-dim, proves the abstraction |
 | 2026-05-02 | 7 | numpy<2 compatibility pin | torch compiled against NumPy 1.x ABI; 2.x breaks with _ARRAY_API errors |
+| 2026-05-17 | 6 | semantic chunker always uses all-MiniLM-L6-v2 | Provider-agnostic chunking; chunking and embedding phases remain independent |
+| 2026-05-17 | 6 | RRF k=60 for hybrid retrieval | Standard value from original RRF paper; robust default, smooths rank-1 outliers |
+| 2026-05-17 | 6 | sparse/hybrid require text_search_index | Atlas $search is the BM25 engine; full-text + vector indexes can coexist on same collection |
+| 2026-05-17 | 6 | query_embedding optional in search() dispatcher | Avoids embedding API call for sparse retrieval runs |
+| 2026-05-17 | — | Reorganise configs: 1 file per DB×provider | Replaced 7 single-purpose example files with `example-mongodb-local.yaml` and `example-mongodb-voyage.yaml`; each covers all embedding models, all chunking methods, and all retrieval methods for that DB+provider |
 
 ---
 
@@ -339,8 +374,8 @@ Add local sentence-transformers models (embedding + reranking) as alternatives t
 
 | Slice | Goal | Priority | Est. |
 |-------|------|----------|------|
-| 6 — Additional chunkers | Implement fixed, token, sentence, semantic (stubs already exist) | Should | ~30 min |
-| 8 — SPARSE/HYBRID retrieval | BM25 + hybrid weighted search via Atlas FTS | Should | ~25 min |
+| ~~6 — Additional chunkers~~ | ~~Implement fixed, token, sentence, semantic~~ | ~~Should~~ | ✅ Done |
+| ~~8 — SPARSE/HYBRID retrieval~~ | ~~BM25 + hybrid RRF via Atlas FTS~~ | ~~Should~~ | ✅ Done (merged into Slice 6) |
 | 9 — Search Explorer dashboard | Best-params card, ranked configs, per-query results view | Should | ~30 min |
 | 10 — Run recovery | Auto-retry interrupted runs on server boot; `rag-params-finder recover` CLI command | Could | ~30 min |
 | 11 — Dashboard-triggered runs | Submit experiments from the React UI, not just CLI | Could | ~45 min |
