@@ -1,16 +1,21 @@
+import asyncio
 import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-from server.core.orchestrator import request_cancel, run_sweep
-from server.db.atlas import (
-    EXPERIMENTS_COLLECTION,
-    RESULTS_COLLECTION,
-    RUN_STATUS_COLLECTION,
-    get_collection,
+from server.api.experiments_shared import (
+    mongo_find_experiment_by_id,
+    mongo_find_experiment_with_runs,
+    mongo_insert_experiment_doc,
+    mongo_list_all_experiment_docs,
+    mongo_list_results_for_experiment,
+    mongo_load_explore_source,
+    mongo_mark_experiment_cancelled_now,
 )
+from server.core.orchestrator import request_cancel, run_sweep
 from server.models.config import ExperimentConfig, expand_sweep
+from server.models.enums import ExperimentStatus
 from server.utils.logger import get_logger
 from server.utils.metadata import collect_experiment_metadata
 
@@ -38,7 +43,7 @@ async def create_experiment(config: ExperimentConfig, background_tasks: Backgrou
         "created_at": now,
         "started_at": now,
         "completed_at": None,
-        "status": "running",
+        "status": ExperimentStatus.RUNNING,
         "run_count": len(runs),
         **metadata,
         "data_paths": config.data_paths,
@@ -59,7 +64,7 @@ async def create_experiment(config: ExperimentConfig, background_tasks: Backgrou
             "rerank_provider": config.retrieval.rerank_provider,
         },
     }
-    get_collection(EXPERIMENTS_COLLECTION).insert_one(experiment_doc)
+    await asyncio.to_thread(mongo_insert_experiment_doc, experiment_doc)
 
     logger.info(f"Experiment '{stamped_name}' ({experiment_id}): {len(runs)} runs")
     background_tasks.add_task(run_sweep, experiment_id, config)
@@ -77,9 +82,7 @@ async def create_experiment(config: ExperimentConfig, background_tasks: Backgrou
 async def list_experiments():
     """List all experiments."""
     logger.debug("GET /experiments — listing all")
-    experiments = list(
-        get_collection(EXPERIMENTS_COLLECTION).find({}, {"_id": 0}).sort("created_at", -1)
-    )
+    experiments = await asyncio.to_thread(mongo_list_all_experiment_docs)
     logger.debug(f"Listed {len(experiments)} experiments")
     return {"experiments": experiments}
 
@@ -88,19 +91,12 @@ async def list_experiments():
 async def get_experiment(experiment_id: str):
     """Get a single experiment with its run statuses."""
     logger.debug(f"GET /experiments/{experiment_id}")
-    experiment = get_collection(EXPERIMENTS_COLLECTION).find_one(
-        {"experiment_id": experiment_id}, {"_id": 0}
-    )
+    experiment = await asyncio.to_thread(mongo_find_experiment_with_runs, experiment_id)
     if not experiment:
         logger.warning(f"Experiment not found: {experiment_id}")
         return {"error": "Experiment not found"}, 404
 
-    runs = list(
-        get_collection(RUN_STATUS_COLLECTION)
-        .find({"experiment_id": experiment_id}, {"_id": 0})
-        .sort("created_at", 1)
-    )
-    experiment["runs"] = runs
+    runs = experiment["runs"]
     logger.debug(f"Experiment {experiment_id}: status={experiment.get('status')}, {len(runs)} runs")
     return experiment
 
@@ -109,9 +105,7 @@ async def get_experiment(experiment_id: str):
 async def get_experiment_results(experiment_id: str):
     """Get all query results for an experiment."""
     logger.debug(f"GET /experiments/{experiment_id}/results")
-    results = list(
-        get_collection(RESULTS_COLLECTION).find({"experiment_id": experiment_id}, {"_id": 0})
-    )
+    results = await asyncio.to_thread(mongo_list_results_for_experiment, experiment_id)
     logger.info(f"Returning {len(results)} results for experiment {experiment_id}")
     return {"experiment_id": experiment_id, "results": results}
 
@@ -123,20 +117,15 @@ async def explore_experiment(experiment_id: str, query: str | None = None):
 
     logger.debug(f"GET /experiments/{experiment_id}/explore (query={query!r})")
 
-    experiment = get_collection(EXPERIMENTS_COLLECTION).find_one({"experiment_id": experiment_id})
-    if not experiment:
+    experiment_doc, query_results, run_statuses = await asyncio.to_thread(
+        mongo_load_explore_source, experiment_id
+    )
+    if not experiment_doc:
         raise HTTPException(status_code=404, detail="Experiment not found")
-
-    query_results = list(
-        get_collection(RESULTS_COLLECTION).find({"experiment_id": experiment_id}, {"_id": 0})
-    )
-    run_statuses = list(
-        get_collection(RUN_STATUS_COLLECTION).find({"experiment_id": experiment_id}, {"_id": 0})
-    )
 
     explored = analyze_results(query_results, run_statuses, selected_query=query)
     explored["experiment_id"] = experiment_id
-    explored["experiment_name"] = experiment.get("experiment_name", "")
+    explored["experiment_name"] = experiment_doc.get("experiment_name", "")
 
     logger.info(
         f"Explore {experiment_id}: {explored['query_count']} queries, "
@@ -151,11 +140,11 @@ async def cancel_experiment(experiment_id: str):
     """Cancel a running experiment."""
     logger.info(f"POST /experiments/{experiment_id}/cancel")
 
-    experiment = get_collection(EXPERIMENTS_COLLECTION).find_one({"experiment_id": experiment_id})
+    experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
 
-    if experiment.get("status") != "running":
+    if experiment.get("status") != ExperimentStatus.RUNNING:
         raise HTTPException(
             status_code=409,
             detail=f"Experiment is not running (status: {experiment.get('status')})",
@@ -164,10 +153,7 @@ async def cancel_experiment(experiment_id: str):
     signalled = request_cancel(experiment_id)
 
     if not signalled:
-        get_collection(EXPERIMENTS_COLLECTION).update_one(
-            {"_id": experiment_id},
-            {"$set": {"status": "cancelled", "completed_at": datetime.utcnow()}},
-        )
+        await asyncio.to_thread(mongo_mark_experiment_cancelled_now, experiment_id)
 
     logger.info(f"Experiment {experiment_id} cancel requested (in-flight={signalled})")
     return {

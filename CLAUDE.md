@@ -46,16 +46,17 @@ npm run build
 ```bash
 rag-params-finder run --config configs/example-mongodb-local.yaml
 rag-params-finder run --config configs/example-mongodb-local.yaml --detach
-rag-params-finder list
-rag-params-finder status <experiment-id>
-rag-params-finder recover --experiment-id <id> --auto
+rag-params-finder cancel <experiment-id>
+rag-params-finder version
 ```
+
+List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `http://localhost:8001/docs`).
 
 ## Key Files
 
 | File | Purpose |
 |---|---|
-| `server/main.py` | FastAPI app entry + startup recovery |
+| `server/main.py` | FastAPI app entry; lifespan ensures DB indexes |
 | `server/settings.py` | Centralized pydantic-settings config |
 | `server/core/orchestrator.py` | End-to-end pipeline executor |
 | `server/core/model_registry.py` | Embedding + reranking model catalog |
@@ -66,7 +67,7 @@ rag-params-finder recover --experiment-id <id> --auto
 | `server/core/retriever.py` | Atlas Vector Search (dense/sparse/hybrid) |
 | `server/models/config.py` | Pydantic experiment config + provider validators |
 | `server/models/enums.py` | ChunkingMethod, RetrievalMethod, Phase |
-| `cli/main.py` | Typer app (run, list, status, recover) |
+| `cli/main.py` | Typer app (`run`, `cancel`, `version`) |
 | `cli/config_loader.py` | YAML parser + model registry validation |
 | `frontend/src/App.tsx` | Root component (screen routing) |
 | `frontend/src/types/index.ts` | Hand-mirrored TypeScript types from Python models |

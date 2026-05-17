@@ -81,12 +81,14 @@ SERVER_URL=http://localhost:8001
 VOYAGE_RPM_LIMIT=300
 VOYAGE_TPM_LIMIT=1000000
 
-# Recovery (auto-retry interrupted runs on server boot)
+# Optional — stored in experiment metadata / dashboard (“Recover on Boot”); no runtime retry on boot yet (planned: docs/slices/SLICE-10-RUN-RECOVERY.md — boot = INTERRUPTED only).
 RECOVER_ON_BOOT=false
 
 # Logging
 LOG_LEVEL=INFO   # DEBUG for verbose output
 ```
+
+Slice 10 *(planned)* documents CLI/API recovery and boot semantics: [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md).
 
 **Never commit `.env` to git** — it is in `.gitignore`.
 

@@ -95,11 +95,11 @@ FastAPI Server
 ```
 rag-params-finder/
 ├── server/
-│   ├── main.py              # FastAPI app entry + startup boot recovery
+│   ├── main.py              # FastAPI app entry; lifespan ensures DB indexes
 │   ├── settings.py          # Centralized pydantic-settings config
 │   ├── api/
-│   │   ├── experiments.py   # POST /experiments, GET /experiments, GET /experiments/{id}
-│   │   └── runs.py          # GET /runs/{id}/status, POST /recover
+│   │   ├── experiments.py   # experiments CRUD, results/explore, cancel
+│   │   └── runs.py          # GET /runs/{id}/status
 │   ├── core/
 │   │   ├── orchestrator.py  # run_sweep() + run_single() pipeline
 │   │   ├── pdf_parser.py    # pypdf text extraction
@@ -126,7 +126,7 @@ rag-params-finder/
 │       ├── atlas.py         # MongoDB connection singleton
 │       └── indexes.py       # collection + index creation helpers
 ├── cli/
-│   ├── main.py              # Typer app (run, list, status, recover commands)
+│   ├── main.py              # Typer app (run, cancel, version)
 │   ├── config_loader.py     # YAML parser + model registry validation
 │   └── api_client.py        # HTTP client to server
 └── frontend/src/
@@ -199,7 +199,7 @@ See `docs/adr/` for Architecture Decision Records:
 
 | Decision | Rationale |
 |---|---|
-| FastAPI `BackgroundTasks` (not Celery) | No queue infrastructure needed for `parallelism: 1`; Celery deferred until parallelism > 1 is needed |
+| FastAPI `BackgroundTasks` (not Celery) | No queue infrastructure needed while sweep runs execute sequentially *(see [`SLICE-16`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) for honoring `parallelism > 1` and optional Celery path)* |
 | Hand-mirrored TypeScript types | No codegen tooling (typeshare/quicktype); 5 types + 3 enums is manageable manually |
 | Separate vector indexes per dimension | Atlas requires exact `numDimensions` — `vector_index_1024` (Voyage) and `vector_index_384` (local) coexist on the same collection |
 | Lazy-load + cache for local models | First run downloads from HuggingFace; subsequent runs instant — avoids blocking server startup |
@@ -211,8 +211,9 @@ See `docs/adr/` for Architecture Decision Records:
 
 | Enhancement | Notes |
 |---|---|
+| Run recovery (failed / interrupted runs) | Planned as [Slice 10 — Run Recovery](../slices/SLICE-10-RUN-RECOVERY.md): `recover` CLI + API; per-`run_id` artifact scrub; **`RECOVER_ON_BOOT`** = **INTERRUPTED** only |
 | SSE live updates | Replace 2-second polling with Server-Sent Events |
-| Celery for parallelism | Enable `parallelism > 1` for concurrent sweep runs |
+| Parallel sweep (`execution.parallelism` > 1) | Planned as [Slice 16 — Parallel Sweep Runs](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md); bounded in-process pool first; **Celery + Redis** when multi-process fairness or isolation is needed |
 | Dashboard-triggered runs | Submit experiments from the React UI, not just CLI |
 | Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` |
 | Docker Compose | One-command local setup |

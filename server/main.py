@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from server.api import experiments, runs
 from server.db.indexes import ensure_indexes
+from server.settings import LOCALHOST_CORS_ORIGIN_REGEX, settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -33,14 +34,24 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS — cors_origins (CORS_ORIGINS) plus optional localhost loopback regex for any dev port.
+if settings.cors_allow_localhost_origin_regex:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        allow_origin_regex=LOCALHOST_CORS_ORIGIN_REGEX,
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 @app.get("/healthz")

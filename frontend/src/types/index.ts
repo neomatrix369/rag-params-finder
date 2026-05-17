@@ -1,3 +1,6 @@
+// Experiment-level status (mirrored from server/models/enums.py ExperimentStatus)
+export type ExperimentStatus = 'running' | 'complete' | 'partial' | 'failed' | 'cancelled';
+
 // Enums (mirrored from server/models/enums.py)
 
 export enum ChunkingMethod {
@@ -54,7 +57,7 @@ export interface Experiment {
   created_at: string;
   started_at?: string;
   completed_at?: string | null;
-  status: string;
+  status: ExperimentStatus;
   run_count?: number;
   failed_count?: number;
   error?: string;

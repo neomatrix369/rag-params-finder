@@ -8,6 +8,7 @@ logger = get_logger(__name__)
 
 _SPARSE_INDEX_NAME = "text_search_index"
 _RRF_K = 60  # Reciprocal Rank Fusion constant — higher value smooths rank differences
+_CANDIDATES_MULTIPLIER = 2  # numCandidates = top_k * multiplier for Atlas $vectorSearch
 
 
 def dense_search(
@@ -29,7 +30,7 @@ def dense_search(
                 "index": index_name,
                 "path": "embedding",
                 "queryVector": query_embedding,
-                "numCandidates": top_k * 2,
+                "numCandidates": top_k * _CANDIDATES_MULTIPLIER,
                 "limit": top_k,
                 "filter": {
                     "experiment_id": {"$eq": experiment_id},
