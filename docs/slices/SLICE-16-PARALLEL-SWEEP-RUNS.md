@@ -83,7 +83,7 @@ Recommendation: prototype **Approach A** inside `orchestrator` first *(same Mong
 | Dependency | Notes |
 |---|---|
 | Slice 3 ✅ | Cartesian expansion + sequential sweep baseline |
-| Slice 10 *(optional)* | Recovery semantics may need rework if sweep is split across processes *(Approach B)* |
+| [Slice 10](./SLICE-10-RUN-RECOVERY.md) *(optional)* | Recovery batching should honor `parallelism` and cancel/`on_error` once both slices ship |
 
 ---
 
