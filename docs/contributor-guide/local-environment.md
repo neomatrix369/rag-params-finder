@@ -81,7 +81,7 @@ SERVER_URL=http://localhost:8001
 VOYAGE_RPM_LIMIT=300
 VOYAGE_TPM_LIMIT=1000000
 
-# Recovery (auto-retry interrupted runs on server boot)
+# Optional — stored in experiment metadata / dashboard (“Recover on Boot”); no runtime retry on boot yet
 RECOVER_ON_BOOT=false
 
 # Logging

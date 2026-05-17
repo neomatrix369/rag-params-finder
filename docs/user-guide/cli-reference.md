@@ -3,7 +3,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 
-All `rag-params-finder` commands and flags. The server must be running at `SERVER_URL` (default: `http://localhost:8001`) for any command to work.
+All `rag-params-finder` commands and flags. The server must be running at `SERVER_URL` (default: `http://localhost:8001`) for commands that call the API.
 
 ---
 
@@ -15,12 +15,13 @@ All `rag-params-finder` commands and flags. The server must be running at `SERVE
 rag-params-finder run --config <path>
 ```
 
-Submits the experiment config to the server, prints the experiment ID and generated run IDs, then polls run progress live.
+Submits the experiment config to the server, then optionally polls run progress in the terminal.
 
 | Flag | Default | Description |
 |---|---|---|
 | `--config` | required | Path to the YAML experiment config |
 | `--detach` | off | Submit and exit immediately; check the dashboard for status |
+| `--watch` / `--no-watch` | watch on | Poll the server until the experiment reaches a terminal status (omit with `--detach`) |
 
 **Examples**:
 ```bash
@@ -30,11 +31,14 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 # Submit and detach — open http://localhost:5173 to track status
 rag-params-finder run --config configs/example-mongodb-local.yaml --detach
 
+# Submit, print the submission summary, then exit without polling the server
+rag-params-finder run --config configs/example-mongodb-local.yaml --no-watch
+
 # Voyage AI experiment (requires VOYAGE_API_KEY in .env)
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
 ```
 
-When not detached, the CLI renders a live Rich table showing each run's current phase:
+When watching, the CLI renders a live Rich table showing each run's current phase:
 
 ```
 Run ID       | Model             | Method    | Size | Overlap | Phase
@@ -44,44 +48,31 @@ abc123-run-1 | all-MiniLM-L6-v2  | recursive | 512  | 0       | CHUNKING
 
 ---
 
-### 📋 `list` — List all experiments
+### `cancel` — Request cancellation
 
 ```bash
-rag-params-finder list
+rag-params-finder cancel <experiment-id>
 ```
 
-Queries the server for all experiments and prints a summary table. No flags.
+Posts `POST /experiments/{experiment_id}/cancel`. A running experiment stops after the current run phase completes. Not applicable once the experiment is already in a terminal status.
 
-```
-ID           | Name                      | Status   | Runs
-abc123       | my-sweep-20260506-123456   | complete | 8/8
-def456       | local-test-20260506-120000 | running  | 3/8
+---
+
+### `version` — Print package version
+
+```bash
+rag-params-finder version
 ```
 
 ---
 
-### 📊 `status` — Get a single experiment's status
+### Listing experiments without a CLI subcommand
 
-```bash
-rag-params-finder status <experiment-id>
-```
+There is no `list` or `status` Typer command. Use:
 
-Prints the current phase and status for all runs in the given experiment.
-
----
-
-### 🔄 `recover` — Recover interrupted runs
-
-```bash
-rag-params-finder recover --experiment-id <id> --auto
-```
-
-Manually triggers recovery of any runs that were interrupted (e.g., by a server restart). The server can also be configured to do this automatically on boot via `RECOVER_ON_BOOT=true` in `.env`.
-
-| Flag | Description |
-|---|---|
-| `--experiment-id` | ID of the experiment to recover |
-| `--auto` | Automatically retry all interrupted runs without prompting |
+- Dashboard at `http://localhost:5173`, or
+- **`GET /experiments`** and **`GET /experiments/{experiment_id}`** ([interactive API docs](http://localhost:8001/docs)), or
+- **`curl`** / any HTTP client against the same URLs.
 
 ---
 
@@ -91,14 +82,14 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/healthz` | Health check — returns `{"status": "ok"}` |
+| GET | `/healthz` | Health check — returns `{"ok": true}` |
 | POST | `/experiments` | Submit an experiment sweep |
 | GET | `/experiments` | List all experiments |
 | GET | `/experiments/{id}` | Get experiment details + run statuses |
 | GET | `/experiments/{id}/results` | Get query results for an experiment |
 | GET | `/experiments/{id}/explore` | Get data for the Search Explorer screen |
+| POST | `/experiments/{id}/cancel` | Request cancellation while status is running |
 | GET | `/runs/{id}/status` | Get a single run's current phase |
-| POST | `/recover` | Trigger manual recovery |
 
 ---
 

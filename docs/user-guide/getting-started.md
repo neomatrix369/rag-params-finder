@@ -59,7 +59,6 @@ VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 SERVER_URL=http://localhost:8001
 VOYAGE_RPM_LIMIT=300
 VOYAGE_TPM_LIMIT=1000000
-RECOVER_ON_BOOT=false
 LOG_LEVEL=INFO
 ```
 
