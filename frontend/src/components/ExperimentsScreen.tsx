@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   EXPERIMENTS_POLL_MS,
   LOADING_STALL_AFTER_MS,
@@ -17,6 +17,72 @@ let feedSeq = 0;
 function appendFeed(prev: FeedEntry[], text: string, variant: FeedEntry['variant']): FeedEntry[] {
   feedSeq += 1;
   return [...prev, { id: `${Date.now()}-${feedSeq}`, text, variant }];
+}
+
+function Pagination({
+  currentPage,
+  totalItems,
+  itemsPerPage,
+  onPageChange,
+  onItemsPerPageChange,
+}: {
+  currentPage: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (items: number) => void;
+}) {
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  return (
+    <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200">
+      <div className="flex items-center gap-4">
+        <span className="text-sm text-slate-600">
+          Showing <span className="font-medium">{startItem}</span> to{' '}
+          <span className="font-medium">{endItem}</span> of{' '}
+          <span className="font-medium">{totalItems}</span>
+        </span>
+        <div className="flex items-center gap-2">
+          <label htmlFor="experiments-per-page" className="text-sm text-slate-600">
+            Per page:
+          </label>
+          <select
+            id="experiments-per-page"
+            value={itemsPerPage}
+            onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+            className="rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value={10}>10</option>
+            <option value={15}>15</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+        >
+          Previous
+        </button>
+        <span className="text-sm text-slate-600">
+          Page <span className="font-medium">{currentPage}</span> of{' '}
+          <span className="font-medium">{totalPages}</span>
+        </span>
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function experimentsRailHelp() {
@@ -42,6 +108,14 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
   const [feed, setFeed] = useState<FeedEntry[]>([]);
   const [receivedBytes, setReceivedBytes] = useState<number | null>(null);
   const [totalBytes, setTotalBytes] = useState<number | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
+
+  const handleItemsPerPageChange = useCallback((items: number) => {
+    setItemsPerPage(items);
+    setCurrentPage(1);
+  }, []);
 
   const aliveRef = useRef(true);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -188,82 +262,95 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
           </div>
         )}
 
-        {experiments.length > 0 && (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table className="w-full">
-              <thead className="border-b border-slate-200 bg-slate-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Experiment Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Experiment ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Runs
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Git Commit
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Created
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {experiments.map((exp) => (
-                  <tr
-                    key={exp.experiment_id}
-                    className="cursor-pointer transition-colors hover:bg-slate-50"
-                    onClick={() => onSelect?.(exp.experiment_id)}
-                  >
-                    <td className="px-6 py-4 text-sm font-medium text-slate-900">{exp.experiment_name}</td>
-                    <td className="px-6 py-4 font-mono text-sm text-slate-600">
-                      {exp.experiment_id.slice(0, 8)}...
-                    </td>
-                    <td className="px-6 py-4 font-mono text-sm text-slate-600">
-                      {exp.run_count ?? '—'}
-                      {exp.failed_count ? (
-                        <span className="ml-1 text-red-500">({exp.failed_count} failed)</span>
-                      ) : null}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex rounded px-2 py-1 text-xs font-bold ${
-                            exp.status === 'complete'
-                              ? 'bg-green-100 text-green-700'
-                              : exp.status === 'running'
-                                ? 'bg-blue-100 text-blue-700'
-                                : exp.status === 'partial'
-                                  ? 'bg-yellow-100 text-yellow-700'
-                                  : exp.status === 'failed'
-                                    ? 'bg-red-100 text-red-700'
-                                    : exp.status === 'cancelled'
-                                      ? 'bg-orange-100 text-orange-700'
-                                      : 'bg-slate-100 text-slate-700'
-                          }`}
-                        >
-                          {exp.status}
-                        </span>
-                        {(exp.status === 'failed' || exp.status === 'partial') && (
-                          <span className="text-xs text-red-400">click for details</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 font-mono text-sm text-slate-500">{exp.git_commit ?? '—'}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {new Date(exp.created_at).toLocaleString()}
-                    </td>
+        {experiments.length > 0 && (() => {
+          const startIndex = (currentPage - 1) * itemsPerPage;
+          const endIndex = startIndex + itemsPerPage;
+          const paginatedExperiments = experiments.slice(startIndex, endIndex);
+
+          return (
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <table className="w-full">
+                <thead className="border-b border-slate-200 bg-slate-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
+                      Experiment Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
+                      Experiment ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
+                      Runs
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
+                      Git Commit
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
+                      Created
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedExperiments.map((exp) => (
+                    <tr
+                      key={exp.experiment_id}
+                      className="cursor-pointer transition-colors hover:bg-slate-50"
+                      onClick={() => onSelect?.(exp.experiment_id)}
+                    >
+                      <td className="px-6 py-4 text-sm font-medium text-slate-900">{exp.experiment_name}</td>
+                      <td className="px-6 py-4 font-mono text-sm text-slate-600">
+                        {exp.experiment_id.slice(0, 8)}...
+                      </td>
+                      <td className="px-6 py-4 font-mono text-sm text-slate-600">
+                        {exp.run_count ?? '—'}
+                        {exp.failed_count ? (
+                          <span className="ml-1 text-red-500">({exp.failed_count} failed)</span>
+                        ) : null}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex rounded px-2 py-1 text-xs font-bold ${
+                              exp.status === 'complete'
+                                ? 'bg-green-100 text-green-700'
+                                : exp.status === 'running'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : exp.status === 'partial'
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : exp.status === 'failed'
+                                      ? 'bg-red-100 text-red-700'
+                                      : exp.status === 'cancelled'
+                                        ? 'bg-orange-100 text-orange-700'
+                                        : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {exp.status}
+                          </span>
+                          {(exp.status === 'failed' || exp.status === 'partial') && (
+                            <span className="text-xs text-red-400">click for details</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 font-mono text-sm text-slate-500">{exp.git_commit ?? '—'}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {new Date(exp.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <Pagination
+                currentPage={currentPage}
+                totalItems={experiments.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={handleItemsPerPageChange}
+              />
+            </div>
+          );
+        })()}
 
       <div className="mt-4 flex items-center justify-center gap-3 text-xs text-slate-500">
         <span>Polling every {EXPERIMENTS_POLL_MS / 1000}s</span>
