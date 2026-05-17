@@ -1,0 +1,43 @@
+# Compare all 3 retrieval strategies: dense, sparse (BM25), and hybrid (RRF).
+# No API key required — runs entirely on your machine.
+# Runs 3 methods × 1 model × 3 chunk_sizes × 2 overlaps = 18 runs.
+#
+# Prerequisites:
+#   - Atlas Search index named "text_search_index" on the chunks collection
+#     (required for sparse and hybrid; see CLAUDE.local.md for setup steps)
+#   - Vector index named "vector_index_384" for the local 384-dim model
+
+experiment_name: retrieval-methods-comparison
+
+data_paths:
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+
+queries_file: ./configs/questions.example.json
+
+database_provider: mongodb
+
+embedding:
+  provider: local
+  models:
+    - all-MiniLM-L6-v2    # 384-dim
+
+chunking:
+  methods:
+    - recursive
+  params:
+    chunk_sizes: [256, 512, 1024]
+    overlaps: [50, 100]
+
+retrieval:
+  methods:
+    - dense    # Atlas $vectorSearch (cosine)
+    - sparse   # Atlas $search BM25 full-text (requires text_search_index)
+    - hybrid   # Reciprocal Rank Fusion merge of dense + sparse
+  top_k_initial: 20
+  top_k_final: 5
+  rerank_provider: local
+  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+
+execution:
+  parallelism: 1
+  on_error: continue

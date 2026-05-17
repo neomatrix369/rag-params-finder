@@ -1,0 +1,41 @@
+# Compare all 5 chunking strategies side-by-side using the local model.
+# No API key required — runs entirely on your machine.
+# Runs 5 methods × 1 model × 3 chunk_sizes × 2 overlaps = 30 runs.
+# Note: semantic chunking ignores the overlap parameter (uses semantic boundaries).
+
+experiment_name: chunking-methods-comparison
+
+data_paths:
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+
+queries_file: ./configs/questions.example.json
+
+database_provider: mongodb
+
+embedding:
+  provider: local
+  models:
+    - all-MiniLM-L6-v2    # 384-dim, sentence-transformers (downloaded ~23MB on first run)
+
+chunking:
+  methods:
+    - fixed       # character-window slicing
+    - recursive   # LangChain recursive splitter (splits on \n\n, \n, space, …)
+    - token       # LangChain TokenTextSplitter (cl100k_base, sizes in tokens)
+    - sentence    # NLTK sentence grouping with character budget
+    - semantic    # sentence-transformers cosine similarity grouping
+  params:
+    chunk_sizes: [256, 512, 1024]
+    overlaps: [50, 100]
+
+retrieval:
+  methods:
+    - dense
+  top_k_initial: 20
+  top_k_final: 5
+  rerank_provider: local
+  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+
+execution:
+  parallelism: 1
+  on_error: continue
