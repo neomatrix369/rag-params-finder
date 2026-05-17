@@ -10,6 +10,7 @@ from server.utils.logger import get_logger
 logger = get_logger(__name__)
 
 CONFIGS_DIR = Path("configs")
+_DOWNLOAD_TIMEOUT_S = 30.0  # HTTP timeout when fetching remote queries files
 
 
 @dataclass(frozen=True)
@@ -36,7 +37,7 @@ def _download_queries(url: str) -> Path:
         return local_path
 
     logger.info(f"Downloading queries from {url}")
-    response = httpx.get(url, follow_redirects=True, timeout=30.0)
+    response = httpx.get(url, follow_redirects=True, timeout=_DOWNLOAD_TIMEOUT_S)
     response.raise_for_status()
     local_path.write_bytes(response.content)
     logger.info(f"Saved queries to {local_path}")

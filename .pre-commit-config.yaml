@@ -42,7 +42,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy type check
-        entry: mypy server/ cli/
+        entry: uv run mypy server/ cli/
         language: system
         pass_filenames: false
         types: [python]

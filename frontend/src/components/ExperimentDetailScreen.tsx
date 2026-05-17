@@ -14,8 +14,9 @@
  * - Color system: Blue (primary), Green (success), Red (failure), Amber (warning), Purple (secondary)
  */
 import { useEffect, useState } from 'react';
+import { DETAIL_POLL_MS } from '../constants';
 import { cancelExperiment, getExperiment } from '../services/apiClient';
-import { RunStatus, Phase, EnvParams, SweepSummary } from '../types';
+import { RunStatus, Phase, EnvParams, SweepSummary, ExperimentStatus } from '../types';
 
 // Icon components (minimal SVG)
 const icons = {
@@ -66,7 +67,7 @@ const icons = {
 interface ExperimentDetail {
   experiment_id: string;
   experiment_name: string;
-  status: string;
+  status: ExperimentStatus;
   run_count?: number;
   failed_count?: number;
   runs?: RunStatus[];
@@ -302,7 +303,7 @@ export default function ExperimentDetailScreen({
 
   useEffect(() => {
     loadDetail();
-    const interval = setInterval(loadDetail, 2000);
+    const interval = setInterval(loadDetail, DETAIL_POLL_MS);
     return () => clearInterval(interval);
   }, [experimentId]);
 
@@ -331,7 +332,8 @@ export default function ExperimentDetailScreen({
     }
   }
 
-  const isTerminal = detail && ['complete', 'failed', 'partial', 'cancelled'].includes(detail.status);
+  const TERMINAL_STATUSES: ExperimentStatus[] = ['complete', 'failed', 'partial', 'cancelled'];
+  const isTerminal = detail && TERMINAL_STATUSES.includes(detail.status);
   const isRunning = detail?.status === 'running';
 
   return (
@@ -720,7 +722,7 @@ export default function ExperimentDetailScreen({
 
         {!isTerminal && (
           <div className="mt-4 text-xs text-slate-500 text-center">
-            Polling every 2s <span className="animate-pulse">●</span>
+            Polling every {DETAIL_POLL_MS / 1000}s <span className="animate-pulse">●</span>
           </div>
         )}
       </div>

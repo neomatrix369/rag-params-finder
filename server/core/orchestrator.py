@@ -17,7 +17,7 @@ from server.db.atlas import (
     get_collection,
 )
 from server.models.config import ExperimentConfig, RunParams, expand_sweep
-from server.models.enums import Phase, RetrievalMethod
+from server.models.enums import ExperimentStatus, Phase, RetrievalMethod
 from server.models.results import QueryResult
 from server.models.status import RunStatus
 from server.utils.logger import get_logger
@@ -91,13 +91,13 @@ def _run_sweep_inner(experiment_id: str, config: ExperimentConfig) -> dict:
                 break
 
     if cancelled:
-        final_status = "cancelled"
+        final_status = ExperimentStatus.CANCELLED
     elif failed == 0:
-        final_status = "complete"
+        final_status = ExperimentStatus.COMPLETE
     elif failed < len(runs):
-        final_status = "partial"
+        final_status = ExperimentStatus.PARTIAL
     else:
-        final_status = "failed"
+        final_status = ExperimentStatus.FAILED
 
     completed_at = datetime.utcnow()
     get_collection(EXPERIMENTS_COLLECTION).update_one(
