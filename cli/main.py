@@ -17,6 +17,7 @@ logger = get_logger(__name__)
 
 TERMINAL_PHASES = {"complete", "failed", "interrupted", "cancelled"}
 POLL_INTERVAL_S = 2.0
+_DASHBOARD_URL = "http://localhost:5173"
 
 
 def _build_runs_table(runs: list[dict]) -> Table:
@@ -236,19 +237,19 @@ def run(
 
         if detach:
             logger.info("Detached mode — exiting without watching")
-            console.print("Detached. Check dashboard at http://localhost:5173")
+            console.print(f"Detached. Check dashboard at {_DASHBOARD_URL}")
             return
 
         if not watch:
             logger.info("Watch disabled — exiting")
-            console.print("Check dashboard at http://localhost:5173 for progress")
+            console.print(f"Check dashboard at {_DASHBOARD_URL} for progress")
             return
 
         experiment_id = response.get("experiment_id")
         if not experiment_id:
             logger.warning("Server did not return experiment_id")
             console.print("[yellow]Server did not return experiment_id — cannot watch.[/yellow]")
-            console.print("Check dashboard at http://localhost:5173")
+            console.print(f"Check dashboard at {_DASHBOARD_URL}")
             return
 
         _watch_experiment(experiment_id)

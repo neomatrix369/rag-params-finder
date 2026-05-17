@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     server_url: str = "http://localhost:8001"
     recover_on_boot: bool = False
 
+    # CORS — comma-separated origins allowed by the server middleware.
+    # Override via CORS_ORIGINS env var, e.g. "http://localhost:5173,http://localhost:3000".
+    cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+
     # Voyage AI rate limits — free-tier defaults (no payment method).
     # Override via VOYAGE_RPM_LIMIT / VOYAGE_TPM_LIMIT env vars or .env.
     voyage_rpm_limit: int = 3

@@ -1,6 +1,14 @@
 from enum import StrEnum
 
 
+class ExperimentStatus(StrEnum):
+    RUNNING = "running"
+    COMPLETE = "complete"
+    PARTIAL = "partial"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
 class ChunkingMethod(StrEnum):
     FIXED = "fixed"
     RECURSIVE = "recursive"

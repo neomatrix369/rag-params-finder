@@ -11,6 +11,7 @@ from server.db.atlas import (
     get_collection,
 )
 from server.models.config import ExperimentConfig, expand_sweep
+from server.models.enums import ExperimentStatus
 from server.utils.logger import get_logger
 from server.utils.metadata import collect_experiment_metadata
 
@@ -38,7 +39,7 @@ async def create_experiment(config: ExperimentConfig, background_tasks: Backgrou
         "created_at": now,
         "started_at": now,
         "completed_at": None,
-        "status": "running",
+        "status": ExperimentStatus.RUNNING,
         "run_count": len(runs),
         **metadata,
         "data_paths": config.data_paths,
@@ -155,7 +156,7 @@ async def cancel_experiment(experiment_id: str):
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
 
-    if experiment.get("status") != "running":
+    if experiment.get("status") != ExperimentStatus.RUNNING:
         raise HTTPException(
             status_code=409,
             detail=f"Experiment is not running (status: {experiment.get('status')})",
@@ -166,7 +167,7 @@ async def cancel_experiment(experiment_id: str):
     if not signalled:
         get_collection(EXPERIMENTS_COLLECTION).update_one(
             {"_id": experiment_id},
-            {"$set": {"status": "cancelled", "completed_at": datetime.utcnow()}},
+            {"$set": {"status": ExperimentStatus.CANCELLED, "completed_at": datetime.utcnow()}},
         )
 
     logger.info(f"Experiment {experiment_id} cancel requested (in-flight={signalled})")

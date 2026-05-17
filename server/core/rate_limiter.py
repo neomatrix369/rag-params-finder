@@ -14,6 +14,7 @@ logger = get_logger(__name__)
 CHARS_PER_TOKEN_ESTIMATE = 4
 MAX_RETRIES = 5
 INITIAL_BACKOFF_S = 25.0
+_WINDOW_S = 60.0  # sliding window duration (one minute)
 
 
 class RateLimiter:
@@ -27,10 +28,9 @@ class RateLimiter:
         self._lock = threading.Lock()
 
     def _purge_window(self, now: float) -> None:
-        window = 60.0
-        while self._request_times and now - self._request_times[0] > window:
+        while self._request_times and now - self._request_times[0] > _WINDOW_S:
             self._request_times.popleft()
-        while self._token_log and now - self._token_log[0][0] > window:
+        while self._token_log and now - self._token_log[0][0] > _WINDOW_S:
             self._token_log.popleft()
 
     def _tokens_in_window(self) -> int:
@@ -52,7 +52,7 @@ class RateLimiter:
             self._purge_window(now)
             if len(self._request_times) < self._rpm:
                 return
-            sleep_for = self._request_times[0] + 60.0 - now + 0.1
+            sleep_for = self._request_times[0] + _WINDOW_S - now + 0.1
             if sleep_for <= 0:
                 return
             logger.info(f"Rate limiter: RPM ceiling ({self._rpm}), sleeping {sleep_for:.1f}s")
@@ -70,7 +70,7 @@ class RateLimiter:
                 return
             if not self._token_log:
                 return
-            sleep_for = self._token_log[0][0] + 60.0 - now + 0.1
+            sleep_for = self._token_log[0][0] + _WINDOW_S - now + 0.1
             if sleep_for <= 0:
                 return
             logger.info(f"Rate limiter: TPM ceiling ({self._tpm}), sleeping {sleep_for:.1f}s")
