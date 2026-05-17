@@ -18,6 +18,7 @@ import { DETAIL_POLL_MS, LOADING_STALL_AFTER_MS, LOADING_STALL_REPEAT_MS } from 
 import AppPageChrome from './AppPageChrome';
 import DashboardShell from './DashboardShell';
 import LoadingFeedbackPanel from './LoadingFeedbackPanel';
+import ExperimentProgressCard from './ExperimentProgressCard';
 import type { FeedEntry } from './LoadingFeedbackPanel';
 import {
   cancelExperiment,
@@ -316,41 +317,7 @@ function StatCard({
   );
 }
 
-// Progress ring
-function ProgressRing({ percent, size = 80 }: { percent: number; size?: number }) {
-  const radius = (size - 8) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (percent / 100) * circumference;
-
-  return (
-    <div className="relative inline-flex items-center justify-center">
-      <svg width={size} height={size} className="transform -rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth="4"
-          fill="none"
-          className="text-slate-200"
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth="4"
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          className="text-green-500 transition-all duration-500"
-          strokeLinecap="round"
-        />
-      </svg>
-      <span className="absolute text-lg font-bold text-slate-700">{Math.round(percent)}%</span>
-    </div>
-  );
-}
+// Progress ring moved to ExperimentProgressCard.tsx (reusable component)
 
 // Dimension badge for sweep params
 function DimensionBadge({ label, values }: { label: string; values: (string | number)[] }) {
@@ -703,20 +670,13 @@ export default function ExperimentDetailScreen({
 
         {/* Progress visualization for running experiments */}
         {detail && isRunning && detail.runs && detail.runs.length > 0 && (
-          <div className="mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-sm border border-blue-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-slate-800 mb-1">Experiment Progress</h3>
-                <p className="text-sm text-slate-600">
-                  {detail.runs.filter(r => r.phase === Phase.COMPLETE).length} of {detail.runs.length} runs completed
-                </p>
-              </div>
-              <ProgressRing
-                percent={(detail.runs.filter(r => r.phase === Phase.COMPLETE).length / detail.runs.length) * 100}
-                size={100}
-              />
-            </div>
-          </div>
+          <ExperimentProgressCard
+            title="Experiment Progress"
+            subtitle={`${detail.runs.filter(r => r.phase === Phase.COMPLETE).length} of ${detail.runs.length} runs completed`}
+            percent={(detail.runs.filter(r => r.phase === Phase.COMPLETE).length / detail.runs.length) * 100}
+            variant="default"
+            className="mb-6"
+          />
         )}
 
         {/* Metadata sections */}
