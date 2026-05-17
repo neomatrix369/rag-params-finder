@@ -45,7 +45,7 @@ Cartesian product expansion: one YAML config with N models × M chunking methods
 | Decision | Why |
 |---|---|
 | `expand_sweep()` as pure function | Testable without side effects; called in both API (preview count) and orchestrator (execute) |
-| Sequential runs only (`parallelism: 1`) | Parallel execution deferred; avoids Atlas write contention and Voyage rate limit complexity |
+| Sequential runs (`parallelism` ignored at runtime until Slice 16) | `parallelism` is persisted for audit/UI; honoring `parallelism > 1` → [SLICE-16-PARALLEL-SWEEP-RUNS.md](./SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 | `run_sweep()` + `run_single()` split | Single Responsibility — sweep management vs pipeline execution |
 | `partial` status | Distinguishes "some runs failed" from "all failed" or "all succeeded" |
 

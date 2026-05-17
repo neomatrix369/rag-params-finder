@@ -1,38 +1,197 @@
-import { useEffect, useState } from 'react';
-import { getExperiments } from '../services/apiClient';
+import { useEffect, useRef, useState } from 'react';
+import { EXPERIMENTS_POLL_MS } from '../constants';
+import {
+  formatBytes,
+  getExperiments,
+  getExperimentsWithProgress,
+  type ExperimentsListProgressUpdate,
+} from '../services/apiClient';
 import { Experiment } from '../types';
+
+type FeedEntry = { id: string; ts: number; text: string; variant: 'default' | 'warning' };
+
+const STALL_AFTER_MS = 1800;
+const STALL_REPEAT_MS = 2400;
+
+let feedIdSeq = 0;
+
+function appendFeed(prev: FeedEntry[], text: string, variant: 'default' | 'warning'): FeedEntry[] {
+  feedIdSeq += 1;
+  return [...prev, { id: `${Date.now()}-${feedIdSeq}`, ts: Date.now(), text, variant }];
+}
 
 export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string) => void }) {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [feed, setFeed] = useState<FeedEntry[]>([]);
+  const [receivedBytes, setReceivedBytes] = useState<number | null>(null);
+  const [totalBytes, setTotalBytes] = useState<number | null>(null);
 
-  useEffect(() => {
-    // Initial load
-    loadExperiments();
+  const aliveRef = useRef(true);
+  const stallTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Poll every 500ms (0.5Hz)
-    const interval = setInterval(loadExperiments, 500);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  async function loadExperiments() {
-    try {
-      const data = await getExperiments();
-      setExperiments(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load experiments');
-    } finally {
-      setLoading(false);
+  function clearStallWatch() {
+    if (stallTimerRef.current !== null) {
+      clearInterval(stallTimerRef.current);
+      stallTimerRef.current = null;
     }
   }
 
+  function startStallWatch(requestStartedAt: number) {
+    clearStallWatch();
+    stallTimerRef.current = setInterval(() => {
+      const elapsedMs = Math.round(performance.now() - requestStartedAt);
+      if (elapsedMs < STALL_AFTER_MS) return;
+      if (!aliveRef.current) return;
+      const s = (elapsedMs / 1000).toFixed(1);
+      setFeed((f) =>
+        appendFeed(f, `No response yet (${s}s) — server or network may be slow.`, 'warning'),
+      );
+    }, STALL_REPEAT_MS);
+  }
+
+  function applyProgressUpdate(u: ExperimentsListProgressUpdate) {
+    if (!aliveRef.current) return;
+    if (u.type === 'downloading') {
+      setReceivedBytes(u.receivedBytes);
+      setTotalBytes(u.totalBytes);
+      return;
+    }
+    setFeed((f) => appendFeed(f, u.text, u.variant ?? 'default'));
+  }
+
+  useEffect(() => {
+    aliveRef.current = true;
+    const ac = new AbortController();
+
+    async function loadInitial() {
+      setLoading(true);
+      setReceivedBytes(null);
+      setTotalBytes(null);
+      setFeed((f) => appendFeed(f, 'Starting experiments list load…', 'default'));
+      const t0 = performance.now();
+      startStallWatch(t0);
+      try {
+        const data = await getExperimentsWithProgress(applyProgressUpdate, ac.signal);
+        clearStallWatch();
+        if (!aliveRef.current) return;
+        setFeed((f) => appendFeed(f, 'Ready.', 'default'));
+        setExperiments(data);
+        setError(null);
+      } catch (err) {
+        clearStallWatch();
+        if (!aliveRef.current) return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        const msg = err instanceof Error ? err.message : 'Failed to load experiments';
+        setError(msg);
+        setFeed((f) => appendFeed(f, `Failed: ${msg}`, 'warning'));
+      } finally {
+        if (aliveRef.current) setLoading(false);
+      }
+    }
+
+    async function pollQuietly() {
+      try {
+        const data = await getExperiments();
+        if (!aliveRef.current) return;
+        setExperiments(data);
+        setError(null);
+      } catch (err) {
+        if (!aliveRef.current) return;
+        const msg = err instanceof Error ? err.message : 'Failed to load experiments';
+        setError(msg);
+      }
+    }
+
+    void loadInitial();
+
+    const interval = setInterval(() => {
+      void pollQuietly();
+    }, EXPERIMENTS_POLL_MS);
+
+    return () => {
+      aliveRef.current = false;
+      ac.abort();
+      clearStallWatch();
+      clearInterval(interval);
+    };
+  }, []);
+
+  const pct =
+    receivedBytes !== null &&
+    totalBytes !== null &&
+    totalBytes > 0 &&
+    receivedBytes <= totalBytes
+      ? Math.min(100, Math.round((100 * receivedBytes) / totalBytes))
+      : null;
+
+  const downloadSummary =
+    receivedBytes !== null
+      ? totalBytes !== null
+        ? `${formatBytes(receivedBytes)} / ${formatBytes(totalBytes)}${
+            pct !== null ? ` (${pct}%)` : ''
+          }`
+        : `${formatBytes(receivedBytes)} received (total length unknown until complete)`
+      : null;
+
   if (loading && experiments.length === 0) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
-        <div className="text-slate-600">Loading experiments...</div>
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 p-6">
+        <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h1 className="text-lg font-semibold text-slate-900">Loading experiments</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Streaming status from the API (download + parse steps).
+          </p>
+
+          {downloadSummary !== null && (
+            <div className="mt-5">
+              <div className="flex justify-between text-xs font-medium text-slate-600">
+                <span>Payload</span>
+                {pct !== null ? <span>{pct}%</span> : null}
+              </div>
+              <div
+                className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"
+                role="progressbar"
+                aria-valuenow={pct ?? undefined}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div
+                  className="h-full rounded-full bg-sky-500 transition-[width] duration-150"
+                  style={{ width: pct !== null ? `${pct}%` : '40%' }}
+                />
+              </div>
+              <div className="mt-2 font-mono text-xs text-slate-700">{downloadSummary}</div>
+            </div>
+          )}
+
+          <div className="mt-5 rounded-lg border border-slate-200 bg-slate-950 px-3 py-2 shadow-inner">
+            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              Activity
+            </div>
+            <ul
+              className="max-h-48 overflow-y-auto font-mono text-[11px] leading-relaxed text-slate-100"
+              aria-live="polite"
+            >
+              {feed.map((entry) => (
+                <li
+                  key={entry.id}
+                  className={
+                    entry.variant === 'warning' ? 'text-amber-200' : 'text-slate-200'
+                  }
+                >
+                  — {entry.text}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <p className="mt-4 text-xs text-slate-500">
+            After this screen, the list refreshes silently every{' '}
+            {(EXPERIMENTS_POLL_MS / 1000).toFixed(1)}s.
+          </p>
+        </div>
       </div>
     );
   }
@@ -152,7 +311,7 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
 
         {/* Polling indicator */}
         <div className="mt-4 text-xs text-slate-500 text-center">
-          Polling every 0.5s {loading && <span className="animate-pulse">●</span>}
+          Polling every {EXPERIMENTS_POLL_MS / 1000}s {loading && <span className="animate-pulse">●</span>}
         </div>
       </div>
     </div>

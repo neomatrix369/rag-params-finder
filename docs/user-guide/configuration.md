@@ -55,9 +55,14 @@ retrieval:
   rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
 
 execution:
-  parallelism: 1                     # only 1 supported currently
+  parallelism: 1                     # use 1 until Slice 16; see "### Parallelism" below
   on_error: continue                 # "continue" (partial results) or "stop" (halt experiment)
 ```
+
+### Parallelism (`execution.parallelism`)
+
+- **Current behavior**: The value is stored on each experiment *(and visible in the dashboard)* but **`server/core/orchestrator.py` always runs sweep runs sequentially** — values greater than `1` have **no throughput effect** until implemented.
+- **Planned work**: **[Slice 16 — Parallel Sweep Runs](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md)** specifies bounded concurrent execution of `_run_single`, cancellation + `on_error` semantics across workers, Atlas/Voyage rate-limit considerations, and an optional Celery-style queue path for larger deployments.
 
 ---
 
@@ -173,6 +178,8 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 ```
 
 For a targeted subset, copy the file and trim the `methods` or `chunk_sizes` lists before running.
+
+To **re-run only failed combinations inside an existing experiment** *(same `experiment_id`, keep successful runs)*, see the planned workflow in [`../slices/SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) — today this still requires manual YAML reshaping or a new submit.
 
 ---
 

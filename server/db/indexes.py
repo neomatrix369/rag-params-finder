@@ -18,6 +18,8 @@ from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+_INDEX_POLL_INTERVAL_S = 5  # seconds between readiness checks while waiting for vector indexes
+
 
 class _VectorIndexConfig(TypedDict):
     name: str
@@ -143,7 +145,7 @@ def _wait_for_indexes_ready(collection, names: list[str], timeout_s: int = 120) 
         if pending:
             logger.info(f"Indexes still building: {pending}")
 
-        time.sleep(5)
+        time.sleep(_INDEX_POLL_INTERVAL_S)
 
     logger.warning(
         f"Timed out waiting for vector indexes after {timeout_s}s — they may still be building"

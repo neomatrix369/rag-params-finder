@@ -7,6 +7,8 @@ from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+_DEFAULT_TIMEOUT_S = 10.0  # HTTP client timeout for all server API calls
+
 
 def get_server_url() -> str:
     """Get server URL from settings (.env or environment)."""
@@ -21,7 +23,7 @@ def submit_experiment(config: dict[str, Any]) -> dict[str, Any]:
     logger.debug(f"Payload keys: {list(config.keys())}")
 
     with httpx.Client() as client:
-        response = client.post(url, json=config, timeout=10.0)
+        response = client.post(url, json=config, timeout=_DEFAULT_TIMEOUT_S)
         logger.debug(f"Response status: {response.status_code}")
         if response.status_code == 404:
             raise RuntimeError(
@@ -43,7 +45,7 @@ def get_experiment(experiment_id: str) -> dict[str, Any]:
     logger.debug(f"GET {url}")
 
     with httpx.Client() as client:
-        response = client.get(url, timeout=10.0)
+        response = client.get(url, timeout=_DEFAULT_TIMEOUT_S)
         response.raise_for_status()
         data: dict[str, Any] = cast(dict[str, Any], response.json())
         logger.debug(f"Experiment status={data.get('status')}, runs={len(data.get('runs', []))}")
@@ -57,7 +59,7 @@ def get_run_status(run_id: str) -> dict[str, Any]:
     logger.debug(f"GET {url}")
 
     with httpx.Client() as client:
-        response = client.get(url, timeout=10.0)
+        response = client.get(url, timeout=_DEFAULT_TIMEOUT_S)
         response.raise_for_status()
         data: dict[str, Any] = cast(dict[str, Any], response.json())
         logger.debug(f"Run {run_id} phase={data.get('phase')}")
@@ -71,7 +73,7 @@ def cancel_experiment(experiment_id: str) -> dict[str, Any]:
     logger.info(f"POST {url}")
 
     with httpx.Client() as client:
-        response = client.post(url, timeout=10.0)
+        response = client.post(url, timeout=_DEFAULT_TIMEOUT_S)
         if response.status_code == 404:
             raise RuntimeError(f"Experiment {experiment_id} not found")
         if response.status_code == 409:

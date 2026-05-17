@@ -115,7 +115,7 @@ The primary blockers for a proper test suite are:
 ```
 rag-params-finder/
 ├── server/              # FastAPI engine
-│   ├── main.py          # App entry + startup boot recovery
+│   ├── main.py          # App entry; lifespan ensures DB indexes
 │   ├── settings.py      # Centralized pydantic-settings config
 │   ├── api/             # Thin route handlers
 │   ├── core/            # Business logic: orchestration, chunking, embedding, retrieval
