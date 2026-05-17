@@ -1,6 +1,6 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-18 (Slice 8 — Dashboard UX improvements documented)
+**Last Updated**: 2026-05-18 (Slice 8 — Dashboard UX improvements + progress card component extraction)
 **Current**: Slices 1–8 ✅ COMPLETE | Next: Slice 9 📋 PLANNED (Search Explorer dashboard) · Slice 10 📋 PLANNED (failed-run recovery) · Slice 16 📋 PLANNED (honor `parallelism`)
 
 ---
@@ -340,6 +340,17 @@ Improve dashboard loading UX with progress feedback, add pagination to all scree
 - [x] Screenshots updated to reflect new UI
 - [x] Verification checklist created with manual test cases
 
+### Follow-up Enhancements (2026-05-18)
+
+**Extracted reusable progress component** for consistency:
+- **NEW**: `frontend/src/components/ExperimentProgressCard.tsx` — Circular progress indicator (default/compact variants)
+- **EDIT**: `frontend/src/components/ExperimentDetailScreen.tsx` — Uses `ExperimentProgressCard` (removed inline `ProgressRing`)
+- **UPDATED**: Documentation to clarify two progress patterns:
+  - `LoadingFeedbackPanel` → Network/API loading (byte-level progress)
+  - `ExperimentProgressCard` → Experiment execution (run completion)
+
+**Rationale**: Inline progress visualization in detail screen duplicated logic; extracting to component enables reuse across screens and maintains visual consistency.
+
 ---
 
 ## Slice 6: Additional Chunkers + Retrieval Methods ✅
@@ -413,6 +424,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-17 | 8 | Shared DashboardShell + AppPageChrome components | Unified header/nav/layout across all screens; DRY principle, consistent UX, easier to maintain |
 | 2026-05-17 | 8 | Pagination defaults 10 (lists) / 5 (configs) | Prevents DOM overload and cognitive fatigue; configs more verbose so lower per-page count |
 | 2026-05-17 | 8 | initialLoadDone flag per screen | Polling indicator only shows after first load completes; avoids visual confusion during hydration |
+| 2026-05-18 | 8 | ExperimentProgressCard reusable component | Extracted circular progress pattern from detail screen; enables consistent progress visualization across screens; separates network progress (LoadingFeedbackPanel) from execution progress (ExperimentProgressCard) |
 
 ---
 

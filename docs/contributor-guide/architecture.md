@@ -134,7 +134,8 @@ rag-params-finder/
     ├── components/
     │   ├── DashboardShell.tsx          # shared dashboard shell (header, nav)
     │   ├── AppPageChrome.tsx           # shared page chrome wrapper
-    │   ├── LoadingFeedbackPanel.tsx    # progress panel (byte-level progress, activity feed)
+    │   ├── LoadingFeedbackPanel.tsx    # network loading progress (byte-level, activity feed)
+    │   ├── ExperimentProgressCard.tsx  # experiment progress card (circular indicator, reusable)
     │   ├── PollingIndicator.tsx        # subtle "Syncing..." indicator during polls
     │   ├── ExperimentsScreen.tsx       # list view (polling every 2s, paginated)
     │   ├── ExperimentDetailScreen.tsx  # detail view (runs table, phase dots, metrics, paginated)
@@ -214,6 +215,7 @@ See `docs/adr/` for Architecture Decision Records:
 | `fetchWithProgress` for streamed downloads | ReadableStream byte-level progress → visible loading bars; better UX than spinner for large payloads |
 | Pagination on all screens | Prevents DOM overload and cognitive fatigue; default 10 items per page (experiments/runs), 5 per page (configs) |
 | Dual loading indicators (panel + polling badge) | Initial load → full progress panel; background polls → subtle "Syncing..." badge; clear state transitions |
+| Two progress patterns (network vs experiment) | `LoadingFeedbackPanel` for network/API loads (byte-level); `ExperimentProgressCard` for experiment execution (run completion); distinct concerns, reusable components |
 
 ---
 

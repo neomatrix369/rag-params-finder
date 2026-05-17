@@ -134,6 +134,17 @@ When changing the query filter dropdown in Search Explorer, the Loading Feedback
 - Subtitle: "Re-fetching explorer data (query filter changed or refresh triggered)."
 - Progress tracking same as initial load
 
+### Experiment Execution Progress
+
+For **running experiments**, the Experiment Detail screen shows an **Experiment Progress Card** with:
+- Circular progress indicator (e.g., "50%")
+- Completion status (e.g., "1 of 2 runs completed")
+- Visual feedback: blue gradient background, green progress ring
+
+This card appears **only when status is "running"** and updates every 2 seconds via background polling. Once the experiment completes, the card is replaced with a success/failure summary.
+
+**Note**: This is distinct from network loading — the Loading Feedback Panel tracks API data transfer, while the Experiment Progress Card tracks pipeline execution (runs completing).
+
 ---
 
 ## 👉 See Also
