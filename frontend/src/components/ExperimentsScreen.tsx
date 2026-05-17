@@ -7,6 +7,7 @@ import {
 import AppPageChrome from './AppPageChrome';
 import DashboardShell from './DashboardShell';
 import LoadingFeedbackPanel, { type FeedEntry } from './LoadingFeedbackPanel';
+import PollingIndicator from './PollingIndicator';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
 import { getExperiments, getExperimentsWithProgress } from '../services/apiClient';
 import { Experiment } from '../types';
@@ -36,6 +37,7 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feed, setFeed] = useState<FeedEntry[]>([]);
   const [receivedBytes, setReceivedBytes] = useState<number | null>(null);
@@ -95,6 +97,7 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
 
         async function silentPoll() {
           if (!aliveRef.current) return;
+          setIsPolling(true);
           try {
             const rows = await getExperiments();
             if (!aliveRef.current) return;
@@ -105,6 +108,8 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
             const pollMsg =
               pollErr instanceof Error ? pollErr.message : 'Polling failed — check server connectivity.';
             setError(pollMsg);
+          } finally {
+            if (aliveRef.current) setIsPolling(false);
           }
         }
 
@@ -260,9 +265,9 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
           </div>
         )}
 
-      <div className="mt-4 text-center text-xs text-slate-500">
-        Polling every {EXPERIMENTS_POLL_MS / 1000}s{' '}
-        {loading ? <span className="animate-pulse">●</span> : null}
+      <div className="mt-4 flex items-center justify-center gap-3 text-xs text-slate-500">
+        <span>Polling every {EXPERIMENTS_POLL_MS / 1000}s</span>
+        <PollingIndicator active={isPolling && !loading} />
       </div>
     </DashboardShell>
   );
