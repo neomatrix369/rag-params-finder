@@ -4,6 +4,8 @@ import {
   LOADING_STALL_AFTER_MS,
   LOADING_STALL_REPEAT_MS,
 } from '../constants';
+import AppPageChrome from './AppPageChrome';
+import DashboardShell from './DashboardShell';
 import LoadingFeedbackPanel from './LoadingFeedbackPanel';
 import type { FeedEntry } from './LoadingFeedbackPanel';
 import {
@@ -539,48 +541,43 @@ export default function SearchExplorerScreen({
     ? { ...data, detailed_results: filteredResults, ranked_configs: filteredConfigs }
     : null;
 
+  const explorerRail = (
+    <>
+      <div className="mb-6">
+        <div className="text-sm font-semibold text-slate-200">Sidebar</div>
+        <div className="mt-0.5 text-[11px] uppercase tracking-wider text-slate-500">Configs & retrieval filters</div>
+      </div>
+
+      <button
+        onClick={onBack}
+        className="mb-6 w-full rounded-lg px-3 py-2 text-left text-sm text-blue-400 hover:bg-slate-700/55 hover:text-blue-300 flex items-center gap-1"
+      >
+        &larr; Back to experiment
+      </button>
+
+      {data && (
+        <ConfigSidebar
+          data={data}
+          selectedMethods={selectedMethods}
+          onToggleMethod={handleToggleMethod}
+        />
+      )}
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-slate-900 flex">
-      {/* Left sidebar */}
-      <aside className="w-72 bg-slate-800 border-r border-slate-700 p-5 overflow-y-auto shrink-0">
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">P</span>
-            </div>
-            <div>
-              <div className="text-white font-bold text-sm">Explorer</div>
-              <div className="text-slate-400 text-xs uppercase tracking-wider">Search Explorer</div>
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={onBack}
-          className="w-full mb-6 px-3 py-2 text-sm text-blue-400 hover:text-blue-300 text-left flex items-center gap-1"
-        >
-          &larr; Back to experiment
-        </button>
-
-        {data && (
-          <ConfigSidebar
-            data={data}
-            selectedMethods={selectedMethods}
-            onToggleMethod={handleToggleMethod}
-          />
-        )}
-      </aside>
-
-      {/* Main content */}
-      <main className="flex-1 bg-slate-50 overflow-y-auto">
-        <div className="p-8 max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-slate-900">Search Explorer</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Analyze how different retrieval methods and parameters perform on your indexed content.
-            </p>
-          </div>
+    <DashboardShell
+      asideWidthClass="w-72"
+      contentMaxWidthClass="max-w-6xl"
+      header={
+        <AppPageChrome
+          tone="darkFrame"
+          pageTitle="Search explorer"
+          pageHint={`Aggregates for experiment ${experimentId.slice(0, 8)}… — ranked configs, optional query filter, and per-hit scores. Sidebar controls retrieval-method visibility.`}
+        />
+      }
+      sidebar={explorerRail}
+    >
 
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
@@ -712,8 +709,6 @@ export default function SearchExplorerScreen({
               <div className="text-sm">This experiment has no query results stored yet.</div>
             </div>
           )}
-        </div>
-      </main>
-    </div>
+    </DashboardShell>
   );
 }

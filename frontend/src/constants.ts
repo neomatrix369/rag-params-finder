@@ -4,6 +4,7 @@ export const APP_TAGLINE =
   'Sweep chunking, embeddings, retrieval, and reranking—then inspect what worked on your evaluation queries.';
 export const APP_READ_ONLY_NOTE =
   'Experiments start from the CLI; this UI reads your FastAPI backend (cancel is the only write when a run is active).';
+export const APP_FOOTNOTE_SUMMARY = 'How this dashboard relates to CLI runs';
 
 /** Polling intervals (ms). */
 export const EXPERIMENTS_POLL_MS = 500;

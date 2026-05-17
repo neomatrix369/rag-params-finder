@@ -4,6 +4,8 @@ import {
   LOADING_STALL_AFTER_MS,
   LOADING_STALL_REPEAT_MS,
 } from '../constants';
+import AppPageChrome from './AppPageChrome';
+import DashboardShell from './DashboardShell';
 import LoadingFeedbackPanel, { type FeedEntry } from './LoadingFeedbackPanel';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
 import { getExperiments, getExperimentsWithProgress } from '../services/apiClient';
@@ -14,6 +16,20 @@ let feedSeq = 0;
 function appendFeed(prev: FeedEntry[], text: string, variant: FeedEntry['variant']): FeedEntry[] {
   feedSeq += 1;
   return [...prev, { id: `${Date.now()}-${feedSeq}`, text, variant }];
+}
+
+function experimentsRailHelp() {
+  return (
+    <>
+      <div className="mb-6">
+        <div className="text-sm font-semibold text-slate-200">Sidebar</div>
+        <div className="mt-0.5 text-[11px] uppercase tracking-wider text-slate-500">Experiment list</div>
+      </div>
+      <div className="rounded-lg border border-slate-600/50 bg-slate-700/40 px-3 py-3 text-xs leading-relaxed text-slate-300 ring-1 ring-slate-600/35">
+        This table polls the experiments API continuously so you never miss a sweep finishing.
+      </div>
+    </>
+  );
 }
 
 export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string) => void }) {
@@ -113,31 +129,47 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
 
   if (!initialLoadDone && experiments.length === 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-        <LoadingFeedbackPanel
-          title="Loading experiments"
-          subtitle="Transfer + parse milestones (server does not stream row counts yet)."
-          feed={feed}
-          receivedBytes={receivedBytes}
-          totalBytes={totalBytes}
-          footer={`After load, list refreshes every ${EXPERIMENTS_POLL_MS / 1000}s without reopening this panel.`}
-          theme="light"
-        />
-      </div>
+      <DashboardShell
+        asideWidthClass="w-56 lg:w-60"
+        header={
+          <AppPageChrome
+            tone="darkFrame"
+            pageTitle="Experiments"
+            pageHint="Loading experiment list and run summaries from your server."
+          />
+        }
+        sidebar={experimentsRailHelp()}
+      >
+        <div className="flex justify-center py-8">
+          <LoadingFeedbackPanel
+            title="Loading experiments"
+            subtitle="Transfer + parse milestones (server does not stream row counts yet)."
+            feed={feed}
+            receivedBytes={receivedBytes}
+            totalBytes={totalBytes}
+            footer={`After load, list refreshes every ${EXPERIMENTS_POLL_MS / 1000}s without reopening this panel.`}
+            theme="light"
+          />
+        </div>
+      </DashboardShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold text-slate-900">Experiments</h1>
-          <p className="text-slate-600">RAG parameter sweep experiment history and live runs</p>
-        </div>
-
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{error}</div>
-        )}
+    <DashboardShell
+      asideWidthClass="w-56 lg:w-60"
+      header={
+        <AppPageChrome
+          tone="darkFrame"
+          pageTitle="Experiments"
+          pageHint={`History and live status for every sweep. This table refreshes every ${EXPERIMENTS_POLL_MS / 1000}s while you keep the page open.`}
+        />
+      }
+      sidebar={experimentsRailHelp()}
+    >
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{error}</div>
+      )}
 
         {experiments.length === 0 && !error && (
           <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">
@@ -228,11 +260,10 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
           </div>
         )}
 
-        <div className="mt-4 text-center text-xs text-slate-500">
-          Polling every {EXPERIMENTS_POLL_MS / 1000}s{' '}
-          {loading ? <span className="animate-pulse">●</span> : null}
-        </div>
+      <div className="mt-4 text-center text-xs text-slate-500">
+        Polling every {EXPERIMENTS_POLL_MS / 1000}s{' '}
+        {loading ? <span className="animate-pulse">●</span> : null}
       </div>
-    </div>
+    </DashboardShell>
   );
 }
