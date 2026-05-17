@@ -8,7 +8,7 @@ from server.core.data_loader import load_all_files
 from server.core.embedder import embed_documents, embed_query
 from server.core.query_loader import load_queries
 from server.core.reranker import rerank_results
-from server.core.retriever import dense_search
+from server.core.retriever import search as retriever_search
 from server.db.atlas import (
     CHUNKS_COLLECTION,
     EXPERIMENTS_COLLECTION,
@@ -17,7 +17,7 @@ from server.db.atlas import (
     get_collection,
 )
 from server.models.config import ExperimentConfig, RunParams, expand_sweep
-from server.models.enums import Phase
+from server.models.enums import Phase, RetrievalMethod
 from server.models.results import QueryResult
 from server.models.status import RunStatus
 from server.utils.logger import get_logger
@@ -187,15 +187,28 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
                 f"Run {run_id} query {i}/{len(queries)}: "
                 f"persona={q.persona_id}, text='{q.text[:60]}...'"
             )
-            query_embedding = embed_query(q.text, params.embedding_model, params.embedding_provider)
-            search_results = dense_search(
-                query_embedding,
-                experiment_id,
-                params.embedding_model,
+
+            needs_embedding = params.retrieval_method in (
+                RetrievalMethod.DENSE,
+                RetrievalMethod.HYBRID,
+            )
+            query_embedding = (
+                embed_query(q.text, params.embedding_model, params.embedding_provider)
+                if needs_embedding
+                else None
+            )
+
+            search_results = retriever_search(
+                method=params.retrieval_method,
+                query_text=q.text,
+                experiment_id=experiment_id,
+                embedding_model=params.embedding_model,
                 top_k=params.top_k_initial,
+                query_embedding=query_embedding,
             )
             logger.debug(
-                f"Run {run_id} query {i}: dense search returned {len(search_results)} results"
+                f"Run {run_id} query {i}: {params.retrieval_method.value} search "
+                f"returned {len(search_results)} results"
             )
 
             if params.rerank_model:

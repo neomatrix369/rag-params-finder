@@ -44,8 +44,8 @@ npm run build
 ### CLI
 
 ```bash
-rag-params-finder run --config configs/example-local.yaml
-rag-params-finder run --config configs/example-local.yaml --detach
+rag-params-finder run --config configs/example-mongodb-local.yaml
+rag-params-finder run --config configs/example-mongodb-local.yaml --detach
 rag-params-finder list
 rag-params-finder status <experiment-id>
 rag-params-finder recover --experiment-id <id> --auto

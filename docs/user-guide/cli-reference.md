@@ -25,13 +25,13 @@ Submits the experiment config to the server, prints the experiment ID and genera
 **Examples**:
 ```bash
 # Submit and watch progress in the terminal
-rag-params-finder run --config configs/example-local.yaml
+rag-params-finder run --config configs/example-mongodb-local.yaml
 
 # Submit and detach — open http://localhost:5173 to track status
-rag-params-finder run --config configs/example-local.yaml --detach
+rag-params-finder run --config configs/example-mongodb-local.yaml --detach
 
 # Voyage AI experiment (requires VOYAGE_API_KEY in .env)
-rag-params-finder run --config configs/example-voyage-ai.yaml
+rag-params-finder run --config configs/example-mongodb-voyage.yaml
 ```
 
 When not detached, the CLI renders a live Rich table showing each run's current phase:

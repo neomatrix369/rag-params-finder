@@ -1,0 +1,58 @@
+# MongoDB Atlas — Voyage AI models (requires VOYAGE_API_KEY in .env)
+#
+# Full Cartesian sweep:
+#   3 embedding models × 5 chunking methods × 2 chunk sizes × 1 overlap × 3 retrieval methods
+#   = 90 runs
+#
+# Params are narrower than the local config to keep Voyage API costs reasonable.
+# Estimated cost: ~$0.65 total across all models and runs.
+#
+# Embedding:  voyage-3.5-lite · voyage-3.5 · voyage-context-3 (1024-dim)
+# Chunking:   fixed · recursive · token · sentence · semantic
+# Retrieval:  dense · sparse · hybrid
+#
+# Atlas prerequisites:
+#   - vector_index_1024 (vector search, 1024-dim cosine) — required for dense and hybrid
+#   - text_search_index (Atlas Search, BM25)             — required for sparse and hybrid
+#   See CLAUDE.local.md or docs/user-guide/getting-started.md for index creation steps.
+
+experiment_name: example-mongodb-voyage
+
+data_paths:
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+
+queries_file: ./configs/questions.example.json
+
+database_provider: mongodb
+
+embedding:
+  provider: voyage
+  models:
+    - voyage-3.5-lite      # 1024-dim, fastest and cheapest
+    - voyage-3.5           # 1024-dim, balanced quality
+    - voyage-context-3     # 1024-dim, optimised for long contexts
+
+chunking:
+  methods:
+    - fixed       # character-window slicing
+    - recursive   # LangChain recursive splitter (splits on \n\n → \n → space)
+    - token       # LangChain TokenTextSplitter (cl100k_base, sizes in tokens)
+    - sentence    # NLTK sentence grouping with character budget
+    - semantic    # sentence-transformers cosine similarity grouping
+  params:
+    chunk_sizes: [256, 512]   # narrower than local to control API cost
+    overlaps: [50]
+
+retrieval:
+  methods:
+    - dense    # Atlas $vectorSearch (cosine similarity)
+    - sparse   # Atlas $search BM25 full-text  ← requires text_search_index
+    - hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
+  top_k_initial: 20
+  top_k_final: 5
+  rerank_provider: voyage
+  rerank_model: rerank-2.5-lite
+
+execution:
+  parallelism: 1
+  on_error: continue

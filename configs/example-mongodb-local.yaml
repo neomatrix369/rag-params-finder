@@ -1,0 +1,53 @@
+# MongoDB Atlas — local models (no API key required)
+#
+# Full Cartesian sweep:
+#   1 embedding model × 5 chunking methods × 3 chunk sizes × 2 overlaps × 3 retrieval methods
+#   = 90 runs
+#
+# Embedding:  all-MiniLM-L6-v2 (384-dim, sentence-transformers, ~23 MB, HuggingFace cached)
+# Chunking:   fixed · recursive · token · sentence · semantic
+# Retrieval:  dense · sparse · hybrid
+#
+# Atlas prerequisites:
+#   - vector_index_384  (vector search, 384-dim cosine) — required for dense and hybrid
+#   - text_search_index (Atlas Search, BM25)            — required for sparse and hybrid
+#   See CLAUDE.local.md or docs/user-guide/getting-started.md for index creation steps.
+
+experiment_name: example-mongodb-local
+
+data_paths:
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+
+queries_file: ./configs/questions.example.json
+
+database_provider: mongodb
+
+embedding:
+  provider: local
+  models:
+    - all-MiniLM-L6-v2    # 384-dim, no API key needed
+
+chunking:
+  methods:
+    - fixed       # character-window slicing
+    - recursive   # LangChain recursive splitter (splits on \n\n → \n → space)
+    - token       # LangChain TokenTextSplitter (cl100k_base, sizes in tokens)
+    - sentence    # NLTK sentence grouping with character budget
+    - semantic    # sentence-transformers cosine similarity grouping
+  params:
+    chunk_sizes: [256, 512, 1024]
+    overlaps: [50, 100]
+
+retrieval:
+  methods:
+    - dense    # Atlas $vectorSearch (cosine similarity)
+    - sparse   # Atlas $search BM25 full-text  ← requires text_search_index
+    - hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
+  top_k_initial: 20
+  top_k_final: 5
+  rerank_provider: local
+  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+
+execution:
+  parallelism: 1
+  on_error: continue
