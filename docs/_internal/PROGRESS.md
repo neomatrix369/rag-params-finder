@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-17 (Slice 10 — run recovery spec)
-**Current**: Slices 1–7 ✅ COMPLETE | Next: Slice 9 📋 PLANNED (Search Explorer dashboard) · Slice 10 📋 PLANNED (failed-run recovery) · Slice 16 📋 PLANNED (honor `parallelism`)
+**Last Updated**: 2026-05-18 (Slice 8 — Dashboard UX improvements documented)
+**Current**: Slices 1–8 ✅ COMPLETE | Next: Slice 9 📋 PLANNED (Search Explorer dashboard) · Slice 10 📋 PLANNED (failed-run recovery) · Slice 16 📋 PLANNED (honor `parallelism`)
 
 ---
 
@@ -16,6 +16,7 @@
 | 5 — Multiple queries from persona JSON | ✅ COMPLETE | ~10 min | Loop over persona questions |
 | 6 — Additional chunkers + retrieval | ✅ COMPLETE | ~45 min | fixed, token, sentence, semantic + sparse/hybrid + 5 new configs |
 | 7 — Free/local embedding + reranking | ✅ COMPLETE | ~15 min | sentence-transformers, no API key needed |
+| 8 — Dashboard UX improvements | ✅ COMPLETE | ~2 h | Loading feedback panels, polling indicators, pagination, unified chrome |
 | 10 — Run recovery | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; see [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 
@@ -296,6 +297,51 @@ Add local sentence-transformers models (embedding + reranking) as alternatives t
 
 ---
 
+## Slice 8: Dashboard UX Improvements ✅
+
+**Status**: ✅ COMPLETE | **Started**: 2026-05-17 | **Completed**: 2026-05-17 | **Target**: ~2 h
+
+### Goal
+Improve dashboard loading UX with progress feedback, add pagination to all screens, and unify page layout with shared components.
+
+### What Changed
+- **NEW**: `frontend/src/components/LoadingFeedbackPanel.tsx` — Progress panel with byte-level progress bars and activity feed
+- **NEW**: `frontend/src/components/PollingIndicator.tsx` — Subtle "Syncing..." indicator for background polls
+- **NEW**: `frontend/src/components/DashboardShell.tsx` — Shared header and navigation across all screens
+- **NEW**: `frontend/src/components/AppPageChrome.tsx` — Shared page wrapper (title, back button, actions)
+- **NEW**: `frontend/src/services/fetchWithProgress.ts` — ReadableStream-based fetch with byte-level progress tracking
+- **NEW**: `VERIFICATION_CHECKLIST.md` — Manual test cases for all loading states and polling behavior
+- **EDIT**: `frontend/src/components/ExperimentsScreen.tsx` — Added pagination (10 items/page), integrated LoadingFeedbackPanel and PollingIndicator
+- **EDIT**: `frontend/src/components/ExperimentDetailScreen.tsx` — Added pagination to runs table (10 runs/page)
+- **EDIT**: `frontend/src/components/SearchExplorerScreen.tsx` — Added pagination to configs (5/page), collapsed sidebar, integrated re-query progress feedback
+- **EDIT**: `frontend/src/services/apiClient.ts` — Refactored to use `fetchWithProgress` for streamed downloads
+- **EDIT**: `frontend/src/constants.ts` — Added pagination constants (`ITEMS_PER_PAGE_*`)
+- **UPDATED**: Screenshots in `docs/images/` — Reflect new UI with pagination and unified chrome
+
+### Key Design Decisions
+| Decision | Why |
+|---|---|
+| Dual loading indicators (panel vs badge) | Full progress panel for initial loads; subtle polling badge for background refreshes — clear state transitions |
+| `fetchWithProgress` with ReadableStream | Byte-level progress tracking via `response.body.getReader()` — better UX than spinner for large payloads |
+| Shared `DashboardShell` + `AppPageChrome` | Unified header/nav/layout across all screens — consistent UX, easier maintenance, DRY |
+| Pagination defaults: 10 (experiments/runs), 5 (configs) | Prevents DOM overload and cognitive fatigue; configs are more verbose so lower per-page count |
+| Activity feed in LoadingFeedbackPanel | Shows fetch milestones (start → headers → chunks → complete) — helps debug slow loads |
+| `initialLoadDone` flag per screen | Polling indicator only appears after first load completes — avoids visual noise during hydration |
+
+### Acceptance Criteria
+- [x] LoadingFeedbackPanel appears during initial loads on all three screens
+- [x] PollingIndicator shows during background polls (after initial load)
+- [x] Pagination works on ExperimentsScreen (10 items/page)
+- [x] Pagination works on ExperimentDetailScreen runs table (10 runs/page)
+- [x] Pagination works on SearchExplorerScreen configs (5/page)
+- [x] Re-query progress feedback in SearchExplorer when changing query filter
+- [x] Unified header/navigation via DashboardShell
+- [x] Page titles and back buttons via AppPageChrome
+- [x] Screenshots updated to reflect new UI
+- [x] Verification checklist created with manual test cases
+
+---
+
 ## Slice 6: Additional Chunkers + Retrieval Methods ✅
 
 **Status**: ✅ COMPLETE | **Started**: 2026-05-17 | **Completed**: 2026-05-17 | **Target**: ~45 min
@@ -362,6 +408,11 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-17 | — | Reorganise configs: 1 file per DB×provider | Replaced 7 single-purpose example files with `example-mongodb-local.yaml` and `example-mongodb-voyage.yaml`; each covers all embedding models, all chunking methods, and all retrieval methods for that DB+provider |
 | 2026-05-17 | — | Slice 16 spec for parallel sweep runs | Formalized deferred work: bounded in-process parallelism vs Celery; honor `execution.parallelism`; specs in [`docs/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 | 2026-05-17 | 10 | Slice 10 spec for run recovery | In-place retry for FAILED runs (`--include-interrupted` optional); reuse `run_id`; delete stale `chunks`/`results` for that run only; config from Mongo `experiments.config`; boot recovery scoped to INTERRUPTED only; spec in [`docs/slices/SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) |
+| 2026-05-17 | 8 | Dual loading indicators (panel + polling badge) | Full LoadingFeedbackPanel for initial loads provides detailed progress; subtle PollingIndicator for background refreshes avoids visual noise |
+| 2026-05-17 | 8 | fetchWithProgress with ReadableStream | Byte-level progress via `response.body.getReader()` enables real-time progress bars; better UX than spinners for large payloads |
+| 2026-05-17 | 8 | Shared DashboardShell + AppPageChrome components | Unified header/nav/layout across all screens; DRY principle, consistent UX, easier to maintain |
+| 2026-05-17 | 8 | Pagination defaults 10 (lists) / 5 (configs) | Prevents DOM overload and cognitive fatigue; configs more verbose so lower per-page count |
+| 2026-05-17 | 8 | initialLoadDone flag per screen | Polling indicator only shows after first load completes; avoids visual confusion during hydration |
 
 ---
 
