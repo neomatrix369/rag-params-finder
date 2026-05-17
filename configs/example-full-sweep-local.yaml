@@ -1,0 +1,46 @@
+# Full parameter sweep using only local models — no API key needed.
+# Exhaustive: 5 chunking methods × 3 chunk_sizes × 2 overlaps × 3 retrieval methods = 90 runs.
+# Expect ~15-30 min on an M-series Mac depending on PDF size.
+#
+# Prerequisites:
+#   - vector_index_384 in Atlas (for local 384-dim model)
+#   - text_search_index in Atlas (for sparse/hybrid retrieval)
+
+experiment_name: full-sweep-local
+
+data_paths:
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+
+queries_file: ./configs/questions.example.json
+
+database_provider: mongodb
+
+embedding:
+  provider: local
+  models:
+    - all-MiniLM-L6-v2
+
+chunking:
+  methods:
+    - fixed
+    - recursive
+    - token
+    - sentence
+    - semantic
+  params:
+    chunk_sizes: [256, 512, 1024]
+    overlaps: [50, 100]
+
+retrieval:
+  methods:
+    - dense
+    - sparse
+    - hybrid
+  top_k_initial: 20
+  top_k_final: 5
+  rerank_provider: local
+  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+
+execution:
+  parallelism: 1
+  on_error: continue
