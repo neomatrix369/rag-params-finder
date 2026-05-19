@@ -25,7 +25,7 @@ rag-params-finder run --config configs/example-mongodb-local.yaml  # submit expe
 rag-params-finder run --config configs/example-kimchi.yaml         # Kimchi-hosted sweep
 rag-params-finder pause <experiment-id>   # pause after current phase
 rag-params-finder resume <experiment-id>  # continue paused sweep
-uv pip install -e ".[dev]" && uv run ruff check . && uv run mypy server/ cli/ && uv run pytest
+uv pip install -e ".[dev]" && uv run ruff check . && uv run mypy server/ cli/ && rag-params-finder test
 
 # Frontend
 cd frontend && npm run dev                     # start dashboard → http://localhost:5173

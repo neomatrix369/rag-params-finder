@@ -132,7 +132,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 **AI/ML**: Voyage AI · Kimchi embeddings · sentence-transformers · MongoDB Atlas Vector Search
 
-**Dev tools**: uv · ruff · mypy · pytest · GitHub Actions
+**Dev tools**: uv · ruff · mypy · `rag-params-finder test` · GitHub Actions (runs on every PR to `main`)
 
 ---
 

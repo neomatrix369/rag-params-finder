@@ -65,3 +65,10 @@ python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "integration: live API or Atlas tests (require env vars; excluded from default CI and CLI)",
+]

@@ -27,8 +27,9 @@ uvicorn server.main:app --reload --port 8001
 uv run ruff check .
 uv run mypy server/ cli/
 
-# Tests
-uv run pytest --tb=short -q
+# Tests (same suite as CI / PR checks)
+rag-params-finder test
+# or: uv run pytest -m "not integration" --tb=short -q
 ```
 
 ### Frontend (Node.js 22+)
@@ -143,7 +144,7 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 # Backend
 uv run ruff check .
 uv run mypy server/ cli/
-uv run pytest --tb=short -q
+rag-params-finder test
 
 # Frontend
 cd frontend && npm run typecheck && npm run build
@@ -163,7 +164,7 @@ cd frontend && npm run typecheck && npm run build
 **Backend** (2026-05-20):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → Kimchi provider tests in `tests/test_kimchi_provider.py` (run `uv run pytest --tb=short -q`)
+- `rag-params-finder test` → provider regression suite in `tests/` (CI on every PR to `main`)
 
 **Frontend** (2026-05-05):
 - `npm run typecheck` → 0 errors

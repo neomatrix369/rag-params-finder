@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
 **Last Updated**: 2026-05-20 (Kimchi provider hardening + dashboard API responsiveness)
-**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Kimchi embedding provider ✅ COMPLETE | Dashboard API responsiveness ✅ COMPLETE | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`)
+**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Kimchi embedding provider ✅ COMPLETE | Provider regression pytest ✅ COMPLETE | Dashboard API responsiveness ✅ COMPLETE | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`) · Slice 17 📋 PLANNED (test suite expansion)
 
 ---
 
@@ -20,9 +20,11 @@
 | 9 — Experiment deletion | ✅ COMPLETE | ~1 h | CLI delete command + dashboard confirmation modal, cascade cleanup |
 | — — Vector DB stats + collapsible rows + boot reconciliation | ✅ COMPLETE | ~1.5 h | Cluster/experiment storage stats; collapsible panels; orphan `running` → `partial` on server boot |
 | — — Pause/resume + Voyage catalog expansion | ✅ COMPLETE | ~2 h | Cooperative pause/resume; 12 Voyage embedding models; `voyage-context-3` contextualized API + segment splitting |
-| — — Kimchi embedding provider | ✅ COMPLETE | ~2 h | CAST OpenAI-compatible embeddings; runtime dimensions; 4-model example sweep; focused pytest suite |
+| — — Kimchi embedding provider | ✅ COMPLETE | ~2 h | CAST OpenAI-compatible embeddings; runtime dimensions; 4-model example sweep; see [`SLICE-16-KIMCHI-PROVIDER.md`](../slices/SLICE-16-KIMCHI-PROVIDER.md) |
+| — — Provider regression pytest | ✅ COMPLETE | ~1 h | 39 tests: embedder dispatch, retriever index, registry, config, db-stats, Kimchi adapter — see [`SLICE-17-TEST-SUITE-EXPANSION.md`](../slices/SLICE-17-TEST-SUITE-EXPANSION.md) § Already delivered |
 | — — Dashboard API responsiveness | ✅ COMPLETE | ~1 h | Dedicated sweep/heavy-read thread pools; batched vector-db-stats; decoupled frontend polling + fetch timeouts |
 | 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) |
+| 17 — Test suite expansion | 📋 PLANNED | ~4–8 h | Live smoke, mock-Mongo pipeline, Kimchi batching/cache, orchestrator/pause/rerank/sparse — see [`SLICE-17-TEST-SUITE-EXPANSION.md`](../slices/SLICE-17-TEST-SUITE-EXPANSION.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 
@@ -647,6 +649,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 14 — Docker Compose | One-command local setup | Won't (now) | ~30 min |
 | 15 — CI/CD | GitHub Actions: ruff, mypy, pytest, npm lint/build | Should | ~20 min |
 | 16 — Parallel sweep (`parallelism` > 1) | Bounded concurrent `_run_single` (+ optional Celery upgrade path); Atlas/Voyage-rate-limit aware | Should | ~2–4 h |
+| 17 — Test suite expansion | Spec: [`SLICE-17-TEST-SUITE-EXPANSION.md`](../slices/SLICE-17-TEST-SUITE-EXPANSION.md) — mock-Mongo pipeline, live Kimchi smoke (env-gated), Kimchi batching, `ensure_vector_index` cache, orchestrator/pause/rerank/sparse tests | Should | ~4–8 h |
 
 ---
 
