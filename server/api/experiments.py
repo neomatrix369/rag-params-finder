@@ -1,8 +1,9 @@
 import asyncio
 import uuid
+from collections.abc import Callable
 from datetime import datetime
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from server.api.experiments_shared import (
     mongo_delete_experiment_data,
@@ -18,6 +19,7 @@ from server.api.experiments_shared import (
     mongo_mark_experiment_paused_now,
     mongo_mark_experiment_running,
 )
+from server.core.executors import HEAVY_READ_EXECUTOR, schedule_sweep
 from server.core.orchestrator import (
     is_sweep_in_flight,
     request_cancel,
@@ -36,8 +38,14 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
+async def _run_heavy_read[R](fn: Callable[[], R]) -> R:
+    """Run expensive read-only Mongo aggregations off the default API thread pool."""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(HEAVY_READ_EXECUTOR, fn)
+
+
 @router.post("")
-async def create_experiment(config: ExperimentConfig, background_tasks: BackgroundTasks):
+async def create_experiment(config: ExperimentConfig):
     """Submit a new experiment sweep configuration."""
     experiment_id = str(uuid.uuid4())
     timestamp_suffix = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
@@ -79,7 +87,7 @@ async def create_experiment(config: ExperimentConfig, background_tasks: Backgrou
     await asyncio.to_thread(mongo_insert_experiment_doc, experiment_doc)
 
     logger.info(f"Experiment '{stamped_name}' ({experiment_id}): {len(runs)} runs")
-    background_tasks.add_task(run_sweep, experiment_id, config)
+    schedule_sweep(run_sweep, experiment_id, config)
 
     return {
         "status": "submitted",
@@ -103,7 +111,7 @@ async def list_experiments():
 async def get_vector_db_stats_grouped():
     """Vector DB stats for all experiments, grouped by cluster."""
     logger.debug("GET /experiments/vector-db-stats")
-    payload = await asyncio.to_thread(mongo_get_vector_db_stats_grouped)
+    payload = await _run_heavy_read(mongo_get_vector_db_stats_grouped)
     info_throttled(
         logger,
         "poll:vector-db-stats",
@@ -150,7 +158,7 @@ async def get_experiment_db_stats(experiment_id: str):
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
 
-    stats = await asyncio.to_thread(mongo_get_experiment_db_stats, experiment_id)
+    stats = await _run_heavy_read(lambda: mongo_get_experiment_db_stats(experiment_id))
     info_throttled(
         logger,
         f"poll:db-stats:{experiment_id}",
@@ -169,8 +177,8 @@ async def explore_experiment(experiment_id: str, query: str | None = None):
 
     logger.debug(f"GET /experiments/{experiment_id}/explore (query={query!r})")
 
-    experiment_doc, query_results, run_statuses = await asyncio.to_thread(
-        mongo_load_explore_source, experiment_id
+    experiment_doc, query_results, run_statuses = await _run_heavy_read(
+        lambda: mongo_load_explore_source(experiment_id)
     )
     if not experiment_doc:
         raise HTTPException(status_code=404, detail="Experiment not found")
@@ -248,7 +256,7 @@ async def pause_experiment(experiment_id: str):
 
 
 @router.post("/{experiment_id}/resume")
-async def resume_experiment(experiment_id: str, background_tasks: BackgroundTasks):
+async def resume_experiment(experiment_id: str):
     """Resume a paused experiment from the next incomplete parameter combination."""
     logger.info(f"POST /experiments/{experiment_id}/resume")
 
@@ -278,7 +286,7 @@ async def resume_experiment(experiment_id: str, background_tasks: BackgroundTask
 
     config = ExperimentConfig.model_validate(config_payload)
     await asyncio.to_thread(mongo_mark_experiment_running, experiment_id)
-    background_tasks.add_task(resume_sweep, experiment_id, config)
+    schedule_sweep(resume_sweep, experiment_id, config)
 
     runs = expand_sweep(config)
     return {

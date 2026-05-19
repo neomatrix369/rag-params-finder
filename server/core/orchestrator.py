@@ -163,7 +163,7 @@ def _execute_sweep(
     config: ExperimentConfig,
     skip_signatures: set[ParamSignature],
 ) -> dict:
-    """Declared sync so FastAPI BackgroundTasks runs it in a threadpool."""
+    """Declared sync; scheduled on the dedicated sweep executor (see executors.py)."""
     _sweep_controls[experiment_id] = _SweepControl()
     try:
         return _run_sweep_inner(experiment_id, config, skip_signatures)

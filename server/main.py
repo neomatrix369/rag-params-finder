@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from server.api import experiments, runs
+from server.core.executors import shutdown_executors
 from server.core.startup_reconciliation import reconcile_orphaned_experiments
 from server.db.indexes import ensure_indexes
 from server.settings import LOCALHOST_CORS_ORIGIN_REGEX, settings
@@ -35,6 +36,7 @@ async def lifespan(app: FastAPI):
     logger.info("Server ready")
     yield
     logger.info("Server shutting down...")
+    shutdown_executors()
 
 
 app = FastAPI(

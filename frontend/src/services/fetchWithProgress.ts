@@ -2,7 +2,50 @@
  * Streaming fetch progress for GET JSON bodies — byte counts when Content-Length exists.
  */
 
+import { API_FETCH_TIMEOUT_MS } from '../constants';
+
 const BYTE_PROGRESS_INTERVAL_MS = 200;
+
+export function abortSignalWithTimeout(
+  userSignal: AbortSignal | undefined,
+  timeoutMs: number = API_FETCH_TIMEOUT_MS,
+): { signal: AbortSignal; dispose: () => void } {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const forwardAbort = () => controller.abort();
+  if (userSignal?.aborted) {
+    controller.abort();
+  } else if (userSignal) {
+    userSignal.addEventListener('abort', forwardAbort, { once: true });
+  }
+  return {
+    signal: controller.signal,
+    dispose: () => {
+      clearTimeout(timeoutId);
+      userSignal?.removeEventListener('abort', forwardAbort);
+    },
+  };
+}
+
+export async function fetchWithTimeout(
+  url: string,
+  init?: RequestInit,
+  timeoutMs: number = API_FETCH_TIMEOUT_MS,
+): Promise<Response> {
+  const { signal, dispose } = abortSignalWithTimeout(init?.signal ?? undefined, timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(
+        `Request timed out after ${Math.round(timeoutMs / 1000)}s — the server may be busy running a sweep.`,
+      );
+    }
+    throw err;
+  } finally {
+    dispose();
+  }
+}
 
 export type FetchProgressUpdate =
   | { type: 'message'; text: string; variant?: 'default' | 'warning' }
@@ -87,7 +130,13 @@ export async function fetchJsonWithProgress<T>(
   const abortSignal =
     rawSignal === null || rawSignal === undefined ? undefined : rawSignal;
 
-  const response = await fetch(url, init);
+  const { signal, dispose } = abortSignalWithTimeout(abortSignal);
+  let response: Response;
+  try {
+    response = await fetch(url, { ...init, signal });
+  } finally {
+    dispose();
+  }
 
   if (!response.ok) {
     const errText = await response.text().catch(() => '');

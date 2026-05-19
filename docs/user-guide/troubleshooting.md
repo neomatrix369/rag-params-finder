@@ -189,13 +189,16 @@ and does not fit into the model's context window of 32000 tokens.
 
 ---
 
-## 🌀 Dashboard stuck on "Loading…"
+## 🌀 Dashboard stuck on "Loading…" or "Checking for experiments"
 
-**Symptom**: browser shows a loading spinner indefinitely or a "Failed to fetch" error.
+**Symptom**: browser shows a loading spinner indefinitely, "Waiting for the server to finish this refresh cycle", or a "Failed to fetch" error — often while a CLI sweep is embedding/chunking on the server.
 
 | Cause | Fix |
 |---|---|
 | Server not running | Start with `uvicorn server.main:app --reload --port 8001`; verify at `http://localhost:8001/healthz` |
+| API starved during heavy sweep *(older builds)* | Restart uvicorn after upgrading — sweeps now run on a dedicated thread pool so `GET /experiments` stays responsive |
+| Vector DB stats still loading | Stats load separately and may lag; the experiment **list** should appear within a few seconds even during a sweep |
+| Request timed out (30s) | Normal under extreme Atlas load; wait for the next 2s poll or open `http://127.0.0.1:8001/healthz` to confirm the process is alive |
 | Wrong server port | Check `SERVER_URL` in `.env` matches the port uvicorn is using |
 | CORS error | Hard-refresh the browser (`Cmd+Shift+R`); restart server |
 | Frontend pointing at wrong URL | Check `frontend/src/services/apiClient.ts` base URL matches server port |

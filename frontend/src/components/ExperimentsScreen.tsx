@@ -127,18 +127,14 @@ function experimentStatsMap(groups: VectorDbStatsGroup[]): Map<string, Experimen
   return map;
 }
 
-/** True when we should show the full-page loading overlay (experiment list fetch only). */
+/** True only for the first experiment-list load — not for background polls. */
 function shouldShowLoadingPanel(
   initialLoadDone: boolean,
   loading: boolean,
-  isPolling: boolean,
-  experimentsCount: number,
   error: string | null,
 ): boolean {
   if (error !== null) return false;
-  if (!initialLoadDone || loading) return true;
-  if (experimentsCount === 0 && isPolling) return true;
-  return false;
+  return !initialLoadDone || loading;
 }
 
 export default function ExperimentsScreen({
@@ -257,7 +253,8 @@ export default function ExperimentsScreen({
     }
 
     const request = (async () => {
-      if (!options?.silent) setVectorDbLoading(true);
+      const showSpinner = !options?.silent && vectorDbGroups.length === 0;
+      if (showSpinner) setVectorDbLoading(true);
       try {
         const payload = await getVectorDbStatsGrouped();
         if (!aliveRef.current) return;
@@ -268,13 +265,13 @@ export default function ExperimentsScreen({
         setVectorDbError(err instanceof Error ? err.message : 'Failed to load vector DB stats');
       } finally {
         vectorDbStatsInFlightRef.current = null;
-        if (aliveRef.current && !options?.silent) setVectorDbLoading(false);
+        if (aliveRef.current && showSpinner) setVectorDbLoading(false);
       }
     })();
 
     vectorDbStatsInFlightRef.current = request;
     return request;
-  }, []);
+  }, [vectorDbGroups.length]);
 
   useEffect(() => {
     if (!initialLoadDone) return;
@@ -414,13 +411,7 @@ export default function ExperimentsScreen({
     };
   }, [cacheReady, loadVectorDbStats]);
 
-  const showLoadingPanel = shouldShowLoadingPanel(
-    initialLoadDone,
-    loading,
-    isPolling,
-    experiments.length,
-    error,
-  );
+  const showLoadingPanel = shouldShowLoadingPanel(initialLoadDone, loading, error);
   const showEmptyConfirmed =
     initialLoadDone &&
     !loading &&
