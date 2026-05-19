@@ -58,9 +58,11 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 
 | File | Purpose |
 |---|---|
-| `server/main.py` | FastAPI app entry; lifespan ensures DB indexes |
+| `server/main.py` | FastAPI app entry; lifespan ensures DB indexes + orphan reconciliation |
 | `server/settings.py` | Centralized pydantic-settings config |
 | `server/core/orchestrator.py` | End-to-end pipeline executor |
+| `server/core/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
+| `server/core/atlas_storage.py` | Atlas Admin API cluster quota + dbStats helpers |
 | `server/core/model_registry.py` | Embedding + reranking model catalog |
 | `server/core/embedder.py` | Voyage embedding client |
 | `server/core/local_embedder.py` | sentence-transformers embedding (lazy-load) |
@@ -69,8 +71,8 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/retriever.py` | Atlas Vector Search (dense/sparse/hybrid) |
 | `server/models/config.py` | Pydantic experiment config + provider validators |
 | `server/models/enums.py` | ChunkingMethod, RetrievalMethod, Phase |
-| `server/api/experiments.py` | Experiments CRUD, results/explore, cancel, delete |
-| `server/api/experiments_shared.py` | Shared delete helpers (cascade deletion logic) |
+| `server/api/experiments.py` | Experiments CRUD, results/explore, db-stats, cancel, delete |
+| `server/api/experiments_shared.py` | Shared Mongo helpers (delete cascade, db-stats aggregation) |
 | `server/db/indexes.py` | Collection + index creation helpers |
 | `cli/main.py` | Typer app (`run`, `cancel`, `delete`, `version`) |
 | `cli/config_loader.py` | YAML parser + model registry validation |
@@ -82,8 +84,11 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `frontend/src/components/ExperimentProgressCard.tsx` | Reusable experiment progress card with circular indicator |
 | `frontend/src/components/PollingIndicator.tsx` | Subtle "Syncing..." badge during background polls |
 | `frontend/src/components/ConfirmDeleteModal.tsx` | Delete confirmation modal with experiment details and stats |
-| `frontend/src/components/ExperimentsScreen.tsx` | Experiments list with delete actions (paginated) |
-| `frontend/src/components/ExperimentDetailScreen.tsx` | Experiment detail with delete action in header (paginated) |
+| `frontend/src/components/ExperimentsScreen.tsx` | Experiments list with collapsible rows, vector DB stats, delete |
+| `frontend/src/components/ExperimentDetailScreen.tsx` | Detail view with overview metrics, outcome banners, runs table |
+| `frontend/src/components/VectorDbStatsPanel.tsx` | Cluster-grouped storage stats panel |
+| `frontend/src/components/CollapsibleCard.tsx` | Reusable collapsible section (localStorage persistence) |
+| `frontend/src/utils/experimentStatus.ts` | Run outcome summarization + terminal status helpers |
 | `frontend/src/types/index.ts` | Hand-mirrored TypeScript types from Python models |
 | `frontend/src/services/apiClient.ts` | Fetch wrapper (all server API calls, including DELETE) |
 | `frontend/src/services/fetchWithProgress.ts` | ReadableStream-based fetch with progress tracking |

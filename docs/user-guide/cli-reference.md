@@ -125,7 +125,9 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 | GET | `/healthz` | Health check — returns `{"ok": true}` |
 | POST | `/experiments` | Submit an experiment sweep |
 | GET | `/experiments` | List all experiments |
+| GET | `/experiments/vector-db-stats` | Cluster-grouped vector DB / storage stats for all experiments |
 | GET | `/experiments/{id}` | Get experiment details + run statuses |
+| GET | `/experiments/{id}/db-stats` | Per-experiment chunk counts, storage estimates, index names |
 | GET | `/experiments/{id}/results` | Get query results for an experiment |
 | GET | `/experiments/{id}/explore` | Get data for the Search Explorer screen |
 | POST | `/experiments/{id}/cancel` | Request cancellation while status is running |

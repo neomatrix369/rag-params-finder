@@ -2,7 +2,7 @@
 
 **MoSCoW:** COULD *(ops ergonomics; workarounds today are manual YAML subsets or Mongo cleanup + resubmit)*
 **Target time:** ~1–2 h *(CLI + API + orchestration hooks; boot path is a small add-on if scoped narrowly)*
-**Status:** 📋 PLANNED
+**Status:** 🔨 PARTIAL — boot **status reconciliation** shipped; **retry** CLI/API still planned
 
 ---
 
@@ -15,7 +15,8 @@ Today:
 - `rag-params-finder run` always creates a **new** `experiment_id` and `run_sweep` assigns a **fresh** `run_id` per sweep row.
 - Partial sweeps (`on_error: continue`) yield experiment status **PARTIAL** with a mix of **COMPLETE** and **FAILED** runs.
 - Cancellation marks in-flight runs **INTERRUPTED**.
-- **`RECOVER_ON_BOOT`** is stored in metadata for the dashboard only — **no** server startup retry is implemented.
+- **Boot reconciliation** *(implemented)*: on server start, experiments still `running` get in-flight runs marked **INTERRUPTED** and status recomputed (`partial` / `complete` / `failed`). See `server/core/startup_reconciliation.py`.
+- **`RECOVER_ON_BOOT`** retry of interrupted runs is **not** implemented yet — flag is metadata-only until Slice 10 ships.
 - The only supported workflow for “redo the bad ones” is trimming YAML (or multiple YAMLs) and submitting a **new** experiment.
 
 ---
@@ -51,12 +52,9 @@ Recovery should **reuse the same `run_id`** for a retried run so dashboards, URL
 
 ## `RECOVER_ON_BOOT` Semantics *(narrow scope)*
 
-To avoid endlessly retrying **FAILED** runs caused by bad configs:
+**Already shipped (status only):** `server/main.py` lifespan calls `reconcile_orphaned_experiments()` on **every** boot — not gated by `RECOVER_ON_BOOT`. This fixes MongoDB status when the process died mid-sweep; it does **not** re-execute runs.
 
-- **Boot path** *(when implemented)* should target **INTERRUPTED** runs only *(process died mid-sweep)*, **not** all historical **FAILED** rows.
-- Optional future: allow opt-in `--also-failed` for advanced operators *(YAGNI until asked)*.
-
-Wire `settings.recover_on_boot` in `server/main.py` lifespan (or a small startup task) to enqueue the same recovery engine as the CLI — **same code path**.
+**Still planned (retry):** When `RECOVER_ON_BOOT=true`, enqueue the same recovery engine as the CLI to **retry INTERRUPTED** runs only *(process died mid-sweep)* — **not** all historical **FAILED** rows.
 
 ---
 
@@ -68,6 +66,7 @@ Wire `settings.recover_on_boot` in `server/main.py` lifespan (or a small startup
 | `cli/api_client.py` | POST recover endpoint |
 | `server/api/experiments.py` | `POST /experiments/{id}/recover`; BackgroundTask for recovery sweep |
 | `server/core/orchestrator.py` | `recover_failed_runs(...)` or extend `run_sweep` with a “recovery mode”; shared cleanup helper |
+| `server/core/startup_reconciliation.py` | ✅ Boot status fix *(shipped)* — mark orphans `interrupted`, recompute experiment status |
 | `server/api/experiments_shared.py` *(or new db helper)* | Bulk delete chunks/results by `run_id`; experiment status recomputation |
 | `docs/user-guide/cli-reference.md` | Document `recover` |
 | `docs/_internal/PROGRESS.md` | Mark slice complete; decision log |
