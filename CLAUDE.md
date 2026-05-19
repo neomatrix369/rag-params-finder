@@ -7,9 +7,9 @@ Agent guidance for `rag-params-finder`. Start with `AGENTS.md` → this file →
 **rag-params-finder** is a RAG parameter sweep experimentation tool with three components:
 1. **Python CLI** — submits experiment configs
 2. **FastAPI Server** — orchestrates PDF → chunk → embed → search pipeline
-3. **React Dashboard** — read-only visualization of experiments and results
+3. **React Dashboard** — visualization and sweep controls (pause, resume, cancel, delete)
 
-Two-process architecture: config submission (CLI) is separate from execution (Server). Dashboard is observer-only.
+Two-process architecture: config submission (CLI) is separate from execution (Server). Dashboard observes and controls active sweeps (pause/resume/cancel/delete).
 
 ## Development Commands
 
@@ -47,6 +47,8 @@ npm run build
 rag-params-finder run --config configs/example-mongodb-local.yaml
 rag-params-finder run --config configs/example-mongodb-local.yaml --detach
 rag-params-finder cancel <experiment-id>
+rag-params-finder pause <experiment-id>
+rag-params-finder resume <experiment-id>
 rag-params-finder delete <experiment-id>           # Delete experiment and all data
 rag-params-finder delete <experiment-id> --force   # Skip confirmation
 rag-params-finder version
@@ -58,21 +60,23 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 
 | File | Purpose |
 |---|---|
-| `server/main.py` | FastAPI app entry; lifespan ensures DB indexes |
+| `server/main.py` | FastAPI app entry; lifespan ensures DB indexes + orphan reconciliation |
 | `server/settings.py` | Centralized pydantic-settings config |
 | `server/core/orchestrator.py` | End-to-end pipeline executor |
+| `server/core/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
+| `server/core/atlas_storage.py` | Atlas Admin API cluster quota + dbStats helpers |
 | `server/core/model_registry.py` | Embedding + reranking model catalog |
-| `server/core/embedder.py` | Voyage embedding client |
+| `server/core/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting |
 | `server/core/local_embedder.py` | sentence-transformers embedding (lazy-load) |
 | `server/core/reranker.py` | Voyage reranking client |
 | `server/core/local_reranker.py` | CrossEncoder reranking (lazy-load) |
 | `server/core/retriever.py` | Atlas Vector Search (dense/sparse/hybrid) |
 | `server/models/config.py` | Pydantic experiment config + provider validators |
 | `server/models/enums.py` | ChunkingMethod, RetrievalMethod, Phase |
-| `server/api/experiments.py` | Experiments CRUD, results/explore, cancel, delete |
-| `server/api/experiments_shared.py` | Shared delete helpers (cascade deletion logic) |
+| `server/api/experiments.py` | Experiments CRUD, results/explore, db-stats, pause, resume, cancel, delete |
+| `server/api/experiments_shared.py` | Shared Mongo helpers (delete cascade, db-stats aggregation) |
 | `server/db/indexes.py` | Collection + index creation helpers |
-| `cli/main.py` | Typer app (`run`, `cancel`, `delete`, `version`) |
+| `cli/main.py` | Typer app (`run`, `cancel`, `pause`, `resume`, `delete`, `version`) |
 | `cli/config_loader.py` | YAML parser + model registry validation |
 | `cli/api_client.py` | HTTP client to server (POST /experiments, DELETE, etc.) |
 | `frontend/src/App.tsx` | Root component (screen routing) |
@@ -82,8 +86,12 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `frontend/src/components/ExperimentProgressCard.tsx` | Reusable experiment progress card with circular indicator |
 | `frontend/src/components/PollingIndicator.tsx` | Subtle "Syncing..." badge during background polls |
 | `frontend/src/components/ConfirmDeleteModal.tsx` | Delete confirmation modal with experiment details and stats |
-| `frontend/src/components/ExperimentsScreen.tsx` | Experiments list with delete actions (paginated) |
-| `frontend/src/components/ExperimentDetailScreen.tsx` | Experiment detail with delete action in header (paginated) |
+| `frontend/src/components/ExperimentControlButtons.tsx` | Pause, resume, cancel buttons on detail screen |
+| `frontend/src/components/ExperimentsScreen.tsx` | Experiments list with collapsible rows, vector DB stats, delete |
+| `frontend/src/components/ExperimentDetailScreen.tsx` | Detail view with overview metrics, outcome banners, runs table |
+| `frontend/src/components/VectorDbStatsPanel.tsx` | Cluster-grouped storage stats panel |
+| `frontend/src/components/CollapsibleCard.tsx` | Reusable collapsible section (localStorage persistence) |
+| `frontend/src/utils/experimentStatus.ts` | Run outcome summarization + terminal status helpers |
 | `frontend/src/types/index.ts` | Hand-mirrored TypeScript types from Python models |
 | `frontend/src/services/apiClient.ts` | Fetch wrapper (all server API calls, including DELETE) |
 | `frontend/src/services/fetchWithProgress.ts` | ReadableStream-based fetch with progress tracking |
@@ -93,10 +101,10 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 **Two independent provider settings**:
 - `embedding.provider`: "local" or "voyage"
   - Local → `server/core/local_embedder.py` → `all-MiniLM-L6-v2` (384-dim)
-  - Voyage → `server/core/embedder.py` → `voyage-3.5-lite|voyage-3.5|voyage-context-3` (1024-dim)
+  - Voyage → `server/core/embedder.py` → all models in `EMBEDDING_MODELS` with `provider: voyage` (1024-dim; `voyage-context-3` uses `contextualized_embed()` with automatic segment splitting for long documents)
 - `retrieval.rerank_provider`: "local" or "voyage"
   - Local → `server/core/local_reranker.py` → `cross-encoder/ms-marco-MiniLM-L-6-v2`
-  - Voyage → `server/core/reranker.py` → `rerank-2.5-lite|rerank-2.5`
+  - Voyage → `server/core/reranker.py` → `rerank-2.5-lite|rerank-2.5` (+ legacy `rerank-2*`, `rerank-1*`)
 
 Provider/model must match — registry in `model_registry.py` validates at config load time.
 

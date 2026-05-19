@@ -11,6 +11,8 @@ from cli.api_client import (
     cancel_experiment,
     delete_experiment,
     get_experiment,
+    pause_experiment,
+    resume_experiment,
     submit_experiment,
 )
 from cli.config_loader import load_config
@@ -84,7 +86,13 @@ def _watch_experiment(experiment_id: str) -> None:
             table = _build_runs_table(runs)
             live.update(table)
 
-            if status in TERMINAL_PHASES or status in ("partial", "cancelled"):
+            if status in TERMINAL_PHASES or status in (
+                "partial",
+                "cancelled",
+                "paused",
+                "complete",
+                "failed",
+            ):
                 break
 
             all_done = runs and all(r.get("phase") in TERMINAL_PHASES for r in runs)
@@ -132,6 +140,7 @@ def _print_summary(data: dict) -> None:
         "partial": "yellow",
         "failed": "red",
         "cancelled": "yellow",
+        "paused": "magenta",
     }.get(status, "cyan")
 
     lines = [f"[{status_style} bold]{status.upper()}[/{status_style} bold]  {name}"]
@@ -295,6 +304,64 @@ def cancel(
     except Exception as e:
         logger.error(f"Cancel request failed: {e}", exc_info=True)
         console.print(f"[red]Failed to cancel experiment: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def pause(
+    experiment_id: str = typer.Argument(..., help="Experiment ID to pause"),
+):
+    """Pause a running experiment (stops after the current phase)."""
+    logger.info(f"CLI pause command: experiment_id={experiment_id}")
+    console.print(f"[cyan]Requesting pause for {experiment_id[:8]}...[/cyan]")
+
+    try:
+        response = pause_experiment(experiment_id)
+        eid = experiment_id[:8]
+        console.print(
+            Panel.fit(
+                f"[yellow]⏸[/yellow]  Pause requested for experiment [bold]{eid}[/bold]\n"
+                f"{response.get('message', 'Experiment will pause after current phase')}",
+                title="Pause",
+                border_style="yellow",
+            )
+        )
+    except RuntimeError as e:
+        logger.error(f"Pause failed: {e}")
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        logger.error(f"Pause request failed: {e}", exc_info=True)
+        console.print(f"[red]Failed to pause experiment: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def resume(
+    experiment_id: str = typer.Argument(..., help="Experiment ID to resume"),
+):
+    """Resume a paused experiment from the next incomplete parameter combination."""
+    logger.info(f"CLI resume command: experiment_id={experiment_id}")
+    console.print(f"[cyan]Resuming experiment {experiment_id[:8]}...[/cyan]")
+
+    try:
+        response = resume_experiment(experiment_id)
+        eid = experiment_id[:8]
+        console.print(
+            Panel.fit(
+                f"[green]▶[/green]  Resume requested for experiment [bold]{eid}[/bold]\n"
+                f"{response.get('message', 'Remaining runs will execute')}",
+                title="Resume",
+                border_style="green",
+            )
+        )
+    except RuntimeError as e:
+        logger.error(f"Resume failed: {e}")
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        logger.error(f"Resume request failed: {e}", exc_info=True)
+        console.print(f"[red]Failed to resume experiment: {e}[/red]")
         raise typer.Exit(1)
 
 

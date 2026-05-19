@@ -19,7 +19,7 @@ Support two providers via an **explicit `provider` field** in the experiment YAM
 | Provider | Embedding model | Reranking model | Requirements |
 |---|---|---|---|
 | `local` | `all-MiniLM-L6-v2` (384-dim, ~23 MB) | `cross-encoder/ms-marco-MiniLM-L-6-v2` (~23 MB) | None — downloaded from HuggingFace on first use |
-| `voyage` | `voyage-3.5-lite`, `voyage-3.5`, `voyage-context-3` (1024-dim) | `rerank-2.5-lite`, `rerank-2.5` | `VOYAGE_API_KEY` in `.env` |
+| `voyage` | 12 embeddings in `EMBEDDING_MODELS` (voyage-4/3/domain/context; 1024-dim) | `rerank-2.5-lite`, `rerank-2.5`, + legacy rerankers in `RERANKER_MODELS` | `VOYAGE_API_KEY` in `.env` |
 
 The `provider` field is the **single source of truth** for routing — the server never infers provider from model names at runtime.
 
@@ -42,6 +42,7 @@ The `provider` field is the **single source of truth** for routing — the serve
 - **Two Atlas vector indexes required** for projects using both providers. Each experiment config uses one provider; vectors cannot be mixed.
 - **`numpy<2` pin required**: PyTorch (used by sentence-transformers) was compiled against NumPy 1.x ABI. NumPy 2.x causes `_ARRAY_API not found` crashes.
 - **Model download on first use**: Local models are ~23 MB each, cached in `~/.cache/huggingface/hub/`. First run may be slow on cold cache.
+- **`voyage-context-3` uses a different API**: Registered with `contextualized: True` in `model_registry.py`; routed to `contextualized_embed()` with automatic segment splitting for documents exceeding 32K tokens. All other Voyage models use standard `embed()`.
 - **Provider flows end-to-end**: `EmbeddingConfig.provider` → `RunParams.embedding_provider` → `embedder.py` dispatcher. No runtime inference; server restart issues cannot mis-route.
 
 ---

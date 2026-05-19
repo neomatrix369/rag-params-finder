@@ -11,12 +11,14 @@ import DashboardShell from './DashboardShell';
 import LoadingFeedbackPanel, { type FeedEntry } from './LoadingFeedbackPanel';
 import PollingIndicator from './PollingIndicator';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import ExperimentControlButtons from './ExperimentControlButtons';
 import VectorDbStatsPanel from './VectorDbStatsPanel';
 import ExperimentVectorDbStatsCard from './ExperimentVectorDbStatsCard';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
 import { deleteExperiment, getExperiments, getExperimentsWithProgress, getVectorDbStatsGrouped } from '../services/apiClient';
 import { Experiment, ExperimentDbStatsSummary, VectorDbStatsGroup } from '../types';
 import { devDebugThrottled, devWarn } from '../utils/devLog';
+import { isPausedExperimentStatus, isRunningExperimentStatus } from '../utils/experimentStatus';
 
 let feedSeq = 0;
 
@@ -99,7 +101,7 @@ function experimentsRailHelp() {
         <div className="mt-0.5 text-[11px] uppercase tracking-wider text-slate-500">Experiment list</div>
       </div>
       <div className="rounded-lg border border-slate-600/50 bg-slate-700/40 px-3 py-3 text-xs leading-relaxed text-slate-300 ring-1 ring-slate-600/35">
-        This table polls the experiments API continuously so you never miss a sweep finishing.
+        Running sweeps show Pause and Cancel on each row. Paused sweeps show Resume. Open an experiment for the same controls in the page header.
       </div>
     </>
   );
@@ -111,6 +113,7 @@ function statusBadgeClass(status: Experiment['status']): string {
   if (status === 'partial') return 'bg-yellow-100 text-yellow-700';
   if (status === 'failed') return 'bg-red-100 text-red-700';
   if (status === 'cancelled') return 'bg-orange-100 text-orange-700';
+  if (status === 'paused') return 'bg-violet-100 text-violet-700';
   return 'bg-slate-100 text-slate-700';
 }
 
@@ -124,18 +127,14 @@ function experimentStatsMap(groups: VectorDbStatsGroup[]): Map<string, Experimen
   return map;
 }
 
-/** True when we should show the full-page loading overlay (experiment list fetch only). */
+/** True only for the first experiment-list load — not for background polls. */
 function shouldShowLoadingPanel(
   initialLoadDone: boolean,
   loading: boolean,
-  isPolling: boolean,
-  experimentsCount: number,
   error: string | null,
 ): boolean {
   if (error !== null) return false;
-  if (!initialLoadDone || loading) return true;
-  if (experimentsCount === 0 && isPolling) return true;
-  return false;
+  return !initialLoadDone || loading;
 }
 
 export default function ExperimentsScreen({
@@ -202,6 +201,13 @@ export default function ExperimentsScreen({
     }
   }, [experiments]);
 
+  const refreshExperimentList = useCallback(async () => {
+    const refreshed = await getExperiments();
+    setExperiments(refreshed);
+    onCacheUpdate?.({ experiments: refreshed, vectorDbGroups });
+    setError(null);
+  }, [onCacheUpdate, vectorDbGroups]);
+
   const handleBulkDelete = useCallback(async () => {
     setDeleting(true);
     try {
@@ -247,7 +253,8 @@ export default function ExperimentsScreen({
     }
 
     const request = (async () => {
-      if (!options?.silent) setVectorDbLoading(true);
+      const showSpinner = !options?.silent && vectorDbGroups.length === 0;
+      if (showSpinner) setVectorDbLoading(true);
       try {
         const payload = await getVectorDbStatsGrouped();
         if (!aliveRef.current) return;
@@ -258,13 +265,13 @@ export default function ExperimentsScreen({
         setVectorDbError(err instanceof Error ? err.message : 'Failed to load vector DB stats');
       } finally {
         vectorDbStatsInFlightRef.current = null;
-        if (aliveRef.current && !options?.silent) setVectorDbLoading(false);
+        if (aliveRef.current && showSpinner) setVectorDbLoading(false);
       }
     })();
 
     vectorDbStatsInFlightRef.current = request;
     return request;
-  }, []);
+  }, [vectorDbGroups.length]);
 
   useEffect(() => {
     if (!initialLoadDone) return;
@@ -404,13 +411,7 @@ export default function ExperimentsScreen({
     };
   }, [cacheReady, loadVectorDbStats]);
 
-  const showLoadingPanel = shouldShowLoadingPanel(
-    initialLoadDone,
-    loading,
-    isPolling,
-    experiments.length,
-    error,
-  );
+  const showLoadingPanel = shouldShowLoadingPanel(initialLoadDone, loading, error);
   const showEmptyConfirmed =
     initialLoadDone &&
     !loading &&
@@ -530,9 +531,11 @@ export default function ExperimentsScreen({
               <div className="space-y-3">
                 {paginatedExperiments.map((exp) => {
                   const isSelected = selectedExperiments.has(exp.experiment_id);
-                  const isRunning = exp.status === 'running';
+                  const isRunning = isRunningExperimentStatus(exp.status);
+                  const isPaused = isPausedExperimentStatus(exp.status);
                   const isCollapsed = collapsedExperiments.has(exp.experiment_id);
                   const dbStats = statsByExperimentId.get(exp.experiment_id);
+                  const showRowControls = isRunning || isPaused;
                   return (
                     <div
                       key={exp.experiment_id}
@@ -588,9 +591,22 @@ export default function ExperimentsScreen({
                             </div>
                           )}
                         </button>
-                        <span className={`hidden sm:inline-flex rounded px-2 py-1 text-xs font-bold ${statusBadgeClass(exp.status)}`}>
-                          {exp.status}
-                        </span>
+                        <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
+                          {showRowControls && (
+                            <ExperimentControlButtons
+                              experimentId={exp.experiment_id}
+                              status={exp.status}
+                              size="sm"
+                              onStatusChange={refreshExperimentList}
+                              onError={(message) => setError(message)}
+                            />
+                          )}
+                          <span
+                            className={`inline-flex rounded px-2 py-1 text-xs font-bold ${statusBadgeClass(exp.status)}`}
+                          >
+                            {exp.status}
+                          </span>
+                        </div>
                       </div>
                       {!isCollapsed && (
                         <div className="space-y-4 border-t border-slate-100 bg-slate-50/60 px-4 py-4">

@@ -19,6 +19,7 @@ class EmbeddingModelInfo(TypedDict):
     dimensions: int
     huggingface_id: str | None
     description: str
+    contextualized: bool  # uses contextualized_embed() API (e.g. voyage-context-3)
 
 
 class RerankerModelInfo(TypedDict):
@@ -28,29 +29,100 @@ class RerankerModelInfo(TypedDict):
 
 
 EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
-    "voyage-3.5-lite": {
+    # Voyage 4 series (1024-dim default; shared embedding space)
+    "voyage-4-large": {
         "provider": "voyage",
         "dimensions": 1024,
         "huggingface_id": None,
-        "description": "Voyage AI lightweight embedding (1024-dim)",
+        "description": "Voyage 4 flagship embedding (1024-dim)",
+        "contextualized": False,
     },
-    "voyage-3.5": {
+    "voyage-4": {
         "provider": "voyage",
         "dimensions": 1024,
         "huggingface_id": None,
-        "description": "Voyage AI standard embedding (1024-dim)",
+        "description": "Voyage 4 general-purpose embedding (1024-dim)",
+        "contextualized": False,
+    },
+    "voyage-4-lite": {
+        "provider": "voyage",
+        "dimensions": 1024,
+        "huggingface_id": None,
+        "description": "Voyage 4 latency/cost-optimized embedding (1024-dim)",
+        "contextualized": False,
+    },
+    # Domain-specific (1024-dim)
+    "voyage-code-3": {
+        "provider": "voyage",
+        "dimensions": 1024,
+        "huggingface_id": None,
+        "description": "Voyage code retrieval embedding (1024-dim)",
+        "contextualized": False,
+    },
+    "voyage-finance-2": {
+        "provider": "voyage",
+        "dimensions": 1024,
+        "huggingface_id": None,
+        "description": "Voyage finance domain embedding (1024-dim)",
+        "contextualized": False,
+    },
+    "voyage-law-2": {
+        "provider": "voyage",
+        "dimensions": 1024,
+        "huggingface_id": None,
+        "description": "Voyage legal domain embedding (1024-dim)",
+        "contextualized": False,
     },
     "voyage-context-3": {
         "provider": "voyage",
         "dimensions": 1024,
         "huggingface_id": None,
-        "description": "Voyage AI context-optimized embedding (1024-dim)",
+        "description": "Voyage contextualized chunk embedding (1024-dim)",
+        "contextualized": True,
     },
+    # Voyage 3 series (legacy API; 1024-dim default)
+    "voyage-3-large": {
+        "provider": "voyage",
+        "dimensions": 1024,
+        "huggingface_id": None,
+        "description": "Voyage 3 large embedding (1024-dim, legacy)",
+        "contextualized": False,
+    },
+    "voyage-3.5-lite": {
+        "provider": "voyage",
+        "dimensions": 1024,
+        "huggingface_id": None,
+        "description": "Voyage 3.5 lightweight embedding (1024-dim, legacy)",
+        "contextualized": False,
+    },
+    "voyage-3.5": {
+        "provider": "voyage",
+        "dimensions": 1024,
+        "huggingface_id": None,
+        "description": "Voyage 3.5 standard embedding (1024-dim, legacy)",
+        "contextualized": False,
+    },
+    "voyage-3": {
+        "provider": "voyage",
+        "dimensions": 1024,
+        "huggingface_id": None,
+        "description": "Voyage 3 general-purpose embedding (1024-dim, legacy)",
+        "contextualized": False,
+    },
+    "voyage-multilingual-2": {
+        "provider": "voyage",
+        "dimensions": 1024,
+        "huggingface_id": None,
+        "description": "Voyage multilingual retrieval embedding (1024-dim, legacy)",
+        "contextualized": False,
+    },
+    # Local
     "all-MiniLM-L6-v2": {
         "provider": "local",
         "dimensions": 384,
         "huggingface_id": "sentence-transformers/all-MiniLM-L6-v2",
         "description": "Fast general-purpose sentence embeddings (384-dim, ~23MB)",
+        "contextualized": False,
     },
 }
 
@@ -58,12 +130,32 @@ RERANKER_MODELS: dict[str, RerankerModelInfo] = {
     "rerank-2.5-lite": {
         "provider": "voyage",
         "huggingface_id": None,
-        "description": "Voyage AI lightweight reranker",
+        "description": "Voyage 2.5 lightweight reranker (recommended)",
     },
     "rerank-2.5": {
         "provider": "voyage",
         "huggingface_id": None,
-        "description": "Voyage AI standard reranker",
+        "description": "Voyage 2.5 standard reranker (recommended)",
+    },
+    "rerank-2-lite": {
+        "provider": "voyage",
+        "huggingface_id": None,
+        "description": "Voyage 2 lightweight reranker (legacy)",
+    },
+    "rerank-2": {
+        "provider": "voyage",
+        "huggingface_id": None,
+        "description": "Voyage 2 standard reranker (legacy)",
+    },
+    "rerank-lite-1": {
+        "provider": "voyage",
+        "huggingface_id": None,
+        "description": "Voyage 1 lightweight reranker (legacy)",
+    },
+    "rerank-1": {
+        "provider": "voyage",
+        "huggingface_id": None,
+        "description": "Voyage 1 standard reranker (legacy)",
     },
     "cross-encoder/ms-marco-MiniLM-L-6-v2": {
         "provider": "local",
@@ -87,6 +179,16 @@ def get_provider(model_id: str) -> str:
 
 def get_dimensions(model_id: str) -> int:
     return get_model_info(model_id)["dimensions"]
+
+
+def is_contextualized_embedding(model_id: str) -> bool:
+    return get_model_info(model_id)["contextualized"]
+
+
+def list_embedding_models(*, provider: str | None = None) -> list[str]:
+    if provider is None:
+        return list(EMBEDDING_MODELS)
+    return [mid for mid, info in EMBEDDING_MODELS.items() if info["provider"] == provider]
 
 
 def get_index_name(model_id: str) -> str:

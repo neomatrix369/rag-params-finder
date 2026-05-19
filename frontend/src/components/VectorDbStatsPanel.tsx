@@ -39,7 +39,11 @@ export default function VectorDbStatsPanel({
   if (loading && groups.length === 0) {
     return (
       <div className="mb-6 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 p-6 text-sm text-slate-600">
-        Loading vector database stats…
+        <p className="font-medium text-slate-800">Loading vector database stats…</p>
+        <p className="mt-2 text-slate-600">
+          Counting chunks and storage across experiments. This is separate from the experiment list
+          and may take longer while a sweep is writing to Atlas.
+        </p>
       </div>
     );
   }
@@ -65,6 +69,9 @@ export default function VectorDbStatsPanel({
 
   return (
     <div className="mb-6 space-y-4">
+      {loading && (
+        <p className="text-xs font-medium text-indigo-700">Refreshing vector database stats…</p>
+      )}
       {groups.map((group) => (
         <div
           key={group.vector_db_id}

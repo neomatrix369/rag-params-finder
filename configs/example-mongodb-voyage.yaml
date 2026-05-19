@@ -1,20 +1,21 @@
 # MongoDB Atlas — Voyage AI models (requires VOYAGE_API_KEY in .env)
 #
-# Full Cartesian sweep:
+# Default sweep (3 embedding models enabled below):
 #   3 embedding models × 5 chunking methods × 2 chunk sizes × 1 overlap × 3 retrieval methods
 #   = 90 runs
 #
-# Params are narrower than the local config to keep Voyage API costs reasonable.
-# Estimated cost: ~$0.65 total across all models and runs.
+# Uncomment additional models for a full sweep (12 models → 360 runs). See comments per model.
 #
-# Embedding:  voyage-3.5-lite · voyage-3.5 · voyage-context-3 (1024-dim)
+# Embedding (1024-dim, vector_index_1024): voyage-4-* · domain · context · voyage-3.*
 # Chunking:   fixed · recursive · token · sentence · semantic
 # Retrieval:  dense · sparse · hybrid
 #
-# Atlas prerequisites:
-#   - vector_index_1024 (vector search, 1024-dim cosine) — required for dense and hybrid
-#   - text_search_index (Atlas Search, BM25)             — required for sparse and hybrid
-#   See CLAUDE.local.md or docs/user-guide/getting-started.md for index creation steps.
+# Atlas prerequisites (M0 — create before running sweep):
+#   - chunks collection in rag_params_finder database
+#   - vector_index_1024 + text_search_index
+# Voyage prerequisites:
+#   - VOYAGE_API_KEY + Tier 1 billing (≥$5 credits) in .env
+#   See docs/user-guide/cloud-setup.md#before-you-run-a-sweep
 
 experiment_name: example-mongodb-voyage
 
@@ -28,9 +29,21 @@ database_provider: mongodb
 embedding:
   provider: voyage
   models:
+    # Voyage 4 series
+    # - voyage-4-large       # 1024-dim, flagship quality
+    # - voyage-4             # 1024-dim, general-purpose balanced
+    # - voyage-4-lite        # 1024-dim, fastest and cheapest (Voyage 4)
+    # Domain-specific
+    # - voyage-code-3        # 1024-dim, optimised for code retrieval
+    # - voyage-finance-2     # 1024-dim, finance domain
+    # - voyage-law-2         # 1024-dim, legal domain
+    - voyage-context-3     # 1024-dim, optimised for long contexts (contextualized API)
+    # Voyage 3 series (legacy API)
+    # - voyage-3-large       # 1024-dim, highest quality (legacy)
     - voyage-3.5-lite      # 1024-dim, fastest and cheapest
     - voyage-3.5           # 1024-dim, balanced quality
-    - voyage-context-3     # 1024-dim, optimised for long contexts
+    # - voyage-3             # 1024-dim, general-purpose (legacy)
+    # - voyage-multilingual-2 # 1024-dim, multilingual retrieval (legacy)
 
 chunking:
   methods:

@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-19 (Vector DB stats + collapsible experiment rows — in progress on `feat/vector-db-stats-and-collapsible-cards`)
-**Current**: Slices 1–9 ✅ COMPLETE | 🔨 IN PROGRESS: Vector DB stats panel + collapsible list rows | Next: Slice 10 📋 PLANNED (failed-run recovery) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`)
+**Last Updated**: 2026-05-19 (Pause/resume sweeps + Voyage model catalog expansion + voyage-context-3 segment splitting)
+**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`)
 
 ---
 
@@ -18,8 +18,9 @@
 | 7 — Free/local embedding + reranking | ✅ COMPLETE | ~15 min | sentence-transformers, no API key needed |
 | 8 — Dashboard UX improvements | ✅ COMPLETE | ~2 h | Loading feedback panels, polling indicators, pagination, unified chrome |
 | 9 — Experiment deletion | ✅ COMPLETE | ~1 h | CLI delete command + dashboard confirmation modal, cascade cleanup |
-| — — Vector DB stats + collapsible rows | 🔨 IN PROGRESS | ~1 h | `GET /experiments/{id}/db-stats`; detail stats panel; list row collapse (localStorage) |
-| 10 — Run recovery | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; see [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) |
+| — — Vector DB stats + collapsible rows + boot reconciliation | ✅ COMPLETE | ~1.5 h | Cluster/experiment storage stats; collapsible panels; orphan `running` → `partial` on server boot |
+| — — Pause/resume + Voyage catalog expansion | ✅ COMPLETE | ~2 h | Cooperative pause/resume; 12 Voyage embedding models; `voyage-context-3` contextualized API + segment splitting |
+| 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 
@@ -411,6 +412,46 @@ Manually verified:
 
 ---
 
+## Vector DB Stats + Collapsible Rows + Boot Reconciliation ✅
+
+**Status**: ✅ COMPLETE | **Started**: 2026-05-19 | **Completed**: 2026-05-19 | **Target**: ~1.5 h
+
+### Goal
+Surface MongoDB/Atlas storage footprint in the dashboard, improve experiments list UX with collapsible rows, and automatically fix experiments left `running` after server restart or crash.
+
+### What Changed
+- **NEW**: `server/core/atlas_storage.py` — Atlas Admin API cluster quota lookup + `dbStats` footprint; manual `MONGODB_STORAGE_LIMIT_MB` override
+- **NEW**: `server/core/startup_reconciliation.py` — on boot, mark in-flight runs `interrupted` and recompute experiment status (`partial` / `complete` / `failed`)
+- **NEW**: `server/utils/log_throttle.py` — throttle repetitive polling log lines
+- **EDIT**: `server/api/experiments_shared.py` — `mongo_get_experiment_db_stats`, `mongo_get_vector_db_stats_grouped`
+- **EDIT**: `server/api/experiments.py` — `GET /experiments/vector-db-stats`, `GET /experiments/{id}/db-stats`
+- **EDIT**: `server/main.py` — call `reconcile_orphaned_experiments()` in lifespan
+- **NEW**: `frontend/src/components/CollapsibleCard.tsx`, `VectorDbStatsPanel.tsx`, `ExperimentVectorDbStatsCard.tsx`
+- **NEW**: `frontend/src/utils/experimentStatus.ts` — `summarizeExperimentRuns()` for outcome buckets
+- **EDIT**: `frontend/src/components/ExperimentsScreen.tsx` — collapsible list rows, cluster stats panel, list→detail cache handoff
+- **EDIT**: `frontend/src/components/ExperimentDetailScreen.tsx` — compact overview metrics (successful / failed / interrupted / not started), status-accurate outcome banners
+- **EDIT**: `.env.example` — Atlas Admin API + storage limit vars
+
+### Key Design Decisions
+| Decision | Why |
+|---|---|
+| Reconcile orphans on every boot (not gated by `RECOVER_ON_BOOT`) | Status correction is safe and idempotent; retry remains opt-in via Slice 10 |
+| `partial` when sweep incomplete | Distinguishes “41/90 complete + 48 never started” from green `complete` |
+| Atlas quota via Admin API with manual fallback | M0 tier limits vary; hardcoded 512 MB was misleading |
+| Outcome metrics from `run_status` phases | `run_count - failed_count` lied when runs never started |
+| Collapsible state in `localStorage` | Per-panel persistence without server round-trips |
+
+### Acceptance Criteria
+- [x] `GET /experiments/vector-db-stats` returns grouped cluster stats
+- [x] `GET /experiments/{id}/db-stats` returns per-experiment chunk/storage breakdown
+- [x] Experiments list shows collapsible rows + vector DB stats panel
+- [x] Experiment detail shows run-outcome buckets that sum to total runs
+- [x] Partial experiments show “Sweep Incomplete” — not green success banner
+- [x] Server boot reconciles stale `running` experiments to terminal status
+- [x] Pre-commit hooks pass
+
+---
+
 ## Slice 6: Additional Chunkers + Retrieval Methods ✅
 
 **Status**: ✅ COMPLETE | **Started**: 2026-05-17 | **Completed**: 2026-05-17 | **Target**: ~45 min
@@ -483,6 +524,12 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-17 | 8 | Pagination defaults 10 (lists) / 5 (configs) | Prevents DOM overload and cognitive fatigue; configs more verbose so lower per-page count |
 | 2026-05-17 | 8 | initialLoadDone flag per screen | Polling indicator only shows after first load completes; avoids visual confusion during hydration |
 | 2026-05-18 | 8 | ExperimentProgressCard reusable component | Extracted circular progress pattern from detail screen; enables consistent progress visualization across screens; separates network progress (LoadingFeedbackPanel) from execution progress (ExperimentProgressCard) |
+| 2026-05-19 | — | Boot orphan reconciliation always on | BackgroundTasks die on reload; Mongo `running` must be corrected without waiting for Slice 10 retry |
+| 2026-05-19 | — | Run outcome buckets in dashboard | successful + failed + interrupted + not started must sum to `run_count`; fixes misleading partial UI |
+| 2026-05-19 | — | Atlas storage quota via Admin API | Avoid hardcoded M0 512 MB; optional manual `MONGODB_STORAGE_LIMIT_MB` override |
+| 2026-05-19 | — | Pause/resume cooperative sweep control | `_SweepControl` threading events; `resume_sweep()` skips completed param signatures; status `paused` non-terminal |
+| 2026-05-19 | — | voyage-context-3 segment splitting | Contextualized API 32K window; tiktoken cl100k_base sizing; standard Voyage models unchanged (`embed()` path) |
+| 2026-05-19 | — | Expanded Voyage model registry | voyage-4 series, domain models, voyage-context-3, voyage-3 legacy; `contextualized` flag drives embedder dispatch |
 
 ---
 

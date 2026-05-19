@@ -8,10 +8,10 @@
 # Chunking:   fixed · recursive · token · sentence · semantic
 # Retrieval:  dense · sparse · hybrid
 #
-# Atlas prerequisites:
-#   - vector_index_384  (vector search, 384-dim cosine) — required for dense and hybrid
-#   - text_search_index (Atlas Search, BM25)            — required for sparse and hybrid
-#   See CLAUDE.local.md or docs/user-guide/getting-started.md for index creation steps.
+# Atlas prerequisites (M0 — create before running sweep):
+#   - chunks collection in rag_params_finder database
+#   - vector_index_384  + text_search_index
+#   See docs/user-guide/cloud-setup.md#before-you-run-a-sweep
 
 experiment_name: example-mongodb-local
 

@@ -22,20 +22,25 @@ import ExperimentProgressCard from './ExperimentProgressCard';
 import ExperimentVectorDbStatsCard from './ExperimentVectorDbStatsCard';
 import type { FeedEntry } from './LoadingFeedbackPanel';
 import {
-  cancelExperiment,
   deleteExperiment,
   getExperiment,
   getExperimentDbStats,
   getExperimentWithProgress,
   type ExperimentProgressCallback,
 } from '../services/apiClient';
+import ExperimentControlButtons from './ExperimentControlButtons';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import CollapsibleCard from './CollapsibleCard';
 import { RunStatus, Phase, EnvParams, SweepSummary, ExperimentStatus, Experiment, ExperimentDbStatsSummary } from '../types';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
 import { devDebugThrottled, devWarn } from '../utils/devLog';
 import { toExperimentDbStatsSummary } from '../utils/experimentDbStats';
-import { isRunningExperimentStatus, isTerminalExperimentStatus, summarizeExperimentRuns } from '../utils/experimentStatus';
+import {
+  isPausedExperimentStatus,
+  isRunningExperimentStatus,
+  isTerminalExperimentStatus,
+  summarizeExperimentRuns,
+} from '../utils/experimentStatus';
 
 let detailFeedSeq = 0;
 
@@ -279,6 +284,7 @@ function StatusBadge({ status }: { status: string }) {
     failed: { bg: 'bg-red-100', text: 'text-red-800', icon: icons.x, ring: 'ring-red-600' },
     partial: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: icons.x, ring: 'ring-yellow-600' },
     cancelled: { bg: 'bg-gray-100', text: 'text-gray-800', icon: icons.x, ring: 'ring-gray-600' },
+    paused: { bg: 'bg-violet-100', text: 'text-violet-800', icon: icons.clock, ring: 'ring-violet-600' },
   }[status] || { bg: 'bg-slate-100', text: 'text-slate-800', icon: icons.clock, ring: 'ring-slate-600' };
 
   return (
@@ -391,7 +397,6 @@ export default function ExperimentDetailScreen({
   const [detail, setDetail] = useState<ExperimentDetail | null>(seededDetail);
   const [error, setError] = useState<string | null>(null);
   const [hydrating, setHydrating] = useState(seededDetail === null);
-  const [cancelling, setCancelling] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -598,22 +603,16 @@ export default function ExperimentDetailScreen({
     };
   }, [experimentId, initialExperiment, startDetailPollIfRunning, stopDetailPoll]);
 
-  async function handleCancel() {
-    if (!confirm('Cancel this experiment? Runs in progress will stop after the current phase.')) {
-      return;
+  const refreshDetailAfterControl = useCallback(async () => {
+    const refreshed = await getExperiment(experimentId);
+    setDetail(refreshed as unknown as ExperimentDetail);
+    if (isRunningExperimentStatus(refreshed.status)) {
+      startDetailPollIfRunning(refreshed.status);
+    } else {
+      stopDetailPoll();
     }
-    setCancelling(true);
-    try {
-      await cancelExperiment(experimentId);
-      const refreshed = await getExperiment(experimentId);
-      setDetail(refreshed as unknown as ExperimentDetail);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to cancel');
-    } finally {
-      setCancelling(false);
-    }
-  }
+    setError(null);
+  }, [experimentId, startDetailPollIfRunning, stopDetailPoll]);
 
   async function handleDelete() {
     setDeleting(true);
@@ -631,7 +630,10 @@ export default function ExperimentDetailScreen({
 
   const TERMINAL_STATUSES: ExperimentStatus[] = ['complete', 'failed', 'partial', 'cancelled'];
   const isTerminal = detail && TERMINAL_STATUSES.includes(detail.status);
-  const isRunning = detail?.status === 'running';
+  const isRunning = isRunningExperimentStatus(detail?.status);
+  const isPaused = isPausedExperimentStatus(detail?.status);
+  const canExplore = Boolean(onExplore && (isTerminal || isRunning || isPaused));
+  const canDelete = isTerminal || isPaused;
 
   const backToList = (
     <button
@@ -744,15 +746,28 @@ export default function ExperimentDetailScreen({
           pageMeta={<span className="font-mono">{experimentId}</span>}
           pageHint={
             isRunning
-              ? `Live updates every ${DETAIL_POLL_MS / 1000}s until this batch reaches a terminal status.`
-              : 'Runs, sweep metadata, and stored results appear in the sections below.'
+              ? `Live updates every ${DETAIL_POLL_MS / 1000}s. Pause or cancel from the controls above.`
+              : isPaused
+                ? 'Experiment is paused — resume to continue remaining parameter combinations.'
+                : 'Runs, sweep metadata, and stored results appear in the sections below.'
+          }
+          topRight={
+            <ExperimentControlButtons
+              experimentId={experimentId}
+              status={detail.status}
+              tone="dark"
+              onStatusChange={refreshDetailAfterControl}
+              onError={(message) => setError(message)}
+            />
           }
           showDashboardFootnote={false}
         />
       }
       sidebar={experimentRailBlurb(
         isRunning
-          ? 'Cancel stays available until every run leaves the running phases.'
+          ? 'Pause or cancel from the header while runs are in flight.'
+          : isPaused
+            ? 'Resume from the header to continue the sweep.'
           : isTerminal && onExplore
           ? 'Open Explore results when you want aggregated rankings for this sweep.'
           : 'Status, configs, failures, and the run table populate the pane on the right.',
@@ -769,31 +784,29 @@ export default function ExperimentDetailScreen({
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {(isTerminal || isRunning) && onExplore && (
+              {canExplore && (
                 <button
                   type="button"
                   onClick={onExplore}
                   title={
                     isRunning
                       ? 'Opens Search Explorer with data stored so far; more results appear as runs finish.'
-                      : undefined
+                      : isPaused
+                        ? 'Explore results from completed runs; resume to continue the sweep.'
+                        : undefined
                   }
                   className="rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:from-blue-700 hover:to-blue-800"
                 >
                   {isRunning ? '🔍 Explore live' : '🔍 Explore'}
                 </button>
               )}
-              {isRunning && (
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  disabled={cancelling}
-                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:bg-red-300"
-                >
-                  {cancelling ? 'Cancelling…' : '⏹ Cancel'}
-                </button>
-              )}
-              {isTerminal && (
+              <ExperimentControlButtons
+                experimentId={experimentId}
+                status={detail.status}
+                onStatusChange={refreshDetailAfterControl}
+                onError={(message) => setError(message)}
+              />
+              {canDelete && (
                 <button
                   type="button"
                   onClick={() => setShowDeleteModal(true)}
@@ -826,13 +839,21 @@ export default function ExperimentDetailScreen({
 
         {/* Progress visualization for running experiments */}
         {detail && isRunning && detail.runs && detail.runs.length > 0 && (
-          <ExperimentProgressCard
-            title="Experiment Progress"
-            subtitle={`${runSummary.complete} of ${runSummary.expected} runs completed`}
-            percent={runSummary.expected > 0 ? (runSummary.complete / runSummary.expected) * 100 : 0}
-            variant="default"
-            className="mb-6"
-          />
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <ExperimentProgressCard
+              title="Experiment Progress"
+              subtitle={`${runSummary.complete} of ${runSummary.expected} runs completed`}
+              percent={runSummary.expected > 0 ? (runSummary.complete / runSummary.expected) * 100 : 0}
+              variant="default"
+              className="min-w-0 flex-1"
+            />
+            <ExperimentControlButtons
+              experimentId={experimentId}
+              status={detail.status}
+              onStatusChange={refreshDetailAfterControl}
+              onError={(message) => setError(message)}
+            />
+          </div>
         )}
 
         <div className="mb-6">
@@ -1250,7 +1271,35 @@ export default function ExperimentDetailScreen({
           </div>
         )}
 
-        {!isTerminal && (
+        {isPaused && (
+          <div className="mt-6 bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-violet-300 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-violet-500 flex items-center justify-center text-white">
+                  {icons.clock}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-violet-900">Experiment Paused</h3>
+                  <p className="text-sm text-violet-800 mt-1">
+                    {runSummary.complete} of {runSummary.expected} run(s) completed.
+                    {runSummary.neverStarted > 0 && ` ${runSummary.neverStarted} not started yet.`}
+                  </p>
+                  <p className="text-xs text-violet-700 mt-2">
+                    Resume to continue from the next parameter combination. Completed runs are kept.
+                  </p>
+                </div>
+              </div>
+              <ExperimentControlButtons
+                experimentId={experimentId}
+                status={detail.status}
+                onStatusChange={refreshDetailAfterControl}
+                onError={(message) => setError(message)}
+              />
+            </div>
+          </div>
+        )}
+
+        {isRunning && (
           <div className="mt-4 text-center text-xs text-slate-500">
             Polling every {DETAIL_POLL_MS / 1000}s <span className="animate-pulse">●</span>
           </div>

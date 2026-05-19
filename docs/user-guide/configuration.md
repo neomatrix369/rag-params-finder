@@ -95,19 +95,62 @@ Each run is tracked independently through the pipeline phases and has its own re
 
 ## 🤖 Models
 
-| Model | Type | Dimensions | Provider | Notes |
-|---|---|---|---|---|
-| `all-MiniLM-L6-v2` | Embedding | 384 | `local` | ~23 MB, no API key, HuggingFace cached |
-| `voyage-3.5-lite` | Embedding | 1024 | `voyage` | Cheapest Voyage embedding |
-| `voyage-3.5` | Embedding | 1024 | `voyage` | Higher accuracy |
-| `voyage-context-3` | Embedding | 1024 | `voyage` | Long-context optimized |
-| `cross-encoder/ms-marco-MiniLM-L-6-v2` | Reranker | — | `local` | ~23 MB, no API key |
-| `rerank-2.5-lite` | Reranker | — | `voyage` | Fastest Voyage reranker |
-| `rerank-2.5` | Reranker | — | `voyage` | Higher accuracy reranker |
+Canonical list: `server/core/model_registry.py` (`EMBEDDING_MODELS`, `RERANKER_MODELS`).
+
+### Embedding models
+
+| Model | Dimensions | Provider | Notes |
+|---|---|---|---|
+| `all-MiniLM-L6-v2` | 384 | `local` | ~23 MB, no API key |
+| **Voyage 4** | | | |
+| `voyage-4-large` | 1024 | `voyage` | Flagship; shared 4-series embedding space |
+| `voyage-4` | 1024 | `voyage` | General-purpose |
+| `voyage-4-lite` | 1024 | `voyage` | Latency/cost optimized |
+| **Domain** | | | |
+| `voyage-code-3` | 1024 | `voyage` | Code retrieval |
+| `voyage-finance-2` | 1024 | `voyage` | Finance domain |
+| `voyage-law-2` | 1024 | `voyage` | Legal domain |
+| `voyage-context-3` | 1024 | `voyage` | Contextualized chunk API |
+| **Voyage 3 (legacy API)** | | | |
+| `voyage-3-large` | 1024 | `voyage` | Previous-gen large |
+| `voyage-3.5-lite` | 1024 | `voyage` | Previous-gen lite |
+| `voyage-3.5` | 1024 | `voyage` | Previous-gen standard |
+| `voyage-3` | 1024 | `voyage` | Voyage 3 general |
+| `voyage-multilingual-2` | 1024 | `voyage` | Multilingual |
+
+### Reranker models
+
+| Model | Provider | Notes |
+|---|---|---|
+| `cross-encoder/ms-marco-MiniLM-L-6-v2` | `local` | ~23 MB, no API key |
+| `rerank-2.5-lite` | `voyage` | Recommended — fastest |
+| `rerank-2.5` | `voyage` | Recommended — higher quality |
+| `rerank-2-lite` | `voyage` | Legacy |
+| `rerank-2` | `voyage` | Legacy |
+| `rerank-lite-1` | `voyage` | Legacy |
+| `rerank-1` | `voyage` | Legacy |
 
 **Provider/model must match.** The system validates at config load time — a `provider: local` config with a Voyage model name will fail immediately with a clear error.
 
 **Atlas vector index** selection is automatic: local models (384-dim) use `vector_index_384`; Voyage models (1024-dim) use `vector_index_1024`. Both can coexist on the same `chunks` collection.
+
+### `voyage-context-3` (contextualized API)
+
+Unlike other Voyage models, `voyage-context-3` uses Voyage's **`contextualized_embed`** API — all chunks from a document segment share embedding context for better retrieval quality.
+
+| Limit | Value | Server behavior |
+|---|---|---|
+| Per-segment context window | 32,000 tokens | Long documents are split into multiple segments automatically (`server/core/embedder.py`) |
+| Per-request total tokens | 120,000 tokens | Multiple segments batched into one API call when under cap |
+| Single chunk max | 32,000 tokens | Validated before embed; fails with clear error if `chunk_size` is too large |
+
+**Implications for sweeps**:
+
+- **Other Voyage models are unaffected** — they use standard `client.embed()` with per-chunk batching.
+- **Segment boundaries**: chunks in different segments lose cross-segment document context (within-segment context is preserved).
+- **Chunk size**: keep `chunk_sizes` well below 32K tokens (the example configs use `[256, 512]` characters/tokens). A single oversized chunk cannot be truncated by Voyage.
+
+See [Troubleshooting — voyage-context-3 token limit](troubleshooting.md#-voyage-context-3-token-limit-exceeded) if embedding fails with a 32K window error.
 
 ---
 
@@ -179,7 +222,9 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 For a targeted subset, copy the file and trim the `methods` or `chunk_sizes` lists before running.
 
-To **re-run only failed combinations inside an existing experiment** *(same `experiment_id`, keep successful runs)*, see the planned workflow in [`../slices/SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) — today this still requires manual YAML reshaping or a new submit.
+To **continue an incomplete sweep** without re-submitting YAML, pause and resume the same experiment (CLI or dashboard) — completed parameter combinations are skipped automatically.
+
+To **re-run only failed combinations inside an existing experiment** *(same `experiment_id`, keep successful runs)*, see the planned workflow in [`../slices/SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) — today this requires manual YAML reshaping, pause/resume for not-yet-started combos, or a new submit.
 
 ---
 
@@ -189,11 +234,14 @@ To **re-run only failed combinations inside an existing experiment** *(same `exp
 
 | Model | Cost | Notes |
 |---|---|---|
-| `voyage-3.5-lite` | $0.06 / 1M tokens | Cheapest embedding |
-| `voyage-3.5` | $0.12 / 1M tokens | Higher accuracy |
-| `rerank-2.5-lite` | $0.02 / 1K queries | Cheapest reranker |
+| `voyage-4-lite` | $0.02 / 1M tokens | Cheapest current-gen embedding |
+| `voyage-4` | $0.06 / 1M tokens | Balanced |
+| `voyage-4-large` | $0.12 / 1M tokens | Highest quality |
+| `voyage-context-3` | $0.18 / 1M tokens | Contextualized chunks |
+| `voyage-3.5-lite` | $0.02 / 1M tokens | Legacy lite |
+| `rerank-2.5-lite` | $0.02 / 1M tokens | Cheapest reranker |
 
-**Free tier limits**: 300 RPM, 1M TPM. Set `VOYAGE_RPM_LIMIT` and `VOYAGE_TPM_LIMIT` in `.env` to throttle requests to match your tier.
+**Rate limits**: Required for Voyage sweep — add payment method + ≥$5 credits, then set Tier 1 limits in `.env`. See [Cloud Account Setup → Voyage step 3](cloud-setup.md#3-unlock-tier-1-rate-limits-required-for-90-run-sweep).
 
 **Example cost** for a 36-run sweep (3 models × 2 methods × 3 chunk sizes × 2 overlaps):
 - 1 PDF × ~200 pages × 5 chunks/page = 1,000 chunks/run
@@ -204,7 +252,8 @@ To **re-run only failed combinations inside an existing experiment** *(same `exp
 
 ## 👉 See Also
 
-- [Getting Started](getting-started.md) — environment setup and Atlas vector index creation
+- [Getting Started](getting-started.md) — environment setup and first experiment
+- [Cloud Account Setup](cloud-setup.md) — Atlas and Voyage account setup
 - [CLI Reference](cli-reference.md) — how to submit a config and monitor runs
 - [Dashboard Guide](dashboard-guide.md) — interpreting results and scores
 - [Extending the System](../contributor-guide/extending.md) — adding new models or chunking methods

@@ -22,6 +22,8 @@ Agent session entry point for `rag-params-finder`.
 # Backend
 uvicorn server.main:app --reload --port 8001   # start server
 rag-params-finder run --config configs/example-mongodb-local.yaml  # submit experiment
+rag-params-finder pause <experiment-id>   # pause after current phase
+rag-params-finder resume <experiment-id>  # continue paused sweep
 uv pip install -e ".[dev]" && uv run ruff check . && uv run mypy server/ cli/ && uv run pytest
 
 # Frontend

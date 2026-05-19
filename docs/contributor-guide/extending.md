@@ -17,11 +17,13 @@ In `server/core/model_registry.py`, add to `EMBEDDING_MODELS`:
 
 ```python
 EMBEDDING_MODELS = {
-    "my-new-model": ModelEntry(
-        provider="local",          # or "voyage"
-        dimensions=768,
-        huggingface_id="org/my-new-model",  # for local models
-    ),
+    "my-new-model": {
+        "provider": "local",          # or "voyage"
+        "dimensions": 768,
+        "huggingface_id": "org/my-new-model",  # for local models; None for Voyage
+        "description": "Short label for docs",
+        "contextualized": False,      # True only for voyage-context-* (contextualized_embed API)
+    },
     ...
 }
 ```
@@ -33,6 +35,13 @@ If the model uses a provider not yet supported, update `server/models/config.py`
 ### 3. Update the embedder dispatcher
 
 In `server/core/embedder.py` (Voyage) or `server/core/local_embedder.py` (sentence-transformers): verify the model name routes correctly through the existing dispatch logic. For most new models of an existing provider type, no changes are needed.
+
+**Contextualized models** (`contextualized: True`, e.g. `voyage-context-3`):
+
+- Route through `_embed_documents_voyage_context()` → `client.contextualized_embed()`
+- Respect Voyage's 32K-token per-segment window — long documents are split in `_split_context_segments()`
+- Set `"contextualized": True` in `EMBEDDING_MODELS`; `is_contextualized_embedding()` drives dispatch in `embed_documents()`
+- Standard Voyage models (`contextualized: False`) are unaffected — they use `client.embed()` only
 
 ### 4. Create an Atlas vector index
 
@@ -175,7 +184,8 @@ export async function fetchMyData(experimentId: string): Promise<MyType> {
 | Missing embeddings filter | Always filter Atlas vector search by `embedding_model` — different models produce incompatible vectors that must not be compared. |
 | Queries file URL caching | URL-sourced query files are downloaded to `configs/` and cached by hash. Delete the cached file to force re-download. |
 | Server must be running | The CLI requires the server at `SERVER_URL` (default: `http://localhost:8001`). All commands fail if the server is down. |
-| Rate limits on Voyage | Free tier: 300 RPM / 1M TPM. Set `VOYAGE_RPM_LIMIT` and `VOYAGE_TPM_LIMIT` in `.env` to throttle. |
+| Rate limits on Voyage | Free tier: 3 RPM / 10k TPM (defaults). Tier 1: 2,000 RPM + model TPM — set `VOYAGE_RPM_LIMIT` / `VOYAGE_TPM_LIMIT` in `.env`. |
+| `voyage-context-3` token window | Contextualized API: 32K tokens per document segment, no truncation. Server splits long docs automatically; single chunks must stay under 32K. Other Voyage models use standard `embed()`. |
 | Score normalization | Rerank scores (cross-encoder logits) can be negative. The system uses min-max normalization to map all scores to 0–100. |
 | TypeScript types are hand-mirrored | When changing Python models (`server/models/`), manually update `frontend/src/types/index.ts`. There is no codegen. |
 

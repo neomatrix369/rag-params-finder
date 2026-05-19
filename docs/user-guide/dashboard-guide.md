@@ -5,7 +5,7 @@
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 
-The React dashboard at `http://localhost:5173` provides a read-only view of experiments and results. It polls the server every 2 seconds while any experiment is running.
+The React dashboard at `http://localhost:5173` visualizes experiments and results. Experiments are **submitted from the CLI**; the dashboard can **pause, resume, cancel, and delete** active sweeps. It polls the server every 2 seconds while any experiment is `running` or `paused`.
 
 All screens feature:
 - **Loading feedback panels** with progress bars during initial data loads
@@ -29,19 +29,24 @@ The landing screen shows all submitted experiments, newest first.
 
 **Pagination**: Shows 10 experiments per page. Navigate using Previous/Next buttons at the bottom.
 
+**Collapsible rows**: Click the chevron on a row to expand inline details without leaving the list. Expansion state is remembered per experiment (`localStorage`).
+
+**Vector DB stats panel** (top of list): Aggregated storage footprint for your Atlas cluster — total chunks, estimated embedding storage, active index names, and per-experiment breakdown. Polls `GET /experiments/vector-db-stats` on refresh. Cluster quota bar appears when Atlas Admin API credentials or `MONGODB_STORAGE_LIMIT_MB` is configured.
+
 **Actions**:
 - **View details**: Click any row to open the Experiment Detail screen
 - **Delete**: Click the trash icon button in the Actions column to delete an experiment (confirmation required)
-  - Cannot delete running experiments — cancel them first
+  - Cannot delete **running** experiments — pause or cancel first (**paused** experiments can be deleted)
   - Deletion is permanent and removes all associated data (chunks, results, run statuses)
 
 **Status badges**:
 
 | Badge | Color | Meaning |
 |---|---|---|
-| `complete` | Green | All runs finished successfully |
+| `complete` | Green | All planned runs finished successfully |
 | `running` | Blue | One or more runs still active |
-| `partial` | Yellow | Some runs completed, some failed |
+| `paused` | Violet | Sweep paused — completed runs kept; resume to continue remaining combos |
+| `partial` | Yellow | Sweep stopped early — some runs complete, some failed/interrupted, and/or some parameter combos never started |
 | `failed` | Red | All runs failed |
 | `cancelled` | Gray | Experiment was cancelled |
 
@@ -49,13 +54,44 @@ The landing screen shows all submitted experiments, newest first.
 
 ### 🔬 Experiment Detail
 
-Opened by clicking a row in the Experiments List. Polls every 2 seconds while status is non-terminal.
+Opened by clicking a row in the Experiments List. Polls every 2 seconds while status is non-terminal. List→detail navigation reuses cached experiment payloads when available to reduce duplicate fetches.
 
-**Metric cards** (top row):
-- Total Runs — number of config combinations in the sweep
-- Successful — runs that reached COMPLETE
-- Failed — runs that hit an error
-- Avg Duration — mean elapsed time across completed runs
+**Overview panel** (top): Status badge, control buttons, and compact run-outcome metrics in one card:
+
+**Control buttons** (header, via `ExperimentControlButtons`):
+
+| Button | When shown | Effect |
+|---|---|---|
+| **Pause** | Status is `running` | Stops after current phase; status → `paused` |
+| **Resume** | Status is `paused` | Continues from next incomplete parameter combo |
+| **Cancel** | Status is `running` | Stops sweep; status → `cancelled` or `partial` |
+
+Pause and cancel are cooperative — the current pipeline phase finishes before the sweep halts. Delete is blocked only for `running` experiments (paused experiments can be deleted).
+
+| Metric | Meaning |
+|---|---|
+| Total | Planned sweep size (`run_count` from config) |
+| Successful | Runs that reached `COMPLETE` |
+| Failed | Runs that ended in `FAILED` |
+| Interrupted | Runs stopped mid-pipeline (cancel or server restart) |
+| Not Started | Parameter combos never queued — sweep stopped before reaching them |
+| In Progress | Runs currently executing *(running experiments only)* |
+| Duration | Wall time from `started_at` to `completed_at` |
+
+These buckets always sum to **Total** on terminal experiments.
+
+**Outcome banners** (below runs table):
+
+| Status | Banner |
+|---|---|
+| `complete` | Green — all planned runs succeeded |
+| `partial` | Amber — “Sweep Incomplete” with breakdown (e.g. 41/90 complete, 48 never started) |
+| `paused` | Violet — “Experiment is paused” with prompt to resume remaining combos |
+| `cancelled` | Gray — runs completed before cancellation |
+| Failed runs | Red panel listing `error_message` per run |
+| Interrupted runs | Amber panel listing interruption reason |
+
+**Vector DB stats card**: Collapsible panel with per-experiment chunk counts, embedding model breakdown, estimated storage, and index names. Loaded from `GET /experiments/{id}/db-stats`.
 
 **Phase indicator dots**: one row of colored dots per run, representing each pipeline phase in order:
 
@@ -68,7 +104,7 @@ QUEUED → PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERAN
 | Green | Phase completed |
 | Blue pulsing | Phase currently active |
 | Gray | Phase not yet started |
-| Red | Phase failed |
+| Red | Phase failed or run interrupted |
 
 **Runs table**: each row is one config combination (model + chunking method + chunk size + overlap + retrieval method). Expand a row to see per-query results with dense scores and rerank scores.
 
@@ -77,7 +113,7 @@ QUEUED → PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERAN
 **Actions** (top-right header):
 - **Delete experiment**: Click the trash icon button to delete the entire experiment
   - Opens a confirmation modal showing experiment details and deletion statistics
-  - Cannot delete running experiments — cancel them first
+  - Cannot delete **running** experiments — pause or cancel first (**paused** experiments can be deleted)
   - Deletion is permanent and removes all associated data
 
 ---
@@ -112,10 +148,10 @@ This allows direct comparison of configs that used different models or retrieval
 | Screen | Polls | Interval | Stops When |
 |---|---|---|---|
 | Experiments List | Yes | Every 2 s | Never (always refreshes) |
-| Experiment Detail | Yes | Every 2 s | Status reaches terminal state |
+| Experiment Detail | Yes | Every 2 s | Status reaches terminal state (`paused` is non-terminal — polling continues) |
 | Search Explorer | No | — | Loads once |
 
-Terminal statuses: `complete`, `failed`, `partial`, `cancelled`
+Terminal statuses: `complete`, `failed`, `partial`, `cancelled` (non-terminal: `running`, `paused`)
 
 ---
 
@@ -151,7 +187,7 @@ For **running experiments**, the Experiment Detail screen shows an **Experiment 
 - Completion status (e.g., "1 of 2 runs completed")
 - Visual feedback: blue gradient background, green progress ring
 
-This card appears **only when status is "running"** and updates every 2 seconds via background polling. Once the experiment completes, the card is replaced with a success/failure summary.
+This card appears **only when status is "running"** and updates every 2 seconds via background polling. Progress is measured against **planned** run count (`run_count`), not just runs already in `run_status`. Once the experiment reaches a terminal status, the card is replaced with the outcome banner described above.
 
 **Note**: This is distinct from network loading — the Loading Feedback Panel tracks API data transfer, while the Experiment Progress Card tracks pipeline execution (runs completing).
 

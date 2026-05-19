@@ -1,5 +1,6 @@
 import { DeleteExperimentResponse, Experiment, ExperimentDbStatsResponse, ExploreResponse, VectorDbStatsGroupedResponse } from '../types';
-import { fetchJsonWithProgress, type FetchProgressUpdate } from './fetchWithProgress';
+import { API_FETCH_TIMEOUT_MS, VECTOR_DB_STATS_FETCH_TIMEOUT_MS } from '../constants';
+import { fetchJsonWithProgress, fetchWithTimeout, type FetchProgressUpdate } from './fetchWithProgress';
 import { devWarn } from '../utils/devLog';
 
 export { formatBytes } from './fetchWithProgress';
@@ -57,7 +58,7 @@ function emit(cb: ExperimentProgressCallback | undefined, u: FetchProgressUpdate
 export async function getExperiments(signal?: AbortSignal): Promise<Experiment[]> {
   let response: Response;
   try {
-    response = await fetch(EXPERIMENTS_URL, { signal });
+    response = await fetchWithTimeout(EXPERIMENTS_URL, { signal }, API_FETCH_TIMEOUT_MS);
   } catch (err) {
     rethrowWithFetchHint(EXPERIMENTS_URL, err);
   }
@@ -200,7 +201,7 @@ export async function getVectorDbStatsGrouped(
   const url = `${API_BASE_URL}/experiments/vector-db-stats`;
   let response: Response;
   try {
-    response = await fetch(url, { signal });
+    response = await fetchWithTimeout(url, { signal }, VECTOR_DB_STATS_FETCH_TIMEOUT_MS);
   } catch (err) {
     rethrowWithFetchHint(url, err);
   }
@@ -224,6 +225,42 @@ export async function cancelExperiment(
     const parsed = await response.json().catch(() => ({}));
     const detail = typeof parsed.detail === 'string' ? parsed.detail : undefined;
     throw new Error(detail || 'Failed to cancel experiment');
+  }
+  return response.json();
+}
+
+export async function pauseExperiment(
+  experimentId: string,
+): Promise<{ status: string; message: string }> {
+  const url = `${API_BASE_URL}/experiments/${experimentId}/pause`;
+  let response: Response;
+  try {
+    response = await fetch(url, { method: 'POST' });
+  } catch (err) {
+    rethrowWithFetchHint(url, err);
+  }
+  if (!response.ok) {
+    const parsed = await response.json().catch(() => ({}));
+    const detail = typeof parsed.detail === 'string' ? parsed.detail : undefined;
+    throw new Error(detail || 'Failed to pause experiment');
+  }
+  return response.json();
+}
+
+export async function resumeExperiment(
+  experimentId: string,
+): Promise<{ status: string; message: string; run_count?: number }> {
+  const url = `${API_BASE_URL}/experiments/${experimentId}/resume`;
+  let response: Response;
+  try {
+    response = await fetch(url, { method: 'POST' });
+  } catch (err) {
+    rethrowWithFetchHint(url, err);
+  }
+  if (!response.ok) {
+    const parsed = await response.json().catch(() => ({}));
+    const detail = typeof parsed.detail === 'string' ? parsed.detail : undefined;
+    throw new Error(detail || 'Failed to resume experiment');
   }
   return response.json();
 }

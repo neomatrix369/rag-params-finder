@@ -40,7 +40,7 @@ shows you exactly which configuration performs best.
 
 ## What it sweeps
 
-- **Embedding models**: `voyage-3.5-lite`, `voyage-3.5`, `voyage-context-3`
+- **Embedding models**: 12 Voyage models (voyage-4 series, domain, context, voyage-3 legacy) — see `server/core/model_registry.py`
 - **Chunking methods**: Fixed · Recursive · Token · Sentence · Semantic
 - **Retrieval methods**: Dense · Sparse · Hybrid
 - **Questions**: Persona-organised — realistic, not synthetic
@@ -61,7 +61,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 
 ## 🚀 Quick Start
 
-**Prerequisites:** Python 3.12+, Node.js 22+, MongoDB Atlas account (free tier)
+**Prerequisites:** Python 3.12+, Node.js 22+, [MongoDB Atlas account](docs/user-guide/cloud-setup.md#mongodb-atlas-required) (free tier). [Voyage AI](docs/user-guide/cloud-setup.md#voyage-ai-optional) optional for local-only sweeps.
 
 ```bash
 # Clone and install
@@ -71,19 +71,16 @@ uv venv && source .venv/bin/activate
 uv pip install -e .
 cd frontend && npm install && cd ..
 
-# Configure
+# Configure — see docs/user-guide/cloud-setup.md for minimal Atlas + Voyage checklist
 cp .env.example .env
-# Edit .env: add MONGODB_URI (required) and VOYAGE_API_KEY (optional)
 
 # Start
 uvicorn server.main:app --reload --port 8001   # Terminal 1
-cd frontend && npm run dev                      # Terminal 2
+cd frontend && npm run dev                      # Terminal 2 (optional)
 
-# Full sweep — local models, no API key needed (90 runs)
-rag-params-finder run --config configs/example-mongodb-local.yaml
-
-# Full sweep — Voyage AI models, requires VOYAGE_API_KEY (90 runs)
-rag-params-finder run --config configs/example-mongodb-voyage.yaml
+# Sweeps — complete cloud-setup.md checklist first
+rag-params-finder run --config configs/example-mongodb-local.yaml   # 90 runs, no API key
+rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 90 runs, Voyage + Tier 1
 ```
 
 Open `http://localhost:5173` to watch live progress and explore results.
@@ -94,6 +91,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 | I want to… | Start here |
 |---|---|
+| Set up MongoDB Atlas or Voyage AI accounts | [Cloud Account Setup](docs/user-guide/cloud-setup.md) |
 | Run my first experiment | [Getting Started](docs/user-guide/getting-started.md) |
 | Understand all config options | [Configuration Reference](docs/user-guide/configuration.md) |
 | Learn all CLI commands | [CLI Reference](docs/user-guide/cli-reference.md) |
@@ -110,14 +108,15 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 - **5 chunking methods**: Fixed, Recursive, Token, Sentence, Semantic
 - **3 retrieval methods**: Dense (vector search), Sparse (BM25), Hybrid (Reciprocal Rank Fusion)
-- **Voyage AI models**: `voyage-3.5-lite`, `voyage-3.5`, `voyage-context-3` + `rerank-2.5-lite`
+- **Voyage AI models**: all registered embeddings in `model_registry.py` (voyage-4/3/domain/context) + rerankers `rerank-2.5-lite`, `rerank-2.5`, and legacy rerank APIs
 - **Local models** (no API key): `all-MiniLM-L6-v2` + `cross-encoder/ms-marco-MiniLM-L-6-v2`
 - **Multi-format data loading**: PDF, TXT, Markdown, CSV — files or directories
 - **Cartesian sweep**: one YAML config → N models × M methods × P sizes × Q overlaps runs
 - **Live phase tracking**: QUEUED → PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERANKING → COMPLETE
-- **Experiment management**: Cancel running experiments, delete experiments with cascade cleanup
+- **Experiment management**: Pause/resume long sweeps, cancel running experiments, delete with cascade cleanup, boot orphan reconciliation
+- **Vector DB stats**: Cluster and per-experiment chunk/storage estimates in the dashboard; optional Atlas quota bar
 - **Progress feedback**: Byte-level network loading, circular progress indicators, background polling with "Syncing..." badges
-- **Pagination**: All list views paginated (10 items per page for experiments/runs, 5 for configs)
+- **Pagination**: All list views paginated (10 items per page for experiments/runs, 5 for configs); collapsible experiment rows
 
 ---
 

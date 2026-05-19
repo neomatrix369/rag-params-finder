@@ -85,6 +85,44 @@ def cancel_experiment(experiment_id: str) -> dict[str, Any]:
         return data
 
 
+def pause_experiment(experiment_id: str) -> dict[str, Any]:
+    """Request pause of a running experiment."""
+    server_url = get_server_url()
+    url = f"{server_url}/experiments/{experiment_id}/pause"
+    logger.info(f"POST {url}")
+
+    with httpx.Client() as client:
+        response = client.post(url, timeout=_DEFAULT_TIMEOUT_S)
+        if response.status_code == 404:
+            raise RuntimeError(f"Experiment {experiment_id} not found")
+        if response.status_code == 409:
+            detail = response.json().get("detail", "Experiment is not running")
+            raise RuntimeError(detail)
+        response.raise_for_status()
+        data: dict[str, Any] = cast(dict[str, Any], response.json())
+        logger.info(f"Pause response: {data}")
+        return data
+
+
+def resume_experiment(experiment_id: str) -> dict[str, Any]:
+    """Resume a paused experiment."""
+    server_url = get_server_url()
+    url = f"{server_url}/experiments/{experiment_id}/resume"
+    logger.info(f"POST {url}")
+
+    with httpx.Client() as client:
+        response = client.post(url, timeout=_DEFAULT_TIMEOUT_S)
+        if response.status_code == 404:
+            raise RuntimeError(f"Experiment {experiment_id} not found")
+        if response.status_code == 409:
+            detail = response.json().get("detail", "Experiment cannot be resumed")
+            raise RuntimeError(detail)
+        response.raise_for_status()
+        data: dict[str, Any] = cast(dict[str, Any], response.json())
+        logger.info(f"Resume response: {data}")
+        return data
+
+
 def delete_experiment(experiment_id: str) -> dict[str, Any]:
     """Delete an experiment and all its associated data."""
     server_url = get_server_url()

@@ -3,6 +3,7 @@ from enum import StrEnum
 
 class ExperimentStatus(StrEnum):
     RUNNING = "running"
+    PAUSED = "paused"
     COMPLETE = "complete"
     PARTIAL = "partial"
     FAILED = "failed"

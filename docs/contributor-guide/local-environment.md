@@ -10,22 +10,17 @@ Internal notes for local setup, debugging, and maintenance. Not required for bas
 
 ## 🗄️ MongoDB Atlas — Full Setup Details
 
+**User-facing guide:** [Cloud Account Setup](../user-guide/cloud-setup.md#mongodb-atlas-required) — account, cluster, connection string, and search indexes with official MongoDB doc links.
+
+The sections below are contributor/debugging notes. Prefer the cloud-setup guide for onboarding.
+
 ### Connection String Format
 
 ```
 mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority&appName=<app-name>
 ```
 
-### Atlas UI Steps (one-time)
-
-1. [cloud.mongodb.com](https://cloud.mongodb.com/) → create a free cluster (M0)
-2. **Database Access** → create user with read/write permissions
-3. **Network Access** → add your IP or `0.0.0.0/0` for local dev
-4. **Connect → Compass** → copy the SRV URI into `MONGODB_URI` in `.env`
-
-### Vector Index Creation
-
-See [getting-started.md](../user-guide/getting-started.md#2-create-the-atlas-vector-index) for the full JSON index definitions. Index creation takes ~1–2 minutes in the Atlas UI. The server will fail vector queries until the index is ready.
+Index JSON definitions: [Cloud Account Setup → Search indexes](../user-guide/cloud-setup.md#6-create-search-indexes-m0--manual).
 
 ### Checking Index Status
 
@@ -57,11 +52,9 @@ The `text_search_index`, `vector_index_384`, and `vector_index_1024` all coexist
 
 ## 🤖 Voyage AI Setup
 
-1. Sign up at [dash.voyageai.com](https://dash.voyageai.com)
-2. Navigate to **API Keys** → create new key
-3. Copy the `vo-...` key into `.env` as `VOYAGE_API_KEY`
+**User-facing guide:** [Cloud Account Setup → Voyage AI](../user-guide/cloud-setup.md#voyage-ai-optional) — account, API key, $5 credit for Tier 1 rate limits.
 
-Check usage and rate limits at [dash.voyageai.com/usage](https://dash.voyageai.com/usage).
+**`voyage-context-3`**: uses the contextualized embedding API (not standard `embed()`). The server splits long documents into segments that fit the 32K-token window. See [configuration.md](../user-guide/configuration.md#voyage-context-3-contextualized-api) and [troubleshooting.md](../user-guide/troubleshooting.md#-voyage-context-3-token-limit-exceeded).
 
 ---
 
@@ -77,18 +70,26 @@ VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # Server URL (used by CLI, default is localhost:8001)
 SERVER_URL=http://localhost:8001
 
-# Rate limits (Voyage only — set based on your tier)
-VOYAGE_RPM_LIMIT=300
-VOYAGE_TPM_LIMIT=1000000
+# Rate limits (Voyage only — set based on your tier; see .env.example)
+# Tier 1 example: VOYAGE_RPM_LIMIT=2000  VOYAGE_TPM_LIMIT=16000000  # voyage-4-lite / voyage-3.5-lite
 
-# Optional — stored in experiment metadata / dashboard (“Recover on Boot”); no runtime retry on boot yet (planned: docs/slices/SLICE-10-RUN-RECOVERY.md — boot = INTERRUPTED only).
+# Optional — Atlas Admin API for dashboard storage quota bar
+# ATLAS_PUBLIC_KEY=
+# ATLAS_PRIVATE_KEY=
+# ATLAS_GROUP_ID=                         # 24-char project ID from Atlas URL
+# ATLAS_CLUSTER_NAME=                     # omit to parse from MONGODB_URI host
+# MONGODB_STORAGE_LIMIT_MB=512            # manual override (MB); 0 = try API
+
+# Optional — stored in experiment metadata / dashboard (“Recover on Boot”).
+# Status reconciliation on boot always runs (marks stale running → partial).
+# Automatic retry of interrupted runs is not implemented yet (Slice 10).
 RECOVER_ON_BOOT=false
 
 # Logging
 LOG_LEVEL=INFO   # DEBUG for verbose output
 ```
 
-Slice 10 *(planned)* documents CLI/API recovery and boot semantics: [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md).
+Slice 10 *(planned)* documents CLI/API **retry** of failed/interrupted runs: [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md). **Boot status reconciliation** (fix stale `running` experiments) is already implemented in `server/core/startup_reconciliation.py`.
 
 **Never commit `.env` to git** — it is in `.gitignore`.
 
@@ -161,7 +162,7 @@ db.results.deleteMany({experiment_id: exp_id})
 | Provider | Speed | Notes |
 |---|---|---|
 | Local (`all-MiniLM-L6-v2`) | ~50 chunks/sec on M1 CPU | No API latency; first run downloads model |
-| Voyage (`voyage-3.5-lite`) | ~1000 chunks/min | API rate-limited; free tier is 1M TPM |
+| Voyage (`voyage-4-lite`, `voyage-3.5-lite`) | varies by tier | Tier 1: up to 16M TPM / 2000 RPM when `.env` limits match |
 
 ### MongoDB Atlas free tier limits
 

@@ -122,7 +122,7 @@ rag-params-finder/
 │   ├── models/          # Pydantic schemas and enums
 │   └── db/              # Atlas connection singleton + index helpers
 ├── cli/                 # Python CLI client (thin — delegates to server)
-├── frontend/            # React dashboard (read-only observer)
+├── frontend/            # React dashboard (observe + pause/resume/cancel/delete)
 │   └── src/
 │       ├── components/  # ExperimentsScreen, ExperimentDetailScreen, SearchExplorerScreen
 │       ├── services/    # apiClient.ts — all fetch calls

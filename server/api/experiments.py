@@ -1,8 +1,9 @@
 import asyncio
 import uuid
+from collections.abc import Callable
 from datetime import datetime
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from server.api.experiments_shared import (
     mongo_delete_experiment_data,
@@ -15,8 +16,17 @@ from server.api.experiments_shared import (
     mongo_list_results_for_experiment,
     mongo_load_explore_source,
     mongo_mark_experiment_cancelled_now,
+    mongo_mark_experiment_paused_now,
+    mongo_mark_experiment_running,
 )
-from server.core.orchestrator import request_cancel, run_sweep
+from server.core.executors import HEAVY_READ_EXECUTOR, schedule_sweep
+from server.core.orchestrator import (
+    is_sweep_in_flight,
+    request_cancel,
+    request_pause,
+    resume_sweep,
+    run_sweep,
+)
 from server.models.config import ExperimentConfig, expand_sweep
 from server.models.enums import ExperimentStatus
 from server.utils.log_throttle import info_throttled
@@ -28,8 +38,14 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
+async def _run_heavy_read[R](fn: Callable[[], R]) -> R:
+    """Run expensive read-only Mongo aggregations off the default API thread pool."""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(HEAVY_READ_EXECUTOR, fn)
+
+
 @router.post("")
-async def create_experiment(config: ExperimentConfig, background_tasks: BackgroundTasks):
+async def create_experiment(config: ExperimentConfig):
     """Submit a new experiment sweep configuration."""
     experiment_id = str(uuid.uuid4())
     timestamp_suffix = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
@@ -71,7 +87,7 @@ async def create_experiment(config: ExperimentConfig, background_tasks: Backgrou
     await asyncio.to_thread(mongo_insert_experiment_doc, experiment_doc)
 
     logger.info(f"Experiment '{stamped_name}' ({experiment_id}): {len(runs)} runs")
-    background_tasks.add_task(run_sweep, experiment_id, config)
+    schedule_sweep(run_sweep, experiment_id, config)
 
     return {
         "status": "submitted",
@@ -95,7 +111,7 @@ async def list_experiments():
 async def get_vector_db_stats_grouped():
     """Vector DB stats for all experiments, grouped by cluster."""
     logger.debug("GET /experiments/vector-db-stats")
-    payload = await asyncio.to_thread(mongo_get_vector_db_stats_grouped)
+    payload = await _run_heavy_read(mongo_get_vector_db_stats_grouped)
     info_throttled(
         logger,
         "poll:vector-db-stats",
@@ -142,7 +158,7 @@ async def get_experiment_db_stats(experiment_id: str):
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
 
-    stats = await asyncio.to_thread(mongo_get_experiment_db_stats, experiment_id)
+    stats = await _run_heavy_read(lambda: mongo_get_experiment_db_stats(experiment_id))
     info_throttled(
         logger,
         f"poll:db-stats:{experiment_id}",
@@ -161,8 +177,8 @@ async def explore_experiment(experiment_id: str, query: str | None = None):
 
     logger.debug(f"GET /experiments/{experiment_id}/explore (query={query!r})")
 
-    experiment_doc, query_results, run_statuses = await asyncio.to_thread(
-        mongo_load_explore_source, experiment_id
+    experiment_doc, query_results, run_statuses = await _run_heavy_read(
+        lambda: mongo_load_explore_source(experiment_id)
     )
     if not experiment_doc:
         raise HTTPException(status_code=404, detail="Experiment not found")
@@ -208,6 +224,76 @@ async def cancel_experiment(experiment_id: str):
         "status": "cancel_requested",
         "experiment_id": experiment_id,
         "message": "Experiment will stop after the current phase completes",
+    }
+
+
+@router.post("/{experiment_id}/pause")
+async def pause_experiment(experiment_id: str):
+    """Pause a running experiment after the current phase completes."""
+    logger.info(f"POST /experiments/{experiment_id}/pause")
+
+    experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+
+    if experiment.get("status") != ExperimentStatus.RUNNING:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Experiment is not running (status: {experiment.get('status')})",
+        )
+
+    signalled = request_pause(experiment_id)
+
+    if not signalled:
+        await asyncio.to_thread(mongo_mark_experiment_paused_now, experiment_id)
+
+    logger.info(f"Experiment {experiment_id} pause requested (in-flight={signalled})")
+    return {
+        "status": "pause_requested",
+        "experiment_id": experiment_id,
+        "message": "Experiment will pause after the current phase completes",
+    }
+
+
+@router.post("/{experiment_id}/resume")
+async def resume_experiment(experiment_id: str):
+    """Resume a paused experiment from the next incomplete parameter combination."""
+    logger.info(f"POST /experiments/{experiment_id}/resume")
+
+    experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+
+    status = experiment.get("status")
+    if status == ExperimentStatus.RUNNING:
+        if is_sweep_in_flight(experiment_id):
+            raise HTTPException(status_code=409, detail="Experiment is already running")
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Experiment is marked running but not executing — restart the server or reconcile"
+            ),
+        )
+    if status != ExperimentStatus.PAUSED:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Experiment cannot be resumed (status: {status})",
+        )
+
+    config_payload = experiment.get("config")
+    if not config_payload:
+        raise HTTPException(status_code=400, detail="Experiment config is missing")
+
+    config = ExperimentConfig.model_validate(config_payload)
+    await asyncio.to_thread(mongo_mark_experiment_running, experiment_id)
+    schedule_sweep(resume_sweep, experiment_id, config)
+
+    runs = expand_sweep(config)
+    return {
+        "status": "resume_requested",
+        "experiment_id": experiment_id,
+        "run_count": len(runs),
+        "message": "Experiment resumed — remaining parameter combinations will execute",
     }
 
 

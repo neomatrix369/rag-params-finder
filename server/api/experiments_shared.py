@@ -7,6 +7,7 @@ Keeping I/O here isolates blocking work into threadpool tasks.
 from datetime import datetime
 
 from server.db.atlas import (
+    CHUNKS_COLLECTION,
     EXPERIMENTS_COLLECTION,
     RESULTS_COLLECTION,
     RUN_STATUS_COLLECTION,
@@ -66,6 +67,20 @@ def mongo_mark_experiment_cancelled_now(experiment_id: str):
     get_collection(EXPERIMENTS_COLLECTION).update_one(
         {"_id": experiment_id},
         {"$set": {"status": ExperimentStatus.CANCELLED, "completed_at": datetime.utcnow()}},
+    )
+
+
+def mongo_mark_experiment_paused_now(experiment_id: str):
+    get_collection(EXPERIMENTS_COLLECTION).update_one(
+        {"_id": experiment_id},
+        {"$set": {"status": ExperimentStatus.PAUSED, "completed_at": datetime.utcnow()}},
+    )
+
+
+def mongo_mark_experiment_running(experiment_id: str):
+    get_collection(EXPERIMENTS_COLLECTION).update_one(
+        {"_id": experiment_id},
+        {"$set": {"status": ExperimentStatus.RUNNING, "completed_at": None}},
     )
 
 
@@ -230,32 +245,24 @@ def _run_breakdown_for_experiment(chunks_coll, results_coll, experiment_id: str)
     return breakdown
 
 
-def mongo_get_experiment_db_stats(experiment_id: str) -> dict:
-    """Get vector database statistics for an experiment."""
+def _assemble_experiment_db_stats(
+    experiment: dict | None,
+    *,
+    total_chunks: int,
+    embedding_models: list[str],
+    chunking_breakdown: dict[str, int],
+    total_results: int,
+    unique_queries: int,
+    runs_with_data: int,
+    run_breakdown: list[dict],
+) -> dict:
     from server.core.model_registry import EMBEDDING_MODELS, get_dimensions, get_index_name
-    from server.db.atlas import CHUNKS_COLLECTION
     from server.db.indexes import TEXT_SEARCH_INDEX_NAME
-
-    experiment = get_collection(EXPERIMENTS_COLLECTION).find_one(
-        {"experiment_id": experiment_id},
-        {"data_paths": 1, "sweep_summary": 1, "config": 1},
-    )
-    chunks_coll = get_collection(CHUNKS_COLLECTION)
-    results_coll = get_collection(RESULTS_COLLECTION)
-
-    total_chunks = chunks_coll.count_documents({"experiment_id": experiment_id})
-    embedding_models = chunks_coll.distinct("embedding_model", {"experiment_id": experiment_id})
 
     embedding_dimensions = sorted(
         {get_dimensions(model) for model in embedding_models if model in EMBEDDING_MODELS}
     )
-
     unique_documents = len((experiment or {}).get("data_paths") or [])
-    total_results = results_coll.count_documents({"experiment_id": experiment_id})
-    unique_queries = len(results_coll.distinct("query_id", {"experiment_id": experiment_id}))
-
-    run_breakdown = _run_breakdown_for_experiment(chunks_coll, results_coll, experiment_id)
-
     index_names = sorted(
         {get_index_name(model) for model in embedding_models if model in EMBEDDING_MODELS}
     )
@@ -264,10 +271,8 @@ def mongo_get_experiment_db_stats(experiment_id: str) -> dict:
         index_names.append(TEXT_SEARCH_INDEX_NAME)
         index_names = sorted(set(index_names))
 
-    runs_with_data = len(run_breakdown)
     avg_chunks_per_run = round(total_chunks / runs_with_data, 1) if runs_with_data else 0.0
     embedding_mb, metadata_mb, total_mb = _storage_breakdown_mb(total_chunks, embedding_models)
-    chunking_breakdown = _chunking_breakdown(chunks_coll, experiment_id)
     sweep = (experiment or {}).get("sweep_summary") or {}
 
     return {
@@ -291,6 +296,137 @@ def mongo_get_experiment_db_stats(experiment_id: str) -> dict:
         "unique_queries": unique_queries,
         "run_breakdown": run_breakdown,
     }
+
+
+def _bulk_chunk_aggregates() -> dict[str, dict]:
+    """Per-experiment chunk counts and models in one aggregation (dashboard list)."""
+    chunks_coll = get_collection(CHUNKS_COLLECTION)
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$experiment_id",
+                "total_chunks": {"$sum": 1},
+                "embedding_models": {"$addToSet": "$embedding_model"},
+                "run_ids": {"$addToSet": "$run_id"},
+            }
+        }
+    ]
+    out: dict[str, dict] = {}
+    for row in chunks_coll.aggregate(pipeline, allowDiskUse=True):
+        exp_id = row.get("_id")
+        if not exp_id:
+            continue
+        models = [str(m) for m in row.get("embedding_models") or [] if m]
+        run_ids = [r for r in row.get("run_ids") or [] if r]
+        out[str(exp_id)] = {
+            "total_chunks": int(row["total_chunks"]),
+            "embedding_models": models,
+            "runs_with_data": len(run_ids),
+        }
+    return out
+
+
+def _bulk_result_aggregates() -> dict[str, dict]:
+    """Per-experiment result counts in one aggregation."""
+    results_coll = get_collection(RESULTS_COLLECTION)
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$experiment_id",
+                "total_results": {"$sum": 1},
+                "query_ids": {"$addToSet": "$query_id"},
+            }
+        }
+    ]
+    out: dict[str, dict] = {}
+    for row in results_coll.aggregate(pipeline, allowDiskUse=True):
+        exp_id = row.get("_id")
+        if not exp_id:
+            continue
+        query_ids = [q for q in row.get("query_ids") or [] if q]
+        out[str(exp_id)] = {
+            "total_results": int(row["total_results"]),
+            "unique_queries": len(query_ids),
+        }
+    return out
+
+
+def _bulk_chunking_breakdown() -> dict[str, dict[str, int]]:
+    """Per-experiment chunking method counts in one aggregation."""
+    chunks_coll = get_collection(CHUNKS_COLLECTION)
+    pipeline = [
+        {
+            "$group": {
+                "_id": {
+                    "experiment_id": "$experiment_id",
+                    "chunk_method": "$chunk_method",
+                },
+                "count": {"$sum": 1},
+            }
+        }
+    ]
+    out: dict[str, dict[str, int]] = {}
+    for row in chunks_coll.aggregate(pipeline, allowDiskUse=True):
+        key = row.get("_id") or {}
+        exp_id = key.get("experiment_id")
+        method = key.get("chunk_method")
+        if not exp_id or not method:
+            continue
+        bucket = out.setdefault(str(exp_id), {})
+        bucket[str(method)] = int(row["count"])
+    return out
+
+
+def _summary_db_stats_for_experiment(
+    experiment: dict,
+    chunk_row: dict | None,
+    result_row: dict | None,
+    chunking_breakdown: dict[str, int],
+) -> dict:
+    """Lightweight stats for grouped dashboard (no per-run breakdown queries)."""
+    total_chunks = int((chunk_row or {}).get("total_chunks") or 0)
+    embedding_models = list((chunk_row or {}).get("embedding_models") or [])
+    runs_with_data = int((chunk_row or {}).get("runs_with_data") or 0)
+    total_results = int((result_row or {}).get("total_results") or 0)
+    unique_queries = int((result_row or {}).get("unique_queries") or 0)
+    return _assemble_experiment_db_stats(
+        experiment,
+        total_chunks=total_chunks,
+        embedding_models=embedding_models,
+        chunking_breakdown=chunking_breakdown,
+        total_results=total_results,
+        unique_queries=unique_queries,
+        runs_with_data=runs_with_data,
+        run_breakdown=[],
+    )
+
+
+def mongo_get_experiment_db_stats(experiment_id: str) -> dict:
+    """Vector DB stats for one experiment (full detail, including per-run breakdown)."""
+    experiment = get_collection(EXPERIMENTS_COLLECTION).find_one(
+        {"experiment_id": experiment_id},
+        {"data_paths": 1, "sweep_summary": 1, "config": 1},
+    )
+    chunks_coll = get_collection(CHUNKS_COLLECTION)
+    results_coll = get_collection(RESULTS_COLLECTION)
+
+    total_chunks = chunks_coll.count_documents({"experiment_id": experiment_id})
+    embedding_models = chunks_coll.distinct("embedding_model", {"experiment_id": experiment_id})
+    total_results = results_coll.count_documents({"experiment_id": experiment_id})
+    unique_queries = len(results_coll.distinct("query_id", {"experiment_id": experiment_id}))
+    run_breakdown = _run_breakdown_for_experiment(chunks_coll, results_coll, experiment_id)
+    chunking_breakdown = _chunking_breakdown(chunks_coll, experiment_id)
+
+    return _assemble_experiment_db_stats(
+        experiment,
+        total_chunks=total_chunks,
+        embedding_models=embedding_models,
+        chunking_breakdown=chunking_breakdown,
+        total_results=total_results,
+        unique_queries=unique_queries,
+        runs_with_data=len(run_breakdown),
+        run_breakdown=run_breakdown,
+    )
 
 
 def _vector_db_group_key(database_provider: str, cluster_host: str | None) -> str:
@@ -320,11 +456,20 @@ def _merge_group_totals(group: dict, stats: dict) -> None:
 def mongo_get_vector_db_stats_grouped() -> dict:
     """Aggregate DB stats for all experiments, grouped by vector database cluster."""
     experiments = mongo_list_all_experiment_docs()
+    chunk_by_exp = _bulk_chunk_aggregates()
+    result_by_exp = _bulk_result_aggregates()
+    chunking_by_exp = _bulk_chunking_breakdown()
+    cluster_storage = _mongodb_cluster_storage_mb()
     groups: dict[str, dict] = {}
 
     for experiment in experiments:
         experiment_id = str(experiment["experiment_id"])
-        stats = mongo_get_experiment_db_stats(experiment_id)
+        stats = _summary_db_stats_for_experiment(
+            experiment,
+            chunk_by_exp.get(experiment_id),
+            result_by_exp.get(experiment_id),
+            chunking_by_exp.get(experiment_id, {}),
+        )
         group_key = _vector_db_group_key(stats["database_provider"], stats["cluster_host"])
 
         if group_key not in groups:
@@ -363,7 +508,6 @@ def mongo_get_vector_db_stats_grouped() -> dict:
         )
 
     grouped = list(groups.values())
-    cluster_storage = _mongodb_cluster_storage_mb()
     for group in grouped:
         group["totals"].update(cluster_storage)
         group["experiments"].sort(
