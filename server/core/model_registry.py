@@ -180,6 +180,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
             "dimensions": None,
             "huggingface_id": None,
             "description": description,
+            "contextualized": False,
         }
         for model_id, description in _KIMCHI_EMBEDDING_MODELS
     },
