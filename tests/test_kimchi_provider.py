@@ -131,3 +131,30 @@ def test_dense_search_uses_runtime_embedding_dimension(monkeypatch: pytest.Monke
 
 def test_example_kimchi_config_path_exists() -> None:
     assert Path("configs/example-kimchi.yaml").exists()
+
+
+def test_db_stats_resolves_runtime_kimchi_dimensions(monkeypatch: pytest.MonkeyPatch) -> None:
+    from server.api import experiments_shared
+
+    class FakeCollection:
+        def find_one(self, filter: dict[str, str], projection: dict[str, int]) -> dict | None:
+            if filter.get("embedding_model") == "mistral/codestral-embed":
+                return {"embedding": [0.0] * 1536}
+            return None
+
+    monkeypatch.setattr(experiments_shared, "get_collection", lambda _name: FakeCollection())
+
+    stats = experiments_shared._assemble_experiment_db_stats(
+        {"experiment_id": "exp-kimchi", "data_paths": ["./input_data/pdfs/sample.pdf"]},
+        total_chunks=10,
+        embedding_models=["mistral/codestral-embed"],
+        chunking_breakdown={"recursive": 10},
+        total_results=5,
+        unique_queries=1,
+        runs_with_data=1,
+        run_breakdown=[],
+    )
+
+    assert stats["embedding_dimensions"] == [1536]
+    assert "vector_index_1536" in stats["index_names"]
+    assert stats["estimated_storage_mb"] > 0
