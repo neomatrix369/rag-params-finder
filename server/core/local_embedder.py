@@ -38,9 +38,9 @@ def embed_documents_local(texts: list[str], model_id: str) -> list[list[float]]:
 
 def embed_query_local(text: str, model_id: str) -> list[float]:
     """Embed a single query using a local SentenceTransformer model."""
-    logger.info(f"Embedding query locally with {model_id}")
+    logger.debug(f"Embedding query locally with {model_id}")
     model = _get_model(model_id)
     embedding = model.encode(text, show_progress_bar=False, normalize_embeddings=True)
     result = embedding.tolist()
-    logger.info(f"Generated local query embedding, dim={len(result)}")
+    logger.debug(f"Generated local query embedding, dim={len(result)}")
     return result

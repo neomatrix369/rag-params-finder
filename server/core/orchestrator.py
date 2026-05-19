@@ -88,7 +88,7 @@ def _run_sweep_inner(experiment_id: str, config: ExperimentConfig) -> dict:
             break
         except Exception as e:
             failed += 1
-            logger.error(f"Run {run_id} failed: {e}")
+            logger.error(f"Run {run_id} failed: {e}", exc_info=True)
             if config.execution.on_error == "stop":
                 break
 
@@ -247,7 +247,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
         _update_phase(run_id, Phase.INTERRUPTED, error_message="Cancelled by user")
         raise
     except Exception as e:
-        logger.error(f"Run {run_id} failed: {e}")
+        logger.error(f"Run {run_id} failed: {e}", exc_info=True)
         _update_phase(run_id, Phase.FAILED, error_message=str(e))
         raise
 
@@ -262,7 +262,7 @@ def _update_phase(run_id: str, phase: Phase, error_message: str | None = None) -
         _run_start_times[run_id] = now
 
     elapsed_ms = int((now - _run_start_times[run_id]) * 1000)
-    logger.info(f"Run {run_id} → {phase.value} ({elapsed_ms}ms)")
+    logger.debug(f"Run {run_id} → {phase.value} ({elapsed_ms}ms)")
 
     update: dict = {
         "phase": phase.value,

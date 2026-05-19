@@ -43,6 +43,19 @@ class Settings(BaseSettings):
     voyage_rpm_limit: int = 3
     voyage_tpm_limit: int = 10_000
 
+    # Manual cluster storage quota override (MB). When > 0, skips Atlas API auto-detect.
+    # Set MONGODB_STORAGE_LIMIT_MB=0 (default) to auto-detect via Atlas Admin API or hide quota.
+    mongodb_storage_limit_mb: float = 0.0
+
+    # Optional Atlas Admin API credentials for auto-detecting cluster storage quota.
+    # Create keys at cloud.mongodb.com → Organization Access Manager → API Keys.
+    # ATLAS_GROUP_ID is the 24-char project ID from your Atlas project URL.
+    atlas_public_key: str = ""
+    atlas_private_key: str = ""
+    atlas_group_id: str = ""
+    # Leave blank to derive from MONGODB_URI host (e.g. thesandboxcluster.5uaqybx.mongodb.net).
+    atlas_cluster_name: str = ""
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: object) -> list[str]:

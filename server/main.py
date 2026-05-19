@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from server.api import experiments, runs
+from server.core.startup_reconciliation import reconcile_orphaned_experiments
 from server.db.indexes import ensure_indexes
 from server.settings import LOCALHOST_CORS_ORIGIN_REGEX, settings
 from server.utils.logger import get_logger
@@ -22,6 +23,15 @@ async def lifespan(app: FastAPI):
         ensure_indexes()
     except Exception as e:
         logger.warning(f"Index check failed (server will start without indexes): {e}")
+    try:
+        reconcile_orphaned_experiments()
+    except Exception as e:
+        logger.error(f"Orphaned experiment reconciliation failed: {e}", exc_info=True)
+    if settings.recover_on_boot:
+        logger.info(
+            "RECOVER_ON_BOOT is enabled; automatic retry of interrupted runs is not "
+            "implemented yet (see docs/slices/SLICE-10-RUN-RECOVERY.md)"
+        )
     logger.info("Server ready")
     yield
     logger.info("Server shutting down...")

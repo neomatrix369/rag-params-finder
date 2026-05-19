@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  DEV_POLL_LOG_INTERVAL_MS,
   EXPERIMENTS_POLL_MS,
   LOADING_STALL_AFTER_MS,
   LOADING_STALL_REPEAT_MS,
+  VECTOR_DB_STATS_POLL_MS,
 } from '../constants';
 import AppPageChrome from './AppPageChrome';
 import DashboardShell from './DashboardShell';
 import LoadingFeedbackPanel, { type FeedEntry } from './LoadingFeedbackPanel';
 import PollingIndicator from './PollingIndicator';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import VectorDbStatsPanel from './VectorDbStatsPanel';
+import ExperimentVectorDbStatsCard from './ExperimentVectorDbStatsCard';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
-import { deleteExperiment, getExperiments, getExperimentsWithProgress } from '../services/apiClient';
-import { Experiment } from '../types';
+import { deleteExperiment, getExperiments, getExperimentsWithProgress, getVectorDbStatsGrouped } from '../services/apiClient';
+import { Experiment, ExperimentDbStatsSummary, VectorDbStatsGroup } from '../types';
+import { devDebugThrottled, devWarn } from '../utils/devLog';
 
 let feedSeq = 0;
 
@@ -100,10 +105,55 @@ function experimentsRailHelp() {
   );
 }
 
-export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string) => void }) {
-  const [experiments, setExperiments] = useState<Experiment[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [initialLoadDone, setInitialLoadDone] = useState(false);
+function statusBadgeClass(status: Experiment['status']): string {
+  if (status === 'complete') return 'bg-green-100 text-green-700';
+  if (status === 'running') return 'bg-blue-100 text-blue-700';
+  if (status === 'partial') return 'bg-yellow-100 text-yellow-700';
+  if (status === 'failed') return 'bg-red-100 text-red-700';
+  if (status === 'cancelled') return 'bg-orange-100 text-orange-700';
+  return 'bg-slate-100 text-slate-700';
+}
+
+function experimentStatsMap(groups: VectorDbStatsGroup[]): Map<string, ExperimentDbStatsSummary> {
+  const map = new Map<string, ExperimentDbStatsSummary>();
+  for (const group of groups) {
+    for (const exp of group.experiments) {
+      map.set(exp.experiment_id, exp);
+    }
+  }
+  return map;
+}
+
+/** True when we should show the full-page loading overlay (experiment list fetch only). */
+function shouldShowLoadingPanel(
+  initialLoadDone: boolean,
+  loading: boolean,
+  isPolling: boolean,
+  experimentsCount: number,
+  error: string | null,
+): boolean {
+  if (error !== null) return false;
+  if (!initialLoadDone || loading) return true;
+  if (experimentsCount === 0 && isPolling) return true;
+  return false;
+}
+
+export default function ExperimentsScreen({
+  onSelect,
+  cacheReady = false,
+  cachedExperiments,
+  cachedVectorDbGroups,
+  onCacheUpdate,
+}: {
+  onSelect?: (experiment: Experiment) => void;
+  cacheReady?: boolean;
+  cachedExperiments?: Experiment[];
+  cachedVectorDbGroups?: VectorDbStatsGroup[];
+  onCacheUpdate?: (update: { experiments: Experiment[]; vectorDbGroups: VectorDbStatsGroup[] }) => void;
+}) {
+  const [experiments, setExperiments] = useState<Experiment[]>(() => cachedExperiments ?? []);
+  const [loading, setLoading] = useState(() => !cacheReady);
+  const [initialLoadDone, setInitialLoadDone] = useState(() => cacheReady);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feed, setFeed] = useState<FeedEntry[]>([]);
@@ -116,6 +166,13 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
   const [selectedExperiments, setSelectedExperiments] = useState<Set<string>>(new Set());
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [collapsedExperiments, setCollapsedExperiments] = useState<Set<string>>(() => {
+    const stored = localStorage.getItem('collapsedExperiments');
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  });
+  const [vectorDbGroups, setVectorDbGroups] = useState<VectorDbStatsGroup[]>(() => cachedVectorDbGroups ?? []);
+  const [vectorDbLoading, setVectorDbLoading] = useState(false);
+  const [vectorDbError, setVectorDbError] = useState<string | null>(null);
 
   const handleItemsPerPageChange = useCallback((items: number) => {
     setItemsPerPage(items);
@@ -164,8 +221,55 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
     }
   }, [selectedExperiments]);
 
+  const toggleCollapse = useCallback((experimentId: string) => {
+    setCollapsedExperiments(prev => {
+      const next = new Set(prev);
+      if (next.has(experimentId)) {
+        next.delete(experimentId);
+      } else {
+        next.add(experimentId);
+      }
+      localStorage.setItem('collapsedExperiments', JSON.stringify(Array.from(next)));
+      return next;
+    });
+  }, []);
+
   const aliveRef = useRef(true);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const statsPollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollDevLogAtRef = useRef(new Map<string, number>());
+  const vectorDbStatsInFlightRef = useRef<Promise<void> | null>(null);
+
+  const loadVectorDbStats = useCallback(async (options?: { silent?: boolean }) => {
+    if (!aliveRef.current) return;
+    if (vectorDbStatsInFlightRef.current !== null) {
+      return vectorDbStatsInFlightRef.current;
+    }
+
+    const request = (async () => {
+      if (!options?.silent) setVectorDbLoading(true);
+      try {
+        const payload = await getVectorDbStatsGrouped();
+        if (!aliveRef.current) return;
+        setVectorDbGroups(payload.groups);
+        setVectorDbError(null);
+      } catch (err) {
+        if (!aliveRef.current) return;
+        setVectorDbError(err instanceof Error ? err.message : 'Failed to load vector DB stats');
+      } finally {
+        vectorDbStatsInFlightRef.current = null;
+        if (aliveRef.current && !options?.silent) setVectorDbLoading(false);
+      }
+    })();
+
+    vectorDbStatsInFlightRef.current = request;
+    return request;
+  }, []);
+
+  useEffect(() => {
+    if (!initialLoadDone) return;
+    onCacheUpdate?.({ experiments, vectorDbGroups });
+  }, [experiments, vectorDbGroups, initialLoadDone, onCacheUpdate]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -177,6 +281,67 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
       repeatMs: LOADING_STALL_REPEAT_MS,
       onWarning: (text) => setFeed((f) => appendFeed(f, text, 'warning')),
     });
+
+    function startPollTimers() {
+      async function silentPoll() {
+        if (!aliveRef.current) return;
+        setIsPolling(true);
+        try {
+          const rows = await getExperiments();
+          if (!aliveRef.current) return;
+          setExperiments(rows);
+          setError(null);
+          devDebugThrottled(
+            'poll:experiments',
+            DEV_POLL_LOG_INTERVAL_MS,
+            `Poll OK — ${rows.length} experiment(s)`,
+            pollDevLogAtRef.current,
+          );
+        } catch (pollErr) {
+          if (!aliveRef.current) return;
+          const pollMsg =
+            pollErr instanceof Error ? pollErr.message : 'Polling failed — check server connectivity.';
+          devWarn('Experiments poll failed:', pollMsg);
+          setError(pollMsg);
+        } finally {
+          if (aliveRef.current) setIsPolling(false);
+        }
+      }
+
+      async function silentStatsPoll() {
+        if (!aliveRef.current) return;
+        await loadVectorDbStats({ silent: true });
+      }
+
+      if (pollTimerRef.current !== null) window.clearInterval(pollTimerRef.current);
+      pollTimerRef.current = setInterval(silentPoll, EXPERIMENTS_POLL_MS);
+
+      if (statsPollTimerRef.current !== null) window.clearInterval(statsPollTimerRef.current);
+      statsPollTimerRef.current = setInterval(silentStatsPoll, VECTOR_DB_STATS_POLL_MS);
+    }
+
+    if (cacheReady) {
+      startPollTimers();
+      void loadVectorDbStats({ silent: (cachedVectorDbGroups?.length ?? 0) > 0 });
+      void getExperiments()
+        .then((rows) => {
+          if (!aliveRef.current) return;
+          setExperiments(rows);
+          setError(null);
+        })
+        .catch(() => undefined);
+      return () => {
+        aliveRef.current = false;
+        if (pollTimerRef.current !== null) {
+          clearInterval(pollTimerRef.current);
+          pollTimerRef.current = null;
+        }
+        if (statsPollTimerRef.current !== null) {
+          clearInterval(statsPollTimerRef.current);
+          statsPollTimerRef.current = null;
+        }
+      };
+    }
 
     async function bootstrap() {
       setFeed([{ id: 'start', text: 'Starting experiments list load…', variant: 'default' }]);
@@ -200,14 +365,17 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
         const data = await getExperimentsWithProgress(applyProg, abortInitial.signal);
         stall.stop();
         if (!aliveRef.current) return;
-        setFeed((f) => appendFeed(f, 'Ready.', 'default'));
         setExperiments(data);
         setError(null);
+        void loadVectorDbStats();
+        if (!aliveRef.current) return;
+        setFeed((f) => appendFeed(f, 'Experiments loaded — vector DB stats loading above.', 'default'));
       } catch (err) {
         stall.stop();
         if (!aliveRef.current) return;
         if (err instanceof DOMException && err.name === 'AbortError') return;
         const msg = err instanceof Error ? err.message : 'Failed to load experiments';
+        devWarn('Initial experiments load failed:', msg);
         setError(msg);
         setFeed((f) => appendFeed(f, `Failed: ${msg}`, 'warning'));
       } finally {
@@ -215,28 +383,7 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
         if (!aliveRef.current) return;
         setLoading(false);
         setInitialLoadDone(true);
-
-        async function silentPoll() {
-          if (!aliveRef.current) return;
-          setIsPolling(true);
-          try {
-            const rows = await getExperiments();
-            if (!aliveRef.current) return;
-            setExperiments(rows);
-            setError(null);
-          } catch (pollErr) {
-            if (!aliveRef.current) return;
-            const pollMsg =
-              pollErr instanceof Error ? pollErr.message : 'Polling failed — check server connectivity.';
-            setError(pollMsg);
-          } finally {
-            if (aliveRef.current) setIsPolling(false);
-          }
-        }
-
-        if (pollTimerRef.current !== null) window.clearInterval(pollTimerRef.current);
-        pollTimerRef.current = setInterval(silentPoll, EXPERIMENTS_POLL_MS);
-        void silentPoll();
+        startPollTimers();
       }
     }
 
@@ -250,36 +397,40 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
       }
+      if (statsPollTimerRef.current !== null) {
+        clearInterval(statsPollTimerRef.current);
+        statsPollTimerRef.current = null;
+      }
     };
-  }, []);
+  }, [cacheReady, loadVectorDbStats]);
 
-  if (!initialLoadDone && experiments.length === 0) {
-    return (
-      <DashboardShell
-        asideWidthClass="w-56 lg:w-60"
-        header={
-          <AppPageChrome
-            tone="darkFrame"
-            pageTitle="Experiments"
-            pageHint="Loading experiment list and run summaries from your server."
-          />
-        }
-        sidebar={experimentsRailHelp()}
-      >
-        <div className="flex justify-center py-8">
-          <LoadingFeedbackPanel
-            title="Loading experiments"
-            subtitle="Transfer + parse milestones (server does not stream row counts yet)."
-            feed={feed}
-            receivedBytes={receivedBytes}
-            totalBytes={totalBytes}
-            footer={`After load, list refreshes every ${EXPERIMENTS_POLL_MS / 1000}s without reopening this panel.`}
-            theme="light"
-          />
-        </div>
-      </DashboardShell>
-    );
-  }
+  const showLoadingPanel = shouldShowLoadingPanel(
+    initialLoadDone,
+    loading,
+    isPolling,
+    experiments.length,
+    error,
+  );
+  const showEmptyConfirmed =
+    initialLoadDone &&
+    !loading &&
+    !isPolling &&
+    experiments.length === 0 &&
+    error === null;
+
+  const loadingPanelTitle = !initialLoadDone
+    ? 'Connecting to server'
+    : experiments.length === 0
+      ? 'Checking for experiments'
+      : 'Refreshing experiments';
+
+  const loadingPanelSubtitle = !initialLoadDone
+    ? 'Contacting the API, loading experiment list, then vector database stats.'
+    : 'Waiting for the server to finish this refresh cycle.';
+
+  const pageHint = showLoadingPanel
+    ? 'Loading experiment list and vector database stats from your server.'
+    : `History and live status for every sweep. This table refreshes every ${EXPERIMENTS_POLL_MS / 1000}s while you keep the page open.`;
 
   return (
     <DashboardShell
@@ -288,7 +439,7 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
         <AppPageChrome
           tone="darkFrame"
           pageTitle="Experiments"
-          pageHint={`History and live status for every sweep. This table refreshes every ${EXPERIMENTS_POLL_MS / 1000}s while you keep the page open.`}
+          pageHint={pageHint}
         />
       }
       sidebar={experimentsRailHelp()}
@@ -297,11 +448,36 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{error}</div>
       )}
 
-        {experiments.length === 0 && !error && (
+      <VectorDbStatsPanel
+        groups={vectorDbGroups}
+        loading={vectorDbLoading}
+        error={vectorDbError}
+      />
+
+      {showLoadingPanel && (
+        <div className="flex justify-center py-8">
+          <LoadingFeedbackPanel
+            title={loadingPanelTitle}
+            subtitle={loadingPanelSubtitle}
+            feed={feed}
+            receivedBytes={receivedBytes}
+            totalBytes={totalBytes}
+            footer={
+              initialLoadDone
+                ? `List auto-refreshes every ${EXPERIMENTS_POLL_MS / 1000}s once connected.`
+                : `After load, list refreshes every ${EXPERIMENTS_POLL_MS / 1000}s.`
+            }
+            theme="light"
+            expectPayloadProgress={!initialLoadDone || receivedBytes !== null}
+          />
+        </div>
+      )}
+
+        {showEmptyConfirmed && (
           <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">
             <div className="mb-2 text-lg text-slate-400">No experiments yet</div>
             <div className="text-sm text-slate-500">
-              Submit your first experiment using the CLI:
+              The server is connected and returned an empty list. Submit your first experiment using the CLI:
               <code className="mt-2 block rounded bg-slate-100 p-2 text-xs">
                 rag-params-finder run --config configs/example.yaml
               </code>
@@ -309,12 +485,13 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
           </div>
         )}
 
-        {experiments.length > 0 && (() => {
+        {!showLoadingPanel && experiments.length > 0 && (() => {
           const startIndex = (currentPage - 1) * itemsPerPage;
           const endIndex = startIndex + itemsPerPage;
           const paginatedExperiments = experiments.slice(startIndex, endIndex);
           const selectableCount = experiments.filter(exp => exp.status !== 'running').length;
           const allSelectableSelected = selectableCount > 0 && selectedExperiments.size === selectableCount;
+          const statsByExperimentId = experimentStatsMap(vectorDbGroups);
 
           return (
             <>
@@ -339,122 +516,125 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
                   </button>
                 </div>
               )}
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <table className="w-full">
-                  <thead className="border-b border-slate-200 bg-slate-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left w-12">
+              <div className="mb-3 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={allSelectableSelected}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                  Select all deletable experiments
+                </span>
+              </div>
+              <div className="space-y-3">
+                {paginatedExperiments.map((exp) => {
+                  const isSelected = selectedExperiments.has(exp.experiment_id);
+                  const isRunning = exp.status === 'running';
+                  const isCollapsed = collapsedExperiments.has(exp.experiment_id);
+                  const dbStats = statsByExperimentId.get(exp.experiment_id);
+                  return (
+                    <div
+                      key={exp.experiment_id}
+                      className={`overflow-hidden rounded-xl border bg-white shadow-sm transition-colors ${
+                        isSelected ? 'border-blue-300 ring-1 ring-blue-200' : 'border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 px-4 py-4">
                         <input
                           type="checkbox"
-                          checked={allSelectableSelected}
-                          onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                          checked={isSelected}
+                          disabled={isRunning}
+                          onChange={(e) => handleSelectExperiment(exp.experiment_id, e.target.checked)}
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
+                          title={isRunning ? 'Cannot delete running experiment' : ''}
                         />
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                        Experiment Name
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                        Experiment ID
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                        Runs
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                        Git Commit
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                        Created
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {paginatedExperiments.map((exp) => {
-                      const isSelected = selectedExperiments.has(exp.experiment_id);
-                      const isRunning = exp.status === 'running';
-                      return (
-                        <tr
-                          key={exp.experiment_id}
-                          className={`transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
+                        <button
+                          type="button"
+                          onClick={() => toggleCollapse(exp.experiment_id)}
+                          className="rounded p-1 transition-colors hover:bg-slate-100"
+                          title={isCollapsed ? 'Expand details' : 'Collapse details'}
                         >
-                          <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              disabled={isRunning}
-                              onChange={(e) => handleSelectExperiment(exp.experiment_id, e.target.checked)}
-                              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
-                              title={isRunning ? 'Cannot delete running experiment' : ''}
-                            />
-                          </td>
-                          <td
-                            className="px-6 py-4 text-sm font-medium text-slate-900 cursor-pointer"
-                            onClick={() => onSelect?.(exp.experiment_id)}
+                          <svg
+                            className={`h-4 w-4 text-slate-600 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
                           >
-                            {exp.experiment_name}
-                          </td>
-                          <td
-                            className="px-6 py-4 font-mono text-sm text-slate-600 cursor-pointer"
-                            onClick={() => onSelect?.(exp.experiment_id)}
-                          >
-                            {exp.experiment_id.slice(0, 8)}...
-                          </td>
-                          <td
-                            className="px-6 py-4 font-mono text-sm text-slate-600 cursor-pointer"
-                            onClick={() => onSelect?.(exp.experiment_id)}
-                          >
-                            {exp.run_count ?? '—'}
-                            {exp.failed_count ? (
-                              <span className="ml-1 text-red-500">({exp.failed_count} failed)</span>
-                            ) : null}
-                          </td>
-                          <td
-                            className="px-6 py-4 cursor-pointer"
-                            onClick={() => onSelect?.(exp.experiment_id)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`inline-flex rounded px-2 py-1 text-xs font-bold ${
-                                  exp.status === 'complete'
-                                    ? 'bg-green-100 text-green-700'
-                                    : exp.status === 'running'
-                                      ? 'bg-blue-100 text-blue-700'
-                                      : exp.status === 'partial'
-                                        ? 'bg-yellow-100 text-yellow-700'
-                                        : exp.status === 'failed'
-                                          ? 'bg-red-100 text-red-700'
-                                          : exp.status === 'cancelled'
-                                            ? 'bg-orange-100 text-orange-700'
-                                            : 'bg-slate-100 text-slate-700'
-                                }`}
-                              >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onSelect?.(exp)}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <div className="truncate text-sm font-semibold text-slate-900">{exp.experiment_name}</div>
+                          {isCollapsed && (
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                              <span className={`inline-flex rounded px-2 py-0.5 font-bold ${statusBadgeClass(exp.status)}`}>
                                 {exp.status}
                               </span>
-                              {(exp.status === 'failed' || exp.status === 'partial') && (
-                                <span className="text-xs text-red-400">click for details</span>
-                              )}
+                              <span>{exp.run_count ?? '—'} runs</span>
+                              {exp.failed_count ? <span className="text-red-500">({exp.failed_count} failed)</span> : null}
+                              {dbStats ? (
+                                <>
+                                  <span>{dbStats.total_chunks.toLocaleString()} chunks</span>
+                                  <span>{dbStats.total_results.toLocaleString()} results</span>
+                                  <span>{dbStats.estimated_storage_mb} MB</span>
+                                </>
+                              ) : null}
+                              <span>{new Date(exp.created_at).toLocaleString()}</span>
                             </div>
-                          </td>
-                          <td
-                            className="px-6 py-4 font-mono text-sm text-slate-500 cursor-pointer"
-                            onClick={() => onSelect?.(exp.experiment_id)}
-                          >
-                            {exp.git_commit ?? '—'}
-                          </td>
-                          <td
-                            className="px-6 py-4 text-sm text-slate-600 cursor-pointer"
-                            onClick={() => onSelect?.(exp.experiment_id)}
-                          >
-                            {new Date(exp.created_at).toLocaleString()}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-              </table>
+                          )}
+                        </button>
+                        <span className={`hidden sm:inline-flex rounded px-2 py-1 text-xs font-bold ${statusBadgeClass(exp.status)}`}>
+                          {exp.status}
+                        </span>
+                      </div>
+                      {!isCollapsed && (
+                        <div className="space-y-4 border-t border-slate-100 bg-slate-50/60 px-4 py-4">
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                            <div>
+                              <div className="text-xs uppercase tracking-wider text-slate-500">Experiment ID</div>
+                              <button
+                                type="button"
+                                onClick={() => onSelect?.(exp)}
+                                className="font-mono text-sm text-blue-700 hover:underline"
+                              >
+                                {exp.experiment_id.slice(0, 8)}...
+                              </button>
+                            </div>
+                            <div>
+                              <div className="text-xs uppercase tracking-wider text-slate-500">Runs</div>
+                              <div className="text-sm text-slate-800">
+                                {exp.run_count ?? '—'}
+                                {exp.failed_count ? (
+                                  <span className="ml-1 text-red-500">({exp.failed_count} failed)</span>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-xs uppercase tracking-wider text-slate-500">Git Commit</div>
+                              <div className="font-mono text-sm text-slate-700">{exp.git_commit?.slice(0, 8) ?? '—'}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs uppercase tracking-wider text-slate-500">Created</div>
+                              <div className="text-sm text-slate-700">{new Date(exp.created_at).toLocaleString()}</div>
+                            </div>
+                          </div>
+                          <ExperimentVectorDbStatsCard
+                            experimentId={exp.experiment_id}
+                            stats={dbStats}
+                            loading={vectorDbLoading && !dbStats}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <Pagination
                   currentPage={currentPage}
                   totalItems={experiments.length}
@@ -467,10 +647,12 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
           );
         })()}
 
-      <div className="mt-4 flex items-center justify-center gap-3 text-xs text-slate-500">
-        <span>Polling every {EXPERIMENTS_POLL_MS / 1000}s</span>
-        <PollingIndicator active={isPolling && !loading} />
-      </div>
+      {initialLoadDone && !showLoadingPanel && (
+        <div className="mt-4 flex items-center justify-center gap-3 text-xs text-slate-500">
+          <span>Auto-refresh every {EXPERIMENTS_POLL_MS / 1000}s</span>
+          <PollingIndicator active={isPolling} />
+        </div>
+      )}
 
       <ConfirmDeleteModal
         isOpen={showDeleteModal}
