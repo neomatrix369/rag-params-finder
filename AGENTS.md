@@ -28,7 +28,7 @@ rag-params-finder resume <experiment-id>  # continue paused sweep
 rag-params-finder indexes list            # Atlas Search indexes (known vs unknown)
 rag-params-finder indexes reset           # drop unknown indexes + ensure required
 rag-params-finder indexes reset --all     # drop all chunks search indexes + recreate
-uv pip install -e ".[dev]" && uv run ruff check . && uv run mypy server/ cli/ && uv run pytest
+uv pip install -e ".[dev]" && uv run ruff check . && uv run mypy server/ cli/ && rag-params-finder test
 
 # Frontend
 cd frontend && npm run dev                     # start dashboard → http://localhost:5173

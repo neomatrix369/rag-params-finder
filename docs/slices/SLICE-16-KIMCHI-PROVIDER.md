@@ -17,8 +17,10 @@ Add Kimchi as an embeddings-only provider so one experiment config can sweep the
 - [x] Kimchi calls use an OpenAI-compatible `/v1/embeddings` adapter.
 - [x] Runtime embedding dimensions route to `vector_index_<dimension>`.
 - [x] `configs/example-kimchi.yaml` sweeps four verified OpenAI-family models (24 runs); additional registry IDs parked in YAML until CAST account verification.
-- [x] Focused tests cover validation, config loading, response parsing, and runtime index selection.
+- [x] Provider regression pytest suite (dispatch, retriever index, registry dims, config, db-stats, Kimchi adapter parsing) — see **Already delivered** in [`SLICE-17-TEST-SUITE-EXPANSION.md`](./SLICE-17-TEST-SUITE-EXPANSION.md).
 - [x] User and contributor docs describe Kimchi setup and dynamic dimensions.
+
+**Deferred to Slice 17:** live CAST smoke, mock-Mongo pipeline tests, Kimchi batching, `ensure_vector_index` cache, orchestrator/pause-resume/sparse-hybrid coverage — see parked work in [`SLICE-17-TEST-SUITE-EXPANSION.md`](./SLICE-17-TEST-SUITE-EXPANSION.md).
 
 ## Key Decisions
 
@@ -43,5 +45,7 @@ Add Kimchi as an embeddings-only provider so one experiment config can sweep the
 ```bash
 uv run ruff check .
 uv run mypy server/ cli/
-uv run pytest --tb=short -q
+rag-params-finder test   # 39 tests — provider regression; CI runs on PRs to main; not a substitute for live Kimchi smoke (Slice 17)
 ```
+
+Manual pre-merge smoke (local → Voyage → Kimchi + Atlas `vector_index_<dim>`) is tracked in [`SLICE-17-TEST-SUITE-EXPANSION.md`](./SLICE-17-TEST-SUITE-EXPANSION.md).

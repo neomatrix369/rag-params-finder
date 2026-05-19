@@ -61,17 +61,17 @@ uv run ruff check .
 # Type check — expect 0 errors
 uv run mypy server/ cli/
 
-# Tests (search index preflight + Kimchi provider)
-uv run pytest --tb=short -q
+# Tests (same as CI — provider regression suite)
+rag-params-finder test
 
-# Coverage
-uv run pytest --cov=server --cov=cli --cov-report=html
+# Coverage (optional)
+uv run pytest -m "not integration" --cov=server --cov=cli --cov-report=html
 ```
 
 **Baseline (as of 2026-05-23)**:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → search index preflight + Kimchi provider tests
+- `rag-params-finder test` → 39 tests in `tests/` (no MongoDB or live API keys; GitHub Actions on PRs to `main`)
 
 ### Frontend
 
@@ -97,16 +97,19 @@ npm audit --audit-level=high
 
 ## 🧪 Testing Strategy
 
-Current approach: manual testing via CLI + Dashboard.
+**CI today:** `rag-params-finder test` (or `uv run pytest -m "not integration" --tb=short -q`) — runs on every PR and merge queue to `main`; 39 provider-regression tests (embedder dispatch, retriever indexes, config validation, Vector DB stats, Kimchi adapter parsing). No MongoDB or live API keys required.
 
-**Planned test layers** (no suite yet — see Contributing):
-- **Unit tests**: individual chunkers, embedders, rerankers with mock inputs
-- **Integration tests**: full pipeline with mock MongoDB collections and pre-computed embedding fixtures (avoids real API calls)
-- **Frontend**: TypeScript compilation serves as the basic type-correctness check (no vitest/jest setup yet)
+**Planned expansion:** [`docs/slices/SLICE-17-TEST-SUITE-EXPANSION.md`](../slices/SLICE-17-TEST-SUITE-EXPANSION.md) — parked high/medium items from the Kimchi merge review:
 
-The primary blockers for a proper test suite are:
-- Integration tests need mock MongoDB (or a test Atlas cluster)
-- Embedding tests need either a local model or pre-computed fixtures to avoid slow API calls
+| Priority | Parked in Slice 17 |
+|----------|-------------------|
+| High | Manual smoke checklist (local / Voyage / Kimchi); Kimchi Atlas `vector_index_<dim>` docs; Kimchi embedding batching; env-gated CAST integration test |
+| Medium | `ensure_vector_index` cache; orchestrator + pause/resume tests; reranker dispatch; sparse/hybrid retriever; mock-Mongo pipeline fixtures |
+| Lower | Frontend vitest; dead-code cleanup; parallel-sweep tests (with Slice 16) |
+
+Until Slice 17 ships, treat **pytest green + manual smoke** as the merge gate for provider changes.
+
+**Manual testing** remains required for full CLI + Dashboard flows (see `VERIFICATION_CHECKLIST.md` at repo root).
 
 ---
 
@@ -203,7 +206,7 @@ Set `LOG_LEVEL=DEBUG` in `.env` and restart uvicorn for verbose output. Uvicorn 
 
 Areas where help is most needed:
 
-- **Test suite expansion**: pytest fixtures with mock MongoDB + pre-computed embedding fixtures *(17 search-index tests shipped)*
+- **Test suite (Slice 17)**: see [`SLICE-17-TEST-SUITE-EXPANSION.md`](../slices/SLICE-17-TEST-SUITE-EXPANSION.md) — mock MongoDB + pre-computed embedding fixtures, orchestrator coverage *(39 provider regression tests shipped)*
 - **SSE live updates**: replace the 2-second polling loop with Server-Sent Events
 - **Docker Compose**: one-command `docker compose up` setup
 - **Experiment cleanup CLI**: `rag-params-finder cleanup --older-than 30d`
