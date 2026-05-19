@@ -184,6 +184,15 @@ The CLI will:
 
 Open `http://localhost:5173` to watch live progress and explore results.
 
+**Long sweeps**: pause and resume without losing completed runs:
+
+```bash
+rag-params-finder pause <experiment-id>    # stop after current phase
+rag-params-finder resume <experiment-id>   # continue remaining combos
+```
+
+Or use the Pause / Resume buttons on the experiment detail screen in the dashboard.
+
 ---
 
 ## 🤖 Pre-downloading Local Models (Optional)

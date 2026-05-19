@@ -134,6 +134,24 @@ Canonical list: `server/core/model_registry.py` (`EMBEDDING_MODELS`, `RERANKER_M
 
 **Atlas vector index** selection is automatic: local models (384-dim) use `vector_index_384`; Voyage models (1024-dim) use `vector_index_1024`. Both can coexist on the same `chunks` collection.
 
+### `voyage-context-3` (contextualized API)
+
+Unlike other Voyage models, `voyage-context-3` uses Voyage's **`contextualized_embed`** API — all chunks from a document segment share embedding context for better retrieval quality.
+
+| Limit | Value | Server behavior |
+|---|---|---|
+| Per-segment context window | 32,000 tokens | Long documents are split into multiple segments automatically (`server/core/embedder.py`) |
+| Per-request total tokens | 120,000 tokens | Multiple segments batched into one API call when under cap |
+| Single chunk max | 32,000 tokens | Validated before embed; fails with clear error if `chunk_size` is too large |
+
+**Implications for sweeps**:
+
+- **Other Voyage models are unaffected** — they use standard `client.embed()` with per-chunk batching.
+- **Segment boundaries**: chunks in different segments lose cross-segment document context (within-segment context is preserved).
+- **Chunk size**: keep `chunk_sizes` well below 32K tokens (the example configs use `[256, 512]` characters/tokens). A single oversized chunk cannot be truncated by Voyage.
+
+See [Troubleshooting — voyage-context-3 token limit](troubleshooting.md#-voyage-context-3-token-limit-exceeded) if embedding fails with a 32K window error.
+
 ---
 
 ## ✂️ Chunking Methods
@@ -204,7 +222,9 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 For a targeted subset, copy the file and trim the `methods` or `chunk_sizes` lists before running.
 
-To **re-run only failed combinations inside an existing experiment** *(same `experiment_id`, keep successful runs)*, see the planned workflow in [`../slices/SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) — today this still requires manual YAML reshaping or a new submit.
+To **continue an incomplete sweep** without re-submitting YAML, pause and resume the same experiment (CLI or dashboard) — completed parameter combinations are skipped automatically.
+
+To **re-run only failed combinations inside an existing experiment** *(same `experiment_id`, keep successful runs)*, see the planned workflow in [`../slices/SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) — today this requires manual YAML reshaping, pause/resume for not-yet-started combos, or a new submit.
 
 ---
 

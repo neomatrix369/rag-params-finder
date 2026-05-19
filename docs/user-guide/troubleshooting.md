@@ -143,6 +143,30 @@ embedding:
 
 ---
 
+## 📄 voyage-context-3 token limit exceeded
+
+**Symptom**: server logs or Voyage API error:
+
+```
+Request to model 'voyage-context-3' failed. The example at index 0 in your batch has too many tokens
+and does not fit into the model's context window of 32000 tokens.
+```
+
+**Cause**: `voyage-context-3` embeds document chunks via the **contextualized** API, which shares context across chunks in each segment. Voyage does **not** truncate contextualized inputs. Either:
+
+1. The **combined tokens** of all chunks in one segment exceeded 32K (common on long PDFs), or
+2. A **single chunk** exceeded 32K tokens (oversized `chunk_size`).
+
+**Fix**:
+
+- **Server ≥ 2026-05-19**: the embedder automatically splits long documents into ~30K-token segments. Restart uvicorn and re-run. Check logs for `Split N chunks into M contextualized segments`.
+- If a **single chunk** is too large, reduce `chunk_sizes` in your YAML (e.g. `[256, 512]` not `[8192, 16384]`).
+- For documents that still fail, temporarily disable `voyage-context-3` and use `voyage-3.5-lite` or `voyage-4-lite` (standard per-chunk embedding, no shared context).
+
+**Note**: only `voyage-context-3` uses this API. All other registered Voyage models route through `client.embed()` and are not subject to the 32K per-segment limit.
+
+---
+
 ## 🔁 Experiment stuck `running` or shows `partial` after server restart
 
 **Symptom**: Dashboard shows an experiment as `running` for hours/days, or `partial` with many “Not Started” runs after you restarted uvicorn (`--reload`) or the server crashed mid-sweep.
@@ -159,7 +183,7 @@ embedding:
 
 1. Restart the server once — reconciliation runs at startup (check logs for `Reconciled N orphaned experiment(s)`)
 2. On the detail screen, verify outcome metrics: **Successful + Failed + Interrupted + Not Started = Total**
-3. To finish remaining parameter combos, either submit a trimmed YAML for the missing combos, or wait for Slice 10 `recover` (retry in-place)
+3. To finish remaining parameter combos: **`rag-params-finder resume <experiment-id>`** if status is `paused`, or pause a running sweep first then resume later. Alternatively submit a trimmed YAML for missing combos, or wait for Slice 10 `recover` (retry failed/interrupted runs in-place)
 
 **Prevention during long sweeps**:
 
@@ -221,7 +245,7 @@ rag-params-finder delete <experiment-id> --force
 
 Both methods:
 - Show a confirmation modal with experiment details
-- Prevent deletion of running experiments (cancel them first)
+- Prevent deletion of **running** experiments (pause or cancel first; **paused** experiments can be deleted)
 - Cascade delete across all collections (experiments, run_status, chunks, results)
 - Display deletion statistics after completion
 

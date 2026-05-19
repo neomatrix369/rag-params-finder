@@ -63,6 +63,8 @@ The `text_search_index`, `vector_index_384`, and `vector_index_1024` all coexist
 
 Check usage and rate limits at [dash.voyageai.com/usage](https://dash.voyageai.com/usage).
 
+**`voyage-context-3`**: uses the contextualized embedding API (not standard `embed()`). The server splits long documents into segments that fit the 32K-token window. See [configuration.md](../user-guide/configuration.md#voyage-context-3-contextualized-api) and [troubleshooting.md](../user-guide/troubleshooting.md#-voyage-context-3-token-limit-exceeded).
+
 ---
 
 ## 🔑 Full .env Reference

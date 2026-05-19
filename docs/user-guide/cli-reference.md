@@ -58,6 +58,30 @@ Posts `POST /experiments/{experiment_id}/cancel`. A running experiment stops aft
 
 ---
 
+### `pause` — Pause a running sweep
+
+```bash
+rag-params-finder pause <experiment-id>
+```
+
+Posts `POST /experiments/{experiment_id}/pause`. The sweep stops after the **current run's current phase** completes — in-flight work is not discarded. Status becomes `paused`. Completed runs and their chunks/results are kept.
+
+Use this to temporarily free API quota or stop a long sweep without losing progress. Resume later with `resume`.
+
+---
+
+### `resume` — Continue a paused sweep
+
+```bash
+rag-params-finder resume <experiment-id>
+```
+
+Posts `POST /experiments/{experiment_id}/resume`. Re-queues the experiment in a background task and executes **only parameter combinations that have not yet reached `COMPLETE`**. Skips are determined from stored `run_status` records — no YAML trimming required.
+
+Only works when experiment status is `paused`.
+
+---
+
 ### `delete` — Delete experiment and all associated data
 
 ```bash
@@ -75,7 +99,7 @@ Deletes an experiment and **all** its associated data:
 |---|---|---|
 | `--force` / `-f` | off | Skip confirmation prompt |
 
-⚠️ **Warning:** This is a **permanent** operation that cannot be undone. Running experiments cannot be deleted — cancel them first.
+⚠️ **Warning:** This is a **permanent** operation that cannot be undone. **Running** experiments cannot be deleted — pause or cancel first. **Paused** experiments can be deleted.
 
 **Examples**:
 ```bash
@@ -131,6 +155,8 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 | GET | `/experiments/{id}/results` | Get query results for an experiment |
 | GET | `/experiments/{id}/explore` | Get data for the Search Explorer screen |
 | POST | `/experiments/{id}/cancel` | Request cancellation while status is running |
+| POST | `/experiments/{id}/pause` | Pause after current phase; status → `paused` |
+| POST | `/experiments/{id}/resume` | Resume a paused sweep; skips completed parameter combos |
 | DELETE | `/experiments/{id}` | Delete experiment and all associated data (chunks, results, run statuses) |
 | POST | `/experiments/{id}/recover` | Retry failed / interrupted runs only *(planned — Slice 10)* |
 | GET | `/runs/{id}/status` | Get a single run's current phase |

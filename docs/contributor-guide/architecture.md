@@ -19,9 +19,9 @@ System design, data flow, module structure, and design decisions for `rag-params
 
 1. **Python CLI** (thin client) — submits experiment configs to the server
 2. **FastAPI Server** (engine) — orchestrates the full pipeline end-to-end
-3. **React Dashboard** (observer) — read-only visualization of experiments and results
+3. **React Dashboard** — visualization, sweep controls (pause/resume/cancel/delete), and results exploration
 
-The CLI and Dashboard are intentionally thin. All business logic lives in the server.
+The CLI submits configs; the Dashboard observes progress and controls active sweeps. All pipeline business logic lives in the server.
 
 ---
 
@@ -98,17 +98,17 @@ rag-params-finder/
 │   ├── main.py              # FastAPI app entry; lifespan: indexes + orphan reconciliation
 │   ├── settings.py          # Centralized pydantic-settings config
 │   ├── api/
-│   │   ├── experiments.py   # CRUD, explore, db-stats, cancel, delete
+│   │   ├── experiments.py   # CRUD, explore, db-stats, pause, resume, cancel, delete
 │   │   ├── experiments_shared.py  # Mongo helpers incl. db-stats aggregation
 │   │   └── runs.py          # GET /runs/{id}/status
 │   ├── core/
-│   │   ├── orchestrator.py  # run_sweep() + run_single() pipeline
+│   │   ├── orchestrator.py  # run_sweep(), resume_sweep(), run_single() pipeline
 │   │   ├── startup_reconciliation.py  # fix stale running experiments on boot
 │   │   ├── atlas_storage.py # Atlas Admin API quota + dbStats footprint
 │   │   ├── pdf_parser.py    # pypdf text extraction
 │   │   ├── query_loader.py  # persona JSON → Query dataclass list
 │   │   ├── model_registry.py  # embedding + reranking model catalog
-│   │   ├── embedder.py      # Voyage embedding client
+│   │   ├── embedder.py      # Voyage embed(); voyage-context-3 → contextualized_embed + segment split
 │   │   ├── local_embedder.py  # sentence-transformers embedding (lazy-load, cached)
 │   │   ├── reranker.py      # Voyage reranking client
 │   │   ├── local_reranker.py  # CrossEncoder reranking (lazy-load, cached)
@@ -129,7 +129,7 @@ rag-params-finder/
 │       ├── atlas.py         # MongoDB connection singleton
 │       └── indexes.py       # collection + index creation helpers
 ├── cli/
-│   ├── main.py              # Typer app (run, cancel, version)
+│   ├── main.py              # Typer app (run, cancel, pause, resume, delete, version)
 │   ├── config_loader.py     # YAML parser + model registry validation
 │   └── api_client.py        # HTTP client to server
 └── frontend/src/
@@ -141,6 +141,7 @@ rag-params-finder/
     │   ├── ExperimentProgressCard.tsx  # experiment progress card (circular indicator, reusable)
     │   ├── PollingIndicator.tsx        # subtle "Syncing..." indicator during polls
     │   ├── ConfirmDeleteModal.tsx      # delete confirmation modal with experiment details
+    │   ├── ExperimentControlButtons.tsx  # pause / resume / cancel on detail screen
     │   ├── CollapsibleCard.tsx         # reusable collapsible section (localStorage state)
     │   ├── VectorDbStatsPanel.tsx      # cluster-grouped storage stats (experiments list)
     │   ├── ExperimentVectorDbStatsCard.tsx  # per-experiment db-stats on detail screen
@@ -181,7 +182,7 @@ Two independent provider settings in each experiment config:
 
 **Embedding provider** (`embedding.provider`):
 - `local` → `server/core/local_embedder.py` → sentence-transformers `all-MiniLM-L6-v2` (384-dim)
-- `voyage` → `server/core/embedder.py` → Voyage AI API (1024-dim)
+- `voyage` → `server/core/embedder.py` → Voyage AI API (1024-dim); `voyage-context-3` uses `contextualized_embed()` with per-document segment splitting (32K-token window)
 
 **Reranking provider** (`retrieval.rerank_provider`):
 - `local` → `server/core/local_reranker.py` → CrossEncoder `cross-encoder/ms-marco-MiniLM-L-6-v2`
@@ -228,6 +229,7 @@ See `docs/adr/` for Architecture Decision Records:
 | Two progress patterns (network vs experiment) | `LoadingFeedbackPanel` for network/API loads (byte-level); `ExperimentProgressCard` for experiment execution (run completion); distinct concerns, reusable components |
 | Cascade delete with confirmation | DELETE endpoint scrubs all collections (experiments, run_status, chunks, results); `ConfirmDeleteModal` shows experiment details + deletion statistics; prevents deletion of running experiments |
 | Boot orphan reconciliation | `BackgroundTasks` sweeps die on process exit; startup marks in-flight runs `interrupted` and sets terminal experiment status — separate from Slice 10 retry |
+| Pause / resume sweeps | Cooperative halt via `_SweepControl` threading events; `resume_sweep()` skips completed parameter signatures; status `paused` is non-terminal |
 | Vector DB stats API + dashboard | `GET /experiments/vector-db-stats` and `/{id}/db-stats`; estimated storage from chunk counts + model dimensions; optional Atlas quota bar |
 
 ---

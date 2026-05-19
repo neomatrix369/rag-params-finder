@@ -5,7 +5,7 @@
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 
-The React dashboard at `http://localhost:5173` provides a read-only view of experiments and results. It polls the server every 2 seconds while any experiment is running.
+The React dashboard at `http://localhost:5173` visualizes experiments and results. Experiments are **submitted from the CLI**; the dashboard can **pause, resume, cancel, and delete** active sweeps. It polls the server every 2 seconds while any experiment is `running` or `paused`.
 
 All screens feature:
 - **Loading feedback panels** with progress bars during initial data loads
@@ -36,7 +36,7 @@ The landing screen shows all submitted experiments, newest first.
 **Actions**:
 - **View details**: Click any row to open the Experiment Detail screen
 - **Delete**: Click the trash icon button in the Actions column to delete an experiment (confirmation required)
-  - Cannot delete running experiments — cancel them first
+  - Cannot delete **running** experiments — pause or cancel first (**paused** experiments can be deleted)
   - Deletion is permanent and removes all associated data (chunks, results, run statuses)
 
 **Status badges**:
@@ -45,6 +45,7 @@ The landing screen shows all submitted experiments, newest first.
 |---|---|---|
 | `complete` | Green | All planned runs finished successfully |
 | `running` | Blue | One or more runs still active |
+| `paused` | Violet | Sweep paused — completed runs kept; resume to continue remaining combos |
 | `partial` | Yellow | Sweep stopped early — some runs complete, some failed/interrupted, and/or some parameter combos never started |
 | `failed` | Red | All runs failed |
 | `cancelled` | Gray | Experiment was cancelled |
@@ -55,7 +56,17 @@ The landing screen shows all submitted experiments, newest first.
 
 Opened by clicking a row in the Experiments List. Polls every 2 seconds while status is non-terminal. List→detail navigation reuses cached experiment payloads when available to reduce duplicate fetches.
 
-**Overview panel** (top): Status badge, action buttons, and compact run-outcome metrics in one card:
+**Overview panel** (top): Status badge, control buttons, and compact run-outcome metrics in one card:
+
+**Control buttons** (header, via `ExperimentControlButtons`):
+
+| Button | When shown | Effect |
+|---|---|---|
+| **Pause** | Status is `running` | Stops after current phase; status → `paused` |
+| **Resume** | Status is `paused` | Continues from next incomplete parameter combo |
+| **Cancel** | Status is `running` | Stops sweep; status → `cancelled` or `partial` |
+
+Pause and cancel are cooperative — the current pipeline phase finishes before the sweep halts. Delete is blocked only for `running` experiments (paused experiments can be deleted).
 
 | Metric | Meaning |
 |---|---|
@@ -75,6 +86,7 @@ These buckets always sum to **Total** on terminal experiments.
 |---|---|
 | `complete` | Green — all planned runs succeeded |
 | `partial` | Amber — “Sweep Incomplete” with breakdown (e.g. 41/90 complete, 48 never started) |
+| `paused` | Violet — “Experiment is paused” with prompt to resume remaining combos |
 | `cancelled` | Gray — runs completed before cancellation |
 | Failed runs | Red panel listing `error_message` per run |
 | Interrupted runs | Amber panel listing interruption reason |
@@ -101,7 +113,7 @@ QUEUED → PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERAN
 **Actions** (top-right header):
 - **Delete experiment**: Click the trash icon button to delete the entire experiment
   - Opens a confirmation modal showing experiment details and deletion statistics
-  - Cannot delete running experiments — cancel them first
+  - Cannot delete **running** experiments — pause or cancel first (**paused** experiments can be deleted)
   - Deletion is permanent and removes all associated data
 
 ---
@@ -136,10 +148,10 @@ This allows direct comparison of configs that used different models or retrieval
 | Screen | Polls | Interval | Stops When |
 |---|---|---|---|
 | Experiments List | Yes | Every 2 s | Never (always refreshes) |
-| Experiment Detail | Yes | Every 2 s | Status reaches terminal state |
+| Experiment Detail | Yes | Every 2 s | Status reaches terminal state (`paused` is non-terminal — polling continues) |
 | Search Explorer | No | — | Loads once |
 
-Terminal statuses: `complete`, `failed`, `partial`, `cancelled`
+Terminal statuses: `complete`, `failed`, `partial`, `cancelled` (non-terminal: `running`, `paused`)
 
 ---
 
