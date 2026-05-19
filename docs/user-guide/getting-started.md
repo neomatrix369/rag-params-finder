@@ -55,11 +55,15 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?
 # Optional — only needed for Voyage models
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# Optional — defaults shown
+# Optional — defaults shown (free-tier Voyage limits)
 SERVER_URL=http://localhost:8001
-VOYAGE_RPM_LIMIT=300
-VOYAGE_TPM_LIMIT=1000000
+VOYAGE_RPM_LIMIT=3
+VOYAGE_TPM_LIMIT=10000
 LOG_LEVEL=INFO
+
+# Optional — dashboard cluster storage quota bar (Atlas Admin API)
+# ATLAS_PUBLIC_KEY= / ATLAS_PRIVATE_KEY= / ATLAS_GROUP_ID=
+# Or set MONGODB_STORAGE_LIMIT_MB=512 for a manual quota override
 ```
 
 **MongoDB Atlas setup** (one-time):

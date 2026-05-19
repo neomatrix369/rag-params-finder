@@ -141,6 +141,33 @@ embedding:
 
 ---
 
+## 🔁 Experiment stuck `running` or shows `partial` after server restart
+
+**Symptom**: Dashboard shows an experiment as `running` for hours/days, or `partial` with many “Not Started” runs after you restarted uvicorn (`--reload`) or the server crashed mid-sweep.
+
+**Cause**: Sweep execution runs in FastAPI `BackgroundTasks` (in-memory only). When the process dies, MongoDB may still show `status: running` and in-flight runs mid-phase — even though nothing is executing.
+
+**Automatic fix (server ≥ 2026-05-19)**: On every server start, `reconcile_orphaned_experiments()` in `server/core/startup_reconciliation.py`:
+
+1. Finds experiments still marked `running`
+2. Marks in-flight runs as `interrupted` with error *“Interrupted — server restarted while run was in progress”*
+3. Recomputes experiment status → usually `partial` when some runs completed and others never started
+
+**What to do**:
+
+1. Restart the server once — reconciliation runs at startup (check logs for `Reconciled N orphaned experiment(s)`)
+2. On the detail screen, verify outcome metrics: **Successful + Failed + Interrupted + Not Started = Total**
+3. To finish remaining parameter combos, either submit a trimmed YAML for the missing combos, or wait for Slice 10 `recover` (retry in-place)
+
+**Prevention during long sweeps**:
+
+- Avoid editing server code (triggers `--reload`) while a large sweep is running
+- Run uvicorn **without** `--reload` for production-length sweeps: `uvicorn server.main:app --port 8001`
+
+**Note**: `RECOVER_ON_BOOT=true` does **not** yet retry interrupted runs — it only logs a reminder. Status reconciliation always runs regardless of that flag.
+
+---
+
 ## 🌀 Dashboard stuck on "Loading…"
 
 **Symptom**: browser shows a loading spinner indefinitely or a "Failed to fetch" error.
@@ -217,9 +244,14 @@ db.results.deleteMany({experiment_id: exp_id})
 | `MONGODB_URI` | Yes | — | MongoDB Atlas connection string |
 | `VOYAGE_API_KEY` | No | — | Voyage AI API key (only if using Voyage models) |
 | `SERVER_URL` | No | `http://localhost:8001` | FastAPI server URL (used by CLI) |
-| `VOYAGE_RPM_LIMIT` | No | `300` | Voyage requests-per-minute limit (throttle guard) |
-| `VOYAGE_TPM_LIMIT` | No | `1000000` | Voyage tokens-per-minute limit |
-| `RECOVER_ON_BOOT` | No | `false` | Persisted into experiment metadata for the dashboard only; **does not** start or retry runs on server boot yet. When implemented ([Slice 10](../slices/SLICE-10-RUN-RECOVERY.md)), boot recovery will target **INTERRUPTED** runs only — not every **FAILED** run. |
+| `VOYAGE_RPM_LIMIT` | No | `3` | Voyage requests-per-minute limit (throttle guard; free-tier default) |
+| `VOYAGE_TPM_LIMIT` | No | `10000` | Voyage tokens-per-minute limit (free-tier default) |
+| `ATLAS_PUBLIC_KEY` | No | — | Atlas Admin API public key — enables cluster storage quota in dashboard |
+| `ATLAS_PRIVATE_KEY` | No | — | Atlas Admin API private key |
+| `ATLAS_GROUP_ID` | No | — | 24-char Atlas **project** ID (from cloud.mongodb.com URL) |
+| `ATLAS_CLUSTER_NAME` | No | *(from URI)* | Cluster name for quota lookup; parsed from `MONGODB_URI` host if omitted |
+| `MONGODB_STORAGE_LIMIT_MB` | No | `0` | Manual cluster quota override (MB). `0` = try Atlas API; omit quota bar if unavailable |
+| `RECOVER_ON_BOOT` | No | `false` | Stored in experiment metadata for the dashboard. **Status reconciliation on boot always runs.** Automatic **retry** of interrupted runs is not implemented yet ([Slice 10](../slices/SLICE-10-RUN-RECOVERY.md)). |
 | `LOG_LEVEL` | No | `INFO` | Logging verbosity (`DEBUG` for verbose output) |
 
 ---
