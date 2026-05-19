@@ -35,7 +35,7 @@ import { RunStatus, Phase, EnvParams, SweepSummary, ExperimentStatus, Experiment
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
 import { devDebugThrottled, devWarn } from '../utils/devLog';
 import { toExperimentDbStatsSummary } from '../utils/experimentDbStats';
-import { isRunningExperimentStatus, isTerminalExperimentStatus } from '../utils/experimentStatus';
+import { isRunningExperimentStatus, isTerminalExperimentStatus, summarizeExperimentRuns } from '../utils/experimentStatus';
 
 let detailFeedSeq = 0;
 
@@ -295,20 +295,43 @@ function StatCard({
   value,
   icon,
   trend,
-  color = 'blue'
+  color = 'blue',
+  compact = false,
 }: {
   label: string;
   value: string | number;
   icon: React.ReactNode;
   trend?: string;
-  color?: 'blue' | 'green' | 'purple' | 'amber';
+  color?: 'blue' | 'green' | 'purple' | 'amber' | 'red' | 'slate';
+  compact?: boolean;
 }) {
   const colors = {
     blue: 'bg-blue-50 text-blue-600 border-blue-200',
     green: 'bg-green-50 text-green-600 border-green-200',
     purple: 'bg-purple-50 text-purple-600 border-purple-200',
     amber: 'bg-amber-50 text-amber-600 border-amber-200',
+    red: 'bg-red-50 text-red-600 border-red-200',
+    slate: 'bg-slate-50 text-slate-600 border-slate-200',
   };
+
+  if (compact) {
+    return (
+      <div className={`${colors[color]} rounded-lg border px-3 py-2.5 min-w-0 h-full`}>
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="shrink-0 scale-90 opacity-80">{icon}</div>
+          <div className="min-w-0 flex-1">
+            <div className="text-lg font-bold leading-none tabular-nums truncate">{value}</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide mt-1 opacity-75 truncate">
+              {label}
+            </div>
+          </div>
+          {trend && (
+            <span className="shrink-0 text-[10px] font-medium opacity-75">{trend}</span>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${colors[color]} rounded-xl p-4 border-2 shadow-sm`}>
@@ -704,6 +727,11 @@ export default function ExperimentDetailScreen({
     return null;
   }
 
+  const runSummary = summarizeExperimentRuns(detail.runs, detail.run_count);
+  const metricsGridClass = runSummary.inProgress > 0
+    ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 p-4'
+    : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 p-4';
+
   return (
     <DashboardShell
       asideWidthClass="w-56 lg:w-60"
@@ -731,16 +759,16 @@ export default function ExperimentDetailScreen({
       )}
     >
 
-        {/* Header with status + primary actions */}
-        <div className="mb-5 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
+        {/* Overview: status, actions, and run-outcome metrics in one panel */}
+        <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
               <StatusBadge status={detail.status} />
-              <p className="text-xs leading-snug text-slate-500">
-                Runs table lists each sweep combo and pipeline phase below.
+              <p className="text-xs text-slate-500">
+                {runSummary.complete} of {runSummary.expected} runs complete
               </p>
             </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-3">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               {(isTerminal || isRunning) && onExplore && (
                 <button
                   type="button"
@@ -750,9 +778,9 @@ export default function ExperimentDetailScreen({
                       ? 'Opens Search Explorer with data stored so far; more results appear as runs finish.'
                       : undefined
                   }
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold rounded-xl shadow-md transition-all transform hover:scale-105"
+                  className="rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:from-blue-700 hover:to-blue-800"
                 >
-                  {isRunning ? '🔍 Explore live results' : '🔍 Explore Results'}
+                  {isRunning ? '🔍 Explore live' : '🔍 Explore'}
                 </button>
               )}
               {isRunning && (
@@ -760,60 +788,48 @@ export default function ExperimentDetailScreen({
                   type="button"
                   onClick={handleCancel}
                   disabled={cancelling}
-                  className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-sm font-semibold rounded-xl shadow-md transition-all"
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:bg-red-300"
                 >
-                  {cancelling ? 'Cancelling...' : '⏹ Cancel Experiment'}
+                  {cancelling ? 'Cancelling…' : '⏹ Cancel'}
                 </button>
               )}
               {isTerminal && (
                 <button
                   type="button"
                   onClick={() => setShowDeleteModal(true)}
-                  className="px-6 py-3 bg-slate-100 hover:bg-red-50 border border-slate-300 hover:border-red-300 text-slate-700 hover:text-red-700 text-sm font-semibold rounded-xl shadow-sm transition-all"
+                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-700"
                 >
                   🗑 Delete
                 </button>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Key metrics cards */}
-        {detail && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className={metricsGridClass}>
+            <StatCard compact label="Total" value={runSummary.expected} icon={icons.grid} color="blue" />
+            <StatCard compact label="Successful" value={runSummary.complete} icon={icons.check} color="green" />
+            <StatCard compact label="Failed" value={runSummary.failed} icon={icons.x} color="red" />
+            <StatCard compact label="Interrupted" value={runSummary.interrupted} icon={icons.x} color="amber" />
+            <StatCard compact label="Not Started" value={runSummary.neverStarted} icon={icons.grid} color="slate" />
+            {runSummary.inProgress > 0 && (
+              <StatCard compact label="In Progress" value={runSummary.inProgress} icon={icons.play} color="purple" />
+            )}
             <StatCard
-              label="Total Runs"
-              value={detail.run_count ?? 0}
-              icon={icons.grid}
-              color="blue"
-            />
-            <StatCard
-              label="Successful"
-              value={(detail.run_count ?? 0) - (detail.failed_count ?? 0)}
-              icon={icons.check}
-              color="green"
-            />
-            <StatCard
-              label="Failed"
-              value={detail.failed_count ?? 0}
-              icon={icons.x}
-              color="amber"
-            />
-            <StatCard
+              compact
               label="Duration"
               value={formatDuration(detail.started_at, detail.completed_at)}
               icon={icons.clock}
               color="purple"
             />
           </div>
-        )}
+        </div>
 
         {/* Progress visualization for running experiments */}
         {detail && isRunning && detail.runs && detail.runs.length > 0 && (
           <ExperimentProgressCard
             title="Experiment Progress"
-            subtitle={`${detail.runs.filter(r => r.phase === Phase.COMPLETE).length} of ${detail.runs.length} runs completed`}
-            percent={(detail.runs.filter(r => r.phase === Phase.COMPLETE).length / detail.runs.length) * 100}
+            subtitle={`${runSummary.complete} of ${runSummary.expected} runs completed`}
+            percent={runSummary.expected > 0 ? (runSummary.complete / runSummary.expected) * 100 : 0}
             variant="default"
             className="mb-6"
           />
@@ -1006,7 +1022,7 @@ export default function ExperimentDetailScreen({
                   <tbody className="divide-y divide-slate-100">
                     {paginatedRuns.map((run, idx) => {
                       const isComplete = run.phase === Phase.COMPLETE;
-                      const isFailed = run.phase === Phase.FAILED;
+                      const isFailed = run.phase === Phase.FAILED || run.phase === Phase.INTERRUPTED;
                       const rowBg = isFailed ? 'bg-red-50/50' : isComplete ? 'bg-green-50/30' : '';
                       const absoluteIndex = startIndex + idx;
 
@@ -1085,6 +1101,39 @@ export default function ExperimentDetailScreen({
           );
         })()}
 
+        {/* Interrupted runs detail */}
+        {detail?.runs && runSummary.interrupted > 0 && (
+          <div className="mt-6 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white">
+                {icons.x}
+              </div>
+              <h2 className="text-lg font-bold text-amber-900">
+                Interrupted Runs ({runSummary.interrupted})
+              </h2>
+            </div>
+            <div className="space-y-3">
+              {detail.runs.filter((run) => run.phase === Phase.INTERRUPTED).map((run) => (
+                <div key={run.run_id} className="bg-white border-l-4 border-amber-400 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-mono font-bold rounded">
+                      {run.run_id.slice(0, 8)}
+                    </span>
+                    <span className="text-sm text-slate-700 font-medium">
+                      {run.embedding_model} · {run.chunking_method} · {run.chunk_size}+{run.overlap}
+                    </span>
+                  </div>
+                  <div className="bg-amber-50 rounded-md p-3 border border-amber-100">
+                    <p className="text-sm text-amber-900 font-mono whitespace-pre-wrap">
+                      {run.error_message || 'Run was interrupted before completion'}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Failed runs detail */}
         {detail?.runs && detail.runs.filter(r => r.phase === Phase.FAILED).length > 0 && (
           <div className="mt-6 bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200 rounded-2xl p-6 shadow-lg">
@@ -1124,8 +1173,8 @@ export default function ExperimentDetailScreen({
           </div>
         )}
 
-        {/* Success summary with explore CTA */}
-        {isTerminal && detail?.runs && detail.runs.filter(r => r.phase === Phase.FAILED).length === 0 && (
+        {/* Terminal outcome summary */}
+        {isTerminal && detail.status === 'complete' && (
           <div className="mt-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-6 shadow-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -1137,7 +1186,7 @@ export default function ExperimentDetailScreen({
                     All Runs Completed Successfully!
                   </h3>
                   <p className="text-sm text-green-700 mt-1">
-                    {detail.runs.length} run(s) finished without errors
+                    {runSummary.complete} of {runSummary.expected} run(s) finished without errors
                   </p>
                 </div>
               </div>
@@ -1149,6 +1198,54 @@ export default function ExperimentDetailScreen({
                   🔍 Explore Results
                 </button>
               )}
+            </div>
+          </div>
+        )}
+
+        {isTerminal && detail.status === 'partial' && (
+          <div className="mt-6 bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center text-white">
+                  {icons.x}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-amber-900">Sweep Incomplete</h3>
+                  <p className="text-sm text-amber-800 mt-1">
+                    {runSummary.complete} of {runSummary.expected} run(s) completed successfully.
+                    {runSummary.interrupted > 0 && ` ${runSummary.interrupted} interrupted.`}
+                    {runSummary.failed > 0 && ` ${runSummary.failed} failed.`}
+                    {runSummary.neverStarted > 0 && ` ${runSummary.neverStarted} never started.`}
+                  </p>
+                  <p className="text-xs text-amber-700 mt-2">
+                    The experiment stopped before every parameter combination ran — often after a server restart or cancellation mid-sweep.
+                  </p>
+                </div>
+              </div>
+              {onExplore && runSummary.complete > 0 && (
+                <button
+                  onClick={onExplore}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold rounded-xl shadow-md transition-all transform hover:scale-105 shrink-0"
+                >
+                  🔍 Explore Results
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {isTerminal && detail.status === 'cancelled' && (
+          <div className="mt-6 bg-gradient-to-br from-slate-50 to-slate-100 border-2 border-slate-300 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-slate-500 flex items-center justify-center text-white">
+                {icons.x}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Experiment Cancelled</h3>
+                <p className="text-sm text-slate-700 mt-1">
+                  {runSummary.complete} of {runSummary.expected} run(s) completed before cancellation.
+                </p>
+              </div>
             </div>
           </div>
         )}
