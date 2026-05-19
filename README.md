@@ -115,6 +115,9 @@ Open `http://localhost:5173` to watch live progress and explore results.
 - **Multi-format data loading**: PDF, TXT, Markdown, CSV — files or directories
 - **Cartesian sweep**: one YAML config → N models × M methods × P sizes × Q overlaps runs
 - **Live phase tracking**: QUEUED → PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERANKING → COMPLETE
+- **Experiment management**: Cancel running experiments, delete experiments with cascade cleanup
+- **Progress feedback**: Byte-level network loading, circular progress indicators, background polling with "Syncing..." badges
+- **Pagination**: All list views paginated (10 items per page for experiments/runs, 5 for configs)
 
 ---
 
