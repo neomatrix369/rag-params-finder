@@ -5,6 +5,7 @@ from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from server.api.experiments_shared import (
+    mongo_delete_experiment_data,
     mongo_find_experiment_by_id,
     mongo_find_experiment_with_runs,
     mongo_insert_experiment_doc,
@@ -160,4 +161,30 @@ async def cancel_experiment(experiment_id: str):
         "status": "cancel_requested",
         "experiment_id": experiment_id,
         "message": "Experiment will stop after the current phase completes",
+    }
+
+
+@router.delete("/{experiment_id}")
+async def delete_experiment(experiment_id: str):
+    """Delete an experiment and all its associated data (chunks, results, run statuses)."""
+    logger.info(f"DELETE /experiments/{experiment_id}")
+
+    experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+
+    if experiment.get("status") == ExperimentStatus.RUNNING:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete running experiment. Cancel it first.",
+        )
+
+    deleted_counts = await asyncio.to_thread(mongo_delete_experiment_data, experiment_id)
+
+    logger.info(f"Experiment {experiment_id} deleted: {deleted_counts}")
+    return {
+        "status": "deleted",
+        "experiment_id": experiment_id,
+        "deleted_counts": deleted_counts,
+        "message": "Experiment and all associated data deleted",
     }

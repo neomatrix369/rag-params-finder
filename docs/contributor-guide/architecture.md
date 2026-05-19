@@ -98,7 +98,8 @@ rag-params-finder/
 │   ├── main.py              # FastAPI app entry; lifespan ensures DB indexes
 │   ├── settings.py          # Centralized pydantic-settings config
 │   ├── api/
-│   │   ├── experiments.py   # experiments CRUD, results/explore, cancel
+│   │   ├── experiments.py   # experiments CRUD, results/explore, cancel, delete
+│   │   ├── experiments_shared.py  # shared delete helpers (cascade deletion)
 │   │   └── runs.py          # GET /runs/{id}/status
 │   ├── core/
 │   │   ├── orchestrator.py  # run_sweep() + run_single() pipeline
@@ -137,8 +138,9 @@ rag-params-finder/
     │   ├── LoadingFeedbackPanel.tsx    # network loading progress (byte-level, activity feed)
     │   ├── ExperimentProgressCard.tsx  # experiment progress card (circular indicator, reusable)
     │   ├── PollingIndicator.tsx        # subtle "Syncing..." indicator during polls
-    │   ├── ExperimentsScreen.tsx       # list view (polling every 2s, paginated)
-    │   ├── ExperimentDetailScreen.tsx  # detail view (runs table, phase dots, metrics, paginated)
+    │   ├── ConfirmDeleteModal.tsx      # delete confirmation modal with experiment details
+    │   ├── ExperimentsScreen.tsx       # list view (polling every 2s, paginated, delete actions)
+    │   ├── ExperimentDetailScreen.tsx  # detail view (runs table, phase dots, metrics, paginated, delete action)
     │   └── SearchExplorerScreen.tsx    # results analysis (ranked configs, per-query, paginated)
     ├── services/
     │   ├── apiClient.ts       # fetch wrapper (all server API calls)
@@ -216,6 +218,7 @@ See `docs/adr/` for Architecture Decision Records:
 | Pagination on all screens | Prevents DOM overload and cognitive fatigue; default 10 items per page (experiments/runs), 5 per page (configs) |
 | Dual loading indicators (panel + polling badge) | Initial load → full progress panel; background polls → subtle "Syncing..." badge; clear state transitions |
 | Two progress patterns (network vs experiment) | `LoadingFeedbackPanel` for network/API loads (byte-level); `ExperimentProgressCard` for experiment execution (run completion); distinct concerns, reusable components |
+| Cascade delete with confirmation | DELETE endpoint scrubs all collections (experiments, run_status, chunks, results); `ConfirmDeleteModal` shows experiment details + deletion statistics; prevents deletion of running experiments |
 
 ---
 

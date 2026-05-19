@@ -22,10 +22,12 @@ import ExperimentProgressCard from './ExperimentProgressCard';
 import type { FeedEntry } from './LoadingFeedbackPanel';
 import {
   cancelExperiment,
+  deleteExperiment,
   getExperiment,
   getExperimentWithProgress,
   type ExperimentProgressCallback,
 } from '../services/apiClient';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 import { RunStatus, Phase, EnvParams, SweepSummary, ExperimentStatus } from '../types';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
 
@@ -351,6 +353,8 @@ export default function ExperimentDetailScreen({
   const [error, setError] = useState<string | null>(null);
   const [hydrating, setHydrating] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [loadFeed, setLoadFeed] = useState<FeedEntry[]>([]);
   const [receivedBytes, setReceivedBytes] = useState<number | null>(null);
@@ -472,6 +476,20 @@ export default function ExperimentDetailScreen({
       setError(err instanceof Error ? err.message : 'Failed to cancel');
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await deleteExperiment(experimentId);
+      setShowDeleteModal(false);
+      onBack();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete experiment');
+      setShowDeleteModal(false);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -632,6 +650,15 @@ export default function ExperimentDetailScreen({
                   className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-sm font-semibold rounded-xl shadow-md transition-all"
                 >
                   {cancelling ? 'Cancelling...' : '⏹ Cancel Experiment'}
+                </button>
+              )}
+              {isTerminal && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(true)}
+                  className="px-6 py-3 bg-slate-100 hover:bg-red-50 border border-slate-300 hover:border-red-300 text-slate-700 hover:text-red-700 text-sm font-semibold rounded-xl shadow-sm transition-all"
+                >
+                  🗑 Delete
                 </button>
               )}
             </div>
@@ -990,6 +1017,15 @@ export default function ExperimentDetailScreen({
             Polling every {DETAIL_POLL_MS / 1000}s <span className="animate-pulse">●</span>
           </div>
         )}
+
+        <ConfirmDeleteModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={handleDelete}
+          experimentName={detail?.experiment_name || ''}
+          experimentId={experimentId}
+          isDeleting={deleting}
+        />
     </DashboardShell>
   );
 }

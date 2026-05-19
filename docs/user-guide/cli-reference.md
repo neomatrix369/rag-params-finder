@@ -58,6 +58,38 @@ Posts `POST /experiments/{experiment_id}/cancel`. A running experiment stops aft
 
 ---
 
+### `delete` — Delete experiment and all associated data
+
+```bash
+rag-params-finder delete <experiment-id>
+rag-params-finder delete <experiment-id> --force
+```
+
+Deletes an experiment and **all** its associated data:
+- Experiment metadata
+- Run statuses
+- Chunks (embeddings)
+- Query results
+
+| Flag | Default | Description |
+|---|---|---|
+| `--force` / `-f` | off | Skip confirmation prompt |
+
+⚠️ **Warning:** This is a **permanent** operation that cannot be undone. Running experiments cannot be deleted — cancel them first.
+
+**Examples**:
+```bash
+# Delete with confirmation prompt
+rag-params-finder delete abc123-def4-5678-90ab-cdefg1234567
+
+# Delete without confirmation (use with caution!)
+rag-params-finder delete abc123-def4-5678-90ab-cdefg1234567 --force
+```
+
+**Use case:** Free up MongoDB Atlas storage by removing old experiments. The free M0 tier has a 512MB storage limit, and embeddings consume significant space (~40MB per 10k chunks).
+
+---
+
 ### `recover` — Retry failed runs *(planned, Slice 10)*
 
 **Not implemented yet.** When shipped, this command will re-execute only runs in **FAILED** *(and optionally **INTERRUPTED**)* phase for an existing experiment, scrubbing stale `chunks` / `results` for those `run_id`s and leaving **COMPLETE** runs untouched. Config comes from the stored experiment document — no YAML trimming required.
@@ -97,6 +129,7 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 | GET | `/experiments/{id}/results` | Get query results for an experiment |
 | GET | `/experiments/{id}/explore` | Get data for the Search Explorer screen |
 | POST | `/experiments/{id}/cancel` | Request cancellation while status is running |
+| DELETE | `/experiments/{id}` | Delete experiment and all associated data (chunks, results, run statuses) |
 | POST | `/experiments/{id}/recover` | Retry failed / interrupted runs only *(planned — Slice 10)* |
 | GET | `/runs/{id}/status` | Get a single run's current phase |
 

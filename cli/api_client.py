@@ -83,3 +83,22 @@ def cancel_experiment(experiment_id: str) -> dict[str, Any]:
         data: dict[str, Any] = cast(dict[str, Any], response.json())
         logger.info(f"Cancel response: {data}")
         return data
+
+
+def delete_experiment(experiment_id: str) -> dict[str, Any]:
+    """Delete an experiment and all its associated data."""
+    server_url = get_server_url()
+    url = f"{server_url}/experiments/{experiment_id}"
+    logger.info(f"DELETE {url}")
+
+    with httpx.Client() as client:
+        response = client.delete(url, timeout=_DEFAULT_TIMEOUT_S)
+        if response.status_code == 404:
+            raise RuntimeError(f"Experiment {experiment_id} not found")
+        if response.status_code == 409:
+            detail = response.json().get("detail", "Cannot delete running experiment")
+            raise RuntimeError(detail)
+        response.raise_for_status()
+        data: dict[str, Any] = cast(dict[str, Any], response.json())
+        logger.info(f"Delete response: {data}")
+        return data
