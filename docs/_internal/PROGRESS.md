@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-18 (Slice 8 — Dashboard UX improvements + progress card component extraction)
-**Current**: Slices 1–8 ✅ COMPLETE | Next: Slice 9 📋 PLANNED (Search Explorer dashboard) · Slice 10 📋 PLANNED (failed-run recovery) · Slice 16 📋 PLANNED (honor `parallelism`)
+**Last Updated**: 2026-05-19 (Slice 9 — Experiment deletion with confirmation)
+**Current**: Slices 1–9 ✅ COMPLETE | Next: Slice 10 📋 PLANNED (failed-run recovery) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`)
 
 ---
 
@@ -17,7 +17,9 @@
 | 6 — Additional chunkers + retrieval | ✅ COMPLETE | ~45 min | fixed, token, sentence, semantic + sparse/hybrid + 5 new configs |
 | 7 — Free/local embedding + reranking | ✅ COMPLETE | ~15 min | sentence-transformers, no API key needed |
 | 8 — Dashboard UX improvements | ✅ COMPLETE | ~2 h | Loading feedback panels, polling indicators, pagination, unified chrome |
+| 9 — Experiment deletion | ✅ COMPLETE | ~1 h | CLI delete command + dashboard confirmation modal, cascade cleanup |
 | 10 — Run recovery | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; see [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) |
+| 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE
@@ -350,6 +352,61 @@ Improve dashboard loading UX with progress feedback, add pagination to all scree
   - `ExperimentProgressCard` → Experiment execution (run completion)
 
 **Rationale**: Inline progress visualization in detail screen duplicated logic; extracting to component enables reuse across screens and maintains visual consistency.
+
+---
+
+## Slice 9: Experiment Deletion with Confirmation ✅
+
+**Status**: ✅ COMPLETE | **Started**: 2026-05-19 | **Completed**: 2026-05-19 | **Target**: ~1 h
+
+### Goal
+Implement comprehensive experiment deletion with confirmation flows and cascading cleanup across CLI, server, and dashboard.
+
+### What Changed
+- **NEW**: `frontend/src/components/ConfirmDeleteModal.tsx` — Confirmation modal with experiment details, warning UI, and deletion statistics display
+- **NEW**: `server/api/experiments_shared.py` — Shared delete helpers with cascade deletion logic across all collections
+- **EDIT**: `server/api/experiments.py` — Added `DELETE /experiments/{id}` endpoint with `force` query parameter, validation against running experiments
+- **EDIT**: `cli/main.py` — Added `delete` command with interactive confirmation prompt and `--force` flag
+- **EDIT**: `cli/api_client.py` — Added `delete_experiment()` method for DELETE API calls
+- **EDIT**: `frontend/src/components/ExperimentsScreen.tsx` — Added delete button in Actions column, integrated ConfirmDeleteModal, disabled for running experiments
+- **EDIT**: `frontend/src/components/ExperimentDetailScreen.tsx` — Added delete button in header actions, integrated ConfirmDeleteModal
+- **EDIT**: `frontend/src/services/apiClient.ts` — Added `deleteExperiment()` method with query string support
+- **EDIT**: `frontend/src/types/index.ts` — Added `DeleteExperimentResponse` type for deletion statistics
+- **EDIT**: `docs/user-guide/cli-reference.md` — Documented `delete` command with examples and use cases
+- **EDIT**: `docs/user-guide/troubleshooting.md` — Replaced manual cleanup section with CLI/dashboard delete instructions
+- **EDIT**: `CLAUDE.md` — Added delete command to CLI examples and updated key files list
+
+### Key Design Decisions
+| Decision | Why |
+|---|---|
+| Cascade delete across all collections | Prevents orphaned data; removes experiments, run_status, chunks, and results in one operation |
+| Confirmation required by default | Deletion is permanent and destructive; explicit confirmation prevents accidental loss |
+| `--force` flag for automation | Enables scripted deletion workflows without interactive prompts |
+| Block deletion of running experiments | Prevents data corruption; users must cancel experiment first |
+| Return deletion statistics | Provides transparency and verification of cascade cleanup |
+| ConfirmDeleteModal shows experiment details | Users can verify they're deleting the correct experiment before confirming |
+| Shared delete logic in `experiments_shared.py` | DRY principle; both API endpoint and future CLI/admin tools use same logic |
+
+### Acceptance Criteria
+- [x] CLI `delete` command with interactive confirmation prompt
+- [x] CLI `--force` flag skips confirmation
+- [x] DELETE endpoint returns deletion statistics (docs deleted per collection)
+- [x] Running experiments cannot be deleted (API returns 400 error)
+- [x] Dashboard delete buttons in experiments list and detail screen
+- [x] ConfirmDeleteModal shows experiment details and deletion warning
+- [x] Delete button disabled for running experiments with tooltip
+- [x] Success toast shows deletion statistics
+- [x] All pre-commit hooks pass (ruff, mypy, tsc, build)
+- [x] Documentation updated (CLI reference, troubleshooting guide)
+
+### Testing Notes
+Manually verified:
+- CLI delete with and without `--force`
+- Dashboard delete from both list and detail screens
+- Confirmation modal shows correct experiment details
+- Running experiment deletion blocked with error message
+- Deletion statistics displayed correctly in CLI and dashboard
+- All associated data removed from MongoDB collections
 
 ---
 

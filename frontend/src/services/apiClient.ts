@@ -1,4 +1,4 @@
-import { Experiment, ExploreResponse } from '../types';
+import { DeleteExperimentResponse, Experiment, ExploreResponse } from '../types';
 import { fetchJsonWithProgress, type FetchProgressUpdate } from './fetchWithProgress';
 
 export { formatBytes } from './fetchWithProgress';
@@ -193,6 +193,24 @@ export async function cancelExperiment(
     const parsed = await response.json().catch(() => ({}));
     const detail = typeof parsed.detail === 'string' ? parsed.detail : undefined;
     throw new Error(detail || 'Failed to cancel experiment');
+  }
+  return response.json();
+}
+
+export async function deleteExperiment(experimentId: string): Promise<DeleteExperimentResponse> {
+  const url = `${API_BASE_URL}/experiments/${experimentId}`;
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'DELETE',
+    });
+  } catch (err) {
+    rethrowWithFetchHint(url, err);
+  }
+  if (!response.ok) {
+    const parsed = await response.json().catch(() => ({}));
+    const detail = typeof parsed.detail === 'string' ? parsed.detail : undefined;
+    throw new Error(detail || 'Failed to delete experiment');
   }
   return response.json();
 }

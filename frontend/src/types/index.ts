@@ -169,3 +169,19 @@ export interface ExploreResponse {
   ranked_configs: RankedConfig[];
   detailed_results: DetailedResult[];
 }
+
+// Delete response types (from DELETE /experiments/{id})
+
+export interface DeletedCounts {
+  experiments: number;
+  run_status: number;
+  chunks: number;
+  results: number;
+}
+
+export interface DeleteExperimentResponse {
+  status: string;
+  experiment_id: string;
+  deleted_counts: DeletedCounts;
+  message: string;
+}

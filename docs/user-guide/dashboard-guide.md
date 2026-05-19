@@ -29,7 +29,11 @@ The landing screen shows all submitted experiments, newest first.
 
 **Pagination**: Shows 10 experiments per page. Navigate using Previous/Next buttons at the bottom.
 
-Click any row to open the Experiment Detail screen.
+**Actions**:
+- **View details**: Click any row to open the Experiment Detail screen
+- **Delete**: Click the trash icon button in the Actions column to delete an experiment (confirmation required)
+  - Cannot delete running experiments — cancel them first
+  - Deletion is permanent and removes all associated data (chunks, results, run statuses)
 
 **Status badges**:
 
@@ -69,6 +73,12 @@ QUEUED → PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERAN
 **Runs table**: each row is one config combination (model + chunking method + chunk size + overlap + retrieval method). Expand a row to see per-query results with dense scores and rerank scores.
 
 **Pagination**: Shows 10 runs per page. Navigate using Previous/Next buttons below the table.
+
+**Actions** (top-right header):
+- **Delete experiment**: Click the trash icon button to delete the entire experiment
+  - Opens a confirmation modal showing experiment details and deletion statistics
+  - Cannot delete running experiments — cancel them first
+  - Deletion is permanent and removes all associated data
 
 ---
 
