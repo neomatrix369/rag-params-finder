@@ -16,8 +16,10 @@ Everything you need to run your first RAG parameter sweep experiment.
 |---|---|---|
 | Python | 3.12+ | Install via [python.org](https://www.python.org/downloads/) or `pyenv install 3.12.2` |
 | Node.js | 22+ | Install via [nodejs.org](https://nodejs.org/) or `nvm install 22` |
-| MongoDB Atlas | Free tier (M0) | [cloud.mongodb.com](https://cloud.mongodb.com/) — free tier fully supports vector search |
-| Voyage AI API key | Optional | [dash.voyageai.com](https://dash.voyageai.com) — only needed for Voyage models; local models need no key |
+| MongoDB Atlas | Free tier (M0) | **Required** — see [Cloud Account Setup](cloud-setup.md#mongodb-atlas-required) |
+| Voyage AI | Optional | Only for Voyage models — see [Cloud Account Setup](cloud-setup.md#voyage-ai-optional) |
+
+**New to Atlas or Voyage?** Start with **[Cloud Account Setup](cloud-setup.md)** — account creation, connection string, search indexes, API key, and Tier 1 billing (~15 min).
 
 ---
 
@@ -46,86 +48,29 @@ cd frontend && npm install && cd ..
 cp .env.example .env
 ```
 
-Edit `.env`:
+Edit `.env` — minimum for sweeps:
 
 ```bash
-# Required
+# Required (both sweeps)
 MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?retryWrites=true&w=majority
 
-# Optional — only needed for Voyage models
+# Required for Voyage sweep only — see cloud-setup.md checklist
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+VOYAGE_RPM_LIMIT=2000
+VOYAGE_TPM_LIMIT=16000000
 
-# Optional — Voyage rate limits (must match your org tier on the Voyage dashboard)
-# Without a payment method: 3 RPM / 10_000 TPM (server default; sweeps are slow)
-# Tier 1: add payment at https://dashboard.voyageai.com/organization/billing/payment-methods
-#         then set e.g. VOYAGE_RPM_LIMIT=2000 and VOYAGE_TPM_LIMIT=16000000 (see .env.example)
 SERVER_URL=http://localhost:8001
-LOG_LEVEL=INFO
-
-# Optional — dashboard cluster storage quota bar (Atlas Admin API)
-# ATLAS_PUBLIC_KEY= / ATLAS_PRIVATE_KEY= / ATLAS_GROUP_ID=
-# Or set MONGODB_STORAGE_LIMIT_MB=512 for a manual quota override
 ```
 
-**MongoDB Atlas setup** (one-time):
-1. [cloud.mongodb.com](https://cloud.mongodb.com/) → create a free cluster
-2. **Database Access** → add a user with read/write permissions
-3. **Network Access** → add your IP (or `0.0.0.0/0` for local dev)
-4. **Connect → Compass** → copy the SRV connection string into `MONGODB_URI`
+Full variable reference: [Troubleshooting → Environment Variables](troubleshooting.md#-environment-variables-reference). Optional Atlas Admin API keys for dashboard quota bar — see `.env.example`.
 
-### 2. Indexes are created automatically
+### 2. Search indexes (required before sweep)
 
-The server **automatically creates all required indexes** on startup:
-- `vector_index_1024` (Voyage models, 1024-dim)
-- `vector_index_384` (local models, 384-dim)
-- `text_search_index` (sparse/hybrid retrieval)
+Both example configs use dense + sparse + hybrid — create **`vector_index_384`** (local) or **`vector_index_1024`** (Voyage) **and** **`text_search_index`** on the `chunks` collection.
 
-**On paid clusters (M10+)**: Indexes are created programmatically. Check server logs to confirm creation.
+**M0 free tier:** do this manually in Atlas UI before running a sweep — see [Cloud Account Setup → step 6](cloud-setup.md#6-create-search-indexes-m0--required-before-sweep).
 
-**On free-tier clusters (M0/M2/M5)**: Programmatic index creation is not supported. You'll see a warning in server logs. Create indexes manually:
-
-#### Manual index creation (M0/M2/M5 only)
-
-1. Atlas UI → your cluster → **Browse Collections** → `chunks` collection → **Search Indexes** tab
-2. **Create Search Index** → JSON Editor
-
-For **Voyage AI models** (1024-dim), name: `vector_index_1024`:
-```json
-{
-  "fields": [
-    { "type": "vector", "path": "embedding", "numDimensions": 1024, "similarity": "cosine" },
-    { "type": "filter", "path": "experiment_id" },
-    { "type": "filter", "path": "embedding_model" }
-  ]
-}
-```
-
-For **local models** (384-dim), name: `vector_index_384`:
-```json
-{
-  "fields": [
-    { "type": "vector", "path": "embedding", "numDimensions": 384, "similarity": "cosine" },
-    { "type": "filter", "path": "experiment_id" },
-    { "type": "filter", "path": "embedding_model" }
-  ]
-}
-```
-
-For **sparse/hybrid retrieval**, name: `text_search_index`:
-```json
-{
-  "mappings": {
-    "dynamic": false,
-    "fields": {
-      "text": [{ "type": "string" }],
-      "experiment_id": [{ "type": "token" }],
-      "embedding_model": [{ "type": "token" }]
-    }
-  }
-}
-```
-
-Wait ~1–2 minutes for indexes to become active. All three indexes coexist on the same `chunks` collection.
+**M10+ paid tier:** server creates indexes on startup — check uvicorn logs.
 
 ---
 
@@ -166,11 +111,13 @@ cd frontend && npm run dev
 
 ## ▶️ Run Your First Experiment
 
+Complete the checklist for your sweep path in **[Cloud Account Setup → Before you run a sweep](cloud-setup.md#before-you-run-a-sweep)** first.
+
 ```bash
-# Local models — no API key needed (90 runs: all chunkers × all retrieval methods)
+# Local sweep — checklist items 1–5 (no Voyage)
 rag-params-finder run --config configs/example-mongodb-local.yaml
 
-# Voyage AI models — requires VOYAGE_API_KEY in .env
+# Voyage sweep — checklist items 1–9
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
 
 # Submit and detach (check dashboard for status instead)
@@ -210,6 +157,7 @@ Models are cached in `~/.cache/huggingface/hub/` after the first download.
 
 ## 👉 Next Steps
 
+- [Cloud Account Setup](cloud-setup.md) — Atlas account, Voyage billing, search indexes
 - [Configuration reference](configuration.md) — all YAML fields, sweep expansion, queries format
 - [CLI reference](cli-reference.md) — all commands and flags
 - [Dashboard guide](dashboard-guide.md) — reading the experiments list, detail screen, and search explorer

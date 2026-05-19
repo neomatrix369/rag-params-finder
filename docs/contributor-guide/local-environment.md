@@ -10,22 +10,17 @@ Internal notes for local setup, debugging, and maintenance. Not required for bas
 
 ## 🗄️ MongoDB Atlas — Full Setup Details
 
+**User-facing guide:** [Cloud Account Setup](../user-guide/cloud-setup.md#mongodb-atlas-required) — account, cluster, connection string, and search indexes with official MongoDB doc links.
+
+The sections below are contributor/debugging notes. Prefer the cloud-setup guide for onboarding.
+
 ### Connection String Format
 
 ```
 mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority&appName=<app-name>
 ```
 
-### Atlas UI Steps (one-time)
-
-1. [cloud.mongodb.com](https://cloud.mongodb.com/) → create a free cluster (M0)
-2. **Database Access** → create user with read/write permissions
-3. **Network Access** → add your IP or `0.0.0.0/0` for local dev
-4. **Connect → Compass** → copy the SRV URI into `MONGODB_URI` in `.env`
-
-### Vector Index Creation
-
-See [getting-started.md](../user-guide/getting-started.md#2-create-the-atlas-vector-index) for the full JSON index definitions. Index creation takes ~1–2 minutes in the Atlas UI. The server will fail vector queries until the index is ready.
+Index JSON definitions: [Cloud Account Setup → Search indexes](../user-guide/cloud-setup.md#6-create-search-indexes-m0--manual).
 
 ### Checking Index Status
 
@@ -57,11 +52,7 @@ The `text_search_index`, `vector_index_384`, and `vector_index_1024` all coexist
 
 ## 🤖 Voyage AI Setup
 
-1. Sign up at [dash.voyageai.com](https://dash.voyageai.com)
-2. Navigate to **API Keys** → create new key
-3. Copy the `vo-...` key into `.env` as `VOYAGE_API_KEY`
-
-Check usage and rate limits at [dash.voyageai.com/usage](https://dash.voyageai.com/usage).
+**User-facing guide:** [Cloud Account Setup → Voyage AI](../user-guide/cloud-setup.md#voyage-ai-optional) — account, API key, $5 credit for Tier 1 rate limits.
 
 **`voyage-context-3`**: uses the contextualized embedding API (not standard `embed()`). The server splits long documents into segments that fit the 32K-token window. See [configuration.md](../user-guide/configuration.md#voyage-context-3-contextualized-api) and [troubleshooting.md](../user-guide/troubleshooting.md#-voyage-context-3-token-limit-exceeded).
 

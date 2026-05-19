@@ -241,7 +241,7 @@ To **re-run only failed combinations inside an existing experiment** *(same `exp
 | `voyage-3.5-lite` | $0.02 / 1M tokens | Legacy lite |
 | `rerank-2.5-lite` | $0.02 / 1M tokens | Cheapest reranker |
 
-**Rate limits**: Server defaults to free tier (3 RPM, 10,000 TPM). Tier 1 (payment method) is typically 2,000 RPM with model-specific TPM — set `VOYAGE_RPM_LIMIT` and `VOYAGE_TPM_LIMIT` in `.env` (see `.env.example` and [Voyage rate limits](https://docs.voyageai.com/docs/rate-limits)).
+**Rate limits**: Required for Voyage sweep — add payment method + ≥$5 credits, then set Tier 1 limits in `.env`. See [Cloud Account Setup → Voyage step 3](cloud-setup.md#3-unlock-tier-1-rate-limits-required-for-90-run-sweep).
 
 **Example cost** for a 36-run sweep (3 models × 2 methods × 3 chunk sizes × 2 overlaps):
 - 1 PDF × ~200 pages × 5 chunks/page = 1,000 chunks/run
@@ -252,7 +252,8 @@ To **re-run only failed combinations inside an existing experiment** *(same `exp
 
 ## 👉 See Also
 
-- [Getting Started](getting-started.md) — environment setup and Atlas vector index creation
+- [Getting Started](getting-started.md) — environment setup and first experiment
+- [Cloud Account Setup](cloud-setup.md) — Atlas and Voyage account setup
 - [CLI Reference](cli-reference.md) — how to submit a config and monitor runs
 - [Dashboard Guide](dashboard-guide.md) — interpreting results and scores
 - [Extending the System](../contributor-guide/extending.md) — adding new models or chunking methods

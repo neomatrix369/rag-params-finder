@@ -61,7 +61,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 
 ## 🚀 Quick Start
 
-**Prerequisites:** Python 3.12+, Node.js 22+, MongoDB Atlas account (free tier)
+**Prerequisites:** Python 3.12+, Node.js 22+, [MongoDB Atlas account](docs/user-guide/cloud-setup.md#mongodb-atlas-required) (free tier). [Voyage AI](docs/user-guide/cloud-setup.md#voyage-ai-optional) optional for local-only sweeps.
 
 ```bash
 # Clone and install
@@ -71,19 +71,16 @@ uv venv && source .venv/bin/activate
 uv pip install -e .
 cd frontend && npm install && cd ..
 
-# Configure
+# Configure — see docs/user-guide/cloud-setup.md for minimal Atlas + Voyage checklist
 cp .env.example .env
-# Edit .env: add MONGODB_URI (required) and VOYAGE_API_KEY (optional)
 
 # Start
 uvicorn server.main:app --reload --port 8001   # Terminal 1
-cd frontend && npm run dev                      # Terminal 2
+cd frontend && npm run dev                      # Terminal 2 (optional)
 
-# Full sweep — local models, no API key needed (90 runs)
-rag-params-finder run --config configs/example-mongodb-local.yaml
-
-# Full sweep — Voyage AI models, requires VOYAGE_API_KEY (90 runs)
-rag-params-finder run --config configs/example-mongodb-voyage.yaml
+# Sweeps — complete cloud-setup.md checklist first
+rag-params-finder run --config configs/example-mongodb-local.yaml   # 90 runs, no API key
+rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 90 runs, Voyage + Tier 1
 ```
 
 Open `http://localhost:5173` to watch live progress and explore results.
@@ -94,6 +91,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 | I want to… | Start here |
 |---|---|
+| Set up MongoDB Atlas or Voyage AI accounts | [Cloud Account Setup](docs/user-guide/cloud-setup.md) |
 | Run my first experiment | [Getting Started](docs/user-guide/getting-started.md) |
 | Understand all config options | [Configuration Reference](docs/user-guide/configuration.md) |
 | Learn all CLI commands | [CLI Reference](docs/user-guide/cli-reference.md) |

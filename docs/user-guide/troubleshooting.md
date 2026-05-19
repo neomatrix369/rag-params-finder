@@ -12,15 +12,9 @@ Common errors and how to fix them.
 
 **Symptom**: server logs show `Search index 'vector_index' not found` or queries return no results.
 
-**Cause**: The Atlas vector index must be created manually — the server cannot create it automatically.
+**Cause**: Search indexes are missing or not yet **ACTIVE**. On M0 free tier they must be created manually; on M10+ check server logs for auto-creation failures.
 
-**Fix**:
-
-1. Atlas UI → your cluster → **Browse Collections** → `chunks` collection → **Search Indexes** tab
-2. **Create Search Index** → JSON Editor
-3. Paste the correct index definition for your model type
-
-**Voyage models** (1024-dim) — name: `vector_index_1024`:
+**Fix**: Full steps → [Cloud Account Setup → step 6](cloud-setup.md#6-create-search-indexes-m0--required-before-sweep). Quick reference — **Voyage models** (1024-dim), name: `vector_index_1024`:
 ```json
 {
   "fields": [
@@ -134,9 +128,10 @@ embedding:
 **Symptom**: `voyageai.error.RateLimitError: Rate limit exceeded` in server logs; run status shows `failed`.
 
 **Fix**:
+- Complete [Cloud Account Setup → Voyage step 3](cloud-setup.md#3-unlock-tier-1-rate-limits-required-for-90-run-sweep) (payment method + ≥$5 credits + `.env` limits)
 - Check usage and org limits at [dash.voyageai.com/usage](https://dash.voyageai.com/usage) and [organization rate limits](https://dashboard.voyageai.com/organization/rate-limits)
 - **Free tier** (no payment method): 3 RPM / 10,000 TPM — server defaults match this
-- **Tier 1** (payment method): 2,000 RPM; TPM per model (e.g. `voyage-4-lite` / `voyage-3.5-lite` → 16M, `voyage-4` / `voyage-3.5` → 8M, `rerank-2.5-lite` → 4M). See [Voyage rate limits](https://docs.voyageai.com/docs/rate-limits) and `.env.example`
+- **Tier 1** (payment method + credits): 2,000 RPM; TPM per model (e.g. `voyage-4-lite` / `voyage-3.5-lite` → 16M, `voyage-4` / `voyage-3.5` → 8M, `rerank-2.5-lite` → 4M). See [Voyage rate limits](https://docs.voyageai.com/docs/rate-limits) and `.env.example`
 - Set `VOYAGE_RPM_LIMIT` and `VOYAGE_TPM_LIMIT` in `.env` to **match or stay slightly below** your tier (restart uvicorn after changing)
 - If limits are too **low**, sweeps are slow but safe; if too **high**, you get 429s (retry/backoff applies)
 - Switch to `provider: local` for testing (no API key, no rate limits)
@@ -295,7 +290,8 @@ db.results.deleteMany({experiment_id: exp_id})
 
 ## 👉 See Also
 
-- [Getting Started](getting-started.md) — Atlas setup, vector index creation, and first run
+- [Cloud Account Setup](cloud-setup.md) — Atlas account, Voyage billing, search indexes
+- [Getting Started](getting-started.md) — install, configure, first run
 - [Configuration Reference](configuration.md) — fix provider/model mismatch errors
 - [Dashboard Guide](dashboard-guide.md) — understand what the UI is showing
 - [Local Environment](../contributor-guide/local-environment.md) — deeper debugging and MongoDB shell patterns
