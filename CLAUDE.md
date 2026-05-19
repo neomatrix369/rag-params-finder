@@ -67,6 +67,8 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/atlas_storage.py` | Atlas Admin API cluster quota + dbStats helpers |
 | `server/core/model_registry.py` | Embedding + reranking model catalog |
 | `server/core/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting |
+| `server/core/kimchi_embedder.py` | CAST OpenAI-compatible Kimchi embeddings (runtime-detected dim) |
+| `server/core/executors.py` | Dedicated thread pools for sweeps and heavy Mongo aggregations |
 | `server/core/local_embedder.py` | sentence-transformers embedding (lazy-load) |
 | `server/core/reranker.py` | Voyage reranking client |
 | `server/core/local_reranker.py` | CrossEncoder reranking (lazy-load) |
@@ -158,10 +160,10 @@ cd frontend && npm run typecheck && npm run build
 
 ## Quality Gates Baseline
 
-**Backend** (2026-05-05):
+**Backend** (2026-05-20):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 0 tests collected (test suite not yet written)
+- `pytest` → Kimchi provider tests in `tests/test_kimchi_provider.py` (run `uv run pytest --tb=short -q`)
 
 **Frontend** (2026-05-05):
 - `npm run typecheck` → 0 errors

@@ -31,7 +31,7 @@ The landing screen shows all submitted experiments, newest first.
 
 **Collapsible rows**: Click the chevron on a row to expand inline details without leaving the list. Expansion state is remembered per experiment (`localStorage`).
 
-**Vector DB stats panel** (top of list): Aggregated storage footprint for your Atlas cluster — total chunks, estimated embedding storage, active index names, and per-experiment breakdown. Polls `GET /experiments/vector-db-stats` on refresh. Cluster quota bar appears when Atlas Admin API credentials or `MONGODB_STORAGE_LIMIT_MB` is configured.
+**Vector DB stats panel** (top of list): Aggregated storage footprint for your Atlas cluster — total chunks, estimated embedding storage, active index names, and per-experiment breakdown. Loads from `GET /experiments/vector-db-stats` on its own schedule (**every 60 s**, 90 s fetch timeout) so a slow stats aggregation does not block the experiment list (2 s poll, 30 s timeout). Cluster quota bar appears when Atlas Admin API credentials or `MONGODB_STORAGE_LIMIT_MB` is configured. Kimchi experiments resolve embedding dimensions by sampling stored chunk vectors when the registry has no fixed size.
 
 **Actions**:
 - **View details**: Click any row to open the Experiment Detail screen
@@ -147,7 +147,8 @@ This allows direct comparison of configs that used different models or retrieval
 
 | Screen | Polls | Interval | Stops When |
 |---|---|---|---|
-| Experiments List | Yes | Every 2 s | Never (always refreshes) |
+| Experiments List | Yes | Every 2 s (`GET /experiments`) | Never (always refreshes) |
+| Experiments List — Vector DB stats | Yes | Every 60 s (`GET /experiments/vector-db-stats`) | Never; may show “loading” while list is already visible |
 | Experiment Detail | Yes | Every 2 s | Status reaches terminal state (`paused` is non-terminal — polling continues) |
 | Search Explorer | No | — | Loads once |
 

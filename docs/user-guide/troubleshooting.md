@@ -144,6 +144,31 @@ embedding:
 
 ---
 
+## 🍜 Kimchi embedding API errors
+
+**Symptom**: EMBEDDING phase fails with HTTP 4xx from CAST, “model not found”, or empty embeddings.
+
+**Fix**:
+- Confirm `KIMCHI_BASE_URL=https://llm.cast.ai/openai` and restart uvicorn after editing `.env`.
+- Use the **full** registry model ID in YAML (e.g. `openai/text-embedding-3-large`) — do not strip the provider prefix.
+- List models your API key can call: `curl -s https://api.cast.ai/v1/llm/openai/supported-providers -H "X-API-Key: $KIMCHI_API_KEY"`.
+- Move unverified models out of `embedding.models` (see parked list in `configs/example-kimchi.yaml`).
+
+---
+
+## 🍜 Kimchi vector DB stats empty or previously crashed
+
+**Symptom**: Dashboard vector DB stats panel errors or shows no embedding dimensions for a Kimchi experiment.
+
+**Cause**: Kimchi models have `dimensions: None` in the registry. Storage estimates need at least one stored chunk per embedding model.
+
+**Fix**:
+- **Server ≥ 2026-05-20**: db-stats samples one chunk embedding per model automatically after the first successful STORING phase.
+- If stats are still empty, confirm the experiment has completed at least one run through STORING for that model.
+- Upgrade if you are on an older build that assumed fixed dimensions for all providers.
+
+---
+
 ## ⏱️ Voyage API rate limit hit
 
 **Symptom**: `voyageai.error.RateLimitError: Rate limit exceeded` in server logs; run status shows `failed`.

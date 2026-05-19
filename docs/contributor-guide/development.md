@@ -61,17 +61,17 @@ uv run ruff check .
 # Type check — expect 0 errors
 uv run mypy server/ cli/
 
-# Tests (suite not yet written — 0 collected is the current baseline)
+# Tests (Kimchi provider suite in tests/test_kimchi_provider.py)
 uv run pytest --tb=short -q
 
 # Coverage (when tests exist)
 uv run pytest --cov=server --cov=cli --cov-report=html
 ```
 
-**Baseline (as of 2026-05-05)**:
+**Baseline (as of 2026-05-20)**:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 0 tests collected
+- `pytest` → Kimchi-focused tests in `tests/test_kimchi_provider.py` (no MongoDB required for unit cases)
 
 ### Frontend
 
