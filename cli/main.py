@@ -7,7 +7,12 @@ from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
 
-from cli.api_client import cancel_experiment, get_experiment, submit_experiment
+from cli.api_client import (
+    cancel_experiment,
+    delete_experiment,
+    get_experiment,
+    submit_experiment,
+)
 from cli.config_loader import load_config
 from server.utils.logger import get_logger
 
@@ -290,6 +295,65 @@ def cancel(
     except Exception as e:
         logger.error(f"Cancel request failed: {e}", exc_info=True)
         console.print(f"[red]Failed to cancel experiment: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def delete(
+    experiment_id: str = typer.Argument(..., help="Experiment ID to delete"),
+    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation prompt"),
+):
+    """Delete an experiment and all its associated data (chunks, results, run statuses)."""
+    logger.info(f"CLI delete command: experiment_id={experiment_id}, force={force}")
+
+    if not force:
+        console.print(
+            f"[yellow]⚠ Warning:[/yellow] This will permanently delete experiment "
+            f"[bold]{experiment_id[:8]}[/bold] and all associated data:\n"
+            "  - Experiment metadata\n"
+            "  - Run statuses\n"
+            "  - Chunks (embeddings)\n"
+            "  - Query results"
+        )
+        confirm = typer.confirm("Are you sure you want to continue?")
+        if not confirm:
+            console.print("[dim]Deletion cancelled[/dim]")
+            logger.info("User cancelled deletion")
+            raise typer.Exit(0)
+
+    console.print(f"[cyan]Deleting experiment {experiment_id[:8]}...[/cyan]")
+
+    try:
+        response = delete_experiment(experiment_id)
+        eid = experiment_id[:8]
+        deleted_counts = response.get("deleted_counts", {})
+
+        lines = [
+            f"[red]✗[/red]  Deleted experiment [bold]{eid}[/bold]",
+            "",
+            "[bold]Deleted documents:[/bold]",
+            f"  Experiments:  {deleted_counts.get('experiments', 0)}",
+            f"  Run statuses: {deleted_counts.get('run_status', 0)}",
+            f"  Chunks:       {deleted_counts.get('chunks', 0)}",
+            f"  Results:      {deleted_counts.get('results', 0)}",
+        ]
+
+        console.print(
+            Panel.fit(
+                "\n".join(lines),
+                title="Deletion Complete",
+                border_style="red",
+            )
+        )
+        logger.info(f"Experiment {experiment_id} deleted: {deleted_counts}")
+
+    except RuntimeError as e:
+        logger.error(f"Delete failed: {e}")
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        logger.error(f"Delete request failed: {e}", exc_info=True)
+        console.print(f"[red]Failed to delete experiment: {e}[/red]")
         raise typer.Exit(1)
 
 

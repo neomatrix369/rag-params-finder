@@ -47,6 +47,8 @@ npm run build
 rag-params-finder run --config configs/example-mongodb-local.yaml
 rag-params-finder run --config configs/example-mongodb-local.yaml --detach
 rag-params-finder cancel <experiment-id>
+rag-params-finder delete <experiment-id>           # Delete experiment and all data
+rag-params-finder delete <experiment-id> --force   # Skip confirmation
 rag-params-finder version
 ```
 

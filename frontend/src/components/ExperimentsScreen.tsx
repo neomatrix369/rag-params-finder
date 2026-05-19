@@ -8,8 +8,9 @@ import AppPageChrome from './AppPageChrome';
 import DashboardShell from './DashboardShell';
 import LoadingFeedbackPanel, { type FeedEntry } from './LoadingFeedbackPanel';
 import PollingIndicator from './PollingIndicator';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
-import { getExperiments, getExperimentsWithProgress } from '../services/apiClient';
+import { deleteExperiment, getExperiments, getExperimentsWithProgress } from '../services/apiClient';
 import { Experiment } from '../types';
 
 let feedSeq = 0;
@@ -112,10 +113,56 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
 
+  const [selectedExperiments, setSelectedExperiments] = useState<Set<string>>(new Set());
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   const handleItemsPerPageChange = useCallback((items: number) => {
     setItemsPerPage(items);
     setCurrentPage(1);
   }, []);
+
+  const handleSelectExperiment = useCallback((experimentId: string, checked: boolean) => {
+    setSelectedExperiments(prev => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(experimentId);
+      } else {
+        next.delete(experimentId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback((checked: boolean) => {
+    if (checked) {
+      const selectableIds = experiments
+        .filter(exp => exp.status !== 'running')
+        .map(exp => exp.experiment_id);
+      setSelectedExperiments(new Set(selectableIds));
+    } else {
+      setSelectedExperiments(new Set());
+    }
+  }, [experiments]);
+
+  const handleBulkDelete = useCallback(async () => {
+    setDeleting(true);
+    try {
+      await Promise.all(
+        Array.from(selectedExperiments).map(id => deleteExperiment(id))
+      );
+      setSelectedExperiments(new Set());
+      setShowDeleteModal(false);
+      const refreshed = await getExperiments();
+      setExperiments(refreshed);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete experiments');
+      setShowDeleteModal(false);
+    } finally {
+      setDeleting(false);
+    }
+  }, [selectedExperiments]);
 
   const aliveRef = useRef(true);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -266,89 +313,157 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
           const startIndex = (currentPage - 1) * itemsPerPage;
           const endIndex = startIndex + itemsPerPage;
           const paginatedExperiments = experiments.slice(startIndex, endIndex);
+          const selectableCount = experiments.filter(exp => exp.status !== 'running').length;
+          const allSelectableSelected = selectableCount > 0 && selectedExperiments.size === selectableCount;
 
           return (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <table className="w-full">
-                <thead className="border-b border-slate-200 bg-slate-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                      Experiment Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                      Experiment ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                      Runs
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                      Git Commit
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
-                      Created
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {paginatedExperiments.map((exp) => (
-                    <tr
-                      key={exp.experiment_id}
-                      className="cursor-pointer transition-colors hover:bg-slate-50"
-                      onClick={() => onSelect?.(exp.experiment_id)}
+            <>
+              {selectedExperiments.size > 0 && (
+                <div className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-blue-900">
+                      {selectedExperiments.size} experiment{selectedExperiments.size > 1 ? 's' : ''} selected
+                    </span>
+                    <button
+                      onClick={() => setSelectedExperiments(new Set())}
+                      className="text-xs text-blue-600 hover:text-blue-800 underline"
                     >
-                      <td className="px-6 py-4 text-sm font-medium text-slate-900">{exp.experiment_name}</td>
-                      <td className="px-6 py-4 font-mono text-sm text-slate-600">
-                        {exp.experiment_id.slice(0, 8)}...
-                      </td>
-                      <td className="px-6 py-4 font-mono text-sm text-slate-600">
-                        {exp.run_count ?? '—'}
-                        {exp.failed_count ? (
-                          <span className="ml-1 text-red-500">({exp.failed_count} failed)</span>
-                        ) : null}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`inline-flex rounded px-2 py-1 text-xs font-bold ${
-                              exp.status === 'complete'
-                                ? 'bg-green-100 text-green-700'
-                                : exp.status === 'running'
-                                  ? 'bg-blue-100 text-blue-700'
-                                  : exp.status === 'partial'
-                                    ? 'bg-yellow-100 text-yellow-700'
-                                    : exp.status === 'failed'
-                                      ? 'bg-red-100 text-red-700'
-                                      : exp.status === 'cancelled'
-                                        ? 'bg-orange-100 text-orange-700'
-                                        : 'bg-slate-100 text-slate-700'
-                            }`}
-                          >
-                            {exp.status}
-                          </span>
-                          {(exp.status === 'failed' || exp.status === 'partial') && (
-                            <span className="text-xs text-red-400">click for details</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 font-mono text-sm text-slate-500">{exp.git_commit ?? '—'}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
-                        {new Date(exp.created_at).toLocaleString()}
-                      </td>
+                      Clear selection
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="rounded-lg border border-red-300 bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                  >
+                    🗑 Delete {selectedExperiments.size}
+                  </button>
+                </div>
+              )}
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <table className="w-full">
+                  <thead className="border-b border-slate-200 bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left w-12">
+                        <input
+                          type="checkbox"
+                          checked={allSelectableSelected}
+                          onChange={(e) => handleSelectAll(e.target.checked)}
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                        />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Experiment Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Experiment ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Runs
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Git Commit
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Created
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {paginatedExperiments.map((exp) => {
+                      const isSelected = selectedExperiments.has(exp.experiment_id);
+                      const isRunning = exp.status === 'running';
+                      return (
+                        <tr
+                          key={exp.experiment_id}
+                          className={`transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
+                        >
+                          <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              disabled={isRunning}
+                              onChange={(e) => handleSelectExperiment(exp.experiment_id, e.target.checked)}
+                              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
+                              title={isRunning ? 'Cannot delete running experiment' : ''}
+                            />
+                          </td>
+                          <td
+                            className="px-6 py-4 text-sm font-medium text-slate-900 cursor-pointer"
+                            onClick={() => onSelect?.(exp.experiment_id)}
+                          >
+                            {exp.experiment_name}
+                          </td>
+                          <td
+                            className="px-6 py-4 font-mono text-sm text-slate-600 cursor-pointer"
+                            onClick={() => onSelect?.(exp.experiment_id)}
+                          >
+                            {exp.experiment_id.slice(0, 8)}...
+                          </td>
+                          <td
+                            className="px-6 py-4 font-mono text-sm text-slate-600 cursor-pointer"
+                            onClick={() => onSelect?.(exp.experiment_id)}
+                          >
+                            {exp.run_count ?? '—'}
+                            {exp.failed_count ? (
+                              <span className="ml-1 text-red-500">({exp.failed_count} failed)</span>
+                            ) : null}
+                          </td>
+                          <td
+                            className="px-6 py-4 cursor-pointer"
+                            onClick={() => onSelect?.(exp.experiment_id)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-flex rounded px-2 py-1 text-xs font-bold ${
+                                  exp.status === 'complete'
+                                    ? 'bg-green-100 text-green-700'
+                                    : exp.status === 'running'
+                                      ? 'bg-blue-100 text-blue-700'
+                                      : exp.status === 'partial'
+                                        ? 'bg-yellow-100 text-yellow-700'
+                                        : exp.status === 'failed'
+                                          ? 'bg-red-100 text-red-700'
+                                          : exp.status === 'cancelled'
+                                            ? 'bg-orange-100 text-orange-700'
+                                            : 'bg-slate-100 text-slate-700'
+                                }`}
+                              >
+                                {exp.status}
+                              </span>
+                              {(exp.status === 'failed' || exp.status === 'partial') && (
+                                <span className="text-xs text-red-400">click for details</span>
+                              )}
+                            </div>
+                          </td>
+                          <td
+                            className="px-6 py-4 font-mono text-sm text-slate-500 cursor-pointer"
+                            onClick={() => onSelect?.(exp.experiment_id)}
+                          >
+                            {exp.git_commit ?? '—'}
+                          </td>
+                          <td
+                            className="px-6 py-4 text-sm text-slate-600 cursor-pointer"
+                            onClick={() => onSelect?.(exp.experiment_id)}
+                          >
+                            {new Date(exp.created_at).toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
               </table>
-              <Pagination
-                currentPage={currentPage}
-                totalItems={experiments.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={handleItemsPerPageChange}
-              />
-            </div>
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={experiments.length}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={handleItemsPerPageChange}
+                />
+              </div>
+            </>
           );
         })()}
 
@@ -356,6 +471,19 @@ export default function ExperimentsScreen({ onSelect }: { onSelect?: (id: string
         <span>Polling every {EXPERIMENTS_POLL_MS / 1000}s</span>
         <PollingIndicator active={isPolling && !loading} />
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleBulkDelete}
+        experimentName={selectedExperiments.size === 1 ?
+          experiments.find(e => e.experiment_id === Array.from(selectedExperiments)[0])?.experiment_name || ''
+          : ''}
+        experimentId={selectedExperiments.size === 1 ? Array.from(selectedExperiments)[0] : ''}
+        isDeleting={deleting}
+        isBulk={selectedExperiments.size > 1}
+        bulkCount={selectedExperiments.size}
+      />
     </DashboardShell>
   );
 }

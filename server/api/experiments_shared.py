@@ -67,3 +67,42 @@ def mongo_mark_experiment_cancelled_now(experiment_id: str):
         {"_id": experiment_id},
         {"$set": {"status": ExperimentStatus.CANCELLED, "completed_at": datetime.utcnow()}},
     )
+
+
+def mongo_delete_experiment_data(experiment_id: str) -> dict[str, int]:
+    """Delete all data for an experiment across all collections.
+
+    Returns dict with counts of deleted documents from each collection.
+    """
+    from server.db.atlas import CHUNKS_COLLECTION
+
+    chunks_deleted = (
+        get_collection(CHUNKS_COLLECTION)
+        .delete_many({"experiment_id": experiment_id})
+        .deleted_count
+    )
+
+    results_deleted = (
+        get_collection(RESULTS_COLLECTION)
+        .delete_many({"experiment_id": experiment_id})
+        .deleted_count
+    )
+
+    run_status_deleted = (
+        get_collection(RUN_STATUS_COLLECTION)
+        .delete_many({"experiment_id": experiment_id})
+        .deleted_count
+    )
+
+    experiment_deleted = (
+        get_collection(EXPERIMENTS_COLLECTION)
+        .delete_one({"experiment_id": experiment_id})
+        .deleted_count
+    )
+
+    return {
+        "experiments": experiment_deleted,
+        "run_status": run_status_deleted,
+        "chunks": chunks_deleted,
+        "results": results_deleted,
+    }
