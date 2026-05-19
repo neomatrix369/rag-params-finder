@@ -205,14 +205,76 @@ def _bytes_to_mb(value: float) -> float:
     return round(value / (1024 * 1024), 2)
 
 
+def _sample_embedding_dimension(experiment_id: str, embedding_model: str) -> int | None:
+    sample = get_collection(CHUNKS_COLLECTION).find_one(
+        {"experiment_id": experiment_id, "embedding_model": embedding_model},
+        {"embedding": 1},
+    )
+    if not sample:
+        return None
+    embedding = sample.get("embedding")
+    if not embedding:
+        return None
+    return len(embedding)
+
+
+def _resolved_embedding_dimensions(
+    embedding_models: list[str],
+    experiment_id: str | None = None,
+) -> list[int]:
+    from server.core.model_registry import EMBEDDING_MODELS, get_model_info
+
+    dims: list[int] = []
+    for model in embedding_models:
+        if model not in EMBEDDING_MODELS:
+            continue
+        fixed = get_model_info(model)["dimensions"]
+        if fixed is not None:
+            dims.append(fixed)
+            continue
+        if not experiment_id:
+            continue
+        sampled = _sample_embedding_dimension(experiment_id, model)
+        if sampled is not None:
+            dims.append(sampled)
+    return dims
+
+
+def _resolved_index_names(
+    embedding_models: list[str],
+    experiment_id: str | None = None,
+) -> list[str]:
+    from server.core.model_registry import (
+        EMBEDDING_MODELS,
+        get_index_name_for_dimensions,
+        get_model_info,
+    )
+
+    names: set[str] = set()
+    for model in embedding_models:
+        if model not in EMBEDDING_MODELS:
+            continue
+        fixed = get_model_info(model)["dimensions"]
+        if fixed is not None:
+            names.add(get_index_name_for_dimensions(fixed))
+            continue
+        if not experiment_id:
+            continue
+        sampled = _sample_embedding_dimension(experiment_id, model)
+        if sampled is not None:
+            names.add(get_index_name_for_dimensions(sampled))
+    return sorted(names)
+
+
 def _storage_breakdown_mb(
-    total_chunks: int, embedding_models: list[str]
+    total_chunks: int,
+    embedding_models: list[str],
+    experiment_id: str | None = None,
 ) -> tuple[float, float, float]:
     if total_chunks == 0:
         return 0.0, 0.0, 0.0
-    from server.core.model_registry import EMBEDDING_MODELS, get_dimensions
 
-    dims = [get_dimensions(model) for model in embedding_models if model in EMBEDDING_MODELS]
+    dims = _resolved_embedding_dimensions(embedding_models, experiment_id)
     if not dims:
         return 0.0, 0.0, 0.0
     avg_dim = sum(dims) / len(dims)
@@ -226,8 +288,10 @@ def _storage_breakdown_mb(
     )
 
 
-def _estimate_storage_mb(total_chunks: int, embedding_models: list[str]) -> float:
-    _, _, total_mb = _storage_breakdown_mb(total_chunks, embedding_models)
+def _estimate_storage_mb(
+    total_chunks: int, embedding_models: list[str], experiment_id: str | None = None
+) -> float:
+    _, _, total_mb = _storage_breakdown_mb(total_chunks, embedding_models, experiment_id)
     return total_mb
 
 
@@ -282,23 +346,21 @@ def _assemble_experiment_db_stats(
     runs_with_data: int,
     run_breakdown: list[dict],
 ) -> dict:
-    from server.core.model_registry import EMBEDDING_MODELS, get_dimensions, get_index_name
     from server.db.indexes import TEXT_SEARCH_INDEX_NAME
 
-    embedding_dimensions = sorted(
-        {get_dimensions(model) for model in embedding_models if model in EMBEDDING_MODELS}
-    )
+    experiment_id = str((experiment or {}).get("experiment_id") or "") or None
+    embedding_dimensions = sorted(_resolved_embedding_dimensions(embedding_models, experiment_id))
     unique_documents = len((experiment or {}).get("data_paths") or [])
-    index_names = sorted(
-        {get_index_name(model) for model in embedding_models if model in EMBEDDING_MODELS}
-    )
+    index_names = _resolved_index_names(embedding_models, experiment_id)
     retrieval_methods = _retrieval_methods_for_experiment(experiment)
     if any(method in {"sparse", "hybrid"} for method in retrieval_methods):
         index_names.append(TEXT_SEARCH_INDEX_NAME)
         index_names = sorted(set(index_names))
 
     avg_chunks_per_run = round(total_chunks / runs_with_data, 1) if runs_with_data else 0.0
-    embedding_mb, metadata_mb, total_mb = _storage_breakdown_mb(total_chunks, embedding_models)
+    embedding_mb, metadata_mb, total_mb = _storage_breakdown_mb(
+        total_chunks, embedding_models, experiment_id
+    )
     sweep = (experiment or {}).get("sweep_summary") or {}
 
     return {
