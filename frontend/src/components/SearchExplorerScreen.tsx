@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   DETAIL_POLL_MS,
+  DEV_POLL_LOG_INTERVAL_MS,
   LOADING_STALL_AFTER_MS,
   LOADING_STALL_REPEAT_MS,
 } from '../constants';
@@ -17,6 +18,7 @@ import {
 } from '../services/apiClient';
 import { createStallWatcher, formatBytes, type FetchProgressUpdate } from '../services/fetchWithProgress';
 import { DetailedResult, ExploreResponse, RankedConfig } from '../types';
+import { devDebugThrottled, devWarn } from '../utils/devLog';
 
 let xfSeq = 0;
 
@@ -520,6 +522,7 @@ export default function SearchExplorerScreen({
 
   const prevExperimentRef = useRef('');
   const aliveRef = useRef(true);
+  const pollDevLogAtRef = useRef(new Map<string, number>());
 
   useEffect(() => {
     setPollWhileRunning(true);
@@ -627,14 +630,20 @@ export default function SearchExplorerScreen({
           );
           setData(response);
           setError(null);
+          devDebugThrottled(
+            `poll:explore:${experimentId}`,
+            DEV_POLL_LOG_INTERVAL_MS,
+            `Explore poll OK — ${response.ranked_configs.length} configs`,
+            pollDevLogAtRef.current,
+          );
           setSelectedMethods((prev) => {
             if (prev.size > 0) {
               return prev;
             }
             return new Set(response.ranked_configs.map((c) => c.retrieval_method));
           });
-        } catch {
-          /* ignore transient poll errors */
+        } catch (pollErr) {
+          devWarn(`Explore poll failed (${experimentId.slice(0, 8)}…):`, pollErr);
         } finally {
           setIsPolling(false);
         }

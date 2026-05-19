@@ -55,7 +55,7 @@ class RateLimiter:
             sleep_for = self._request_times[0] + _WINDOW_S - now + 0.1
             if sleep_for <= 0:
                 return
-            logger.info(f"Rate limiter: RPM ceiling ({self._rpm}), sleeping {sleep_for:.1f}s")
+            logger.debug(f"Rate limiter: RPM ceiling ({self._rpm}), sleeping {sleep_for:.1f}s")
             self._lock.release()
             time.sleep(sleep_for)
             self._lock.acquire()
@@ -73,7 +73,7 @@ class RateLimiter:
             sleep_for = self._token_log[0][0] + _WINDOW_S - now + 0.1
             if sleep_for <= 0:
                 return
-            logger.info(f"Rate limiter: TPM ceiling ({self._tpm}), sleeping {sleep_for:.1f}s")
+            logger.debug(f"Rate limiter: TPM ceiling ({self._tpm}), sleeping {sleep_for:.1f}s")
             self._lock.release()
             time.sleep(sleep_for)
             self._lock.acquire()

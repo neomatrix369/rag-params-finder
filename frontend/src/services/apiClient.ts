@@ -1,5 +1,6 @@
-import { DeleteExperimentResponse, Experiment, ExploreResponse } from '../types';
+import { DeleteExperimentResponse, Experiment, ExperimentDbStatsResponse, ExploreResponse, VectorDbStatsGroupedResponse } from '../types';
 import { fetchJsonWithProgress, type FetchProgressUpdate } from './fetchWithProgress';
+import { devWarn } from '../utils/devLog';
 
 export { formatBytes } from './fetchWithProgress';
 
@@ -31,6 +32,7 @@ function rethrowWithFetchHint(url: string, err: unknown): never {
     throw err;
   }
   if (isLikelyNetworkFailure(err)) {
+    devWarn('Network failure:', url, err);
     const pageOrigin =
       typeof window !== 'undefined' && window.location?.origin != null
         ? window.location.origin
@@ -175,6 +177,35 @@ export async function getExperimentExploreWithProgress(
   });
 
   return data;
+}
+
+export async function getExperimentDbStats(
+  experimentId: string,
+  signal?: AbortSignal,
+): Promise<ExperimentDbStatsResponse> {
+  const url = `${API_BASE_URL}/experiments/${experimentId}/db-stats`;
+  let response: Response;
+  try {
+    response = await fetch(url, { signal });
+  } catch (err) {
+    rethrowWithFetchHint(url, err);
+  }
+  if (!response.ok) throw new Error('Failed to fetch experiment DB stats');
+  return response.json();
+}
+
+export async function getVectorDbStatsGrouped(
+  signal?: AbortSignal,
+): Promise<VectorDbStatsGroupedResponse> {
+  const url = `${API_BASE_URL}/experiments/vector-db-stats`;
+  let response: Response;
+  try {
+    response = await fetch(url, { signal });
+  } catch (err) {
+    rethrowWithFetchHint(url, err);
+  }
+  if (!response.ok) throw new Error('Failed to fetch vector DB stats');
+  return response.json();
 }
 
 export async function cancelExperiment(

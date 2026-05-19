@@ -14,22 +14,28 @@
  * - Color system: Blue (primary), Green (success), Red (failure), Amber (warning), Purple (secondary)
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DETAIL_POLL_MS, LOADING_STALL_AFTER_MS, LOADING_STALL_REPEAT_MS } from '../constants';
+import { DETAIL_POLL_MS, DEV_POLL_LOG_INTERVAL_MS, LOADING_STALL_AFTER_MS, LOADING_STALL_REPEAT_MS, VECTOR_DB_STATS_POLL_MS } from '../constants';
 import AppPageChrome from './AppPageChrome';
 import DashboardShell from './DashboardShell';
 import LoadingFeedbackPanel from './LoadingFeedbackPanel';
 import ExperimentProgressCard from './ExperimentProgressCard';
+import ExperimentVectorDbStatsCard from './ExperimentVectorDbStatsCard';
 import type { FeedEntry } from './LoadingFeedbackPanel';
 import {
   cancelExperiment,
   deleteExperiment,
   getExperiment,
+  getExperimentDbStats,
   getExperimentWithProgress,
   type ExperimentProgressCallback,
 } from '../services/apiClient';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
-import { RunStatus, Phase, EnvParams, SweepSummary, ExperimentStatus } from '../types';
+import CollapsibleCard from './CollapsibleCard';
+import { RunStatus, Phase, EnvParams, SweepSummary, ExperimentStatus, Experiment, ExperimentDbStatsSummary } from '../types';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
+import { devDebugThrottled, devWarn } from '../utils/devLog';
+import { toExperimentDbStatsSummary } from '../utils/experimentDbStats';
+import { isRunningExperimentStatus, isTerminalExperimentStatus, summarizeExperimentRuns } from '../utils/experimentStatus';
 
 let detailFeedSeq = 0;
 
@@ -88,6 +94,7 @@ interface ExperimentDetail {
   experiment_id: string;
   experiment_name: string;
   status: ExperimentStatus;
+  created_at?: string;
   run_count?: number;
   failed_count?: number;
   runs?: RunStatus[];
@@ -288,20 +295,43 @@ function StatCard({
   value,
   icon,
   trend,
-  color = 'blue'
+  color = 'blue',
+  compact = false,
 }: {
   label: string;
   value: string | number;
   icon: React.ReactNode;
   trend?: string;
-  color?: 'blue' | 'green' | 'purple' | 'amber';
+  color?: 'blue' | 'green' | 'purple' | 'amber' | 'red' | 'slate';
+  compact?: boolean;
 }) {
   const colors = {
     blue: 'bg-blue-50 text-blue-600 border-blue-200',
     green: 'bg-green-50 text-green-600 border-green-200',
     purple: 'bg-purple-50 text-purple-600 border-purple-200',
     amber: 'bg-amber-50 text-amber-600 border-amber-200',
+    red: 'bg-red-50 text-red-600 border-red-200',
+    slate: 'bg-slate-50 text-slate-600 border-slate-200',
   };
+
+  if (compact) {
+    return (
+      <div className={`${colors[color]} rounded-lg border px-3 py-2.5 min-w-0 h-full`}>
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="shrink-0 scale-90 opacity-80">{icon}</div>
+          <div className="min-w-0 flex-1">
+            <div className="text-lg font-bold leading-none tabular-nums truncate">{value}</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide mt-1 opacity-75 truncate">
+              {label}
+            </div>
+          </div>
+          {trend && (
+            <span className="shrink-0 text-[10px] font-medium opacity-75">{trend}</span>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${colors[color]} rounded-xl p-4 border-2 shadow-sm`}>
@@ -342,16 +372,25 @@ function DimensionBadge({ label, values }: { label: string; values: (string | nu
 
 export default function ExperimentDetailScreen({
   experimentId,
+  initialExperiment,
+  initialDbStats,
   onBack,
   onExplore,
 }: {
   experimentId: string;
+  initialExperiment?: Experiment;
+  initialDbStats?: ExperimentDbStatsSummary;
   onBack: () => void;
   onExplore?: () => void;
 }) {
-  const [detail, setDetail] = useState<ExperimentDetail | null>(null);
+  const seededDetail =
+    initialExperiment?.experiment_id === experimentId
+      ? (initialExperiment as unknown as ExperimentDetail)
+      : null;
+
+  const [detail, setDetail] = useState<ExperimentDetail | null>(seededDetail);
   const [error, setError] = useState<string | null>(null);
-  const [hydrating, setHydrating] = useState(true);
+  const [hydrating, setHydrating] = useState(seededDetail === null);
   const [cancelling, setCancelling] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -359,6 +398,9 @@ export default function ExperimentDetailScreen({
   const [loadFeed, setLoadFeed] = useState<FeedEntry[]>([]);
   const [receivedBytes, setReceivedBytes] = useState<number | null>(null);
   const [totalBytes, setTotalBytes] = useState<number | null>(null);
+
+  const [dbStats, setDbStats] = useState<ExperimentDbStatsSummary | null>(initialDbStats ?? null);
+  const [dbStatsLoading, setDbStatsLoading] = useState(initialDbStats === undefined);
 
   const [runsCurrentPage, setRunsCurrentPage] = useState(1);
   const [runsItemsPerPage, setRunsItemsPerPage] = useState(15);
@@ -370,6 +412,100 @@ export default function ExperimentDetailScreen({
 
   const aliveRef = useRef(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollDevLogAtRef = useRef(new Map<string, number>());
+  const dbStatsInFlightRef = useRef<Promise<void> | null>(null);
+
+  const experimentMeta = useCallback((): Pick<Experiment, 'experiment_id' | 'experiment_name' | 'status' | 'created_at'> | null => {
+    if (detail) {
+      return {
+        experiment_id: detail.experiment_id,
+        experiment_name: detail.experiment_name,
+        status: detail.status,
+        created_at: detail.created_at ?? initialExperiment?.created_at ?? new Date(0).toISOString(),
+      };
+    }
+    if (initialExperiment?.experiment_id === experimentId) return initialExperiment;
+    return null;
+  }, [detail, initialExperiment, experimentId]);
+
+  const loadDbStats = useCallback(
+    async (options?: { showLoading?: boolean }) => {
+      if (dbStatsInFlightRef.current !== null) {
+        return dbStatsInFlightRef.current;
+      }
+
+      const request = (async () => {
+        const meta = experimentMeta();
+        if (!meta) return;
+        if (options?.showLoading) setDbStatsLoading(true);
+        try {
+          const response = await getExperimentDbStats(experimentId);
+          setDbStats(toExperimentDbStatsSummary(meta, response.db_stats));
+        } catch (err) {
+          devWarn(`DB stats load failed (${experimentId.slice(0, 8)}…):`, err);
+        } finally {
+          dbStatsInFlightRef.current = null;
+          setDbStatsLoading(false);
+        }
+      })();
+
+      dbStatsInFlightRef.current = request;
+      return request;
+    },
+    [experimentId, experimentMeta],
+  );
+
+  useEffect(() => {
+    if (!initialDbStats) {
+      void loadDbStats({ showLoading: true });
+    }
+
+    const statsTimer = window.setInterval(() => {
+      void loadDbStats();
+    }, VECTOR_DB_STATS_POLL_MS);
+
+    return () => window.clearInterval(statsTimer);
+  }, [experimentId, initialDbStats, loadDbStats]);
+
+  const stopDetailPoll = useCallback(() => {
+    if (pollRef.current !== null) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  const startDetailPollIfRunning = useCallback(
+    (status: ExperimentStatus | undefined) => {
+      stopDetailPoll();
+      if (!isRunningExperimentStatus(status)) return;
+
+      pollRef.current = window.setInterval(async () => {
+        if (!aliveRef.current) return;
+        try {
+          const next = await getExperiment(experimentId);
+          if (!aliveRef.current) return;
+          setDetail(next as unknown as ExperimentDetail);
+          setError(null);
+          devDebugThrottled(
+            `poll:detail:${experimentId}`,
+            DEV_POLL_LOG_INTERVAL_MS,
+            `Poll OK — experiment ${experimentId.slice(0, 8)}… status=${next.status}`,
+            pollDevLogAtRef.current,
+          );
+          if (isTerminalExperimentStatus(next.status)) {
+            stopDetailPoll();
+          }
+        } catch (pollErr) {
+          if (!aliveRef.current) return;
+          const pollMsg =
+            pollErr instanceof Error ? pollErr.message : 'Could not refresh experiment';
+          devWarn(`Detail poll failed (${experimentId.slice(0, 8)}…):`, pollMsg);
+          setError('Could not refresh experiment — transient network or server error.');
+        }
+      }, DETAIL_POLL_MS);
+    },
+    [experimentId, stopDetailPoll],
+  );
 
   useEffect(() => {
     aliveRef.current = true;
@@ -394,58 +530,61 @@ export default function ExperimentDetailScreen({
       );
     };
 
-    async function pollQuietly() {
-      if (!aliveRef.current) return;
-      try {
-        const next = await getExperiment(experimentId);
-        if (!aliveRef.current) return;
-        setDetail(next as unknown as ExperimentDetail);
-        setError(null);
-      } catch {
-        if (!aliveRef.current) return;
-        setError('Could not refresh experiment — transient network or server error.');
-      }
-    }
-
     async function hydrate() {
+      const hasSeed = initialExperiment?.experiment_id === experimentId;
       setHydrating(true);
       setError(null);
-      setDetail(null);
-      setLoadFeed([{ id: 'h0', text: 'Fetching experiment and run rows…', variant: 'default' }]);
+      if (!hasSeed) {
+        setDetail(null);
+      }
+      setLoadFeed([
+        {
+          id: 'h0',
+          text: hasSeed
+            ? 'Refreshing run rows and live status…'
+            : 'Fetching experiment and run rows…',
+          variant: 'default',
+        },
+      ]);
       setReceivedBytes(null);
       setTotalBytes(null);
       stall.start();
 
-      if (pollRef.current !== null) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
+      stopDetailPoll();
+
+      let loadedStatus: ExperimentStatus | undefined;
 
       try {
-        const loaded = await getExperimentWithProgress(
-          experimentId,
-          applyProg,
-          abortHydrate.signal,
-        );
+        const loaded = hasSeed
+          ? await getExperiment(experimentId, abortHydrate.signal)
+          : await getExperimentWithProgress(experimentId, applyProg, abortHydrate.signal);
         stall.stop();
         if (!aliveRef.current) return;
+        loadedStatus = loaded.status;
         setDetail(loaded as unknown as ExperimentDetail);
-        setLoadFeed((f) => appendDetailFeed(f, 'Hydrated UI — polling for live phase updates.', 'default'));
+        setLoadFeed((f) =>
+          appendDetailFeed(
+            f,
+            isRunningExperimentStatus(loaded.status)
+              ? 'Run rows loaded — live polling while experiment is running.'
+              : 'Run rows loaded.',
+            'default',
+          ),
+        );
       } catch (err) {
         stall.stop();
         if (!aliveRef.current) return;
         if (err instanceof DOMException && err.name === 'AbortError') return;
         const msg =
           err instanceof Error ? err.message : 'Failed to load experiment';
+        devWarn(`Detail hydrate failed (${experimentId.slice(0, 8)}…):`, msg);
         setError(msg);
         setLoadFeed((f) => appendDetailFeed(f, `Failed: ${msg}`, 'warning'));
       } finally {
         stall.stop();
         if (!aliveRef.current) return;
         setHydrating(false);
-
-        pollRef.current = window.setInterval(pollQuietly, DETAIL_POLL_MS);
-        void pollQuietly();
+        startDetailPollIfRunning(loadedStatus);
       }
     }
 
@@ -455,12 +594,9 @@ export default function ExperimentDetailScreen({
       aliveRef.current = false;
       abortHydrate.abort();
       stall.stop();
-      if (pollRef.current !== null) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
+      stopDetailPoll();
     };
-  }, [experimentId]);
+  }, [experimentId, initialExperiment, startDetailPollIfRunning, stopDetailPoll]);
 
   async function handleCancel() {
     if (!confirm('Cancel this experiment? Runs in progress will stop after the current phase.')) {
@@ -591,6 +727,11 @@ export default function ExperimentDetailScreen({
     return null;
   }
 
+  const runSummary = summarizeExperimentRuns(detail.runs, detail.run_count);
+  const metricsGridClass = runSummary.inProgress > 0
+    ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 p-4'
+    : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 p-4';
+
   return (
     <DashboardShell
       asideWidthClass="w-56 lg:w-60"
@@ -618,16 +759,16 @@ export default function ExperimentDetailScreen({
       )}
     >
 
-        {/* Header with status + primary actions */}
-        <div className="mb-5 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
+        {/* Overview: status, actions, and run-outcome metrics in one panel */}
+        <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
               <StatusBadge status={detail.status} />
-              <p className="text-xs leading-snug text-slate-500">
-                Runs table lists each sweep combo and pipeline phase below.
+              <p className="text-xs text-slate-500">
+                {runSummary.complete} of {runSummary.expected} runs complete
               </p>
             </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-3">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               {(isTerminal || isRunning) && onExplore && (
                 <button
                   type="button"
@@ -637,9 +778,9 @@ export default function ExperimentDetailScreen({
                       ? 'Opens Search Explorer with data stored so far; more results appear as runs finish.'
                       : undefined
                   }
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold rounded-xl shadow-md transition-all transform hover:scale-105"
+                  className="rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:from-blue-700 hover:to-blue-800"
                 >
-                  {isRunning ? '🔍 Explore live results' : '🔍 Explore Results'}
+                  {isRunning ? '🔍 Explore live' : '🔍 Explore'}
                 </button>
               )}
               {isRunning && (
@@ -647,113 +788,126 @@ export default function ExperimentDetailScreen({
                   type="button"
                   onClick={handleCancel}
                   disabled={cancelling}
-                  className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-sm font-semibold rounded-xl shadow-md transition-all"
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:bg-red-300"
                 >
-                  {cancelling ? 'Cancelling...' : '⏹ Cancel Experiment'}
+                  {cancelling ? 'Cancelling…' : '⏹ Cancel'}
                 </button>
               )}
               {isTerminal && (
                 <button
                   type="button"
                   onClick={() => setShowDeleteModal(true)}
-                  className="px-6 py-3 bg-slate-100 hover:bg-red-50 border border-slate-300 hover:border-red-300 text-slate-700 hover:text-red-700 text-sm font-semibold rounded-xl shadow-sm transition-all"
+                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-700"
                 >
                   🗑 Delete
                 </button>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Key metrics cards */}
-        {detail && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className={metricsGridClass}>
+            <StatCard compact label="Total" value={runSummary.expected} icon={icons.grid} color="blue" />
+            <StatCard compact label="Successful" value={runSummary.complete} icon={icons.check} color="green" />
+            <StatCard compact label="Failed" value={runSummary.failed} icon={icons.x} color="red" />
+            <StatCard compact label="Interrupted" value={runSummary.interrupted} icon={icons.x} color="amber" />
+            <StatCard compact label="Not Started" value={runSummary.neverStarted} icon={icons.grid} color="slate" />
+            {runSummary.inProgress > 0 && (
+              <StatCard compact label="In Progress" value={runSummary.inProgress} icon={icons.play} color="purple" />
+            )}
             <StatCard
-              label="Total Runs"
-              value={detail.run_count ?? 0}
-              icon={icons.grid}
-              color="blue"
-            />
-            <StatCard
-              label="Successful"
-              value={(detail.run_count ?? 0) - (detail.failed_count ?? 0)}
-              icon={icons.check}
-              color="green"
-            />
-            <StatCard
-              label="Failed"
-              value={detail.failed_count ?? 0}
-              icon={icons.x}
-              color="amber"
-            />
-            <StatCard
+              compact
               label="Duration"
               value={formatDuration(detail.started_at, detail.completed_at)}
               icon={icons.clock}
               color="purple"
             />
           </div>
-        )}
+        </div>
 
         {/* Progress visualization for running experiments */}
         {detail && isRunning && detail.runs && detail.runs.length > 0 && (
           <ExperimentProgressCard
             title="Experiment Progress"
-            subtitle={`${detail.runs.filter(r => r.phase === Phase.COMPLETE).length} of ${detail.runs.length} runs completed`}
-            percent={(detail.runs.filter(r => r.phase === Phase.COMPLETE).length / detail.runs.length) * 100}
+            subtitle={`${runSummary.complete} of ${runSummary.expected} runs completed`}
+            percent={runSummary.expected > 0 ? (runSummary.complete / runSummary.expected) * 100 : 0}
             variant="default"
             className="mb-6"
           />
         )}
 
+        <div className="mb-6">
+          <ExperimentVectorDbStatsCard
+            experimentId={experimentId}
+            stats={dbStats ?? undefined}
+            loading={dbStatsLoading && !dbStats}
+          />
+        </div>
+
         {/* Metadata sections */}
         {detail && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Git & Timeline */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-              <div className="flex items-center gap-2 mb-4">
-                {icons.code}
-                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                  Git & Timeline
-                </h2>
-              </div>
-              <div className="space-y-3">
-                <MetadataItem
-                  label="Git Commit"
-                  value={detail.git_commit
-                    ? `${detail.git_commit.slice(0, 8)}${detail.git_dirty ? ' (dirty)' : ''}`
-                    : undefined}
-                />
-                <MetadataItem label="Git Branch" value={detail.git_branch} />
-                <MetadataItem
-                  label="Started"
-                  value={detail.started_at ? new Date(detail.started_at).toLocaleString() : undefined}
-                />
-                <MetadataItem
-                  label="Completed"
-                  value={detail.completed_at ? new Date(detail.completed_at).toLocaleString() : undefined}
-                />
-                <MetadataItem label="App Version" value={detail.app_version} />
-                <MetadataItem label="Python" value={detail.python_version} />
-              </div>
+              <CollapsibleCard
+                title="Git & Timeline"
+                icon={icons.code}
+                compact
+                storageKey={`detail-git-${experimentId}`}
+                headerExtra={
+                  detail.git_commit ? (
+                    <span className="font-mono text-xs text-slate-500">
+                      {detail.git_commit.slice(0, 8)}
+                      {detail.git_dirty ? ' *' : ''}
+                    </span>
+                  ) : null
+                }
+              >
+                <div className="space-y-3">
+                  <MetadataItem
+                    label="Git Commit"
+                    value={detail.git_commit
+                      ? `${detail.git_commit.slice(0, 8)}${detail.git_dirty ? ' (dirty)' : ''}`
+                      : undefined}
+                  />
+                  <MetadataItem label="Git Branch" value={detail.git_branch} />
+                  <MetadataItem
+                    label="Started"
+                    value={detail.started_at ? new Date(detail.started_at).toLocaleString() : undefined}
+                  />
+                  <MetadataItem
+                    label="Completed"
+                    value={detail.completed_at ? new Date(detail.completed_at).toLocaleString() : undefined}
+                  />
+                  <MetadataItem label="App Version" value={detail.app_version} />
+                  <MetadataItem label="Python" value={detail.python_version} />
+                </div>
+              </CollapsibleCard>
             </div>
 
-            {/* Sweep Configuration */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-              <div className="flex items-center gap-2 mb-4">
-                {icons.settings}
-                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                  Configuration
-                </h2>
-              </div>
-              <div className="space-y-3">
-                <MetadataItem label="Rerank Model" value={detail.rerank_model ?? 'none'} />
-                <MetadataItem label="Top-K Initial" value={detail.top_k_initial} />
-                <MetadataItem label="Top-K Final" value={detail.top_k_final} />
-                <MetadataItem label="Parallelism" value={detail.parallelism} />
-                <MetadataItem label="On Error" value={detail.on_error} />
-                <MetadataItem label="Queries" value={detail.queries_file} />
-              </div>
+              <CollapsibleCard
+                title="Configuration"
+                icon={icons.settings}
+                compact
+                storageKey={`detail-config-${experimentId}`}
+                headerExtra={
+                  detail.rerank_model ? (
+                    <span className="text-xs text-slate-500 truncate max-w-[140px]" title={detail.rerank_model}>
+                      {detail.rerank_model}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-400">no rerank</span>
+                  )
+                }
+              >
+                <div className="space-y-3">
+                  <MetadataItem label="Rerank Model" value={detail.rerank_model ?? 'none'} />
+                  <MetadataItem label="Top-K Initial" value={detail.top_k_initial} />
+                  <MetadataItem label="Top-K Final" value={detail.top_k_final} />
+                  <MetadataItem label="Parallelism" value={detail.parallelism} />
+                  <MetadataItem label="On Error" value={detail.on_error} />
+                  <MetadataItem label="Queries" value={detail.queries_file} />
+                </div>
+              </CollapsibleCard>
             </div>
           </div>
         )}
@@ -780,29 +934,32 @@ export default function ExperimentDetailScreen({
         {/* Sweep Dimensions - Visual Grid */}
         {detail?.sweep_summary && (
           <div className="mb-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl shadow-sm border border-purple-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              {icons.grid}
-              <h2 className="text-lg font-bold text-slate-800">
-                Sweep Dimensions
-              </h2>
-              <span className="ml-auto text-sm text-purple-700 font-semibold">
-                {detail.sweep_summary.models.length *
-                  detail.sweep_summary.chunking_methods.length *
-                  detail.sweep_summary.chunk_sizes.length *
-                  detail.sweep_summary.overlaps.length *
-                  detail.sweep_summary.retrieval_methods.length} combinations
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <DimensionBadge label="Database Provider" values={[detail.sweep_summary.database_provider || 'mongodb']} />
-              <DimensionBadge label="Embedding Provider" values={[detail.sweep_summary.embedding_provider || 'local']} />
-              <DimensionBadge label="Embedding Models" values={detail.sweep_summary.models} />
-              <DimensionBadge label="Chunking" values={detail.sweep_summary.chunking_methods} />
-              <DimensionBadge label="Chunk Sizes" values={detail.sweep_summary.chunk_sizes} />
-              <DimensionBadge label="Overlaps" values={detail.sweep_summary.overlaps} />
-              <DimensionBadge label="Retrieval" values={detail.sweep_summary.retrieval_methods} />
-              <DimensionBadge label="Rerank Provider" values={[detail.sweep_summary.rerank_provider || 'local']} />
-            </div>
+            <CollapsibleCard
+              title="Sweep Dimensions"
+              icon={icons.grid}
+              storageKey={`detail-sweep-${experimentId}`}
+              headerExtra={
+                <span className="text-sm text-purple-700 font-semibold">
+                  {detail.sweep_summary.models.length *
+                    detail.sweep_summary.chunking_methods.length *
+                    detail.sweep_summary.chunk_sizes.length *
+                    detail.sweep_summary.overlaps.length *
+                    detail.sweep_summary.retrieval_methods.length}{' '}
+                  combinations
+                </span>
+              }
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <DimensionBadge label="Database Provider" values={[detail.sweep_summary.database_provider || 'mongodb']} />
+                <DimensionBadge label="Embedding Provider" values={[detail.sweep_summary.embedding_provider || 'local']} />
+                <DimensionBadge label="Embedding Models" values={detail.sweep_summary.models} />
+                <DimensionBadge label="Chunking" values={detail.sweep_summary.chunking_methods} />
+                <DimensionBadge label="Chunk Sizes" values={detail.sweep_summary.chunk_sizes} />
+                <DimensionBadge label="Overlaps" values={detail.sweep_summary.overlaps} />
+                <DimensionBadge label="Retrieval" values={detail.sweep_summary.retrieval_methods} />
+                <DimensionBadge label="Rerank Provider" values={[detail.sweep_summary.rerank_provider || 'local']} />
+              </div>
+            </CollapsibleCard>
           </div>
         )}
 
@@ -865,7 +1022,7 @@ export default function ExperimentDetailScreen({
                   <tbody className="divide-y divide-slate-100">
                     {paginatedRuns.map((run, idx) => {
                       const isComplete = run.phase === Phase.COMPLETE;
-                      const isFailed = run.phase === Phase.FAILED;
+                      const isFailed = run.phase === Phase.FAILED || run.phase === Phase.INTERRUPTED;
                       const rowBg = isFailed ? 'bg-red-50/50' : isComplete ? 'bg-green-50/30' : '';
                       const absoluteIndex = startIndex + idx;
 
@@ -944,6 +1101,39 @@ export default function ExperimentDetailScreen({
           );
         })()}
 
+        {/* Interrupted runs detail */}
+        {detail?.runs && runSummary.interrupted > 0 && (
+          <div className="mt-6 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white">
+                {icons.x}
+              </div>
+              <h2 className="text-lg font-bold text-amber-900">
+                Interrupted Runs ({runSummary.interrupted})
+              </h2>
+            </div>
+            <div className="space-y-3">
+              {detail.runs.filter((run) => run.phase === Phase.INTERRUPTED).map((run) => (
+                <div key={run.run_id} className="bg-white border-l-4 border-amber-400 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-mono font-bold rounded">
+                      {run.run_id.slice(0, 8)}
+                    </span>
+                    <span className="text-sm text-slate-700 font-medium">
+                      {run.embedding_model} · {run.chunking_method} · {run.chunk_size}+{run.overlap}
+                    </span>
+                  </div>
+                  <div className="bg-amber-50 rounded-md p-3 border border-amber-100">
+                    <p className="text-sm text-amber-900 font-mono whitespace-pre-wrap">
+                      {run.error_message || 'Run was interrupted before completion'}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Failed runs detail */}
         {detail?.runs && detail.runs.filter(r => r.phase === Phase.FAILED).length > 0 && (
           <div className="mt-6 bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200 rounded-2xl p-6 shadow-lg">
@@ -983,8 +1173,8 @@ export default function ExperimentDetailScreen({
           </div>
         )}
 
-        {/* Success summary with explore CTA */}
-        {isTerminal && detail?.runs && detail.runs.filter(r => r.phase === Phase.FAILED).length === 0 && (
+        {/* Terminal outcome summary */}
+        {isTerminal && detail.status === 'complete' && (
           <div className="mt-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-6 shadow-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -996,7 +1186,7 @@ export default function ExperimentDetailScreen({
                     All Runs Completed Successfully!
                   </h3>
                   <p className="text-sm text-green-700 mt-1">
-                    {detail.runs.length} run(s) finished without errors
+                    {runSummary.complete} of {runSummary.expected} run(s) finished without errors
                   </p>
                 </div>
               </div>
@@ -1008,6 +1198,54 @@ export default function ExperimentDetailScreen({
                   🔍 Explore Results
                 </button>
               )}
+            </div>
+          </div>
+        )}
+
+        {isTerminal && detail.status === 'partial' && (
+          <div className="mt-6 bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center text-white">
+                  {icons.x}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-amber-900">Sweep Incomplete</h3>
+                  <p className="text-sm text-amber-800 mt-1">
+                    {runSummary.complete} of {runSummary.expected} run(s) completed successfully.
+                    {runSummary.interrupted > 0 && ` ${runSummary.interrupted} interrupted.`}
+                    {runSummary.failed > 0 && ` ${runSummary.failed} failed.`}
+                    {runSummary.neverStarted > 0 && ` ${runSummary.neverStarted} never started.`}
+                  </p>
+                  <p className="text-xs text-amber-700 mt-2">
+                    The experiment stopped before every parameter combination ran — often after a server restart or cancellation mid-sweep.
+                  </p>
+                </div>
+              </div>
+              {onExplore && runSummary.complete > 0 && (
+                <button
+                  onClick={onExplore}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold rounded-xl shadow-md transition-all transform hover:scale-105 shrink-0"
+                >
+                  🔍 Explore Results
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {isTerminal && detail.status === 'cancelled' && (
+          <div className="mt-6 bg-gradient-to-br from-slate-50 to-slate-100 border-2 border-slate-300 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-slate-500 flex items-center justify-center text-white">
+                {icons.x}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Experiment Cancelled</h3>
+                <p className="text-sm text-slate-700 mt-1">
+                  {runSummary.complete} of {runSummary.expected} run(s) completed before cancellation.
+                </p>
+              </div>
             </div>
           </div>
         )}
