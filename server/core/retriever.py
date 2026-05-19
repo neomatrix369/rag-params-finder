@@ -16,7 +16,7 @@ def dense_search(
     """Perform dense vector search using Atlas $vectorSearch."""
 
     index_name = get_index_name(embedding_model)
-    logger.info(
+    logger.debug(
         f"Dense search for experiment={experiment_id}, model={embedding_model}, "
         f"index={index_name}, k={top_k}"
     )
@@ -51,7 +51,7 @@ def dense_search(
     ]
 
     results = list(chunks_collection.aggregate(pipeline))
-    logger.info(f"Dense search returned {len(results)} results")
+    logger.debug(f"Dense search returned {len(results)} results")
 
     return _to_search_results(results, retrieval_method="dense")
 
@@ -65,7 +65,9 @@ def sparse_search(
     with field mappings for 'text' (string), 'experiment_id' (token), and
     'embedding_model' (token).  See CLAUDE.local.md for index creation steps.
     """
-    logger.info(f"Sparse search for experiment={experiment_id}, model={embedding_model}, k={top_k}")
+    logger.debug(
+        f"Sparse search for experiment={experiment_id}, model={embedding_model}, k={top_k}"
+    )
 
     chunks_collection = get_collection(CHUNKS_COLLECTION)
 
@@ -97,7 +99,7 @@ def sparse_search(
     ]
 
     results = list(chunks_collection.aggregate(pipeline))
-    logger.info(f"Sparse search returned {len(results)} results")
+    logger.debug(f"Sparse search returned {len(results)} results")
 
     return _to_search_results(results, retrieval_method="sparse")
 
@@ -116,7 +118,9 @@ def hybrid_search(
     k=60 is the standard default from the original RRF paper; it softens the
     advantage of rank-1 results and reduces sensitivity to outliers.
     """
-    logger.info(f"Hybrid search for experiment={experiment_id}, model={embedding_model}, k={top_k}")
+    logger.debug(
+        f"Hybrid search for experiment={experiment_id}, model={embedding_model}, k={top_k}"
+    )
 
     dense_results = dense_search(query_embedding, experiment_id, embedding_model, top_k)
     sparse_results = sparse_search(query_text, experiment_id, embedding_model, top_k)
@@ -149,7 +153,7 @@ def hybrid_search(
             )
         )
 
-    logger.info(f"Hybrid search returned {len(merged)} results after RRF merge")
+    logger.debug(f"Hybrid search returned {len(merged)} results after RRF merge")
     return merged
 
 

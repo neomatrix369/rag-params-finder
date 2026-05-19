@@ -37,7 +37,7 @@ def rerank_local(
     if not search_results:
         return []
 
-    logger.info(f"Reranking {len(search_results)} results locally with {model_id}, top_k={top_k}")
+    logger.debug(f"Reranking {len(search_results)} results locally with {model_id}, top_k={top_k}")
 
     model = _get_model(model_id)
     pairs = [(query, r.chunk.text) for r in search_results]
@@ -61,5 +61,5 @@ def rerank_local(
             )
         )
 
-    logger.info(f"Local reranking complete: {len(reranked)} results returned")
+    logger.debug(f"Local reranking complete: {len(reranked)} results returned")
     return reranked

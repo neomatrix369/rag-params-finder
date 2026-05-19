@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-19 (Slice 9 — Experiment deletion with confirmation)
-**Current**: Slices 1–9 ✅ COMPLETE | Next: Slice 10 📋 PLANNED (failed-run recovery) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`)
+**Last Updated**: 2026-05-19 (Vector DB stats + collapsible experiment rows — in progress on `feat/vector-db-stats-and-collapsible-cards`)
+**Current**: Slices 1–9 ✅ COMPLETE | 🔨 IN PROGRESS: Vector DB stats panel + collapsible list rows | Next: Slice 10 📋 PLANNED (failed-run recovery) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`)
 
 ---
 
@@ -18,6 +18,7 @@
 | 7 — Free/local embedding + reranking | ✅ COMPLETE | ~15 min | sentence-transformers, no API key needed |
 | 8 — Dashboard UX improvements | ✅ COMPLETE | ~2 h | Loading feedback panels, polling indicators, pagination, unified chrome |
 | 9 — Experiment deletion | ✅ COMPLETE | ~1 h | CLI delete command + dashboard confirmation modal, cascade cleanup |
+| — — Vector DB stats + collapsible rows | 🔨 IN PROGRESS | ~1 h | `GET /experiments/{id}/db-stats`; detail stats panel; list row collapse (localStorage) |
 | 10 — Run recovery | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; see [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |

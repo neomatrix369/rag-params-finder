@@ -8,6 +8,8 @@ from server.api.experiments_shared import (
     mongo_delete_experiment_data,
     mongo_find_experiment_by_id,
     mongo_find_experiment_with_runs,
+    mongo_get_experiment_db_stats,
+    mongo_get_vector_db_stats_grouped,
     mongo_insert_experiment_doc,
     mongo_list_all_experiment_docs,
     mongo_list_results_for_experiment,
@@ -17,6 +19,7 @@ from server.api.experiments_shared import (
 from server.core.orchestrator import request_cancel, run_sweep
 from server.models.config import ExperimentConfig, expand_sweep
 from server.models.enums import ExperimentStatus
+from server.utils.log_throttle import info_throttled
 from server.utils.logger import get_logger
 from server.utils.metadata import collect_experiment_metadata
 
@@ -88,6 +91,20 @@ async def list_experiments():
     return {"experiments": experiments}
 
 
+@router.get("/vector-db-stats")
+async def get_vector_db_stats_grouped():
+    """Vector DB stats for all experiments, grouped by cluster."""
+    logger.debug("GET /experiments/vector-db-stats")
+    payload = await asyncio.to_thread(mongo_get_vector_db_stats_grouped)
+    info_throttled(
+        logger,
+        "poll:vector-db-stats",
+        "Vector DB stats: %s group(s)",
+        len(payload["groups"]),
+    )
+    return payload
+
+
 @router.get("/{experiment_id}")
 async def get_experiment(experiment_id: str):
     """Get a single experiment with its run statuses."""
@@ -107,8 +124,34 @@ async def get_experiment_results(experiment_id: str):
     """Get all query results for an experiment."""
     logger.debug(f"GET /experiments/{experiment_id}/results")
     results = await asyncio.to_thread(mongo_list_results_for_experiment, experiment_id)
-    logger.info(f"Returning {len(results)} results for experiment {experiment_id}")
+    info_throttled(
+        logger,
+        f"poll:results:{experiment_id}",
+        "Returning %s results for experiment %s",
+        len(results),
+        experiment_id,
+    )
     return {"experiment_id": experiment_id, "results": results}
+
+
+@router.get("/{experiment_id}/db-stats")
+async def get_experiment_db_stats(experiment_id: str):
+    """Get vector database statistics for an experiment."""
+    logger.debug(f"GET /experiments/{experiment_id}/db-stats")
+    experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+
+    stats = await asyncio.to_thread(mongo_get_experiment_db_stats, experiment_id)
+    info_throttled(
+        logger,
+        f"poll:db-stats:{experiment_id}",
+        "DB stats for %s: %s chunks, %s MB",
+        experiment_id,
+        stats["total_chunks"],
+        stats["estimated_storage_mb"],
+    )
+    return {"experiment_id": experiment_id, "db_stats": stats}
 
 
 @router.get("/{experiment_id}/explore")
@@ -128,10 +171,14 @@ async def explore_experiment(experiment_id: str, query: str | None = None):
     explored["experiment_id"] = experiment_id
     explored["experiment_name"] = experiment_doc.get("experiment_name", "")
 
-    logger.info(
-        f"Explore {experiment_id}: {explored['query_count']} queries, "
-        f"{explored['total_matches']} matches, "
-        f"{len(explored['ranked_configs'])} configs"
+    info_throttled(
+        logger,
+        f"poll:explore:{experiment_id}",
+        "Explore %s: %s queries, %s matches, %s configs",
+        experiment_id,
+        explored["query_count"],
+        explored["total_matches"],
+        len(explored["ranked_configs"]),
     )
     return explored
 
