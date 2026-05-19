@@ -61,7 +61,7 @@ uv run ruff check .
 # Type check — expect 0 errors
 uv run mypy server/ cli/
 
-# Tests (search index preflight + guard)
+# Tests (search index preflight + Kimchi provider)
 uv run pytest --tb=short -q
 
 # Coverage
@@ -71,7 +71,7 @@ uv run pytest --cov=server --cov=cli --cov-report=html
 **Baseline (as of 2026-05-23)**:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 17 tests
+- `pytest` → search index preflight + Kimchi provider tests
 
 ### Frontend
 

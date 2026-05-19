@@ -69,6 +69,7 @@ FastAPI Server
 | FastAPI | REST API server |
 | Python 3.12 | Language runtime |
 | Voyage AI SDK | Embeddings + reranking (hosted) |
+| Kimchi (CAST.ai) | OpenAI-compatible hosted embeddings via `kimchi_embedder.py` |
 | sentence-transformers | Local embeddings + reranking (offline) |
 | MongoDB Atlas / PyMongo | Vector storage + search |
 | LangChain text splitters | Recursive, fixed, token chunking |
@@ -112,6 +113,7 @@ rag-params-finder/
 │   │   ├── query_loader.py  # persona JSON → Query dataclass list
 │   │   ├── model_registry.py  # embedding + reranking model catalog
 │   │   ├── embedder.py      # Voyage embed(); voyage-context-3 → contextualized_embed + segment split
+│   │   ├── kimchi_embedder.py  # CAST OpenAI-compatible embeddings (runtime-detected dim)
 │   │   ├── local_embedder.py  # sentence-transformers embedding (lazy-load, cached)
 │   │   ├── reranker.py      # Voyage reranking client
 │   │   ├── local_reranker.py  # CrossEncoder reranking (lazy-load, cached)
@@ -239,6 +241,7 @@ See `docs/adr/` for Architecture Decision Records:
 | Boot orphan reconciliation | `BackgroundTasks` sweeps die on process exit; startup marks in-flight runs `interrupted` and sets terminal experiment status — separate from Slice 10 retry |
 | Pause / resume sweeps | Cooperative halt via `_SweepControl` threading events; `resume_sweep()` skips completed parameter signatures; status `paused` is non-terminal |
 | Vector DB stats API + dashboard | `GET /experiments/vector-db-stats` and `/{id}/db-stats`; estimated storage from chunk counts + model dimensions; optional Atlas quota bar with tier/provider/region via `resolve_tier_specs()` |
+| Kimchi dimension resolution for stats | When `model_registry` has `dimensions: None`, db-stats samples one stored chunk embedding per model to name indexes and estimate storage |
 | Timezone-aware UTC timestamps | PyMongo `tz_aware=True`; all writes use `datetime.now(timezone.utc)` so JSON includes `Z` and browser elapsed/duration math is correct |
 | `started_at` on first run | Duration and ETA exclude queue time between submission and first pipeline phase |
 | Search index preflight | `required_search_indexes(config)` + cluster snapshot; fail before runs if missing/quota exhausted; HTTP 422 on submit |
