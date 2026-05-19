@@ -91,7 +91,7 @@ def _embed_documents_voyage(texts: list[str], model: str) -> list[list[float]]:
 
 def _embed_query_voyage(text: str, model: str) -> list[float]:
     """Embed a single query using Voyage AI."""
-    logger.info(f"Embedding query with model={model}")
+    logger.debug(f"Embedding query with model={model}")
 
     client = get_client()
     tokens = estimate_tokens([text])
@@ -102,7 +102,7 @@ def _embed_query_voyage(text: str, model: str) -> list[float]:
     )
 
     embedding = cast(list[float], result.embeddings[0])
-    logger.info(f"Generated query embedding, dim={len(embedding)}")
+    logger.debug(f"Generated query embedding, dim={len(embedding)}")
     return embedding
 
 

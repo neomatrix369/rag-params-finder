@@ -185,3 +185,74 @@ export interface DeleteExperimentResponse {
   deleted_counts: DeletedCounts;
   message: string;
 }
+
+export interface RunDbBreakdown {
+  run_id: string;
+  chunks: number;
+  results: number;
+}
+
+export interface ExperimentDbStats {
+  database_provider: string;
+  collection_name: string;
+  cluster_host: string | null;
+  total_chunks: number;
+  unique_documents: number;
+  embedding_models: string[];
+  embedding_dimensions: number[];
+  index_names: string[];
+  retrieval_methods: string[];
+  chunking_methods: string[];
+  chunking_breakdown: Record<string, number>;
+  estimated_storage_mb: number;
+  estimated_embedding_mb: number;
+  estimated_metadata_mb: number;
+  runs_with_data: number;
+  avg_chunks_per_run: number;
+  total_results: number;
+  unique_queries: number;
+  run_breakdown: RunDbBreakdown[];
+}
+
+export interface ExperimentDbStatsResponse {
+  experiment_id: string;
+  db_stats: ExperimentDbStats;
+}
+
+export interface VectorDbGroupTotals {
+  experiment_count: number;
+  total_chunks: number;
+  total_results: number;
+  estimated_storage_mb: number;
+  estimated_embedding_mb: number;
+  estimated_metadata_mb: number;
+  /** Actual MongoDB dbStats totalSize (data + indexes). */
+  database_used_mb?: number;
+  database_data_mb?: number;
+  database_index_mb?: number;
+  /** Cluster quota from Atlas Admin API or MONGODB_STORAGE_LIMIT_MB override. */
+  database_storage_limit_mb?: number | null;
+  database_free_mb?: number | null;
+}
+
+export type ExperimentDbStatsSummary = {
+  experiment_id: string;
+  experiment_name: string;
+  status: ExperimentStatus;
+  created_at: string;
+} & ExperimentDbStats;
+
+export interface VectorDbStatsGroup {
+  vector_db_id: string;
+  database_provider: string;
+  collection_name: string;
+  cluster_host: string | null;
+  index_names: string[];
+  embedding_dimensions: number[];
+  totals: VectorDbGroupTotals;
+  experiments: ExperimentDbStatsSummary[];
+}
+
+export interface VectorDbStatsGroupedResponse {
+  groups: VectorDbStatsGroup[];
+}

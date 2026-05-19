@@ -14,22 +14,28 @@
  * - Color system: Blue (primary), Green (success), Red (failure), Amber (warning), Purple (secondary)
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DETAIL_POLL_MS, LOADING_STALL_AFTER_MS, LOADING_STALL_REPEAT_MS } from '../constants';
+import { DETAIL_POLL_MS, DEV_POLL_LOG_INTERVAL_MS, LOADING_STALL_AFTER_MS, LOADING_STALL_REPEAT_MS, VECTOR_DB_STATS_POLL_MS } from '../constants';
 import AppPageChrome from './AppPageChrome';
 import DashboardShell from './DashboardShell';
 import LoadingFeedbackPanel from './LoadingFeedbackPanel';
 import ExperimentProgressCard from './ExperimentProgressCard';
+import ExperimentVectorDbStatsCard from './ExperimentVectorDbStatsCard';
 import type { FeedEntry } from './LoadingFeedbackPanel';
 import {
   cancelExperiment,
   deleteExperiment,
   getExperiment,
+  getExperimentDbStats,
   getExperimentWithProgress,
   type ExperimentProgressCallback,
 } from '../services/apiClient';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
-import { RunStatus, Phase, EnvParams, SweepSummary, ExperimentStatus } from '../types';
+import CollapsibleCard from './CollapsibleCard';
+import { RunStatus, Phase, EnvParams, SweepSummary, ExperimentStatus, Experiment, ExperimentDbStatsSummary } from '../types';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
+import { devDebugThrottled, devWarn } from '../utils/devLog';
+import { toExperimentDbStatsSummary } from '../utils/experimentDbStats';
+import { isRunningExperimentStatus, isTerminalExperimentStatus } from '../utils/experimentStatus';
 
 let detailFeedSeq = 0;
 
@@ -88,6 +94,7 @@ interface ExperimentDetail {
   experiment_id: string;
   experiment_name: string;
   status: ExperimentStatus;
+  created_at?: string;
   run_count?: number;
   failed_count?: number;
   runs?: RunStatus[];
@@ -342,16 +349,25 @@ function DimensionBadge({ label, values }: { label: string; values: (string | nu
 
 export default function ExperimentDetailScreen({
   experimentId,
+  initialExperiment,
+  initialDbStats,
   onBack,
   onExplore,
 }: {
   experimentId: string;
+  initialExperiment?: Experiment;
+  initialDbStats?: ExperimentDbStatsSummary;
   onBack: () => void;
   onExplore?: () => void;
 }) {
-  const [detail, setDetail] = useState<ExperimentDetail | null>(null);
+  const seededDetail =
+    initialExperiment?.experiment_id === experimentId
+      ? (initialExperiment as unknown as ExperimentDetail)
+      : null;
+
+  const [detail, setDetail] = useState<ExperimentDetail | null>(seededDetail);
   const [error, setError] = useState<string | null>(null);
-  const [hydrating, setHydrating] = useState(true);
+  const [hydrating, setHydrating] = useState(seededDetail === null);
   const [cancelling, setCancelling] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -359,6 +375,9 @@ export default function ExperimentDetailScreen({
   const [loadFeed, setLoadFeed] = useState<FeedEntry[]>([]);
   const [receivedBytes, setReceivedBytes] = useState<number | null>(null);
   const [totalBytes, setTotalBytes] = useState<number | null>(null);
+
+  const [dbStats, setDbStats] = useState<ExperimentDbStatsSummary | null>(initialDbStats ?? null);
+  const [dbStatsLoading, setDbStatsLoading] = useState(initialDbStats === undefined);
 
   const [runsCurrentPage, setRunsCurrentPage] = useState(1);
   const [runsItemsPerPage, setRunsItemsPerPage] = useState(15);
@@ -370,6 +389,100 @@ export default function ExperimentDetailScreen({
 
   const aliveRef = useRef(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollDevLogAtRef = useRef(new Map<string, number>());
+  const dbStatsInFlightRef = useRef<Promise<void> | null>(null);
+
+  const experimentMeta = useCallback((): Pick<Experiment, 'experiment_id' | 'experiment_name' | 'status' | 'created_at'> | null => {
+    if (detail) {
+      return {
+        experiment_id: detail.experiment_id,
+        experiment_name: detail.experiment_name,
+        status: detail.status,
+        created_at: detail.created_at ?? initialExperiment?.created_at ?? new Date(0).toISOString(),
+      };
+    }
+    if (initialExperiment?.experiment_id === experimentId) return initialExperiment;
+    return null;
+  }, [detail, initialExperiment, experimentId]);
+
+  const loadDbStats = useCallback(
+    async (options?: { showLoading?: boolean }) => {
+      if (dbStatsInFlightRef.current !== null) {
+        return dbStatsInFlightRef.current;
+      }
+
+      const request = (async () => {
+        const meta = experimentMeta();
+        if (!meta) return;
+        if (options?.showLoading) setDbStatsLoading(true);
+        try {
+          const response = await getExperimentDbStats(experimentId);
+          setDbStats(toExperimentDbStatsSummary(meta, response.db_stats));
+        } catch (err) {
+          devWarn(`DB stats load failed (${experimentId.slice(0, 8)}…):`, err);
+        } finally {
+          dbStatsInFlightRef.current = null;
+          setDbStatsLoading(false);
+        }
+      })();
+
+      dbStatsInFlightRef.current = request;
+      return request;
+    },
+    [experimentId, experimentMeta],
+  );
+
+  useEffect(() => {
+    if (!initialDbStats) {
+      void loadDbStats({ showLoading: true });
+    }
+
+    const statsTimer = window.setInterval(() => {
+      void loadDbStats();
+    }, VECTOR_DB_STATS_POLL_MS);
+
+    return () => window.clearInterval(statsTimer);
+  }, [experimentId, initialDbStats, loadDbStats]);
+
+  const stopDetailPoll = useCallback(() => {
+    if (pollRef.current !== null) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  const startDetailPollIfRunning = useCallback(
+    (status: ExperimentStatus | undefined) => {
+      stopDetailPoll();
+      if (!isRunningExperimentStatus(status)) return;
+
+      pollRef.current = window.setInterval(async () => {
+        if (!aliveRef.current) return;
+        try {
+          const next = await getExperiment(experimentId);
+          if (!aliveRef.current) return;
+          setDetail(next as unknown as ExperimentDetail);
+          setError(null);
+          devDebugThrottled(
+            `poll:detail:${experimentId}`,
+            DEV_POLL_LOG_INTERVAL_MS,
+            `Poll OK — experiment ${experimentId.slice(0, 8)}… status=${next.status}`,
+            pollDevLogAtRef.current,
+          );
+          if (isTerminalExperimentStatus(next.status)) {
+            stopDetailPoll();
+          }
+        } catch (pollErr) {
+          if (!aliveRef.current) return;
+          const pollMsg =
+            pollErr instanceof Error ? pollErr.message : 'Could not refresh experiment';
+          devWarn(`Detail poll failed (${experimentId.slice(0, 8)}…):`, pollMsg);
+          setError('Could not refresh experiment — transient network or server error.');
+        }
+      }, DETAIL_POLL_MS);
+    },
+    [experimentId, stopDetailPoll],
+  );
 
   useEffect(() => {
     aliveRef.current = true;
@@ -394,58 +507,61 @@ export default function ExperimentDetailScreen({
       );
     };
 
-    async function pollQuietly() {
-      if (!aliveRef.current) return;
-      try {
-        const next = await getExperiment(experimentId);
-        if (!aliveRef.current) return;
-        setDetail(next as unknown as ExperimentDetail);
-        setError(null);
-      } catch {
-        if (!aliveRef.current) return;
-        setError('Could not refresh experiment — transient network or server error.');
-      }
-    }
-
     async function hydrate() {
+      const hasSeed = initialExperiment?.experiment_id === experimentId;
       setHydrating(true);
       setError(null);
-      setDetail(null);
-      setLoadFeed([{ id: 'h0', text: 'Fetching experiment and run rows…', variant: 'default' }]);
+      if (!hasSeed) {
+        setDetail(null);
+      }
+      setLoadFeed([
+        {
+          id: 'h0',
+          text: hasSeed
+            ? 'Refreshing run rows and live status…'
+            : 'Fetching experiment and run rows…',
+          variant: 'default',
+        },
+      ]);
       setReceivedBytes(null);
       setTotalBytes(null);
       stall.start();
 
-      if (pollRef.current !== null) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
+      stopDetailPoll();
+
+      let loadedStatus: ExperimentStatus | undefined;
 
       try {
-        const loaded = await getExperimentWithProgress(
-          experimentId,
-          applyProg,
-          abortHydrate.signal,
-        );
+        const loaded = hasSeed
+          ? await getExperiment(experimentId, abortHydrate.signal)
+          : await getExperimentWithProgress(experimentId, applyProg, abortHydrate.signal);
         stall.stop();
         if (!aliveRef.current) return;
+        loadedStatus = loaded.status;
         setDetail(loaded as unknown as ExperimentDetail);
-        setLoadFeed((f) => appendDetailFeed(f, 'Hydrated UI — polling for live phase updates.', 'default'));
+        setLoadFeed((f) =>
+          appendDetailFeed(
+            f,
+            isRunningExperimentStatus(loaded.status)
+              ? 'Run rows loaded — live polling while experiment is running.'
+              : 'Run rows loaded.',
+            'default',
+          ),
+        );
       } catch (err) {
         stall.stop();
         if (!aliveRef.current) return;
         if (err instanceof DOMException && err.name === 'AbortError') return;
         const msg =
           err instanceof Error ? err.message : 'Failed to load experiment';
+        devWarn(`Detail hydrate failed (${experimentId.slice(0, 8)}…):`, msg);
         setError(msg);
         setLoadFeed((f) => appendDetailFeed(f, `Failed: ${msg}`, 'warning'));
       } finally {
         stall.stop();
         if (!aliveRef.current) return;
         setHydrating(false);
-
-        pollRef.current = window.setInterval(pollQuietly, DETAIL_POLL_MS);
-        void pollQuietly();
+        startDetailPollIfRunning(loadedStatus);
       }
     }
 
@@ -455,12 +571,9 @@ export default function ExperimentDetailScreen({
       aliveRef.current = false;
       abortHydrate.abort();
       stall.stop();
-      if (pollRef.current !== null) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
+      stopDetailPoll();
     };
-  }, [experimentId]);
+  }, [experimentId, initialExperiment, startDetailPollIfRunning, stopDetailPoll]);
 
   async function handleCancel() {
     if (!confirm('Cancel this experiment? Runs in progress will stop after the current phase.')) {
@@ -706,54 +819,79 @@ export default function ExperimentDetailScreen({
           />
         )}
 
+        <div className="mb-6">
+          <ExperimentVectorDbStatsCard
+            experimentId={experimentId}
+            stats={dbStats ?? undefined}
+            loading={dbStatsLoading && !dbStats}
+          />
+        </div>
+
         {/* Metadata sections */}
         {detail && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Git & Timeline */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-              <div className="flex items-center gap-2 mb-4">
-                {icons.code}
-                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                  Git & Timeline
-                </h2>
-              </div>
-              <div className="space-y-3">
-                <MetadataItem
-                  label="Git Commit"
-                  value={detail.git_commit
-                    ? `${detail.git_commit.slice(0, 8)}${detail.git_dirty ? ' (dirty)' : ''}`
-                    : undefined}
-                />
-                <MetadataItem label="Git Branch" value={detail.git_branch} />
-                <MetadataItem
-                  label="Started"
-                  value={detail.started_at ? new Date(detail.started_at).toLocaleString() : undefined}
-                />
-                <MetadataItem
-                  label="Completed"
-                  value={detail.completed_at ? new Date(detail.completed_at).toLocaleString() : undefined}
-                />
-                <MetadataItem label="App Version" value={detail.app_version} />
-                <MetadataItem label="Python" value={detail.python_version} />
-              </div>
+              <CollapsibleCard
+                title="Git & Timeline"
+                icon={icons.code}
+                compact
+                storageKey={`detail-git-${experimentId}`}
+                headerExtra={
+                  detail.git_commit ? (
+                    <span className="font-mono text-xs text-slate-500">
+                      {detail.git_commit.slice(0, 8)}
+                      {detail.git_dirty ? ' *' : ''}
+                    </span>
+                  ) : null
+                }
+              >
+                <div className="space-y-3">
+                  <MetadataItem
+                    label="Git Commit"
+                    value={detail.git_commit
+                      ? `${detail.git_commit.slice(0, 8)}${detail.git_dirty ? ' (dirty)' : ''}`
+                      : undefined}
+                  />
+                  <MetadataItem label="Git Branch" value={detail.git_branch} />
+                  <MetadataItem
+                    label="Started"
+                    value={detail.started_at ? new Date(detail.started_at).toLocaleString() : undefined}
+                  />
+                  <MetadataItem
+                    label="Completed"
+                    value={detail.completed_at ? new Date(detail.completed_at).toLocaleString() : undefined}
+                  />
+                  <MetadataItem label="App Version" value={detail.app_version} />
+                  <MetadataItem label="Python" value={detail.python_version} />
+                </div>
+              </CollapsibleCard>
             </div>
 
-            {/* Sweep Configuration */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-              <div className="flex items-center gap-2 mb-4">
-                {icons.settings}
-                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                  Configuration
-                </h2>
-              </div>
-              <div className="space-y-3">
-                <MetadataItem label="Rerank Model" value={detail.rerank_model ?? 'none'} />
-                <MetadataItem label="Top-K Initial" value={detail.top_k_initial} />
-                <MetadataItem label="Top-K Final" value={detail.top_k_final} />
-                <MetadataItem label="Parallelism" value={detail.parallelism} />
-                <MetadataItem label="On Error" value={detail.on_error} />
-                <MetadataItem label="Queries" value={detail.queries_file} />
-              </div>
+              <CollapsibleCard
+                title="Configuration"
+                icon={icons.settings}
+                compact
+                storageKey={`detail-config-${experimentId}`}
+                headerExtra={
+                  detail.rerank_model ? (
+                    <span className="text-xs text-slate-500 truncate max-w-[140px]" title={detail.rerank_model}>
+                      {detail.rerank_model}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-400">no rerank</span>
+                  )
+                }
+              >
+                <div className="space-y-3">
+                  <MetadataItem label="Rerank Model" value={detail.rerank_model ?? 'none'} />
+                  <MetadataItem label="Top-K Initial" value={detail.top_k_initial} />
+                  <MetadataItem label="Top-K Final" value={detail.top_k_final} />
+                  <MetadataItem label="Parallelism" value={detail.parallelism} />
+                  <MetadataItem label="On Error" value={detail.on_error} />
+                  <MetadataItem label="Queries" value={detail.queries_file} />
+                </div>
+              </CollapsibleCard>
             </div>
           </div>
         )}
@@ -780,29 +918,32 @@ export default function ExperimentDetailScreen({
         {/* Sweep Dimensions - Visual Grid */}
         {detail?.sweep_summary && (
           <div className="mb-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl shadow-sm border border-purple-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              {icons.grid}
-              <h2 className="text-lg font-bold text-slate-800">
-                Sweep Dimensions
-              </h2>
-              <span className="ml-auto text-sm text-purple-700 font-semibold">
-                {detail.sweep_summary.models.length *
-                  detail.sweep_summary.chunking_methods.length *
-                  detail.sweep_summary.chunk_sizes.length *
-                  detail.sweep_summary.overlaps.length *
-                  detail.sweep_summary.retrieval_methods.length} combinations
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <DimensionBadge label="Database Provider" values={[detail.sweep_summary.database_provider || 'mongodb']} />
-              <DimensionBadge label="Embedding Provider" values={[detail.sweep_summary.embedding_provider || 'local']} />
-              <DimensionBadge label="Embedding Models" values={detail.sweep_summary.models} />
-              <DimensionBadge label="Chunking" values={detail.sweep_summary.chunking_methods} />
-              <DimensionBadge label="Chunk Sizes" values={detail.sweep_summary.chunk_sizes} />
-              <DimensionBadge label="Overlaps" values={detail.sweep_summary.overlaps} />
-              <DimensionBadge label="Retrieval" values={detail.sweep_summary.retrieval_methods} />
-              <DimensionBadge label="Rerank Provider" values={[detail.sweep_summary.rerank_provider || 'local']} />
-            </div>
+            <CollapsibleCard
+              title="Sweep Dimensions"
+              icon={icons.grid}
+              storageKey={`detail-sweep-${experimentId}`}
+              headerExtra={
+                <span className="text-sm text-purple-700 font-semibold">
+                  {detail.sweep_summary.models.length *
+                    detail.sweep_summary.chunking_methods.length *
+                    detail.sweep_summary.chunk_sizes.length *
+                    detail.sweep_summary.overlaps.length *
+                    detail.sweep_summary.retrieval_methods.length}{' '}
+                  combinations
+                </span>
+              }
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <DimensionBadge label="Database Provider" values={[detail.sweep_summary.database_provider || 'mongodb']} />
+                <DimensionBadge label="Embedding Provider" values={[detail.sweep_summary.embedding_provider || 'local']} />
+                <DimensionBadge label="Embedding Models" values={detail.sweep_summary.models} />
+                <DimensionBadge label="Chunking" values={detail.sweep_summary.chunking_methods} />
+                <DimensionBadge label="Chunk Sizes" values={detail.sweep_summary.chunk_sizes} />
+                <DimensionBadge label="Overlaps" values={detail.sweep_summary.overlaps} />
+                <DimensionBadge label="Retrieval" values={detail.sweep_summary.retrieval_methods} />
+                <DimensionBadge label="Rerank Provider" values={[detail.sweep_summary.rerank_provider || 'local']} />
+              </div>
+            </CollapsibleCard>
           </div>
         )}
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
+from server.utils.log_throttle import info_throttled
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -66,9 +67,14 @@ def analyze_results(
     if score_range == 0:
         score_range = 1.0
 
-    logger.info(
-        f"Score normalization: min={min_raw:.2f}, max={max_raw:.2f}, "
-        f"range={score_range:.2f}, scores={len(all_scores)}"
+    info_throttled(
+        logger,
+        "poll:score-normalization",
+        "Score normalization: min=%.2f, max=%.2f, range=%.2f, scores=%s",
+        min_raw,
+        max_raw,
+        score_range,
+        len(all_scores),
     )
 
     config_scores: dict[tuple, list[float]] = defaultdict(list)
