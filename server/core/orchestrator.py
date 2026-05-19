@@ -1,6 +1,7 @@
 import threading
 import time
 import uuid
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from server.core.chunkers import chunk_text
@@ -24,58 +25,176 @@ from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-_cancel_events: dict[str, threading.Event] = {}
+ParamSignature = tuple[
+    str,
+    str,
+    str,
+    str,
+    int,
+    int,
+    str,
+    str,
+    str | None,
+]
+
+
+@dataclass
+class _SweepControl:
+    cancel: threading.Event = field(default_factory=threading.Event)
+    pause: threading.Event = field(default_factory=threading.Event)
+
+
+_sweep_controls: dict[str, _SweepControl] = {}
 
 
 class ExperimentCancelledError(Exception):
     pass
 
 
+class ExperimentPausedError(Exception):
+    pass
+
+
 def request_cancel(experiment_id: str) -> bool:
     """Signal a running experiment to stop. Returns True if it was in-flight."""
-    event = _cancel_events.get(experiment_id)
-    if event is None:
+    control = _sweep_controls.get(experiment_id)
+    if control is None:
         return False
-    event.set()
+    control.cancel.set()
     return True
 
 
-def _check_cancelled(experiment_id: str) -> None:
-    """Raise ExperimentCancelled if this experiment has been cancelled."""
-    event = _cancel_events.get(experiment_id)
-    if event and event.is_set():
+def request_pause(experiment_id: str) -> bool:
+    """Signal a running experiment to pause. Returns True if it was in-flight."""
+    control = _sweep_controls.get(experiment_id)
+    if control is None:
+        return False
+    control.pause.set()
+    return True
+
+
+def is_sweep_in_flight(experiment_id: str) -> bool:
+    return experiment_id in _sweep_controls
+
+
+def _params_signature(params: RunParams) -> ParamSignature:
+    return (
+        params.database_provider,
+        params.embedding_provider,
+        params.embedding_model,
+        params.chunking_method.value,
+        params.chunk_size,
+        params.overlap,
+        params.retrieval_method.value,
+        params.rerank_provider,
+        params.rerank_model,
+    )
+
+
+def _stored_enum_value(value: object | None) -> str:
+    if value is None:
+        return ""
+    if hasattr(value, "value"):
+        return str(getattr(value, "value"))
+    return str(value)
+
+
+def _run_doc_signature(run: dict) -> ParamSignature:
+    return (
+        str(run.get("database_provider") or "mongodb"),
+        str(run.get("embedding_provider") or ""),
+        str(run.get("embedding_model") or ""),
+        _stored_enum_value(run.get("chunking_method")),
+        int(run.get("chunk_size") or 0),
+        int(run.get("overlap") or 0),
+        _stored_enum_value(run.get("retrieval_method")),
+        str(run.get("rerank_provider") or ""),
+        run.get("rerank_model"),
+    )
+
+
+def _completed_param_signatures(experiment_id: str) -> set[ParamSignature]:
+    cursor = get_collection(RUN_STATUS_COLLECTION).find(
+        {"experiment_id": experiment_id, "phase": Phase.COMPLETE.value},
+        {
+            "database_provider": 1,
+            "embedding_provider": 1,
+            "embedding_model": 1,
+            "chunking_method": 1,
+            "chunk_size": 1,
+            "overlap": 1,
+            "retrieval_method": 1,
+            "rerank_provider": 1,
+            "rerank_model": 1,
+        },
+    )
+    return {_run_doc_signature(run) for run in cursor}
+
+
+def _check_control(experiment_id: str) -> None:
+    """Raise if this experiment was cancelled or paused."""
+    control = _sweep_controls.get(experiment_id)
+    if control is None:
+        return
+    if control.cancel.is_set():
         raise ExperimentCancelledError(f"Experiment {experiment_id} was cancelled")
+    if control.pause.is_set():
+        raise ExperimentPausedError(f"Experiment {experiment_id} was paused")
 
 
 def run_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
-    """Execute all sweep runs for a pre-created experiment.
+    """Execute all sweep runs for a pre-created experiment."""
+    return _execute_sweep(experiment_id, config, skip_signatures=set())
 
-    Declared as a sync function so FastAPI's BackgroundTasks runs it in a
-    threadpool instead of on the event loop (all callees are blocking I/O).
-    """
-    _cancel_events[experiment_id] = threading.Event()
 
+def resume_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
+    """Continue a paused experiment, skipping parameter sets that already completed."""
+    completed = _completed_param_signatures(experiment_id)
+    logger.info(
+        "Experiment %s resume: skipping %s completed parameter combination(s)",
+        experiment_id,
+        len(completed),
+    )
+    return _execute_sweep(experiment_id, config, skip_signatures=completed)
+
+
+def _execute_sweep(
+    experiment_id: str,
+    config: ExperimentConfig,
+    skip_signatures: set[ParamSignature],
+) -> dict:
+    """Declared sync so FastAPI BackgroundTasks runs it in a threadpool."""
+    _sweep_controls[experiment_id] = _SweepControl()
     try:
-        return _run_sweep_inner(experiment_id, config)
+        return _run_sweep_inner(experiment_id, config, skip_signatures)
     finally:
-        _cancel_events.pop(experiment_id, None)
+        _sweep_controls.pop(experiment_id, None)
 
 
-def _run_sweep_inner(experiment_id: str, config: ExperimentConfig) -> dict:
-    # execution.parallelism is stored on experiments but honored only after Slice 16
-    # (bounded concurrent runs). See docs/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md
+def _run_sweep_inner(
+    experiment_id: str,
+    config: ExperimentConfig,
+    skip_signatures: set[ParamSignature],
+) -> dict:
     runs = expand_sweep(config)
     run_ids: list[str] = []
     logger.info(f"Experiment {experiment_id}: {len(runs)} runs to execute")
 
-    failed = 0
     cancelled = False
+    paused = False
     for params in runs:
+        if _params_signature(params) in skip_signatures:
+            continue
+
         try:
-            _check_cancelled(experiment_id)
+            _check_control(experiment_id)
         except ExperimentCancelledError:
             cancelled = True
             logger.info(f"Experiment {experiment_id} cancelled before run {len(run_ids) + 1}")
+            break
+        except ExperimentPausedError:
+            paused = True
+            logger.info(f"Experiment {experiment_id} paused before run {len(run_ids) + 1}")
             break
 
         run_id = str(uuid.uuid4())
@@ -86,20 +205,23 @@ def _run_sweep_inner(experiment_id: str, config: ExperimentConfig) -> dict:
             cancelled = True
             logger.info(f"Experiment {experiment_id} cancelled during run {run_id}")
             break
+        except ExperimentPausedError:
+            paused = True
+            logger.info(f"Experiment {experiment_id} paused during run {run_id}")
+            break
         except Exception as e:
-            failed += 1
             logger.error(f"Run {run_id} failed: {e}", exc_info=True)
             if config.execution.on_error == "stop":
                 break
 
     if cancelled:
         final_status = ExperimentStatus.CANCELLED
-    elif failed == 0:
-        final_status = ExperimentStatus.COMPLETE
-    elif failed < len(runs):
-        final_status = ExperimentStatus.PARTIAL
+        failed_count = _count_failed_runs(experiment_id)
+    elif paused:
+        final_status = ExperimentStatus.PAUSED
+        failed_count = _count_failed_runs(experiment_id)
     else:
-        final_status = ExperimentStatus.FAILED
+        final_status, failed_count = _compute_final_status(experiment_id, len(runs))
 
     completed_at = datetime.utcnow()
     get_collection(EXPERIMENTS_COLLECTION).update_one(
@@ -108,7 +230,7 @@ def _run_sweep_inner(experiment_id: str, config: ExperimentConfig) -> dict:
             "$set": {
                 "status": final_status,
                 "run_count": len(runs),
-                "failed_count": failed,
+                "failed_count": failed_count,
                 "completed_at": completed_at,
             }
         },
@@ -116,6 +238,29 @@ def _run_sweep_inner(experiment_id: str, config: ExperimentConfig) -> dict:
     logger.info(f"Experiment {experiment_id} finished: {final_status}")
 
     return {"experiment_id": experiment_id, "run_ids": run_ids, "status": final_status}
+
+
+def _count_failed_runs(experiment_id: str) -> int:
+    return int(
+        get_collection(RUN_STATUS_COLLECTION).count_documents(
+            {"experiment_id": experiment_id, "phase": Phase.FAILED.value}
+        )
+    )
+
+
+def _compute_final_status(
+    experiment_id: str,
+    expected_run_count: int,
+) -> tuple[ExperimentStatus, int]:
+    runs = list(get_collection(RUN_STATUS_COLLECTION).find({"experiment_id": experiment_id}))
+    complete = sum(1 for run in runs if run.get("phase") == Phase.COMPLETE.value)
+    failed = sum(1 for run in runs if run.get("phase") == Phase.FAILED.value)
+
+    if complete == expected_run_count and failed == 0:
+        return ExperimentStatus.COMPLETE, failed
+    if failed == expected_run_count or (failed > 0 and complete == 0):
+        return ExperimentStatus.FAILED, failed
+    return ExperimentStatus.PARTIAL, failed
 
 
 def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
@@ -142,22 +287,22 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
     get_collection(RUN_STATUS_COLLECTION).insert_one(run_status.model_dump())
 
     try:
-        _check_cancelled(experiment_id)
+        _check_control(experiment_id)
         _update_phase(run_id, Phase.PARSING)
         text = load_all_files(params.data_paths)
         logger.info(f"Run {run_id}: parsed {len(text)} chars from {len(params.data_paths)} path(s)")
 
-        _check_cancelled(experiment_id)
+        _check_control(experiment_id)
         _update_phase(run_id, Phase.CHUNKING)
         chunks = chunk_text(text, params.chunking_method, params.chunk_size, params.overlap)
         logger.info(f"Run {run_id}: chunked into {len(chunks)} chunks")
 
-        _check_cancelled(experiment_id)
+        _check_control(experiment_id)
         _update_phase(run_id, Phase.EMBEDDING)
         embeddings = embed_documents(chunks, params.embedding_model, params.embedding_provider)
         logger.info(f"Run {run_id}: generated {len(embeddings)} embeddings")
 
-        _check_cancelled(experiment_id)
+        _check_control(experiment_id)
         _update_phase(run_id, Phase.STORING)
         chunk_docs = [
             {
@@ -177,13 +322,13 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
         get_collection(CHUNKS_COLLECTION).insert_many(chunk_docs)
         logger.info(f"Stored {len(chunk_docs)} chunks")
 
-        _check_cancelled(experiment_id)
+        _check_control(experiment_id)
         _update_phase(run_id, Phase.QUERYING)
         queries = load_queries(params.queries_file)
         logger.info(f"Run {run_id}: querying with {len(queries)} queries")
 
         for i, q in enumerate(queries, start=1):
-            _check_cancelled(experiment_id)
+            _check_control(experiment_id)
             query_id = str(uuid.uuid4())
             logger.debug(
                 f"Run {run_id} query {i}/{len(queries)}: "
@@ -245,6 +390,10 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
     except ExperimentCancelledError:
         logger.info(f"Run {run_id} interrupted by cancellation")
         _update_phase(run_id, Phase.INTERRUPTED, error_message="Cancelled by user")
+        raise
+    except ExperimentPausedError:
+        logger.info(f"Run {run_id} interrupted by pause")
+        _update_phase(run_id, Phase.INTERRUPTED, error_message="Paused by user")
         raise
     except Exception as e:
         logger.error(f"Run {run_id} failed: {e}", exc_info=True)

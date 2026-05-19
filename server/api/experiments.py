@@ -15,8 +15,16 @@ from server.api.experiments_shared import (
     mongo_list_results_for_experiment,
     mongo_load_explore_source,
     mongo_mark_experiment_cancelled_now,
+    mongo_mark_experiment_paused_now,
+    mongo_mark_experiment_running,
 )
-from server.core.orchestrator import request_cancel, run_sweep
+from server.core.orchestrator import (
+    is_sweep_in_flight,
+    request_cancel,
+    request_pause,
+    resume_sweep,
+    run_sweep,
+)
 from server.models.config import ExperimentConfig, expand_sweep
 from server.models.enums import ExperimentStatus
 from server.utils.log_throttle import info_throttled
@@ -208,6 +216,76 @@ async def cancel_experiment(experiment_id: str):
         "status": "cancel_requested",
         "experiment_id": experiment_id,
         "message": "Experiment will stop after the current phase completes",
+    }
+
+
+@router.post("/{experiment_id}/pause")
+async def pause_experiment(experiment_id: str):
+    """Pause a running experiment after the current phase completes."""
+    logger.info(f"POST /experiments/{experiment_id}/pause")
+
+    experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+
+    if experiment.get("status") != ExperimentStatus.RUNNING:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Experiment is not running (status: {experiment.get('status')})",
+        )
+
+    signalled = request_pause(experiment_id)
+
+    if not signalled:
+        await asyncio.to_thread(mongo_mark_experiment_paused_now, experiment_id)
+
+    logger.info(f"Experiment {experiment_id} pause requested (in-flight={signalled})")
+    return {
+        "status": "pause_requested",
+        "experiment_id": experiment_id,
+        "message": "Experiment will pause after the current phase completes",
+    }
+
+
+@router.post("/{experiment_id}/resume")
+async def resume_experiment(experiment_id: str, background_tasks: BackgroundTasks):
+    """Resume a paused experiment from the next incomplete parameter combination."""
+    logger.info(f"POST /experiments/{experiment_id}/resume")
+
+    experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+
+    status = experiment.get("status")
+    if status == ExperimentStatus.RUNNING:
+        if is_sweep_in_flight(experiment_id):
+            raise HTTPException(status_code=409, detail="Experiment is already running")
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Experiment is marked running but not executing — restart the server or reconcile"
+            ),
+        )
+    if status != ExperimentStatus.PAUSED:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Experiment cannot be resumed (status: {status})",
+        )
+
+    config_payload = experiment.get("config")
+    if not config_payload:
+        raise HTTPException(status_code=400, detail="Experiment config is missing")
+
+    config = ExperimentConfig.model_validate(config_payload)
+    await asyncio.to_thread(mongo_mark_experiment_running, experiment_id)
+    background_tasks.add_task(resume_sweep, experiment_id, config)
+
+    runs = expand_sweep(config)
+    return {
+        "status": "resume_requested",
+        "experiment_id": experiment_id,
+        "run_count": len(runs),
+        "message": "Experiment resumed — remaining parameter combinations will execute",
     }
 
 

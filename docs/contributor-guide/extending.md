@@ -17,11 +17,13 @@ In `server/core/model_registry.py`, add to `EMBEDDING_MODELS`:
 
 ```python
 EMBEDDING_MODELS = {
-    "my-new-model": ModelEntry(
-        provider="local",          # or "voyage"
-        dimensions=768,
-        huggingface_id="org/my-new-model",  # for local models
-    ),
+    "my-new-model": {
+        "provider": "local",          # or "voyage"
+        "dimensions": 768,
+        "huggingface_id": "org/my-new-model",  # for local models; None for Voyage
+        "description": "Short label for docs",
+        "contextualized": False,      # True only for voyage-context-* (contextualized_embed API)
+    },
     ...
 }
 ```
@@ -175,7 +177,7 @@ export async function fetchMyData(experimentId: string): Promise<MyType> {
 | Missing embeddings filter | Always filter Atlas vector search by `embedding_model` — different models produce incompatible vectors that must not be compared. |
 | Queries file URL caching | URL-sourced query files are downloaded to `configs/` and cached by hash. Delete the cached file to force re-download. |
 | Server must be running | The CLI requires the server at `SERVER_URL` (default: `http://localhost:8001`). All commands fail if the server is down. |
-| Rate limits on Voyage | Free tier: 300 RPM / 1M TPM. Set `VOYAGE_RPM_LIMIT` and `VOYAGE_TPM_LIMIT` in `.env` to throttle. |
+| Rate limits on Voyage | Free tier: 3 RPM / 10k TPM (defaults). Tier 1: 2,000 RPM + model TPM — set `VOYAGE_RPM_LIMIT` / `VOYAGE_TPM_LIMIT` in `.env`. |
 | Score normalization | Rerank scores (cross-encoder logits) can be negative. The system uses min-max normalization to map all scores to 0–100. |
 | TypeScript types are hand-mirrored | When changing Python models (`server/models/`), manually update `frontend/src/types/index.ts`. There is no codegen. |
 

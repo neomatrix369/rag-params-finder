@@ -77,9 +77,8 @@ VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # Server URL (used by CLI, default is localhost:8001)
 SERVER_URL=http://localhost:8001
 
-# Rate limits (Voyage only — set based on your tier)
-VOYAGE_RPM_LIMIT=3
-VOYAGE_TPM_LIMIT=10000
+# Rate limits (Voyage only — set based on your tier; see .env.example)
+# Tier 1 example: VOYAGE_RPM_LIMIT=2000  VOYAGE_TPM_LIMIT=16000000  # voyage-4-lite / voyage-3.5-lite
 
 # Optional — Atlas Admin API for dashboard storage quota bar
 # ATLAS_PUBLIC_KEY=
@@ -170,7 +169,7 @@ db.results.deleteMany({experiment_id: exp_id})
 | Provider | Speed | Notes |
 |---|---|---|
 | Local (`all-MiniLM-L6-v2`) | ~50 chunks/sec on M1 CPU | No API latency; first run downloads model |
-| Voyage (`voyage-3.5-lite`) | ~1000 chunks/min | API rate-limited; free tier is 1M TPM |
+| Voyage (`voyage-4-lite`, `voyage-3.5-lite`) | varies by tier | Tier 1: up to 16M TPM / 2000 RPM when `.env` limits match |
 
 ### MongoDB Atlas free tier limits
 

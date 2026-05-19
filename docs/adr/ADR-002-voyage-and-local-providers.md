@@ -19,7 +19,7 @@ Support two providers via an **explicit `provider` field** in the experiment YAM
 | Provider | Embedding model | Reranking model | Requirements |
 |---|---|---|---|
 | `local` | `all-MiniLM-L6-v2` (384-dim, ~23 MB) | `cross-encoder/ms-marco-MiniLM-L-6-v2` (~23 MB) | None — downloaded from HuggingFace on first use |
-| `voyage` | `voyage-3.5-lite`, `voyage-3.5`, `voyage-context-3` (1024-dim) | `rerank-2.5-lite`, `rerank-2.5` | `VOYAGE_API_KEY` in `.env` |
+| `voyage` | 12 embeddings in `EMBEDDING_MODELS` (voyage-4/3/domain/context; 1024-dim) | `rerank-2.5-lite`, `rerank-2.5`, + legacy rerankers in `RERANKER_MODELS` | `VOYAGE_API_KEY` in `.env` |
 
 The `provider` field is the **single source of truth** for routing — the server never infers provider from model names at runtime.
 

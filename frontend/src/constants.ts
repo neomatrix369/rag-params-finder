@@ -3,7 +3,7 @@ export const APP_NAME = 'RAG Params Finder';
 export const APP_TAGLINE =
   'Sweep chunking, embeddings, retrieval, and reranking—then inspect what worked on your evaluation queries.';
 export const APP_READ_ONLY_NOTE =
-  'Experiments start from the CLI; this UI reads your FastAPI backend (cancel is the only write when a run is active).';
+  'Experiments start from the CLI; this UI reads your FastAPI backend (pause, resume, and cancel are available while a sweep is active).';
 export const APP_FOOTNOTE_SUMMARY = 'How this dashboard relates to CLI runs';
 
 /** Polling intervals (ms). */

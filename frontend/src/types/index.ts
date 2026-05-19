@@ -1,5 +1,11 @@
 // Experiment-level status (mirrored from server/models/enums.py ExperimentStatus)
-export type ExperimentStatus = 'running' | 'complete' | 'partial' | 'failed' | 'cancelled';
+export type ExperimentStatus =
+  | 'running'
+  | 'paused'
+  | 'complete'
+  | 'partial'
+  | 'failed'
+  | 'cancelled';
 
 // Enums (mirrored from server/models/enums.py)
 

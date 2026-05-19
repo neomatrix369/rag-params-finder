@@ -134,9 +134,11 @@ embedding:
 **Symptom**: `voyageai.error.RateLimitError: Rate limit exceeded` in server logs; run status shows `failed`.
 
 **Fix**:
-- Check usage at [dash.voyageai.com/usage](https://dash.voyageai.com/usage)
-- Free tier: 300 RPM / 1M TPM
-- Set `VOYAGE_RPM_LIMIT` and `VOYAGE_TPM_LIMIT` in `.env` to throttle requests to match your tier
+- Check usage and org limits at [dash.voyageai.com/usage](https://dash.voyageai.com/usage) and [organization rate limits](https://dashboard.voyageai.com/organization/rate-limits)
+- **Free tier** (no payment method): 3 RPM / 10,000 TPM — server defaults match this
+- **Tier 1** (payment method): 2,000 RPM; TPM per model (e.g. `voyage-4-lite` / `voyage-3.5-lite` → 16M, `voyage-4` / `voyage-3.5` → 8M, `rerank-2.5-lite` → 4M). See [Voyage rate limits](https://docs.voyageai.com/docs/rate-limits) and `.env.example`
+- Set `VOYAGE_RPM_LIMIT` and `VOYAGE_TPM_LIMIT` in `.env` to **match or stay slightly below** your tier (restart uvicorn after changing)
+- If limits are too **low**, sweeps are slow but safe; if too **high**, you get 429s (retry/backoff applies)
 - Switch to `provider: local` for testing (no API key, no rate limits)
 
 ---

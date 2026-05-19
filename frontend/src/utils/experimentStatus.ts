@@ -36,3 +36,11 @@ export function isTerminalExperimentStatus(status: ExperimentStatus | undefined)
 export function isRunningExperimentStatus(status: ExperimentStatus | undefined): boolean {
   return status === 'running';
 }
+
+export function isPausedExperimentStatus(status: ExperimentStatus | undefined): boolean {
+  return status === 'paused';
+}
+
+export function isActiveExperimentStatus(status: ExperimentStatus | undefined): boolean {
+  return status === 'running' || status === 'paused';
+}

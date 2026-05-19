@@ -228,6 +228,42 @@ export async function cancelExperiment(
   return response.json();
 }
 
+export async function pauseExperiment(
+  experimentId: string,
+): Promise<{ status: string; message: string }> {
+  const url = `${API_BASE_URL}/experiments/${experimentId}/pause`;
+  let response: Response;
+  try {
+    response = await fetch(url, { method: 'POST' });
+  } catch (err) {
+    rethrowWithFetchHint(url, err);
+  }
+  if (!response.ok) {
+    const parsed = await response.json().catch(() => ({}));
+    const detail = typeof parsed.detail === 'string' ? parsed.detail : undefined;
+    throw new Error(detail || 'Failed to pause experiment');
+  }
+  return response.json();
+}
+
+export async function resumeExperiment(
+  experimentId: string,
+): Promise<{ status: string; message: string; run_count?: number }> {
+  const url = `${API_BASE_URL}/experiments/${experimentId}/resume`;
+  let response: Response;
+  try {
+    response = await fetch(url, { method: 'POST' });
+  } catch (err) {
+    rethrowWithFetchHint(url, err);
+  }
+  if (!response.ok) {
+    const parsed = await response.json().catch(() => ({}));
+    const detail = typeof parsed.detail === 'string' ? parsed.detail : undefined;
+    throw new Error(detail || 'Failed to resume experiment');
+  }
+  return response.json();
+}
+
 export async function deleteExperiment(experimentId: string): Promise<DeleteExperimentResponse> {
   const url = `${API_BASE_URL}/experiments/${experimentId}`;
   let response: Response;

@@ -69,6 +69,20 @@ def mongo_mark_experiment_cancelled_now(experiment_id: str):
     )
 
 
+def mongo_mark_experiment_paused_now(experiment_id: str):
+    get_collection(EXPERIMENTS_COLLECTION).update_one(
+        {"_id": experiment_id},
+        {"$set": {"status": ExperimentStatus.PAUSED, "completed_at": datetime.utcnow()}},
+    )
+
+
+def mongo_mark_experiment_running(experiment_id: str):
+    get_collection(EXPERIMENTS_COLLECTION).update_one(
+        {"_id": experiment_id},
+        {"$set": {"status": ExperimentStatus.RUNNING, "completed_at": None}},
+    )
+
+
 def mongo_delete_experiment_data(experiment_id: str) -> dict[str, int]:
     """Delete all data for an experiment across all collections.
 

@@ -55,10 +55,11 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?
 # Optional — only needed for Voyage models
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# Optional — defaults shown (free-tier Voyage limits)
+# Optional — Voyage rate limits (must match your org tier on the Voyage dashboard)
+# Without a payment method: 3 RPM / 10_000 TPM (server default; sweeps are slow)
+# Tier 1: add payment at https://dashboard.voyageai.com/organization/billing/payment-methods
+#         then set e.g. VOYAGE_RPM_LIMIT=2000 and VOYAGE_TPM_LIMIT=16000000 (see .env.example)
 SERVER_URL=http://localhost:8001
-VOYAGE_RPM_LIMIT=3
-VOYAGE_TPM_LIMIT=10000
 LOG_LEVEL=INFO
 
 # Optional — dashboard cluster storage quota bar (Atlas Admin API)

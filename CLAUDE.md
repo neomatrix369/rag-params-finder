@@ -98,10 +98,10 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 **Two independent provider settings**:
 - `embedding.provider`: "local" or "voyage"
   - Local → `server/core/local_embedder.py` → `all-MiniLM-L6-v2` (384-dim)
-  - Voyage → `server/core/embedder.py` → `voyage-3.5-lite|voyage-3.5|voyage-context-3` (1024-dim)
+  - Voyage → `server/core/embedder.py` → all models in `EMBEDDING_MODELS` with `provider: voyage` (1024-dim; `voyage-context-3` uses contextualized API)
 - `retrieval.rerank_provider`: "local" or "voyage"
   - Local → `server/core/local_reranker.py` → `cross-encoder/ms-marco-MiniLM-L-6-v2`
-  - Voyage → `server/core/reranker.py` → `rerank-2.5-lite|rerank-2.5`
+  - Voyage → `server/core/reranker.py` → `rerank-2.5-lite|rerank-2.5` (+ legacy `rerank-2*`, `rerank-1*`)
 
 Provider/model must match — registry in `model_registry.py` validates at config load time.
 
