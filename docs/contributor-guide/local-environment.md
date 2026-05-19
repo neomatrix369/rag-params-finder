@@ -78,17 +78,26 @@ VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 SERVER_URL=http://localhost:8001
 
 # Rate limits (Voyage only — set based on your tier)
-VOYAGE_RPM_LIMIT=300
-VOYAGE_TPM_LIMIT=1000000
+VOYAGE_RPM_LIMIT=3
+VOYAGE_TPM_LIMIT=10000
 
-# Optional — stored in experiment metadata / dashboard (“Recover on Boot”); no runtime retry on boot yet (planned: docs/slices/SLICE-10-RUN-RECOVERY.md — boot = INTERRUPTED only).
+# Optional — Atlas Admin API for dashboard storage quota bar
+# ATLAS_PUBLIC_KEY=
+# ATLAS_PRIVATE_KEY=
+# ATLAS_GROUP_ID=                         # 24-char project ID from Atlas URL
+# ATLAS_CLUSTER_NAME=                     # omit to parse from MONGODB_URI host
+# MONGODB_STORAGE_LIMIT_MB=512            # manual override (MB); 0 = try API
+
+# Optional — stored in experiment metadata / dashboard (“Recover on Boot”).
+# Status reconciliation on boot always runs (marks stale running → partial).
+# Automatic retry of interrupted runs is not implemented yet (Slice 10).
 RECOVER_ON_BOOT=false
 
 # Logging
 LOG_LEVEL=INFO   # DEBUG for verbose output
 ```
 
-Slice 10 *(planned)* documents CLI/API recovery and boot semantics: [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md).
+Slice 10 *(planned)* documents CLI/API **retry** of failed/interrupted runs: [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md). **Boot status reconciliation** (fix stale `running` experiments) is already implemented in `server/core/startup_reconciliation.py`.
 
 **Never commit `.env` to git** — it is in `.gitignore`.
 

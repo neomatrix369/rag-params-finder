@@ -95,14 +95,16 @@ FastAPI Server
 ```
 rag-params-finder/
 ├── server/
-│   ├── main.py              # FastAPI app entry; lifespan ensures DB indexes
+│   ├── main.py              # FastAPI app entry; lifespan: indexes + orphan reconciliation
 │   ├── settings.py          # Centralized pydantic-settings config
 │   ├── api/
-│   │   ├── experiments.py   # experiments CRUD, results/explore, cancel, delete
-│   │   ├── experiments_shared.py  # shared delete helpers (cascade deletion)
+│   │   ├── experiments.py   # CRUD, explore, db-stats, cancel, delete
+│   │   ├── experiments_shared.py  # Mongo helpers incl. db-stats aggregation
 │   │   └── runs.py          # GET /runs/{id}/status
 │   ├── core/
 │   │   ├── orchestrator.py  # run_sweep() + run_single() pipeline
+│   │   ├── startup_reconciliation.py  # fix stale running experiments on boot
+│   │   ├── atlas_storage.py # Atlas Admin API quota + dbStats footprint
 │   │   ├── pdf_parser.py    # pypdf text extraction
 │   │   ├── query_loader.py  # persona JSON → Query dataclass list
 │   │   ├── model_registry.py  # embedding + reranking model catalog
@@ -139,12 +141,18 @@ rag-params-finder/
     │   ├── ExperimentProgressCard.tsx  # experiment progress card (circular indicator, reusable)
     │   ├── PollingIndicator.tsx        # subtle "Syncing..." indicator during polls
     │   ├── ConfirmDeleteModal.tsx      # delete confirmation modal with experiment details
-    │   ├── ExperimentsScreen.tsx       # list view (polling every 2s, paginated, delete actions)
-    │   ├── ExperimentDetailScreen.tsx  # detail view (runs table, phase dots, metrics, paginated, delete action)
+    │   ├── CollapsibleCard.tsx         # reusable collapsible section (localStorage state)
+    │   ├── VectorDbStatsPanel.tsx      # cluster-grouped storage stats (experiments list)
+    │   ├── ExperimentVectorDbStatsCard.tsx  # per-experiment db-stats on detail screen
+    │   ├── ExperimentsScreen.tsx       # list view (collapsible rows, vector DB stats, delete)
+    │   ├── ExperimentDetailScreen.tsx  # overview metrics, outcome banners, runs table
     │   └── SearchExplorerScreen.tsx    # results analysis (ranked configs, per-query, paginated)
     ├── services/
     │   ├── apiClient.ts       # fetch wrapper (all server API calls)
     │   └── fetchWithProgress.ts  # streamed fetch with byte-level progress tracking
+    ├── utils/
+    │   ├── experimentStatus.ts   # terminal/running helpers + summarizeExperimentRuns()
+    │   └── experimentDbStats.ts  # db-stats response normalizers
     └── types/index.ts         # hand-mirrored TypeScript types from Python models
 ```
 
@@ -219,6 +227,8 @@ See `docs/adr/` for Architecture Decision Records:
 | Dual loading indicators (panel + polling badge) | Initial load → full progress panel; background polls → subtle "Syncing..." badge; clear state transitions |
 | Two progress patterns (network vs experiment) | `LoadingFeedbackPanel` for network/API loads (byte-level); `ExperimentProgressCard` for experiment execution (run completion); distinct concerns, reusable components |
 | Cascade delete with confirmation | DELETE endpoint scrubs all collections (experiments, run_status, chunks, results); `ConfirmDeleteModal` shows experiment details + deletion statistics; prevents deletion of running experiments |
+| Boot orphan reconciliation | `BackgroundTasks` sweeps die on process exit; startup marks in-flight runs `interrupted` and sets terminal experiment status — separate from Slice 10 retry |
+| Vector DB stats API + dashboard | `GET /experiments/vector-db-stats` and `/{id}/db-stats`; estimated storage from chunk counts + model dimensions; optional Atlas quota bar |
 
 ---
 
@@ -226,7 +236,7 @@ See `docs/adr/` for Architecture Decision Records:
 
 | Enhancement | Notes |
 |---|---|
-| Run recovery (failed / interrupted runs) | Planned as [Slice 10 — Run Recovery](../slices/SLICE-10-RUN-RECOVERY.md): `recover` CLI + API; per-`run_id` artifact scrub; **`RECOVER_ON_BOOT`** = **INTERRUPTED** only |
+| Run recovery (retry failed / interrupted runs) | **Reconciliation on boot** ✅ — status fix only. **Retry** planned as [Slice 10](../slices/SLICE-10-RUN-RECOVERY.md): `recover` CLI + API; **`RECOVER_ON_BOOT`** = retry **INTERRUPTED** only |
 | SSE live updates | Replace 2-second polling with Server-Sent Events |
 | Parallel sweep (`execution.parallelism` > 1) | Planned as [Slice 16 — Parallel Sweep Runs](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md); bounded in-process pool first; **Celery + Redis** when multi-process fairness or isolation is needed |
 | Dashboard-triggered runs | Submit experiments from the React UI, not just CLI |
