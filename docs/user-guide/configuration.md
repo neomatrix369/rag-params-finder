@@ -16,7 +16,7 @@ Place config files in `configs/`. Ready-to-run configs:
 |---|---|---|---|---|---|---|
 | `example-mongodb-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid | 90 | No |
 | `example-mongodb-voyage.yaml` | MongoDB Atlas | Voyage AI (all models) | all 5 methods | dense · sparse · hybrid | 90 | Yes |
-| `example-kimchi.yaml` | MongoDB Atlas | Kimchi-hosted embeddings | all 5 methods | dense · sparse · hybrid | varies | Yes |
+| `example-kimchi.yaml` | MongoDB Atlas | Kimchi-hosted embeddings | recursive | dense | 24 | Yes |
 
 Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retrieval method runs as an independent experiment.
 
@@ -233,14 +233,22 @@ To **re-run only failed combinations inside an existing experiment** *(same `exp
 
 ## 🍜 Kimchi Config
 
-`configs/example-kimchi.yaml` sweeps the Kimchi-hosted embedding catalog with prefixed model IDs such as `mistral/codestral-embed`, `openai/text-embedding-3-large`, and `hosted_vllm/bge-m3`.
+`configs/example-kimchi.yaml` sweeps four OpenAI-family Kimchi models with recursive chunking and dense retrieval. Additional prefixed model IDs are registered in `model_registry.py` (many parked in the YAML until provider availability is confirmed).
 
 ```yaml
 embedding:
   provider: kimchi
   models:
-    - mistral/codestral-embed
     - openai/text-embedding-3-large
+    - openai/text-embedding-ada-002
+    - openai/text-embedding-3-small
+    - openai/text-embedding-ada-002-v2
+
+chunking:
+  methods: [recursive]
+  params:
+    chunk_sizes: [256, 512, 1024]
+    overlaps: [50, 100]
 
 retrieval:
   methods: [dense]

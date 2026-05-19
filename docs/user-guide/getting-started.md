@@ -16,8 +16,8 @@ Everything you need to run your first RAG parameter sweep experiment.
 |---|---|---|
 | Python | 3.12+ | Install via [python.org](https://www.python.org/downloads/) or `pyenv install 3.12.2` |
 | Node.js | 22+ | Install via [nodejs.org](https://nodejs.org/) or `nvm install 22` |
-| MongoDB Atlas | Free tier (M0) | **Required** — see [Cloud Account Setup](cloud-setup.md#mongodb-atlas-required) |
-| Voyage AI | Optional | Only for Voyage models — see [Cloud Account Setup](cloud-setup.md#voyage-ai-optional) |
+| MongoDB Atlas | Free tier (M0) | **Required** — see [Cloud Account Setup](cloud-setup.md#mongodb-atlas-required-for-all-sweeps) |
+| Voyage AI | Optional | Only for Voyage models — see [Cloud Account Setup](cloud-setup.md#voyage-ai-required-for-voyage-sweep) |
 | Kimchi API key | Optional | Only for Kimchi-hosted embedding sweeps |
 
 **New to Atlas or Voyage?** Start with **[Cloud Account Setup](cloud-setup.md)** — account creation, connection string, search indexes, API key, and Tier 1 billing (~15 min).
@@ -73,7 +73,7 @@ Full variable reference: [Troubleshooting → Environment Variables](troubleshoo
 
 ### 2. Search indexes (required before sweep)
 
-Both example configs use dense + sparse + hybrid — create **`vector_index_384`** (local) or **`vector_index_1024`** (Voyage) **and** **`text_search_index`** on the `chunks` collection.
+Example configs use dense + sparse + hybrid for local/Voyage sweeps — create **`vector_index_384`** (local) or **`vector_index_1024`** (Voyage) **and** **`text_search_index`** on the `chunks` collection. The Kimchi example uses dense only (vector index at runtime dimension; see below).
 
 **M0 free tier:** do this manually in Atlas UI before running a sweep — see [Cloud Account Setup → step 6](cloud-setup.md#6-create-search-indexes-m0--required-before-sweep).
 

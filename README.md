@@ -61,7 +61,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 
 ## 🚀 Quick Start
 
-**Prerequisites:** Python 3.12+, Node.js 22+, [MongoDB Atlas account](docs/user-guide/cloud-setup.md#mongodb-atlas-required) (free tier). [Voyage AI](docs/user-guide/cloud-setup.md#voyage-ai-optional) optional for local-only sweeps.
+**Prerequisites:** Python 3.12+, Node.js 22+, [MongoDB Atlas account](docs/user-guide/cloud-setup.md#mongodb-atlas-required-for-all-sweeps) (free tier). [Voyage AI](docs/user-guide/cloud-setup.md#voyage-ai-required-for-voyage-sweep) or Kimchi credentials optional for local-only sweeps.
 
 ```bash
 # Clone and install
