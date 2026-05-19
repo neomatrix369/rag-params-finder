@@ -173,17 +173,40 @@ Then check Atlas UI → **Metrics → Operations** for write failures.
 
 ---
 
-## 🧹 MongoDB manual cleanup
+## 🗑️ Deleting Experiments
 
-There is no cascade delete — if you need to delete an experiment, clean all four collections:
+**Use the CLI or dashboard** for safe deletion with cascade cleanup:
 
+**CLI**:
+```bash
+# Delete with confirmation prompt
+rag-params-finder delete <experiment-id>
+
+# Delete without confirmation (use with caution)
+rag-params-finder delete <experiment-id> --force
+```
+
+**Dashboard**:
+- **Experiments list**: Click the trash icon in the Actions column
+- **Experiment detail**: Click the trash icon in the top-right header
+
+Both methods:
+- Show a confirmation modal with experiment details
+- Prevent deletion of running experiments (cancel them first)
+- Cascade delete across all collections (experiments, run_status, chunks, results)
+- Display deletion statistics after completion
+
+**Manual cleanup** (if needed):
 ```javascript
+// Only use if CLI/dashboard unavailable — otherwise use the delete command
 const exp_id = "your-experiment-id"
 db.experiments.deleteOne({experiment_id: exp_id})
 db.run_status.deleteMany({experiment_id: exp_id})
 db.chunks.deleteMany({experiment_id: exp_id})
 db.results.deleteMany({experiment_id: exp_id})
 ```
+
+⚠️ **Warning:** Manual deletion bypasses validation (can delete running experiments) and provides no statistics.
 
 ---
 
