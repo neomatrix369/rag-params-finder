@@ -10,7 +10,7 @@ Internal notes for local setup, debugging, and maintenance. Not required for bas
 
 ## 🗄️ MongoDB Atlas — Full Setup Details
 
-**User-facing guide:** [Cloud Account Setup](../user-guide/cloud-setup.md#mongodb-atlas-required) — account, cluster, connection string, and search indexes with official MongoDB doc links.
+**User-facing guide:** [Cloud Account Setup](../user-guide/cloud-setup.md#mongodb-atlas-required-for-all-sweeps) — account, cluster, connection string, and search indexes with official MongoDB doc links.
 
 The sections below are contributor/debugging notes. Prefer the cloud-setup guide for onboarding.
 
@@ -64,7 +64,7 @@ The `text_search_index`, `vector_index_384`, and `vector_index_1024` all coexist
 
 ## 🤖 Voyage AI Setup
 
-**User-facing guide:** [Cloud Account Setup → Voyage AI](../user-guide/cloud-setup.md#voyage-ai-optional) — account, API key, $5 credit for Tier 1 rate limits.
+**User-facing guide:** [Cloud Account Setup → Voyage AI](../user-guide/cloud-setup.md#voyage-ai-required-for-voyage-sweep) — account, API key, $5 credit for Tier 1 rate limits.
 
 **`voyage-context-3`**: uses the contextualized embedding API (not standard `embed()`). The server splits long documents into segments that fit the 32K-token window. See [configuration.md](../user-guide/configuration.md#voyage-context-3-contextualized-api) and [troubleshooting.md](../user-guide/troubleshooting.md#-voyage-context-3-token-limit-exceeded).
 
