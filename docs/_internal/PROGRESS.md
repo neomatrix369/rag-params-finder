@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-19 (Pause/resume sweeps + Voyage model catalog expansion + voyage-context-3 segment splitting)
-**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`)
+**Last Updated**: 2026-05-20 (Kimchi provider hardening + dashboard API responsiveness)
+**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Kimchi embedding provider ✅ COMPLETE | Provider regression pytest ✅ COMPLETE | Dashboard API responsiveness ✅ COMPLETE | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`) · Slice 17 📋 PLANNED (test suite expansion)
 
 ---
 
@@ -20,7 +20,11 @@
 | 9 — Experiment deletion | ✅ COMPLETE | ~1 h | CLI delete command + dashboard confirmation modal, cascade cleanup |
 | — — Vector DB stats + collapsible rows + boot reconciliation | ✅ COMPLETE | ~1.5 h | Cluster/experiment storage stats; collapsible panels; orphan `running` → `partial` on server boot |
 | — — Pause/resume + Voyage catalog expansion | ✅ COMPLETE | ~2 h | Cooperative pause/resume; 12 Voyage embedding models; `voyage-context-3` contextualized API + segment splitting |
+| — — Kimchi embedding provider | ✅ COMPLETE | ~2 h | CAST OpenAI-compatible embeddings; runtime dimensions; 4-model example sweep; see [`SLICE-16-KIMCHI-PROVIDER.md`](../slices/SLICE-16-KIMCHI-PROVIDER.md) |
+| — — Provider regression pytest | ✅ COMPLETE | ~1 h | 39 tests: embedder dispatch, retriever index, registry, config, db-stats, Kimchi adapter — see [`SLICE-17-TEST-SUITE-EXPANSION.md`](../slices/SLICE-17-TEST-SUITE-EXPANSION.md) § Already delivered |
+| — — Dashboard API responsiveness | ✅ COMPLETE | ~1 h | Dedicated sweep/heavy-read thread pools; batched vector-db-stats; decoupled frontend polling + fetch timeouts |
 | 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) |
+| 17 — Test suite expansion | 📋 PLANNED | ~4–8 h | Live smoke, mock-Mongo pipeline, Kimchi batching/cache, orchestrator/pause/rerank/sparse — see [`SLICE-17-TEST-SUITE-EXPANSION.md`](../slices/SLICE-17-TEST-SUITE-EXPANSION.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 
@@ -452,6 +456,85 @@ Surface MongoDB/Atlas storage footprint in the dashboard, improve experiments li
 
 ---
 
+## Pause / Resume + Voyage Catalog Expansion ✅
+
+**Status**: ✅ COMPLETE | **Started**: 2026-05-19 | **Completed**: 2026-05-19 | **Target**: ~2 h
+
+### Goal
+Cooperatively pause long sweeps without losing completed runs; expand the Voyage embedding catalog; support `voyage-context-3` contextualized embeddings.
+
+### What Changed
+- **EDIT**: `server/core/orchestrator.py` — `_SweepControl` threading events; `resume_sweep()` skips completed parameter signatures
+- **EDIT**: `server/api/experiments.py` — `POST /experiments/{id}/pause`, `POST /experiments/{id}/resume`
+- **EDIT**: `server/core/embedder.py` — `voyage-context-3` → `contextualized_embed()` with tiktoken segment splitting (~30K tokens)
+- **EDIT**: `server/core/model_registry.py` — voyage-4/3/domain/context models; `contextualized` flag
+- **EDIT**: `cli/main.py`, `cli/api_client.py` — `pause`, `resume` commands
+- **EDIT**: `frontend/src/components/ExperimentControlButtons.tsx` — pause/resume on detail screen
+- **EDIT**: user docs — `cli-reference.md`, `getting-started.md`, `dashboard-guide.md`, `configuration.md`
+
+### Acceptance Criteria
+- [x] `rag-params-finder pause|resume <experiment-id>` works; status `paused` is non-terminal
+- [x] Resume skips parameter combos that already reached `COMPLETE`
+- [x] `voyage-context-3` long documents split into contextualized segments
+- [x] Expanded Voyage models validate at config load
+
+---
+
+## Kimchi Embedding Provider ✅
+
+**Status**: ✅ COMPLETE | **Started**: 2026-05-13 | **Completed**: 2026-05-20 | **Target**: ~2 h
+
+### Goal
+Add Kimchi (CAST.ai OpenAI-compatible) as a third embedding provider with runtime-detected dimensions and a focused example sweep.
+
+### What Changed
+- **NEW**: `server/core/kimchi_embedder.py` — OpenAI-compatible `/v1/embeddings`; CAST payload shape; full `provider/model` IDs passed through
+- **EDIT**: `server/core/model_registry.py` — Kimchi catalog with `dimensions: None` + `contextualized` flags
+- **EDIT**: `server/core/embedder.py`, `server/core/retriever.py`, `server/db/indexes.py` — routing + dynamic `vector_index_<dimension>`
+- **NEW**: `configs/example-kimchi.yaml` — 4 active OpenAI-family models; additional IDs parked until account verification
+- **NEW**: `tests/test_kimchi_provider.py` — validation, payload, runtime index selection, db-stats dimension sampling
+- **EDIT**: `server/api/experiments_shared.py` — sample stored chunk embeddings when registry `dimensions` is `None` (Kimchi vector DB stats)
+- **EDIT**: user + contributor docs — Kimchi setup in `getting-started.md`, `cloud-setup.md`, `configuration.md`, `troubleshooting.md`; slice spec [`SLICE-16-KIMCHI-PROVIDER.md`](../slices/SLICE-16-KIMCHI-PROVIDER.md)
+
+### Key Design Decisions
+| Decision | Why |
+|---|---|
+| Prefixed model IDs (`openai/text-embedding-3-large`) | Avoid collisions across upstream families behind one gateway |
+| Runtime dimensions | Catalog spans multiple embedding sizes; Atlas index must match actual vectors |
+| Embeddings-only (`rerank_model: null`) | No invented Kimchi rerank semantics |
+| Park unverified models in YAML | Registry lists many IDs; example sweep only runs models confirmed on the CAST account |
+| Sample chunk embedding for db-stats | Registry has no fixed dimension; storage estimates need one stored vector per model |
+
+### Acceptance Criteria
+- [x] `embedding.provider: kimchi` validates; secrets in `.env` only
+- [x] `example-kimchi.yaml` runs 24 combos (4 models × 6 chunk param sets × dense)
+- [x] Vector DB stats work for Kimchi experiments (no crash on `dimensions: None`)
+- [x] `uv run pytest` — Kimchi-focused tests pass
+
+---
+
+## Dashboard API Responsiveness ✅
+
+**Status**: ✅ COMPLETE | **Started**: 2026-05-19 | **Completed**: 2026-05-19 | **Target**: ~1 h
+
+### Goal
+Keep `GET /experiments` and the dashboard experiment list responsive while sweeps and expensive Mongo aggregations run.
+
+### What Changed
+- **NEW**: `server/core/executors.py` — `SWEEP_EXECUTOR` + `HEAVY_READ_EXECUTOR` thread pools
+- **EDIT**: `server/api/experiments.py` — `schedule_sweep()` / `resume` on sweep pool; db-stats on heavy-read pool
+- **EDIT**: `server/api/experiments_shared.py` — batched aggregations for vector-db-stats (3 pipeline queries vs per-experiment N+1)
+- **EDIT**: `frontend/src/constants.ts` — `API_FETCH_TIMEOUT_MS` (30s), `VECTOR_DB_STATS_FETCH_TIMEOUT_MS` (90s), `VECTOR_DB_STATS_POLL_MS` (60s)
+- **EDIT**: `frontend/src/services/fetchWithProgress.ts`, `ExperimentsScreen.tsx`, `VectorDbStatsPanel.tsx` — decoupled list vs stats loading
+
+### Acceptance Criteria
+- [x] Experiment list loads within a few seconds during an active sweep
+- [x] Vector DB stats may lag but do not block the list
+- [x] Hung polls abort instead of leaving the UI stuck indefinitely
+- [x] Troubleshooting documents starved-API and timeout behavior
+
+---
+
 ## Slice 6: Additional Chunkers + Retrieval Methods ✅
 
 **Status**: ✅ COMPLETE | **Started**: 2026-05-17 | **Completed**: 2026-05-17 | **Target**: ~45 min
@@ -530,6 +613,15 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-19 | — | Pause/resume cooperative sweep control | `_SweepControl` threading events; `resume_sweep()` skips completed param signatures; status `paused` non-terminal |
 | 2026-05-19 | — | voyage-context-3 segment splitting | Contextualized API 32K window; tiktoken cl100k_base sizing; standard Voyage models unchanged (`embed()` path) |
 | 2026-05-19 | — | Expanded Voyage model registry | voyage-4 series, domain models, voyage-context-3, voyage-3 legacy; `contextualized` flag drives embedder dispatch |
+| 2026-05-13 | — | Kimchi model IDs are prefixed by upstream family | Avoid collisions across models with similar names |
+| 2026-05-13 | — | Kimchi dimensions are runtime-detected | Hosted catalog spans multiple upstream embedding families |
+| 2026-05-13 | — | Kimchi is embeddings-only | Avoid unsupported reranker semantics; set `rerank_model: null` |
+| 2026-05-13 | — | Dynamic indexes use `vector_index_<dimension>` | Atlas indexes require exact embedding dimensionality |
+| 2026-05-19 | — | Dedicated sweep + heavy-read thread pools | Default executor starved `GET /experiments` during long sweeps and db-stats aggregations |
+| 2026-05-19 | — | Batched vector-db-stats aggregations | Replaced per-experiment Mongo round-trips with three dashboard-wide pipelines |
+| 2026-05-20 | — | Kimchi db-stats samples stored embeddings | Registry `dimensions: None` cannot estimate storage until chunks exist |
+| 2026-05-20 | — | Kimchi passes full LiteLLM model ID to CAST | Stripping the provider prefix broke routing; payload matches CAST template |
+| 2026-05-20 | — | Parked Kimchi models in example YAML | Example sweep runs only account-verified models; registry retains full catalog |
 
 ---
 
@@ -557,6 +649,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 14 — Docker Compose | One-command local setup | Won't (now) | ~30 min |
 | 15 — CI/CD | GitHub Actions: ruff, mypy, pytest, npm lint/build | Should | ~20 min |
 | 16 — Parallel sweep (`parallelism` > 1) | Bounded concurrent `_run_single` (+ optional Celery upgrade path); Atlas/Voyage-rate-limit aware | Should | ~2–4 h |
+| 17 — Test suite expansion | Spec: [`SLICE-17-TEST-SUITE-EXPANSION.md`](../slices/SLICE-17-TEST-SUITE-EXPANSION.md) — mock-Mongo pipeline, live Kimchi smoke (env-gated), Kimchi batching, `ensure_vector_index` cache, orchestrator/pause/rerank/sparse tests | Should | ~4–8 h |
 
 ---
 
@@ -567,7 +660,7 @@ Use this when resuming a session mid-slice:
 ```
 [ ] Read docs/_internal/PROGRESS.md — note current slice and last known state
 [ ] Run quality gates to confirm no regressions:
-      backend: uv run ruff check . && uv run mypy server/ cli/ && uv run pytest
+      backend: uv run ruff check . && uv run mypy server/ cli/ && uv run pytest --tb=short -q
       frontend: npm run typecheck && npm run build
 [ ] Check git status — any uncommitted changes?
 [ ] Read the current slice spec in docs/slices/SLICE-XX-*.md

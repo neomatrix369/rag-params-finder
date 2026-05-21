@@ -1,7 +1,7 @@
 # Documentation Gap Tracker
 
 **Created**: 2026-05-05
-**Last Updated**: 2026-05-05 (README rewritten for simplicity; ARCHITECTURE.md updated for local models)
+**Last Updated**: 2026-05-20 (Kimchi provider, dashboard responsiveness, PROGRESS slice sections)
 **Reference**: Gap analysis vs [pre-rag-explorer-dashboard](https://github.com/neomatrix369/pre-rag-explorer-dashboard)
 
 Each item below is a concrete, actionable doc gap. Check the box when done and record the date.
@@ -99,7 +99,7 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 - [x] Add `## Quality Gates Baseline` section to `CLAUDE.md` with real numbers:
   - [x] `ruff check .` → 0 errors (after `uv pip install -e ".[dev]"`)
   - [x] `mypy server/ cli/` → 0 errors
-  - [x] `pytest` → 0 tests collected (no test suite yet)
+  - [x] `pytest` → Kimchi provider tests in `tests/test_kimchi_provider.py` (update baseline when more suites land)
   - [x] `npm run typecheck` → 0 errors ✓ (fixed `tsconfig.json` to include `vite/client.d.ts`)
   - [x] `npm run build` → ✓ built in ~1.8 s, 34 modules
   - [x] `npm audit --audit-level=high` → 0 vulnerabilities

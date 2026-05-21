@@ -16,8 +16,9 @@ Everything you need to run your first RAG parameter sweep experiment.
 |---|---|---|
 | Python | 3.12+ | Install via [python.org](https://www.python.org/downloads/) or `pyenv install 3.12.2` |
 | Node.js | 22+ | Install via [nodejs.org](https://nodejs.org/) or `nvm install 22` |
-| MongoDB Atlas | Free tier (M0) | **Required** — see [Cloud Account Setup](cloud-setup.md#mongodb-atlas-required) |
-| Voyage AI | Optional | Only for Voyage models — see [Cloud Account Setup](cloud-setup.md#voyage-ai-optional) |
+| MongoDB Atlas | Free tier (M0) | **Required** — see [Cloud Account Setup](cloud-setup.md#mongodb-atlas-required-for-all-sweeps) |
+| Voyage AI | Optional | Only for Voyage models — see [Cloud Account Setup](cloud-setup.md#voyage-ai-required-for-voyage-sweep) |
+| Kimchi API key | Optional | Only for Kimchi-hosted embedding sweeps |
 
 **New to Atlas or Voyage?** Start with **[Cloud Account Setup](cloud-setup.md)** — account creation, connection string, search indexes, API key, and Tier 1 billing (~15 min).
 
@@ -59,6 +60,12 @@ VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 VOYAGE_RPM_LIMIT=2000
 VOYAGE_TPM_LIMIT=16000000
 
+# Optional — only needed for Kimchi-hosted embedding models
+KIMCHI_BASE_URL=https://llm.cast.ai/openai
+KIMCHI_API_KEY=kimchi-xxxxxxxxxxxxxxxxxxxxxxxx
+KIMCHI_RPM_LIMIT=60
+KIMCHI_TPM_LIMIT=0
+
 SERVER_URL=http://localhost:8001
 ```
 
@@ -66,11 +73,18 @@ Full variable reference: [Troubleshooting → Environment Variables](troubleshoo
 
 ### 2. Search indexes (required before sweep)
 
-Both example configs use dense + sparse + hybrid — create **`vector_index_384`** (local) or **`vector_index_1024`** (Voyage) **and** **`text_search_index`** on the `chunks` collection.
+Example configs use dense + sparse + hybrid for local/Voyage sweeps — create **`vector_index_384`** (local) or **`vector_index_1024`** (Voyage) **and** **`text_search_index`** on the `chunks` collection. The Kimchi example uses dense only (vector index at runtime dimension; see below).
 
 **M0 free tier:** do this manually in Atlas UI before running a sweep — see [Cloud Account Setup → step 6](cloud-setup.md#6-create-search-indexes-m0--required-before-sweep).
 
 **M10+ paid tier:** server creates indexes on startup — check uvicorn logs.
+
+For **Kimchi models**, dimensions are detected at runtime. The server will try to create
+`vector_index_<dimension>` automatically when the first query embedding is generated. If
+your Atlas tier does not support programmatic search index creation, create the same JSON
+shape manually with the dimension from the server log.
+
+All vector indexes can coexist on the same collection. Wait ~1–2 minutes for the index to build before running queries.
 
 ---
 
@@ -119,6 +133,9 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 # Voyage sweep — checklist items 1–9
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
+
+# Kimchi-hosted embeddings — requires KIMCHI_BASE_URL and KIMCHI_API_KEY in .env
+rag-params-finder run --config configs/example-kimchi.yaml
 
 # Submit and detach (check dashboard for status instead)
 rag-params-finder run --config configs/example-mongodb-local.yaml --detach

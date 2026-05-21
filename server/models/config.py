@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, model_validator
 from server.core.model_registry import EMBEDDING_MODELS, RERANKER_MODELS
 from server.models.enums import ChunkingMethod, RetrievalMethod
 
-Provider = Literal["local", "voyage"]
+Provider = Literal["local", "voyage", "kimchi"]
 DatabaseProvider = Literal["mongodb"]  # Future: "pinecone", "weaviate", "qdrant"
 
 
@@ -51,6 +51,8 @@ class RetrievalConfig(BaseModel):
     def validate_rerank_model_matches_provider(self) -> "RetrievalConfig":
         if self.rerank_model is None:
             return self
+        if self.rerank_provider == "kimchi":
+            raise ValueError("Kimchi is supported for embeddings only; set rerank_model to null")
         if self.rerank_model not in RERANKER_MODELS:
             known = ", ".join(RERANKER_MODELS)
             raise ValueError(f"Unknown reranker model '{self.rerank_model}'. Known: {known}")

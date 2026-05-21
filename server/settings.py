@@ -56,6 +56,12 @@ class Settings(BaseSettings):
     # Leave blank to derive from MONGODB_URI host (e.g. thesandboxcluster.5uaqybx.mongodb.net).
     atlas_cluster_name: str = ""
 
+    # Kimchi OpenAI-compatible embeddings endpoint.
+    kimchi_base_url: str = ""
+    kimchi_api_key: str = ""
+    kimchi_rpm_limit: int = 60
+    kimchi_tpm_limit: int = 0
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: object) -> list[str]:
@@ -76,6 +82,8 @@ logger.info(f"Settings loaded: server_url={settings.server_url}")
 logger.debug(
     f"Settings detail: mongodb_uri={'***' if settings.mongodb_uri else '(not set)'}, "
     f"voyage_api_key={'***' if settings.voyage_api_key else '(not set)'}, "
+    f"kimchi_base_url={settings.kimchi_base_url or '(not set)'}, "
+    f"kimchi_api_key={'***' if settings.kimchi_api_key else '(not set)'}, "
     f"recover_on_boot={settings.recover_on_boot}, "
     f"cors_origins={settings.cors_origins}, "
     f"cors_allow_localhost_origin_regex={settings.cors_allow_localhost_origin_regex}"

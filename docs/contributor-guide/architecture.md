@@ -69,6 +69,7 @@ FastAPI Server
 | FastAPI | REST API server |
 | Python 3.12 | Language runtime |
 | Voyage AI SDK | Embeddings + reranking (hosted) |
+| Kimchi (CAST.ai) | OpenAI-compatible hosted embeddings via `kimchi_embedder.py` |
 | sentence-transformers | Local embeddings + reranking (offline) |
 | MongoDB Atlas / PyMongo | Vector storage + search |
 | LangChain text splitters | Recursive, fixed, token chunking |
@@ -103,12 +104,14 @@ rag-params-finder/
 │   │   └── runs.py          # GET /runs/{id}/status
 │   ├── core/
 │   │   ├── orchestrator.py  # run_sweep(), resume_sweep(), run_single() pipeline
+│   │   ├── executors.py     # SWEEP_EXECUTOR + HEAVY_READ_EXECUTOR (isolate long work from API pool)
 │   │   ├── startup_reconciliation.py  # fix stale running experiments on boot
 │   │   ├── atlas_storage.py # Atlas Admin API quota + dbStats footprint
 │   │   ├── pdf_parser.py    # pypdf text extraction
 │   │   ├── query_loader.py  # persona JSON → Query dataclass list
 │   │   ├── model_registry.py  # embedding + reranking model catalog
 │   │   ├── embedder.py      # Voyage embed(); voyage-context-3 → contextualized_embed + segment split
+│   │   ├── kimchi_embedder.py  # CAST OpenAI-compatible embeddings (runtime-detected dim)
 │   │   ├── local_embedder.py  # sentence-transformers embedding (lazy-load, cached)
 │   │   ├── reranker.py      # Voyage reranking client
 │   │   ├── local_reranker.py  # CrossEncoder reranking (lazy-load, cached)
@@ -183,6 +186,7 @@ Two independent provider settings in each experiment config:
 **Embedding provider** (`embedding.provider`):
 - `local` → `server/core/local_embedder.py` → sentence-transformers `all-MiniLM-L6-v2` (384-dim)
 - `voyage` → `server/core/embedder.py` → Voyage AI API (1024-dim); `voyage-context-3` uses `contextualized_embed()` with per-document segment splitting (32K-token window)
+- `kimchi` → `server/core/kimchi_embedder.py` → OpenAI-compatible Kimchi embeddings (runtime-detected dim)
 
 **Reranking provider** (`retrieval.rerank_provider`):
 - `local` → `server/core/local_reranker.py` → CrossEncoder `cross-encoder/ms-marco-MiniLM-L-6-v2`
@@ -196,7 +200,7 @@ Provider flows explicitly through `RunParams` → `orchestrator` → embedder/re
 
 | Collection | Purpose | Key Indexes |
 |---|---|---|
-| `chunks` | Text chunks + embeddings | Vector index on `embedding` (384 or 1024-dim cosine) + filter fields |
+| `chunks` | Text chunks + embeddings | Vector index on `embedding` (`vector_index_<dimension>`) + filter fields |
 | `experiments` | Experiment metadata + sweep config | `created_at`, `status` |
 | `run_status` | Per-run phase tracking | `experiment_id`, `phase` |
 | `results` | Per-query top-K results | `experiment_id`, `query_id` |
@@ -219,7 +223,7 @@ See `docs/adr/` for Architecture Decision Records:
 |---|---|
 | FastAPI `BackgroundTasks` (not Celery) | No queue infrastructure needed while sweep runs execute sequentially *(see [`SLICE-16`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) for honoring `parallelism > 1` and optional Celery path)* |
 | Hand-mirrored TypeScript types | No codegen tooling (typeshare/quicktype); 5 types + 3 enums is manageable manually |
-| Separate vector indexes per dimension | Atlas requires exact `numDimensions` — `vector_index_1024` (Voyage) and `vector_index_384` (local) coexist on the same collection |
+| Separate vector indexes per dimension | Atlas requires exact `numDimensions`; local, Voyage, and runtime-detected Kimchi dimensions each use `vector_index_<dimension>` |
 | Lazy-load + cache for local models | First run downloads from HuggingFace; subsequent runs instant — avoids blocking server startup |
 | `numpy<2` pinned | torch compiled against NumPy 1.x ABI; NumPy 2.x causes `_ARRAY_API not found` crashes |
 | Shared `DashboardShell` + `AppPageChrome` components | Unified header, navigation, and page layout across all screens — consistent UX, easier maintenance |
@@ -231,6 +235,10 @@ See `docs/adr/` for Architecture Decision Records:
 | Boot orphan reconciliation | `BackgroundTasks` sweeps die on process exit; startup marks in-flight runs `interrupted` and sets terminal experiment status — separate from Slice 10 retry |
 | Pause / resume sweeps | Cooperative halt via `_SweepControl` threading events; `resume_sweep()` skips completed parameter signatures; status `paused` is non-terminal |
 | Vector DB stats API + dashboard | `GET /experiments/vector-db-stats` and `/{id}/db-stats`; estimated storage from chunk counts + model dimensions; optional Atlas quota bar |
+| Dedicated thread pools (`executors.py`) | Sweeps and heavy Mongo aggregations no longer compete with lightweight `GET /experiments` on the default executor |
+| Batched vector-db-stats queries | Three aggregation pipelines (chunks, results, chunking methods) replace per-experiment N+1 round-trips on the experiments list |
+| Kimchi dimension resolution for stats | When `model_registry` has `dimensions: None`, db-stats samples one stored chunk embedding per model to name indexes and estimate storage |
+| Decoupled dashboard polling | Experiment list polls every 2 s (30 s timeout); vector DB stats every 60 s (90 s timeout) so the list is not blocked by slow aggregations |
 
 ---
 

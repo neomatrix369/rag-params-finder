@@ -425,6 +425,32 @@ def delete(
 
 
 @app.command()
+def test(
+    integration: bool = typer.Option(
+        False,
+        "--integration",
+        help="Include tests marked @pytest.mark.integration (live API keys)",
+    ),
+) -> None:
+    """Run the pytest suite (same gate as CI on pull requests to main)."""
+    try:
+        import pytest
+    except ImportError:
+        console.print('[red]pytest is not installed. Run: uv pip install -e ".[dev]"[/red]')
+        raise typer.Exit(1) from None
+
+    marker = "integration" if integration else "not integration"
+    args = ["-m", marker, "--tb=short", "-q"]
+    logger.info("Running quality gate: pytest %s", " ".join(args))
+    console.print("[cyan]Running pytest (CI quality gate)...[/cyan]")
+    exit_code = pytest.main(args)
+    if exit_code != 0:
+        console.print("[red]Tests failed — fix regressions before merging.[/red]")
+        raise typer.Exit(exit_code)
+    console.print("[green]All tests passed.[/green]")
+
+
+@app.command()
 def version():
     """Print the installed package version."""
     console.print(importlib.metadata.version("rag-params-finder"))

@@ -27,8 +27,9 @@ uvicorn server.main:app --reload --port 8001
 uv run ruff check .
 uv run mypy server/ cli/
 
-# Tests
-uv run pytest --tb=short -q
+# Tests (same suite as CI / PR checks)
+rag-params-finder test
+# or: uv run pytest -m "not integration" --tb=short -q
 ```
 
 ### Frontend (Node.js 22+)
@@ -67,6 +68,8 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/atlas_storage.py` | Atlas Admin API cluster quota + dbStats helpers |
 | `server/core/model_registry.py` | Embedding + reranking model catalog |
 | `server/core/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting |
+| `server/core/kimchi_embedder.py` | CAST OpenAI-compatible Kimchi embeddings (runtime-detected dim) |
+| `server/core/executors.py` | Dedicated thread pools for sweeps and heavy Mongo aggregations |
 | `server/core/local_embedder.py` | sentence-transformers embedding (lazy-load) |
 | `server/core/reranker.py` | Voyage reranking client |
 | `server/core/local_reranker.py` | CrossEncoder reranking (lazy-load) |
@@ -99,9 +102,10 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 ## Provider System
 
 **Two independent provider settings**:
-- `embedding.provider`: "local" or "voyage"
+- `embedding.provider`: "local", "voyage", or "kimchi"
   - Local → `server/core/local_embedder.py` → `all-MiniLM-L6-v2` (384-dim)
   - Voyage → `server/core/embedder.py` → all models in `EMBEDDING_MODELS` with `provider: voyage` (1024-dim; `voyage-context-3` uses `contextualized_embed()` with automatic segment splitting for long documents)
+  - Kimchi → `server/core/kimchi_embedder.py` → OpenAI-compatible hosted embeddings (runtime-detected dim)
 - `retrieval.rerank_provider`: "local" or "voyage"
   - Local → `server/core/local_reranker.py` → `cross-encoder/ms-marco-MiniLM-L-6-v2`
   - Voyage → `server/core/reranker.py` → `rerank-2.5-lite|rerank-2.5` (+ legacy `rerank-2*`, `rerank-1*`)
@@ -112,7 +116,7 @@ Provider/model must match — registry in `model_registry.py` validates at confi
 
 | Collection | Purpose | Key Index |
 |---|---|---|
-| `chunks` | Text chunks + embeddings | Vector index on `embedding` (384 or 1024-dim cosine) + filters |
+| `chunks` | Text chunks + embeddings | Vector index on `embedding` (`vector_index_<dimension>` cosine) + filters |
 | `experiments` | Experiment metadata | `created_at`, `status` |
 | `run_status` | Per-run phase tracking | `experiment_id`, `phase` |
 | `results` | Query results (top-K chunks) | `experiment_id`, `query_id` |
@@ -140,7 +144,7 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 # Backend
 uv run ruff check .
 uv run mypy server/ cli/
-uv run pytest --tb=short -q
+rag-params-finder test
 
 # Frontend
 cd frontend && npm run typecheck && npm run build
@@ -157,10 +161,10 @@ cd frontend && npm run typecheck && npm run build
 
 ## Quality Gates Baseline
 
-**Backend** (2026-05-05):
+**Backend** (2026-05-20):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 0 tests collected (test suite not yet written)
+- `rag-params-finder test` → provider regression suite in `tests/` (CI on every PR to `main`)
 
 **Frontend** (2026-05-05):
 - `npm run typecheck` → 0 errors

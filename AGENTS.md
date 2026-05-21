@@ -13,8 +13,8 @@ Agent session entry point for `rag-params-finder`.
 
 - Run quality gates before and after every change (see `CLAUDE.md` → Quality Gates Baseline).
 - Follow the slice execution playbook in `CLAUDE.md` → Slice Execution Playbook.
-- Secrets (`VOYAGE_API_KEY`, `MONGODB_URI`) stay server-side — never in CLI configs or committed files.
-- Provider/model must match: `provider: local` + Voyage model → Pydantic validation error.
+- Secrets (`VOYAGE_API_KEY`, `KIMCHI_API_KEY`, `MONGODB_URI`) stay server-side — never in CLI configs or committed files.
+- Provider/model must match: `provider: local` + Voyage/Kimchi model → Pydantic validation error.
 
 ## Quick commands
 
@@ -22,9 +22,10 @@ Agent session entry point for `rag-params-finder`.
 # Backend
 uvicorn server.main:app --reload --port 8001   # start server
 rag-params-finder run --config configs/example-mongodb-local.yaml  # submit experiment
+rag-params-finder run --config configs/example-kimchi.yaml         # Kimchi-hosted sweep
 rag-params-finder pause <experiment-id>   # pause after current phase
 rag-params-finder resume <experiment-id>  # continue paused sweep
-uv pip install -e ".[dev]" && uv run ruff check . && uv run mypy server/ cli/ && uv run pytest
+uv pip install -e ".[dev]" && uv run ruff check . && uv run mypy server/ cli/ && rag-params-finder test
 
 # Frontend
 cd frontend && npm run dev                     # start dashboard → http://localhost:5173

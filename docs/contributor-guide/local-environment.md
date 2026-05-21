@@ -10,7 +10,7 @@ Internal notes for local setup, debugging, and maintenance. Not required for bas
 
 ## 🗄️ MongoDB Atlas — Full Setup Details
 
-**User-facing guide:** [Cloud Account Setup](../user-guide/cloud-setup.md#mongodb-atlas-required) — account, cluster, connection string, and search indexes with official MongoDB doc links.
+**User-facing guide:** [Cloud Account Setup](../user-guide/cloud-setup.md#mongodb-atlas-required-for-all-sweeps) — account, cluster, connection string, and search indexes with official MongoDB doc links.
 
 The sections below are contributor/debugging notes. Prefer the cloud-setup guide for onboarding.
 
@@ -52,9 +52,21 @@ The `text_search_index`, `vector_index_384`, and `vector_index_1024` all coexist
 
 ## 🤖 Voyage AI Setup
 
-**User-facing guide:** [Cloud Account Setup → Voyage AI](../user-guide/cloud-setup.md#voyage-ai-optional) — account, API key, $5 credit for Tier 1 rate limits.
+**User-facing guide:** [Cloud Account Setup → Voyage AI](../user-guide/cloud-setup.md#voyage-ai-required-for-voyage-sweep) — account, API key, $5 credit for Tier 1 rate limits.
 
 **`voyage-context-3`**: uses the contextualized embedding API (not standard `embed()`). The server splits long documents into segments that fit the 32K-token window. See [configuration.md](../user-guide/configuration.md#voyage-context-3-contextualized-api) and [troubleshooting.md](../user-guide/troubleshooting.md#-voyage-context-3-token-limit-exceeded).
+
+---
+
+## 🍜 Kimchi Setup
+
+Kimchi is optional and only needed for `embedding.provider: kimchi`.
+
+1. Get the OpenAI-compatible Kimchi embeddings base URL.
+2. Create an API key for the service.
+3. Copy both into `.env` as `KIMCHI_BASE_URL` and `KIMCHI_API_KEY`.
+
+Kimchi model dimensions are detected at runtime. If Atlas cannot create search indexes programmatically on your cluster tier, create `vector_index_<dimension>` manually after the server logs the detected dimension.
 
 ---
 
@@ -67,11 +79,17 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?
 # Voyage AI (OPTIONAL — only if using Voyage models)
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
+# Kimchi (OPTIONAL — only if using Kimchi models)
+KIMCHI_BASE_URL=https://llm.cast.ai/openai
+KIMCHI_API_KEY=kimchi-xxxxxxxxxxxxxxxxxxxxxxxx
+
 # Server URL (used by CLI, default is localhost:8001)
 SERVER_URL=http://localhost:8001
 
 # Rate limits (Voyage only — set based on your tier; see .env.example)
 # Tier 1 example: VOYAGE_RPM_LIMIT=2000  VOYAGE_TPM_LIMIT=16000000  # voyage-4-lite / voyage-3.5-lite
+KIMCHI_RPM_LIMIT=60
+KIMCHI_TPM_LIMIT=0
 
 # Optional — Atlas Admin API for dashboard storage quota bar
 # ATLAS_PUBLIC_KEY=

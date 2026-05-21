@@ -9,7 +9,7 @@
 
 ## Before you run a sweep
 
-Both example configs use **dense + sparse + hybrid** retrieval — you need **two** Atlas search indexes (vector + text), not just one.
+Both example configs use **dense + sparse + hybrid** retrieval — you need **two** Atlas search indexes (vector + text), not just one. The Kimchi example uses **dense only** — vector index only (runtime dimension).
 
 ### Local sweep — `example-mongodb-local.yaml`
 
@@ -43,6 +43,23 @@ Complete the **local sweep checklist** above, then add:
 | 9 | `vector_index_1024` instead of `vector_index_384` | [MongoDB → step 6](#6-create-search-indexes-m0--required-before-sweep) |
 
 Steps 1–5 use `vector_index_384`; step 9 swaps in `vector_index_1024` for Voyage embeddings. You need **both** vector indexes if you run local and Voyage sweeps on the same cluster.
+
+### Kimchi sweep — `example-kimchi.yaml`
+
+```bash
+rag-params-finder run --config configs/example-kimchi.yaml
+```
+
+Complete the **local sweep checklist** (steps 1–5), then add:
+
+| # | Step | Where |
+|---|---|---|
+| 6 | `KIMCHI_BASE_URL` + `KIMCHI_API_KEY` in `.env` | [Getting Started → Configure](../user-guide/getting-started.md#1-set-environment-variables) |
+| 7 | Vector index for runtime embedding dimension | See below — `vector_index_<dimension>` |
+
+Kimchi models have **runtime-detected dimensions** (e.g. 1536 for `openai/text-embedding-3-large`). The server routes to `vector_index_<dimension>` and tries to create the index programmatically on **M10+** clusters. On **M0**, watch server logs during the first embed/query and create the matching vector index manually (same JSON shape as step 6b, with the logged `numDimensions`).
+
+The current `example-kimchi.yaml` uses **dense retrieval only** — you do **not** need `text_search_index` unless you add sparse/hybrid to the config.
 
 ---
 
@@ -92,7 +109,7 @@ MONGODB_URI=mongodb+srv://...
 
 ### 6. Create search indexes (M0 — required before sweep)
 
-On **M0/M2/M5**, indexes must be created in the Atlas UI **before** the sweep reaches the QUERYING phase. Both example configs need **vector + text** indexes.
+On **M0/M2/M5**, indexes must be created in the Atlas UI **before** the sweep reaches the QUERYING phase. Local and Voyage configs need **vector + text** indexes; Kimchi dense-only sweeps need a vector index at the runtime dimension.
 
 **6a. Create the `chunks` collection** (if it does not exist):
 
@@ -104,7 +121,8 @@ Atlas UI → **Browse Collections** → database `rag_params_finder` → **Creat
 |---|---|---|
 | `example-mongodb-local.yaml` | `vector_index_384` | `384` |
 | `example-mongodb-voyage.yaml` | `vector_index_1024` | `1024` |
-| Both (same cluster) | create **both** | `384` and `1024` |
+| `example-kimchi.yaml` | `vector_index_<dimension>` | runtime (from server log) |
+| Both local + Voyage (same cluster) | create **both** | `384` and `1024` |
 
 **Vector index JSON** (set `numDimensions` and name as above):
 
@@ -193,6 +211,9 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 # Voyage — 90 runs, requires steps above
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
+
+# Kimchi — hosted embeddings, requires KIMCHI_BASE_URL + KIMCHI_API_KEY
+rag-params-finder run --config configs/example-kimchi.yaml
 ```
 
 Dashboard (optional): `cd frontend && npm run dev` → `http://localhost:5173`

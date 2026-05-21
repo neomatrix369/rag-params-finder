@@ -16,7 +16,7 @@
 
 > Find your optimal RAG configuration — **before** you build your RAG application.
 
-**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports Voyage AI (hosted) and local sentence-transformers (no API key needed).
+**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports Voyage AI, Kimchi-hosted embedding models, and local sentence-transformers (no API key needed).
 
 Most RAG projects start with a guess: pick an embedding model, pick a chunking method, a retrieval method (or a re-ranker), realise it's wrong, refactor. That loop is
 slow and expensive.
@@ -40,7 +40,7 @@ shows you exactly which configuration performs best.
 
 ## What it sweeps
 
-- **Embedding models**: 12 Voyage models (voyage-4 series, domain, context, voyage-3 legacy) — see `server/core/model_registry.py`
+- **Embedding models**: local, Voyage AI (12 models — see `server/core/model_registry.py`), and Kimchi-hosted model sweeps
 - **Chunking methods**: Fixed · Recursive · Token · Sentence · Semantic
 - **Retrieval methods**: Dense · Sparse · Hybrid
 - **Questions**: Persona-organised — user provided or generated as part of golden master generation process
@@ -61,7 +61,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 
 ## 🚀 Quick Start
 
-**Prerequisites:** Python 3.12+, Node.js 22+, [MongoDB Atlas account](docs/user-guide/cloud-setup.md#mongodb-atlas-required) (free tier). [Voyage AI](docs/user-guide/cloud-setup.md#voyage-ai-optional) optional for local-only sweeps.
+**Prerequisites:** Python 3.12+, Node.js 22+, [MongoDB Atlas account](docs/user-guide/cloud-setup.md#mongodb-atlas-required-for-all-sweeps) (free tier). [Voyage AI](docs/user-guide/cloud-setup.md#voyage-ai-required-for-voyage-sweep) or Kimchi credentials optional for local-only sweeps.
 
 ```bash
 # Clone and install
@@ -73,6 +73,8 @@ cd frontend && npm install && cd ..
 
 # Configure — see docs/user-guide/cloud-setup.md for minimal Atlas + Voyage checklist
 cp .env.example .env
+# Edit .env: add MONGODB_URI (required);
+# add VOYAGE_API_KEY or KIMCHI_BASE_URL/KIMCHI_API_KEY for hosted models
 
 # Start
 uvicorn server.main:app --reload --port 8001   # Terminal 1
@@ -81,6 +83,7 @@ cd frontend && npm run dev                      # Terminal 2 (optional)
 # Sweeps — complete cloud-setup.md checklist first
 rag-params-finder run --config configs/example-mongodb-local.yaml   # 90 runs, no API key
 rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 90 runs, Voyage + Tier 1
+rag-params-finder run --config configs/example-kimchi.yaml          # 24 runs, Kimchi-hosted embeddings
 ```
 
 Open `http://localhost:5173` to watch live progress and explore results.
@@ -109,6 +112,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 - **5 chunking methods**: Fixed, Recursive, Token, Sentence, Semantic
 - **3 retrieval methods**: Dense (vector search), Sparse (BM25), Hybrid (Reciprocal Rank Fusion)
 - **Voyage AI models**: all registered embeddings in `model_registry.py` (voyage-4/3/domain/context) + rerankers `rerank-2.5-lite`, `rerank-2.5`, and legacy rerank APIs
+- **Kimchi embeddings**: OpenAI-compatible hosted embedding catalog via `configs/example-kimchi.yaml`
 - **Local models** (no API key): `all-MiniLM-L6-v2` + `cross-encoder/ms-marco-MiniLM-L-6-v2`
 - **Multi-format data loading**: PDF, TXT, Markdown, CSV — files or directories
 - **Cartesian sweep**: one YAML config → N models × M methods × P sizes × Q overlaps runs
@@ -126,9 +130,9 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 **Frontend**: React 19 · TypeScript 5.8 · Vite 6 · Tailwind CSS
 
-**AI/ML**: Voyage AI · sentence-transformers · MongoDB Atlas Vector Search
+**AI/ML**: Voyage AI · Kimchi embeddings · sentence-transformers · MongoDB Atlas Vector Search
 
-**Dev tools**: uv · ruff · mypy · pytest · GitHub Actions
+**Dev tools**: uv · ruff · mypy · `rag-params-finder test` · GitHub Actions (runs on every PR to `main`)
 
 ---
 
