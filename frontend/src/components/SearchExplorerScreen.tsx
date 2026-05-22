@@ -594,6 +594,7 @@ export default function SearchExplorerScreen({
         if (err instanceof DOMException && err.name === 'AbortError') return;
         const msg =
           err instanceof Error ? err.message : 'Failed to fetch experiment explore data';
+        devWarn(`Explore hydrate failed (${experimentId.slice(0, 8)}…):`, msg);
         setError(msg);
         setFeed((f) => xfAppend(f, `Failed: ${msg}`, 'warning'));
       } finally {

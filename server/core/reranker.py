@@ -41,6 +41,7 @@ def _rerank_voyage(
         lambda: client.rerank(query, documents, model=model, top_k=top_k),
         limiter=get_limiter(),
         estimated_tokens=tokens,
+        operation=f"Voyage rerank model={model} docs={len(documents)} top_k={top_k}",
     )
 
     reranked: list[SearchResult] = []

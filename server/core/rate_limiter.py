@@ -79,7 +79,13 @@ class RateLimiter:
             self._lock.acquire()
 
 
-def call_with_retry[T](fn: Callable[[], T], limiter: RateLimiter, estimated_tokens: int = 0) -> T:
+def call_with_retry[T](
+    fn: Callable[[], T],
+    limiter: RateLimiter,
+    estimated_tokens: int = 0,
+    *,
+    operation: str = "Voyage API call",
+) -> T:
     """Wait for rate-limit clearance, call *fn*, and retry on 429s with backoff."""
     backoff = INITIAL_BACKOFF_S
     for attempt in range(1, MAX_RETRIES + 1):
@@ -94,6 +100,15 @@ def call_with_retry[T](fn: Callable[[], T], limiter: RateLimiter, estimated_toke
             )
             time.sleep(backoff)
             backoff *= 2
+        except Exception:
+            logger.error(
+                "%s failed on attempt %s/%s",
+                operation,
+                attempt,
+                MAX_RETRIES,
+                exc_info=True,
+            )
+            raise
     raise RuntimeError("unreachable")  # satisfies type checker
 
 

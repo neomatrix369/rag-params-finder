@@ -699,7 +699,9 @@ export default function ExperimentDetailScreen({
       setShowDeleteModal(false);
       onBack();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete experiment');
+      const msg = err instanceof Error ? err.message : 'Failed to delete experiment';
+      devWarn(`Delete failed (${experimentId.slice(0, 8)}…):`, msg);
+      setError(msg);
       setShowDeleteModal(false);
     } finally {
       setDeleting(false);

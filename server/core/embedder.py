@@ -100,7 +100,12 @@ def _embed_documents_voyage(texts: list[str], model: str) -> list[list[float]]:
         def _embed_batch() -> EmbeddingsObject:
             return client.embed(batch, model=model, input_type="document")
 
-        result = call_with_retry(_embed_batch, limiter=get_limiter(), estimated_tokens=tokens)
+        result = call_with_retry(
+            _embed_batch,
+            limiter=get_limiter(),
+            estimated_tokens=tokens,
+            operation=f"Voyage embed batch {idx + 1}/{len(batches)} model={model}",
+        )
         all_embeddings.extend(cast(list[list[float]], result.embeddings))
 
     logger.info(f"Generated {len(all_embeddings)} embeddings, dim={len(all_embeddings[0])}")
@@ -134,7 +139,15 @@ def _embed_documents_voyage_context(texts: list[str], model: str) -> list[list[f
         def _embed(batch: list[list[str]] = request_segments) -> ContextualizedEmbeddingsObject:
             return client.contextualized_embed(batch, model=model, input_type="document")
 
-        result = call_with_retry(_embed, limiter=get_limiter(), estimated_tokens=tokens)
+        result = call_with_retry(
+            _embed,
+            limiter=get_limiter(),
+            estimated_tokens=tokens,
+            operation=(
+                f"Voyage contextualized embed request {req_idx + 1} "
+                f"model={model} segments={len(request_segments)}"
+            ),
+        )
         for segment_result in result.results:
             all_embeddings.extend(cast(list[list[float]], segment_result.embeddings))
 
@@ -153,7 +166,12 @@ def _embed_query_voyage_context(text: str, model: str) -> list[float]:
     def _embed() -> ContextualizedEmbeddingsObject:
         return client.contextualized_embed([[text]], model=model, input_type="query")
 
-    result = call_with_retry(_embed, limiter=get_limiter(), estimated_tokens=tokens)
+    result = call_with_retry(
+        _embed,
+        limiter=get_limiter(),
+        estimated_tokens=tokens,
+        operation=f"Voyage contextualized query embed model={model}",
+    )
     embedding = cast(list[float], result.results[0].embeddings[0])
     logger.debug(f"Generated contextualized query embedding, dim={len(embedding)}")
     return embedding
@@ -169,6 +187,7 @@ def _embed_query_voyage(text: str, model: str) -> list[float]:
         lambda: client.embed([text], model=model, input_type="query"),
         limiter=get_limiter(),
         estimated_tokens=tokens,
+        operation=f"Voyage query embed model={model}",
     )
 
     embedding = cast(list[float], result.embeddings[0])
