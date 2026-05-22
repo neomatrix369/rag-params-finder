@@ -220,7 +220,9 @@ export default function ExperimentsScreen({
       setExperiments(refreshed);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete experiments');
+      const msg = err instanceof Error ? err.message : 'Failed to delete experiments';
+      devWarn('Bulk delete failed:', msg);
+      setError(msg);
       setShowDeleteModal(false);
     } finally {
       setDeleting(false);
@@ -262,7 +264,9 @@ export default function ExperimentsScreen({
         setVectorDbError(null);
       } catch (err) {
         if (!aliveRef.current) return;
-        setVectorDbError(err instanceof Error ? err.message : 'Failed to load vector DB stats');
+        const msg = err instanceof Error ? err.message : 'Failed to load vector DB stats';
+        devWarn('Vector DB stats load failed:', msg);
+        setVectorDbError(msg);
       } finally {
         vectorDbStatsInFlightRef.current = null;
         if (aliveRef.current && showSpinner) setVectorDbLoading(false);
@@ -336,7 +340,9 @@ export default function ExperimentsScreen({
           setExperiments(rows);
           setError(null);
         })
-        .catch(() => undefined);
+        .catch((err) => {
+          devWarn('Background experiments refresh failed:', err);
+        });
       return () => {
         aliveRef.current = false;
         if (pollTimerRef.current !== null) {

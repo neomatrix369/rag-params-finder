@@ -1,8 +1,9 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from server.api import experiments, runs
 from server.core.executors import shutdown_executors
@@ -23,7 +24,9 @@ async def lifespan(app: FastAPI):
     try:
         ensure_indexes()
     except Exception as e:
-        logger.warning(f"Index check failed (server will start without indexes): {e}")
+        logger.warning(
+            "Index check failed (server will start without indexes): %s", e, exc_info=True
+        )
     try:
         reconcile_orphaned_experiments()
     except Exception as e:
@@ -64,6 +67,19 @@ else:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Log unexpected API errors with request context (HTTPException uses FastAPI default)."""
+    logger.error(
+        "Unhandled exception on %s %s: %s",
+        request.method,
+        request.url.path,
+        exc,
+        exc_info=True,
+    )
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 @app.get("/healthz")

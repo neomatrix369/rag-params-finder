@@ -100,8 +100,12 @@ def _watch_experiment(experiment_id: str) -> None:
                 time.sleep(POLL_INTERVAL_S)
                 try:
                     data = get_experiment(experiment_id)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(
+                        "Final poll before summary failed for %s: %s",
+                        experiment_id,
+                        e,
+                    )
                 break
 
             time.sleep(POLL_INTERVAL_S)

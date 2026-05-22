@@ -244,6 +244,7 @@ def _run_sweep_inner(
             }
         },
     )
+    _log_failed_run_summary(experiment_id, failed_count)
     logger.info(f"Experiment {experiment_id} finished: {final_status}")
 
     return {"experiment_id": experiment_id, "run_ids": run_ids, "status": final_status}
@@ -255,6 +256,38 @@ def _count_failed_runs(experiment_id: str) -> int:
             {"experiment_id": experiment_id, "phase": Phase.FAILED.value}
         )
     )
+
+
+def _log_failed_run_summary(experiment_id: str, failed_count: int) -> None:
+    if failed_count <= 0:
+        return
+    cursor = get_collection(RUN_STATUS_COLLECTION).find(
+        {"experiment_id": experiment_id, "phase": Phase.FAILED.value},
+        {
+            "run_id": 1,
+            "embedding_model": 1,
+            "chunking_method": 1,
+            "chunk_size": 1,
+            "error_message": 1,
+        },
+    )
+    summaries: list[str] = []
+    for doc in cursor:
+        run_id = str(doc.get("run_id", "?"))
+        label = (
+            f"{run_id[:8]}… "
+            f"({doc.get('embedding_model')}/{doc.get('chunking_method')}/{doc.get('chunk_size')})"
+        )
+        err = doc.get("error_message")
+        if err:
+            label = f"{label}: {str(err)[:80]}"
+        summaries.append(label)
+        if len(summaries) >= 10:
+            break
+    extra = f" — {'; '.join(summaries)}"
+    if failed_count > len(summaries):
+        extra += f" (+{failed_count - len(summaries)} more)"
+    logger.warning("Experiment %s: %s failed run(s)%s", experiment_id, failed_count, extra)
 
 
 def _compute_final_status(
@@ -299,12 +332,26 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
         _check_control(experiment_id)
         _update_phase(run_id, Phase.PARSING)
         text = load_all_files(params.data_paths)
-        logger.info(f"Run {run_id}: parsed {len(text)} chars from {len(params.data_paths)} path(s)")
+        if not text.strip():
+            logger.warning(
+                f"Run {run_id}: parsed 0 chars from {len(params.data_paths)} path(s) — "
+                "check PDF text extraction or input files"
+            )
+        else:
+            logger.info(
+                f"Run {run_id}: parsed {len(text)} chars from {len(params.data_paths)} path(s)"
+            )
 
         _check_control(experiment_id)
         _update_phase(run_id, Phase.CHUNKING)
         chunks = chunk_text(text, params.chunking_method, params.chunk_size, params.overlap)
-        logger.info(f"Run {run_id}: chunked into {len(chunks)} chunks")
+        if not chunks:
+            logger.warning(
+                f"Run {run_id}: chunking produced 0 chunks from {len(text)} chars — "
+                "embedding and retrieval will be empty"
+            )
+        else:
+            logger.info(f"Run {run_id}: chunked into {len(chunks)} chunks")
 
         _check_control(experiment_id)
         _update_phase(run_id, Phase.EMBEDDING)
@@ -420,7 +467,7 @@ def _update_phase(run_id: str, phase: Phase, error_message: str | None = None) -
         _run_start_times[run_id] = now
 
     elapsed_ms = int((now - _run_start_times[run_id]) * 1000)
-    logger.debug(f"Run {run_id} → {phase.value} ({elapsed_ms}ms)")
+    logger.info(f"Run {run_id} → {phase.value} ({elapsed_ms}ms)")
 
     update: dict = {
         "phase": phase.value,

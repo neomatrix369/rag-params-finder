@@ -77,5 +77,8 @@ def _parse_pdf(pdf_path: Path) -> str:
             logger.debug(f"Extracted {len(page_text)} chars from page {i + 1}")
 
     full_text = "\n\n".join(text_parts)
-    logger.info(f"Parsed {len(reader.pages)} pages, {len(full_text)} total chars")
+    if not full_text.strip():
+        logger.warning(f"PDF {pdf_path}: extracted 0 chars from {len(reader.pages)} page(s)")
+    else:
+        logger.info(f"Parsed {len(reader.pages)} pages, {len(full_text)} total chars")
     return full_text

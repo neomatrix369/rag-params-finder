@@ -49,6 +49,20 @@ function rethrowWithFetchHint(url: string, err: unknown): never {
   throw err;
 }
 
+async function parseResponseDetail(response: Response): Promise<string | undefined> {
+  const parsed = await response.json().catch(() => ({}));
+  if (typeof parsed.detail === 'string') return parsed.detail;
+  if (typeof parsed.error === 'string') return parsed.error;
+  return undefined;
+}
+
+async function assertOk(response: Response, url: string, fallbackMessage: string): Promise<void> {
+  if (response.ok) return;
+  const detail = await parseResponseDetail(response);
+  devWarn(`HTTP ${response.status} ${response.statusText}:`, url, detail ?? '(no detail)');
+  throw new Error(detail || fallbackMessage);
+}
+
 export type ExperimentProgressCallback = (u: FetchProgressUpdate) => void;
 
 function emit(cb: ExperimentProgressCallback | undefined, u: FetchProgressUpdate) {
@@ -62,7 +76,7 @@ export async function getExperiments(signal?: AbortSignal): Promise<Experiment[]
   } catch (err) {
     rethrowWithFetchHint(EXPERIMENTS_URL, err);
   }
-  if (!response.ok) throw new Error('Failed to fetch experiments');
+  await assertOk(response, EXPERIMENTS_URL, 'Failed to fetch experiments');
   const data = (await response.json()) as { experiments?: Experiment[] };
   return data.experiments || [];
 }
@@ -98,7 +112,7 @@ export async function getExperiment(experimentId: string, signal?: AbortSignal):
   } catch (err) {
     rethrowWithFetchHint(url, err);
   }
-  if (!response.ok) throw new Error('Failed to fetch experiment');
+  await assertOk(response, url, 'Failed to fetch experiment');
   return response.json();
 }
 
@@ -146,7 +160,7 @@ export async function getExperimentExplore(
   } catch (err) {
     rethrowWithFetchHint(url, err);
   }
-  if (!response.ok) throw new Error('Failed to fetch experiment explore data');
+  await assertOk(response, url, 'Failed to fetch experiment explore data');
   return response.json();
 }
 
@@ -191,7 +205,7 @@ export async function getExperimentDbStats(
   } catch (err) {
     rethrowWithFetchHint(url, err);
   }
-  if (!response.ok) throw new Error('Failed to fetch experiment DB stats');
+  await assertOk(response, url, 'Failed to fetch experiment DB stats');
   return response.json();
 }
 
@@ -205,7 +219,7 @@ export async function getVectorDbStatsGrouped(
   } catch (err) {
     rethrowWithFetchHint(url, err);
   }
-  if (!response.ok) throw new Error('Failed to fetch vector DB stats');
+  await assertOk(response, url, 'Failed to fetch vector DB stats');
   return response.json();
 }
 
@@ -221,11 +235,7 @@ export async function cancelExperiment(
   } catch (err) {
     rethrowWithFetchHint(url, err);
   }
-  if (!response.ok) {
-    const parsed = await response.json().catch(() => ({}));
-    const detail = typeof parsed.detail === 'string' ? parsed.detail : undefined;
-    throw new Error(detail || 'Failed to cancel experiment');
-  }
+  await assertOk(response, url, 'Failed to cancel experiment');
   return response.json();
 }
 
@@ -239,11 +249,7 @@ export async function pauseExperiment(
   } catch (err) {
     rethrowWithFetchHint(url, err);
   }
-  if (!response.ok) {
-    const parsed = await response.json().catch(() => ({}));
-    const detail = typeof parsed.detail === 'string' ? parsed.detail : undefined;
-    throw new Error(detail || 'Failed to pause experiment');
-  }
+  await assertOk(response, url, 'Failed to pause experiment');
   return response.json();
 }
 
@@ -257,11 +263,7 @@ export async function resumeExperiment(
   } catch (err) {
     rethrowWithFetchHint(url, err);
   }
-  if (!response.ok) {
-    const parsed = await response.json().catch(() => ({}));
-    const detail = typeof parsed.detail === 'string' ? parsed.detail : undefined;
-    throw new Error(detail || 'Failed to resume experiment');
-  }
+  await assertOk(response, url, 'Failed to resume experiment');
   return response.json();
 }
 
@@ -275,10 +277,6 @@ export async function deleteExperiment(experimentId: string): Promise<DeleteExpe
   } catch (err) {
     rethrowWithFetchHint(url, err);
   }
-  if (!response.ok) {
-    const parsed = await response.json().catch(() => ({}));
-    const detail = typeof parsed.detail === 'string' ? parsed.detail : undefined;
-    throw new Error(detail || 'Failed to delete experiment');
-  }
+  await assertOk(response, url, 'Failed to delete experiment');
   return response.json();
 }

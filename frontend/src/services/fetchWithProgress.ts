@@ -3,6 +3,7 @@
  */
 
 import { API_FETCH_TIMEOUT_MS } from '../constants';
+import { devWarn } from '../utils/devLog';
 
 const BYTE_PROGRESS_INTERVAL_MS = 200;
 
@@ -140,6 +141,11 @@ export async function fetchJsonWithProgress<T>(
 
   if (!response.ok) {
     const errText = await response.text().catch(() => '');
+    devWarn(
+      `HTTP ${response.status} ${response.statusText}:`,
+      url,
+      errText ? errText.slice(0, 200) : '(no body)',
+    );
     throw new Error(
       errText ? `HTTP ${response.status}: ${errText.slice(0, 200)}` : `HTTP ${response.status}`,
     );

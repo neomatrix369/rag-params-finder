@@ -128,7 +128,7 @@ async def get_experiment(experiment_id: str):
     experiment = await asyncio.to_thread(mongo_find_experiment_with_runs, experiment_id)
     if not experiment:
         logger.warning(f"Experiment not found: {experiment_id}")
-        return {"error": "Experiment not found"}, 404
+        raise HTTPException(status_code=404, detail="Experiment not found")
 
     runs = experiment["runs"]
     logger.debug(f"Experiment {experiment_id}: status={experiment.get('status')}, {len(runs)} runs")
@@ -289,6 +289,11 @@ async def resume_experiment(experiment_id: str):
     schedule_sweep(resume_sweep, experiment_id, config)
 
     runs = expand_sweep(config)
+    logger.info(
+        "Experiment %s resume scheduled: %s total run(s) in sweep config",
+        experiment_id,
+        len(runs),
+    )
     return {
         "status": "resume_requested",
         "experiment_id": experiment_id,

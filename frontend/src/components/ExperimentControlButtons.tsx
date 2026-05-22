@@ -9,6 +9,7 @@ import {
   isPausedExperimentStatus,
   isRunningExperimentStatus,
 } from '../utils/experimentStatus';
+import { devWarn } from '../utils/devLog';
 
 type ControlTone = 'light' | 'dark';
 type ControlSize = 'sm' | 'md';
@@ -62,6 +63,7 @@ export default function ExperimentControlButtons({
   async function runAction(
     action: () => Promise<unknown>,
     setBusy: (busy: boolean) => void,
+    actionLabel: string,
   ) {
     setBusy(true);
     try {
@@ -69,6 +71,7 @@ export default function ExperimentControlButtons({
       await onStatusChange?.();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Action failed';
+      devWarn(`Control action failed (${actionLabel}, ${experimentId.slice(0, 8)}…):`, message);
       onError?.(message);
     } finally {
       setBusy(false);
@@ -83,11 +86,11 @@ export default function ExperimentControlButtons({
     ) {
       return;
     }
-    await runAction(() => pauseExperiment(experimentId), setPausing);
+    await runAction(() => pauseExperiment(experimentId), setPausing, 'pause');
   }
 
   async function handleResume() {
-    await runAction(() => resumeExperiment(experimentId), setResuming);
+    await runAction(() => resumeExperiment(experimentId), setResuming, 'resume');
   }
 
   async function handleCancel() {
@@ -98,7 +101,7 @@ export default function ExperimentControlButtons({
     ) {
       return;
     }
-    await runAction(() => cancelExperiment(experimentId), setCancelling);
+    await runAction(() => cancelExperiment(experimentId), setCancelling, 'cancel');
   }
 
   const disabled = pausing || resuming || cancelling;

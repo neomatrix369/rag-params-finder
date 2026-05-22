@@ -14,6 +14,9 @@ from server.db.atlas import (
     get_collection,
 )
 from server.models.enums import ExperimentStatus
+from server.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def mongo_list_all_experiment_docs():
@@ -89,6 +92,7 @@ def mongo_delete_experiment_data(experiment_id: str) -> dict[str, int]:
 
     Returns dict with counts of deleted documents from each collection.
     """
+    logger.info("Deleting experiment data: experiment_id=%s", experiment_id)
     from server.db.atlas import CHUNKS_COLLECTION
 
     chunks_deleted = (
@@ -115,12 +119,14 @@ def mongo_delete_experiment_data(experiment_id: str) -> dict[str, int]:
         .deleted_count
     )
 
-    return {
+    counts = {
         "experiments": experiment_deleted,
         "run_status": run_status_deleted,
         "chunks": chunks_deleted,
         "results": results_deleted,
     }
+    logger.info("Deleted experiment %s: %s", experiment_id, counts)
+    return counts
 
 
 def _retrieval_methods_for_experiment(experiment: dict | None) -> list[str]:
@@ -423,30 +429,42 @@ def _summary_db_stats_for_experiment(
 
 def mongo_get_experiment_db_stats(experiment_id: str) -> dict:
     """Vector DB stats for one experiment (full detail, including per-run breakdown)."""
-    experiment = get_collection(EXPERIMENTS_COLLECTION).find_one(
-        {"experiment_id": experiment_id},
-        {"data_paths": 1, "sweep_summary": 1, "config": 1},
-    )
-    chunks_coll = get_collection(CHUNKS_COLLECTION)
-    results_coll = get_collection(RESULTS_COLLECTION)
+    logger.debug("Computing DB stats for experiment %s", experiment_id)
+    try:
+        experiment = get_collection(EXPERIMENTS_COLLECTION).find_one(
+            {"experiment_id": experiment_id},
+            {"data_paths": 1, "sweep_summary": 1, "config": 1},
+        )
+        chunks_coll = get_collection(CHUNKS_COLLECTION)
+        results_coll = get_collection(RESULTS_COLLECTION)
 
-    total_chunks = chunks_coll.count_documents({"experiment_id": experiment_id})
-    embedding_models = chunks_coll.distinct("embedding_model", {"experiment_id": experiment_id})
-    total_results = results_coll.count_documents({"experiment_id": experiment_id})
-    unique_queries = len(results_coll.distinct("query_id", {"experiment_id": experiment_id}))
-    run_breakdown = _run_breakdown_for_experiment(chunks_coll, results_coll, experiment_id)
-    chunking_breakdown = _chunking_breakdown(chunks_coll, experiment_id)
+        total_chunks = chunks_coll.count_documents({"experiment_id": experiment_id})
+        embedding_models = chunks_coll.distinct("embedding_model", {"experiment_id": experiment_id})
+        total_results = results_coll.count_documents({"experiment_id": experiment_id})
+        unique_queries = len(results_coll.distinct("query_id", {"experiment_id": experiment_id}))
+        run_breakdown = _run_breakdown_for_experiment(chunks_coll, results_coll, experiment_id)
+        chunking_breakdown = _chunking_breakdown(chunks_coll, experiment_id)
 
-    return _assemble_experiment_db_stats(
-        experiment,
-        total_chunks=total_chunks,
-        embedding_models=embedding_models,
-        chunking_breakdown=chunking_breakdown,
-        total_results=total_results,
-        unique_queries=unique_queries,
-        runs_with_data=len(run_breakdown),
-        run_breakdown=run_breakdown,
+        stats = _assemble_experiment_db_stats(
+            experiment,
+            total_chunks=total_chunks,
+            embedding_models=embedding_models,
+            chunking_breakdown=chunking_breakdown,
+            total_results=total_results,
+            unique_queries=unique_queries,
+            runs_with_data=len(run_breakdown),
+            run_breakdown=run_breakdown,
+        )
+    except Exception:
+        logger.error("Failed to compute DB stats for experiment %s", experiment_id, exc_info=True)
+        raise
+    logger.debug(
+        "DB stats for %s: %s chunks, %s MB estimated",
+        experiment_id,
+        stats["total_chunks"],
+        stats["estimated_storage_mb"],
     )
+    return stats
 
 
 def _vector_db_group_key(database_provider: str, cluster_host: str | None) -> str:
@@ -475,64 +493,76 @@ def _merge_group_totals(group: dict, stats: dict) -> None:
 
 def mongo_get_vector_db_stats_grouped() -> dict:
     """Aggregate DB stats for all experiments, grouped by vector database cluster."""
-    experiments = mongo_list_all_experiment_docs()
-    chunk_by_exp = _bulk_chunk_aggregates()
-    result_by_exp = _bulk_result_aggregates()
-    chunking_by_exp = _bulk_chunking_breakdown()
-    cluster_storage = _mongodb_cluster_storage_mb()
-    groups: dict[str, dict] = {}
+    logger.debug("Computing grouped vector DB stats")
+    try:
+        experiments = mongo_list_all_experiment_docs()
+        chunk_by_exp = _bulk_chunk_aggregates()
+        result_by_exp = _bulk_result_aggregates()
+        chunking_by_exp = _bulk_chunking_breakdown()
+        cluster_storage = _mongodb_cluster_storage_mb()
+        groups: dict[str, dict] = {}
 
-    for experiment in experiments:
-        experiment_id = str(experiment["experiment_id"])
-        stats = _summary_db_stats_for_experiment(
-            experiment,
-            chunk_by_exp.get(experiment_id),
-            result_by_exp.get(experiment_id),
-            chunking_by_exp.get(experiment_id, {}),
-        )
-        group_key = _vector_db_group_key(stats["database_provider"], stats["cluster_host"])
+        for experiment in experiments:
+            experiment_id = str(experiment["experiment_id"])
+            stats = _summary_db_stats_for_experiment(
+                experiment,
+                chunk_by_exp.get(experiment_id),
+                result_by_exp.get(experiment_id),
+                chunking_by_exp.get(experiment_id, {}),
+            )
+            group_key = _vector_db_group_key(stats["database_provider"], stats["cluster_host"])
 
-        if group_key not in groups:
-            groups[group_key] = {
-                "vector_db_id": group_key,
-                "database_provider": stats["database_provider"],
-                "collection_name": stats["collection_name"],
-                "cluster_host": stats["cluster_host"],
-                "index_names": [],
-                "embedding_dimensions": [],
-                "totals": {
-                    "experiment_count": 0,
-                    "total_chunks": 0,
-                    "total_results": 0,
-                    "estimated_storage_mb": 0.0,
-                    "estimated_embedding_mb": 0.0,
-                    "estimated_metadata_mb": 0.0,
-                },
-                "experiments": [],
-            }
+            if group_key not in groups:
+                groups[group_key] = {
+                    "vector_db_id": group_key,
+                    "database_provider": stats["database_provider"],
+                    "collection_name": stats["collection_name"],
+                    "cluster_host": stats["cluster_host"],
+                    "index_names": [],
+                    "embedding_dimensions": [],
+                    "totals": {
+                        "experiment_count": 0,
+                        "total_chunks": 0,
+                        "total_results": 0,
+                        "estimated_storage_mb": 0.0,
+                        "estimated_embedding_mb": 0.0,
+                        "estimated_metadata_mb": 0.0,
+                    },
+                    "experiments": [],
+                }
 
-        group = groups[group_key]
-        _merge_group_totals(group, stats)
+            group = groups[group_key]
+            _merge_group_totals(group, stats)
 
-        created_at = experiment.get("created_at")
-        created_at_str = created_at.isoformat() if hasattr(created_at, "isoformat") else created_at
+            created_at = experiment.get("created_at")
+            created_at_str = (
+                created_at.isoformat() if hasattr(created_at, "isoformat") else created_at
+            )
 
-        group["experiments"].append(
-            {
-                "experiment_id": experiment_id,
-                "experiment_name": experiment.get("experiment_name", ""),
-                "status": experiment.get("status", ""),
-                "created_at": created_at_str,
-                **stats,
-            }
-        )
+            group["experiments"].append(
+                {
+                    "experiment_id": experiment_id,
+                    "experiment_name": experiment.get("experiment_name", ""),
+                    "status": experiment.get("status", ""),
+                    "created_at": created_at_str,
+                    **stats,
+                }
+            )
 
-    grouped = list(groups.values())
-    for group in grouped:
-        group["totals"].update(cluster_storage)
-        group["experiments"].sort(
-            key=lambda row: row.get("created_at") or "",
-            reverse=True,
-        )
-    grouped.sort(key=lambda row: row["totals"]["total_chunks"], reverse=True)
+        grouped = list(groups.values())
+        for group in grouped:
+            group["totals"].update(cluster_storage)
+            group["experiments"].sort(
+                key=lambda row: row.get("created_at") or "",
+                reverse=True,
+            )
+        grouped.sort(key=lambda row: row["totals"]["total_chunks"], reverse=True)
+    except Exception:
+        logger.error("Failed to compute grouped vector DB stats", exc_info=True)
+        raise
+    logger.debug(
+        "Grouped vector DB stats: %s group(s), %s experiment(s)",
+        len(grouped),
+        len(experiments),
+    )
     return {"groups": grouped}

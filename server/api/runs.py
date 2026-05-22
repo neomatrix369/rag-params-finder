@@ -1,6 +1,6 @@
 import asyncio
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from server.db.atlas import RUN_STATUS_COLLECTION, get_collection
 from server.utils.logger import get_logger
@@ -21,6 +21,6 @@ async def get_run_status(run_id: str):
     status = await asyncio.to_thread(_mongo_fetch_run, run_id)
     if not status:
         logger.warning(f"Run not found: {run_id}")
-        return {"error": "Run not found"}, 404
+        raise HTTPException(status_code=404, detail="Run not found")
     logger.debug(f"Run {run_id} phase={status.get('phase')}")
     return status
