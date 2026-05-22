@@ -31,7 +31,7 @@ The landing screen shows all submitted experiments, newest first.
 
 **Collapsible rows**: Click the chevron on a row to expand inline details without leaving the list. Expansion state is remembered per experiment (`localStorage`).
 
-**Vector DB stats panel** (top of list): Aggregated storage footprint for your Atlas cluster — total chunks, estimated embedding storage, active index names, and per-experiment breakdown. Polls `GET /experiments/vector-db-stats` on refresh. Cluster quota bar appears when Atlas Admin API credentials or `MONGODB_STORAGE_LIMIT_MB` is configured.
+**Vector DB stats panel** (top of list): Aggregated storage footprint for your Atlas cluster — total chunks, estimated embedding storage, active index names, and per-experiment breakdown. Polls `GET /experiments/vector-db-stats` on refresh. When Atlas Admin API credentials or `MONGODB_STORAGE_LIMIT_MB` is configured, the panel also shows cluster quota (used/free MB), instance tier (e.g. `M0 (shared)`), cloud provider, and region. The Atlas API does not expose RAM, vCPU, or pricing — only tier and storage limits.
 
 **Actions**:
 - **View details**: Click any row to open the Experiment Detail screen
@@ -76,9 +76,11 @@ Pause and cancel are cooperative — the current pipeline phase finishes before 
 | Interrupted | Runs stopped mid-pipeline (cancel or server restart) |
 | Not Started | Parameter combos never queued — sweep stopped before reaching them |
 | In Progress | Runs currently executing *(running experiments only)* |
-| Duration | Wall time from `started_at` to `completed_at` |
+| Duration | Wall time from `started_at` to `completed_at` — shows **—** while `running` or `paused` (clock starts when the first run begins, not at submission) |
 
 These buckets always sum to **Total** on terminal experiments.
+
+Pause, resume, and cancel controls appear **only in the overview header** — not duplicated in the progress card or paused banner.
 
 **Outcome banners** (below runs table):
 
@@ -86,7 +88,7 @@ These buckets always sum to **Total** on terminal experiments.
 |---|---|
 | `complete` | Green — all planned runs succeeded |
 | `partial` | Amber — “Sweep Incomplete” with breakdown (e.g. 41/90 complete, 48 never started) |
-| `paused` | Violet — “Experiment is paused” with prompt to resume remaining combos |
+| `paused` | Violet — “Experiment Paused” banner with run count; resume via header controls |
 | `cancelled` | Gray — runs completed before cancellation |
 | Failed runs | Red panel listing `error_message` per run |
 | Interrupted runs | Amber panel listing interruption reason |
@@ -185,9 +187,11 @@ When changing the query filter dropdown in Search Explorer, the Loading Feedback
 For **running experiments**, the Experiment Detail screen shows an **Experiment Progress Card** with:
 - Circular progress indicator (e.g., "50%")
 - Completion status (e.g., "1 of 2 runs completed")
+- **Elapsed** time since the first run started (UTC-aware timestamps)
+- **ETA** — linear estimate from average time per completed run, with a 1% margin
 - Visual feedback: blue gradient background, green progress ring
 
-This card appears **only when status is "running"** and updates every 2 seconds via background polling. Progress is measured against **planned** run count (`run_count`), not just runs already in `run_status`. Once the experiment reaches a terminal status, the card is replaced with the outcome banner described above.
+This card appears **only when status is "running"** and updates every 2 seconds via background polling. Progress is measured against **planned** run count (`run_count`), not just runs already in `run_status`. Elapsed and ETA appear once at least one run has completed. Once the experiment reaches a terminal status, the card is replaced with the outcome banner described above.
 
 **Note**: This is distinct from network loading — the Loading Feedback Panel tracks API data transfer, while the Experiment Progress Card tracks pipeline execution (runs completing).
 

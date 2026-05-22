@@ -230,7 +230,9 @@ See `docs/adr/` for Architecture Decision Records:
 | Cascade delete with confirmation | DELETE endpoint scrubs all collections (experiments, run_status, chunks, results); `ConfirmDeleteModal` shows experiment details + deletion statistics; prevents deletion of running experiments |
 | Boot orphan reconciliation | `BackgroundTasks` sweeps die on process exit; startup marks in-flight runs `interrupted` and sets terminal experiment status — separate from Slice 10 retry |
 | Pause / resume sweeps | Cooperative halt via `_SweepControl` threading events; `resume_sweep()` skips completed parameter signatures; status `paused` is non-terminal |
-| Vector DB stats API + dashboard | `GET /experiments/vector-db-stats` and `/{id}/db-stats`; estimated storage from chunk counts + model dimensions; optional Atlas quota bar |
+| Vector DB stats API + dashboard | `GET /experiments/vector-db-stats` and `/{id}/db-stats`; estimated storage from chunk counts + model dimensions; optional Atlas quota bar with tier/provider/region via `resolve_tier_specs()` |
+| Timezone-aware UTC timestamps | PyMongo `tz_aware=True`; all writes use `datetime.now(timezone.utc)` so JSON includes `Z` and browser elapsed/duration math is correct |
+| `started_at` on first run | Duration and ETA exclude queue time between submission and first pipeline phase |
 
 ---
 

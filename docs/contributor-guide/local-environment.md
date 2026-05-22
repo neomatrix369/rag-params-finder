@@ -70,10 +70,11 @@ VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # Server URL (used by CLI, default is localhost:8001)
 SERVER_URL=http://localhost:8001
 
-# Rate limits (Voyage only — set based on your tier; see .env.example)
-# Tier 1 example: VOYAGE_RPM_LIMIT=2000  VOYAGE_TPM_LIMIT=16000000  # voyage-4-lite / voyage-3.5-lite
+# Rate limits (Voyage only — free-tier defaults in .env.example; uncomment Tier 1 block for Voyage sweep)
+# VOYAGE_RPM_LIMIT=2000
+# VOYAGE_TPM_LIMIT=16000000
 
-# Optional — Atlas Admin API for dashboard storage quota bar
+# Optional — Atlas Admin API for dashboard tier + storage quota
 # ATLAS_PUBLIC_KEY=
 # ATLAS_PRIVATE_KEY=
 # ATLAS_GROUP_ID=                         # 24-char project ID from Atlas URL

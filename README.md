@@ -114,8 +114,8 @@ Open `http://localhost:5173` to watch live progress and explore results.
 - **Cartesian sweep**: one YAML config → N models × M methods × P sizes × Q overlaps runs
 - **Live phase tracking**: QUEUED → PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERANKING → COMPLETE
 - **Experiment management**: Pause/resume long sweeps, cancel running experiments, delete with cascade cleanup, boot orphan reconciliation
-- **Vector DB stats**: Cluster and per-experiment chunk/storage estimates in the dashboard; optional Atlas quota bar
-- **Progress feedback**: Byte-level network loading, circular progress indicators, background polling with "Syncing..." badges
+- **Vector DB stats**: Cluster and per-experiment chunk/storage estimates; optional Atlas quota bar with tier, provider, and region when Admin API credentials are configured
+- **Progress feedback**: Byte-level network loading, circular progress with elapsed time and ETA, background polling with "Syncing..." badges
 - **Pagination**: All list views paginated (10 items per page for experiments/runs, 5 for configs); collapsible experiment rows
 
 ---

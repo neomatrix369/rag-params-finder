@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from collections.abc import Callable
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
 
@@ -48,12 +48,12 @@ async def _run_heavy_read[R](fn: Callable[[], R]) -> R:
 async def create_experiment(config: ExperimentConfig):
     """Submit a new experiment sweep configuration."""
     experiment_id = str(uuid.uuid4())
-    timestamp_suffix = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    timestamp_suffix = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     stamped_name = f"{config.experiment_name}_{timestamp_suffix}"
     runs = expand_sweep(config)
 
     metadata = collect_experiment_metadata()
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     experiment_doc = {
         "_id": experiment_id,
@@ -61,7 +61,7 @@ async def create_experiment(config: ExperimentConfig):
         "experiment_name": stamped_name,
         "config": config.model_dump(),
         "created_at": now,
-        "started_at": now,
+        "started_at": None,  # Set when first run actually begins
         "completed_at": None,
         "status": ExperimentStatus.RUNNING,
         "run_count": len(runs),

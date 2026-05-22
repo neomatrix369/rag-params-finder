@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-19 (Pause/resume sweeps + Voyage model catalog expansion + voyage-context-3 segment splitting)
-**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`)
+**Last Updated**: 2026-05-23 (Voyage sweep UX: elapsed/ETA, Atlas tier specs, timezone-aware timestamps)
+**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Voyage sweep UX polish ✅ COMPLETE | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`)
 
 ---
 
@@ -20,6 +20,7 @@
 | 9 — Experiment deletion | ✅ COMPLETE | ~1 h | CLI delete command + dashboard confirmation modal, cascade cleanup |
 | — — Vector DB stats + collapsible rows + boot reconciliation | ✅ COMPLETE | ~1.5 h | Cluster/experiment storage stats; collapsible panels; orphan `running` → `partial` on server boot |
 | — — Pause/resume + Voyage catalog expansion | ✅ COMPLETE | ~2 h | Cooperative pause/resume; 12 Voyage embedding models; `voyage-context-3` contextualized API + segment splitting |
+| — — Voyage sweep UX + Atlas tier specs | ✅ COMPLETE | ~1 h | Elapsed/ETA on progress card; timezone-aware UTC timestamps; `started_at` on first run; cluster tier/provider/region in vector DB stats |
 | 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
@@ -452,6 +453,42 @@ Surface MongoDB/Atlas storage footprint in the dashboard, improve experiments li
 
 ---
 
+## Voyage Sweep UX + Atlas Tier Specs ✅
+
+**Status**: ✅ COMPLETE | **Started**: 2026-05-23 | **Completed**: 2026-05-23 | **Target**: ~1 h
+
+### Goal
+Fix misleading elapsed/duration times on long Voyage sweeps, surface Atlas cluster tier metadata in the dashboard, and polish experiment detail UX for running/paused sweeps.
+
+### What Changed
+- **EDIT**: `server/db/atlas.py` — PyMongo client `tz_aware=True`, `tzinfo=timezone.utc`
+- **EDIT**: `server/core/orchestrator.py` — `started_at` set when first run begins; all timestamps timezone-aware UTC
+- **EDIT**: `server/api/experiments_shared.py` — timezone-aware cancel/pause; db-stats includes `cluster_tier`, `cluster_tier_type`, `cluster_provider`, `cluster_region`
+- **EDIT**: `server/core/atlas_storage.py` — `resolve_tier_specs()` from Atlas Admin API; shared-tier storage fallbacks (M0/M2/M5)
+- **EDIT**: `frontend/src/components/ExperimentDetailScreen.tsx` — elapsed + ETA on progress card; duration shows — while running/paused; controls only in header
+- **EDIT**: `frontend/src/components/VectorDbStatsPanel.tsx` — tier, cloud provider, region display
+- **EDIT**: `.env.example` — Tier 1 rate limits as commented block above free-tier defaults
+- **EDIT**: `configs/example-mongodb-voyage.yaml` — default to `voyage-3.5-lite` for storage-friendly sweeps
+
+### Key Design Decisions
+| Decision | Why |
+|---|---|
+| `datetime.now(timezone.utc)` everywhere | JSON `Z` suffix; browsers parse elapsed correctly |
+| `started_at` on first run, not submission | ETA/duration reflect actual pipeline time |
+| Atlas tier via `resolve_tier_specs()` | Reuses Admin API; RAM/vCPU/cost not exposed by Atlas |
+| ETA with 1% margin | Small buffer on linear projection |
+| Single control button location (header) | Removes duplicate pause/resume/cancel from progress and paused banners |
+
+### Acceptance Criteria
+- [x] Running experiment progress shows elapsed + ETA after first run completes
+- [x] Duration stat shows — while running or paused
+- [x] Vector DB stats panel shows tier/provider/region when Atlas API configured
+- [x] New timestamps are timezone-aware UTC
+- [x] Debug scripts removed (`test_atlas_api.py`, `test_time_calc.html`, one-off migration scripts)
+- [x] Documentation updated
+
+---
+
 ## Slice 6: Additional Chunkers + Retrieval Methods ✅
 
 **Status**: ✅ COMPLETE | **Started**: 2026-05-17 | **Completed**: 2026-05-17 | **Target**: ~45 min
@@ -530,6 +567,10 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-19 | — | Pause/resume cooperative sweep control | `_SweepControl` threading events; `resume_sweep()` skips completed param signatures; status `paused` non-terminal |
 | 2026-05-19 | — | voyage-context-3 segment splitting | Contextualized API 32K window; tiktoken cl100k_base sizing; standard Voyage models unchanged (`embed()` path) |
 | 2026-05-19 | — | Expanded Voyage model registry | voyage-4 series, domain models, voyage-context-3, voyage-3 legacy; `contextualized` flag drives embedder dispatch |
+| 2026-05-23 | — | Timezone-aware UTC timestamps | Fix browser elapsed/duration misparse; PyMongo `tz_aware=True` |
+| 2026-05-23 | — | `started_at` on first run | Exclude queue time from duration and ETA |
+| 2026-05-23 | — | Atlas tier specs in db-stats | `resolve_tier_specs()` — instance size, provider, region; shared-tier storage fallback |
+| 2026-05-23 | — | Progress elapsed + ETA | Linear estimate from completed runs; 1% margin |
 
 ---
 

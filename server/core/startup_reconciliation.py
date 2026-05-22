@@ -1,6 +1,6 @@
 """Reconcile experiments left in RUNNING after server restart or crash."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from server.db.atlas import EXPERIMENTS_COLLECTION, RUN_STATUS_COLLECTION, get_collection
 from server.models.enums import ExperimentStatus, Phase
@@ -51,7 +51,7 @@ def _reconcile_one(
 ) -> None:
     runs = list(run_coll.find({"experiment_id": experiment_id}))
     in_flight = [run for run in runs if run.get("phase") not in _TERMINAL_RUN_PHASES]
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     for run in in_flight:
         run_coll.update_one(

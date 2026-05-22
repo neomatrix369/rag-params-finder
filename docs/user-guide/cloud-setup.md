@@ -169,9 +169,10 @@ Without billing, Voyage caps you at **3 RPM / 10,000 TPM** — a full sweep will
 1. Add payment method: [Billing → Payment methods](https://dashboard.voyageai.com/organization/billing/payment-methods)
 2. Add **≥ $5 USD** credits: [Billing → Add to credit balance](https://dashboard.voyageai.com/organization/billing)
 3. Confirm Tier 1 at [Organization → Rate Limits](https://dashboard.voyageai.com/organization/rate-limits)
-4. Set in `.env` and **restart uvicorn**:
+4. Set in `.env` and **restart uvicorn** (comment out free-tier defaults, uncomment Tier 1 lines — see `.env.example`):
 
 ```bash
+# Voyage rate limits - Tier 1
 VOYAGE_RPM_LIMIT=2000
 VOYAGE_TPM_LIMIT=16000000
 ```

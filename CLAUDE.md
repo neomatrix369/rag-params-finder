@@ -64,7 +64,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/settings.py` | Centralized pydantic-settings config |
 | `server/core/orchestrator.py` | End-to-end pipeline executor |
 | `server/core/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
-| `server/core/atlas_storage.py` | Atlas Admin API cluster quota + dbStats helpers |
+| `server/core/atlas_storage.py` | Atlas Admin API cluster quota + tier specs (`resolve_tier_specs`); shared-tier storage fallbacks |
 | `server/core/model_registry.py` | Embedding + reranking model catalog |
 | `server/core/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting |
 | `server/core/local_embedder.py` | sentence-transformers embedding (lazy-load) |

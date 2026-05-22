@@ -115,7 +115,7 @@ export default function VectorDbStatsPanel({
                 hint={
                   group.totals.database_storage_limit_mb != null
                     ? `of ${group.totals.database_storage_limit_mb} MB cluster quota`
-                    : 'Set ATLAS_* API keys or MONGODB_STORAGE_LIMIT_MB to show quota'
+                    : 'Configure Atlas Admin API to show cluster quota'
                 }
               />
               <StatTile
@@ -151,6 +151,18 @@ export default function VectorDbStatsPanel({
                   <Row label="Provider" value={group.database_provider} />
                   <Row label="Collection" value={group.collection_name} mono />
                   <Row label="Atlas host" value={group.cluster_host ?? '—'} mono />
+                  {group.totals.cluster_tier && (
+                    <Row
+                      label="Tier"
+                      value={`${group.totals.cluster_tier}${group.totals.cluster_tier_type ? ` (${group.totals.cluster_tier_type})` : ''}`}
+                    />
+                  )}
+                  {group.totals.cluster_provider && (
+                    <Row
+                      label="Cloud"
+                      value={`${group.totals.cluster_provider}${group.totals.cluster_region ? ` · ${group.totals.cluster_region}` : ''}`}
+                    />
+                  )}
                   {group.totals.database_storage_limit_mb != null && (
                     <Row
                       label="Cluster quota"

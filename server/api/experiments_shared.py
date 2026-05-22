@@ -4,7 +4,7 @@ PyMongo blocks the asyncio event loop if called directly from async endpoints.
 Keeping I/O here isolates blocking work into threadpool tasks.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from server.db.atlas import (
     CHUNKS_COLLECTION,
@@ -66,14 +66,14 @@ def mongo_find_experiment_by_id(experiment_id: str):
 def mongo_mark_experiment_cancelled_now(experiment_id: str):
     get_collection(EXPERIMENTS_COLLECTION).update_one(
         {"_id": experiment_id},
-        {"$set": {"status": ExperimentStatus.CANCELLED, "completed_at": datetime.utcnow()}},
+        {"$set": {"status": ExperimentStatus.CANCELLED, "completed_at": datetime.now(UTC)}},
     )
 
 
 def mongo_mark_experiment_paused_now(experiment_id: str):
     get_collection(EXPERIMENTS_COLLECTION).update_one(
         {"_id": experiment_id},
-        {"$set": {"status": ExperimentStatus.PAUSED, "completed_at": datetime.utcnow()}},
+        {"$set": {"status": ExperimentStatus.PAUSED, "completed_at": datetime.now(UTC)}},
     )
 
 
@@ -149,9 +149,9 @@ def _mongodb_cluster_hint() -> str | None:
     return host_part or None
 
 
-def _mongodb_cluster_storage_mb() -> dict[str, float | None]:
-    """Actual database footprint from MongoDB dbStats (data + indexes)."""
-    from server.core.atlas_storage import resolve_storage_limit_mb
+def _mongodb_cluster_storage_mb() -> dict[str, float | str | None]:
+    """Actual database footprint from MongoDB dbStats (data + indexes) + tier specs."""
+    from server.core.atlas_storage import resolve_tier_specs
     from server.db.atlas import get_database
 
     db = get_database()
@@ -161,18 +161,38 @@ def _mongodb_cluster_storage_mb() -> dict[str, float | None]:
     total_bytes = float(stats.get("totalSize") or data_bytes + index_bytes)
     used_mb = _bytes_to_mb(total_bytes)
 
-    limit_mb = resolve_storage_limit_mb()
-    has_quota = limit_mb is not None and limit_mb > 0
-    quota_mb = limit_mb if has_quota else None
-    return {
+    # Get tier specs (includes storage_mb, instance_size, tier_type, provider, region)
+    tier_specs = resolve_tier_specs()
+    quota_mb: float | None = None
+    if tier_specs:
+        storage = tier_specs.get("storage_mb")
+        if isinstance(storage, int | float):
+            quota_mb = float(storage)
+    has_quota = quota_mb is not None and quota_mb > 0
+
+    result: dict[str, float | str | None] = {
         "database_used_mb": used_mb,
         "database_data_mb": _bytes_to_mb(data_bytes),
         "database_index_mb": _bytes_to_mb(index_bytes),
-        "database_storage_limit_mb": quota_mb,
+        "database_storage_limit_mb": quota_mb if has_quota else None,
         "database_free_mb": round(max(0.0, quota_mb - used_mb), 2)
-        if quota_mb is not None
+        if has_quota and quota_mb is not None
         else None,
     }
+
+    # Add tier information if available
+    if tier_specs:
+        for result_key, spec_key in (
+            ("cluster_tier", "instance_size"),
+            ("cluster_tier_type", "tier_type"),
+            ("cluster_provider", "provider"),
+            ("cluster_region", "region"),
+        ):
+            value = tier_specs.get(spec_key)
+            if isinstance(value, str):
+                result[result_key] = value
+
+    return result
 
 
 def _bytes_to_mb(value: float) -> float:

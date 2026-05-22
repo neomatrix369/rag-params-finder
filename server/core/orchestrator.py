@@ -2,7 +2,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 
 from server.core.chunkers import chunk_text
 from server.core.data_loader import load_all_files
@@ -182,6 +182,7 @@ def _run_sweep_inner(
 
     cancelled = False
     paused = False
+    first_run = True
     for params in runs:
         if _params_signature(params) in skip_signatures:
             continue
@@ -196,6 +197,14 @@ def _run_sweep_inner(
             paused = True
             logger.info(f"Experiment {experiment_id} paused before run {len(run_ids) + 1}")
             break
+
+        # Set started_at when first run actually begins (not when experiment was created)
+        if first_run:
+            get_collection(EXPERIMENTS_COLLECTION).update_one(
+                {"_id": experiment_id},
+                {"$set": {"started_at": datetime.now(UTC)}},
+            )
+            first_run = False
 
         run_id = str(uuid.uuid4())
         run_ids.append(run_id)
@@ -223,7 +232,7 @@ def _run_sweep_inner(
     else:
         final_status, failed_count = _compute_final_status(experiment_id, len(runs))
 
-    completed_at = datetime.utcnow()
+    completed_at = datetime.now(UTC)
     get_collection(EXPERIMENTS_COLLECTION).update_one(
         {"_id": experiment_id},
         {
@@ -415,7 +424,7 @@ def _update_phase(run_id: str, phase: Phase, error_message: str | None = None) -
 
     update: dict = {
         "phase": phase.value,
-        "updated_at": datetime.utcnow(),
+        "updated_at": datetime.now(UTC),
         "elapsed_ms": elapsed_ms,
         "error_message": error_message,
     }

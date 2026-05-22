@@ -53,8 +53,8 @@ function ProgressRing({ percent, size = 80 }: ProgressRingProps) {
 interface ExperimentProgressCardProps {
   /** Main title (e.g., "Experiment Progress") */
   title: string;
-  /** Subtitle showing completion (e.g., "1 of 2 runs completed") */
-  subtitle: string;
+  /** Subtitle showing completion (e.g., "1 of 2 runs completed") - accepts string or React node */
+  subtitle: string | React.ReactNode;
   /** Completion percentage (0-100) */
   percent: number;
   /** Size variant */

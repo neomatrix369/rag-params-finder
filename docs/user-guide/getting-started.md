@@ -56,13 +56,14 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?
 
 # Required for Voyage sweep only — see cloud-setup.md checklist
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# Uncomment Tier 1 limits in .env.example (comment out free-tier defaults first)
 VOYAGE_RPM_LIMIT=2000
 VOYAGE_TPM_LIMIT=16000000
 
 SERVER_URL=http://localhost:8001
 ```
 
-Full variable reference: [Troubleshooting → Environment Variables](troubleshooting.md#-environment-variables-reference). Optional Atlas Admin API keys for dashboard quota bar — see `.env.example`.
+Full variable reference: [Troubleshooting → Environment Variables](troubleshooting.md#-environment-variables-reference). Optional Atlas Admin API keys enable cluster tier + storage quota in the dashboard — see `.env.example`.
 
 ### 2. Search indexes (required before sweep)
 
