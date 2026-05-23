@@ -24,8 +24,8 @@ def _run_search_aggregate(
         return list(chunks_collection.aggregate(pipeline))
     except Exception:
         logger.error(
-            "%s search failed: experiment=%s model=%s index=%s",
-            search_kind,
+            "%s search failed — experiment=%s model=%s index=%s",
+            search_kind.lower(),
             experiment_id,
             embedding_model,
             index_name,
@@ -41,8 +41,11 @@ def dense_search(
 
     index_name = get_index_name(embedding_model)
     logger.debug(
-        f"Dense search for experiment={experiment_id}, model={embedding_model}, "
-        f"index={index_name}, k={top_k}"
+        "dense search start — experiment=%s model=%s index=%s k=%s",
+        experiment_id,
+        embedding_model,
+        index_name,
+        top_k,
     )
 
     pipeline = [
@@ -79,7 +82,7 @@ def dense_search(
         embedding_model=embedding_model,
         index_name=index_name,
     )
-    logger.debug(f"Dense search returned {len(results)} results")
+    logger.debug("dense search OK — %s hits", len(results))
 
     return _to_search_results(results, retrieval_method="dense")
 
@@ -94,7 +97,10 @@ def sparse_search(
     'embedding_model' (token).  See CLAUDE.local.md for index creation steps.
     """
     logger.debug(
-        f"Sparse search for experiment={experiment_id}, model={embedding_model}, k={top_k}"
+        "sparse search start — experiment=%s model=%s k=%s",
+        experiment_id,
+        embedding_model,
+        top_k,
     )
 
     pipeline = [
@@ -131,7 +137,7 @@ def sparse_search(
         embedding_model=embedding_model,
         index_name=TEXT_SEARCH_INDEX_NAME,
     )
-    logger.debug(f"Sparse search returned {len(results)} results")
+    logger.debug("sparse search OK — %s hits", len(results))
 
     return _to_search_results(results, retrieval_method="sparse")
 
@@ -151,7 +157,10 @@ def hybrid_search(
     advantage of rank-1 results and reduces sensitivity to outliers.
     """
     logger.debug(
-        f"Hybrid search for experiment={experiment_id}, model={embedding_model}, k={top_k}"
+        "hybrid search start — experiment=%s model=%s k=%s",
+        experiment_id,
+        embedding_model,
+        top_k,
     )
 
     dense_results = dense_search(query_embedding, experiment_id, embedding_model, top_k)
@@ -185,7 +194,7 @@ def hybrid_search(
             )
         )
 
-    logger.debug(f"Hybrid search returned {len(merged)} results after RRF merge")
+    logger.debug("hybrid search OK — %s hits after RRF", len(merged))
     return merged
 
 

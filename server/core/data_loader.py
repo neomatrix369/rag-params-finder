@@ -29,21 +29,21 @@ def resolve_data_paths(data_paths: list[str]) -> list[Path]:
                 if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
             )
             if not found:
-                logger.warning(f"No supported files in directory: {raw}")
+                logger.warning("data path empty — no supported files under %s", raw)
             resolved.extend(found)
         elif path.suffix.lower() in SUPPORTED_EXTENSIONS:
             resolved.append(path)
         else:
-            logger.warning(f"Skipping unsupported file type: {raw}")
+            logger.warning("data path skipped — unsupported type %s", raw)
 
-    logger.info(f"Resolved {len(resolved)} file(s) from {len(data_paths)} path(s)")
+    logger.info("data paths resolved — %s files from %s paths", len(resolved), len(data_paths))
     return resolved
 
 
 def load_file(path: Path) -> str:
     """Parse a single file into text based on its extension."""
     ext = path.suffix.lower()
-    logger.info(f"Loading {ext} file: {path}")
+    logger.info("loading file — type=%s path=%s", ext, path)
 
     if ext == ".pdf":
         return _parse_pdf(path)
@@ -61,7 +61,7 @@ def load_all_files(data_paths: list[str]) -> str:
         texts.append(load_file(fp))
 
     combined = "\n\n".join(texts)
-    logger.info(f"Loaded {len(file_paths)} file(s), {len(combined)} total chars")
+    logger.info("files loaded — %s files chars=%s", len(file_paths), len(combined))
     return combined
 
 
@@ -74,11 +74,15 @@ def _parse_pdf(pdf_path: Path) -> str:
         page_text = page.extract_text()
         if page_text:
             text_parts.append(page_text)
-            logger.debug(f"Extracted {len(page_text)} chars from page {i + 1}")
+            logger.debug("pdf page extract — page %s chars=%s", i + 1, len(page_text))
 
     full_text = "\n\n".join(text_parts)
     if not full_text.strip():
-        logger.warning(f"PDF {pdf_path}: extracted 0 chars from {len(reader.pages)} page(s)")
+        logger.warning(
+            "pdf empty — path=%s pages=%s extracted 0 chars",
+            pdf_path,
+            len(reader.pages),
+        )
     else:
-        logger.info(f"Parsed {len(reader.pages)} pages, {len(full_text)} total chars")
+        logger.info("pdf parsed OK — pages=%s chars=%s", len(reader.pages), len(full_text))
     return full_text

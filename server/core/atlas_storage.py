@@ -136,7 +136,9 @@ def _fetch_atlas_storage_limit_mb() -> float | None:
         settings.mongodb_uri
     )
     if not cluster_name:
-        logger.warning("Atlas storage quota: could not derive cluster name from MONGODB_URI")
+        logger.warning(
+            "atlas storage quota skip — cluster name unavailable from MONGODB_URI",
+        )
         return None
 
     url = f"{ATLAS_API_BASE}/groups/{settings.atlas_group_id.strip()}/clusters/{cluster_name}"
@@ -150,7 +152,11 @@ def _fetch_atlas_storage_limit_mb() -> float | None:
             response.raise_for_status()
             payload = response.json()
     except httpx.HTTPError as exc:
-        logger.warning("Atlas storage quota lookup failed for cluster %s: %s", cluster_name, exc)
+        logger.warning(
+            "atlas storage quota lookup failed — cluster=%s error=%s",
+            cluster_name,
+            exc,
+        )
         return None
 
     return _storage_limit_mb_from_cluster(payload)
@@ -166,7 +172,9 @@ def _fetch_atlas_tier_specs() -> dict[str, str | float | None] | None:
         settings.mongodb_uri
     )
     if not cluster_name:
-        logger.warning("Atlas tier specs: could not derive cluster name from MONGODB_URI")
+        logger.warning(
+            "atlas tier specs skip — cluster name unavailable from MONGODB_URI",
+        )
         return None
 
     url = f"{ATLAS_API_BASE}/groups/{settings.atlas_group_id.strip()}/clusters/{cluster_name}"
@@ -180,7 +188,11 @@ def _fetch_atlas_tier_specs() -> dict[str, str | float | None] | None:
             response.raise_for_status()
             cluster = response.json()
     except httpx.HTTPError as exc:
-        logger.warning("Atlas tier specs lookup failed for cluster %s: %s", cluster_name, exc)
+        logger.warning(
+            "atlas tier specs lookup failed — cluster=%s error=%s",
+            cluster_name,
+            exc,
+        )
         return None
 
     return _tier_specs_from_cluster(cluster)
@@ -198,7 +210,9 @@ def _tier_specs_from_cluster(cluster: dict[str, Any]) -> dict[str, str | float |
     instance_size = _instance_size_name(cluster)
 
     if not instance_size:
-        logger.warning("Atlas tier specs: could not determine instance size from API response")
+        logger.warning(
+            "atlas tier specs incomplete — instance_size unavailable in API payload",
+        )
         return None
 
     # Provider and region from API
@@ -217,7 +231,7 @@ def _tier_specs_from_cluster(cluster: dict[str, Any]) -> dict[str, str | float |
     elif instance_size in TIER_STORAGE_LIMIT_MB:
         storage_mb = TIER_STORAGE_LIMIT_MB[instance_size]
     else:
-        logger.info("Atlas tier specs: unknown storage for tier %s", instance_size)
+        logger.info("atlas tier storage unknown — falling back tier=%s", instance_size)
         storage_mb = None
 
     return {
@@ -239,7 +253,7 @@ def _storage_limit_mb_from_cluster(cluster: dict[str, Any]) -> float | None:
         return TIER_STORAGE_LIMIT_MB[tier]
 
     if tier:
-        logger.info("Atlas storage quota: unknown tier %s — quota hidden", tier)
+        logger.info("atlas storage quota unknown tier — quota hidden tier=%s", tier)
     return None
 
 

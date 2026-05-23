@@ -17,10 +17,10 @@ def _mongo_fetch_run(run_id: str):
 @router.get("/{run_id}/status")
 async def get_run_status(run_id: str):
     """Get current status/phase of a single run."""
-    logger.debug(f"GET /runs/{run_id}/status")
+    logger.debug("run status — GET /runs/%s/status", run_id)
     status = await asyncio.to_thread(_mongo_fetch_run, run_id)
     if not status:
-        logger.warning(f"Run not found: {run_id}")
+        logger.warning("run status failed — not found: %s", run_id)
         raise HTTPException(status_code=404, detail="Run not found")
-    logger.debug(f"Run {run_id} phase={status.get('phase')}")
+    logger.debug("run status OK — %s phase=%s", run_id, status.get("phase"))
     return status

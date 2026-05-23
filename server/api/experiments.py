@@ -86,7 +86,7 @@ async def create_experiment(config: ExperimentConfig):
     }
     await asyncio.to_thread(mongo_insert_experiment_doc, experiment_doc)
 
-    logger.info(f"Experiment '{stamped_name}' ({experiment_id}): {len(runs)} runs")
+    logger.info("experiment created — %s (%s), %s run(s)", stamped_name, experiment_id, len(runs))
     schedule_sweep(run_sweep, experiment_id, config)
 
     return {
@@ -101,21 +101,21 @@ async def create_experiment(config: ExperimentConfig):
 @router.get("")
 async def list_experiments():
     """List all experiments."""
-    logger.debug("GET /experiments — listing all")
+    logger.debug("list OK — GET /experiments")
     experiments = await asyncio.to_thread(mongo_list_all_experiment_docs)
-    logger.debug(f"Listed {len(experiments)} experiments")
+    logger.debug("list OK — %s experiment(s)", len(experiments))
     return {"experiments": experiments}
 
 
 @router.get("/vector-db-stats")
 async def get_vector_db_stats_grouped():
     """Vector DB stats for all experiments, grouped by cluster."""
-    logger.debug("GET /experiments/vector-db-stats")
+    logger.debug("vector DB stats — GET /experiments/vector-db-stats")
     payload = await _run_heavy_read(mongo_get_vector_db_stats_grouped)
     info_throttled(
         logger,
         "poll:vector-db-stats",
-        "Vector DB stats: %s group(s)",
+        "vector DB stats OK — %s group(s)",
         len(payload["groups"]),
     )
     return payload
@@ -124,26 +124,31 @@ async def get_vector_db_stats_grouped():
 @router.get("/{experiment_id}")
 async def get_experiment(experiment_id: str):
     """Get a single experiment with its run statuses."""
-    logger.debug(f"GET /experiments/{experiment_id}")
+    logger.debug("detail — GET /experiments/%s", experiment_id)
     experiment = await asyncio.to_thread(mongo_find_experiment_with_runs, experiment_id)
     if not experiment:
-        logger.warning(f"Experiment not found: {experiment_id}")
+        logger.warning("detail failed — experiment not found: %s", experiment_id)
         raise HTTPException(status_code=404, detail="Experiment not found")
 
     runs = experiment["runs"]
-    logger.debug(f"Experiment {experiment_id}: status={experiment.get('status')}, {len(runs)} runs")
+    logger.debug(
+        "detail OK — %s status=%s, %s run row(s)",
+        experiment_id,
+        experiment.get("status"),
+        len(runs),
+    )
     return experiment
 
 
 @router.get("/{experiment_id}/results")
 async def get_experiment_results(experiment_id: str):
     """Get all query results for an experiment."""
-    logger.debug(f"GET /experiments/{experiment_id}/results")
+    logger.debug("results — GET /experiments/%s/results", experiment_id)
     results = await asyncio.to_thread(mongo_list_results_for_experiment, experiment_id)
     info_throttled(
         logger,
         f"poll:results:{experiment_id}",
-        "Returning %s results for experiment %s",
+        "results OK — %s row(s) for experiment %s",
         len(results),
         experiment_id,
     )
@@ -153,7 +158,7 @@ async def get_experiment_results(experiment_id: str):
 @router.get("/{experiment_id}/db-stats")
 async def get_experiment_db_stats(experiment_id: str):
     """Get vector database statistics for an experiment."""
-    logger.debug(f"GET /experiments/{experiment_id}/db-stats")
+    logger.debug("db-stats — GET /experiments/%s/db-stats", experiment_id)
     experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
@@ -162,7 +167,7 @@ async def get_experiment_db_stats(experiment_id: str):
     info_throttled(
         logger,
         f"poll:db-stats:{experiment_id}",
-        "DB stats for %s: %s chunks, %s MB",
+        "db-stats OK — %s: %s chunks, %s MB",
         experiment_id,
         stats["total_chunks"],
         stats["estimated_storage_mb"],
@@ -175,7 +180,7 @@ async def explore_experiment(experiment_id: str, query: str | None = None):
     """Aggregated results explorer — ranked configs + detailed results."""
     from server.core.results_analyzer import analyze_results
 
-    logger.debug(f"GET /experiments/{experiment_id}/explore (query={query!r})")
+    logger.debug("explore — GET /experiments/%s/explore query=%r", experiment_id, query)
 
     experiment_doc, query_results, run_statuses = await _run_heavy_read(
         lambda: mongo_load_explore_source(experiment_id)
@@ -190,7 +195,7 @@ async def explore_experiment(experiment_id: str, query: str | None = None):
     info_throttled(
         logger,
         f"poll:explore:{experiment_id}",
-        "Explore %s: %s queries, %s matches, %s configs",
+        "explore OK — %s: %s queries, %s matches, %s configs",
         experiment_id,
         explored["query_count"],
         explored["total_matches"],
@@ -202,7 +207,7 @@ async def explore_experiment(experiment_id: str, query: str | None = None):
 @router.post("/{experiment_id}/cancel")
 async def cancel_experiment(experiment_id: str):
     """Cancel a running experiment."""
-    logger.info(f"POST /experiments/{experiment_id}/cancel")
+    logger.info("cancel started — POST /experiments/%s/cancel", experiment_id)
 
     experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
     if not experiment:
@@ -219,7 +224,7 @@ async def cancel_experiment(experiment_id: str):
     if not signalled:
         await asyncio.to_thread(mongo_mark_experiment_cancelled_now, experiment_id)
 
-    logger.info(f"Experiment {experiment_id} cancel requested (in-flight={signalled})")
+    logger.info("cancel OK — %s in-flight=%s", experiment_id, signalled)
     return {
         "status": "cancel_requested",
         "experiment_id": experiment_id,
@@ -230,7 +235,7 @@ async def cancel_experiment(experiment_id: str):
 @router.post("/{experiment_id}/pause")
 async def pause_experiment(experiment_id: str):
     """Pause a running experiment after the current phase completes."""
-    logger.info(f"POST /experiments/{experiment_id}/pause")
+    logger.info("pause started — POST /experiments/%s/pause", experiment_id)
 
     experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
     if not experiment:
@@ -247,7 +252,7 @@ async def pause_experiment(experiment_id: str):
     if not signalled:
         await asyncio.to_thread(mongo_mark_experiment_paused_now, experiment_id)
 
-    logger.info(f"Experiment {experiment_id} pause requested (in-flight={signalled})")
+    logger.info("pause OK — %s in-flight=%s", experiment_id, signalled)
     return {
         "status": "pause_requested",
         "experiment_id": experiment_id,
@@ -258,7 +263,7 @@ async def pause_experiment(experiment_id: str):
 @router.post("/{experiment_id}/resume")
 async def resume_experiment(experiment_id: str):
     """Resume a paused experiment from the next incomplete parameter combination."""
-    logger.info(f"POST /experiments/{experiment_id}/resume")
+    logger.info("resume started — POST /experiments/%s/resume", experiment_id)
 
     experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
     if not experiment:
@@ -289,11 +294,7 @@ async def resume_experiment(experiment_id: str):
     schedule_sweep(resume_sweep, experiment_id, config)
 
     runs = expand_sweep(config)
-    logger.info(
-        "Experiment %s resume scheduled: %s total run(s) in sweep config",
-        experiment_id,
-        len(runs),
-    )
+    logger.info("resume OK — %s scheduled, %s run(s) in sweep", experiment_id, len(runs))
     return {
         "status": "resume_requested",
         "experiment_id": experiment_id,
@@ -305,7 +306,7 @@ async def resume_experiment(experiment_id: str):
 @router.delete("/{experiment_id}")
 async def delete_experiment(experiment_id: str):
     """Delete an experiment and all its associated data (chunks, results, run statuses)."""
-    logger.info(f"DELETE /experiments/{experiment_id}")
+    logger.info("delete started — DELETE /experiments/%s", experiment_id)
 
     experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
     if not experiment:
@@ -319,7 +320,7 @@ async def delete_experiment(experiment_id: str):
 
     deleted_counts = await asyncio.to_thread(mongo_delete_experiment_data, experiment_id)
 
-    logger.info(f"Experiment {experiment_id} deleted: {deleted_counts}")
+    logger.info("delete OK — %s counts=%s", experiment_id, deleted_counts)
     return {
         "status": "deleted",
         "experiment_id": experiment_id,

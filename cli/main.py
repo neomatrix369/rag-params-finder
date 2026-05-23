@@ -63,7 +63,7 @@ def _build_runs_table(runs: list[dict]) -> Table:
 
 def _watch_experiment(experiment_id: str) -> None:
     """Poll experiment status and display live table until all runs finish."""
-    logger.info(f"Watching experiment {experiment_id}")
+    logger.info("watch started — experiment %s", experiment_id)
     console.print(f"\n[cyan]Watching experiment {experiment_id[:8]}...[/cyan]\n")
 
     poll_count = 0
@@ -74,14 +74,14 @@ def _watch_experiment(experiment_id: str) -> None:
             try:
                 data = get_experiment(experiment_id)
             except Exception as e:
-                logger.warning(f"Poll #{poll_count} failed: {e}")
+                logger.warning("watch poll failed — #%s: %s", poll_count, e)
                 live.update(f"[red]Poll error: {e}[/red]")
                 time.sleep(POLL_INTERVAL_S)
                 continue
 
             runs = data.get("runs", [])
             status = data.get("status", "unknown")
-            logger.debug(f"Poll #{poll_count}: status={status}, runs={len(runs)}")
+            logger.debug("watch poll OK — #%s status=%s runs=%s", poll_count, status, len(runs))
 
             table = _build_runs_table(runs)
             live.update(table)
@@ -102,7 +102,7 @@ def _watch_experiment(experiment_id: str) -> None:
                     data = get_experiment(experiment_id)
                 except Exception as e:
                     logger.warning(
-                        "Final poll before summary failed for %s: %s",
+                        "watch final poll failed — %s: %s",
                         experiment_id,
                         e,
                     )
@@ -214,7 +214,7 @@ def _print_summary(data: dict) -> None:
             err = r.get("error_message") or "unknown error"
             lines.append(f"  [dim]{run_id}[/dim] ({model}): {err}")
 
-    logger.info(f"Experiment {data.get('experiment_id', '?')} finished: {status}")
+    logger.info("watch finished — experiment %s status=%s", data.get("experiment_id", "?"), status)
     console.print(
         Panel.fit(
             "\n".join(lines),
@@ -231,18 +231,22 @@ def run(
     watch: bool = typer.Option(True, "--watch/--no-watch", help="Poll and display live status"),
 ):
     """Submit an experiment to the server."""
-    logger.info(f"CLI run command: config={config}, detach={detach}, watch={watch}")
+    logger.info("run command — config=%s detach=%s watch=%s", config, detach, watch)
     console.print(f"[cyan]Loading config from {config}...[/cyan]")
 
     try:
         config_data = load_config(config)
-        logger.debug(f"Config loaded with experiment_name={config_data.get('experiment_name')}")
+        logger.debug("run command — experiment_name=%s", config_data.get("experiment_name"))
 
         console.print("[cyan]Submitting experiment to server...[/cyan]")
         response = submit_experiment(config_data)
 
         run_count = response.get("run_count", "?")
-        logger.info(f"Submitted: name={response.get('experiment_name')}, runs={run_count}")
+        logger.info(
+            "submit OK — name=%s runs=%s",
+            response.get("experiment_name"),
+            run_count,
+        )
         console.print(
             Panel.fit(
                 f"[green]✓[/green] Experiment submitted: {response['experiment_name']}\n"
@@ -254,18 +258,18 @@ def run(
         )
 
         if detach:
-            logger.info("Detached mode — exiting without watching")
+            logger.info("run command — detach mode, exiting without watch")
             console.print(f"Detached. Check dashboard at {_DASHBOARD_URL}")
             return
 
         if not watch:
-            logger.info("Watch disabled — exiting")
+            logger.info("run command — watch disabled, exiting")
             console.print(f"Check dashboard at {_DASHBOARD_URL} for progress")
             return
 
         experiment_id = response.get("experiment_id")
         if not experiment_id:
-            logger.warning("Server did not return experiment_id")
+            logger.warning("submit OK — missing experiment_id, cannot watch")
             console.print("[yellow]Server did not return experiment_id — cannot watch.[/yellow]")
             console.print(f"Check dashboard at {_DASHBOARD_URL}")
             return
@@ -273,11 +277,11 @@ def run(
         _watch_experiment(experiment_id)
 
     except FileNotFoundError as e:
-        logger.error(f"Config file error: {e}")
+        logger.error("run command failed — config file: %s", e)
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        logger.error(f"Experiment submission failed: {e}", exc_info=True)
+        logger.error("run command failed — submit: %s", e, exc_info=True)
         console.print(f"[red]Failed to submit experiment: {e}[/red]")
         raise typer.Exit(1)
 
@@ -287,7 +291,7 @@ def cancel(
     experiment_id: str = typer.Argument(..., help="Experiment ID to cancel"),
 ):
     """Cancel a running experiment."""
-    logger.info(f"CLI cancel command: experiment_id={experiment_id}")
+    logger.info("cancel command — experiment_id=%s", experiment_id)
     console.print(f"[cyan]Requesting cancellation for {experiment_id[:8]}...[/cyan]")
 
     try:
@@ -302,11 +306,11 @@ def cancel(
             )
         )
     except RuntimeError as e:
-        logger.error(f"Cancel failed: {e}")
+        logger.error("cancel command failed — %s", e)
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        logger.error(f"Cancel request failed: {e}", exc_info=True)
+        logger.error("cancel command failed — request: %s", e, exc_info=True)
         console.print(f"[red]Failed to cancel experiment: {e}[/red]")
         raise typer.Exit(1)
 
@@ -316,7 +320,7 @@ def pause(
     experiment_id: str = typer.Argument(..., help="Experiment ID to pause"),
 ):
     """Pause a running experiment (stops after the current phase)."""
-    logger.info(f"CLI pause command: experiment_id={experiment_id}")
+    logger.info("pause command — experiment_id=%s", experiment_id)
     console.print(f"[cyan]Requesting pause for {experiment_id[:8]}...[/cyan]")
 
     try:
@@ -331,11 +335,11 @@ def pause(
             )
         )
     except RuntimeError as e:
-        logger.error(f"Pause failed: {e}")
+        logger.error("pause command failed — %s", e)
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        logger.error(f"Pause request failed: {e}", exc_info=True)
+        logger.error("pause command failed — request: %s", e, exc_info=True)
         console.print(f"[red]Failed to pause experiment: {e}[/red]")
         raise typer.Exit(1)
 
@@ -345,7 +349,7 @@ def resume(
     experiment_id: str = typer.Argument(..., help="Experiment ID to resume"),
 ):
     """Resume a paused experiment from the next incomplete parameter combination."""
-    logger.info(f"CLI resume command: experiment_id={experiment_id}")
+    logger.info("resume command — experiment_id=%s", experiment_id)
     console.print(f"[cyan]Resuming experiment {experiment_id[:8]}...[/cyan]")
 
     try:
@@ -360,11 +364,11 @@ def resume(
             )
         )
     except RuntimeError as e:
-        logger.error(f"Resume failed: {e}")
+        logger.error("resume command failed — %s", e)
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        logger.error(f"Resume request failed: {e}", exc_info=True)
+        logger.error("resume command failed — request: %s", e, exc_info=True)
         console.print(f"[red]Failed to resume experiment: {e}[/red]")
         raise typer.Exit(1)
 
@@ -375,7 +379,7 @@ def delete(
     force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation prompt"),
 ):
     """Delete an experiment and all its associated data (chunks, results, run statuses)."""
-    logger.info(f"CLI delete command: experiment_id={experiment_id}, force={force}")
+    logger.info("delete command — experiment_id=%s force=%s", experiment_id, force)
 
     if not force:
         console.print(
@@ -389,7 +393,7 @@ def delete(
         confirm = typer.confirm("Are you sure you want to continue?")
         if not confirm:
             console.print("[dim]Deletion cancelled[/dim]")
-            logger.info("User cancelled deletion")
+            logger.info("delete command — cancelled by user")
             raise typer.Exit(0)
 
     console.print(f"[cyan]Deleting experiment {experiment_id[:8]}...[/cyan]")
@@ -416,14 +420,14 @@ def delete(
                 border_style="red",
             )
         )
-        logger.info(f"Experiment {experiment_id} deleted: {deleted_counts}")
+        logger.info("delete OK — experiment %s counts=%s", experiment_id, deleted_counts)
 
     except RuntimeError as e:
-        logger.error(f"Delete failed: {e}")
+        logger.error("delete command failed — %s", e)
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        logger.error(f"Delete request failed: {e}", exc_info=True)
+        logger.error("delete command failed — request: %s", e, exc_info=True)
         console.print(f"[red]Failed to delete experiment: {e}[/red]")
         raise typer.Exit(1)
 

@@ -21,9 +21,9 @@ def _get_model(model_id: str) -> CrossEncoder:
     if model_id not in _models:
         info = get_reranker_info(model_id)
         hf_id = info["huggingface_id"] or model_id
-        logger.info(f"Loading local reranker model: {hf_id}")
+        logger.info("local rerank model load — %s", hf_id)
         _models[model_id] = CrossEncoder(hf_id)
-        logger.info(f"Local reranker model loaded: {hf_id}")
+        logger.info("local rerank model ready — %s", hf_id)
     return _models[model_id]
 
 
@@ -37,7 +37,12 @@ def rerank_local(
     if not search_results:
         return []
 
-    logger.debug(f"Reranking {len(search_results)} results locally with {model_id}, top_k={top_k}")
+    logger.debug(
+        "local rerank — candidates=%s model=%s top_k=%s",
+        len(search_results),
+        model_id,
+        top_k,
+    )
 
     model = _get_model(model_id)
     pairs = [(query, r.chunk.text) for r in search_results]
@@ -61,5 +66,5 @@ def rerank_local(
             )
         )
 
-    logger.debug(f"Local reranking complete: {len(reranked)} results returned")
+    logger.debug("local rerank OK — returning %s hits", len(reranked))
     return reranked

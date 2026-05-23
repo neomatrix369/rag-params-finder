@@ -93,7 +93,7 @@ export default function ExperimentProgressCard({
       <div className="flex items-center justify-between">
         <div>
           <h3 className={titleClasses}>{title}</h3>
-          <p className={subtitleClasses}>{subtitle}</p>
+          <div className={subtitleClasses}>{subtitle}</div>
         </div>
         <ProgressRing percent={percent} size={actualRingSize} />
       </div>

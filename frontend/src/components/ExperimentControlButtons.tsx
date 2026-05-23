@@ -9,7 +9,7 @@ import {
   isPausedExperimentStatus,
   isRunningExperimentStatus,
 } from '../utils/experimentStatus';
-import { devWarn } from '../utils/devLog';
+import { devInfo, devWarn } from '../utils/devLog';
 
 type ControlTone = 'light' | 'dark';
 type ControlSize = 'sm' | 'md';
@@ -68,10 +68,11 @@ export default function ExperimentControlButtons({
     setBusy(true);
     try {
       await action();
+      devInfo('ExperimentControlButtons', `${actionLabel} OK — ${experimentId.slice(0, 8)}…`);
       await onStatusChange?.();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Action failed';
-      devWarn(`Control action failed (${actionLabel}, ${experimentId.slice(0, 8)}…):`, message);
+      devWarn('ExperimentControlButtons', `${actionLabel} failed — ${experimentId.slice(0, 8)}… — ${message}`);
       onError?.(message);
     } finally {
       setBusy(false);

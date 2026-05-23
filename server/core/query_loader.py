@@ -33,14 +33,14 @@ def _download_queries(url: str) -> Path:
     local_path = CONFIGS_DIR / filename
 
     if local_path.exists():
-        logger.info(f"Queries file already cached: {local_path}")
+        logger.info("queries cache hit — path=%s", local_path)
         return local_path
 
-    logger.info(f"Downloading queries from {url}")
+    logger.info("queries download — url=%s", url)
     response = httpx.get(url, follow_redirects=True, timeout=_DOWNLOAD_TIMEOUT_S)
     response.raise_for_status()
     local_path.write_bytes(response.content)
-    logger.info(f"Saved queries to {local_path}")
+    logger.info("queries saved — path=%s", local_path)
     return local_path
 
 
@@ -72,5 +72,5 @@ def load_queries(queries_file: str) -> list[Query]:
                 )
             )
 
-    logger.info(f"Loaded {len(queries)} queries from {path}")
+    logger.info("queries loaded — count=%s source=%s", len(queries), path)
     return queries

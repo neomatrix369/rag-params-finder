@@ -17,7 +17,7 @@ import ExperimentVectorDbStatsCard from './ExperimentVectorDbStatsCard';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
 import { deleteExperiment, getExperiments, getExperimentsWithProgress, getVectorDbStatsGrouped } from '../services/apiClient';
 import { Experiment, ExperimentDbStatsSummary, VectorDbStatsGroup } from '../types';
-import { devDebugThrottled, devWarn } from '../utils/devLog';
+import { devInfo, devInfoThrottled, devWarn } from '../utils/devLog';
 import { isPausedExperimentStatus, isRunningExperimentStatus } from '../utils/experimentStatus';
 
 let feedSeq = 0;
@@ -209,6 +209,7 @@ export default function ExperimentsScreen({
   }, [onCacheUpdate, vectorDbGroups]);
 
   const handleBulkDelete = useCallback(async () => {
+    const deleteCount = selectedExperiments.size;
     setDeleting(true);
     try {
       await Promise.all(
@@ -219,9 +220,10 @@ export default function ExperimentsScreen({
       const refreshed = await getExperiments();
       setExperiments(refreshed);
       setError(null);
+      devInfo('ExperimentsScreen', `bulk delete OK — removed ${deleteCount} experiment(s)`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to delete experiments';
-      devWarn('Bulk delete failed:', msg);
+      devWarn('ExperimentsScreen', `bulk delete failed — ${msg}`);
       setError(msg);
       setShowDeleteModal(false);
     } finally {
@@ -265,7 +267,7 @@ export default function ExperimentsScreen({
       } catch (err) {
         if (!aliveRef.current) return;
         const msg = err instanceof Error ? err.message : 'Failed to load vector DB stats';
-        devWarn('Vector DB stats load failed:', msg);
+        devWarn('ExperimentsScreen', `vector DB stats load failed — ${msg}`);
         setVectorDbError(msg);
       } finally {
         vectorDbStatsInFlightRef.current = null;
@@ -287,6 +289,8 @@ export default function ExperimentsScreen({
     const abortInitial = new AbortController();
 
     const stall = createStallWatcher({
+      scope: 'ExperimentsScreen',
+      operation: 'initial list load',
       alive: () => aliveRef.current,
       afterMs: LOADING_STALL_AFTER_MS,
       repeatMs: LOADING_STALL_REPEAT_MS,
@@ -302,17 +306,18 @@ export default function ExperimentsScreen({
           if (!aliveRef.current) return;
           setExperiments(rows);
           setError(null);
-          devDebugThrottled(
+          devInfoThrottled(
+            'ExperimentsScreen',
             'poll:experiments',
             DEV_POLL_LOG_INTERVAL_MS,
-            `Poll OK — ${rows.length} experiment(s)`,
+            `List poll OK — ${rows.length} experiment(s)`,
             pollDevLogAtRef.current,
           );
         } catch (pollErr) {
           if (!aliveRef.current) return;
           const pollMsg =
             pollErr instanceof Error ? pollErr.message : 'Polling failed — check server connectivity.';
-          devWarn('Experiments poll failed:', pollMsg);
+          devWarn('ExperimentsScreen', `list poll failed — ${pollMsg}`);
           setError(pollMsg);
         } finally {
           if (aliveRef.current) setIsPolling(false);
@@ -332,6 +337,10 @@ export default function ExperimentsScreen({
     }
 
     if (cacheReady) {
+      devInfo(
+        'ExperimentsScreen',
+        `cache restore — ${cachedExperiments?.length ?? 0} experiment(s), polling every ${EXPERIMENTS_POLL_MS}ms`,
+      );
       startPollTimers();
       void loadVectorDbStats({ silent: (cachedVectorDbGroups?.length ?? 0) > 0 });
       void getExperiments()
@@ -341,7 +350,7 @@ export default function ExperimentsScreen({
           setError(null);
         })
         .catch((err) => {
-          devWarn('Background experiments refresh failed:', err);
+          devWarn('ExperimentsScreen', `background list refresh failed — ${String(err)}`);
         });
       return () => {
         aliveRef.current = false;
@@ -357,6 +366,7 @@ export default function ExperimentsScreen({
     }
 
     async function bootstrap() {
+      devInfo('ExperimentsScreen', 'list load started');
       setFeed([{ id: 'start', text: 'Starting experiments list load…', variant: 'default' }]);
       setReceivedBytes(null);
       setTotalBytes(null);
@@ -380,6 +390,7 @@ export default function ExperimentsScreen({
         if (!aliveRef.current) return;
         setExperiments(data);
         setError(null);
+        devInfo('ExperimentsScreen', `list load OK — ${data.length} experiment(s)`);
         void loadVectorDbStats();
         if (!aliveRef.current) return;
         setFeed((f) => appendFeed(f, 'Experiments loaded — vector DB stats loading above.', 'default'));
@@ -388,7 +399,7 @@ export default function ExperimentsScreen({
         if (!aliveRef.current) return;
         if (err instanceof DOMException && err.name === 'AbortError') return;
         const msg = err instanceof Error ? err.message : 'Failed to load experiments';
-        devWarn('Initial experiments load failed:', msg);
+        devWarn('ExperimentsScreen', `list load failed — ${msg}`);
         setError(msg);
         setFeed((f) => appendFeed(f, `Failed: ${msg}`, 'warning'));
       } finally {
@@ -396,6 +407,10 @@ export default function ExperimentsScreen({
         if (!aliveRef.current) return;
         setLoading(false);
         setInitialLoadDone(true);
+        devInfo(
+          'ExperimentsScreen',
+          `poll started — list every ${EXPERIMENTS_POLL_MS}ms, vector DB stats every ${VECTOR_DB_STATS_POLL_MS}ms`,
+        );
         startPollTimers();
       }
     }

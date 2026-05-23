@@ -20,25 +20,23 @@ logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Ensure indexes exist on startup."""
-    logger.info("Server starting...")
+    logger.info("boot — server starting")
     try:
         ensure_indexes()
     except Exception as e:
-        logger.warning(
-            "Index check failed (server will start without indexes): %s", e, exc_info=True
-        )
+        logger.warning("boot — index check failed (starting without indexes): %s", e, exc_info=True)
     try:
         reconcile_orphaned_experiments()
     except Exception as e:
-        logger.error(f"Orphaned experiment reconciliation failed: {e}", exc_info=True)
+        logger.error("boot — orphan reconciliation failed: %s", e, exc_info=True)
     if settings.recover_on_boot:
         logger.info(
-            "RECOVER_ON_BOOT is enabled; automatic retry of interrupted runs is not "
-            "implemented yet (see docs/slices/SLICE-10-RUN-RECOVERY.md)"
+            "boot — RECOVER_ON_BOOT enabled; automatic retry not implemented "
+            "(see docs/slices/SLICE-10-RUN-RECOVERY.md)"
         )
-    logger.info("Server ready")
+    logger.info("boot OK — server ready")
     yield
-    logger.info("Server shutting down...")
+    logger.info("shutdown — server stopping")
     shutdown_executors()
 
 
@@ -73,7 +71,7 @@ else:
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Log unexpected API errors with request context (HTTPException uses FastAPI default)."""
     logger.error(
-        "Unhandled exception on %s %s: %s",
+        "HTTP error — unhandled exception on %s %s: %s",
         request.method,
         request.url.path,
         exc,

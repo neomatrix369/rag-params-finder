@@ -33,7 +33,7 @@ import ConfirmDeleteModal from './ConfirmDeleteModal';
 import CollapsibleCard from './CollapsibleCard';
 import { RunStatus, Phase, EnvParams, SweepSummary, ExperimentStatus, Experiment, ExperimentDbStatsSummary } from '../types';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
-import { devDebugThrottled, devWarn } from '../utils/devLog';
+import { devInfo, devInfoThrottled, devWarn } from '../utils/devLog';
 import { toExperimentDbStatsSummary } from '../utils/experimentDbStats';
 import {
   isPausedExperimentStatus,
@@ -525,7 +525,7 @@ export default function ExperimentDetailScreen({
           const response = await getExperimentDbStats(experimentId);
           setDbStats(toExperimentDbStatsSummary(meta, response.db_stats));
         } catch (err) {
-          devWarn(`DB stats load failed (${experimentId.slice(0, 8)}…):`, err);
+          devWarn('ExperimentDetailScreen', `db stats load failed — ${experimentId.slice(0, 8)}…`, err);
         } finally {
           dbStatsInFlightRef.current = null;
           setDbStatsLoading(false);
@@ -562,6 +562,8 @@ export default function ExperimentDetailScreen({
       stopDetailPoll();
       if (!isRunningExperimentStatus(status)) return;
 
+      devInfo('ExperimentDetailScreen', `detail poll started — ${experimentId.slice(0, 8)}… every ${DETAIL_POLL_MS}ms`);
+
       pollRef.current = window.setInterval(async () => {
         if (!aliveRef.current) return;
         try {
@@ -569,10 +571,11 @@ export default function ExperimentDetailScreen({
           if (!aliveRef.current) return;
           setDetail(next as unknown as ExperimentDetail);
           setError(null);
-          devDebugThrottled(
+          devInfoThrottled(
+            'ExperimentDetailScreen',
             `poll:detail:${experimentId}`,
             DEV_POLL_LOG_INTERVAL_MS,
-            `Poll OK — experiment ${experimentId.slice(0, 8)}… status=${next.status}`,
+            `detail poll OK — ${experimentId.slice(0, 8)}… status=${next.status}`,
             pollDevLogAtRef.current,
           );
           if (isTerminalExperimentStatus(next.status)) {
@@ -582,7 +585,7 @@ export default function ExperimentDetailScreen({
           if (!aliveRef.current) return;
           const pollMsg =
             pollErr instanceof Error ? pollErr.message : 'Could not refresh experiment';
-          devWarn(`Detail poll failed (${experimentId.slice(0, 8)}…):`, pollMsg);
+          devWarn('ExperimentDetailScreen', `detail poll failed — ${experimentId.slice(0, 8)}… — ${pollMsg}`);
           setError('Could not refresh experiment — transient network or server error.');
         }
       }, DETAIL_POLL_MS);
@@ -595,6 +598,8 @@ export default function ExperimentDetailScreen({
     const abortHydrate = new AbortController();
 
     const stall = createStallWatcher({
+      scope: 'ExperimentDetailScreen',
+      operation: 'detail hydrate',
       alive: () => aliveRef.current,
       afterMs: LOADING_STALL_AFTER_MS,
       repeatMs: LOADING_STALL_REPEAT_MS,
@@ -615,6 +620,12 @@ export default function ExperimentDetailScreen({
 
     async function hydrate() {
       const hasSeed = initialExperiment?.experiment_id === experimentId;
+      devInfo(
+        'ExperimentDetailScreen',
+        hasSeed
+          ? `hydrate started — refreshing ${experimentId.slice(0, 8)}… (seed from list)`
+          : `hydrate started — loading ${experimentId.slice(0, 8)}…`,
+      );
       setHydrating(true);
       setError(null);
       if (!hasSeed) {
@@ -645,6 +656,12 @@ export default function ExperimentDetailScreen({
         if (!aliveRef.current) return;
         loadedStatus = loaded.status;
         setDetail(loaded as unknown as ExperimentDetail);
+        const runs = (loaded as { runs?: unknown[] }).runs;
+        const runRows = Array.isArray(runs) ? runs.length : 0;
+        devInfo(
+          'ExperimentDetailScreen',
+          `hydrate OK — ${experimentId.slice(0, 8)}… status=${loaded.status}, ${runRows} run row(s)`,
+        );
         setLoadFeed((f) =>
           appendDetailFeed(
             f,
@@ -660,7 +677,7 @@ export default function ExperimentDetailScreen({
         if (err instanceof DOMException && err.name === 'AbortError') return;
         const msg =
           err instanceof Error ? err.message : 'Failed to load experiment';
-        devWarn(`Detail hydrate failed (${experimentId.slice(0, 8)}…):`, msg);
+        devWarn('ExperimentDetailScreen', `hydrate failed — ${experimentId.slice(0, 8)}… — ${msg}`);
         setError(msg);
         setLoadFeed((f) => appendDetailFeed(f, `Failed: ${msg}`, 'warning'));
       } finally {
@@ -696,11 +713,12 @@ export default function ExperimentDetailScreen({
     setDeleting(true);
     try {
       await deleteExperiment(experimentId);
+      devInfo('ExperimentDetailScreen', `delete OK — experiment ${experimentId.slice(0, 8)}…`);
       setShowDeleteModal(false);
       onBack();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to delete experiment';
-      devWarn(`Delete failed (${experimentId.slice(0, 8)}…):`, msg);
+      devWarn('ExperimentDetailScreen', `delete failed — ${experimentId.slice(0, 8)}… — ${msg}`);
       setError(msg);
       setShowDeleteModal(false);
     } finally {

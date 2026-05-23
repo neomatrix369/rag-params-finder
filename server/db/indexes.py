@@ -97,7 +97,7 @@ def create_vector_indexes() -> bool:
 
     needed = [cfg for cfg in VECTOR_INDEX_CONFIGS if cfg["name"] not in existing]
     if not needed:
-        logger.info("All vector search indexes already exist")
+        logger.info("vector indexes OK — already exist")
         return True
 
     models = [_build_vector_index_model(cfg["name"], cfg["dimensions"]) for cfg in needed]
@@ -105,13 +105,13 @@ def create_vector_indexes() -> bool:
 
     try:
         chunks.create_search_indexes(models=models)
-        logger.info(f"Created vector search indexes: {names}")
+        logger.info("vector indexes created — names=%s", names)
     except Exception as e:
         err_str = str(e)
         if "CommandNotFound" in err_str or "no such command" in err_str.lower():
             logger.warning(
-                "Programmatic vector index creation not supported on this cluster tier (M0/M2/M5). "
-                "Create indexes manually in the Atlas UI:"
+                "vector index programmatic unavailable — M0/M2/M5 tiers; "
+                "create Atlas vector indexes manually in UI:",
             )
             _log_manual_instructions()
             return False
@@ -122,7 +122,7 @@ def create_vector_indexes() -> bool:
 
 def _wait_for_indexes_ready(collection, names: list[str], timeout_s: int = 120) -> bool:
     """Poll until all named search indexes reach 'READY' status."""
-    logger.info(f"Waiting for vector indexes to become active (timeout {timeout_s}s)...")
+    logger.info("vector indexes polling — activation timeout=%ss", timeout_s)
     deadline = time.monotonic() + timeout_s
 
     while time.monotonic() < deadline:
@@ -140,26 +140,35 @@ def _wait_for_indexes_ready(collection, names: list[str], timeout_s: int = 120) 
         ) == len(names)
 
         if all_ready:
-            logger.info(f"Vector indexes active: {names}")
+            logger.info("vector indexes ready — names=%s", names)
             return True
 
         pending = [n for n, s in statuses.items() if s not in ("READY", True)]
         if pending:
-            logger.info(f"Indexes still building: {pending}")
+            logger.info("vector indexes building — pending=%s", pending)
 
         time.sleep(_INDEX_POLL_INTERVAL_S)
 
-    logger.warning(
-        f"Timed out waiting for vector indexes after {timeout_s}s — they may still be building"
-    )
+    logger.warning("vector indexes timeout — waited %ss indexes may still be building", timeout_s)
     return False
 
 
 def _log_manual_instructions() -> None:
     for cfg in VECTOR_INDEX_CONFIGS:
-        logger.info(f"  Index '{cfg['name']}': numDimensions={cfg['dimensions']} ({cfg['desc']})")
-    logger.info("  path=embedding, similarity=cosine, filters=[experiment_id, embedding_model]")
-    logger.info("  See: https://www.mongodb.com/docs/atlas/atlas-vector-search/create-index/")
+        logger.info(
+            "manual vector index hint — name=%s numDimensions=%s (%s)",
+            cfg["name"],
+            cfg["dimensions"],
+            cfg["desc"],
+        )
+    logger.info(
+        "manual vector index hints — "
+        "path=embedding similarity=cosine filters=[experiment_id, embedding_model]"
+    )
+    logger.info(
+        "manual vector index docs — %s",
+        "https://www.mongodb.com/docs/atlas/atlas-vector-search/create-index/",
+    )
 
 
 def create_text_search_index() -> bool:
@@ -172,7 +181,7 @@ def create_text_search_index() -> bool:
     existing = _get_existing_search_indexes(chunks)
 
     if TEXT_SEARCH_INDEX_NAME in existing:
-        logger.info(f"Text search index '{TEXT_SEARCH_INDEX_NAME}' already exists")
+        logger.info("text search index OK — already exists name=%s", TEXT_SEARCH_INDEX_NAME)
         return True
 
     model = SearchIndexModel(
@@ -192,14 +201,15 @@ def create_text_search_index() -> bool:
 
     try:
         chunks.create_search_indexes(models=[model])
-        logger.info(f"Created text search index: {TEXT_SEARCH_INDEX_NAME}")
+        logger.info("text search index created — name=%s", TEXT_SEARCH_INDEX_NAME)
     except Exception as e:
         err_str = str(e)
         if "CommandNotFound" in err_str or "no such command" in err_str.lower():
             logger.warning(
-                f"Programmatic search index creation not supported on this cluster tier "
-                f"(M0/M2/M5). Create '{TEXT_SEARCH_INDEX_NAME}' manually in the Atlas UI. "
-                f"See: docs/user-guide/getting-started.md"
+                "text search index programmatic unavailable — M0/M2/M5 tiers; "
+                "create Atlas Search index manually name=%s. "
+                "See docs/user-guide/getting-started.md",
+                TEXT_SEARCH_INDEX_NAME,
             )
             return False
         raise
@@ -234,12 +244,12 @@ def _ensure_standard_indexes() -> None:
         needed = [m for m in models if tuple(m.document["key"].items()) in missing]
         collection.create_indexes(needed)
         created += len(needed)
-        logger.info(f"Created {len(needed)} index(es) on {name}")
+        logger.info("standard indexes created — collection=%s count=%s", name, len(needed))
 
     if created == 0:
-        logger.info("All standard indexes already exist")
+        logger.info("standard indexes OK — all present")
     else:
-        logger.info(f"Created {created} standard index(es) total")
+        logger.info("standard indexes synced — created_total=%s", created)
 
 
 def ensure_indexes() -> None:

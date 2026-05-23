@@ -31,7 +31,12 @@ def _rerank_voyage(
     top_k: int,
 ) -> list[SearchResult]:
     """Rerank search results using Voyage reranker and return top_k."""
-    logger.debug(f"Reranking {len(search_results)} results with {model}, top_k={top_k}")
+    logger.debug(
+        "voyage rerank — candidates=%s model=%s top_k=%s",
+        len(search_results),
+        model,
+        top_k,
+    )
 
     client = get_client()
     documents = [r.chunk.text for r in search_results]
@@ -56,5 +61,5 @@ def _rerank_voyage(
             )
         )
 
-    logger.debug(f"Reranking complete: {len(reranked)} results returned")
+    logger.debug("voyage rerank OK — returning %s hits", len(reranked))
     return reranked

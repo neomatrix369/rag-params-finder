@@ -26,5 +26,5 @@ export const API_FETCH_TIMEOUT_MS = 30_000;
 /** Vector DB stats aggregation can take longer than the experiment list. */
 export const VECTOR_DB_STATS_FETCH_TIMEOUT_MS = 90_000;
 
-/** Dev-console poll breadcrumbs — match backend info_throttled interval. */
+/** Dev-console poll breadcrumbs (info level, throttled) — match backend info_throttled interval. */
 export const DEV_POLL_LOG_INTERVAL_MS = 60_000;

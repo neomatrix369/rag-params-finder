@@ -92,7 +92,7 @@ def mongo_delete_experiment_data(experiment_id: str) -> dict[str, int]:
 
     Returns dict with counts of deleted documents from each collection.
     """
-    logger.info("Deleting experiment data: experiment_id=%s", experiment_id)
+    logger.info("delete started — experiment %s", experiment_id)
     from server.db.atlas import CHUNKS_COLLECTION
 
     chunks_deleted = (
@@ -125,7 +125,7 @@ def mongo_delete_experiment_data(experiment_id: str) -> dict[str, int]:
         "chunks": chunks_deleted,
         "results": results_deleted,
     }
-    logger.info("Deleted experiment %s: %s", experiment_id, counts)
+    logger.info("delete complete — experiment %s, counts=%s", experiment_id, counts)
     return counts
 
 
@@ -429,7 +429,7 @@ def _summary_db_stats_for_experiment(
 
 def mongo_get_experiment_db_stats(experiment_id: str) -> dict:
     """Vector DB stats for one experiment (full detail, including per-run breakdown)."""
-    logger.debug("Computing DB stats for experiment %s", experiment_id)
+    logger.debug("computing db stats — experiment %s", experiment_id)
     try:
         experiment = get_collection(EXPERIMENTS_COLLECTION).find_one(
             {"experiment_id": experiment_id},
@@ -456,10 +456,10 @@ def mongo_get_experiment_db_stats(experiment_id: str) -> dict:
             run_breakdown=run_breakdown,
         )
     except Exception:
-        logger.error("Failed to compute DB stats for experiment %s", experiment_id, exc_info=True)
+        logger.error("db stats compute failed — experiment %s", experiment_id, exc_info=True)
         raise
     logger.debug(
-        "DB stats for %s: %s chunks, %s MB estimated",
+        "db stats ready — experiment %s chunks=%s est_mb=%s",
         experiment_id,
         stats["total_chunks"],
         stats["estimated_storage_mb"],
@@ -493,7 +493,7 @@ def _merge_group_totals(group: dict, stats: dict) -> None:
 
 def mongo_get_vector_db_stats_grouped() -> dict:
     """Aggregate DB stats for all experiments, grouped by vector database cluster."""
-    logger.debug("Computing grouped vector DB stats")
+    logger.debug("computing grouped vector db stats — all experiments")
     try:
         experiments = mongo_list_all_experiment_docs()
         chunk_by_exp = _bulk_chunk_aggregates()
@@ -558,10 +558,10 @@ def mongo_get_vector_db_stats_grouped() -> dict:
             )
         grouped.sort(key=lambda row: row["totals"]["total_chunks"], reverse=True)
     except Exception:
-        logger.error("Failed to compute grouped vector DB stats", exc_info=True)
+        logger.error("grouped vector db stats failed — aggregation error", exc_info=True)
         raise
     logger.debug(
-        "Grouped vector DB stats: %s group(s), %s experiment(s)",
+        "grouped vector db stats ready — %s group(s), %s experiment(s)",
         len(grouped),
         len(experiments),
     )

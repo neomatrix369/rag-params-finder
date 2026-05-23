@@ -1,4 +1,5 @@
 from typing import Any, cast
+from urllib.parse import urlparse
 
 import httpx
 
@@ -13,6 +14,11 @@ _DEFAULT_TIMEOUT_S = 10.0  # HTTP client timeout for all server API calls
 def get_server_url() -> str:
     """Get server URL from settings (.env or environment)."""
     return settings.server_url
+
+
+def _http_label(method: str, url: str) -> str:
+    path = urlparse(url).path or url
+    return f"{method} {path}"
 
 
 def _response_detail(response: httpx.Response) -> str:
@@ -33,10 +39,9 @@ def _response_detail(response: httpx.Response) -> str:
 
 def _log_http_error(method: str, url: str, response: httpx.Response) -> None:
     logger.error(
-        "HTTP %s %s → %s: %s",
-        method,
-        url,
+        "HTTP error — %s %s: %s",
         response.status_code,
+        _http_label(method, url),
         _response_detail(response),
     )
 
@@ -48,13 +53,18 @@ def _request(method: str, url: str, **kwargs: Any) -> httpx.Response:
             return client.request(method, url, timeout=_DEFAULT_TIMEOUT_S, **kwargs)
     except httpx.ConnectError as exc:
         server_url = get_server_url()
-        logger.error("Cannot connect to server at %s: %s", server_url, exc)
+        logger.error("network failure — cannot connect to %s: %s", server_url, exc)
         raise RuntimeError(
             f"Cannot connect to server at {server_url}. "
             "Is uvicorn running? Try: uv run uvicorn server.main:app --reload --port 8001"
         ) from exc
     except httpx.TimeoutException as exc:
-        logger.error("%s %s timed out after %ss: %s", method, url, _DEFAULT_TIMEOUT_S, exc)
+        logger.error(
+            "timeout — %s timed out after %ss: %s",
+            _http_label(method, url),
+            _DEFAULT_TIMEOUT_S,
+            exc,
+        )
         raise RuntimeError(
             f"Request timed out after {_DEFAULT_TIMEOUT_S}s: {method} {url}"
         ) from exc
@@ -71,13 +81,17 @@ def submit_experiment(config: dict[str, Any]) -> dict[str, Any]:
     """Submit experiment configuration to server."""
     server_url = get_server_url()
     url = f"{server_url}/experiments"
-    logger.info(f"POST {url}")
-    logger.debug(f"Payload keys: {list(config.keys())}")
+    logger.info("submit started — %s", _http_label("POST", url))
+    logger.debug("submit payload — keys=%s", list(config.keys()))
 
     response = _request("POST", url, json=config)
-    logger.debug(f"Response status: {response.status_code}")
+    logger.debug("submit response — status=%s", response.status_code)
     if response.status_code == 404:
-        logger.error("POST %s → 404 (no API route at %s)", url, server_url)
+        logger.error(
+            "submit failed — %s → 404 (no API route at %s)",
+            _http_label("POST", url),
+            server_url,
+        )
         raise RuntimeError(
             f"No route POST {url} (404). Either nothing is running at "
             f"{server_url}, or it is not this project's API. Start it from the repo "
@@ -86,7 +100,7 @@ def submit_experiment(config: dict[str, Any]) -> dict[str, Any]:
         )
     _ensure_ok(response, method="POST", url=url)
     data: dict[str, Any] = cast(dict[str, Any], response.json())
-    logger.info(f"Experiment submitted: {data.get('experiment_id', '?')}")
+    logger.info("submit OK — experiment_id=%s", data.get("experiment_id", "?"))
     return data
 
 
@@ -94,12 +108,16 @@ def get_experiment(experiment_id: str) -> dict[str, Any]:
     """Get experiment details including run statuses."""
     server_url = get_server_url()
     url = f"{server_url}/experiments/{experiment_id}"
-    logger.debug(f"GET {url}")
+    logger.debug("detail poll — %s", _http_label("GET", url))
 
     response = _request("GET", url)
     _ensure_ok(response, method="GET", url=url)
     data: dict[str, Any] = cast(dict[str, Any], response.json())
-    logger.debug(f"Experiment status={data.get('status')}, runs={len(data.get('runs', []))}")
+    logger.debug(
+        "detail poll OK — status=%s, runs=%s",
+        data.get("status"),
+        len(data.get("runs", [])),
+    )
     return data
 
 
@@ -107,12 +125,12 @@ def get_run_status(run_id: str) -> dict[str, Any]:
     """Get current status of a single run."""
     server_url = get_server_url()
     url = f"{server_url}/runs/{run_id}/status"
-    logger.debug(f"GET {url}")
+    logger.debug("run status — %s", _http_label("GET", url))
 
     response = _request("GET", url)
     _ensure_ok(response, method="GET", url=url)
     data: dict[str, Any] = cast(dict[str, Any], response.json())
-    logger.debug(f"Run {run_id} phase={data.get('phase')}")
+    logger.debug("run status OK — %s phase=%s", run_id, data.get("phase"))
     return data
 
 
@@ -120,7 +138,7 @@ def cancel_experiment(experiment_id: str) -> dict[str, Any]:
     """Request cancellation of a running experiment."""
     server_url = get_server_url()
     url = f"{server_url}/experiments/{experiment_id}/cancel"
-    logger.info(f"POST {url}")
+    logger.info("cancel started — %s", _http_label("POST", url))
 
     response = _request("POST", url)
     if response.status_code == 404:
@@ -131,7 +149,7 @@ def cancel_experiment(experiment_id: str) -> dict[str, Any]:
         raise RuntimeError(_response_detail(response))
     _ensure_ok(response, method="POST", url=url)
     data: dict[str, Any] = cast(dict[str, Any], response.json())
-    logger.info(f"Cancel response: {data}")
+    logger.info("cancel OK — %s", data)
     return data
 
 
@@ -139,7 +157,7 @@ def pause_experiment(experiment_id: str) -> dict[str, Any]:
     """Request pause of a running experiment."""
     server_url = get_server_url()
     url = f"{server_url}/experiments/{experiment_id}/pause"
-    logger.info(f"POST {url}")
+    logger.info("pause started — %s", _http_label("POST", url))
 
     response = _request("POST", url)
     if response.status_code == 404:
@@ -150,7 +168,7 @@ def pause_experiment(experiment_id: str) -> dict[str, Any]:
         raise RuntimeError(_response_detail(response))
     _ensure_ok(response, method="POST", url=url)
     data: dict[str, Any] = cast(dict[str, Any], response.json())
-    logger.info(f"Pause response: {data}")
+    logger.info("pause OK — %s", data)
     return data
 
 
@@ -158,7 +176,7 @@ def resume_experiment(experiment_id: str) -> dict[str, Any]:
     """Resume a paused experiment."""
     server_url = get_server_url()
     url = f"{server_url}/experiments/{experiment_id}/resume"
-    logger.info(f"POST {url}")
+    logger.info("resume started — %s", _http_label("POST", url))
 
     response = _request("POST", url)
     if response.status_code == 404:
@@ -169,7 +187,7 @@ def resume_experiment(experiment_id: str) -> dict[str, Any]:
         raise RuntimeError(_response_detail(response))
     _ensure_ok(response, method="POST", url=url)
     data: dict[str, Any] = cast(dict[str, Any], response.json())
-    logger.info(f"Resume response: {data}")
+    logger.info("resume OK — %s", data)
     return data
 
 
@@ -177,7 +195,7 @@ def delete_experiment(experiment_id: str) -> dict[str, Any]:
     """Delete an experiment and all its associated data."""
     server_url = get_server_url()
     url = f"{server_url}/experiments/{experiment_id}"
-    logger.info(f"DELETE {url}")
+    logger.info("delete started — %s", _http_label("DELETE", url))
 
     response = _request("DELETE", url)
     if response.status_code == 404:
@@ -188,5 +206,5 @@ def delete_experiment(experiment_id: str) -> dict[str, Any]:
         raise RuntimeError(_response_detail(response))
     _ensure_ok(response, method="DELETE", url=url)
     data: dict[str, Any] = cast(dict[str, Any], response.json())
-    logger.info(f"Delete response: {data}")
+    logger.info("delete OK — %s", data)
     return data

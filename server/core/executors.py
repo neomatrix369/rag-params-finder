@@ -33,7 +33,7 @@ def _run_sweep_safe[R, **P](fn: Callable[P, R], /, *args: P.args, **kwargs: P.kw
         fn(*args, **kwargs)
     except Exception:
         logger.error(
-            "Sweep task failed for experiment %s (%s)",
+            "sweep task failed — experiment %s fn=%s",
             experiment_id,
             fn.__name__,
             exc_info=True,

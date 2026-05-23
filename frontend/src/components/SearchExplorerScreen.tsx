@@ -18,7 +18,7 @@ import {
 } from '../services/apiClient';
 import { createStallWatcher, formatBytes, type FetchProgressUpdate } from '../services/fetchWithProgress';
 import { DetailedResult, ExploreResponse, RankedConfig } from '../types';
-import { devDebugThrottled, devWarn } from '../utils/devLog';
+import { devInfo, devInfoThrottled, devWarn } from '../utils/devLog';
 
 let xfSeq = 0;
 
@@ -539,6 +539,8 @@ export default function SearchExplorerScreen({
     }
 
     const stall = createStallWatcher({
+      scope: 'SearchExplorerScreen',
+      operation: 'explore hydrate',
       alive: () => aliveRef.current,
       afterMs: LOADING_STALL_AFTER_MS,
       repeatMs: LOADING_STALL_REPEAT_MS,
@@ -556,6 +558,10 @@ export default function SearchExplorerScreen({
     };
 
     async function fetchExplore() {
+      devInfo(
+        'SearchExplorerScreen',
+        `hydrate started — ${experimentId.slice(0, 8)}…${selectedQuery ? ' (filtered query)' : ''}`,
+      );
       setLoading(true);
       setReceivedBytes(null);
       setTotalBytes(null);
@@ -583,6 +589,10 @@ export default function SearchExplorerScreen({
         if (!aliveRef.current) return;
         setFeed((f) => xfAppend(f, 'Explorer snapshot ready.', 'default'));
         setData(payload);
+        devInfo(
+          'SearchExplorerScreen',
+          `hydrate OK — ${payload.ranked_configs.length} configs, ${payload.query_count} quer${payload.query_count === 1 ? 'y' : 'ies'}`,
+        );
 
         setSelectedMethods((prev) => {
           if (prev.size > 0) return prev;
@@ -594,7 +604,7 @@ export default function SearchExplorerScreen({
         if (err instanceof DOMException && err.name === 'AbortError') return;
         const msg =
           err instanceof Error ? err.message : 'Failed to fetch experiment explore data';
-        devWarn(`Explore hydrate failed (${experimentId.slice(0, 8)}…):`, msg);
+        devWarn('SearchExplorerScreen', `hydrate failed — ${experimentId.slice(0, 8)}… — ${msg}`);
         setError(msg);
         setFeed((f) => xfAppend(f, `Failed: ${msg}`, 'warning'));
       } finally {
@@ -631,10 +641,11 @@ export default function SearchExplorerScreen({
           );
           setData(response);
           setError(null);
-          devDebugThrottled(
+          devInfoThrottled(
+            'SearchExplorerScreen',
             `poll:explore:${experimentId}`,
             DEV_POLL_LOG_INTERVAL_MS,
-            `Explore poll OK — ${response.ranked_configs.length} configs`,
+            `explore poll OK — ${response.ranked_configs.length} configs`,
             pollDevLogAtRef.current,
           );
           setSelectedMethods((prev) => {
@@ -644,7 +655,7 @@ export default function SearchExplorerScreen({
             return new Set(response.ranked_configs.map((c) => c.retrieval_method));
           });
         } catch (pollErr) {
-          devWarn(`Explore poll failed (${experimentId.slice(0, 8)}…):`, pollErr);
+          devWarn('SearchExplorerScreen', `explore poll failed — ${experimentId.slice(0, 8)}… — ${String(pollErr)}`);
         } finally {
           setIsPolling(false);
         }

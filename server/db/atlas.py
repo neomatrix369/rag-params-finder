@@ -21,7 +21,7 @@ def get_mongo_client() -> MongoClient:
         _client = MongoClient(
             settings.mongodb_uri, tlsCAFile=certifi.where(), tz_aware=True, tzinfo=UTC
         )
-        logger.info("MongoDB client initialized (timezone-aware UTC)")
+        logger.info("mongodb client ready — timezone-aware UTC")
     return _client
 
 
@@ -30,12 +30,12 @@ def get_database() -> Database:
     if _db is None:
         client = get_mongo_client()
         _db = client.get_database()
-        logger.info(f"Connected to database: {_db.name}")
+        logger.info("database connected — name=%s", _db.name)
     return _db
 
 
 def get_collection(name: str):
-    logger.debug(f"Accessing collection: {name}")
+    logger.debug("collection access — name=%s", name)
     db = get_database()
     return db[name]
 
