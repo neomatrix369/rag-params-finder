@@ -177,6 +177,8 @@ cd frontend && npm run typecheck && npm run build
 [ ] Slice status updated in docs/_internal/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
+[ ] Consider release: ./scripts/release.sh minor (slices/features) or patch (fixes/polish)
+    See PROGRESS.md § Release Cadence for guidance
 ```
 
 ## Quality Gates Baseline
@@ -191,6 +193,24 @@ cd frontend && npm run typecheck && npm run build
 - `npm run build` → ✓ built in ~1.8s, 34 modules
 - `npm audit --audit-level=high` → 0 vulnerabilities
 
+## Release Process
+
+See [docs/contributor-guide/release-process.md](docs/contributor-guide/release-process.md) for the complete release workflow.
+
+**Quick reference**:
+```bash
+# Create a new release (minor version bump for new slices/features)
+./scripts/release.sh minor
+
+# Create a patch release (bug fixes, polish)
+./scripts/release.sh patch
+
+# Check current version
+rag-params-finder version
+```
+
+The project follows [Semantic Versioning](https://semver.org/). Release automation via `scripts/release.sh` handles version updates, CHANGELOG.md updates, git tagging, and optional GitHub release creation.
+
 ## Further Reading
 
 | Doc | Audience | Purpose |
@@ -200,5 +220,6 @@ cd frontend && npm run typecheck && npm run build
 | `docs/contributor-guide/architecture.md` | Contributors | System design, modules, data flow |
 | `docs/contributor-guide/extending.md` | Contributors | Adding models, chunkers, endpoints |
 | `docs/contributor-guide/development.md` | Contributors | Dev loop, quality gates |
+| `docs/contributor-guide/release-process.md` | Contributors | Creating releases, versioning strategy |
 | `docs/_internal/PROGRESS.md` | Agents | Slice status, decision log, roadmap |
 | `docs/adr/` | All | Architecture Decision Records |

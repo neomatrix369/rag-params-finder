@@ -167,6 +167,8 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 [ ] Slice status updated in docs/_internal/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
+[ ] Consider release: ./scripts/release.sh minor (slices/features) or patch (fixes/polish)
+    See docs/_internal/PROGRESS.md § Release Cadence for guidance
 ```
 
 ---
@@ -217,4 +219,5 @@ Please open an issue before starting work on large features to discuss the appro
 - [Architecture](architecture.md) — system design and module map
 - [Extending the System](extending.md) — step-by-step guides for adding models, chunkers, endpoints
 - [Local Environment](local-environment.md) — Atlas setup, debugging, and maintenance details
+- [Release Process](release-process.md) — creating releases, versioning strategy, automation scripts
 - [docs/_internal/PROGRESS.md](../_internal/PROGRESS.md) — slice status, decision log, forward roadmap
