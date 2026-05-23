@@ -25,10 +25,10 @@ class RetrievalMethod(StrEnum):
 
 
 class RetrieverType(StrEnum):
-    """Type of retriever — traditional search or reranking.
+    """Type of retriever — each config entry becomes one sweep run.
 
-    Traditional retrievers (dense, sparse, hybrid) produce initial candidates.
-    Rerankers refine candidates from traditional retrievers.
+    Traditional retrievers (dense, sparse, hybrid) search directly.
+    Rerankers fetch dense candidates internally, then rerank.
     """
 
     DENSE = "dense"

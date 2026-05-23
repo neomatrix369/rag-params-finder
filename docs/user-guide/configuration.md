@@ -12,12 +12,13 @@ All YAML fields, sweep expansion rules, and queries file format.
 
 Place config files in `configs/`. Two ready-to-run configs are provided, one per vector-DB × provider combination:
 
-| Config file | Vector DB | Embedding provider | Chunking | Retrieval | Runs | API key? |
+| Config file | Vector DB | Embedding provider | Chunking | Retrievers | Runs | API key? |
 |---|---|---|---|---|---|---|
-| `example-mongodb-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid | 90 | No |
-| `example-mongodb-voyage.yaml` | MongoDB Atlas | Voyage AI (all 3 models) | all 5 methods | dense · sparse · hybrid | 90 | Yes |
+| `example-mongodb-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · cross-encoder | 60 | No |
+| `example-mongodb-voyage.yaml` | MongoDB Atlas | Voyage AI (voyage-3.5-lite) | all 5 methods | hybrid · dense · sparse · reranker | 40 | Yes |
+| `example-mongodb-unified-retrievers.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | 2 methods | dense · cross-encoder | 8 | No |
 
-Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retrieval method runs as an independent experiment.
+Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retriever runs as an independent experiment. Each entry in `retrieval.retrievers` creates a separate run — retrievers are never combined in a single run.
 
 ### Full annotated config
 
@@ -46,13 +47,19 @@ chunking:
     overlaps: [0, 50]
 
 retrieval:
-  methods:
-    - dense                          # one or more: dense | sparse | hybrid
-    # - hybrid
-  top_k_initial: 20                  # candidates passed to the reranker
-  top_k_final: 5                     # results returned after reranking
-  rerank_provider: local             # "local" or "voyage"
-  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+  top_k_initial: 20                  # candidates for reranker runs (dense fetch is internal)
+  top_k_final: 5                     # final results returned per query
+  retrievers:
+    # Each entry is one sweep dimension — one retriever per run (never combined).
+    - type: dense                    # Atlas Vector Search
+    - type: sparse                   # Atlas BM25 full-text
+    - type: hybrid                   # Reciprocal Rank Fusion of dense + sparse
+    - type: cross_encoder            # Local cross-encoder (no API key)
+      provider: local
+      model: cross-encoder/ms-marco-MiniLM-L-6-v2
+    # - type: reranker               # Voyage reranker (requires API key)
+    #   provider: voyage
+    #   model: rerank-2.5-lite
 
 execution:
   parallelism: 1                     # use 1 until Slice 16; see "### Parallelism" below
@@ -71,8 +78,12 @@ execution:
 One config YAML expands into a **Cartesian product** of runs:
 
 ```
-runs = embedding.models × chunking.methods × chunking.params.chunk_sizes × chunking.params.overlaps × retrieval.methods
+runs = embedding.models × chunking.methods × chunk_sizes × overlaps × retrievers
 ```
+
+Each `retriever` entry creates a separate run. Retrievers are **never chained** — a run uses exactly one retriever type.
+
+Reranker runs (`cross_encoder`, `reranker`) fetch dense candidates internally (using `top_k_initial`), then rerank to `top_k_final`. This dense fetch is an implementation detail and does not appear as a second retriever on the run.
 
 **Example**:
 ```yaml
@@ -84,10 +95,16 @@ chunking:
     chunk_sizes: [512, 1024]            # 2 sizes
     overlaps: [0, 50]                   # 2 overlaps
 retrieval:
-  methods: [dense]                      # 1 retrieval method
+  retrievers:
+    - type: dense
+    - type: cross_encoder
+      provider: local
+      model: cross-encoder/ms-marco-MiniLM-L-6-v2
 ```
 
-→ 1 × 2 × 2 × 2 × 1 = **8 runs**
+→ 1 × 2 × 2 × 2 × 2 = **16 runs**
+- 8 runs with `dense` only
+- 8 runs with `cross_encoder` only
 
 Each run is tracked independently through the pipeline phases and has its own results.
 
@@ -179,17 +196,19 @@ See [Troubleshooting — voyage-context-3 token limit](troubleshooting.md#-voyag
 
 ## 🔍 Retrieval Configuration
 
-**NEW unified retriever format** (recommended):
+**Unified retriever format** (recommended):
 ```yaml
 retrieval:
-  top_k_initial: 20  # Candidates from traditional retrieval
-  top_k_final: 5     # Final results after reranking
+  top_k_initial: 20  # Candidate pool for reranker runs
+  top_k_final: 5     # Final results per query
   retrievers:
-    - type: dense    # Traditional retrieval
-    - type: cross_encoder  # Reranker refines candidates
+    - type: dense
+    - type: cross_encoder
       provider: local
       model: cross-encoder/ms-marco-MiniLM-L-6-v2
 ```
+
+Each list entry is one sweep dimension. To compare dense vs sparse vs hybrid, list all three — the sweep runs each independently.
 
 **Retriever types**:
 
@@ -201,26 +220,16 @@ retrieval:
 | `reranker` | Voyage reranking API | High-quality reranking, API-based | Yes |
 | `cross_encoder` | Local cross-encoder model | Fast reranking, no API key | Yes |
 
-**Multiple rerankers**: Chain rerankers in sequence:
-```yaml
-retrievers:
-  - type: dense
-  - type: cross_encoder
-    provider: local
-    model: cross-encoder/ms-marco-MiniLM-L-6-v2
-  - type: reranker
-    provider: voyage
-    model: rerank-2.5-lite
-```
+**One retriever per run.** Do not list multiple retrievers expecting them to chain — each entry becomes its own run in the Cartesian sweep.
 
 **Old format** (deprecated, auto-migrated):
 ```yaml
 retrieval:
   methods: [dense, sparse]
-  rerank_provider: local
-  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+  retrieval_provider: local        # DEPRECATED: use retrievers instead
+  retrieval_model: cross-encoder/ms-marco-MiniLM-L-6-v2
 ```
-Old configs still work—they're automatically converted to the new `retrievers` format.
+Old configs still work—they're automatically converted to the new `retrievers` format. The deprecated `methods`, `retrieval_provider`, and `retrieval_model` fields are synthesized from `retrievers` for backward compatibility.
 
 ---
 

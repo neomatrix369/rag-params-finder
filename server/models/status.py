@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from server.models.config import RetrieverConfig
 from server.models.enums import ChunkingMethod, Phase, RetrievalMethod
 
 Provider = Literal["local", "voyage", "kimchi"]
@@ -19,6 +20,7 @@ class RunStatus(BaseModel):
     chunking_method: ChunkingMethod
     chunk_size: int
     overlap: int
+    retrievers: list[RetrieverConfig] = Field(default_factory=list)
     retrieval_method: RetrievalMethod
     retrieval_provider: Provider
     retrieval_model: str | None = None

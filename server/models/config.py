@@ -41,10 +41,11 @@ class ChunkingConfig(BaseModel):
 
 
 class RetrieverConfig(BaseModel):
-    """Single retriever configuration — can be traditional search or reranking.
+    """Single retriever configuration for one sweep run.
 
-    Traditional retrievers (dense/sparse/hybrid) produce initial candidates from vector/text search.
-    Rerankers and cross-encoders refine candidates from prior retrievers.
+    Each entry in ``retrieval.retrievers`` becomes its own run — retrievers are never chained.
+    Traditional types (dense/sparse/hybrid) search directly; rerankers fetch dense candidates
+    internally then rerank (implementation detail, not a second retriever on the run).
     """
 
     type: RetrieverType
@@ -79,11 +80,11 @@ class RetrievalConfig(BaseModel):
     """Retrieval configuration with unified retriever list.
 
     New format (preferred):
-        retrievers: list of RetrieverConfig (can mix traditional + rerankers)
+        retrievers: list of RetrieverConfig — each entry is one sweep dimension (one run each)
 
     Old format (deprecated, auto-migrated):
         methods: list of RetrievalMethod
-        rerank_provider + retrieval_model: separate reranking config
+        retrieval_provider + retrieval_model: separate reranking config
     """
 
     top_k_initial: int = Field(default=20)
@@ -156,8 +157,8 @@ class ExperimentConfig(BaseModel):
 class RunParams(BaseModel):
     """Single-valued parameter set for one sweep run.
 
-    New format uses `retrievers` list (can include traditional + rerankers).
-    Old fields kept for backward compatibility with existing orchestrator code.
+    Exactly one retriever per run (``retrievers`` has length 1).
+    Deprecated ``retrieval_*`` fields are synthesized for backward compatibility.
     """
 
     database_provider: DatabaseProvider
@@ -182,60 +183,60 @@ class RunParams(BaseModel):
     retrieval_model: str | None = Field(default=None)
 
 
+_RERANKER_TYPES = {RetrieverType.RERANKER, RetrieverType.CROSS_ENCODER}
+
+
+def _legacy_retrieval_fields(
+    retriever: RetrieverConfig,
+) -> tuple[RetrievalMethod, Provider, str | None]:
+    """Map a single retriever to deprecated run_status fields."""
+    if retriever.type in _RERANKER_TYPES:
+        return RetrievalMethod.DENSE, retriever.provider or "local", retriever.model
+    return RetrievalMethod(retriever.type.value), "local", None
+
+
 def expand_sweep(config: ExperimentConfig) -> list[RunParams]:
     """Cartesian product of all sweep dimensions into individual RunParams.
 
-    Sweep dimensions: embedding models × chunking methods × chunk sizes × overlaps.
-    Retrievers are applied as a combo (not swept) — all retrievers run in each run.
+    Sweep dimensions: embedding models × chunking methods × chunk sizes × overlaps × retrievers.
+    Each retriever list entry becomes exactly one run — retrievers are never combined.
 
-    To sweep retrievers, create multiple config files with different retriever lists.
+    Example:
+        retrievers: [dense, sparse, cross_encoder]
+        → Run 1: dense only
+        → Run 2: sparse only
+        → Run 3: cross_encoder only (dense candidate fetch is internal to the orchestrator)
     """
+    retrievers_to_sweep = config.retrieval.retrievers or [RetrieverConfig(type=RetrieverType.DENSE)]
+
     combos = product(
         config.embedding.models,
         config.chunking.methods,
         config.chunking.params.chunk_sizes,
         config.chunking.params.overlaps,
+        retrievers_to_sweep,
     )
 
-    # Synthesize old-format fields for backward compat
-    # First traditional retriever becomes retrieval_method
-    traditional_types = {RetrieverType.DENSE, RetrieverType.SPARSE, RetrieverType.HYBRID}
-    traditional_retrievers = [r for r in config.retrieval.retrievers if r.type in traditional_types]
-    first_traditional = (
-        traditional_retrievers[0]
-        if traditional_retrievers
-        else RetrieverConfig(type=RetrieverType.DENSE)
-    )
-
-    # First reranker becomes rerank_provider/retrieval_model
-    reranker_types = {RetrieverType.RERANKER, RetrieverType.CROSS_ENCODER}
-    rerankers = [r for r in config.retrieval.retrievers if r.type in reranker_types]
-    first_reranker = rerankers[0] if rerankers else None
-
-    return [
-        RunParams(
-            database_provider=config.database_provider,
-            embedding_provider=config.embedding.provider,
-            embedding_model=model,
-            chunking_method=method,
-            chunk_size=size,
-            overlap=overlap,
-            top_k_initial=config.retrieval.top_k_initial,
-            top_k_final=config.retrieval.top_k_final,
-            data_paths=config.data_paths,
-            queries_file=config.queries_file,
-            # NEW — all retrievers as a combo
-            retrievers=config.retrieval.retrievers,
-            # DEPRECATED — for backward compat with orchestrator
-            retrieval_method=(
-                RetrievalMethod(first_traditional.type.value)
-                if first_traditional
-                else RetrievalMethod.DENSE
-            ),
-            retrieval_provider=(
-                first_reranker.provider if (first_reranker and first_reranker.provider) else "local"
-            ),
-            retrieval_model=first_reranker.model if first_reranker else None,
+    runs: list[RunParams] = []
+    for model, method, size, overlap, retriever in combos:
+        legacy_method, legacy_provider, legacy_model = _legacy_retrieval_fields(retriever)
+        runs.append(
+            RunParams(
+                database_provider=config.database_provider,
+                embedding_provider=config.embedding.provider,
+                embedding_model=model,
+                chunking_method=method,
+                chunk_size=size,
+                overlap=overlap,
+                top_k_initial=config.retrieval.top_k_initial,
+                top_k_final=config.retrieval.top_k_final,
+                data_paths=config.data_paths,
+                queries_file=config.queries_file,
+                retrievers=[retriever],
+                retrieval_method=legacy_method,
+                retrieval_provider=legacy_provider,
+                retrieval_model=legacy_model,
+            )
         )
-        for model, method, size, overlap in combos
-    ]
+
+    return runs

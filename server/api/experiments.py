@@ -62,22 +62,12 @@ async def create_experiment(config: ExperimentConfig):
     metadata = collect_experiment_metadata()
     now = datetime.now(UTC)
 
-    # Synthesize old fields from new retrievers format for backward compat
-    traditional_retrievers = [
-        r
-        for r in config.retrieval.retrievers
-        if r.type in {RetrieverType.DENSE, RetrieverType.SPARSE, RetrieverType.HYBRID}
-    ]
+    retrieval_methods_for_summary = [r.type.value for r in config.retrieval.retrievers]
     rerankers = [
         r
         for r in config.retrieval.retrievers
         if r.type in {RetrieverType.RERANKER, RetrieverType.CROSS_ENCODER}
     ]
-    retrieval_methods_for_summary = (
-        [r.type.value for r in traditional_retrievers]
-        if traditional_retrievers
-        else (config.retrieval.methods if config.retrieval.methods else ["dense"])
-    )
     retrieval_provider_for_summary = (
         rerankers[0].provider if rerankers else config.retrieval.retrieval_provider
     )

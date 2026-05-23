@@ -19,7 +19,13 @@ def _effective_score(result: dict) -> float:
     return float(result.get("dense_score", 0.0))
 
 
-def _run_config_key(run: dict) -> tuple[str, str, str, str, int, int, str, str]:
+def _run_config_key(run: dict) -> tuple[str, str, str, str, int, int, str, str, str]:
+    retriever_type = run["retrieval_method"]
+    retriever_model = run.get("retrieval_model") or ""
+    if run.get("retrievers"):
+        primary = run["retrievers"][0]
+        retriever_type = primary.get("type", retriever_type)
+        retriever_model = primary.get("model") or retriever_model
     return (
         run.get("database_provider", "mongodb"),
         run.get("embedding_provider", "local"),
@@ -27,8 +33,9 @@ def _run_config_key(run: dict) -> tuple[str, str, str, str, int, int, str, str]:
         run["chunking_method"],
         int(run["chunk_size"]),
         int(run["overlap"]),
-        run["retrieval_method"],
-        run.get("rerank_provider", "local"),
+        retriever_type,
+        run.get("retrieval_provider", "local"),
+        retriever_model,
     )
 
 
@@ -91,7 +98,7 @@ def analyze_results(
         key = (
             _run_config_key(run)
             if run
-            else ("unknown", "unknown", "unknown", "unknown", 0, 0, "unknown", "unknown")
+            else ("unknown", "unknown", "unknown", "unknown", 0, 0, "unknown", "unknown", "")
         )
 
         for sr in qr.get("results", []):
@@ -114,7 +121,8 @@ def analyze_results(
                     "chunk_size": run.get("chunk_size", 0),
                     "overlap": run.get("overlap", 0),
                     "retrieval_method": sr.get("retrieval_method", ""),
-                    "rerank_provider": run.get("rerank_provider", "local"),
+                    "rerank_provider": run.get("retrieval_provider", "local"),
+                    "retrieval_model": run.get("retrieval_model"),
                     "chunk_text": chunk.get("text", ""),
                     "query_text": query_text,
                     "run_id": run_id,
@@ -138,6 +146,7 @@ def analyze_results(
             overlap,
             retrieval,
             rerank_provider,
+            retrieval_model,
         ) = key
         ranked_configs.append(
             {
@@ -149,6 +158,7 @@ def analyze_results(
                 "overlap": overlap,
                 "retrieval_method": retrieval,
                 "rerank_provider": rerank_provider,
+                "retrieval_model": retrieval_model or None,
                 "max_score": max(scores) if scores else 0,
                 "avg_score": round(sum(scores) / len(scores)) if scores else 0,
                 "result_count": config_result_counts[key],

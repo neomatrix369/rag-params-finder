@@ -52,25 +52,24 @@ export function isActiveExperimentStatus(status: ExperimentStatus | undefined): 
  * Old format: falls back to `run.retrieval_method` + `run.retrieval_model`
  */
 export function displayRetrievers(run: RunStatus | { retrievers?: RetrieverConfig[]; retrieval_method?: string; retrieval_provider?: string; retrieval_model?: string | null }): string[] {
-  // NEW format — unified retrievers
   if (run.retrievers && run.retrievers.length > 0) {
-    return run.retrievers.map((r) => {
-      const isReranker = r.type === RetrieverType.RERANKER || r.type === RetrieverType.CROSS_ENCODER;
-      if (isReranker && r.provider && r.model) {
-        return `${r.type} (${r.provider}:${r.model})`;
-      }
-      return r.type;
-    });
+    const retriever = run.retrievers[0];
+    const isReranker = retriever.type === RetrieverType.RERANKER || retriever.type === RetrieverType.CROSS_ENCODER;
+    if (isReranker && retriever.provider && retriever.model) {
+      return [`${retriever.type} (${retriever.provider}:${retriever.model})`];
+    }
+    return [retriever.type];
   }
 
-  // OLD format — backward compatibility
-  const methods: string[] = [];
-  if (run.retrieval_method) {
-    methods.push(run.retrieval_method);
-  }
+  // OLD format — reranker-only runs stored retrieval_method as dense for legacy consumers
   if (run.retrieval_model && run.retrieval_provider) {
-    methods.push(`reranker (${run.retrieval_provider}:${run.retrieval_model})`);
+    const rerankerType = run.retrieval_provider === 'voyage' ? RetrieverType.RERANKER : RetrieverType.CROSS_ENCODER;
+    return [`${rerankerType} (${run.retrieval_provider}:${run.retrieval_model})`];
   }
 
-  return methods.length > 0 ? methods : ['dense']; // default fallback
+  if (run.retrieval_method) {
+    return [run.retrieval_method];
+  }
+
+  return ['dense'];
 }

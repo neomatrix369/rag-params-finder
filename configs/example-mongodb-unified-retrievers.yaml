@@ -2,15 +2,15 @@
 #
 # This example demonstrates the new unified retriever configuration where
 # traditional retrieval (dense/sparse/hybrid) and reranking are treated as
-# a single pipeline of retrievers.
+# retrievers and swept independently.
 #
 # Full Cartesian sweep:
-#   1 embedding model × 2 chunking methods × 2 chunk sizes × 1 overlap
-#   = 4 runs (each run uses ALL retrievers in the pipeline)
+#   1 embedding model × 2 chunking methods × 2 chunk sizes × 1 overlap × 2 retrievers
+#   = 8 runs (each retriever creates a separate run)
 #
 # Embedding:  all-MiniLM-L6-v2 (384-dim, local, no API key)
 # Chunking:   recursive · semantic
-# Retrievers: dense → local reranker (pipeline)
+# Retrievers: dense · cross_encoder (swept individually — one retriever per run)
 #
 # Atlas prerequisites (M0 — create before running sweep):
 #   - chunks collection in rag_params_finder database
@@ -44,10 +44,9 @@ retrieval:
   top_k_initial: 20  # Candidates from traditional retrieval
   top_k_final: 5     # Final results after reranking
   retrievers:
-    # Stage 1: Traditional dense retrieval
+    # Each entry is one sweep dimension — one retriever per run (never combined).
     - type: dense
 
-    # Stage 2: Local cross-encoder refines the candidates
     - type: cross_encoder
       provider: local
       model: cross-encoder/ms-marco-MiniLM-L-6-v2

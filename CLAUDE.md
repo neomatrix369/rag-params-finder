@@ -112,8 +112,9 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 - `embedding.provider`: "local" or "voyage"
   - Local → `server/core/local_embedder.py` → `all-MiniLM-L6-v2` (384-dim)
   - Voyage → `server/core/embedder.py` → all models in `EMBEDDING_MODELS` with `provider: voyage` (1024-dim; `voyage-context-3` uses `contextualized_embed()` with automatic segment splitting for long documents)
-- **`retrieval.retrievers`** (NEW unified format):
-  - Traditional retrievers: `{type: dense|sparse|hybrid}` — no provider/model needed
+- **`retrieval.retrievers`** (unified format):
+  - Each list entry is one sweep dimension — one retriever per run
+  - Traditional: `{type: dense|sparse|hybrid}` — no provider/model needed
   - Rerankers: `{type: reranker|cross_encoder, provider: local|voyage, model: ...}`
   - Example:
     ```yaml
@@ -124,9 +125,10 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
           provider: local
           model: cross-encoder/ms-marco-MiniLM-L-6-v2
     ```
+    → creates separate runs for dense and cross_encoder (not a pipeline)
 
 **Old format** (deprecated, auto-migrated):
-- `retrieval.methods` + `rerank_provider`/`rerank_model` — still works but converts to `retrievers` internally
+- `retrieval.methods` + `retrieval_provider`/`retrieval_model` — still works but converts to `retrievers` internally
 
 Provider/model must match — registry in `model_registry.py` validates at config load time.
 
