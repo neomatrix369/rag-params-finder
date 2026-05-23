@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-23 (dashboard polling intervals + thread-pool architecture docs)
-**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Voyage sweep UX polish ✅ COMPLETE | Search index preflight + indexes CLI ✅ COMPLETE | Dashboard polling + API responsiveness ✅ COMPLETE | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`)
+**Last Updated**: 2026-05-23 (Slice 19 spec — Atlas storage quota guard)
+**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Voyage sweep UX polish ✅ COMPLETE | Search index preflight + indexes CLI ✅ COMPLETE | Dashboard polling + API responsiveness ✅ COMPLETE | Kimchi embedding provider ✅ COMPLETE | Provider regression pytest ✅ COMPLETE | **Slice 18 ✅ COMPLETE** (unified retriever config) | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`) · **Slice 19 📋 PLANNED** (Atlas storage quota guard — incident 2026-05-23)
 
 ---
 
@@ -24,9 +24,13 @@
 | — — Search index preflight + indexes CLI | ✅ COMPLETE | ~2 h | `search_index_plan` + `search_index_guard`; HTTP 422 on submit; fail before runs; `indexes list\|reset`; 17 pytest scenarios |
 | — — Scoped logging (Option A) | ✅ COMPLETE | ~1 h | `scope_log.py` server/CLI; `devLog.ts` dashboard dev console; Voyage error + dashboard failure visibility |
 | — — Dashboard polling + API responsiveness | ✅ COMPLETE | ~1 h | `executors.py` thread pools; list 2 s / stats 60 s / explore 15 s polls; batched db-stats; anti-jitter `PollingIndicator` |
+| — — Kimchi embedding provider | ✅ COMPLETE | ~2 h | CAST OpenAI-compatible embeddings; runtime dimensions; 4-model example sweep; see [`SLICE-16-KIMCHI-PROVIDER.md`](../slices/SLICE-16-KIMCHI-PROVIDER.md) |
+| — — Provider regression pytest | ✅ COMPLETE | ~1 h | 39 tests: embedder dispatch, retriever index, registry, config, db-stats, Kimchi adapter — see [`SLICE-17-TEST-SUITE-EXPANSION.md`](../slices/SLICE-17-TEST-SUITE-EXPANSION.md) § Already delivered |
+| 18 — Unified retriever config | ✅ COMPLETE | ~4–6 h | Unified "retrievers" group (traditional search + rerankers); auto-migrate old format; multi-reranker chains; see [`SLICE-18-UNIFIED-RETRIEVER-CONFIG.md`](../slices/SLICE-18-UNIFIED-RETRIEVER-CONFIG.md) |
 | 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
+| 19 — Atlas storage quota guard | 📋 PLANNED | ~3–5 h | Preflight + runtime `OperationFailure` 8000 handling + force-delete recovery; M0 incident 2026-05-23 — see [`SLICE-19-STORAGE-QUOTA-GUARD.md`](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE
 
@@ -604,6 +608,11 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-23 | — | Dedicated sweep + heavy-read thread pools | Default executor starved `GET /experiments` during long sweeps and db-stats aggregations |
 | 2026-05-23 | — | Decoupled dashboard poll intervals | List 2 s, vector DB stats 60 s, Search Explorer 15 s while running — constants in `frontend/src/constants.ts` |
 | 2026-05-23 | — | Search Explorer `PollingIndicator` anti-jitter | `showDelayMs=600`, `minVisibleMs=1000` — badge no longer flickers on fast explore polls |
+| 2026-05-23 | 18 | One retriever per run (corrected) | Each `retrievers` list entry is one sweep dimension; runs never chain retrievers. Reranker runs fetch dense candidates internally (implementation detail only). Supersedes prior "auto-prepend dense" / chaining decisions. |
+| 2026-05-23 | 18 | Unified retriever configuration | Treat all retrieval strategies (dense/sparse/hybrid + rerankers) as unified `retrievers` list for sweep expansion |
+| 2026-05-23 | 18 | Auto-migrate old retrieval config format | Pydantic `@model_validator` converts `methods` + `retrieval_provider`/`retrieval_model` to separate `retrievers` sweep entries |
+| 2026-05-23 | 18 | Maintain old fields indefinitely | Keep `retrieval_method`, `retrieval_provider`, `retrieval_model` in DB — synthesized from single retriever for backward compat |
+| 2026-05-23 | 19 | Slice 19 spec for storage quota guard | M0 hit 515/512 MB; writes blocked (cancel/delete deadlock); `dbStats` understated cluster usage; mirror search-index preflight pattern — spec in [`SLICE-19-STORAGE-QUOTA-GUARD.md`](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) |
 
 ---
 
@@ -611,7 +620,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Slice | Issue | Severity | Status | Resolution |
 |-------|-------|----------|--------|------------|
-| - | None yet | - | - | - |
+| 19 | Atlas M0 storage quota blocks all writes; cancel/delete deadlock when cluster full | 🟡 Workaround exists | 📋 Spec written | Delete **complete** experiments to free space; then cancel works. Force-delete + preflight planned in Slice 19. Incident: `example-mongodb-local` 60-run sweep + voyage experiment on one M0 cluster. |
 
 **Severity**: 🔴 Blocker | 🟡 Workaround exists | 🟢 Minor
 
@@ -628,6 +637,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 11 — Dashboard-triggered runs | Submit experiments from the React UI, not just CLI | Could | ~45 min |
 | 12 — SSE live updates | Replace 2 s polling with Server-Sent Events | Could | ~20 min |
 | 13 — Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` | Could | ~15 min |
+| 19 — Storage quota guard | Spec: [`SLICE-19-STORAGE-QUOTA-GUARD.md`](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) — preflight at submit (422); runtime `OperationFailure` 8000; HTTP 507 on control APIs; `?force=true` delete; dashboard ≥80% warning; smoke config for M0 | **Should** | ~3–5 h |
 | 14 — Docker Compose | One-command local setup | Won't (now) | ~30 min |
 | 15 — CI/CD | GitHub Actions: ruff, mypy, pytest, npm lint/build | Should | ~20 min |
 | 16 — Parallel sweep (`parallelism` > 1) | Bounded concurrent `_run_single` (+ optional Celery upgrade path); Atlas/Voyage-rate-limit aware | Should | ~2–4 h |

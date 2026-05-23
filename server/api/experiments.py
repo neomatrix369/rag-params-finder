@@ -30,7 +30,7 @@ from server.core.orchestrator import (
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
 from server.models.config import ExperimentConfig, expand_sweep
-from server.models.enums import ExperimentStatus
+from server.models.enums import ExperimentStatus, RetrieverType
 from server.utils.log_throttle import info_throttled
 from server.utils.logger import get_logger
 from server.utils.metadata import collect_experiment_metadata
@@ -62,6 +62,17 @@ async def create_experiment(config: ExperimentConfig):
     metadata = collect_experiment_metadata()
     now = datetime.now(UTC)
 
+    retrieval_methods_for_summary = [r.type.value for r in config.retrieval.retrievers]
+    rerankers = [
+        r
+        for r in config.retrieval.retrievers
+        if r.type in {RetrieverType.RERANKER, RetrieverType.CROSS_ENCODER}
+    ]
+    retrieval_provider_for_summary = (
+        rerankers[0].provider if rerankers else config.retrieval.retrieval_provider
+    )
+    retrieval_model_for_doc = rerankers[0].model if rerankers else config.retrieval.retrieval_model
+
     experiment_doc = {
         "_id": experiment_id,
         "experiment_id": experiment_id,
@@ -75,7 +86,7 @@ async def create_experiment(config: ExperimentConfig):
         **metadata,
         "data_paths": config.data_paths,
         "queries_file": config.queries_file,
-        "rerank_model": config.retrieval.rerank_model,
+        "retrieval_model": retrieval_model_for_doc,
         "top_k_initial": config.retrieval.top_k_initial,
         "top_k_final": config.retrieval.top_k_final,
         "parallelism": config.execution.parallelism,
@@ -87,8 +98,8 @@ async def create_experiment(config: ExperimentConfig):
             "chunking_methods": [m.value for m in config.chunking.methods],
             "chunk_sizes": config.chunking.params.chunk_sizes,
             "overlaps": config.chunking.params.overlaps,
-            "retrieval_methods": [m.value for m in config.retrieval.methods],
-            "rerank_provider": config.retrieval.rerank_provider,
+            "retrieval_methods": retrieval_methods_for_summary,
+            "retrieval_provider": retrieval_provider_for_summary,
         },
     }
     await asyncio.to_thread(mongo_insert_experiment_doc, experiment_doc)

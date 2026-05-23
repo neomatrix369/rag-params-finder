@@ -198,10 +198,10 @@ VOYAGE_TPM_LIMIT=16000000
 cp .env.example .env          # once — then fill MONGODB_URI (+ Voyage vars if needed)
 uvicorn server.main:app --reload --port 8001
 
-# Local — 90 runs, no API key
+# Local — 120 runs, no API key (needs vector_index_384 + text_search_index)
 rag-params-finder run --config configs/example-mongodb-local.yaml
 
-# Voyage — 90 runs, requires steps above
+# Voyage — 40 runs, requires steps above
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
 ```
 

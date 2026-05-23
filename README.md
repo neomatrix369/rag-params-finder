@@ -79,8 +79,8 @@ uvicorn server.main:app --reload --port 8001   # Terminal 1
 cd frontend && npm run dev                      # Terminal 2 (optional)
 
 # Sweeps — complete cloud-setup.md checklist first
-rag-params-finder run --config configs/example-mongodb-local.yaml   # 90 runs, no API key
-rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 90 runs, Voyage + Tier 1
+rag-params-finder run --config configs/example-mongodb-local.yaml   # 120 runs, no API key
+rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 40 runs, Voyage + Tier 1
 ```
 
 Open `http://localhost:5173` to watch live progress and explore results.
@@ -106,6 +106,13 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 ## ⚡ Key Features
 
+### 🎯 **NEW in v0.2.0**: Weighted Averaging & Tiebreaker Explanations
+- **Weighted averaging** (query-level fairness): Each query contributes equally, preventing queries with many results from dominating the average — configurable via `TIEBREAKER_METRIC` env var ([docs](docs/user-guide/configuration.md#%EF%B8%8F-environment-variables-env))
+- **Tiebreaker explanation UI**: When multiple configs achieve 100% max score, the dashboard shows amber alerts, explanation panels, visual badges (⭐ "Best by tiebreaker", 🔀 "Tied"), and contextual annotations explaining WHY each config is ranked
+- **Detailed Results ↔ Hyperparameters mapping**: Chunk size/overlap badges, query text display, and explanatory headers help users map individual results back to aggregated configs
+- **Collapsible sweep dimensions panel**: Shows unique values for all swept parameters + Cartesian product calculation ([dashboard guide](docs/user-guide/dashboard-guide.md#-search-explorer))
+
+### Core Features
 - **5 chunking methods**: Fixed, Recursive, Token, Sentence, Semantic
 - **3 retrieval methods**: Dense (vector search), Sparse (BM25), Hybrid (Reciprocal Rank Fusion)
 - **Voyage AI models**: all registered embeddings in `model_registry.py` (voyage-4/3/domain/context) + rerankers `rerank-2.5-lite`, `rerank-2.5`, and legacy rerank APIs

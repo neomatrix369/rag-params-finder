@@ -1,14 +1,14 @@
 # MongoDB Atlas — Voyage AI models (requires VOYAGE_API_KEY in .env)
 #
-# Default sweep (3 embedding models enabled below):
-#   3 embedding models × 5 chunking methods × 2 chunk sizes × 1 overlap × 3 retrieval methods
-#   = 90 runs
+# Default sweep (1 embedding model enabled below):
+#   1 embedding model × 5 chunking methods × 2 chunk sizes × 1 overlap × 4 retrievers
+#   = 40 runs (each retriever creates a separate run)
 #
-# Uncomment additional models for a full sweep (12 models → 360 runs). See comments per model.
+# Uncomment additional models for a full sweep (12 models × 4 retrievers → 480 runs). See comments per model.
 #
 # Embedding (1024-dim, vector_index_1024): voyage-4-* · domain · context · voyage-3.*
 # Chunking:   fixed · recursive · token · sentence · semantic
-# Retrieval:  dense · sparse · hybrid
+# Retrievers: hybrid · dense · sparse · reranker (swept individually — one retriever per run)
 #
 # Atlas prerequisites (M0 — create before running sweep):
 #   - chunks collection in rag_params_finder database
@@ -58,15 +58,18 @@ chunking:
     chunk_sizes: [256, 512]   # narrower than local to control API cost
     overlaps: [50]
 
+# NEW: Unified retriever configuration
 retrieval:
-  methods:
-    - dense    # Atlas $vectorSearch (cosine similarity)
-    - sparse   # Atlas $search BM25 full-text  ← requires text_search_index
-    - hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
-  top_k_initial: 20
-  top_k_final: 5
-  rerank_provider: voyage
-  rerank_model: rerank-2.5-lite
+  top_k_initial: 20  # Candidates from traditional retrieval
+  top_k_final: 5     # Final results after reranking
+  retrievers:
+    # Each entry is one sweep dimension — one retriever per run (never combined).
+    - type: hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
+    - type: dense    # Atlas $vectorSearch (cosine similarity)
+    - type: sparse   # Atlas $search BM25 full-text  ← requires text_search_index
+    - type: reranker
+      provider: voyage
+      model: rerank-2.5-lite
 
 execution:
   parallelism: 1
