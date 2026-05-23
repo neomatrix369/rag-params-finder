@@ -127,7 +127,70 @@ Opened from the Experiment Detail screen once at least one run is complete. Init
 
 Changing the query filter triggers an immediate re-fetch (see **Re-query Progress** below).
 
-**Best parameters card**: the top-scoring config combination with its overall relevance score, highlighted at the top of the screen.
+#### Two Views: Hyperparameters & Detailed Results
+
+The Search Explorer has **two tabs**:
+
+1. **Hyperparameters** (default) — Aggregated config performance
+2. **Detailed Results** — Individual chunk-level results
+
+**Hyperparameters Tab**:
+
+- **Sweep Dimensions** (collapsible) — Shows what parameters were swept: embedding models, chunking methods, chunk sizes, overlaps, retrievers. Displays the Cartesian product calculation (e.g., "1 model × 5 methods × 3 sizes × 2 overlaps × 4 retrievers = 120 configurations"). Collapsed by default.
+
+- **Best Parameters Card** — The **top-ranked configuration** with:
+  - 🟠 **Tie alert** (when multiple configs achieve the same max score): "N configs tied at 100%"
+  - ℹ️ **Tiebreaker explanation** (when ties exist): "Tiebreaker applied: ranked by query avg (weighted per-query average), then chunk size (smaller = faster), then overlap (smaller = less storage)"
+  - **Dual metrics**: Query Avg ✓ (weighted, fairer) + Chunk Avg (unweighted, legacy)
+  - All config parameters (database, embedding model, chunking, chunk size, overlap, retrieval)
+
+- **Top 3 Config Cards** — Visual comparison with:
+  - ⭐ **#1**: "Best by tiebreaker" badge (when tied)
+  - 🔀 **#2, #3**: "Tied" badge (when tied)
+  - **Contextual annotations** explaining WHY each config is ranked (e.g., "✓ Ranked #1 by: smallest chunk size (512 vs 1024)")
+  - **Dual metrics** for each config
+
+- **All Configurations Table** (if > 3 configs) — Paginated table showing all configs ranked by performance
+
+**Detailed Results Tab**:
+
+- Individual chunk retrieval results (each row = one chunk from one query)
+- **Displays**: rank, score, embedding model, retrieval method, **chunking method**, **chunk size/overlap** (purple badge), **query text**, chunk text
+- **Expandable chunks**: Click a row to expand truncated text
+- Shows **how results map back to configs** via size/overlap badges
+
+#### Weighted Averaging (Query-Level Fairness)
+
+The dashboard shows **two average scores** for each config:
+
+| Metric | Type | Description | When to use |
+|---|---|---|---|
+| **Query Avg** ✓ | Weighted | Each query contributes equally | **Default** — fairer when queries return different numbers of chunks |
+| **Chunk Avg** | Unweighted | Each chunk contributes equally | Legacy — queries with more results dominate |
+
+**Why weighted averaging is fairer**:
+
+If Query 1 returns 5 chunks (scores: 100, 100, 95, 90, 85) and Query 2 returns 3 chunks (scores: 80, 75, 70):
+- **Chunk avg**: (100+100+95+90+85+80+75+70)/8 = **87%** ← Query 1 dominates (5/8 = 62.5% weight)
+- **Query avg**: (94 + 75)/2 = **84.5%** ← Each query weighted equally (50% each)
+
+Query avg prevents high-scoring queries with many results from hiding poorly-performing queries with few results.
+
+**Configurable**: Set `TIEBREAKER_METRIC=chunk_avg` in `.env` to use legacy unweighted averaging for ranking. Default is `query_avg` (recommended).
+
+#### Tiebreaker Logic (When Configs Tie on Max Score)
+
+When multiple configs achieve the same **max score** (e.g., all at 100%), they are ranked by:
+
+1. **Query avg score** (DESC) — Consistency across queries (weighted, fairer)
+2. **Chunk size** (ASC) — Smaller = faster embedding + less storage
+3. **Overlap** (ASC) — Smaller = fewer duplicate chunks
+
+The UI shows:
+- 🟠 Amber alert badge: "N configs tied at 100%"
+- ℹ️ Tiebreaker explanation panel
+- ⭐ / 🔀 Visual badges on top 3 cards
+- Contextual annotations explaining the ranking
 
 **Ranked config cards**: all config combinations ordered by score, with score bars for visual comparison. Each card shows the embedding model, chunking method, chunk size, overlap, and retrieval method.
 

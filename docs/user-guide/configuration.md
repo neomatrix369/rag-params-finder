@@ -311,10 +311,78 @@ To **re-run only failed combinations inside an existing experiment** *(same `exp
 
 ---
 
+## ⚙️ Environment Variables (`.env`)
+
+Create a `.env` file in the project root to configure server behavior:
+
+```bash
+# MongoDB Atlas (REQUIRED)
+MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder
+
+# Voyage AI (OPTIONAL — only if using Voyage models)
+VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Voyage rate limits (Tier 1 defaults shown)
+VOYAGE_RPM_LIMIT=300      # Requests per minute
+VOYAGE_TPM_LIMIT=1000000  # Tokens per minute
+
+# Search result ranking tiebreaker (NEW in v0.2.0)
+# When multiple configs achieve the same max score, this setting determines
+# which average metric is used for ranking.
+#
+# Options:
+#   - "query_avg" (default, RECOMMENDED): Weighted per-query average
+#     Each query contributes equally, preventing queries with many results
+#     from dominating the average. Fairer representation of config performance.
+#
+#   - "chunk_avg" (legacy): Unweighted chunk-level average
+#     Each chunk contributes equally. Queries that return more chunks have
+#     more weight. Use only if you need backward compatibility.
+#
+TIEBREAKER_METRIC=query_avg
+
+# Server URL (used by CLI)
+SERVER_URL=http://localhost:8001
+
+# Recovery on boot (auto-retry interrupted runs)
+RECOVER_ON_BOOT=false
+
+# Logging
+LOG_LEVEL=INFO  # DEBUG for verbose output
+
+# Atlas Admin API (OPTIONAL — for cluster quota display in dashboard)
+ATLAS_PUBLIC_KEY=your-atlas-public-key
+ATLAS_PRIVATE_KEY=your-atlas-private-key
+ATLAS_GROUP_ID=24-char-project-id
+ATLAS_CLUSTER_NAME=YourClusterName  # leave blank to auto-detect from MONGODB_URI
+
+# Manual storage limit override (MB)
+# When > 0, skips Atlas API auto-detect
+MONGODB_STORAGE_LIMIT_MB=0
+```
+
+**DO NOT commit `.env` to git** — it's already in `.gitignore`.
+
+### Query Avg vs Chunk Avg: Which to Use?
+
+**Use `query_avg` (default)** unless you have a specific reason not to. It's fairer because:
+
+| Scenario | Chunk Avg (unweighted) | Query Avg (weighted) |
+|---|---|---|
+| Query 1 returns 5 chunks (scores: 100, 100, 95, 90, 85) | Avg = 94% | Avg = 94% |
+| Query 2 returns 3 chunks (scores: 80, 75, 70) | Avg = 75% | Avg = 75% |
+| **Combined config avg** | **(100+100+95+90+85+80+75+70)/8 = 87%** ← Query 1 dominates (5/8 = 62.5% weight) | **(94 + 75)/2 = 84.5%** ← Each query weighted equally (50% each) |
+
+Query avg prevents high-scoring queries with many results from hiding poorly-performing queries with few results.
+
+**When to use `chunk_avg`**: You have existing experiments ranked with the old method and want consistency for comparison. New experiments should use `query_avg`.
+
+---
+
 ## 👉 See Also
 
 - [Getting Started](getting-started.md) — environment setup and first experiment
 - [Cloud Account Setup](cloud-setup.md) — Atlas and Voyage account setup
 - [CLI Reference](cli-reference.md) — how to submit a config and monitor runs
-- [Dashboard Guide](dashboard-guide.md) — interpreting results and scores
+- [Dashboard Guide](dashboard-guide.md) — interpreting results and scores (including tiebreaker logic)
 - [Extending the System](../contributor-guide/extending.md) — adding new models or chunking methods
