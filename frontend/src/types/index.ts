@@ -164,8 +164,10 @@ export interface RankedConfig {
   chunk_size: number;
   overlap: number;
   max_score: number;
-  avg_score: number;
+  avg_score: number;           // Unweighted (chunk-level average)
+  query_avg_score: number;     // NEW: Weighted (query-level average — fairer)
   result_count: number;
+  tied_count?: number;  // Number of configs with same max_score (only present on best_params)
 
   // NEW — unified retriever configuration
   retrievers?: RetrieverConfig[];
