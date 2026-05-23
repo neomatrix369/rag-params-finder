@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  DETAIL_POLL_MS,
   DEV_POLL_LOG_INTERVAL_MS,
+  EXPLORE_POLL_MS,
   LOADING_STALL_AFTER_MS,
   LOADING_STALL_REPEAT_MS,
 } from '../constants';
@@ -660,7 +660,7 @@ export default function SearchExplorerScreen({
           setIsPolling(false);
         }
       })();
-    }, DETAIL_POLL_MS);
+    }, EXPLORE_POLL_MS);
     return () => window.clearInterval(id);
   }, [experimentId, pollWhileRunning]);
 
@@ -723,6 +723,11 @@ export default function SearchExplorerScreen({
           tone="darkFrame"
           pageTitle="Search explorer"
           pageHint={`Aggregates for experiment ${experimentId.slice(0, 8)}… — ranked configs, optional query filter, and per-hit scores. Sidebar controls retrieval-method visibility.`}
+          topRight={
+            pollWhileRunning ? (
+              <PollingIndicator active={isPolling} showDelayMs={600} minVisibleMs={1000} />
+            ) : undefined
+          }
         />
       }
       sidebar={explorerRail}
@@ -731,12 +736,6 @@ export default function SearchExplorerScreen({
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
               {error}
-            </div>
-          )}
-
-          {pollWhileRunning && !loading && (
-            <div className="mb-4 flex items-center justify-end">
-              <PollingIndicator active={isPolling} />
             </div>
           )}
 
