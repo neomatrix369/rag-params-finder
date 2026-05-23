@@ -79,7 +79,7 @@ All 7 models documented in configuration.md are present in `RERANKER_MODELS`:
 | `VOYAGE_TPM_LIMIT` | ✅ | ✅ | optional | settings.py:44 |
 | `SERVER_URL` | ✅ | ✅ | optional | settings.py:29 |
 | `RECOVER_ON_BOOT` | ✅ | ✅ | optional | settings.py:30 |
-| `TIEBREAKER_METRIC` | ✅ | ✅ | optional | settings.py:65, NEW in v0.2.0 |
+| `TIEBREAKER_METRIC` | ✅ | ✅ | optional | settings.py:65, NEW in v0.11.0 |
 | `LOG_LEVEL` | ✅ | ✅ | optional | .env.example (implicit via Python logging) |
 | `CORS_ORIGINS` | ⚠️ undocumented | ✅ | optional | settings.py:35 |
 | `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX` | ⚠️ undocumented | ✅ | optional | settings.py:39 |
@@ -191,8 +191,8 @@ All 28 files listed in CLAUDE.md verified to exist with correct purposes:
 | Progress feedback | ✅ | ✅ (byte-level network loading) |
 | Scoped logging | ✅ | ✅ ([rag-params-finder] prefix) |
 | Pagination | ✅ | ✅ (10/page for experiments, 5 for configs) |
-| Weighted averaging | ✅ | ✅ (v0.2.0 feature, TIEBREAKER_METRIC) |
-| Tiebreaker explanation UI | ✅ | ✅ (v0.2.0 feature) |
+| Weighted averaging | ✅ | ✅ (v0.11.0 feature, TIEBREAKER_METRIC) |
+| Tiebreaker explanation UI | ✅ | ✅ (v0.11.0 feature) |
 
 ---
 

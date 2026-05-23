@@ -326,7 +326,7 @@ VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 VOYAGE_RPM_LIMIT=300      # Requests per minute
 VOYAGE_TPM_LIMIT=1000000  # Tokens per minute
 
-# Search result ranking tiebreaker (NEW in v0.2.0)
+# Search result ranking tiebreaker (NEW in v0.11.0)
 # When multiple configs achieve the same max score, this setting determines
 # which average metric is used for ranking.
 #
