@@ -14,6 +14,29 @@ This project follows [Semantic Versioning](https://semver.org/):
 
 ---
 
+## When to Release
+
+Create a new release when:
+
+✅ **Numbered slice completed** (Slice 10, 11, 16, 19, etc.) → **minor** version
+✅ **Significant feature shipped** (pause/resume, search index preflight, unified retriever config) → **minor** version
+✅ **New provider added** (Kimchi, future providers) → **minor** version
+✅ **Dashboard UX overhaul** (major UI improvements spanning multiple PRs) → **minor** version
+✅ **Bug fix** (rerank score normalization, atlas tier detection) → **patch** version
+✅ **Polish sprint** (scoped logging, dashboard polling improvements) → **patch** version
+
+❌ **Do not release for:**
+- Every individual commit
+- Work-in-progress features (wait until acceptance criteria met)
+- Internal refactoring without user-visible changes
+- Documentation-only updates (unless part of a larger release)
+
+**Rule of thumb**: If it's worth announcing to users, it's worth a release. Bundle related changes; release when value is deliverable.
+
+**Reminder**: Mark slice ✅ COMPLETE in `docs/_internal/PROGRESS.md` before creating the release.
+
+---
+
 ## Creating a Release
 
 ### 1. Complete the work
