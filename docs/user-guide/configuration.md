@@ -12,12 +12,13 @@ All YAML fields, sweep expansion rules, and queries file format.
 
 Place config files in `configs/`. Two ready-to-run configs are provided, one per vector-DB × provider combination:
 
-| Config file | Vector DB | Embedding provider | Chunking | Retrieval | Runs | API key? |
+| Config file | Vector DB | Embedding provider | Chunking | Retrievers | Runs | API key? |
 |---|---|---|---|---|---|---|
-| `example-mongodb-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid | 90 | No |
-| `example-mongodb-voyage.yaml` | MongoDB Atlas | Voyage AI (all 3 models) | all 5 methods | dense · sparse · hybrid | 90 | Yes |
+| `example-mongodb-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid · cross-encoder | 120 | No |
+| `example-mongodb-voyage.yaml` | MongoDB Atlas | Voyage AI (voyage-3.5-lite) | all 5 methods | hybrid · dense · sparse · reranker | 40 | Yes |
+| `example-mongodb-unified-retrievers.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | 2 methods | dense · sparse · hybrid · cross-encoder | 16 | No |
 
-Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retrieval method runs as an independent experiment.
+Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retriever runs as an independent experiment. Each entry in `retrieval.retrievers` creates a separate run — retrievers are never combined in a single run.
 
 ### Full annotated config
 
@@ -46,13 +47,19 @@ chunking:
     overlaps: [0, 50]
 
 retrieval:
-  methods:
-    - dense                          # one or more: dense | sparse | hybrid
-    # - hybrid
-  top_k_initial: 20                  # candidates passed to the reranker
-  top_k_final: 5                     # results returned after reranking
-  rerank_provider: local             # "local" or "voyage"
-  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+  top_k_initial: 20                  # candidates for reranker runs (dense fetch is internal)
+  top_k_final: 5                     # final results returned per query
+  retrievers:
+    # Each entry is one sweep dimension — one retriever per run (never combined).
+    - type: dense                    # Atlas Vector Search
+    - type: sparse                   # Atlas BM25 full-text
+    - type: hybrid                   # Reciprocal Rank Fusion of dense + sparse
+    - type: cross_encoder            # Local cross-encoder (no API key)
+      provider: local
+      model: cross-encoder/ms-marco-MiniLM-L-6-v2
+    # - type: reranker               # Voyage reranker (requires API key)
+    #   provider: voyage
+    #   model: rerank-2.5-lite
 
 execution:
   parallelism: 1                     # use 1 until Slice 16; see "### Parallelism" below
@@ -71,8 +78,12 @@ execution:
 One config YAML expands into a **Cartesian product** of runs:
 
 ```
-runs = embedding.models × chunking.methods × chunking.params.chunk_sizes × chunking.params.overlaps × retrieval.methods
+runs = embedding.models × chunking.methods × chunk_sizes × overlaps × retrievers
 ```
+
+Each `retriever` entry creates a separate run. Retrievers are **never chained** — a run uses exactly one retriever type.
+
+Reranker runs (`cross_encoder`, `reranker`) fetch dense candidates internally (using `top_k_initial`), then rerank to `top_k_final`. This dense fetch is an implementation detail and does not appear as a second retriever on the run.
 
 **Example**:
 ```yaml
@@ -84,10 +95,16 @@ chunking:
     chunk_sizes: [512, 1024]            # 2 sizes
     overlaps: [0, 50]                   # 2 overlaps
 retrieval:
-  methods: [dense]                      # 1 retrieval method
+  retrievers:
+    - type: dense
+    - type: sparse
+    - type: hybrid
+    - type: cross_encoder
+      provider: local
+      model: cross-encoder/ms-marco-MiniLM-L-6-v2
 ```
 
-→ 1 × 2 × 2 × 2 × 1 = **8 runs**
+→ 1 × 2 × 2 × 2 × 4 = **32 runs** (one run per retriever type per chunking combo)
 
 Each run is tracked independently through the pipeline phases and has its own results.
 
@@ -177,13 +194,46 @@ See [Troubleshooting — voyage-context-3 token limit](troubleshooting.md#-voyag
 
 ---
 
-## 🔍 Retrieval Methods
+## 🔍 Retrieval Configuration
 
-| Method | Algorithm | Strengths |
-|---|---|---|
-| `dense` | Cosine similarity on embeddings (Atlas Vector Search) | Semantic meaning, handles paraphrasing |
-| `sparse` | BM25 full-text search (Atlas Search) | Keyword precision, rare/domain-specific terms |
-| `hybrid` | Reciprocal Rank Fusion (RRF) of dense + sparse results | Balanced recall and precision |
+**Unified retriever format** (recommended):
+```yaml
+retrieval:
+  top_k_initial: 20  # Candidate pool for reranker runs
+  top_k_final: 5     # Final results per query
+  retrievers:
+    - type: dense
+    - type: sparse
+    - type: hybrid
+    - type: cross_encoder
+      provider: local
+      model: cross-encoder/ms-marco-MiniLM-L-6-v2
+```
+
+Each list entry is one sweep dimension. To compare dense vs sparse vs hybrid, list all three — the sweep runs each independently.
+
+**Retriever types**:
+
+| Type | Algorithm | Strengths | Requires provider/model? |
+|---|---|---|---|
+| `dense` | Cosine similarity on embeddings (Atlas Vector Search) | Semantic meaning, handles paraphrasing | No |
+| `sparse` | BM25 full-text search (Atlas Search) | Keyword precision, rare/domain-specific terms | No |
+| `hybrid` | Reciprocal Rank Fusion (RRF) of dense + sparse results | Balanced recall and precision | No |
+| `reranker` | Voyage reranking API | High-quality reranking, API-based | Yes |
+| `cross_encoder` | Local cross-encoder model | Fast reranking, no API key | Yes |
+
+**One retriever per run.** Do not list multiple retrievers expecting them to chain — each entry becomes its own run in the Cartesian sweep.
+
+**Time vs storage:** Adding `sparse` or `hybrid` increases run count and wall-clock time (extra query passes over the same stored chunks). They use the shared `text_search_index` and do not add embedding dimensions. Disk growth on M0 comes mainly from the chunking grid (methods × sizes × overlaps), not from listing more traditional retriever types.
+
+**Old format** (deprecated, auto-migrated):
+```yaml
+retrieval:
+  methods: [dense, sparse]
+  retrieval_provider: local        # DEPRECATED: use retrievers instead
+  retrieval_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+```
+Old configs still work—they're automatically converted to the new `retrievers` format. The deprecated `methods`, `retrieval_provider`, and `retrieval_model` fields are synthesized from `retrievers` for backward compatibility.
 
 ---
 
@@ -225,7 +275,7 @@ Each query is executed independently per run. Results are stored with `persona_i
 
 ## 🏠 Quick Start (No API Key)
 
-Use `configs/example-mongodb-local.yaml` — it covers all 5 chunking methods and all 3 retrieval methods with the local model. No Voyage API key needed.
+Use `configs/example-mongodb-local.yaml` — it covers all 5 chunking methods and all traditional retrieval methods (dense, sparse, hybrid) plus local cross-encoder reranking. No Voyage API key needed. **120 runs** — mostly wall-clock time; sparse/hybrid query existing chunk text (BM25/RRF) and do not add embedding storage beyond each run’s chunks. For a shorter sweep, use `example-mongodb-unified-retrievers.yaml` (16 runs).
 
 ```bash
 rag-params-finder run --config configs/example-mongodb-local.yaml
@@ -261,10 +311,105 @@ To **re-run only failed combinations inside an existing experiment** *(same `exp
 
 ---
 
+## ⚙️ Environment Variables (`.env`)
+
+Create a `.env` file in the project root to configure server behavior:
+
+```bash
+# MongoDB Atlas (REQUIRED)
+MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder
+
+# Voyage AI (OPTIONAL — only if using Voyage models)
+VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Voyage rate limits (Tier 1 defaults shown)
+VOYAGE_RPM_LIMIT=300      # Requests per minute
+VOYAGE_TPM_LIMIT=1000000  # Tokens per minute
+
+# Search result ranking tiebreaker (NEW in v0.2.0)
+# When multiple configs achieve the same max score, this setting determines
+# which average metric is used for ranking.
+#
+# Options:
+#   - "query_avg" (default, RECOMMENDED): Weighted per-query average
+#     Each query contributes equally, preventing queries with many results
+#     from dominating the average. Fairer representation of config performance.
+#
+#   - "chunk_avg" (legacy): Unweighted chunk-level average
+#     Each chunk contributes equally. Queries that return more chunks have
+#     more weight. Use only if you need backward compatibility.
+#
+TIEBREAKER_METRIC=query_avg
+
+# Server URL (used by CLI)
+SERVER_URL=http://localhost:8001
+
+# Recovery on boot (auto-retry interrupted runs)
+RECOVER_ON_BOOT=false
+
+# Logging
+LOG_LEVEL=INFO  # DEBUG for verbose output
+
+# Atlas Admin API (OPTIONAL — for cluster quota display in dashboard)
+ATLAS_PUBLIC_KEY=your-atlas-public-key
+ATLAS_PRIVATE_KEY=your-atlas-private-key
+ATLAS_GROUP_ID=24-char-project-id
+ATLAS_CLUSTER_NAME=YourClusterName  # leave blank to auto-detect from MONGODB_URI
+
+# Manual storage limit override (MB)
+# When > 0, skips Atlas API auto-detect
+MONGODB_STORAGE_LIMIT_MB=0
+
+# CORS Configuration (ADVANCED — for production deployment)
+# Comma-separated list of allowed origins. Defaults work for local development.
+# CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
+# CORS_ALLOW_LOCALHOST_ORIGIN_REGEX=true  # Auto-allow localhost/127.0.0.1/[::1] on any port
+```
+
+**DO NOT commit `.env` to git** — it's already in `.gitignore`.
+
+### Query Avg vs Chunk Avg: Which to Use?
+
+**Use `query_avg` (default)** unless you have a specific reason not to. It's fairer because:
+
+| Scenario | Chunk Avg (unweighted) | Query Avg (weighted) |
+|---|---|---|
+| Query 1 returns 5 chunks (scores: 100, 100, 95, 90, 85) | Avg = 94% | Avg = 94% |
+| Query 2 returns 3 chunks (scores: 80, 75, 70) | Avg = 75% | Avg = 75% |
+| **Combined config avg** | **(100+100+95+90+85+80+75+70)/8 = 87%** ← Query 1 dominates (5/8 = 62.5% weight) | **(94 + 75)/2 = 84.5%** ← Each query weighted equally (50% each) |
+
+Query avg prevents high-scoring queries with many results from hiding poorly-performing queries with few results.
+
+**When to use `chunk_avg`**: You have existing experiments ranked with the old method and want consistency for comparison. New experiments should use `query_avg`.
+
+### CORS Configuration (Advanced)
+
+**For production deployment only.** Local development defaults work out of the box.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000` | Comma-separated list of allowed origins for CORS |
+| `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX` | `true` | When true, automatically allow localhost/127.0.0.1/[::1] on any port via regex |
+
+**When to customize**:
+- Deploying the dashboard on a custom domain (e.g., `https://rag-finder.example.com`)
+- Running the frontend on a non-standard port in production
+- Tightening security by disabling the localhost regex in production
+
+**Example for production**:
+```bash
+CORS_ORIGINS=https://rag-finder.example.com,https://api.example.com
+CORS_ALLOW_LOCALHOST_ORIGIN_REGEX=false  # Disable regex, use explicit list only
+```
+
+**Security note**: The regex pattern `^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$` only matches localhost addresses — it does **not** open CORS to arbitrary hosts. Safe for local development; disable for production if using `CORS_ORIGINS` explicitly.
+
+---
+
 ## 👉 See Also
 
 - [Getting Started](getting-started.md) — environment setup and first experiment
 - [Cloud Account Setup](cloud-setup.md) — Atlas and Voyage account setup
 - [CLI Reference](cli-reference.md) — how to submit a config and monitor runs
-- [Dashboard Guide](dashboard-guide.md) — interpreting results and scores
+- [Dashboard Guide](dashboard-guide.md) — interpreting results and scores (including tiebreaker logic)
 - [Extending the System](../contributor-guide/extending.md) — adding new models or chunking methods

@@ -3,9 +3,10 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from server.models.config import RetrieverConfig
 from server.models.enums import ChunkingMethod, Phase, RetrievalMethod
 
-Provider = Literal["local", "voyage"]
+Provider = Literal["local", "voyage", "kimchi"]
 DatabaseProvider = Literal["mongodb"]  # Future: "pinecone", "weaviate", "qdrant"
 
 
@@ -19,9 +20,10 @@ class RunStatus(BaseModel):
     chunking_method: ChunkingMethod
     chunk_size: int
     overlap: int
+    retrievers: list[RetrieverConfig] = Field(default_factory=list)
     retrieval_method: RetrievalMethod
-    rerank_provider: Provider
-    rerank_model: str | None = None
+    retrieval_provider: Provider
+    retrieval_model: str | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     elapsed_ms: int = 0

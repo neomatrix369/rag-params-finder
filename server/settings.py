@@ -56,6 +56,14 @@ class Settings(BaseSettings):
     # Leave blank to derive from MONGODB_URI host (e.g. thesandboxcluster.5uaqybx.mongodb.net).
     atlas_cluster_name: str = ""
 
+    # Tiebreaker metric for ranking configurations when max_score is tied.
+    # Options:
+    #   - "query_avg" (weighted, per-query average — fairer)
+    #   - "chunk_avg" (unweighted, per-chunk — legacy)
+    # Default: "query_avg" (recommended for fairness).
+    # Override via TIEBREAKER_METRIC env var.
+    tiebreaker_metric: str = "query_avg"
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: object) -> list[str]:
