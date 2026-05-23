@@ -51,6 +51,9 @@ rag-params-finder pause <experiment-id>
 rag-params-finder resume <experiment-id>
 rag-params-finder delete <experiment-id>           # Delete experiment and all data
 rag-params-finder delete <experiment-id> --force   # Skip confirmation
+rag-params-finder indexes list                     # Atlas Search indexes (known vs unknown)
+rag-params-finder indexes reset                    # Drop unknown indexes + ensure required
+rag-params-finder indexes reset --all              # Drop all chunks indexes + recreate
 rag-params-finder version
 ```
 
@@ -62,7 +65,9 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 |---|---|
 | `server/main.py` | FastAPI app entry; lifespan ensures DB indexes + orphan reconciliation |
 | `server/settings.py` | Centralized pydantic-settings config |
-| `server/core/orchestrator.py` | End-to-end pipeline executor |
+| `server/core/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
+| `server/core/search_index_plan.py` | Pure logic: required indexes from config, capacity assessment |
+| `server/core/search_index_guard.py` | Cluster snapshot + ensure_indexes retry; raises on mismatch |
 | `server/core/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
 | `server/core/atlas_storage.py` | Atlas Admin API cluster quota + tier specs (`resolve_tier_specs`); shared-tier storage fallbacks |
 | `server/core/model_registry.py` | Embedding + reranking model catalog |
@@ -75,8 +80,9 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/models/enums.py` | ChunkingMethod, RetrievalMethod, Phase |
 | `server/api/experiments.py` | Experiments CRUD, results/explore, db-stats, pause, resume, cancel, delete |
 | `server/api/experiments_shared.py` | Shared Mongo helpers (delete cascade, db-stats aggregation) |
-| `server/db/indexes.py` | Collection + index creation helpers |
-| `cli/main.py` | Typer app (`run`, `cancel`, `pause`, `resume`, `delete`, `version`) |
+| `server/db/indexes.py` | Collection + search index creation; cluster-wide index listing |
+| `cli/main.py` | Typer app (`run`, `cancel`, `pause`, `resume`, `delete`, `indexes`, `version`) |
+| `cli/indexes_cmd.py` | `indexes list` and `indexes reset` subcommands |
 | `cli/config_loader.py` | YAML parser + model registry validation |
 | `cli/api_client.py` | HTTP client to server (POST /experiments, DELETE, etc.) |
 | `frontend/src/App.tsx` | Root component (screen routing) |
@@ -95,6 +101,10 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `frontend/src/types/index.ts` | Hand-mirrored TypeScript types from Python models |
 | `frontend/src/services/apiClient.ts` | Fetch wrapper (all server API calls, including DELETE) |
 | `frontend/src/services/fetchWithProgress.ts` | ReadableStream-based fetch with progress tracking |
+| `frontend/src/utils/devLog.ts` | Dev-only scoped console helpers (stripped from production builds) |
+| `server/utils/scope_log.py` | Option A scoped log format for server and CLI |
+| `tests/test_search_index_plan.py` | Search index requirement + capacity scenario tests |
+| `tests/test_search_index_guard.py` | Preflight guard tests (mocked I/O) |
 
 ## Provider System
 
@@ -157,10 +167,10 @@ cd frontend && npm run typecheck && npm run build
 
 ## Quality Gates Baseline
 
-**Backend** (2026-05-05):
+**Backend** (2026-05-23):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 0 tests collected (test suite not yet written)
+- `pytest` → 17 tests (search index preflight)
 
 **Frontend** (2026-05-05):
 - `npm run typecheck` → 0 errors

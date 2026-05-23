@@ -46,6 +46,45 @@ Both indexes can coexist on the same `chunks` collection — the server selects 
 
 ---
 
+## 🚫 Search index preflight failed
+
+**Symptom**: CLI or API returns **422** on submit, or experiment status is `failed` immediately with `error_message` mentioning search indexes. Server logs show `search index preflight failed`.
+
+**Cause**: Before any run starts, the server checks that your YAML's required Atlas Search indexes exist on `chunks` and that the cluster has free quota to create any missing ones. Failure happens when:
+
+- Required indexes are **missing** on `chunks` (common on M0 — manual creation required)
+- Required indexes are still **building** (not yet READY)
+- Cluster search-index **quota is exhausted** (M0 allows **3 indexes cluster-wide** across all databases/collections)
+- **Unknown indexes** from other projects consume all slots
+
+**Required indexes per config** (derived automatically):
+
+| Config pattern | Required on `chunks` |
+|---|---|
+| Local + dense only | `vector_index_384` |
+| Local + sparse/hybrid | `vector_index_384` + `text_search_index` |
+| Voyage + dense only | `vector_index_1024` |
+| Voyage + sparse/hybrid | `vector_index_1024` + `text_search_index` |
+
+**Fix**:
+
+```bash
+# 1. Inspect cluster-wide index usage
+rag-params-finder indexes list
+
+# 2. Free quota — drop unknown indexes and ensure required ones exist
+rag-params-finder indexes reset
+
+# 3. On M0, create any still-missing indexes manually in Atlas UI
+#    → Cloud Account Setup step 6
+```
+
+If `indexes list` shows 3/3 with unknown indexes, run `indexes reset` before submitting again.
+
+On **M10+**, the server attempts programmatic creation when slots are available; restart uvicorn and check logs if creation fails.
+
+---
+
 ## 🔍 Full Text Search index not found (sparse/hybrid)
 
 **Symptom**: server logs show `Search index 'text_search_index' not found` or sparse/hybrid runs fail immediately.

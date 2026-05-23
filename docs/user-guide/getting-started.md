@@ -69,9 +69,19 @@ Full variable reference: [Troubleshooting → Environment Variables](troubleshoo
 
 Both example configs use dense + sparse + hybrid — create **`vector_index_384`** (local) or **`vector_index_1024`** (Voyage) **and** **`text_search_index`** on the `chunks` collection.
 
-**M0 free tier:** do this manually in Atlas UI before running a sweep — see [Cloud Account Setup → step 6](cloud-setup.md#6-create-search-indexes-m0--required-before-sweep).
+**M0 free tier:** do this manually in Atlas UI before running a sweep — see [Cloud Account Setup → step 6](cloud-setup.md#6-create-search-indexes-m0--required-before-sweep). M0 allows **3 search indexes cluster-wide**; unknown indexes from other projects consume quota.
 
 **M10+ paid tier:** server creates indexes on startup — check uvicorn logs.
+
+**Verify and fix quota issues** (any tier):
+
+```bash
+rag-params-finder indexes list              # known vs unknown; count vs M0 limit
+rag-params-finder indexes reset             # drop unknown indexes + ensure required
+rag-params-finder indexes reset --all       # drop all chunks indexes + recreate
+```
+
+The server **preflights search indexes** when you submit a sweep: it derives required index names from your YAML (embedding dimensions + sparse/hybrid retrieval), checks cluster capacity, and rejects the experiment with **HTTP 422** if indexes are missing or quota is exhausted — before any embedding work starts.
 
 ---
 

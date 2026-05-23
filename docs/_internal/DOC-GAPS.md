@@ -30,6 +30,7 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 
 - [x] Add `## Troubleshooting` section to `README.md` covering:
   - [x] Vector index not found (Atlas index not created yet)
+  - [x] Search index preflight failed (HTTP 422 / immediate `failed` status; M0 quota)
   - [x] Dimension mismatch (384 vs 1024, mixing local + Voyage)
   - [x] Voyage rate limit hit
   - [x] Dashboard stuck on "Loading…" (server not running, CORS)
@@ -99,7 +100,7 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 - [x] Add `## Quality Gates Baseline` section to `CLAUDE.md` with real numbers:
   - [x] `ruff check .` → 0 errors (after `uv pip install -e ".[dev]"`)
   - [x] `mypy server/ cli/` → 0 errors
-  - [x] `pytest` → 0 tests collected (no test suite yet)
+  - [x] `pytest` → 17 tests (search index preflight; see `tests/`)
   - [x] `npm run typecheck` → 0 errors ✓ (fixed `tsconfig.json` to include `vite/client.d.ts`)
   - [x] `npm run build` → ✓ built in ~1.8 s, 34 modules
   - [x] `npm audit --audit-level=high` → 0 vulnerabilities

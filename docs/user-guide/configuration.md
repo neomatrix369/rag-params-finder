@@ -134,6 +134,17 @@ Canonical list: `server/core/model_registry.py` (`EMBEDDING_MODELS`, `RERANKER_M
 
 **Atlas vector index** selection is automatic: local models (384-dim) use `vector_index_384`; Voyage models (1024-dim) use `vector_index_1024`. Both can coexist on the same `chunks` collection.
 
+**Search index preflight:** on submit, the server derives required index names from your config and validates cluster capacity before any run starts:
+
+| `retrieval.methods` | `embedding` provider | Required Atlas Search indexes |
+|---|---|---|
+| `dense` only | `local` | `vector_index_384` |
+| `dense` only | `voyage` | `vector_index_1024` |
+| includes `sparse` or `hybrid` | `local` | `vector_index_384` + `text_search_index` |
+| includes `sparse` or `hybrid` | `voyage` | `vector_index_1024` + `text_search_index` |
+
+If indexes are missing or M0 quota (3 cluster-wide) is exhausted, submission fails with **HTTP 422**. Use `rag-params-finder indexes list` and `indexes reset` — see [Troubleshooting](troubleshooting.md#-search-index-preflight-failed).
+
 ### `voyage-context-3` (contextualized API)
 
 Unlike other Voyage models, `voyage-context-3` uses Voyage's **`contextualized_embed`** API — all chunks from a document segment share embedding context for better retrieval quality.

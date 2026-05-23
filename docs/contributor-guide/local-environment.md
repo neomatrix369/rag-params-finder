@@ -26,6 +26,18 @@ Index JSON definitions: [Cloud Account Setup → Search indexes](../user-guide/c
 
 Atlas UI → Browse Collections → `chunks` collection → **Search Indexes** tab. Status shows `ACTIVE` when ready.
 
+**CLI alternative** (cluster-wide, includes quota count):
+
+```bash
+rag-params-finder indexes list
+rag-params-finder indexes reset              # drop unknown + ensure required on chunks
+rag-params-finder indexes reset --all        # rebuild all chunks search indexes
+```
+
+M0 free tier: **3 search indexes cluster-wide** across all databases. The server **preflights** required indexes on experiment submit — see [Troubleshooting → Search index preflight failed](../user-guide/troubleshooting.md#-search-index-preflight-failed).
+
+Implementation: `server/core/search_index_plan.py` (pure assessment), `server/core/search_index_guard.py` (I/O), `server/db/indexes.py` (list/create).
+
 ### Atlas Full Text Search Index (sparse/hybrid retrieval)
 
 Required for `sparse` and `hybrid` retrieval methods. Create once in the Atlas UI:

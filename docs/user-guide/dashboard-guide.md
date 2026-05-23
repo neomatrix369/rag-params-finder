@@ -47,7 +47,7 @@ The landing screen shows all submitted experiments, newest first.
 | `running` | Blue | One or more runs still active |
 | `paused` | Violet | Sweep paused — completed runs kept; resume to continue remaining combos |
 | `partial` | Yellow | Sweep stopped early — some runs complete, some failed/interrupted, and/or some parameter combos never started |
-| `failed` | Red | All runs failed |
+| `failed` | Red | All runs failed, **or** experiment rejected at search-index preflight (no runs started) |
 | `cancelled` | Gray | Experiment was cancelled |
 
 ---
@@ -91,6 +91,7 @@ Pause, resume, and cancel controls appear **only in the overview header** — no
 | `paused` | Violet — “Experiment Paused” banner with run count; resume via header controls |
 | `cancelled` | Gray — runs completed before cancellation |
 | Failed runs | Red panel listing `error_message` per run |
+| Preflight failed | Experiment `error_message` explains missing indexes or quota — fix with `rag-params-finder indexes list` / `indexes reset`; see [Troubleshooting](troubleshooting.md#-search-index-preflight-failed) |
 | Interrupted runs | Amber panel listing interruption reason |
 
 **Vector DB stats card**: Collapsible panel with per-experiment chunk counts, embedding model breakdown, estimated storage, and index names. Loaded from `GET /experiments/{id}/db-stats`.

@@ -142,6 +142,15 @@ Wait until each index shows **ACTIVE** (~1–2 min).
 
 **M10+ paid clusters:** skip manual creation — the server creates indexes on startup (check uvicorn logs).
 
+**Quota check:** M0 allows **3 search indexes cluster-wide**. Before your first sweep:
+
+```bash
+rag-params-finder indexes list    # count vs limit; known vs unknown
+rag-params-finder indexes reset   # drop stray indexes + ensure required
+```
+
+The server **preflights** required indexes on experiment submit — missing indexes or exhausted quota returns **HTTP 422** before embedding starts (see [Troubleshooting → Search index preflight failed](troubleshooting.md#-search-index-preflight-failed)).
+
 ---
 
 ## Voyage AI (required for Voyage sweep)
