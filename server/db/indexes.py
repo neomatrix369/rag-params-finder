@@ -13,6 +13,7 @@ from server.db.atlas import (
     RESULTS_COLLECTION,
     RUN_STATUS_COLLECTION,
     get_collection,
+    get_mongo_client,
 )
 from server.utils.logger import get_logger
 
@@ -57,6 +58,86 @@ VECTOR_INDEX_CONFIGS: list[_VectorIndexConfig] = [
 ]
 
 TEXT_SEARCH_INDEX_NAME = "text_search_index"
+M0_SEARCH_INDEX_LIMIT = 3
+
+
+class SearchIndexInfo(TypedDict):
+    database: str
+    collection: str
+    name: str
+    index_type: str
+    status: str
+    known: bool
+
+
+def known_search_index_names() -> frozenset[str]:
+    return frozenset([TEXT_SEARCH_INDEX_NAME, *[cfg["name"] for cfg in VECTOR_INDEX_CONFIGS]])
+
+
+def list_cluster_search_indexes() -> list[SearchIndexInfo]:
+    """Return all Atlas Search indexes across every database on the cluster."""
+    client = get_mongo_client()
+    known = known_search_index_names()
+    results: list[SearchIndexInfo] = []
+
+    for db_name in sorted(client.list_database_names()):
+        db = client[db_name]
+        for coll_name in sorted(db.list_collection_names()):
+            coll = db[coll_name]
+            try:
+                indexes = list(coll.list_search_indexes())
+            except Exception:
+                continue
+            for idx in indexes:
+                results.append(
+                    SearchIndexInfo(
+                        database=db_name,
+                        collection=coll_name,
+                        name=idx.get("name", "?"),
+                        index_type=str(idx.get("type", "?")),
+                        status=str(idx.get("status", idx.get("queryable", "?"))),
+                        known=idx.get("name", "?") in known,
+                    )
+                )
+    return results
+
+
+def drop_search_index_at(database: str, collection: str, name: str) -> None:
+    """Drop a named Atlas Search index."""
+    get_mongo_client()[database][collection].drop_search_index(name)
+    logger.info("search index dropped — %s.%s name=%s", database, collection, name)
+
+
+def prune_unknown_search_indexes() -> list[str]:
+    """Drop search indexes not managed by this project. Returns dropped paths."""
+    dropped: list[str] = []
+    for info in list_cluster_search_indexes():
+        if info["known"]:
+            continue
+        path = f"{info['database']}.{info['collection']}.{info['name']}"
+        drop_search_index_at(info["database"], info["collection"], info["name"])
+        dropped.append(path)
+    return dropped
+
+
+def reset_chunks_search_indexes() -> None:
+    """Drop all search indexes on chunks and recreate vector + text indexes."""
+    chunks = get_collection(CHUNKS_COLLECTION)
+    for idx in chunks.list_search_indexes():
+        name = idx["name"]
+        chunks.drop_search_index(name)
+        logger.info("chunks search index dropped — name=%s", name)
+    create_vector_indexes()
+    create_text_search_index()
+
+
+def _search_index_create_unavailable(err_str: str) -> bool:
+    lowered = err_str.lower()
+    return (
+        "commandnotfound" in lowered
+        or "no such command" in lowered
+        or "maximum number of fts indexes" in lowered
+    )
 
 
 def _build_vector_index_model(name: str, dimensions: int) -> SearchIndexModel:
@@ -108,11 +189,18 @@ def create_vector_indexes() -> bool:
         logger.info("vector indexes created — names=%s", names)
     except Exception as e:
         err_str = str(e)
-        if "CommandNotFound" in err_str or "no such command" in err_str.lower():
-            logger.warning(
-                "vector index programmatic unavailable — M0/M2/M5 tiers; "
-                "create Atlas vector indexes manually in UI:",
-            )
+        if _search_index_create_unavailable(err_str):
+            if "maximum number of fts indexes" in err_str.lower():
+                logger.warning(
+                    "vector index quota exceeded — M0 allows %s search indexes cluster-wide; "
+                    "run `rag-params-finder indexes list` and `indexes reset --unknown-only`",
+                    M0_SEARCH_INDEX_LIMIT,
+                )
+            else:
+                logger.warning(
+                    "vector index programmatic unavailable — M0/M2/M5 tiers; "
+                    "create Atlas vector indexes manually in UI:",
+                )
             _log_manual_instructions()
             return False
         raise
@@ -204,13 +292,20 @@ def create_text_search_index() -> bool:
         logger.info("text search index created — name=%s", TEXT_SEARCH_INDEX_NAME)
     except Exception as e:
         err_str = str(e)
-        if "CommandNotFound" in err_str or "no such command" in err_str.lower():
-            logger.warning(
-                "text search index programmatic unavailable — M0/M2/M5 tiers; "
-                "create Atlas Search index manually name=%s. "
-                "See docs/user-guide/getting-started.md",
-                TEXT_SEARCH_INDEX_NAME,
-            )
+        if _search_index_create_unavailable(err_str):
+            if "maximum number of fts indexes" in err_str.lower():
+                logger.warning(
+                    "text search index quota exceeded — M0 allows %s search indexes cluster-wide; "
+                    "run `rag-params-finder indexes list` and `indexes reset --unknown-only`",
+                    M0_SEARCH_INDEX_LIMIT,
+                )
+            else:
+                logger.warning(
+                    "text search index programmatic unavailable — M0/M2/M5 tiers; "
+                    "create Atlas Search index manually name=%s. "
+                    "See docs/user-guide/getting-started.md",
+                    TEXT_SEARCH_INDEX_NAME,
+                )
             return False
         raise
 

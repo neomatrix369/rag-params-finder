@@ -16,9 +16,11 @@ from cli.api_client import (
     submit_experiment,
 )
 from cli.config_loader import load_config
+from cli.indexes_cmd import indexes_app
 from server.utils.logger import get_logger
 
 app = typer.Typer(help="RAG Params Finder CLI")
+app.add_typer(indexes_app, name="indexes")
 console = Console()
 logger = get_logger(__name__)
 
