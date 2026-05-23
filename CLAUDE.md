@@ -177,6 +177,8 @@ cd frontend && npm run typecheck && npm run build
 [ ] Slice status updated in docs/_internal/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
+[ ] Consider release: ./scripts/release.sh minor (slices/features) or patch (fixes/polish)
+    See PROGRESS.md § Release Cadence for guidance
 ```
 
 ## Quality Gates Baseline

@@ -167,6 +167,8 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 [ ] Slice status updated in docs/_internal/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
+[ ] Consider release: ./scripts/release.sh minor (slices/features) or patch (fixes/polish)
+    See docs/_internal/PROGRESS.md § Release Cadence for guidance
 ```
 
 ---

@@ -644,6 +644,39 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 ---
 
+## Release Cadence
+
+**Current version**: v0.11.0 ([CHANGELOG.md](../../CHANGELOG.md))
+
+**Versioning strategy**: [Semantic Versioning](https://semver.org/) with hybrid approach:
+- **Minor** (0.x.0) — Major slice completion, new features, provider additions
+- **Patch** (0.x.y) — Bug fixes, polish, documentation improvements, logging enhancements
+
+**When to release**:
+- ✅ **After slice completion** — When a numbered slice (10, 11, 16, 19, etc.) is marked ✅ COMPLETE
+- ✅ **After significant features** — Multi-slice work like pause/resume, search index preflight
+- ✅ **After polish sprints** — Dashboard UX improvements, scoped logging, etc.
+- ❌ **Not for every commit** — Bundle related changes; release when value is deliverable
+
+**Release workflow**:
+```bash
+# After marking slice complete in this file:
+./scripts/release.sh minor    # For slice completion or new feature
+./scripts/release.sh patch     # For bug fixes or polish
+
+# The script will:
+# 1. Bump version in pyproject.toml, frontend/package.json
+# 2. Prompt for CHANGELOG.md update
+# 3. Create annotated git tag with changelog excerpt
+# 4. Optionally push and create GitHub release
+```
+
+**See**: [docs/contributor-guide/release-process.md](../contributor-guide/release-process.md) for complete workflow.
+
+**Reminder**: Update CHANGELOG.md **during** development, not at release time. Move items from `## [Unreleased]` to the new version section when ready.
+
+---
+
 ## Interrupt Recovery Checklist
 
 Use this when resuming a session mid-slice:
