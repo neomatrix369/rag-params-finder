@@ -10,6 +10,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 
 [![CI](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions)
+[![Release](https://img.shields.io/github/v/release/neomatrix369/rag-params-finder?label=Release&logo=github)](https://github.com/neomatrix369/rag-params-finder/releases)
 [![License: MIT](https://img.shields.io/github/license/neomatrix369/rag-params-finder)](https://github.com/neomatrix369/rag-params-finder/blob/main/LICENSE)
 [![Last Commit](https://img.shields.io/github/last-commit/neomatrix369/rag-params-finder)](https://github.com/neomatrix369/rag-params-finder/commits/main)
 [![Stars](https://img.shields.io/github/stars/neomatrix369/rag-params-finder?style=social)](https://github.com/neomatrix369/rag-params-finder)
@@ -106,7 +107,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 ## ⚡ Key Features
 
-### 🎯 **NEW in v0.2.0**: Weighted Averaging & Tiebreaker Explanations
+### 🎯 **NEW in v0.11.0**: Weighted Averaging & Tiebreaker Explanations
 - **Weighted averaging** (query-level fairness): Each query contributes equally, preventing queries with many results from dominating the average — configurable via `TIEBREAKER_METRIC` env var ([docs](docs/user-guide/configuration.md#%EF%B8%8F-environment-variables-env))
 - **Tiebreaker explanation UI**: When multiple configs achieve 100% max score, the dashboard shows amber alerts, explanation panels, visual badges (⭐ "Best by tiebreaker", 🔀 "Tied"), and contextual annotations explaining WHY each config is ranked
 - **Detailed Results ↔ Hyperparameters mapping**: Chunk size/overlap badges, query text display, and explanatory headers help users map individual results back to aggregated configs
@@ -142,11 +143,28 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 ---
 
+## 📦 Releases & Versioning
+
+This project follows [Semantic Versioning](https://semver.org/):
+- **MAJOR** (x.0.0) — Breaking changes
+- **MINOR** (0.x.0) — New features, completed slices (backward compatible)
+- **PATCH** (0.0.x) — Bug fixes, polish, enhancements
+
+**Current version:** v0.11.0 ([CHANGELOG.md](CHANGELOG.md))
+
+**Release history:** [15 releases on GitHub](https://github.com/neomatrix369/rag-params-finder/releases) documenting development from v0.0.1 (initial skeleton) through v0.11.0 (weighted averaging)
+
+**For contributors:** See [Release Process](docs/contributor-guide/release-process.md) for how to create new releases
+
+---
+
 ## 🤝 Contributing
 
 Contributions welcome — please open an issue first to discuss the change.
 
 Priority areas: test suite with mock MongoDB fixtures, Search Explorer dashboard enhancements, SSE live updates, Docker Compose.
+
+**Development workflow:** See [Development Guide](docs/contributor-guide/development.md) · [Release Process](docs/contributor-guide/release-process.md)
 
 ---
 
