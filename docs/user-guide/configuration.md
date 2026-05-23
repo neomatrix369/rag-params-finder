@@ -177,13 +177,50 @@ See [Troubleshooting — voyage-context-3 token limit](troubleshooting.md#-voyag
 
 ---
 
-## 🔍 Retrieval Methods
+## 🔍 Retrieval Configuration
 
-| Method | Algorithm | Strengths |
-|---|---|---|
-| `dense` | Cosine similarity on embeddings (Atlas Vector Search) | Semantic meaning, handles paraphrasing |
-| `sparse` | BM25 full-text search (Atlas Search) | Keyword precision, rare/domain-specific terms |
-| `hybrid` | Reciprocal Rank Fusion (RRF) of dense + sparse results | Balanced recall and precision |
+**NEW unified retriever format** (recommended):
+```yaml
+retrieval:
+  top_k_initial: 20  # Candidates from traditional retrieval
+  top_k_final: 5     # Final results after reranking
+  retrievers:
+    - type: dense    # Traditional retrieval
+    - type: cross_encoder  # Reranker refines candidates
+      provider: local
+      model: cross-encoder/ms-marco-MiniLM-L-6-v2
+```
+
+**Retriever types**:
+
+| Type | Algorithm | Strengths | Requires provider/model? |
+|---|---|---|---|
+| `dense` | Cosine similarity on embeddings (Atlas Vector Search) | Semantic meaning, handles paraphrasing | No |
+| `sparse` | BM25 full-text search (Atlas Search) | Keyword precision, rare/domain-specific terms | No |
+| `hybrid` | Reciprocal Rank Fusion (RRF) of dense + sparse results | Balanced recall and precision | No |
+| `reranker` | Voyage reranking API | High-quality reranking, API-based | Yes |
+| `cross_encoder` | Local cross-encoder model | Fast reranking, no API key | Yes |
+
+**Multiple rerankers**: Chain rerankers in sequence:
+```yaml
+retrievers:
+  - type: dense
+  - type: cross_encoder
+    provider: local
+    model: cross-encoder/ms-marco-MiniLM-L-6-v2
+  - type: reranker
+    provider: voyage
+    model: rerank-2.5-lite
+```
+
+**Old format** (deprecated, auto-migrated):
+```yaml
+retrieval:
+  methods: [dense, sparse]
+  rerank_provider: local
+  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+```
+Old configs still work—they're automatically converted to the new `retrievers` format.
 
 ---
 

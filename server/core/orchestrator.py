@@ -20,7 +20,7 @@ from server.db.atlas import (
     get_collection,
 )
 from server.models.config import ExperimentConfig, RunParams, expand_sweep
-from server.models.enums import ExperimentStatus, Phase, RetrievalMethod
+from server.models.enums import ExperimentStatus, Phase, RetrievalMethod, RetrieverType
 from server.models.results import QueryResult
 from server.models.status import RunStatus
 from server.utils.logger import get_logger
@@ -88,8 +88,8 @@ def _params_signature(params: RunParams) -> ParamSignature:
         params.chunk_size,
         params.overlap,
         params.retrieval_method.value,
-        params.rerank_provider,
-        params.rerank_model,
+        params.retrieval_provider,
+        params.retrieval_model,
     )
 
 
@@ -110,8 +110,8 @@ def _run_doc_signature(run: dict) -> ParamSignature:
         int(run.get("chunk_size") or 0),
         int(run.get("overlap") or 0),
         _stored_enum_value(run.get("retrieval_method")),
-        str(run.get("rerank_provider") or ""),
-        run.get("rerank_model"),
+        str(run.get("retrieval_provider") or ""),
+        run.get("retrieval_model"),
     )
 
 
@@ -126,8 +126,8 @@ def _completed_param_signatures(experiment_id: str) -> set[ParamSignature]:
             "chunk_size": 1,
             "overlap": 1,
             "retrieval_method": 1,
-            "rerank_provider": 1,
-            "rerank_model": 1,
+            "retrieval_provider": 1,
+            "retrieval_model": 1,
         },
     )
     return {_run_doc_signature(run) for run in cursor}
@@ -350,14 +350,20 @@ def _compute_final_status(
 
 def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
     """Execute one run of the pipeline for a single parameter combination."""
+    retriever_summary = ", ".join(
+        r.type.value
+        if r.type in {RetrieverType.DENSE, RetrieverType.SPARSE, RetrieverType.HYBRID}
+        else f"{r.type.value}({r.provider}:{r.model})"
+        for r in params.retrievers
+    )
     logger.info(
-        "run pipeline — %s model=%s chunking=%s size=%s+%s retrieval=%s",
+        "run pipeline — %s model=%s chunking=%s size=%s+%s retrievers=[%s]",
         run_id,
         params.embedding_model,
         params.chunking_method.value,
         params.chunk_size,
         params.overlap,
-        params.retrieval_method.value,
+        retriever_summary,
     )
 
     run_status = RunStatus(
@@ -370,9 +376,9 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
         chunking_method=params.chunking_method,
         chunk_size=params.chunk_size,
         overlap=params.overlap,
-        retrieval_method=params.retrieval_method,
-        rerank_provider=params.rerank_provider,
-        rerank_model=params.rerank_model,
+        retrieval_method=params.retrieval_method,  # OLD — backward compat
+        retrieval_provider=params.retrieval_provider,  # OLD — backward compat
+        retrieval_model=params.retrieval_model,  # OLD — backward compat
     )
     get_collection(RUN_STATUS_COLLECTION).insert_one(run_status.model_dump())
 
@@ -448,43 +454,82 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
                 q.text[:60] + ("..." if len(q.text) > 60 else ""),
             )
 
-            needs_embedding = params.retrieval_method in (
-                RetrievalMethod.DENSE,
-                RetrievalMethod.HYBRID,
-            )
-            query_embedding = (
-                embed_query(q.text, params.embedding_model, params.embedding_provider)
-                if needs_embedding
-                else None
-            )
+            # NEW: Loop over all retrievers in sequence
+            # Traditional retrievers (dense/sparse/hybrid) produce candidates
+            # Rerankers refine candidates from prior retrievers
+            search_results = []
+            query_embedding = None
 
-            search_results = retriever_search(
-                method=params.retrieval_method,
-                query_text=q.text,
-                experiment_id=experiment_id,
-                embedding_model=params.embedding_model,
-                top_k=params.top_k_initial,
-                query_embedding=query_embedding,
-            )
-            logger.debug(
-                "retrieval hits — run %s query %s method=%s count=%s",
-                run_id,
-                i,
-                params.retrieval_method.value,
-                len(search_results),
-            )
+            for retriever_cfg in params.retrievers:
+                traditional_types = {
+                    RetrieverType.DENSE,
+                    RetrieverType.SPARSE,
+                    RetrieverType.HYBRID,
+                }
+                reranker_types = {RetrieverType.RERANKER, RetrieverType.CROSS_ENCODER}
 
-            if params.rerank_model:
-                _update_phase(run_id, Phase.RERANKING)
-                search_results = rerank_results(
-                    query=q.text,
-                    search_results=search_results,
-                    model=params.rerank_model,
-                    top_k=params.top_k_final,
-                    provider=params.rerank_provider,
-                )
-                logger.debug("rerank OK — run %s query %s count=%s", run_id, i, len(search_results))
-            else:
+                if retriever_cfg.type in traditional_types:
+                    # Traditional retrieval — produces initial candidates
+                    needs_embedding = retriever_cfg.type in {
+                        RetrieverType.DENSE,
+                        RetrieverType.HYBRID,
+                    }
+                    if needs_embedding and query_embedding is None:
+                        query_embedding = embed_query(
+                            q.text, params.embedding_model, params.embedding_provider
+                        )
+
+                    search_results = retriever_search(
+                        method=RetrievalMethod(retriever_cfg.type.value),
+                        query_text=q.text,
+                        experiment_id=experiment_id,
+                        embedding_model=params.embedding_model,
+                        top_k=params.top_k_initial,
+                        query_embedding=query_embedding,
+                    )
+                    logger.debug(
+                        "retrieval hits — run %s query %s/%s method=%s count=%s",
+                        run_id,
+                        i,
+                        len(queries),
+                        retriever_cfg.type.value,
+                        len(search_results),
+                    )
+
+                elif retriever_cfg.type in reranker_types:
+                    # Reranking — refines existing candidates
+                    if not search_results:
+                        logger.warning(
+                            "reranker configured but no candidates from "
+                            "prior retrieval — skipping run %s query %s",
+                            run_id,
+                            i,
+                        )
+                        continue
+
+                    # Rerankers always have provider and model (validated by RetrieverConfig)
+                    if not retriever_cfg.provider or not retriever_cfg.model:
+                        raise ValueError(f"Reranker {retriever_cfg.type} missing provider or model")
+
+                    _update_phase(run_id, Phase.RERANKING)
+                    search_results = rerank_results(
+                        query=q.text,
+                        search_results=search_results,
+                        model=retriever_cfg.model,
+                        top_k=params.top_k_final,
+                        provider=retriever_cfg.provider,
+                    )
+                    logger.debug(
+                        "rerank OK — run %s query %s/%s model=%s count=%s",
+                        run_id,
+                        i,
+                        len(queries),
+                        retriever_cfg.model,
+                        len(search_results),
+                    )
+
+            # Trim to top_k_final if no reranker was applied
+            if not any(r.type in reranker_types for r in params.retrievers):
                 search_results = search_results[: params.top_k_final]
 
             query_result = QueryResult(

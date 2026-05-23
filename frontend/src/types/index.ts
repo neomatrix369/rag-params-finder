@@ -23,6 +23,14 @@ export enum RetrievalMethod {
   HYBRID = "hybrid",
 }
 
+export enum RetrieverType {
+  DENSE = "dense",
+  SPARSE = "sparse",
+  HYBRID = "hybrid",
+  RERANKER = "reranker",
+  CROSS_ENCODER = "cross_encoder",
+}
+
 export enum Phase {
   QUEUED = "queued",
   PARSING = "parsing",
@@ -45,6 +53,12 @@ export interface EnvParams {
   recover_on_boot: boolean;
 }
 
+export interface RetrieverConfig {
+  type: RetrieverType;
+  provider?: string;
+  model?: string;
+}
+
 export interface SweepSummary {
   database_provider: string;
   embedding_provider: string;
@@ -52,8 +66,13 @@ export interface SweepSummary {
   chunking_methods: string[];
   chunk_sizes: number[];
   overlaps: number[];
-  retrieval_methods: string[];
-  rerank_provider: string;
+
+  // NEW — unified retriever configuration
+  retrievers?: string[];  // Human-readable retriever descriptions
+
+  // DEPRECATED — backward compatibility
+  retrieval_methods?: string[];
+  retrieval_provider?: string;
 }
 
 export interface Experiment {
@@ -75,7 +94,7 @@ export interface Experiment {
   env_params?: EnvParams;
   data_paths?: string[];
   queries_file?: string;
-  rerank_model?: string | null;
+  retrieval_model?: string | null;
   top_k_initial?: number;
   top_k_final?: number;
   parallelism?: number;
@@ -93,13 +112,18 @@ export interface RunStatus {
   chunking_method: ChunkingMethod;
   chunk_size: number;
   overlap: number;
-  retrieval_method: RetrievalMethod;
-  rerank_provider: string;
-  rerank_model?: string | null;
   created_at: string;
   updated_at: string;
   elapsed_ms: number;
   error_message?: string;
+
+  // NEW — unified retriever configuration
+  retrievers?: RetrieverConfig[];
+
+  // DEPRECATED — always populated for backward compatibility (synthesized from retrievers)
+  retrieval_method: RetrievalMethod;
+  retrieval_provider?: string | null;  // Optional: only present if experiment uses reranking
+  retrieval_model?: string | null;
 }
 
 export interface Chunk {
@@ -139,11 +163,16 @@ export interface RankedConfig {
   chunking_method: string;
   chunk_size: number;
   overlap: number;
-  retrieval_method: string;
-  rerank_provider: string;
   max_score: number;
   avg_score: number;
   result_count: number;
+
+  // NEW — unified retriever configuration
+  retrievers?: RetrieverConfig[];
+
+  // DEPRECATED — always populated for backward compatibility (synthesized from retrievers)
+  retrieval_method: string;
+  retrieval_provider?: string | null;  // Optional: only present if experiment uses reranking
 }
 
 export interface DetailedResult {
@@ -156,13 +185,18 @@ export interface DetailedResult {
   chunking_method: string;
   chunk_size: number;
   overlap: number;
-  retrieval_method: string;
-  rerank_provider: string;
   chunk_text: string;
   query_text: string;
   run_id: string;
   rerank_score?: number | null;
   dense_score: number;
+
+  // NEW — unified retriever configuration
+  retrievers?: RetrieverConfig[];
+
+  // DEPRECATED — always populated for backward compatibility (synthesized from retrievers)
+  retrieval_method: string;
+  retrieval_provider?: string | null;  // Optional: only present if experiment uses reranking
 }
 
 export interface ExploreResponse {

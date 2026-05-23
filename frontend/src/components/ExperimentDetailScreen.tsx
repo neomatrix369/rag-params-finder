@@ -36,6 +36,7 @@ import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchW
 import { devInfo, devInfoThrottled, devWarn } from '../utils/devLog';
 import { toExperimentDbStatsSummary } from '../utils/experimentDbStats';
 import {
+  displayRetrievers,
   isPausedExperimentStatus,
   isRunningExperimentStatus,
   isTerminalExperimentStatus,
@@ -113,7 +114,7 @@ interface ExperimentDetail {
   env_params?: EnvParams;
   data_paths?: string[];
   queries_file?: string;
-  rerank_model?: string | null;
+  retrieval_model?: string | null;
   top_k_initial?: number;
   top_k_final?: number;
   parallelism?: number;
@@ -124,7 +125,7 @@ interface ExperimentDetail {
       provider?: string;
     };
     retrieval?: {
-      rerank_provider?: string;
+      retrieval_provider?: string;
     };
   };
 }
@@ -1002,9 +1003,9 @@ export default function ExperimentDetailScreen({
                 compact
                 storageKey={`detail-config-${experimentId}`}
                 headerExtra={
-                  detail.rerank_model ? (
-                    <span className="text-xs text-slate-500 truncate max-w-[140px]" title={detail.rerank_model}>
-                      {detail.rerank_model}
+                  detail.retrieval_model ? (
+                    <span className="text-xs text-slate-500 truncate max-w-[140px]" title={detail.retrieval_model}>
+                      {detail.retrieval_model}
                     </span>
                   ) : (
                     <span className="text-xs text-slate-400">no rerank</span>
@@ -1012,7 +1013,7 @@ export default function ExperimentDetailScreen({
                 }
               >
                 <div className="space-y-3">
-                  <MetadataItem label="Rerank Model" value={detail.rerank_model ?? 'none'} />
+                  <MetadataItem label="Rerank Model" value={detail.retrieval_model ?? 'none'} />
                   <MetadataItem label="Top-K Initial" value={detail.top_k_initial} />
                   <MetadataItem label="Top-K Final" value={detail.top_k_final} />
                   <MetadataItem label="Parallelism" value={detail.parallelism} />
@@ -1055,8 +1056,7 @@ export default function ExperimentDetailScreen({
                   {detail.sweep_summary.models.length *
                     detail.sweep_summary.chunking_methods.length *
                     detail.sweep_summary.chunk_sizes.length *
-                    detail.sweep_summary.overlaps.length *
-                    detail.sweep_summary.retrieval_methods.length}{' '}
+                    detail.sweep_summary.overlaps.length}{' '}
                   combinations
                 </span>
               }
@@ -1068,8 +1068,18 @@ export default function ExperimentDetailScreen({
                 <DimensionBadge label="Chunking" values={detail.sweep_summary.chunking_methods} />
                 <DimensionBadge label="Chunk Sizes" values={detail.sweep_summary.chunk_sizes} />
                 <DimensionBadge label="Overlaps" values={detail.sweep_summary.overlaps} />
-                <DimensionBadge label="Retrieval" values={detail.sweep_summary.retrieval_methods} />
-                <DimensionBadge label="Rerank Provider" values={[detail.sweep_summary.rerank_provider || 'local']} />
+
+                {/* Unified Retrievers display with backward compatibility */}
+                {detail.sweep_summary.retrievers ? (
+                  <DimensionBadge label="Retrievers" values={detail.sweep_summary.retrievers} />
+                ) : (
+                  <>
+                    <DimensionBadge label="Retrieval" values={detail.sweep_summary.retrieval_methods || ['dense']} />
+                    {detail.sweep_summary.retrieval_provider && (
+                      <DimensionBadge label="Retrieval Provider" values={[detail.sweep_summary.retrieval_provider]} />
+                    )}
+                  </>
+                )}
               </div>
             </CollapsibleCard>
           </div>
@@ -1085,7 +1095,7 @@ export default function ExperimentDetailScreen({
               <MetadataItem label="Server URL" value={detail.env_params.server_url} />
               {/* Only show Voyage rate limits if using Voyage provider */}
               {(detail.config?.embedding?.provider === 'voyage' ||
-                detail.config?.retrieval?.rerank_provider === 'voyage') && (
+                detail.config?.retrieval?.retrieval_provider === 'voyage') && (
                 <>
                   <MetadataItem label="Voyage RPM" value={detail.env_params.voyage_rpm_limit} />
                   <MetadataItem label="Voyage TPM" value={detail.env_params.voyage_tpm_limit} />
@@ -1125,8 +1135,7 @@ export default function ExperimentDetailScreen({
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Embedding Model</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Chunker</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Size/Overlap</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Retrieval</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Rerank Prov</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Retrievers</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Phase</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Elapsed</th>
                     </tr>
@@ -1176,14 +1185,17 @@ export default function ExperimentDetailScreen({
                             </span>
                           </td>
                           <td className="px-4 py-4">
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 text-xs font-medium">
-                              {run.retrieval_method}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-teal-100 text-teal-800 text-xs font-medium uppercase">
-                              {run.rerank_provider || 'local'}
-                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {displayRetrievers(run).map((retriever, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 text-xs font-medium"
+                                  title={retriever}
+                                >
+                                  {retriever}
+                                </span>
+                              ))}
+                            </div>
                           </td>
                           <td className="px-4 py-4">
                             <PhaseIndicator current={run.phase} />

@@ -191,9 +191,13 @@ Two independent provider settings in each experiment config:
 - `local` → `server/core/local_embedder.py` → sentence-transformers `all-MiniLM-L6-v2` (384-dim)
 - `voyage` → `server/core/embedder.py` → Voyage AI API (1024-dim); `voyage-context-3` uses `contextualized_embed()` with per-document segment splitting (32K-token window)
 
-**Reranking provider** (`retrieval.rerank_provider`):
-- `local` → `server/core/local_reranker.py` → CrossEncoder `cross-encoder/ms-marco-MiniLM-L-6-v2`
-- `voyage` → `server/core/reranker.py` → Voyage AI rerank API
+**Retrieval configuration** (`retrieval.retrievers`):
+- Unified list of retrievers (traditional search + rerankers)
+- Traditional: `{type: dense|sparse|hybrid}` — no provider/model needed
+- Rerankers: `{type: reranker|cross_encoder, provider: local|voyage, model: ...}`
+  - `provider: local` → `server/core/local_reranker.py` → CrossEncoder `cross-encoder/ms-marco-MiniLM-L-6-v2`
+  - `provider: voyage` → `server/core/reranker.py` → Voyage AI rerank API
+- Old format (`methods` + `rerank_provider`/`rerank_model`) auto-migrates to `retrievers` via Pydantic validator
 
 Provider flows explicitly through `RunParams` → `orchestrator` → embedder/reranker. The `model_registry.py` validates that model names match the declared provider at config load time.
 

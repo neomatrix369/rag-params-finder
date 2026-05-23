@@ -99,8 +99,8 @@ function BestParamsCard({ config }: { config: RankedConfig }) {
               <div className="text-sm font-semibold capitalize">{config.retrieval_method}</div>
             </div>
             <div>
-              <div className="text-xs text-slate-400 uppercase tracking-wider">Rerank Provider</div>
-              <div className="text-sm font-bold uppercase text-teal-300">{config.rerank_provider || 'local'}</div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider">Retrieval Provider</div>
+              <div className="text-sm font-bold uppercase text-teal-300">{config.retrieval_provider || 'local'}</div>
             </div>
           </div>
         </div>
@@ -160,8 +160,8 @@ function ConfigCard({ config }: { config: RankedConfig }) {
             <div className="font-medium text-slate-700 capitalize">{config.retrieval_method}</div>
           </div>
           <div>
-            <span className="text-xs text-slate-400 uppercase tracking-wider">Rerank Prov</span>
-            <div className="font-bold text-teal-700 text-xs uppercase">{config.rerank_provider || 'local'}</div>
+            <span className="text-xs text-slate-400 uppercase tracking-wider">Retrieval Prov</span>
+            <div className="font-bold text-teal-700 text-xs uppercase">{config.retrieval_provider || 'local'}</div>
           </div>
         </div>
         <div>
@@ -267,7 +267,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {topConfigs.map((c) => (
-          <ConfigCard key={`${c.database_provider}-${c.embedding_provider}-${c.embedding_model}-${c.chunking_method}-${c.chunk_size}-${c.overlap}-${c.retrieval_method}-${c.rerank_provider}`} config={c} />
+          <ConfigCard key={`${c.database_provider}-${c.embedding_provider}-${c.embedding_model}-${c.chunking_method}-${c.chunk_size}-${c.overlap}-${c.retrieval_method}-${c.retrieval_provider}`} config={c} />
         ))}
       </div>
 
@@ -288,7 +288,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Chunking</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Size/Overlap</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Retrieval</th>
-                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Rerank Prov</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Retrieval Prov</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Max Score</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Avg Score</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Results</th>
@@ -304,7 +304,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
                   <td className="px-4 py-2.5 text-sm capitalize">{c.chunking_method}</td>
                   <td className="px-4 py-2.5 text-sm font-mono">{c.chunk_size}/{c.overlap}</td>
                   <td className="px-4 py-2.5"><MethodBadge method={c.retrieval_method} variant="retrieval" /></td>
-                  <td className="px-4 py-2.5 text-xs font-bold text-teal-700 uppercase">{c.rerank_provider || 'local'}</td>
+                  <td className="px-4 py-2.5 text-xs font-bold text-teal-700 uppercase">{c.retrieval_provider || 'local'}</td>
                   <td className="px-4 py-2.5 text-sm font-bold">{c.max_score}%</td>
                   <td className="px-4 py-2.5 text-sm">{c.avg_score}%</td>
                   <td className="px-4 py-2.5 text-sm text-slate-500">{c.result_count}</td>

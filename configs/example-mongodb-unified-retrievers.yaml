@@ -1,0 +1,57 @@
+# MongoDB Atlas — Unified Retrievers Format (NEW)
+#
+# This example demonstrates the new unified retriever configuration where
+# traditional retrieval (dense/sparse/hybrid) and reranking are treated as
+# a single pipeline of retrievers.
+#
+# Full Cartesian sweep:
+#   1 embedding model × 2 chunking methods × 2 chunk sizes × 1 overlap
+#   = 4 runs (each run uses ALL retrievers in the pipeline)
+#
+# Embedding:  all-MiniLM-L6-v2 (384-dim, local, no API key)
+# Chunking:   recursive · semantic
+# Retrievers: dense → local reranker (pipeline)
+#
+# Atlas prerequisites (M0 — create before running sweep):
+#   - chunks collection in rag_params_finder database
+#   - vector_index_384  + text_search_index (if using sparse/hybrid)
+#   See docs/user-guide/cloud-setup.md#before-you-run-a-sweep
+
+experiment_name: example-unified-retrievers
+
+data_paths:
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+
+queries_file: ./configs/questions.example.json
+
+database_provider: mongodb
+
+embedding:
+  provider: local
+  models:
+    - all-MiniLM-L6-v2    # 384-dim, no API key needed
+
+chunking:
+  methods:
+    - recursive   # LangChain recursive splitter
+    - semantic    # Sentence-transformers cosine similarity grouping
+  params:
+    chunk_sizes: [512, 1024]
+    overlaps: [50]
+
+# NEW: Unified retriever configuration
+retrieval:
+  top_k_initial: 20  # Candidates from traditional retrieval
+  top_k_final: 5     # Final results after reranking
+  retrievers:
+    # Stage 1: Traditional dense retrieval
+    - type: dense
+
+    # Stage 2: Local cross-encoder refines the candidates
+    - type: cross_encoder
+      provider: local
+      model: cross-encoder/ms-marco-MiniLM-L-6-v2
+
+execution:
+  parallelism: 1
+  on_error: continue

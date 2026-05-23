@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from server.core.model_registry import get_index_name
 from server.db.indexes import M0_SEARCH_INDEX_LIMIT, TEXT_SEARCH_INDEX_NAME
 from server.models.config import ExperimentConfig
-from server.models.enums import RetrievalMethod
 
 
 class SearchIndexMismatchError(Exception):
@@ -44,10 +43,8 @@ class SearchIndexAssessment:
 def required_search_indexes(config: ExperimentConfig) -> frozenset[str]:
     """Return Atlas Search index names this experiment config needs on chunks."""
     names = {get_index_name(model) for model in config.embedding.models}
-    needs_text = any(
-        method in (RetrievalMethod.SPARSE, RetrievalMethod.HYBRID)
-        for method in config.retrieval.methods
-    )
+    # Check if any retriever needs text search (sparse or hybrid)
+    needs_text = any(r.type in ("sparse", "hybrid") for r in config.retrieval.retrievers)
     if needs_text:
         names.add(TEXT_SEARCH_INDEX_NAME)
     return frozenset(names)

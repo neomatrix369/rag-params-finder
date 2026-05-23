@@ -1,14 +1,14 @@
 # MongoDB Atlas — Voyage AI models (requires VOYAGE_API_KEY in .env)
 #
-# Default sweep (3 embedding models enabled below):
-#   3 embedding models × 5 chunking methods × 2 chunk sizes × 1 overlap × 3 retrieval methods
-#   = 90 runs
+# Default sweep (1 embedding model enabled below):
+#   1 embedding model × 5 chunking methods × 2 chunk sizes × 1 overlap
+#   = 10 runs (each run uses the same retriever pipeline: hybrid → voyage reranker)
 #
-# Uncomment additional models for a full sweep (12 models → 360 runs). See comments per model.
+# Uncomment additional models for a full sweep (12 models → 120 runs). See comments per model.
 #
 # Embedding (1024-dim, vector_index_1024): voyage-4-* · domain · context · voyage-3.*
 # Chunking:   fixed · recursive · token · sentence · semantic
-# Retrieval:  dense · sparse · hybrid
+# Retrievers: hybrid (RRF: dense+sparse fusion) → voyage reranker (pipeline)
 #
 # Atlas prerequisites (M0 — create before running sweep):
 #   - chunks collection in rag_params_finder database
@@ -58,15 +58,24 @@ chunking:
     chunk_sizes: [256, 512]   # narrower than local to control API cost
     overlaps: [50]
 
+# NEW: Unified retriever configuration
 retrieval:
-  methods:
-    - dense    # Atlas $vectorSearch (cosine similarity)
-    - sparse   # Atlas $search BM25 full-text  ← requires text_search_index
-    - hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
-  top_k_initial: 20
-  top_k_final: 5
-  rerank_provider: voyage
-  rerank_model: rerank-2.5-lite
+  top_k_initial: 20  # Candidates from traditional retrieval
+  top_k_final: 5     # Final results after reranking
+  retrievers:
+    # Stage 1: Traditional retrieval (choose ONE per config)
+    # If multiple traditional retrievers are listed, only the LAST one is used.
+    # To test different retrieval methods, create separate config files.
+    - type: hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
+
+    # NOTE: Uncomment to use dense or sparse instead of hybrid:
+    # - type: dense    # Atlas $vectorSearch (cosine similarity)
+    # - type: sparse   # Atlas $search BM25 full-text  ← requires text_search_index
+
+    # Stage 2: Reranker refines the candidates from traditional retrieval
+    - type: reranker
+      provider: voyage
+      model: rerank-2.5-lite
 
 execution:
   parallelism: 1
