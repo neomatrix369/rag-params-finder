@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-23 (Atlas search index preflight + indexes CLI; scoped logging; pytest suite)
-**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Voyage sweep UX polish ✅ COMPLETE | Search index preflight + indexes CLI ✅ COMPLETE | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`)
+**Last Updated**: 2026-05-23 (dashboard polling intervals + thread-pool architecture docs)
+**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Voyage sweep UX polish ✅ COMPLETE | Search index preflight + indexes CLI ✅ COMPLETE | Dashboard polling + API responsiveness ✅ COMPLETE | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`)
 
 ---
 
@@ -23,6 +23,7 @@
 | — — Voyage sweep UX + Atlas tier specs | ✅ COMPLETE | ~1 h | Elapsed/ETA on progress card; timezone-aware UTC timestamps; `started_at` on first run; cluster tier/provider/region in vector DB stats |
 | — — Search index preflight + indexes CLI | ✅ COMPLETE | ~2 h | `search_index_plan` + `search_index_guard`; HTTP 422 on submit; fail before runs; `indexes list\|reset`; 17 pytest scenarios |
 | — — Scoped logging (Option A) | ✅ COMPLETE | ~1 h | `scope_log.py` server/CLI; `devLog.ts` dashboard dev console; Voyage error + dashboard failure visibility |
+| — — Dashboard polling + API responsiveness | ✅ COMPLETE | ~1 h | `executors.py` thread pools; list 2 s / stats 60 s / explore 15 s polls; batched db-stats; anti-jitter `PollingIndicator` |
 | 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
@@ -491,6 +492,30 @@ Fix misleading elapsed/duration times on long Voyage sweeps, surface Atlas clust
 
 ---
 
+## Dashboard Polling + API Responsiveness ✅
+
+**Status**: ✅ COMPLETE | **Started**: 2026-05-19 | **Completed**: 2026-05-23 | **Target**: ~1 h
+
+### Goal
+Keep the dashboard responsive during active sweeps and expensive Mongo aggregations; document per-screen poll intervals.
+
+### What Changed
+- **NEW**: `server/core/executors.py` — `SWEEP_EXECUTOR` + `HEAVY_READ_EXECUTOR` thread pools
+- **EDIT**: `server/api/experiments.py` — sweeps and db-stats on dedicated pools; batched vector-db-stats aggregations
+- **EDIT**: `frontend/src/constants.ts` — `EXPERIMENTS_POLL_MS` (2 s), `VECTOR_DB_STATS_POLL_MS` (60 s), `EXPLORE_POLL_MS` (15 s); fetch timeouts 30 s / 90 s
+- **EDIT**: `frontend/src/components/ExperimentsScreen.tsx` — decoupled list vs stats polling
+- **EDIT**: `frontend/src/components/SearchExplorerScreen.tsx` — 15 s explore poll while experiment running
+- **EDIT**: `frontend/src/components/PollingIndicator.tsx` — `showDelayMs` / `minVisibleMs` to reduce sync-badge flicker
+- **EDIT**: `docs/user-guide/dashboard-guide.md`, `docs/contributor-guide/architecture.md`
+
+### Acceptance Criteria
+- [x] Experiment list loads within a few seconds during an active sweep
+- [x] Vector DB stats may lag but do not block the list
+- [x] Search Explorer refreshes every 15 s while sweep is running
+- [x] Dashboard guide polling table matches `constants.ts`
+
+---
+
 ## Slice 6: Additional Chunkers + Retrieval Methods ✅
 
 **Status**: ✅ COMPLETE | **Started**: 2026-05-17 | **Completed**: 2026-05-17 | **Target**: ~45 min
@@ -576,6 +601,9 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-23 | — | Search index preflight before sweeps | Derive required indexes from config; check M0 3-index cluster quota; HTTP 422 / fail fast — no wasted embedding |
 | 2026-05-23 | — | `indexes list\|reset` CLI | Inspect known vs unknown cluster-wide; drop unknown or rebuild chunks indexes |
 | 2026-05-23 | — | Option A scoped logging | Unified `[rag-params-finder] [Scope] …` in server, CLI, dashboard dev console |
+| 2026-05-23 | — | Dedicated sweep + heavy-read thread pools | Default executor starved `GET /experiments` during long sweeps and db-stats aggregations |
+| 2026-05-23 | — | Decoupled dashboard poll intervals | List 2 s, vector DB stats 60 s, Search Explorer 15 s while running — constants in `frontend/src/constants.ts` |
+| 2026-05-23 | — | Search Explorer `PollingIndicator` anti-jitter | `showDelayMs=600`, `minVisibleMs=1000` — badge no longer flickers on fast explore polls |
 
 ---
 
