@@ -40,7 +40,7 @@ shows you exactly which configuration performs best.
 
 ## What it sweeps
 
-- **Embedding models**: 12 Voyage models (voyage-4 series, domain, context, voyage-3 legacy) — see `server/core/model_registry.py`
+- **Embedding models**: 13 Voyage models (voyage-4 series, domain, context, voyage-3 legacy) — see `server/core/model_registry.py`
 - **Chunking methods**: Fixed · Recursive · Token · Sentence · Semantic
 - **Retrieval methods**: Dense · Sparse · Hybrid
 - **Questions**: Persona-organised — user provided or generated as part of golden master generation process
