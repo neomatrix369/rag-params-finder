@@ -79,7 +79,7 @@ uvicorn server.main:app --reload --port 8001   # Terminal 1
 cd frontend && npm run dev                      # Terminal 2 (optional)
 
 # Sweeps — complete cloud-setup.md checklist first
-rag-params-finder run --config configs/example-mongodb-local.yaml   # 60 runs, no API key
+rag-params-finder run --config configs/example-mongodb-local.yaml   # 120 runs, no API key
 rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 40 runs, Voyage + Tier 1
 ```
 

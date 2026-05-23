@@ -14,9 +14,9 @@ Place config files in `configs/`. Two ready-to-run configs are provided, one per
 
 | Config file | Vector DB | Embedding provider | Chunking | Retrievers | Runs | API key? |
 |---|---|---|---|---|---|---|
-| `example-mongodb-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · cross-encoder | 60 | No |
+| `example-mongodb-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid · cross-encoder | 120 | No |
 | `example-mongodb-voyage.yaml` | MongoDB Atlas | Voyage AI (voyage-3.5-lite) | all 5 methods | hybrid · dense · sparse · reranker | 40 | Yes |
-| `example-mongodb-unified-retrievers.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | 2 methods | dense · cross-encoder | 8 | No |
+| `example-mongodb-unified-retrievers.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | 2 methods | dense · sparse · hybrid · cross-encoder | 16 | No |
 
 Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retriever runs as an independent experiment. Each entry in `retrieval.retrievers` creates a separate run — retrievers are never combined in a single run.
 
@@ -97,14 +97,14 @@ chunking:
 retrieval:
   retrievers:
     - type: dense
+    - type: sparse
+    - type: hybrid
     - type: cross_encoder
       provider: local
       model: cross-encoder/ms-marco-MiniLM-L-6-v2
 ```
 
-→ 1 × 2 × 2 × 2 × 2 = **16 runs**
-- 8 runs with `dense` only
-- 8 runs with `cross_encoder` only
+→ 1 × 2 × 2 × 2 × 4 = **32 runs** (one run per retriever type per chunking combo)
 
 Each run is tracked independently through the pipeline phases and has its own results.
 
@@ -203,6 +203,8 @@ retrieval:
   top_k_final: 5     # Final results per query
   retrievers:
     - type: dense
+    - type: sparse
+    - type: hybrid
     - type: cross_encoder
       provider: local
       model: cross-encoder/ms-marco-MiniLM-L-6-v2
@@ -221,6 +223,8 @@ Each list entry is one sweep dimension. To compare dense vs sparse vs hybrid, li
 | `cross_encoder` | Local cross-encoder model | Fast reranking, no API key | Yes |
 
 **One retriever per run.** Do not list multiple retrievers expecting them to chain — each entry becomes its own run in the Cartesian sweep.
+
+**Time vs storage:** Adding `sparse` or `hybrid` increases run count and wall-clock time (extra query passes over the same stored chunks). They use the shared `text_search_index` and do not add embedding dimensions. Disk growth on M0 comes mainly from the chunking grid (methods × sizes × overlaps), not from listing more traditional retriever types.
 
 **Old format** (deprecated, auto-migrated):
 ```yaml
@@ -271,7 +275,7 @@ Each query is executed independently per run. Results are stored with `persona_i
 
 ## 🏠 Quick Start (No API Key)
 
-Use `configs/example-mongodb-local.yaml` — it covers all 5 chunking methods and all 3 retrieval methods with the local model. No Voyage API key needed.
+Use `configs/example-mongodb-local.yaml` — it covers all 5 chunking methods and all traditional retrieval methods (dense, sparse, hybrid) plus local cross-encoder reranking. No Voyage API key needed. **120 runs** — mostly wall-clock time; sparse/hybrid query existing chunk text (BM25/RRF) and do not add embedding storage beyond each run’s chunks. For a shorter sweep, use `example-mongodb-unified-retrievers.yaml` (16 runs).
 
 ```bash
 rag-params-finder run --config configs/example-mongodb-local.yaml
