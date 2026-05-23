@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-23 (Unified retriever configuration)
-**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Voyage sweep UX polish ✅ COMPLETE | Search index preflight + indexes CLI ✅ COMPLETE | Dashboard polling + API responsiveness ✅ COMPLETE | Kimchi embedding provider ✅ COMPLETE | Provider regression pytest ✅ COMPLETE | **Slice 18 🔨 IN PROGRESS** (unified retriever config) | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`) · Slice 17 📋 PLANNED (test suite expansion)
+**Last Updated**: 2026-05-23 (Unified retriever configuration — COMPLETE)
+**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Voyage sweep UX polish ✅ COMPLETE | Search index preflight + indexes CLI ✅ COMPLETE | Dashboard polling + API responsiveness ✅ COMPLETE | Kimchi embedding provider ✅ COMPLETE | Provider regression pytest ✅ COMPLETE | **Slice 18 ✅ COMPLETE** (unified retriever config) | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`) · Slice 17 📋 PLANNED (test suite expansion)
 
 ---
 
@@ -26,7 +26,7 @@
 | — — Dashboard polling + API responsiveness | ✅ COMPLETE | ~1 h | `executors.py` thread pools; list 2 s / stats 60 s / explore 15 s polls; batched db-stats; anti-jitter `PollingIndicator` |
 | — — Kimchi embedding provider | ✅ COMPLETE | ~2 h | CAST OpenAI-compatible embeddings; runtime dimensions; 4-model example sweep; see [`SLICE-16-KIMCHI-PROVIDER.md`](../slices/SLICE-16-KIMCHI-PROVIDER.md) |
 | — — Provider regression pytest | ✅ COMPLETE | ~1 h | 39 tests: embedder dispatch, retriever index, registry, config, db-stats, Kimchi adapter — see [`SLICE-17-TEST-SUITE-EXPANSION.md`](../slices/SLICE-17-TEST-SUITE-EXPANSION.md) § Already delivered |
-| 18 — Unified retriever config | 🔨 IN PROGRESS | ~4–6 h | Treat all retrieval strategies (dense/sparse/hybrid + rerankers) as unified "retrievers" group; enables multi-reranker sweeps; see [`SLICE-18-UNIFIED-RETRIEVER-CONFIG.md`](../slices/SLICE-18-UNIFIED-RETRIEVER-CONFIG.md) |
+| 18 — Unified retriever config | ✅ COMPLETE | ~4–6 h | Unified "retrievers" group (traditional search + rerankers); auto-migrate old format; multi-reranker chains; see [`SLICE-18-UNIFIED-RETRIEVER-CONFIG.md`](../slices/SLICE-18-UNIFIED-RETRIEVER-CONFIG.md) |
 | 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
@@ -607,6 +607,10 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-23 | — | Dedicated sweep + heavy-read thread pools | Default executor starved `GET /experiments` during long sweeps and db-stats aggregations |
 | 2026-05-23 | — | Decoupled dashboard poll intervals | List 2 s, vector DB stats 60 s, Search Explorer 15 s while running — constants in `frontend/src/constants.ts` |
 | 2026-05-23 | — | Search Explorer `PollingIndicator` anti-jitter | `showDelayMs=600`, `minVisibleMs=1000` — badge no longer flickers on fast explore polls |
+| 2026-05-23 | 18 | Unified retriever configuration | Treat all retrieval strategies (dense/sparse/hybrid + rerankers) as unified `retrievers` list; enables multi-reranker sweeps and cleaner config |
+| 2026-05-23 | 18 | Auto-migrate old retrieval config format | Pydantic `@model_validator` converts `methods` + `rerank_provider`/`rerank_model` to `retrievers` — no breaking changes, no manual migration |
+| 2026-05-23 | 18 | Retrievers as list, not sweep dimension | Combine dense + multiple rerankers in one run (chain in sequence); treat as single combo rather than Cartesian dimension |
+| 2026-05-23 | 18 | Maintain old fields indefinitely | Keep `retrieval_method`, `rerank_provider`, `rerank_model` in DB and frontend — backward compat for existing experiments |
 
 ---
 
