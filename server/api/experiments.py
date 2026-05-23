@@ -27,6 +27,8 @@ from server.core.orchestrator import (
     resume_sweep,
     run_sweep,
 )
+from server.core.search_index_guard import validate_experiment_search_indexes
+from server.core.search_index_plan import SearchIndexMismatchError
 from server.models.config import ExperimentConfig, expand_sweep
 from server.models.enums import ExperimentStatus
 from server.utils.log_throttle import info_throttled
@@ -47,6 +49,11 @@ async def _run_heavy_read[R](fn: Callable[[], R]) -> R:
 @router.post("")
 async def create_experiment(config: ExperimentConfig):
     """Submit a new experiment sweep configuration."""
+    try:
+        await asyncio.to_thread(validate_experiment_search_indexes, config)
+    except SearchIndexMismatchError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     experiment_id = str(uuid.uuid4())
     timestamp_suffix = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     stamped_name = f"{config.experiment_name}_{timestamp_suffix}"

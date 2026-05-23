@@ -10,6 +10,8 @@ from server.core.embedder import embed_documents, embed_query
 from server.core.query_loader import load_queries
 from server.core.reranker import rerank_results
 from server.core.retriever import search as retriever_search
+from server.core.search_index_guard import validate_experiment_search_indexes
+from server.core.search_index_plan import SearchIndexMismatchError
 from server.db.atlas import (
     CHUNKS_COLLECTION,
     EXPERIMENTS_COLLECTION,
@@ -167,8 +169,43 @@ def _execute_sweep(
     _sweep_controls[experiment_id] = _SweepControl()
     try:
         return _run_sweep_inner(experiment_id, config, skip_signatures)
+    except SearchIndexMismatchError as exc:
+        return _fail_experiment_preflight(experiment_id, config, str(exc))
     finally:
         _sweep_controls.pop(experiment_id, None)
+
+
+def _fail_experiment_preflight(
+    experiment_id: str,
+    config: ExperimentConfig,
+    error_message: str,
+) -> dict:
+    """Mark experiment failed before any run starts due to search-index preflight."""
+    runs = expand_sweep(config)
+    completed_at = datetime.now(UTC)
+    get_collection(EXPERIMENTS_COLLECTION).update_one(
+        {"_id": experiment_id},
+        {
+            "$set": {
+                "status": ExperimentStatus.FAILED,
+                "run_count": len(runs),
+                "failed_count": 0,
+                "completed_at": completed_at,
+                "error_message": error_message,
+            }
+        },
+    )
+    logger.error(
+        "experiment preflight failed — %s: %s",
+        experiment_id,
+        error_message,
+    )
+    return {
+        "experiment_id": experiment_id,
+        "run_ids": [],
+        "status": ExperimentStatus.FAILED,
+        "error_message": error_message,
+    }
 
 
 def _run_sweep_inner(
@@ -176,6 +213,7 @@ def _run_sweep_inner(
     config: ExperimentConfig,
     skip_signatures: set[ParamSignature],
 ) -> dict:
+    validate_experiment_search_indexes(config)
     runs = expand_sweep(config)
     run_ids: list[str] = []
     logger.info("sweep scheduled — experiment %s, %s run(s)", experiment_id, len(runs))
