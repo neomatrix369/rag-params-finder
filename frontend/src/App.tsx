@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { devInfo } from './utils/devLog';
 import ExperimentsScreen from './components/ExperimentsScreen';
 import ExperimentDetailScreen from './components/ExperimentDetailScreen';
 import SearchExplorerScreen from './components/SearchExplorerScreen';
@@ -61,6 +62,19 @@ export default function App() {
     },
     [listCache.vectorDbGroups],
   );
+
+  useEffect(() => {
+    if (screen.kind === 'list') {
+      devInfo('App', 'navigate — experiments list');
+      return;
+    }
+    const id = screen.experimentId.slice(0, 8);
+    if (screen.kind === 'detail') {
+      devInfo('App', `navigate — experiment detail (${id}…)`);
+      return;
+    }
+    devInfo('App', `navigate — search explorer (${id}…)`);
+  }, [screen]);
 
   if (screen.kind === 'explore') {
     return (

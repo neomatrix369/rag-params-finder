@@ -72,11 +72,13 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-logger.info(f"Settings loaded: server_url={settings.server_url}")
+logger.info("settings loaded — server_url=%s", settings.server_url)
 logger.debug(
-    f"Settings detail: mongodb_uri={'***' if settings.mongodb_uri else '(not set)'}, "
-    f"voyage_api_key={'***' if settings.voyage_api_key else '(not set)'}, "
-    f"recover_on_boot={settings.recover_on_boot}, "
-    f"cors_origins={settings.cors_origins}, "
-    f"cors_allow_localhost_origin_regex={settings.cors_allow_localhost_origin_regex}"
+    "settings detail — mongodb_uri=%s voyage_api_key=%s recover_on_boot=%s "
+    "cors_origins=%s cors_allow_localhost_origin_regex=%s",
+    "***" if settings.mongodb_uri else "(not set)",
+    "***" if settings.voyage_api_key else "(not set)",
+    settings.recover_on_boot,
+    settings.cors_origins,
+    settings.cors_allow_localhost_origin_regex,
 )

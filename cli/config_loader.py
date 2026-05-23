@@ -15,16 +15,16 @@ logger = get_logger(__name__)
 def load_config(config_path: str) -> dict[str, Any]:
     """Load and validate YAML configuration file."""
     path = Path(config_path)
-    logger.debug(f"Resolving config path: {path.resolve()}")
+    logger.debug("config resolve — path=%s", path.resolve())
 
     if not path.exists():
-        logger.error(f"Config file not found: {config_path}")
+        logger.error("config load failed — file not found: %s", config_path)
         raise FileNotFoundError(f"Config file not found: {config_path}")
 
     with open(path) as f:
         config: dict[str, Any] = yaml.safe_load(f)
 
-    logger.info(f"Loaded config from {config_path} ({len(config)} top-level keys)")
+    logger.info("config load OK — %s (%s top-level keys)", config_path, len(config))
     _validate_models(config)
     return config
 
@@ -46,7 +46,10 @@ def _validate_models(config: dict) -> None:
                 f"'{info['provider']}', but config declares provider '{declared_provider}'"
             )
         logger.info(
-            f"Embedding model '{model_id}' → provider={declared_provider}, dim={info['dimensions']}"
+            "config validate — embedding model %s → provider=%s dim=%s",
+            model_id,
+            declared_provider,
+            info["dimensions"],
         )
 
     retrieval_cfg = config.get("retrieval", {})
@@ -64,4 +67,8 @@ def _validate_models(config: dict) -> None:
                 f"'{rerank_info['provider']}', but config declares "
                 f"rerank_provider '{rerank_provider}'"
             )
-        logger.info(f"Reranker model '{rerank_model}' → provider={rerank_provider}")
+        logger.info(
+            "config validate — reranker model %s → provider=%s",
+            rerank_model,
+            rerank_provider,
+        )

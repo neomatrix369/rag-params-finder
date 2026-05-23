@@ -1,6 +1,6 @@
 """Reconcile experiments left in RUNNING after server restart or crash."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from server.db.atlas import EXPERIMENTS_COLLECTION, RUN_STATUS_COLLECTION, get_collection
 from server.models.enums import ExperimentStatus, Phase
@@ -39,7 +39,7 @@ def reconcile_orphaned_experiments() -> int:
         _reconcile_one(experiment_id, experiment, run_coll, exp_coll)
         reconciled += 1
 
-    logger.info("Reconciled %s orphaned experiment(s) left in RUNNING", reconciled)
+    logger.info("startup reconcile — %s orphaned experiment(s) in RUNNING", reconciled)
     return reconciled
 
 
@@ -51,7 +51,7 @@ def _reconcile_one(
 ) -> None:
     runs = list(run_coll.find({"experiment_id": experiment_id}))
     in_flight = [run for run in runs if run.get("phase") not in _TERMINAL_RUN_PHASES]
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     for run in in_flight:
         run_coll.update_one(
@@ -65,10 +65,10 @@ def _reconcile_one(
             },
         )
         logger.warning(
-            "Marked run %s interrupted (was %s) for experiment %s",
+            "run orphaned interrupt — experiment=%s run=%s was_phase=%s",
+            experiment_id,
             run["run_id"],
             run.get("phase"),
-            experiment_id,
         )
 
     runs = list(run_coll.find({"experiment_id": experiment_id}))
@@ -87,8 +87,8 @@ def _reconcile_one(
         },
     )
     logger.info(
-        "Experiment %s reconciled → %s (%s/%s runs complete, %s interrupted in-flight, "
-        "%s never started)",
+        "experiment status reconciled — id=%s status=%s "
+        "complete=%s/%s in_flight=%s never_started=%s",
         experiment_id,
         status.value,
         complete_count,

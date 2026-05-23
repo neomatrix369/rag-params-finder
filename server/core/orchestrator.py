@@ -2,7 +2,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 
 from server.core.chunkers import chunk_text
 from server.core.data_loader import load_all_files
@@ -10,6 +10,8 @@ from server.core.embedder import embed_documents, embed_query
 from server.core.query_loader import load_queries
 from server.core.reranker import rerank_results
 from server.core.retriever import search as retriever_search
+from server.core.search_index_guard import validate_experiment_search_indexes
+from server.core.search_index_plan import SearchIndexMismatchError
 from server.db.atlas import (
     CHUNKS_COLLECTION,
     EXPERIMENTS_COLLECTION,
@@ -151,7 +153,7 @@ def resume_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
     """Continue a paused experiment, skipping parameter sets that already completed."""
     completed = _completed_param_signatures(experiment_id)
     logger.info(
-        "Experiment %s resume: skipping %s completed parameter combination(s)",
+        "resuming sweep — experiment %s, skipping %s completed parameter combination(s)",
         experiment_id,
         len(completed),
     )
@@ -167,8 +169,43 @@ def _execute_sweep(
     _sweep_controls[experiment_id] = _SweepControl()
     try:
         return _run_sweep_inner(experiment_id, config, skip_signatures)
+    except SearchIndexMismatchError as exc:
+        return _fail_experiment_preflight(experiment_id, config, str(exc))
     finally:
         _sweep_controls.pop(experiment_id, None)
+
+
+def _fail_experiment_preflight(
+    experiment_id: str,
+    config: ExperimentConfig,
+    error_message: str,
+) -> dict:
+    """Mark experiment failed before any run starts due to search-index preflight."""
+    runs = expand_sweep(config)
+    completed_at = datetime.now(UTC)
+    get_collection(EXPERIMENTS_COLLECTION).update_one(
+        {"_id": experiment_id},
+        {
+            "$set": {
+                "status": ExperimentStatus.FAILED,
+                "run_count": len(runs),
+                "failed_count": 0,
+                "completed_at": completed_at,
+                "error_message": error_message,
+            }
+        },
+    )
+    logger.error(
+        "experiment preflight failed — %s: %s",
+        experiment_id,
+        error_message,
+    )
+    return {
+        "experiment_id": experiment_id,
+        "run_ids": [],
+        "status": ExperimentStatus.FAILED,
+        "error_message": error_message,
+    }
 
 
 def _run_sweep_inner(
@@ -176,12 +213,14 @@ def _run_sweep_inner(
     config: ExperimentConfig,
     skip_signatures: set[ParamSignature],
 ) -> dict:
+    validate_experiment_search_indexes(config)
     runs = expand_sweep(config)
     run_ids: list[str] = []
-    logger.info(f"Experiment {experiment_id}: {len(runs)} runs to execute")
+    logger.info("sweep scheduled — experiment %s, %s run(s)", experiment_id, len(runs))
 
     cancelled = False
     paused = False
+    first_run = True
     for params in runs:
         if _params_signature(params) in skip_signatures:
             continue
@@ -190,12 +229,20 @@ def _run_sweep_inner(
             _check_control(experiment_id)
         except ExperimentCancelledError:
             cancelled = True
-            logger.info(f"Experiment {experiment_id} cancelled before run {len(run_ids) + 1}")
+            logger.info("experiment cancelled — %s before run %s", experiment_id, len(run_ids) + 1)
             break
         except ExperimentPausedError:
             paused = True
-            logger.info(f"Experiment {experiment_id} paused before run {len(run_ids) + 1}")
+            logger.info("experiment paused — %s before run %s", experiment_id, len(run_ids) + 1)
             break
+
+        # Set started_at when first run actually begins (not when experiment was created)
+        if first_run:
+            get_collection(EXPERIMENTS_COLLECTION).update_one(
+                {"_id": experiment_id},
+                {"$set": {"started_at": datetime.now(UTC)}},
+            )
+            first_run = False
 
         run_id = str(uuid.uuid4())
         run_ids.append(run_id)
@@ -203,14 +250,14 @@ def _run_sweep_inner(
             _run_single(experiment_id, run_id, params)
         except ExperimentCancelledError:
             cancelled = True
-            logger.info(f"Experiment {experiment_id} cancelled during run {run_id}")
+            logger.info("experiment cancelled — %s during run %s", experiment_id, run_id)
             break
         except ExperimentPausedError:
             paused = True
-            logger.info(f"Experiment {experiment_id} paused during run {run_id}")
+            logger.info("experiment paused — %s during run %s", experiment_id, run_id)
             break
         except Exception as e:
-            logger.error(f"Run {run_id} failed: {e}", exc_info=True)
+            logger.error("run failed — %s: %s", run_id, e, exc_info=True)
             if config.execution.on_error == "stop":
                 break
 
@@ -223,7 +270,7 @@ def _run_sweep_inner(
     else:
         final_status, failed_count = _compute_final_status(experiment_id, len(runs))
 
-    completed_at = datetime.utcnow()
+    completed_at = datetime.now(UTC)
     get_collection(EXPERIMENTS_COLLECTION).update_one(
         {"_id": experiment_id},
         {
@@ -235,7 +282,8 @@ def _run_sweep_inner(
             }
         },
     )
-    logger.info(f"Experiment {experiment_id} finished: {final_status}")
+    _log_failed_run_summary(experiment_id, failed_count)
+    logger.info("sweep finished — experiment %s, status=%s", experiment_id, final_status)
 
     return {"experiment_id": experiment_id, "run_ids": run_ids, "status": final_status}
 
@@ -245,6 +293,43 @@ def _count_failed_runs(experiment_id: str) -> int:
         get_collection(RUN_STATUS_COLLECTION).count_documents(
             {"experiment_id": experiment_id, "phase": Phase.FAILED.value}
         )
+    )
+
+
+def _log_failed_run_summary(experiment_id: str, failed_count: int) -> None:
+    if failed_count <= 0:
+        return
+    cursor = get_collection(RUN_STATUS_COLLECTION).find(
+        {"experiment_id": experiment_id, "phase": Phase.FAILED.value},
+        {
+            "run_id": 1,
+            "embedding_model": 1,
+            "chunking_method": 1,
+            "chunk_size": 1,
+            "error_message": 1,
+        },
+    )
+    summaries: list[str] = []
+    for doc in cursor:
+        run_id = str(doc.get("run_id", "?"))
+        label = (
+            f"{run_id[:8]}… "
+            f"({doc.get('embedding_model')}/{doc.get('chunking_method')}/{doc.get('chunk_size')})"
+        )
+        err = doc.get("error_message")
+        if err:
+            label = f"{label}: {str(err)[:80]}"
+        summaries.append(label)
+        if len(summaries) >= 10:
+            break
+    extra = f" — {'; '.join(summaries)}"
+    if failed_count > len(summaries):
+        extra += f" (+{failed_count - len(summaries)} more)"
+    logger.warning(
+        "failed runs summary — experiment %s, %s failure(s)%s",
+        experiment_id,
+        failed_count,
+        extra,
     )
 
 
@@ -266,8 +351,13 @@ def _compute_final_status(
 def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
     """Execute one run of the pipeline for a single parameter combination."""
     logger.info(
-        f"Run {run_id}: {params.embedding_model} / {params.chunking_method.value} "
-        f"/ {params.chunk_size}+{params.overlap} / {params.retrieval_method.value}"
+        "run pipeline — %s model=%s chunking=%s size=%s+%s retrieval=%s",
+        run_id,
+        params.embedding_model,
+        params.chunking_method.value,
+        params.chunk_size,
+        params.overlap,
+        params.retrieval_method.value,
     )
 
     run_status = RunStatus(
@@ -290,17 +380,36 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
         _check_control(experiment_id)
         _update_phase(run_id, Phase.PARSING)
         text = load_all_files(params.data_paths)
-        logger.info(f"Run {run_id}: parsed {len(text)} chars from {len(params.data_paths)} path(s)")
+        if not text.strip():
+            logger.warning(
+                "parse empty — run %s, 0 chars from %s path(s); check PDF text or input files",
+                run_id,
+                len(params.data_paths),
+            )
+        else:
+            logger.info(
+                "parse OK — run %s, %s chars from %s path(s)",
+                run_id,
+                len(text),
+                len(params.data_paths),
+            )
 
         _check_control(experiment_id)
         _update_phase(run_id, Phase.CHUNKING)
         chunks = chunk_text(text, params.chunking_method, params.chunk_size, params.overlap)
-        logger.info(f"Run {run_id}: chunked into {len(chunks)} chunks")
+        if not chunks:
+            logger.warning(
+                "chunking empty — run %s, 0 chunks from %s chars; embedding/retrieval empty",
+                run_id,
+                len(text),
+            )
+        else:
+            logger.info("chunking OK — run %s, %s chunks", run_id, len(chunks))
 
         _check_control(experiment_id)
         _update_phase(run_id, Phase.EMBEDDING)
         embeddings = embed_documents(chunks, params.embedding_model, params.embedding_provider)
-        logger.info(f"Run {run_id}: generated {len(embeddings)} embeddings")
+        logger.info("embed OK — run %s, %s embeddings", run_id, len(embeddings))
 
         _check_control(experiment_id)
         _update_phase(run_id, Phase.STORING)
@@ -320,19 +429,23 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
             for i, (chunk, emb) in enumerate(zip(chunks, embeddings))
         ]
         get_collection(CHUNKS_COLLECTION).insert_many(chunk_docs)
-        logger.info(f"Stored {len(chunk_docs)} chunks")
+        logger.info("chunks stored — %s documents", len(chunk_docs))
 
         _check_control(experiment_id)
         _update_phase(run_id, Phase.QUERYING)
         queries = load_queries(params.queries_file)
-        logger.info(f"Run {run_id}: querying with {len(queries)} queries")
+        logger.info("query phase — run %s, %s queries", run_id, len(queries))
 
         for i, q in enumerate(queries, start=1):
             _check_control(experiment_id)
             query_id = str(uuid.uuid4())
             logger.debug(
-                f"Run {run_id} query {i}/{len(queries)}: "
-                f"persona={q.persona_id}, text='{q.text[:60]}...'"
+                "query trace — run %s query %s/%s persona=%s text=%s",
+                run_id,
+                i,
+                len(queries),
+                q.persona_id,
+                q.text[:60] + ("..." if len(q.text) > 60 else ""),
             )
 
             needs_embedding = params.retrieval_method in (
@@ -354,8 +467,11 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
                 query_embedding=query_embedding,
             )
             logger.debug(
-                f"Run {run_id} query {i}: {params.retrieval_method.value} search "
-                f"returned {len(search_results)} results"
+                "retrieval hits — run %s query %s method=%s count=%s",
+                run_id,
+                i,
+                params.retrieval_method.value,
+                len(search_results),
             )
 
             if params.rerank_model:
@@ -367,7 +483,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
                     top_k=params.top_k_final,
                     provider=params.rerank_provider,
                 )
-                logger.debug(f"Run {run_id} query {i}: reranked to {len(search_results)} results")
+                logger.debug("rerank OK — run %s query %s count=%s", run_id, i, len(search_results))
             else:
                 search_results = search_results[: params.top_k_final]
 
@@ -383,20 +499,20 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
             )
             get_collection(RESULTS_COLLECTION).insert_one(query_result.model_dump())
 
-        logger.info(f"Run {run_id}: processed {len(queries)} queries")
+        logger.info("queries complete — run %s, %s queries", run_id, len(queries))
 
         _update_phase(run_id, Phase.COMPLETE)
 
     except ExperimentCancelledError:
-        logger.info(f"Run {run_id} interrupted by cancellation")
+        logger.info("run interrupted — %s cancelled", run_id)
         _update_phase(run_id, Phase.INTERRUPTED, error_message="Cancelled by user")
         raise
     except ExperimentPausedError:
-        logger.info(f"Run {run_id} interrupted by pause")
+        logger.info("run interrupted — %s paused", run_id)
         _update_phase(run_id, Phase.INTERRUPTED, error_message="Paused by user")
         raise
     except Exception as e:
-        logger.error(f"Run {run_id} failed: {e}", exc_info=True)
+        logger.error("run failed — %s: %s", run_id, e, exc_info=True)
         _update_phase(run_id, Phase.FAILED, error_message=str(e))
         raise
 
@@ -411,11 +527,11 @@ def _update_phase(run_id: str, phase: Phase, error_message: str | None = None) -
         _run_start_times[run_id] = now
 
     elapsed_ms = int((now - _run_start_times[run_id]) * 1000)
-    logger.debug(f"Run {run_id} → {phase.value} ({elapsed_ms}ms)")
+    logger.info("phase updated — run %s, %s (%sms)", run_id, phase.value, elapsed_ms)
 
     update: dict = {
         "phase": phase.value,
-        "updated_at": datetime.utcnow(),
+        "updated_at": datetime.now(UTC),
         "elapsed_ms": elapsed_ms,
         "error_message": error_message,
     }

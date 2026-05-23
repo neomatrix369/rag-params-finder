@@ -142,6 +142,15 @@ Wait until each index shows **ACTIVE** (~1–2 min).
 
 **M10+ paid clusters:** skip manual creation — the server creates indexes on startup (check uvicorn logs).
 
+**Quota check:** M0 allows **3 search indexes cluster-wide**. Before your first sweep:
+
+```bash
+rag-params-finder indexes list    # count vs limit; known vs unknown
+rag-params-finder indexes reset   # drop stray indexes + ensure required
+```
+
+The server **preflights** required indexes on experiment submit — missing indexes or exhausted quota returns **HTTP 422** before embedding starts (see [Troubleshooting → Search index preflight failed](troubleshooting.md#-search-index-preflight-failed)).
+
 ---
 
 ## Voyage AI (required for Voyage sweep)
@@ -169,9 +178,10 @@ Without billing, Voyage caps you at **3 RPM / 10,000 TPM** — a full sweep will
 1. Add payment method: [Billing → Payment methods](https://dashboard.voyageai.com/organization/billing/payment-methods)
 2. Add **≥ $5 USD** credits: [Billing → Add to credit balance](https://dashboard.voyageai.com/organization/billing)
 3. Confirm Tier 1 at [Organization → Rate Limits](https://dashboard.voyageai.com/organization/rate-limits)
-4. Set in `.env` and **restart uvicorn**:
+4. Set in `.env` and **restart uvicorn** (comment out free-tier defaults, uncomment Tier 1 lines — see `.env.example`):
 
 ```bash
+# Voyage rate limits - Tier 1
 VOYAGE_RPM_LIMIT=2000
 VOYAGE_TPM_LIMIT=16000000
 ```

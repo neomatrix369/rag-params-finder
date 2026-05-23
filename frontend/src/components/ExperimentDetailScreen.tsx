@@ -33,7 +33,7 @@ import ConfirmDeleteModal from './ConfirmDeleteModal';
 import CollapsibleCard from './CollapsibleCard';
 import { RunStatus, Phase, EnvParams, SweepSummary, ExperimentStatus, Experiment, ExperimentDbStatsSummary } from '../types';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
-import { devDebugThrottled, devWarn } from '../utils/devLog';
+import { devInfo, devInfoThrottled, devWarn } from '../utils/devLog';
 import { toExperimentDbStatsSummary } from '../utils/experimentDbStats';
 import {
   isPausedExperimentStatus,
@@ -259,19 +259,97 @@ function formatDuration(startedAt?: string, completedAt?: string | null): string
   if (!startedAt || !completedAt) return '—';
   const ms = new Date(completedAt).getTime() - new Date(startedAt).getTime();
   if (ms < 1000) return `${ms}ms`;
-  const secs = ms / 1000;
-  if (secs < 60) return `${secs.toFixed(1)}s`;
-  const mins = Math.floor(secs / 60);
-  const remSecs = (secs % 60).toFixed(0);
-  return `${mins}m ${remSecs}s`;
+  const totalSeconds = ms / 1000;
+  return formatTimeWithUnits(totalSeconds);
+}
+
+function formatTimeWithUnits(totalSeconds: number): string {
+  if (totalSeconds < 60) {
+    return `${totalSeconds.toFixed(0)}s`;
+  }
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${seconds}s`;
+  }
+  return `${minutes}m ${seconds}s`;
+}
+
+function ProgressSubtitle({
+  completed,
+  total,
+  startedAt,
+}: {
+  completed: number;
+  total: number;
+  startedAt?: string;
+}) {
+  const now = new Date().getTime();
+  const start = startedAt ? new Date(startedAt).getTime() : null;
+
+  let elapsedStr = '—';
+  let etaStr = '—';
+
+  if (start && completed > 0) {
+    const elapsedMs = now - start;
+    const elapsedSecs = elapsedMs / 1000;
+
+    // Format elapsed time
+    elapsedStr = formatTimeWithUnits(elapsedSecs);
+
+    // Calculate ETA
+    const avgTimePerRun = elapsedMs / completed;
+    const remainingRuns = total - completed;
+    const rawEtaMs = avgTimePerRun * remainingRuns;
+
+    // Add 1% margin
+    const etaMs = rawEtaMs * 1.01;
+    const etaSecs = etaMs / 1000;
+
+    etaStr = formatTimeWithUnits(etaSecs);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 text-sm">
+      <span className="font-medium text-slate-700">
+        {completed} of {total} runs completed
+      </span>
+      <span className="text-slate-400">•</span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="text-xs font-semibold uppercase tracking-wide text-blue-600">Elapsed</span>
+        <span className="font-mono font-semibold text-blue-700">{elapsedStr}</span>
+      </span>
+      <span className="text-slate-400">•</span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="text-xs font-semibold uppercase tracking-wide text-purple-600">ETA</span>
+        <span className="font-mono font-semibold text-purple-700">{etaStr}</span>
+      </span>
+    </div>
+  );
 }
 
 function MetadataItem({ label, value }: { label: string; value: string | number | boolean | undefined }) {
   if (value === undefined || value === null) return null;
+
+  // Format large numbers for readability
+  const formatValue = (val: string | number | boolean): string => {
+    if (typeof val === 'number') {
+      // Format TPM/RPM with commas for readability
+      if (label.includes('TPM') || label.includes('RPM')) {
+        return val.toLocaleString();
+      }
+      return String(val);
+    }
+    return String(val);
+  };
+
   return (
     <div className="flex flex-col">
       <span className="text-xs text-slate-400 uppercase tracking-wider">{label}</span>
-      <span className="text-sm text-slate-700 font-mono">{String(value)}</span>
+      <span className="text-sm text-slate-700 font-mono">{formatValue(value)}</span>
     </div>
   );
 }
@@ -447,7 +525,7 @@ export default function ExperimentDetailScreen({
           const response = await getExperimentDbStats(experimentId);
           setDbStats(toExperimentDbStatsSummary(meta, response.db_stats));
         } catch (err) {
-          devWarn(`DB stats load failed (${experimentId.slice(0, 8)}…):`, err);
+          devWarn('ExperimentDetailScreen', `db stats load failed — ${experimentId.slice(0, 8)}…`, err);
         } finally {
           dbStatsInFlightRef.current = null;
           setDbStatsLoading(false);
@@ -484,6 +562,8 @@ export default function ExperimentDetailScreen({
       stopDetailPoll();
       if (!isRunningExperimentStatus(status)) return;
 
+      devInfo('ExperimentDetailScreen', `detail poll started — ${experimentId.slice(0, 8)}… every ${DETAIL_POLL_MS}ms`);
+
       pollRef.current = window.setInterval(async () => {
         if (!aliveRef.current) return;
         try {
@@ -491,10 +571,11 @@ export default function ExperimentDetailScreen({
           if (!aliveRef.current) return;
           setDetail(next as unknown as ExperimentDetail);
           setError(null);
-          devDebugThrottled(
+          devInfoThrottled(
+            'ExperimentDetailScreen',
             `poll:detail:${experimentId}`,
             DEV_POLL_LOG_INTERVAL_MS,
-            `Poll OK — experiment ${experimentId.slice(0, 8)}… status=${next.status}`,
+            `detail poll OK — ${experimentId.slice(0, 8)}… status=${next.status}`,
             pollDevLogAtRef.current,
           );
           if (isTerminalExperimentStatus(next.status)) {
@@ -504,7 +585,7 @@ export default function ExperimentDetailScreen({
           if (!aliveRef.current) return;
           const pollMsg =
             pollErr instanceof Error ? pollErr.message : 'Could not refresh experiment';
-          devWarn(`Detail poll failed (${experimentId.slice(0, 8)}…):`, pollMsg);
+          devWarn('ExperimentDetailScreen', `detail poll failed — ${experimentId.slice(0, 8)}… — ${pollMsg}`);
           setError('Could not refresh experiment — transient network or server error.');
         }
       }, DETAIL_POLL_MS);
@@ -517,6 +598,8 @@ export default function ExperimentDetailScreen({
     const abortHydrate = new AbortController();
 
     const stall = createStallWatcher({
+      scope: 'ExperimentDetailScreen',
+      operation: 'detail hydrate',
       alive: () => aliveRef.current,
       afterMs: LOADING_STALL_AFTER_MS,
       repeatMs: LOADING_STALL_REPEAT_MS,
@@ -537,6 +620,12 @@ export default function ExperimentDetailScreen({
 
     async function hydrate() {
       const hasSeed = initialExperiment?.experiment_id === experimentId;
+      devInfo(
+        'ExperimentDetailScreen',
+        hasSeed
+          ? `hydrate started — refreshing ${experimentId.slice(0, 8)}… (seed from list)`
+          : `hydrate started — loading ${experimentId.slice(0, 8)}…`,
+      );
       setHydrating(true);
       setError(null);
       if (!hasSeed) {
@@ -567,6 +656,12 @@ export default function ExperimentDetailScreen({
         if (!aliveRef.current) return;
         loadedStatus = loaded.status;
         setDetail(loaded as unknown as ExperimentDetail);
+        const runs = (loaded as { runs?: unknown[] }).runs;
+        const runRows = Array.isArray(runs) ? runs.length : 0;
+        devInfo(
+          'ExperimentDetailScreen',
+          `hydrate OK — ${experimentId.slice(0, 8)}… status=${loaded.status}, ${runRows} run row(s)`,
+        );
         setLoadFeed((f) =>
           appendDetailFeed(
             f,
@@ -582,7 +677,7 @@ export default function ExperimentDetailScreen({
         if (err instanceof DOMException && err.name === 'AbortError') return;
         const msg =
           err instanceof Error ? err.message : 'Failed to load experiment';
-        devWarn(`Detail hydrate failed (${experimentId.slice(0, 8)}…):`, msg);
+        devWarn('ExperimentDetailScreen', `hydrate failed — ${experimentId.slice(0, 8)}… — ${msg}`);
         setError(msg);
         setLoadFeed((f) => appendDetailFeed(f, `Failed: ${msg}`, 'warning'));
       } finally {
@@ -618,10 +713,13 @@ export default function ExperimentDetailScreen({
     setDeleting(true);
     try {
       await deleteExperiment(experimentId);
+      devInfo('ExperimentDetailScreen', `delete OK — experiment ${experimentId.slice(0, 8)}…`);
       setShowDeleteModal(false);
       onBack();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete experiment');
+      const msg = err instanceof Error ? err.message : 'Failed to delete experiment';
+      devWarn('ExperimentDetailScreen', `delete failed — ${experimentId.slice(0, 8)}… — ${msg}`);
+      setError(msg);
       setShowDeleteModal(false);
     } finally {
       setDeleting(false);
@@ -800,12 +898,6 @@ export default function ExperimentDetailScreen({
                   {isRunning ? '🔍 Explore live' : '🔍 Explore'}
                 </button>
               )}
-              <ExperimentControlButtons
-                experimentId={experimentId}
-                status={detail.status}
-                onStatusChange={refreshDetailAfterControl}
-                onError={(message) => setError(message)}
-              />
               {canDelete && (
                 <button
                   type="button"
@@ -830,7 +922,7 @@ export default function ExperimentDetailScreen({
             <StatCard
               compact
               label="Duration"
-              value={formatDuration(detail.started_at, detail.completed_at)}
+              value={isRunning || isPaused ? '—' : formatDuration(detail.started_at, detail.completed_at)}
               icon={icons.clock}
               color="purple"
             />
@@ -839,19 +931,18 @@ export default function ExperimentDetailScreen({
 
         {/* Progress visualization for running experiments */}
         {detail && isRunning && detail.runs && detail.runs.length > 0 && (
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mb-6">
             <ExperimentProgressCard
               title="Experiment Progress"
-              subtitle={`${runSummary.complete} of ${runSummary.expected} runs completed`}
+              subtitle={
+                <ProgressSubtitle
+                  completed={runSummary.complete}
+                  total={runSummary.expected}
+                  startedAt={detail.started_at}
+                />
+              }
               percent={runSummary.expected > 0 ? (runSummary.complete / runSummary.expected) * 100 : 0}
               variant="default"
-              className="min-w-0 flex-1"
-            />
-            <ExperimentControlButtons
-              experimentId={experimentId}
-              status={detail.status}
-              onStatusChange={refreshDetailAfterControl}
-              onError={(message) => setError(message)}
             />
           </div>
         )}
@@ -1273,28 +1364,20 @@ export default function ExperimentDetailScreen({
 
         {isPaused && (
           <div className="mt-6 bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-violet-300 rounded-2xl p-6 shadow-lg">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-violet-500 flex items-center justify-center text-white">
-                  {icons.clock}
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-violet-900">Experiment Paused</h3>
-                  <p className="text-sm text-violet-800 mt-1">
-                    {runSummary.complete} of {runSummary.expected} run(s) completed.
-                    {runSummary.neverStarted > 0 && ` ${runSummary.neverStarted} not started yet.`}
-                  </p>
-                  <p className="text-xs text-violet-700 mt-2">
-                    Resume to continue from the next parameter combination. Completed runs are kept.
-                  </p>
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-violet-500 flex items-center justify-center text-white">
+                {icons.clock}
               </div>
-              <ExperimentControlButtons
-                experimentId={experimentId}
-                status={detail.status}
-                onStatusChange={refreshDetailAfterControl}
-                onError={(message) => setError(message)}
-              />
+              <div>
+                <h3 className="text-lg font-bold text-violet-900">Experiment Paused</h3>
+                <p className="text-sm text-violet-800 mt-1">
+                  {runSummary.complete} of {runSummary.expected} run(s) completed.
+                  {runSummary.neverStarted > 0 && ` ${runSummary.neverStarted} not started yet.`}
+                </p>
+                <p className="text-xs text-violet-700 mt-2">
+                  Resume to continue from the next parameter combination. Use controls in the header above.
+                </p>
+              </div>
             </div>
           </div>
         )}

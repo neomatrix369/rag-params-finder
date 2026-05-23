@@ -46,6 +46,45 @@ Both indexes can coexist on the same `chunks` collection — the server selects 
 
 ---
 
+## 🚫 Search index preflight failed
+
+**Symptom**: CLI or API returns **422** on submit, or experiment status is `failed` immediately with `error_message` mentioning search indexes. Server logs show `search index preflight failed`.
+
+**Cause**: Before any run starts, the server checks that your YAML's required Atlas Search indexes exist on `chunks` and that the cluster has free quota to create any missing ones. Failure happens when:
+
+- Required indexes are **missing** on `chunks` (common on M0 — manual creation required)
+- Required indexes are still **building** (not yet READY)
+- Cluster search-index **quota is exhausted** (M0 allows **3 indexes cluster-wide** across all databases/collections)
+- **Unknown indexes** from other projects consume all slots
+
+**Required indexes per config** (derived automatically):
+
+| Config pattern | Required on `chunks` |
+|---|---|
+| Local + dense only | `vector_index_384` |
+| Local + sparse/hybrid | `vector_index_384` + `text_search_index` |
+| Voyage + dense only | `vector_index_1024` |
+| Voyage + sparse/hybrid | `vector_index_1024` + `text_search_index` |
+
+**Fix**:
+
+```bash
+# 1. Inspect cluster-wide index usage
+rag-params-finder indexes list
+
+# 2. Free quota — drop unknown indexes and ensure required ones exist
+rag-params-finder indexes reset
+
+# 3. On M0, create any still-missing indexes manually in Atlas UI
+#    → Cloud Account Setup step 6
+```
+
+If `indexes list` shows 3/3 with unknown indexes, run `indexes reset` before submitting again.
+
+On **M10+**, the server attempts programmatic creation when slots are available; restart uvicorn and check logs if creation fails.
+
+---
+
 ## 🔍 Full Text Search index not found (sparse/hybrid)
 
 **Symptom**: server logs show `Search index 'text_search_index' not found` or sparse/hybrid runs fail immediately.
@@ -162,6 +201,22 @@ and does not fit into the model's context window of 32000 tokens.
 
 ---
 
+## ⏱️ Elapsed time or ETA looks wrong (hours instead of minutes)
+
+**Symptom**: Progress card shows elapsed time in hours when the sweep has only been running a few minutes, or Duration on a completed experiment is inflated.
+
+**Cause** (fixed in server ≥ 2026-05-23):
+
+1. **Timezone-naive timestamps** — older experiments stored `datetime.utcnow()` without UTC timezone info. JSON responses lacked the `Z` suffix, so browsers interpreted timestamps as local time.
+2. **`started_at` set at submission** — duration included queue/wait time before the first pipeline run began.
+
+**Fix**:
+
+- **New experiments**: server writes timezone-aware UTC datetimes (`datetime.now(timezone.utc)`) and PyMongo is configured with `tz_aware=True`. `started_at` is set when the **first run** actually starts.
+- **Existing experiments** with wrong elapsed/duration: timestamps in MongoDB may still be naive. Re-run sweeps or manually update `started_at` / `completed_at` fields in Atlas if historical duration matters.
+
+---
+
 ## 🔁 Experiment stuck `running` or shows `partial` after server restart
 
 **Symptom**: Dashboard shows an experiment as `running` for hours/days, or `partial` with many “Not Started” runs after you restarted uvicorn (`--reload`) or the server crashed mid-sweep.
@@ -270,11 +325,11 @@ db.results.deleteMany({experiment_id: exp_id})
 | `SERVER_URL` | No | `http://localhost:8001` | FastAPI server URL (used by CLI) |
 | `VOYAGE_RPM_LIMIT` | No | `3` | Voyage requests-per-minute limit (throttle guard; free-tier default) |
 | `VOYAGE_TPM_LIMIT` | No | `10000` | Voyage tokens-per-minute limit (free-tier default) |
-| `ATLAS_PUBLIC_KEY` | No | — | Atlas Admin API public key — enables cluster storage quota in dashboard |
+| `ATLAS_PUBLIC_KEY` | No | — | Atlas Admin API public key — enables cluster tier + storage quota in dashboard |
 | `ATLAS_PRIVATE_KEY` | No | — | Atlas Admin API private key |
 | `ATLAS_GROUP_ID` | No | — | 24-char Atlas **project** ID (from cloud.mongodb.com URL) |
-| `ATLAS_CLUSTER_NAME` | No | *(from URI)* | Cluster name for quota lookup; parsed from `MONGODB_URI` host if omitted |
-| `MONGODB_STORAGE_LIMIT_MB` | No | `0` | Manual cluster quota override (MB). `0` = try Atlas API; omit quota bar if unavailable |
+| `ATLAS_CLUSTER_NAME` | No | *(from URI)* | Cluster name for tier/quota lookup; parsed from `MONGODB_URI` host if omitted |
+| `MONGODB_STORAGE_LIMIT_MB` | No | `0` | Manual cluster quota override (MB). `0` = try Atlas API; omit quota/tier UI if unavailable |
 | `RECOVER_ON_BOOT` | No | `false` | Stored in experiment metadata for the dashboard. **Status reconciliation on boot always runs.** Automatic **retry** of interrupted runs is not implemented yet ([Slice 10](../slices/SLICE-10-RUN-RECOVERY.md)). |
 | `LOG_LEVEL` | No | `INFO` | Logging verbosity (`DEBUG` for verbose output) |
 

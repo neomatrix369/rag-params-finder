@@ -20,27 +20,31 @@ def _get_model(model_id: str) -> SentenceTransformer:
     if model_id not in _models:
         info = get_model_info(model_id)
         hf_id = info["huggingface_id"] or model_id
-        logger.info(f"Loading local embedding model: {hf_id}")
+        logger.info("local embed model load — %s", hf_id)
         _models[model_id] = SentenceTransformer(hf_id)
-        logger.info(f"Local embedding model loaded: {hf_id}")
+        logger.info("local embed model ready — %s", hf_id)
     return _models[model_id]
 
 
 def embed_documents_local(texts: list[str], model_id: str) -> list[list[float]]:
     """Embed documents using a local SentenceTransformer model."""
-    logger.info(f"Embedding {len(texts)} documents locally with {model_id}")
+    logger.info("embedding local batch — texts=%s model=%s", len(texts), model_id)
     model = _get_model(model_id)
     embeddings = model.encode(texts, show_progress_bar=False, normalize_embeddings=True)
     result = [emb.tolist() for emb in embeddings]
-    logger.info(f"Generated {len(result)} local embeddings, dim={len(result[0])}")
+    logger.info(
+        "local embed OK — count=%s dim=%s",
+        len(result),
+        len(result[0]),
+    )
     return result
 
 
 def embed_query_local(text: str, model_id: str) -> list[float]:
     """Embed a single query using a local SentenceTransformer model."""
-    logger.debug(f"Embedding query locally with {model_id}")
+    logger.debug("local query embed — model=%s", model_id)
     model = _get_model(model_id)
     embedding = model.encode(text, show_progress_bar=False, normalize_embeddings=True)
     result = embedding.tolist()
-    logger.debug(f"Generated local query embedding, dim={len(result)}")
+    logger.debug("local query embed OK — dim=%s", len(result))
     return result

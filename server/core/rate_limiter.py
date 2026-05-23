@@ -55,7 +55,7 @@ class RateLimiter:
             sleep_for = self._request_times[0] + _WINDOW_S - now + 0.1
             if sleep_for <= 0:
                 return
-            logger.debug(f"Rate limiter: RPM ceiling ({self._rpm}), sleeping {sleep_for:.1f}s")
+            logger.debug("rate limit wait — RPM ceiling %s sleeping %.1fs", self._rpm, sleep_for)
             self._lock.release()
             time.sleep(sleep_for)
             self._lock.acquire()
@@ -73,13 +73,19 @@ class RateLimiter:
             sleep_for = self._token_log[0][0] + _WINDOW_S - now + 0.1
             if sleep_for <= 0:
                 return
-            logger.debug(f"Rate limiter: TPM ceiling ({self._tpm}), sleeping {sleep_for:.1f}s")
+            logger.debug("rate limit wait — TPM ceiling %s sleeping %.1fs", self._tpm, sleep_for)
             self._lock.release()
             time.sleep(sleep_for)
             self._lock.acquire()
 
 
-def call_with_retry[T](fn: Callable[[], T], limiter: RateLimiter, estimated_tokens: int = 0) -> T:
+def call_with_retry[T](
+    fn: Callable[[], T],
+    limiter: RateLimiter,
+    estimated_tokens: int = 0,
+    *,
+    operation: str = "Voyage API call",
+) -> T:
     """Wait for rate-limit clearance, call *fn*, and retry on 429s with backoff."""
     backoff = INITIAL_BACKOFF_S
     for attempt in range(1, MAX_RETRIES + 1):
@@ -90,10 +96,23 @@ def call_with_retry[T](fn: Callable[[], T], limiter: RateLimiter, estimated_toke
             if attempt == MAX_RETRIES:
                 raise
             logger.warning(
-                f"Voyage 429 on attempt {attempt}/{MAX_RETRIES}, backing off {backoff:.0f}s — {exc}"
+                "voyage 429 backoff — attempt %s/%s sleeping %.0fs error=%s",
+                attempt,
+                MAX_RETRIES,
+                backoff,
+                exc,
             )
             time.sleep(backoff)
             backoff *= 2
+        except Exception:
+            logger.error(
+                "retryable call failed — %s attempt %s/%s",
+                operation,
+                attempt,
+                MAX_RETRIES,
+                exc_info=True,
+            )
+            raise
     raise RuntimeError("unreachable")  # satisfies type checker
 
 

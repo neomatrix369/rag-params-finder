@@ -1,4 +1,4 @@
-"""Rate-limit repetitive INFO logs from polling endpoints."""
+"""Rate-limit repetitive INFO logs from polling endpoints (Option A messages)."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ def info_throttled(
     *args: object,
     interval_s: float = POLL_LOG_INTERVAL_S,
 ) -> None:
-    """Log at INFO at most once per interval; otherwise DEBUG."""
+    """Log at INFO at most once per interval; otherwise DEBUG. Message uses Option A shape."""
     now = time.monotonic()
     if now - _last_info_at.get(key, 0.0) >= interval_s:
         _last_info_at[key] = now

@@ -16,6 +16,6 @@ def chunk_recursive(text: str, chunk_size: int, overlap: int) -> list[str]:
     )
 
     chunks = splitter.split_text(text)
-    logger.info(f"Recursive chunking produced {len(chunks)} chunks")
+    logger.info("recursive chunk OK — %s chunks", len(chunks))
 
     return chunks

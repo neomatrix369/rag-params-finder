@@ -46,6 +46,8 @@ abc123-run-0 | all-MiniLM-L6-v2  | recursive | 512  | 50      | EMBEDDING
 abc123-run-1 | all-MiniLM-L6-v2  | recursive | 512  | 0       | CHUNKING
 ```
 
+**Preflight:** submission fails immediately with a clear error if required Atlas Search indexes are missing or the cluster search-index quota is exhausted (HTTP 422). Fix indexes first — see [Troubleshooting → Search index preflight failed](troubleshooting.md#-search-index-preflight-failed).
+
 ---
 
 ### `cancel` — Request cancellation
@@ -114,6 +116,48 @@ rag-params-finder delete abc123-def4-5678-90ab-cdefg1234567 --force
 
 ---
 
+### `indexes` — Manage Atlas Search indexes
+
+Inspect and repair search indexes on the connected cluster. Useful on **M0 free tier** where the 3-index cluster-wide limit is easy to exceed.
+
+#### `indexes list`
+
+```bash
+rag-params-finder indexes list
+```
+
+Lists all Atlas Search indexes across every database on the cluster. Tags each index **KNOWN** (managed by this project) or **UNKNOWN**. Shows total count vs the M0 limit (3).
+
+#### `indexes reset`
+
+```bash
+rag-params-finder indexes reset                    # default: drop unknown only + ensure required
+rag-params-finder indexes reset --unknown-only     # same as default
+rag-params-finder indexes reset --all              # drop ALL indexes on chunks + recreate
+rag-params-finder indexes reset --force            # skip confirmation prompt
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `--unknown-only` / `--all` | `--unknown-only` | Drop only unknown indexes, or all indexes on `chunks` and recreate |
+| `--force` / `-f` | off | Skip confirmation prompt |
+
+**Examples**:
+```bash
+# See what's consuming quota
+rag-params-finder indexes list
+
+# Free a slot by removing stray indexes from other tools/projects
+rag-params-finder indexes reset
+
+# Nuclear option — rebuild all chunks search indexes (~1–2 min rebuild)
+rag-params-finder indexes reset --all --force
+```
+
+Known index names: `vector_index_384`, `vector_index_1024`, `text_search_index`.
+
+---
+
 ### `recover` — Retry failed runs *(planned, Slice 10)*
 
 **Not implemented yet.** When shipped, this command will re-execute only runs in **FAILED** *(and optionally **INTERRUPTED**)* phase for an existing experiment, scrubbing stale `chunks` / `results` for those `run_id`s and leaving **COMPLETE** runs untouched. Config comes from the stored experiment document — no YAML trimming required.
@@ -147,7 +191,7 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/healthz` | Health check — returns `{"ok": true}` |
-| POST | `/experiments` | Submit an experiment sweep |
+| POST | `/experiments` | Submit an experiment sweep *(422 if search-index preflight fails)* |
 | GET | `/experiments` | List all experiments |
 | GET | `/experiments/vector-db-stats` | Cluster-grouped vector DB / storage stats for all experiments |
 | GET | `/experiments/{id}` | Get experiment details + run statuses |

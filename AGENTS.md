@@ -24,6 +24,9 @@ uvicorn server.main:app --reload --port 8001   # start server
 rag-params-finder run --config configs/example-mongodb-local.yaml  # submit experiment
 rag-params-finder pause <experiment-id>   # pause after current phase
 rag-params-finder resume <experiment-id>  # continue paused sweep
+rag-params-finder indexes list            # Atlas Search indexes (known vs unknown)
+rag-params-finder indexes reset           # drop unknown indexes + ensure required
+rag-params-finder indexes reset --all     # drop all chunks search indexes + recreate
 uv pip install -e ".[dev]" && uv run ruff check . && uv run mypy server/ cli/ && uv run pytest
 
 # Frontend

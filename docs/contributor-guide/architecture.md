@@ -102,7 +102,9 @@ rag-params-finder/
 │   │   ├── experiments_shared.py  # Mongo helpers incl. db-stats aggregation
 │   │   └── runs.py          # GET /runs/{id}/status
 │   ├── core/
-│   │   ├── orchestrator.py  # run_sweep(), resume_sweep(), run_single() pipeline
+│   │   ├── orchestrator.py  # run_sweep(), resume_sweep(), run_single() pipeline; index preflight
+│   │   ├── search_index_plan.py  # required indexes from config; capacity assessment (pure)
+│   │   ├── search_index_guard.py # cluster snapshot + ensure retry; SearchIndexMismatchError
 │   │   ├── startup_reconciliation.py  # fix stale running experiments on boot
 │   │   ├── atlas_storage.py # Atlas Admin API quota + dbStats footprint
 │   │   ├── pdf_parser.py    # pypdf text extraction
@@ -127,11 +129,15 @@ rag-params-finder/
 │   │   └── results.py       # QueryResult, SearchResult, Chunk
 │   └── db/
 │       ├── atlas.py         # MongoDB connection singleton
-│       └── indexes.py       # collection + index creation helpers
+│       └── indexes.py       # collection + search index creation; list_cluster_search_indexes()
 ├── cli/
-│   ├── main.py              # Typer app (run, cancel, pause, resume, delete, version)
+│   ├── main.py              # Typer app (run, cancel, pause, resume, delete, indexes, version)
+│   ├── indexes_cmd.py       # indexes list | reset subcommands
 │   ├── config_loader.py     # YAML parser + model registry validation
 │   └── api_client.py        # HTTP client to server
+├── tests/
+│   ├── test_search_index_plan.py   # index requirement + capacity scenarios
+│   └── test_search_index_guard.py  # preflight guard (mocked I/O)
 └── frontend/src/
     ├── App.tsx              # root component (screen routing)
     ├── components/
@@ -230,7 +236,12 @@ See `docs/adr/` for Architecture Decision Records:
 | Cascade delete with confirmation | DELETE endpoint scrubs all collections (experiments, run_status, chunks, results); `ConfirmDeleteModal` shows experiment details + deletion statistics; prevents deletion of running experiments |
 | Boot orphan reconciliation | `BackgroundTasks` sweeps die on process exit; startup marks in-flight runs `interrupted` and sets terminal experiment status — separate from Slice 10 retry |
 | Pause / resume sweeps | Cooperative halt via `_SweepControl` threading events; `resume_sweep()` skips completed parameter signatures; status `paused` is non-terminal |
-| Vector DB stats API + dashboard | `GET /experiments/vector-db-stats` and `/{id}/db-stats`; estimated storage from chunk counts + model dimensions; optional Atlas quota bar |
+| Vector DB stats API + dashboard | `GET /experiments/vector-db-stats` and `/{id}/db-stats`; estimated storage from chunk counts + model dimensions; optional Atlas quota bar with tier/provider/region via `resolve_tier_specs()` |
+| Timezone-aware UTC timestamps | PyMongo `tz_aware=True`; all writes use `datetime.now(timezone.utc)` so JSON includes `Z` and browser elapsed/duration math is correct |
+| `started_at` on first run | Duration and ETA exclude queue time between submission and first pipeline phase |
+| Search index preflight | `required_search_indexes(config)` + cluster snapshot; fail before runs if missing/quota exhausted; HTTP 422 on submit |
+| Atlas index CLI | `indexes list` / `indexes reset` for M0 3-index cluster-wide quota troubleshooting |
+| Option A scoped logging | `[rag-params-finder] [Scope] operation — details` in server (`scope_log.py`) and dashboard dev console (`devLog.ts`) |
 
 ---
 

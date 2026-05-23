@@ -13,6 +13,10 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from typing import ParamSpec
 
+from server.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 P = ParamSpec("P")
 
 # One sweep per process — matches current parallelism: 1 semantics.
@@ -22,9 +26,23 @@ SWEEP_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="rag-sweep
 HEAVY_READ_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="rag-heavy-read")
 
 
+def _run_sweep_safe[R, **P](fn: Callable[P, R], /, *args: P.args, **kwargs: P.kwargs) -> None:
+    """Execute sweep fn; log unhandled exceptions (thread pool swallows them otherwise)."""
+    experiment_id = args[0] if args else "?"
+    try:
+        fn(*args, **kwargs)
+    except Exception:
+        logger.error(
+            "sweep task failed — experiment %s fn=%s",
+            experiment_id,
+            fn.__name__,
+            exc_info=True,
+        )
+
+
 def schedule_sweep[R, **P](fn: Callable[P, R], /, *args: P.args, **kwargs: P.kwargs) -> None:
     """Fire-and-forget sweep execution on the isolated sweep pool."""
-    SWEEP_EXECUTOR.submit(fn, *args, **kwargs)
+    SWEEP_EXECUTOR.submit(_run_sweep_safe, fn, *args, **kwargs)
 
 
 def shutdown_executors() -> None:

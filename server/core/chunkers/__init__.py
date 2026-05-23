@@ -10,8 +10,11 @@ def chunk_text(
     """Dispatch to appropriate chunking method."""
 
     logger.info(
-        f"Chunking {len(text)} chars with method={method.value}, "
-        f"size={chunk_size}, overlap={overlap}"
+        "chunk dispatch — chars=%s method=%s size=%s overlap=%s",
+        len(text),
+        method.value,
+        chunk_size,
+        overlap,
     )
 
     if method == ChunkingMethod.RECURSIVE:
@@ -37,5 +40,5 @@ def chunk_text(
     else:
         raise ValueError(f"Unknown chunking method: {method}")
 
-    logger.info(f"Chunking complete: {len(chunks)} chunks produced")
+    logger.info("chunk dispatch OK — %s chunks produced", len(chunks))
     return chunks

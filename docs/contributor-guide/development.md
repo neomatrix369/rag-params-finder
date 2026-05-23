@@ -61,17 +61,17 @@ uv run ruff check .
 # Type check — expect 0 errors
 uv run mypy server/ cli/
 
-# Tests (suite not yet written — 0 collected is the current baseline)
+# Tests (search index preflight + guard)
 uv run pytest --tb=short -q
 
-# Coverage (when tests exist)
+# Coverage
 uv run pytest --cov=server --cov=cli --cov-report=html
 ```
 
-**Baseline (as of 2026-05-05)**:
+**Baseline (as of 2026-05-23)**:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 0 tests collected
+- `pytest` → 17 tests
 
 ### Frontend
 
@@ -182,11 +182,28 @@ See `.github/workflows/ci.yml` for the full pipeline.
 
 ---
 
+## 🪵 Debugging and logs
+
+**Server and CLI** use Option A scoped logging via `server/utils/scope_log.py`:
+
+```
+[rag-params-finder] [Orchestrator] sweep scheduled — experiment abc123, 90 run(s)
+[rag-params-finder] [indexes] vector indexes OK — already exist
+```
+
+Set `LOG_LEVEL=DEBUG` in `.env` and restart uvicorn for verbose output. Uvicorn access logs are suppressed at WARNING by default.
+
+**Dashboard** (dev mode only) uses `frontend/src/utils/devLog.ts` with the same prefix pattern. Calls are stripped from production builds.
+
+**Search index issues:** run `rag-params-finder indexes list` before submitting sweeps on M0. Preflight errors on submit return HTTP 422 with actionable messages.
+
+---
+
 ## 🤝 Contributing
 
 Areas where help is most needed:
 
-- **Test suite**: pytest fixtures with mock MongoDB + pre-computed embedding fixtures
+- **Test suite expansion**: pytest fixtures with mock MongoDB + pre-computed embedding fixtures *(17 search-index tests shipped)*
 - **SSE live updates**: replace the 2-second polling loop with Server-Sent Events
 - **Docker Compose**: one-command `docker compose up` setup
 - **Experiment cleanup CLI**: `rag-params-finder cleanup --older-than 30d`

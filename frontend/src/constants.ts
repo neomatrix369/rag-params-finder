@@ -14,6 +14,9 @@ export const VECTOR_DB_STATS_POLL_MS = 60_000;
 
 export const DETAIL_POLL_MS = 2000;
 
+/** Search explorer re-fetch while experiment is still running (heavy Mongo aggregate). */
+export const EXPLORE_POLL_MS = 15_000;
+
 /** First “still waiting” warning after slow HTTP (agent-style feedback). */
 export const LOADING_STALL_AFTER_MS = 1800;
 
@@ -26,5 +29,5 @@ export const API_FETCH_TIMEOUT_MS = 30_000;
 /** Vector DB stats aggregation can take longer than the experiment list. */
 export const VECTOR_DB_STATS_FETCH_TIMEOUT_MS = 90_000;
 
-/** Dev-console poll breadcrumbs — match backend info_throttled interval. */
+/** Dev-console poll breadcrumbs (info level, throttled) — match backend info_throttled interval. */
 export const DEV_POLL_LOG_INTERVAL_MS = 60_000;

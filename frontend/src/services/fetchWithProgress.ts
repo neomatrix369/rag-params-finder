@@ -3,6 +3,7 @@
  */
 
 import { API_FETCH_TIMEOUT_MS } from '../constants';
+import { devWarn } from '../utils/devLog';
 
 const BYTE_PROGRESS_INTERVAL_MS = 200;
 
@@ -140,6 +141,11 @@ export async function fetchJsonWithProgress<T>(
 
   if (!response.ok) {
     const errText = await response.text().catch(() => '');
+    devWarn(
+      'fetchWithProgress',
+      `HTTP error — ${response.status} GET ${url.split('?')[0]}`,
+      errText ? errText.slice(0, 200) : '(no body)',
+    );
     throw new Error(
       errText ? `HTTP ${response.status}: ${errText.slice(0, 200)}` : `HTTP ${response.status}`,
     );
@@ -177,6 +183,8 @@ export type StallWatcher = {
 
 /** Repeats human-readable stalled warnings until `stop()`, if `alive()` is true. */
 export function createStallWatcher(options: {
+  scope: string;
+  operation: string;
   alive: () => boolean;
   onWarning: (text: string) => void;
   afterMs: number;
@@ -191,9 +199,9 @@ export function createStallWatcher(options: {
     if (!options.alive()) return;
     const elapsed = deadline() - baseline;
     const s = (elapsed / 1000).toFixed(1);
-    options.onWarning(
-      `Still waiting (${s}s) — server busy, Atlas latency, or large payload.`,
-    );
+    const uiText = `Still waiting (${s}s) — server busy, Atlas latency, or large payload.`;
+    devWarn(options.scope, `stall — ${options.operation} still waiting (${s}s) — server busy, Atlas latency, or large payload`);
+    options.onWarning(uiText);
   };
 
   let baseline = 0;

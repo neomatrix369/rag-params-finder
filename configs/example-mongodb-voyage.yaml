@@ -37,13 +37,15 @@ embedding:
     # - voyage-code-3        # 1024-dim, optimised for code retrieval
     # - voyage-finance-2     # 1024-dim, finance domain
     # - voyage-law-2         # 1024-dim, legal domain
-    - voyage-context-3     # 1024-dim, optimised for long contexts (contextualized API)
+    # - voyage-context-3     # 1024-dim, optimised for long contexts (contextualized API)
     # Voyage 3 series (legacy API)
     # - voyage-3-large       # 1024-dim, highest quality (legacy)
-    - voyage-3.5-lite      # 1024-dim, fastest and cheapest
-    - voyage-3.5           # 1024-dim, balanced quality
+    # - voyage-3.5           # 1024-dim, balanced quality
     # - voyage-3             # 1024-dim, general-purpose (legacy)
     # - voyage-multilingual-2 # 1024-dim, multilingual retrieval (legacy)
+    # Using Voyage 3.5 Lite 5 for now as it is the fastest and cheapest model that is still supported by Voyage AI.
+    # This will reduce load on storage when we run the full sweep upto 30 combinations
+    - voyage-3.5-lite      # 1024-dim, fastest and cheapest
 
 chunking:
   methods:

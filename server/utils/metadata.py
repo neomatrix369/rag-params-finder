@@ -81,5 +81,5 @@ def collect_experiment_metadata() -> dict:
         "app_version": get_app_version(),
         "env_params": get_env_params(),
     }
-    logger.debug(f"Collected experiment metadata: commit={metadata['git_commit']}")
+    logger.debug("metadata snapshot — git_commit=%s", metadata["git_commit"])
     return metadata

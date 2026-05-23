@@ -32,7 +32,7 @@ Use **MongoDB Atlas** for all storage — both vector embeddings and structured 
 
 ## Consequences
 
-- **Manual index creation**: MongoDB Atlas does not support programmatic vector index creation via pymongo. The `vector_index_1024` (Voyage) and `vector_index_384` (local) indexes must be created once in the Atlas UI. See [README — Configure Environment](../../README.md#2-configure-environment).
+- **Manual index creation**: On M0/M2/M5, Atlas Search indexes must be created in the Atlas UI. On M10+, the server creates them on startup. The server **preflights** index requirements on submit and rejects sweeps when indexes are missing or cluster quota is exhausted. Use `rag-params-finder indexes list` and `indexes reset` for quota issues.
 - **Index build time**: After creation, the index takes ~1–2 minutes to build. Queries return no results until the index is ready.
 - **Dimension-specific indexes**: Each embedding dimension (384, 1024) requires its own index. Mixed-dimension queries fail silently or error.
 - **M0 storage limit**: 512 MB on the free tier. A typical sweep (36 runs × 1000 chunks × 1024-dim × 4 bytes) uses ~147 MB. Large experiments or many sweeps may exhaust the free tier.

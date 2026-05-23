@@ -26,6 +26,18 @@ Index JSON definitions: [Cloud Account Setup → Search indexes](../user-guide/c
 
 Atlas UI → Browse Collections → `chunks` collection → **Search Indexes** tab. Status shows `ACTIVE` when ready.
 
+**CLI alternative** (cluster-wide, includes quota count):
+
+```bash
+rag-params-finder indexes list
+rag-params-finder indexes reset              # drop unknown + ensure required on chunks
+rag-params-finder indexes reset --all        # rebuild all chunks search indexes
+```
+
+M0 free tier: **3 search indexes cluster-wide** across all databases. The server **preflights** required indexes on experiment submit — see [Troubleshooting → Search index preflight failed](../user-guide/troubleshooting.md#-search-index-preflight-failed).
+
+Implementation: `server/core/search_index_plan.py` (pure assessment), `server/core/search_index_guard.py` (I/O), `server/db/indexes.py` (list/create).
+
 ### Atlas Full Text Search Index (sparse/hybrid retrieval)
 
 Required for `sparse` and `hybrid` retrieval methods. Create once in the Atlas UI:
@@ -70,10 +82,11 @@ VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # Server URL (used by CLI, default is localhost:8001)
 SERVER_URL=http://localhost:8001
 
-# Rate limits (Voyage only — set based on your tier; see .env.example)
-# Tier 1 example: VOYAGE_RPM_LIMIT=2000  VOYAGE_TPM_LIMIT=16000000  # voyage-4-lite / voyage-3.5-lite
+# Rate limits (Voyage only — free-tier defaults in .env.example; uncomment Tier 1 block for Voyage sweep)
+# VOYAGE_RPM_LIMIT=2000
+# VOYAGE_TPM_LIMIT=16000000
 
-# Optional — Atlas Admin API for dashboard storage quota bar
+# Optional — Atlas Admin API for dashboard tier + storage quota
 # ATLAS_PUBLIC_KEY=
 # ATLAS_PRIVATE_KEY=
 # ATLAS_GROUP_ID=                         # 24-char project ID from Atlas URL

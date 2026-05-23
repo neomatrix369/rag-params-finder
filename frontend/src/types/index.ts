@@ -61,7 +61,7 @@ export interface Experiment {
   experiment_name: string;
   config: Record<string, unknown>;
   created_at: string;
-  started_at?: string;
+  started_at?: string | null;
   completed_at?: string | null;
   status: ExperimentStatus;
   run_count?: number;
@@ -239,6 +239,14 @@ export interface VectorDbGroupTotals {
   /** Cluster quota from Atlas Admin API or MONGODB_STORAGE_LIMIT_MB override. */
   database_storage_limit_mb?: number | null;
   database_free_mb?: number | null;
+  /** Atlas cluster tier (M0, M2, M5, M10, etc.) */
+  cluster_tier?: string | null;
+  /** Tier type: 'shared' or 'dedicated' */
+  cluster_tier_type?: string | null;
+  /** Cloud provider: 'AWS', 'GCP', 'AZURE' */
+  cluster_provider?: string | null;
+  /** Region: 'US_EAST_1', etc. */
+  cluster_region?: string | null;
 }
 
 export type ExperimentDbStatsSummary = {
