@@ -103,6 +103,7 @@ rag-params-finder/
 │   │   └── runs.py          # GET /runs/{id}/status
 │   ├── core/
 │   │   ├── orchestrator.py  # run_sweep(), resume_sweep(), run_single() pipeline; index preflight
+│   │   ├── executors.py     # SWEEP_EXECUTOR + HEAVY_READ_EXECUTOR (isolate long work from API pool)
 │   │   ├── search_index_plan.py  # required indexes from config; capacity assessment (pure)
 │   │   ├── search_index_guard.py # cluster snapshot + ensure retry; SearchIndexMismatchError
 │   │   ├── startup_reconciliation.py  # fix stale running experiments on boot
@@ -242,6 +243,10 @@ See `docs/adr/` for Architecture Decision Records:
 | Search index preflight | `required_search_indexes(config)` + cluster snapshot; fail before runs if missing/quota exhausted; HTTP 422 on submit |
 | Atlas index CLI | `indexes list` / `indexes reset` for M0 3-index cluster-wide quota troubleshooting |
 | Option A scoped logging | `[rag-params-finder] [Scope] operation — details` in server (`scope_log.py`) and dashboard dev console (`devLog.ts`) |
+| Dedicated thread pools (`executors.py`) | Sweeps and heavy Mongo aggregations no longer compete with lightweight `GET /experiments` on the default executor |
+| Batched vector-db-stats queries | Three aggregation pipelines replace per-experiment N+1 round-trips on the experiments list |
+| Decoupled dashboard polling | List 2 s / vector DB stats 60 s / Search Explorer 15 s while running — each with appropriate fetch timeouts in `frontend/src/constants.ts` |
+| Search Explorer poll indicator timing | `PollingIndicator` showDelay + minVisibleMs reduce badge flicker on 15 s explore polls |
 
 ---
 

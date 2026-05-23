@@ -31,7 +31,7 @@ The landing screen shows all submitted experiments, newest first.
 
 **Collapsible rows**: Click the chevron on a row to expand inline details without leaving the list. Expansion state is remembered per experiment (`localStorage`).
 
-**Vector DB stats panel** (top of list): Aggregated storage footprint for your Atlas cluster — total chunks, estimated embedding storage, active index names, and per-experiment breakdown. Polls `GET /experiments/vector-db-stats` on refresh. When Atlas Admin API credentials or `MONGODB_STORAGE_LIMIT_MB` is configured, the panel also shows cluster quota (used/free MB), instance tier (e.g. `M0 (shared)`), cloud provider, and region. The Atlas API does not expose RAM, vCPU, or pricing — only tier and storage limits.
+**Vector DB stats panel** (top of list): Aggregated storage footprint for your Atlas cluster — total chunks, estimated embedding storage, active index names, and per-experiment breakdown. Loads from `GET /experiments/vector-db-stats` on its own schedule (**every 60 s**, 90 s fetch timeout) so a slow stats aggregation does not block the experiment list (2 s poll, 30 s timeout). When Atlas Admin API credentials or `MONGODB_STORAGE_LIMIT_MB` is configured, the panel also shows cluster quota (used/free MB), instance tier (e.g. `M0 (shared)`), cloud provider, and region. The Atlas API does not expose RAM, vCPU, or pricing — only tier and storage limits.
 
 **Actions**:
 - **View details**: Click any row to open the Experiment Detail screen
@@ -123,7 +123,9 @@ QUEUED → PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERAN
 
 ### 🔍 Search Explorer
 
-Opened from the Experiment Detail screen once at least one run is complete. Loads once from `GET /experiments/{id}/explore` (no polling).
+Opened from the Experiment Detail screen once at least one run is complete. Initial load from `GET /experiments/{id}/explore`. While the experiment is still **running**, the screen **polls every 15 s** so ranked configs appear as runs finish — a heavier Mongo aggregate than the experiment list, so the interval is longer. A **"Syncing..."** badge in the header uses delayed show/hide timing (600 ms before appear, 1 s minimum visible) to reduce flicker on fast responses.
+
+Changing the query filter triggers an immediate re-fetch (see **Re-query Progress** below).
 
 **Best parameters card**: the top-scoring config combination with its overall relevance score, highlighted at the top of the screen.
 
@@ -150,9 +152,10 @@ This allows direct comparison of configs that used different models or retrieval
 
 | Screen | Polls | Interval | Stops When |
 |---|---|---|---|
-| Experiments List | Yes | Every 2 s | Never (always refreshes) |
+| Experiments List | Yes | Every 2 s (`GET /experiments`, 30 s timeout) | Never (always refreshes) |
+| Experiments List — Vector DB stats | Yes | Every 60 s (`GET /experiments/vector-db-stats`, 90 s timeout) | Never; may show "loading" while the list is already visible |
 | Experiment Detail | Yes | Every 2 s | Status reaches terminal state (`paused` is non-terminal — polling continues) |
-| Search Explorer | No | — | Loads once |
+| Search Explorer | Yes | Every 15 s while experiment is running | Stops when experiment reaches a terminal status (`complete`, `failed`, `partial`, `cancelled`) |
 
 Terminal statuses: `complete`, `failed`, `partial`, `cancelled` (non-terminal: `running`, `paused`)
 
@@ -171,10 +174,11 @@ The panel automatically hides when loading completes.
 
 ### Background Polling
 
-After the initial load completes, a subtle **"Syncing..."** indicator appears briefly at the bottom (Experiments List) or top-right (Experiment Detail, Search Explorer) during background refreshes every 2 seconds. This indicator:
-- Shows a blue pulsing dot + "Syncing..." text
-- Appears only during the poll (100–500ms)
-- Does not block interaction with the page
+After the initial load completes, a subtle **"Syncing..."** indicator appears during background refreshes:
+- **Experiments List** and **Experiment Detail**: every 2 s (footer or top-right)
+- **Search Explorer**: every 15 s while the experiment is still running (top-right; anti-flicker delay)
+
+The indicator shows a blue pulsing dot + "Syncing..." text, stays visible for at least ~1 s on Search Explorer polls, and does not block interaction with the page.
 
 ### Re-query Progress (Search Explorer)
 
