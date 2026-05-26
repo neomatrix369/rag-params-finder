@@ -201,6 +201,27 @@ Set `LOG_LEVEL=DEBUG` in `.env` and restart uvicorn for verbose output. Uvicorn 
 
 ---
 
+## 🤖 AI-assisted development (optional)
+
+**Not required** to run, test, or ship `rag-params-finder`. End users can ignore this section.
+
+Some contributors use **Cursor** or **Claude Code** with the [`code-review-graph`](https://pypi.org/project/code-review-graph/) MCP server — a local knowledge graph of callers, callees, tests, and change impact. It speeds up exploration and review; it does not affect the FastAPI server, CLI, or dashboard.
+
+| Audience | Needs code-review-graph? |
+|---|---|
+| Running sweeps / using the dashboard | No |
+| Contributing code or reviewing PRs | Optional |
+
+**Setup (when you want it):**
+
+1. Install the server: `uvx code-review-graph serve` (or configure MCP in your editor — see project `.mcp.json` if present).
+2. Let hooks build/update the graph; cache lives in `.code-review-graph/` (gitignored).
+3. In Cursor, project guidance may live in `.cursor/rules/code-review-graph.mdc` (local; `.cursor/` is gitignored except shared symlinks on your machine).
+
+**Workflow:** Prefer graph tools (`detect_changes`, `query_graph`, `get_impact_radius`, …) before broad Grep/file reads. Full tool list and workflow: [AGENTS.md](../../AGENTS.md) and [CLAUDE.md](../../CLAUDE.md).
+
+---
+
 ## 🤝 Contributing
 
 Areas where help is most needed:
@@ -219,5 +240,6 @@ Please open an issue before starting work on large features to discuss the appro
 - [Architecture](architecture.md) — system design and module map
 - [Extending the System](extending.md) — step-by-step guides for adding models, chunkers, endpoints
 - [Local Environment](local-environment.md) — Atlas setup, debugging, and maintenance details
-- [Release Process](release-process.md) — creating releases, versioning strategy, automation scripts
+- [Release Process](release-process.md) — creating releases, versioning strategy, when to release
+- [AGENTS.md](../../AGENTS.md) · [CLAUDE.md](../../CLAUDE.md) — agent entry points (incl. optional code-review-graph MCP)
 - [docs/_internal/PROGRESS.md](../_internal/PROGRESS.md) — slice status, decision log, forward roadmap
