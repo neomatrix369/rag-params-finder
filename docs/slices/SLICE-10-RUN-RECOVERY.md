@@ -101,13 +101,12 @@ Recovery should **reuse the same `run_id`** for a retried run so dashboards, URL
 
 ## Automated quality gates
 
-Before merge, run the canonical gate stack (Slice 20):
-
 ```bash
-./scripts/quality-gates.sh
+bash scripts/install-git-hooks.sh   # once — pre-commit on commit, quality-gates --quick on push
+./scripts/quality-gates.sh          # full CI mirror before PR
 ```
 
-See [`docs/contributor-guide/development.md`](../contributor-guide/development.md) for `--quick`, `scripts/repo-lint.sh`, and CI job breakdown.
+See [`development.md`](../contributor-guide/development.md) § Git hooks and § When checks run.
 
 ---
 

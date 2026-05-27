@@ -4,9 +4,12 @@
 #   pytest+coverage, pip-audit, npm audit
 # Repo lint (shellcheck, actionlint, markdownlint): also in CI via scripts/repo-lint.sh
 #
-# Install:
-#   uv pip install -e ".[dev]" && pre-commit install
-# Run all:  pre-commit run --all-files
+# Install (commit + push hooks):
+#   uv pip install -e ".[dev]"
+#   pre-commit install --hook-type pre-commit --hook-type pre-push
+#   # or: bash scripts/install-git-hooks.sh
+# Run all (commit stage):  pre-commit run --all-files
+# Run push stage only:     pre-commit run --hook-stage pre-push --all-files
 # Full gates: ./scripts/quality-gates.sh [--full]
 
 repos:
@@ -104,3 +107,14 @@ repos:
         pass_filenames: false
         files: ^frontend/
         exclude: ^frontend/node_modules/
+
+  # ── Pre-push: quick quality gates (repo lint + lint + tests) ─
+  - repo: local
+    hooks:
+      - id: quality-gates-pre-push
+        name: quality gates (pre-push)
+        entry: bash scripts/quality-gates.sh --quick
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

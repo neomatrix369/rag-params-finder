@@ -80,7 +80,7 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 
 **Reference**: pre-rag has a standalone spec file per slice (`SLICE-07-SLIDING-WINDOW.md`, etc.).
 
-**2026-05-27 supplement:** All slice specs link to `./scripts/quality-gates.sh` / [`development.md`](../contributor-guide/development.md); Slice 20 documents repo lint (shellcheck, actionlint, markdownlint).
+**2026-05-27 supplement:** All slice specs link to `./scripts/quality-gates.sh` / [`development.md`](../contributor-guide/development.md); Slice 20 documents repo lint + `scripts/install-git-hooks.sh` (pre-commit on commit, `quality-gates --quick` on push).
 
 ---
 
@@ -100,6 +100,7 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 **Priority**: Medium
 
 - [x] Add `## Quality Gates Baseline` section to `CLAUDE.md` with real numbers:
+  - [x] `bash scripts/install-git-hooks.sh` → pre-commit + pre-push hooks documented
   - [x] `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
   - [x] `ruff check .` → 0 errors
   - [x] `mypy server/ cli/` → 0 errors
@@ -119,8 +120,9 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 
 - [x] Add `.github/workflows/ci.yml` — repo-lint: shellcheck + actionlint + markdownlint; backend: ruff + format + mypy + bandit + pytest/coverage + pip-audit; frontend: eslint + tsc + build + npm audit; secrets: gitleaks
 - [x] CI documented in `CLAUDE.md`, `development.md`, Slice 20 spec
+- [x] Pre-push hook: `quality-gates.sh --quick` on every `git push` (see `install-git-hooks.sh`)
 
-**Superseded note (2026-05-27):** ESLint is wired (`frontend/.eslintrc.cjs`). Use `./scripts/quality-gates.sh` for local/CI parity.
+**Superseded note (2026-05-27):** ESLint is wired (`frontend/.eslintrc.cjs`). Use `./scripts/quality-gates.sh` for full local/CI parity; `git push` runs `--quick` when hooks are installed.
 
 **Reference**: pre-rag's Slice 1 established CI as a first-class deliverable; Slice 20 hardened to Serious tier.
 

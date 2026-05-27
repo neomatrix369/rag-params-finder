@@ -60,7 +60,8 @@ Cartesian product expansion: one YAML config with N models × M chunking methods
 ## Quality gates (current project standard)
 
 ```bash
+bash scripts/install-git-hooks.sh
 ./scripts/quality-gates.sh
 ```
 
-See [`docs/contributor-guide/development.md`](../contributor-guide/development.md) and [`SLICE-20-TOOLCHAIN-HARDENING.md`](./SLICE-20-TOOLCHAIN-HARDENING.md).
+See [`development.md`](../contributor-guide/development.md) § Git hooks.

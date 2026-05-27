@@ -19,6 +19,7 @@ Two-process architecture: config submission (CLI) is separate from execution (Se
 # Setup
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
+bash scripts/install-git-hooks.sh   # commit + pre-push hooks
 
 # Run server
 uvicorn server.main:app --reload --port 8001
@@ -153,6 +154,7 @@ Provider/model must match — registry in `model_registry.py` validates at confi
 ```
 [ ] Read docs/_internal/PROGRESS.md — confirm current state and which slice is next
 [ ] Read or create the slice spec in docs/slices/SLICE-XX-*.md
+[ ] bash scripts/install-git-hooks.sh (once per machine — commit + pre-push checks)
 [ ] Run all quality gates — confirm zero regressions before starting
 [ ] Note the exact acceptance criteria — these are the exit conditions
 ```
@@ -183,7 +185,7 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 ### Post-slice checklist
 ```
 [ ] All acceptance criteria checked ✅
-[ ] Quality gates pass (zero regressions)
+[ ] Quality gates pass (zero regressions) — ./scripts/quality-gates.sh; git push runs --quick via pre-push hook
 [ ] Slice status updated in docs/_internal/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
@@ -194,6 +196,10 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 ## Quality Gates Baseline
 
 **Unified script:** `./scripts/quality-gates.sh` (mirrors CI — 11 steps including repo lint)
+
+**Git hooks** (after `bash scripts/install-git-hooks.sh`):
+- **commit** → pre-commit (staged-file lint)
+- **push** → `quality-gates.sh --quick` (repo lint + lint + unit tests + eslint + tsc)
 
 **Repo lint** (2026-05-27):
 - `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass

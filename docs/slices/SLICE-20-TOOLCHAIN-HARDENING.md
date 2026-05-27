@@ -34,6 +34,7 @@ Inherit proven hardening patterns from **price-analysis** and **pre-rag-explorer
 | Vitest frontend tests | pre-rag | ❌ — separate slice when UI test tier is planned |
 | Torch/transformers major upgrade | pip-audit findings | ❌ — tracked via `scripts/pip-audit.sh` ignores |
 | `scripts/repo-lint.sh` (shellcheck, actionlint, markdownlint) | governance (Serious tier) | ✅ *(2026-05-27 follow-on)* |
+| `install-git-hooks.sh` + pre-push `quality-gates --quick` | governance | ✅ *(2026-05-27 follow-on)* |
 | yamllint / stylelint / markdown “strict” rules | governance | ❌ — `check-yaml` + pragmatic `.markdownlint.json` suffice for now |
 
 ---
@@ -60,6 +61,7 @@ Inherit proven hardening patterns from **price-analysis** and **pre-rag-explorer
 - [x] Shellcheck on `scripts/*.sh` (`shellcheck-py`)
 - [x] Actionlint on `.github/workflows`
 - [x] Markdownlint on `*.md` (excludes `.claude/`)
+- [x] Pre-push hook runs `./scripts/quality-gates.sh --quick` (`scripts/install-git-hooks.sh`)
 
 ### Coverage scope (baseline-first)
 Measured baseline **83.6%** on:
@@ -99,6 +101,7 @@ Threshold set to **80%** (`--cov-fail-under=80` in CI and quality-gates).
 | `frontend/.eslintrc.cjs` | ESLint + security plugin |
 | `docs/slices/SLICE-20-TOOLCHAIN-HARDENING.md` | This spec |
 | `scripts/repo-lint.sh` | Shell + workflow + Markdown linters (pre-commit wrappers) |
+| `scripts/install-git-hooks.sh` | Installs pre-commit + pre-push hooks |
 | `.markdownlint.json` | Pragmatic Markdown rules for existing docs |
 
 ### Modified
@@ -181,6 +184,10 @@ python scripts/check_integrity.py
 **Decision:** Use `shellcheck-py` pre-commit repo (no Docker).
 **Rationale:** `koalaman/shellcheck-precommit` rev failed in CI; pip wheel hook matches Serious tier without Docker.
 
+### 8. Pre-push runs `--quick`, not full gates
+**Decision:** Pre-push hook calls `./scripts/quality-gates.sh --quick`; full gates remain manual + CI on PR.
+**Rationale:** Push is frequent; coverage, pip-audit, npm audit, and production build stay in CI. Still stronger than commit-only hooks.
+
 ---
 
 ## Deferred → future slices
@@ -217,6 +224,7 @@ Three-way comparison after inheriting patterns from **price-analysis** and **pre
 | pytest integration/slow markers | ✅ | N/A (vitest) | ✅ (markers defined) |
 | pre-commit (Python framework) | ✅ heavy | ✅ Serious-lite | ✅ |
 | shellcheck / actionlint / markdownlint | partial | partial | ✅ repo-lint job + hooks |
+| pre-push quality gate | ❌ | partial (husky) | ✅ `quality-gates --quick` |
 | Husky + lint-staged | ❌ | ✅ | ❌ (pre-commit instead) |
 | Prettier | ✅ black/isort | ✅ | ❌ (ruff + eslint) |
 | Xenon complexity | ✅ scoped | ❌ | ❌ deferred |
@@ -235,9 +243,9 @@ Three-way comparison after inheriting patterns from **price-analysis** and **pre
 ```
 chore(ci): slice 20 toolchain hardening from reference repos
 
-- Add quality-gates.sh, check_integrity.py, pip-audit.sh, repo-lint.sh
+- Add quality-gates.sh, check_integrity.py, pip-audit.sh, repo-lint.sh, install-git-hooks.sh
 - CI: repo-lint job; coverage 80% on scoped modules; eslint; pip-audit
-- Pre-commit: shellcheck, actionlint, markdownlint; ESLint+security; gitleaks
+- Git hooks: pre-commit + pre-push (quality-gates --quick); shellcheck, actionlint, markdownlint
 - Wire .gitleaks.toml, .nvmrc, dependabot, repo hygiene files
 - Upgrade urllib3/starlette/idna/langchain-core; document ML transitive audit ignores
 

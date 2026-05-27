@@ -182,10 +182,11 @@ All acceptance criteria checked ✅ AND:
 
 ## Quality gates (current project standard)
 
-This slice predates Slice 20 CI hardening. For any code or doc change today:
+This slice predates Slice 20. For any change today:
 
 ```bash
-./scripts/quality-gates.sh
+bash scripts/install-git-hooks.sh   # once — commit checks + quality-gates --quick on push
+./scripts/quality-gates.sh          # full CI mirror before opening a PR
 ```
 
-See [`docs/contributor-guide/development.md`](../contributor-guide/development.md) and [`SLICE-20-TOOLCHAIN-HARDENING.md`](./SLICE-20-TOOLCHAIN-HARDENING.md).
+See [`development.md`](../contributor-guide/development.md) § Git hooks and [`SLICE-20-TOOLCHAIN-HARDENING.md`](./SLICE-20-TOOLCHAIN-HARDENING.md).

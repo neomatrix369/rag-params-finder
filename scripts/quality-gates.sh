@@ -2,7 +2,7 @@
 # Run all quality gates — mirrors .github/workflows/ci.yml (repo-lint + backend + frontend + audits).
 # Usage:
 #   ./scripts/quality-gates.sh          # full CI mirror (default)
-#   ./scripts/quality-gates.sh --quick  # lint + typecheck + unit tests only
+#   ./scripts/quality-gates.sh --quick  # also runs on git push via pre-push hook (install-git-hooks.sh)
 #   ./scripts/quality-gates.sh --full   # CI mirror + local gitleaks + pre-commit all-files
 
 set -e
