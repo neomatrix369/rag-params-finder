@@ -33,7 +33,7 @@ queries_file: ./configs/questions.example.json  # local path or URL
                                                  # URL downloads to ./configs/ on first use and caches
 
 embedding:
-  provider: local                    # "local" (sentence-transformers) or "voyage"
+  provider: local                    # "local" | "voyage" (supported on main); "kimchi" reserved — see extending guide
   models:
     - all-MiniLM-L6-v2               # must match provider: local models can't be paired with provider: voyage
 
