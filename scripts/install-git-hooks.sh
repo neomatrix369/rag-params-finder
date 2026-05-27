@@ -13,6 +13,19 @@ fi
 
 pre-commit install --hook-type pre-commit --hook-type pre-push
 
+HOOKS_DIR="$ROOT/.git/hooks"
+missing=()
+for hook in pre-commit pre-push; do
+  if [[ ! -x "$HOOKS_DIR/$hook" ]]; then
+    missing+=("$hook")
+  fi
+done
+if ((${#missing[@]} > 0)); then
+  echo "ERROR: expected executable hooks missing: ${missing[*]}" >&2
+  echo "Re-run from repo root with: bash scripts/install-git-hooks.sh" >&2
+  exit 1
+fi
+
 echo "✅ Git hooks installed:"
 echo "   pre-commit  → essential checks on staged files (hygiene, secrets, lint, types, …)"
 echo "   pre-push    → same essential checks on entire repo (pre-commit run --all-files)"
