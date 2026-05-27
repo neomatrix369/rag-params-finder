@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-23 (Slice 19 spec — Atlas storage quota guard)
-**Current**: Slices 1–9 ✅ COMPLETE | Vector DB stats + collapsible rows + boot reconciliation ✅ COMPLETE | Pause/resume + expanded Voyage catalog ✅ COMPLETE | Voyage sweep UX polish ✅ COMPLETE | Search index preflight + indexes CLI ✅ COMPLETE | Dashboard polling + API responsiveness ✅ COMPLETE | Kimchi embedding provider ✅ COMPLETE | Provider regression pytest ✅ COMPLETE | **Slice 18 ✅ COMPLETE** (unified retriever config) | Next: Slice 10 📋 PLANNED (failed-run recovery retry) · Slice 11 📋 PLANNED (Search Explorer enhancements) · Slice 16 📋 PLANNED (honor `parallelism`) · **Slice 19 📋 PLANNED** (Atlas storage quota guard — incident 2026-05-23)
+**Last Updated**: 2026-05-27 (Slice 20 ✅ toolchain hardening complete — PR pending)
+**Current**: … | **Slice 20 ✅ COMPLETE** (toolchain hardening — PR pending) | Next: Slice 10 📋 · …
 
 ---
 
@@ -31,6 +31,7 @@
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 | 19 — Atlas storage quota guard | 📋 PLANNED | ~3–5 h | Preflight + runtime `OperationFailure` 8000 handling + force-delete recovery; M0 incident 2026-05-23 — see [`SLICE-19-STORAGE-QUOTA-GUARD.md`](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) |
+| 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | quality-gates.sh, coverage CI gate, ESLint, pip-audit, dependabot — see [`SLICE-20-TOOLCHAIN-HARDENING.md`](../slices/SLICE-20-TOOLCHAIN-HARDENING.md) — branch `chore/slice-20-toolchain-hardening` |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE
 
@@ -564,6 +565,10 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-05-27 | 20 | Scoped coverage 80% on four unit-tested modules | Baseline-first (83.6%); whole-repo 28% would force gate off or block merges |
+| 2026-05-27 | 20 | pip-audit ML ignores via scripts/pip-audit.sh | torch/transformers CVEs need major sentence-transformers bump — separate slice |
+| 2026-05-27 | 20 | Extend pre-commit, not Husky | Python repo already on pre-commit; avoids dual hook systems |
+| 2026-05-27 | 20 | Branch chore/slice-20-toolchain-hardening from main | Independent of code-review-graph branch; focused PR |
 | 2026-05-02 | 1 | pypdf for PDF parsing | Simpler than pdfminer.six, sufficient for text extraction |
 | 2026-05-02 | 1 | voyage-3.5-lite only | Cheapest Voyage model, add others in Slice 7 |
 | 2026-05-02 | 1 | RECURSIVE chunker only | Most common method, defer others to Slice 6 |

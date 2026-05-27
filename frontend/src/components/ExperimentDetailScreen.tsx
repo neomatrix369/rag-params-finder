@@ -357,14 +357,19 @@ function MetadataItem({ label, value }: { label: string; value: string | number 
 
 // Status badge with color coding
 function StatusBadge({ status }: { status: string }) {
-  const config = {
+  const configByStatus = {
     complete: { bg: 'bg-green-100', text: 'text-green-800', icon: icons.check, ring: 'ring-green-600' },
     running: { bg: 'bg-blue-100', text: 'text-blue-800', icon: icons.play, ring: 'ring-blue-600' },
     failed: { bg: 'bg-red-100', text: 'text-red-800', icon: icons.x, ring: 'ring-red-600' },
     partial: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: icons.x, ring: 'ring-yellow-600' },
     cancelled: { bg: 'bg-gray-100', text: 'text-gray-800', icon: icons.x, ring: 'ring-gray-600' },
     paused: { bg: 'bg-violet-100', text: 'text-violet-800', icon: icons.clock, ring: 'ring-violet-600' },
-  }[status] || { bg: 'bg-slate-100', text: 'text-slate-800', icon: icons.clock, ring: 'ring-slate-600' };
+  } as const;
+  const defaultConfig = { bg: 'bg-slate-100', text: 'text-slate-800', icon: icons.clock, ring: 'ring-slate-600' };
+  const config =
+    status in configByStatus
+      ? configByStatus[status as keyof typeof configByStatus]
+      : defaultConfig;
 
   return (
     <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${config.bg} ${config.text} font-semibold ring-2 ${config.ring}`}>
@@ -397,11 +402,14 @@ function StatCard({
     amber: 'bg-amber-50 text-amber-600 border-amber-200',
     red: 'bg-red-50 text-red-600 border-red-200',
     slate: 'bg-slate-50 text-slate-600 border-slate-200',
-  };
+  } as const;
+  // color is a typed union — safe lookup, not user-controlled injection.
+  // eslint-disable-next-line security/detect-object-injection -- keyed by StatCard color prop union
+  const colorClass = colors[color];
 
   if (compact) {
     return (
-      <div className={`${colors[color]} rounded-lg border px-3 py-2.5 min-w-0 h-full`}>
+      <div className={`${colorClass} rounded-lg border px-3 py-2.5 min-w-0 h-full`}>
         <div className="flex items-center gap-2 min-w-0">
           <div className="shrink-0 scale-90 opacity-80">{icon}</div>
           <div className="min-w-0 flex-1">
@@ -419,7 +427,7 @@ function StatCard({
   }
 
   return (
-    <div className={`${colors[color]} rounded-xl p-4 border-2 shadow-sm`}>
+    <div className={`${colorClass} rounded-xl p-4 border-2 shadow-sm`}>
       <div className="flex items-start justify-between mb-2">
         <div className="p-2 rounded-lg bg-white/80">
           {icon}
@@ -683,9 +691,10 @@ export default function ExperimentDetailScreen({
         setLoadFeed((f) => appendDetailFeed(f, `Failed: ${msg}`, 'warning'));
       } finally {
         stall.stop();
-        if (!aliveRef.current) return;
-        setHydrating(false);
-        startDetailPollIfRunning(loadedStatus);
+        if (aliveRef.current) {
+          setHydrating(false);
+          startDetailPollIfRunning(loadedStatus);
+        }
       }
     }
 

@@ -29,6 +29,9 @@ uv run mypy server/ cli/
 
 # Tests
 uv run pytest --tb=short -q
+
+# All quality gates (mirrors CI)
+./scripts/quality-gates.sh
 ```
 
 ### Frontend (Node.js 22+)
@@ -161,13 +164,16 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 
 ### Verify-all commands (run before each commit)
 ```bash
-# Backend
+# One command — mirrors CI
+./scripts/quality-gates.sh
+
+# Or individually:
 uv run ruff check .
 uv run mypy server/ cli/
-uv run pytest --tb=short -q
-
-# Frontend
-cd frontend && npm run typecheck && npm run build
+uv run pytest --tb=short -q --cov=server.core.search_index_plan \
+  --cov=server.core.search_index_guard --cov=server.core.results_analyzer \
+  --cov=server.models.config --cov-fail-under=80
+cd frontend && npm run lint && npm run typecheck && npm run build
 ```
 
 ### Post-slice checklist
@@ -183,15 +189,18 @@ cd frontend && npm run typecheck && npm run build
 
 ## Quality Gates Baseline
 
-**Backend** (2026-05-23):
+**Unified script:** `./scripts/quality-gates.sh` (mirrors CI)
+
+**Backend** (2026-05-27):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 17 tests (search index preflight)
+- `pytest` → 23 tests, 83.6% coverage on scoped modules (80% threshold)
 
-**Frontend** (2026-05-05):
+**Frontend** (2026-05-27):
+- `npm run lint` → 0 errors (eslint + security plugin)
 - `npm run typecheck` → 0 errors
-- `npm run build` → ✓ built in ~1.8s, 34 modules
-- `npm audit --audit-level=high` → 0 vulnerabilities
+- `npm run build` → ✓ built in ~4s, 49 modules
+- `npm audit --audit-level=high` → 0 high vulnerabilities
 
 ## Release Process
 

@@ -47,9 +47,12 @@ function MethodBadge({ method, variant }: { method: string; variant: 'retrieval'
     retrieval: 'bg-orange-100 text-orange-700 border-orange-200',
     chunking: 'bg-slate-100 text-slate-700 border-slate-200',
     model: 'bg-blue-50 text-blue-700 border-blue-200',
-  };
+  } as const;
+  // variant is a typed union — safe lookup, not user-controlled injection.
+  // eslint-disable-next-line security/detect-object-injection -- keyed by MethodBadge variant prop union
+  const colorClass = colors[variant];
   return (
-    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded border ${colors[variant]}`}>
+    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded border ${colorClass}`}>
       {method.toUpperCase()}
     </span>
   );
@@ -808,7 +811,7 @@ export default function SearchExplorerScreen({
   useEffect(() => {
     aliveRef.current = true;
     const abort = new AbortController();
-    let switchedExperiment = prevExperimentRef.current !== experimentId;
+    const switchedExperiment = prevExperimentRef.current !== experimentId;
     if (switchedExperiment) {
       prevExperimentRef.current = experimentId;
       setData(null);

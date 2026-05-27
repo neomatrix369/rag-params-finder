@@ -404,14 +404,15 @@ export default function ExperimentsScreen({
         setFeed((f) => appendFeed(f, `Failed: ${msg}`, 'warning'));
       } finally {
         stall.stop();
-        if (!aliveRef.current) return;
-        setLoading(false);
-        setInitialLoadDone(true);
-        devInfo(
-          'ExperimentsScreen',
-          `poll started — list every ${EXPERIMENTS_POLL_MS}ms, vector DB stats every ${VECTOR_DB_STATS_POLL_MS}ms`,
-        );
-        startPollTimers();
+        if (aliveRef.current) {
+          setLoading(false);
+          setInitialLoadDone(true);
+          devInfo(
+            'ExperimentsScreen',
+            `poll started — list every ${EXPERIMENTS_POLL_MS}ms, vector DB stats every ${VECTOR_DB_STATS_POLL_MS}ms`,
+          );
+          startPollTimers();
+        }
       }
     }
 
@@ -430,7 +431,7 @@ export default function ExperimentsScreen({
         statsPollTimerRef.current = null;
       }
     };
-  }, [cacheReady, loadVectorDbStats]);
+  }, [cacheReady, loadVectorDbStats, cachedExperiments?.length, cachedVectorDbGroups?.length]);
 
   const showLoadingPanel = shouldShowLoadingPanel(initialLoadDone, loading, error);
   const showEmptyConfirmed =
