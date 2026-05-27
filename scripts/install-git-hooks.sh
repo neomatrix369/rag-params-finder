@@ -28,7 +28,7 @@ fi
 
 echo "✅ Git hooks installed:"
 echo "   pre-commit  → essential checks on staged files (hygiene, secrets, lint, types, …)"
-echo "   pre-push    → same essential checks on entire repo (pre-commit run --all-files)"
+echo "   pre-push    → fast gates (./scripts/pre-push-gates.sh — lint, tests, build, gitleaks)"
 echo ""
-echo "Full CI mirror (pytest, coverage, audits, build): ./scripts/quality-gates.sh"
+echo "Full CI mirror before PR (coverage, pip-audit, npm audit): ./scripts/quality-gates.sh"
 echo "Bypass once (emergency only): git push --no-verify"

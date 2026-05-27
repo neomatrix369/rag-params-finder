@@ -100,7 +100,8 @@ Run all gates before committing. All must pass with zero regressions.
 
 ```bash
 ./scripts/quality-gates.sh              # full CI mirror (default)
-./scripts/quality-gates.sh --quick      # repo lint + lint + typecheck + unit tests (skips coverage/build/audits)
+./scripts/quality-gates.sh --quick      # same as git push (lint, tests, frontend verify, gitleaks)
+./scripts/pre-push-gates.sh             # alias for --quick
 ./scripts/quality-gates.sh --full       # CI mirror + local gitleaks + pre-commit all-files
 ```
 
@@ -191,18 +192,21 @@ bash scripts/install-git-hooks.sh
 | Hook | When | What runs |
 |------|------|-----------|
 | **pre-commit** | `git commit` | Essential checks on **staged** files (see list below) |
-| **pre-push** | `git push` | Same essential checks on the **entire repo** (`pre-commit run --all-files`) |
+| **pre-push** | `git push` | Fast CI gates: `./scripts/pre-push-gates.sh` (mirrors pre-rag `npm run test:all`) |
 
-**Essential checks** (commit + push): trailing whitespace / EOF / YAML·JSON·TOML syntax, merge conflicts, large files, private keys, gitleaks, shellcheck (`scripts/*.sh`), actionlint, markdownlint, bandit, ruff + format, mypy, frontend eslint + verify (when `frontend/` applies).
+**Pre-commit** (staged files): hygiene, gitleaks, shellcheck, actionlint, markdownlint, bandit, ruff + format, mypy, frontend eslint + verify when `frontend/` is touched.
 
-**Not on push** (run manually or in CI): pytest + coverage, pip-audit, npm audit. Run `./scripts/quality-gates.sh` before opening a PR for full CI parity.
+**Pre-push** (whole repo, check-only): repo lint, ruff check + format check, mypy, bandit, **pytest**, frontend eslint, **frontend verify** (tsc + build), gitleaks.
+
+**Not on push** (run `./scripts/quality-gates.sh` before a PR or rely on CI): coverage threshold, pip-audit, npm audit, pre-commit hygiene sweep (`--full`).
 
 Emergency bypass (use sparingly): `git push --no-verify`
 
 Test push hook without pushing:
 
 ```bash
-pre-commit run --hook-stage pre-push --all-files
+pre-commit run pre-push-gates --hook-stage pre-push
+# or: ./scripts/pre-push-gates.sh
 ```
 
 **Push did not run checks?** Git only runs hooks that exist under `.git/hooks/`. A plain `pre-commit install` (no `--hook-type pre-push`) installs **commit** only. After pulling hook changes, re-run:
@@ -217,7 +221,7 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 | Trigger | What runs |
 |---------|-----------|
 | `git commit` | **pre-commit** — staged files (hygiene, secrets, repo lint, ruff, mypy, bandit, frontend when touched) |
-| `git push` | **pre-push** — same essential hooks as commit, all files |
+| `git push` | **pre-push** — `./scripts/pre-push-gates.sh` (lint, tests, build, secrets) |
 | PR or push to `main` | **GitHub Actions** — full CI (four jobs; includes pytest, coverage, pip-audit, npm audit, build) |
 | Manual | `./scripts/quality-gates.sh` — full local mirror of CI before opening a PR |
 
@@ -320,7 +324,7 @@ GitHub Actions runs on every push and PR to `main` (four jobs — see `.github/w
 
 Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabot.yml`).
 
-**Local mirrors:** `./scripts/quality-gates.sh` (full, before PR). **`git push`** runs essential pre-commit hooks on all files if `install-git-hooks.sh` was used. `--quick` / `--full` are manual only.
+**Local mirrors:** `./scripts/quality-gates.sh` (full, before PR). **`git push`** runs `./scripts/pre-push-gates.sh` when hooks are installed. `--full` adds pre-commit all-files sweep.
 
 ---
 
