@@ -133,10 +133,10 @@ uv run pytest --tb=short -q \
 bash scripts/pip-audit.sh
 ```
 
-**Baseline (as of 2026-05-27)**:
+**Baseline (as of 2026-05-28)**:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 23 tests, 83.6% coverage on scoped modules
+- `pytest` → 26 tests, 83.6% coverage on scoped modules
 
 ### Frontend
 
@@ -156,7 +156,7 @@ npm run build
 npm audit --audit-level=high
 ```
 
-**Baseline (as of 2026-05-27)**:
+**Baseline (as of 2026-05-28)**:
 - `npm run lint` → 0 errors
 - `npm run typecheck` → 0 errors
 - `npm run build` → built in ~4s, 49 modules
@@ -238,7 +238,7 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 | `test_expand_sweep.py` | 3 | Unified `retrievers` sweep expansion |
 | `test_tiebreaker_ranking.py` | 3 | Weighted ranking / tiebreaker logic |
 
-**Total:** 23 pytest tests (2026-05-27 baseline). Coverage is enforced at **80%** on four scoped server modules (see Quality Gates above).
+**Total:** 26 pytest tests (2026-05-28 baseline: 17 search-index + 3 sweep + 3 tiebreaker + 3 health). Coverage is enforced at **80%** on four scoped server modules (see Quality Gates above).
 
 **Still manual / not automated:**
 - End-to-end pipeline via CLI + dashboard (real Atlas + optional Voyage)
@@ -270,8 +270,9 @@ rag-params-finder/
 │   ├── user-guide/      # End-user documentation
 │   ├── contributor-guide/ # This directory
 │   ├── adr/             # Architecture Decision Records
-│   ├── slices/          # Slice specs (dev-internal)
-│   └── _internal/       # Dev log, gap tracker, Graphiti exports
+│   ├── slices/          # Slice specs + PROGRESS.md (status, roadmap)
+│   ├── _internal/       # Gap tracker, audits, Graphiti exports
+│   └── README.md        # Documentation index (doc map)
 └── .github/workflows/   # CI (see § CI — repo-lint, backend, frontend, secrets)
 ```
 
@@ -282,7 +283,7 @@ rag-params-finder/
 ### Pre-slice checklist
 
 ```
-[ ] Read docs/_internal/PROGRESS.md — confirm current state and which slice is next
+[ ] Read docs/slices/PROGRESS.md — confirm current state and which slice is next
 [ ] Read or create the slice spec in docs/slices/SLICE-XX-*.md
 [ ] bash scripts/install-git-hooks.sh (once per machine if not already installed)
 [ ] Run all quality gates — confirm zero regressions before starting
@@ -291,7 +292,7 @@ rag-params-finder/
 
 ### Decision log template
 
-Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log:
+Record every non-obvious choice in `docs/slices/PROGRESS.md` → Decision Log:
 
 ```
 | <date> | <slice> | <decision> | <why> |
@@ -301,12 +302,12 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 
 ```
 [ ] All acceptance criteria checked ✅
-[ ] Quality gates pass — ./scripts/quality-gates.sh; git push exercised essential pre-push hook
-[ ] Slice status updated in docs/_internal/PROGRESS.md (🔨 → ✅ COMPLETE)
+[ ] Quality gates pass — ./scripts/quality-gates.sh; git push exercised pre-push fast gates (`pre-push-gates.sh`)
+[ ] Slice status updated in docs/slices/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
 [ ] Consider release: ./scripts/release.sh minor (slices/features) or patch (fixes/polish)
-    See docs/_internal/PROGRESS.md § Release Cadence for guidance
+    See docs/slices/PROGRESS.md § Release Cadence for guidance
 ```
 
 ---
@@ -385,4 +386,5 @@ Please open an issue before starting work on large features to discuss the appro
 - [Local Environment](local-environment.md) — Atlas setup, debugging, and maintenance details
 - [Release Process](release-process.md) — creating releases, versioning strategy, when to release
 - [AGENTS.md](../../AGENTS.md) · [CLAUDE.md](../../CLAUDE.md) — agent entry points (incl. optional code-review-graph MCP)
-- [docs/_internal/PROGRESS.md](../_internal/PROGRESS.md) — slice status, decision log, forward roadmap
+- [docs/slices/PROGRESS.md](../slices/PROGRESS.md) — slice status, decision log, forward roadmap
+- [docs/README.md](../README.md) — documentation index by persona and topic

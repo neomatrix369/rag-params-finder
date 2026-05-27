@@ -13,24 +13,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Documentation navigation** — root [QUICKSTART.md](QUICKSTART.md), [docs/README.md](docs/README.md) persona index; slice tracker at [docs/slices/PROGRESS.md](docs/slices/PROGRESS.md)
 - **Slice 14 Docker Compose** — `./start-services.sh`, `stop-services.sh`, `setup.sh`; `docker-compose.yml` + `docker-compose.dev.yml`; server/frontend Dockerfiles; `/healthz` MongoDB ping; `scripts/health-check.sh`
 - **Contributor docs:** Optional `code-review-graph` MCP guidance in [Development Guide](docs/contributor-guide/development.md) and README Contributing section (not required for end users)
 - **Agent docs:** Graph-first exploration workflow in [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md)
 - **Slice 20 toolchain hardening** — unified `./scripts/quality-gates.sh` mirroring CI; `check_integrity.py`, `pip-audit.sh`
 - **CI:** scoped 80% coverage gate, ESLint, bandit SAST, pip-audit, gitleaks secrets scan job
 - **Repo lint:** shellcheck (`scripts/*.sh`), actionlint (GitHub Actions), markdownlint (`.markdownlint.json`) in pre-commit, `scripts/repo-lint.sh`, and CI `repo-lint` job
-- **Pre-push hook:** same essential pre-commit checks on every `git push` (`pre-commit run --all-files` via `install-git-hooks.sh`)
+- **Pre-push hook:** fast gates on every `git push` (`scripts/pre-push-gates.sh` → `quality-gates.sh --quick`: pytest, frontend verify, gitleaks; via `install-git-hooks.sh`)
 - **Repo hygiene:** `.gitleaks.toml`, `.nvmrc`, `.editorconfig`, `.gitattributes`, Dependabot
 - **Frontend:** ESLint + `eslint-plugin-security` wired in CI and pre-commit
 
 ### Changed
 
+- **Pre-push hook** (2026-05-28): replaced `pre-commit run --all-files` on push with `quality-gates.sh --quick` so push runs pytest and frontend verify, not only lint hooks
 - Upgraded urllib3, starlette, idna, langchain-core via uv dependency overrides
 - Pre-commit: gitleaks config, frontend lint hook, bandit hook (`uv run bandit … -ll`, aligned with CI)
 
 ### Fixed
 
+- **Frontend:** pin `@rollup/rollup-darwin-arm64` and `@rollup/rollup-darwin-x64` optional deps so `vite build` works on Apple Silicon and Rosetta x64 Node
 - CI: read Node version from repo-root `.nvmrc` (`setup-node` resolves paths from checkout root, not `frontend/` working directory)
+- CI: `astral-sh/setup-uv` v4 → v7 (Dependabot)
 - CLI: `httpx.Client(timeout=…)` default timeout on constructor (SAST/runtime parity)
 
 ---
