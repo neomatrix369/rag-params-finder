@@ -55,8 +55,9 @@ Run all gates before committing. All must pass with zero regressions.
 **One command (mirrors CI exactly):**
 
 ```bash
-./scripts/quality-gates.sh          # fast gates
-./scripts/quality-gates.sh --full   # + pip-audit + pre-commit all-files
+./scripts/quality-gates.sh              # full CI mirror (default)
+./scripts/quality-gates.sh --quick      # lint + typecheck + unit tests only
+./scripts/quality-gates.sh --full       # CI mirror + local gitleaks + pre-commit all-files
 ```
 
 **Integrity check (unit tests + import smoke):**
@@ -121,7 +122,6 @@ npm audit --audit-level=high
 ```bash
 uv pip install -e ".[dev]"
 pre-commit install
-pre-commit install --hook-type commit-msg   # strips AI co-author trailers
 ```
 
 ---

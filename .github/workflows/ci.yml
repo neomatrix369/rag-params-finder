@@ -17,7 +17,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
@@ -43,6 +43,9 @@ jobs:
 
       - name: Type check (mypy)
         run: mypy server/ cli/
+
+      - name: SAST (bandit, medium+ severity)
+        run: bandit -c pyproject.toml -r server/ cli/ -q -ll
 
       - name: Tests + coverage (unit tier)
         run: |
@@ -89,3 +92,18 @@ jobs:
 
       - name: Security audit
         run: npm audit --audit-level=high
+
+  secrets:
+    name: Secrets scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml

@@ -27,7 +27,6 @@ Inherit proven hardening patterns from **price-analysis** and **pre-rag-explorer
 | ESLint + `eslint-plugin-security` | pre-rag | ✅ |
 | `.nvmrc` / `.editorconfig` / `.gitattributes` | pre-rag | ✅ |
 | `scripts/check_integrity.py` (unit + import smoke) | price-analysis | ✅ |
-| `scripts/strip_ai_coauthor.py` commit-msg hook | price-analysis | ✅ |
 | pytest `integration` / `slow` markers | price-analysis | ✅ |
 | `pip-audit` in CI | governance (Serious tier) | ✅ |
 | Husky + lint-staged | pre-rag | ❌ — pre-commit already covers Python + frontend |
@@ -43,16 +42,17 @@ Inherit proven hardening patterns from **price-analysis** and **pre-rag-explorer
 - [x] `./scripts/quality-gates.sh` passes (mirrors `.github/workflows/ci.yml`)
 - [x] `./scripts/quality-gates.sh --full` runs `pip-audit.sh` + `pre-commit run --all-files`
 - [x] `python scripts/check_integrity.py` passes (unit tests + import smoke)
-- [x] `pre-commit install --hook-type commit-msg` documented; hook strips AI co-author trailers
 
 ### CI
-- [x] Backend job: ruff → format check → mypy → pytest + **80% coverage** on scoped modules → `pip-audit.sh`
+- [x] Backend job: ruff → format check → mypy → **bandit** → pytest + **80% coverage** → `pip-audit.sh`
 - [x] Frontend job: **eslint** → typecheck → build → npm audit (high+)
-- [x] Node version from `.nvmrc`; no pytest exit-code-5 workaround
+- [x] **Secrets job:** gitleaks-action with `.gitleaks.toml`
+- [x] Node from `.nvmrc`; Python from `.python-version`
 
 ### Pre-commit
 - [x] Gitleaks uses `.gitleaks.toml`
 - [x] Frontend eslint hook on `frontend/**/*.{ts,tsx}`
+- [x] Bandit hook (medium+ via pre-commit bandit defaults)
 
 ### Coverage scope (baseline-first)
 Measured baseline **83.6%** on:
@@ -83,7 +83,6 @@ Threshold set to **80%** (`--cov-fail-under=80` in CI and quality-gates).
 |------|---------|
 | `scripts/quality-gates.sh` | Unified local gates (mirrors CI) |
 | `scripts/check_integrity.py` | Unit tests + import smoke; `--full` optional |
-| `scripts/strip_ai_coauthor.py` | commit-msg hook — strip Cursor/Claude trailers |
 | `scripts/pip-audit.sh` | Python SCA with ML-stack ignore list |
 | `.gitleaks.toml` | Secret-scan allowlists |
 | `.nvmrc` | Node 22 pin |
@@ -97,7 +96,7 @@ Threshold set to **80%** (`--cov-fail-under=80` in CI and quality-gates).
 | File | Change |
 |------|--------|
 | `.github/workflows/ci.yml` | Coverage, eslint, pip-audit, .nvmrc |
-| `.pre-commit-config.yaml` | gitleaks config, commit-msg hook, frontend lint |
+| `.pre-commit-config.yaml` | gitleaks config, frontend lint |
 | `pyproject.toml` | Coverage config, pytest markers, uv overrides, bandit/pip-audit dev deps |
 | `uv.lock` | Dependency overrides |
 | `frontend/package.json` / `package-lock.json` | eslint-plugin-security |
@@ -120,7 +119,6 @@ python scripts/check_integrity.py
 
 # Full local audit (optional before merge)
 ./scripts/quality-gates.sh --full
-pre-commit install --hook-type commit-msg
 ```
 
 **Expected (2026-05-27 baseline):**
@@ -167,9 +165,43 @@ pre-commit install --hook-type commit-msg
 |------|-----------------|
 | Torch/transformers upgrade + clear pip-audit ignores | Slice 21 or deps slice |
 | `slow-tests/` integration tier (MongoDB mocks) | Test suite expansion |
-| Bandit in pre-commit | Optional add-on |
+| Xenon complexity gates (scoped, price-analysis pattern) | Optional polish |
 | Vitest frontend tests | Dashboard test slice |
 | CodeQL / Trivy workflows | Optimal maturity tier |
+| Bandit low-severity cleanup (B110/B112/B603 in metadata) | Optional polish |
+
+---
+
+## Cross-check matrix (2026-05-27)
+
+Three-way comparison after inheriting patterns from **price-analysis** and **pre-rag-explorer-dashboard**.
+
+| Pattern | price-analysis | pre-rag | rag-params-finder (post slice 20) |
+|---------|----------------|---------|-------------------------------------|
+| Unified `quality-gates.sh` | ❌ | ✅ `--quick`/`--full` | ✅ aligned with pre-rag |
+| CI mirrors local script | ❌ (CI = pytest only) | ✅ | ✅ |
+| gitleaks pre-commit | ❌ | ✅ Husky + optional | ✅ pre-commit |
+| gitleaks in CI | ❌ | ✅ gitleaks-action | ✅ secrets job |
+| pip-audit / npm audit | ❌ | ✅ npm only | ✅ both |
+| bandit SAST | ✅ pre-commit | ❌ | ✅ CI + pre-commit (`-ll`) |
+| ESLint + security plugin | N/A | ✅ | ✅ |
+| Coverage fail-under | ❌ | ✅ 40% services | ✅ 80% scoped Python modules |
+| Dependabot | ❌ | ✅ | ✅ pip + npm + actions |
+| `.editorconfig` / `.gitattributes` | ❌ | ✅ editorconfig | ✅ both |
+| `.nvmrc` + CI Node pin | N/A | ✅ | ✅ |
+| `check_integrity.py` | ✅ | ❌ | ✅ |
+| pytest integration/slow markers | ✅ | N/A (vitest) | ✅ (markers defined) |
+| pre-commit (Python framework) | ✅ heavy | ✅ Serious-lite | ✅ |
+| Husky + lint-staged | ❌ | ✅ | ❌ (pre-commit instead) |
+| Prettier | ✅ black/isort | ✅ | ❌ (ruff + eslint) |
+| Xenon complexity | ✅ scoped | ❌ | ❌ deferred |
+| Characterization tests | ✅ | ❌ | ❌ (unit tests only) |
+| Docker healthchecks | ✅ | ❌ | ❌ (Slice 14 Won't) |
+| Release script | ❌ | ❌ | ✅ `scripts/release.sh` |
+| ADR + slice governance | partial | ✅ | ✅ |
+| CodeQL / Trivy | ❌ | ❌ deferred | ❌ deferred |
+
+**Verdict:** rag-params-finder now combines the strongest elements of both references — pre-rag's CI/local parity, secrets scanning in CI, and baseline-first coverage; price-analysis's integrity script and bandit — while keeping its own strengths (uv, ruff, semver release script, Python+React monorepo pre-commit).
 
 ---
 
@@ -178,7 +210,7 @@ pre-commit install --hook-type commit-msg
 ```
 chore(ci): slice 20 toolchain hardening from reference repos
 
-- Add quality-gates.sh, check_integrity.py, pip-audit.sh, strip_ai_coauthor hook
+- Add quality-gates.sh, check_integrity.py, pip-audit.sh
 - CI: coverage 80% on scoped modules, eslint, pip-audit; drop pytest exit-5 workaround
 - Wire ESLint+security; .gitleaks.toml, .nvmrc, dependabot, repo hygiene files
 - Upgrade urllib3/starlette/idna/langchain-core; document ML transitive audit ignores
