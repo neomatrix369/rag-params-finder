@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Agent guidance for `rag-params-finder`. Start with `AGENTS.md` → this file → `docs/_internal/PROGRESS.md`.
+Agent guidance for `rag-params-finder`. Start with `AGENTS.md` → this file → `docs/README.md` → `docs/slices/PROGRESS.md`.
 
 ## Project Overview
 
@@ -162,7 +162,7 @@ Provider/model must match — registry in `model_registry.py` validates at confi
 
 ### Pre-slice checklist
 ```
-[ ] Read docs/_internal/PROGRESS.md — confirm current state and which slice is next
+[ ] Read docs/slices/PROGRESS.md — confirm current state and which slice is next
 [ ] Read or create the slice spec in docs/slices/SLICE-XX-*.md
 [ ] bash scripts/install-git-hooks.sh (once per machine — commit + pre-push checks)
 [ ] Run all quality gates — confirm zero regressions before starting
@@ -170,7 +170,7 @@ Provider/model must match — registry in `model_registry.py` validates at confi
 ```
 
 ### Decision log template
-Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log:
+Record every non-obvious choice in `docs/slices/PROGRESS.md` → Decision Log:
 ```
 | <date> | <slice> | <decision> | <why> |
 ```
@@ -196,7 +196,7 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 ```
 [ ] All acceptance criteria checked ✅
 [ ] Quality gates pass (zero regressions) — ./scripts/quality-gates.sh; git push runs pre-push-gates when hooks installed
-[ ] Slice status updated in docs/_internal/PROGRESS.md (🔨 → ✅ COMPLETE)
+[ ] Slice status updated in docs/slices/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
 [ ] Consider release: ./scripts/release.sh minor (slices/features) or patch (fixes/polish)
@@ -253,7 +253,8 @@ The project follows [Semantic Versioning](https://semver.org/). Release automati
 | `docs/contributor-guide/extending.md` | Contributors | Adding models, chunkers, endpoints |
 | `docs/contributor-guide/development.md` | Contributors | Dev loop, quality gates |
 | `docs/contributor-guide/release-process.md` | Contributors | Creating releases, versioning strategy |
-| `docs/_internal/PROGRESS.md` | Agents | Slice status, decision log, roadmap |
+| `docs/slices/PROGRESS.md` | Agents | Slice status, decision log, roadmap |
+| `docs/README.md` | All | Documentation index (personas, topics, tasks) |
 | `docs/adr/` | All | Architecture Decision Records |
 
 <!-- code-review-graph MCP tools -->
