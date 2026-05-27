@@ -99,6 +99,17 @@ Recovery should **reuse the same `run_id`** for a retried run so dashboards, URL
 
 ---
 
+## Automated quality gates
+
+```bash
+bash scripts/install-git-hooks.sh   # once — essential checks on commit and push
+./scripts/quality-gates.sh          # full CI mirror before PR
+```
+
+See [`development.md`](../contributor-guide/development.md) § Git hooks and § When checks run.
+
+---
+
 ## See Also
 
 - [`docs/_internal/PROGRESS.md`](../_internal/PROGRESS.md) — roadmap

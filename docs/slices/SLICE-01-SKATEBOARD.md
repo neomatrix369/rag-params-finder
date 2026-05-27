@@ -179,3 +179,14 @@ All acceptance criteria checked ✅ AND:
 - Dashboard renders experiment row
 - MongoDB Atlas has 6 collections populated
 - README Quickstart tested end-to-end
+
+## Quality gates (current project standard)
+
+This slice predates Slice 20. For any change today:
+
+```bash
+bash scripts/install-git-hooks.sh   # once — essential checks on commit and push
+./scripts/quality-gates.sh          # full CI mirror before opening a PR
+```
+
+See [`development.md`](../contributor-guide/development.md) § Git hooks and [`SLICE-20-TOOLCHAIN-HARDENING.md`](./SLICE-20-TOOLCHAIN-HARDENING.md).

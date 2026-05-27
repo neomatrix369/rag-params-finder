@@ -1,6 +1,6 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-27 (Slice 20 ✅ toolchain hardening; docs synced to code)
+**Last Updated**: 2026-05-27 (Slice 20 ✅ toolchain, repo lint, pre-push hooks; docs synced)
 **Current**: … | **Slice 20 ✅ COMPLETE** (toolchain hardening on `chore/slice-20-toolchain-hardening`) | Next: Slice 10 📋 · …
 
 ---
@@ -31,8 +31,8 @@
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 | 19 — Atlas storage quota guard | 📋 PLANNED | ~3–5 h | Preflight + runtime `OperationFailure` 8000 handling + force-delete recovery; M0 incident 2026-05-23 — see [`SLICE-19-STORAGE-QUOTA-GUARD.md`](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) |
-| 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | quality-gates.sh, coverage CI gate, ESLint, bandit, pip-audit, gitleaks CI, dependabot — see [`SLICE-20-TOOLCHAIN-HARDENING.md`](../slices/SLICE-20-TOOLCHAIN-HARDENING.md) |
-| ~~15 — CI/CD~~ | ✅ (via 20) | — | Superseded by Slice 20 — `.github/workflows/ci.yml` + `quality-gates.sh` |
+| 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | quality-gates.sh, repo-lint, pre-push hook (`install-git-hooks.sh`), coverage CI, ESLint, bandit, pip-audit, gitleaks, dependabot — [`SLICE-20-TOOLCHAIN-HARDENING.md`](../slices/SLICE-20-TOOLCHAIN-HARDENING.md) |
+| ~~15 — CI/CD~~ | ✅ (via 20) | — | Superseded by Slice 20 — CI + `quality-gates.sh` + git hooks |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
 
@@ -408,7 +408,7 @@ Implement comprehensive experiment deletion with confirmation flows and cascadin
 - [x] ConfirmDeleteModal shows experiment details and deletion warning
 - [x] Delete button disabled for running experiments with tooltip
 - [x] Success toast shows deletion statistics
-- [x] All pre-commit hooks pass (ruff, mypy, tsc, build)
+- [x] All pre-commit hooks pass (ruff, mypy, eslint, repo lint, tsc, build); pre-push runs same hooks on all files
 - [x] Documentation updated (CLI reference, troubleshooting guide)
 
 ### Testing Notes
@@ -620,6 +620,8 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-23 | 18 | Maintain old fields indefinitely | Keep `retrieval_method`, `retrieval_provider`, `retrieval_model` in DB — synthesized from single retriever for backward compat |
 | 2026-05-23 | 19 | Slice 19 spec for storage quota guard | M0 hit 515/512 MB; writes blocked (cancel/delete deadlock); `dbStats` understated cluster usage; mirror search-index preflight pattern — spec in [`SLICE-19-STORAGE-QUOTA-GUARD.md`](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) |
 | 2026-05-27 | 20 | Docs synced to toolchain + test reality | 23 pytest tests (not 39); Kimchi on integration branch only; `quality-gates.sh` in interrupt recovery; CI/bandit/gitleaks documented |
+| 2026-05-27 | 20 | Repo lint in CI + pre-commit | shellcheck (`scripts/*.sh`), actionlint, markdownlint; `scripts/repo-lint.sh`; pragmatic `.markdownlint.json`; CI `repo-lint` job (4 jobs total) |
+| 2026-05-27 | 20 | Pre-push = essential pre-commit checks | Every `git push` runs `pre-commit --all-files` (same hooks as commit); full `quality-gates.sh` + CI on PR |
 
 ---
 
@@ -690,9 +692,10 @@ Use this when resuming a session mid-slice:
 
 ```
 [ ] Read docs/_internal/PROGRESS.md — note current slice and last known state
+[ ] Git hooks installed: bash scripts/install-git-hooks.sh (once per machine)
 [ ] Run quality gates to confirm no regressions:
-      ./scripts/quality-gates.sh
-      # or --quick: lint + typecheck + unit tests only
+      ./scripts/quality-gates.sh          # full CI mirror before PR
+      # git push runs essential pre-commit hooks on all files when hooks installed
 [ ] Check git status — any uncommitted changes?
 [ ] Read the current slice spec in docs/slices/SLICE-XX-*.md
 [ ] Resume from the last incomplete acceptance criterion

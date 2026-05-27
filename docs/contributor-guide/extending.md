@@ -208,6 +208,6 @@ Engines (`orchestrator`, `retriever`, `embedder`) must not import from `api/` or
 ## 👉 See Also
 
 - [Architecture](architecture.md) — understand the module map and pipeline before extending
-- [Development Guide](development.md) — quality gates to run after making changes
+- [Development Guide](development.md) — git hooks (`install-git-hooks.sh`), quality gates, CI parity
 - [Configuration Reference](../user-guide/configuration.md) — user-facing impact of new models and methods
 - [Local Environment](local-environment.md) — Atlas index setup for new embedding dimensions

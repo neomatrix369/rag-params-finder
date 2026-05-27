@@ -106,7 +106,7 @@ for TAG_INFO in "${TAGS[@]}"; do
     echo "✅ Completed $TAG"
 
     # Pause between releases (except for the last one)
-    if [ $COUNT -lt $TOTAL ]; then
+    if [ "$COUNT" -lt "$TOTAL" ]; then
         echo ""
         read -p "Continue to next release? (y/N): " -n 1 -r
         echo

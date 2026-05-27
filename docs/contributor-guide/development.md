@@ -16,8 +16,11 @@ Dev environment setup, quality gates, testing strategy, and the slice workflow f
 ### Backend
 
 ```bash
-# Install Python dev dependencies (includes ruff, mypy, pytest)
+# Install Python dev dependencies (includes ruff, mypy, pytest, pre-commit)
 uv pip install -e ".[dev]"
+
+# Git hooks: essential checks on commit (staged) and push (whole repo)
+bash scripts/install-git-hooks.sh
 
 # Start the server
 uvicorn server.main:app --reload --port 8001
@@ -52,11 +55,20 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 Run all gates before committing. All must pass with zero regressions.
 
+**CI jobs** (`.github/workflows/ci.yml`): `repo-lint` → `backend` → `frontend` → `secrets` (four parallel jobs).
+
+| Layer | Tools |
+|-------|--------|
+| Repo | shellcheck (`scripts/*.sh`), actionlint, markdownlint |
+| Backend | ruff, ruff format, mypy, bandit, pytest + coverage, pip-audit |
+| Frontend | eslint, tsc, build, npm audit |
+| Secrets | gitleaks |
+
 **One command (mirrors CI exactly):**
 
 ```bash
 ./scripts/quality-gates.sh              # full CI mirror (default)
-./scripts/quality-gates.sh --quick      # lint + typecheck + unit tests only
+./scripts/quality-gates.sh --quick      # repo lint + lint + typecheck + unit tests (skips coverage/build/audits)
 ./scripts/quality-gates.sh --full       # CI mirror + local gitleaks + pre-commit all-files
 ```
 
@@ -117,12 +129,65 @@ npm audit --audit-level=high
 - `npm run build` → built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
 
-### Pre-commit
+### Repo lint (shell, workflows, Markdown)
+
+```bash
+bash scripts/repo-lint.sh
+# or individually via pre-commit:
+pre-commit run shellcheck --all-files
+pre-commit run actionlint --all-files
+pre-commit run markdownlint --all-files
+```
+
+| Tool | Scope | Config |
+|------|--------|--------|
+| **Shellcheck** | `scripts/*.sh` | via `shellcheck-py` pre-commit hook |
+| **Actionlint** | `.github/workflows/*.yml` | — |
+| **Markdownlint** | `*.md` (excludes `.claude/`) | `.markdownlint.json` |
+
+Runs in CI (`repo-lint` job), `./scripts/quality-gates.sh`, and pre-commit.
+
+### Git hooks (commit + push)
 
 ```bash
 uv pip install -e ".[dev]"
-pre-commit install
+bash scripts/install-git-hooks.sh
+# equivalent:
+# pre-commit install --hook-type pre-commit --hook-type pre-push
 ```
+
+| Hook | When | What runs |
+|------|------|-----------|
+| **pre-commit** | `git commit` | Essential checks on **staged** files (see list below) |
+| **pre-push** | `git push` | Same essential checks on the **entire repo** (`pre-commit run --all-files`) |
+
+**Essential checks** (commit + push): trailing whitespace / EOF / YAML·JSON·TOML syntax, merge conflicts, large files, private keys, gitleaks, shellcheck (`scripts/*.sh`), actionlint, markdownlint, bandit, ruff + format, mypy, frontend eslint + verify (when `frontend/` applies).
+
+**Not on push** (run manually or in CI): pytest + coverage, pip-audit, npm audit. Run `./scripts/quality-gates.sh` before opening a PR for full CI parity.
+
+Emergency bypass (use sparingly): `git push --no-verify`
+
+Test push hook without pushing:
+
+```bash
+pre-commit run --hook-stage pre-push --all-files
+```
+
+**Push did not run checks?** Git only runs hooks that exist under `.git/hooks/`. A plain `pre-commit install` (no `--hook-type pre-push`) installs **commit** only. After pulling hook changes, re-run:
+
+```bash
+bash scripts/install-git-hooks.sh
+test -x .git/hooks/pre-push && echo "pre-push hook OK"
+```
+
+### When checks run (local vs GitHub)
+
+| Trigger | What runs |
+|---------|-----------|
+| `git commit` | **pre-commit** — staged files (hygiene, secrets, repo lint, ruff, mypy, bandit, frontend when touched) |
+| `git push` | **pre-push** — same essential hooks as commit, all files |
+| PR or push to `main` | **GitHub Actions** — full CI (four jobs; includes pytest, coverage, pip-audit, npm audit, build) |
+| Manual | `./scripts/quality-gates.sh` — full local mirror of CI before opening a PR |
 
 ---
 
@@ -171,7 +236,7 @@ rag-params-finder/
 │   ├── adr/             # Architecture Decision Records
 │   ├── slices/          # Slice specs (dev-internal)
 │   └── _internal/       # Dev log, gap tracker, Graphiti exports
-└── .github/workflows/   # CI (see § CI — backend, frontend, secrets jobs)
+└── .github/workflows/   # CI (see § CI — repo-lint, backend, frontend, secrets)
 ```
 
 ---
@@ -183,6 +248,7 @@ rag-params-finder/
 ```
 [ ] Read docs/_internal/PROGRESS.md — confirm current state and which slice is next
 [ ] Read or create the slice spec in docs/slices/SLICE-XX-*.md
+[ ] bash scripts/install-git-hooks.sh (once per machine if not already installed)
 [ ] Run all quality gates — confirm zero regressions before starting
 [ ] Note the exact acceptance criteria — these are the exit conditions
 ```
@@ -199,7 +265,7 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 
 ```
 [ ] All acceptance criteria checked ✅
-[ ] Quality gates pass (zero regressions)
+[ ] Quality gates pass — ./scripts/quality-gates.sh; git push exercised essential pre-push hook
 [ ] Slice status updated in docs/_internal/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
@@ -211,17 +277,18 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 
 ## 🔄 CI
 
-GitHub Actions runs on every push and PR to `main` (three jobs — see `.github/workflows/ci.yml`):
+GitHub Actions runs on every push and PR to `main` (four jobs — see `.github/workflows/ci.yml`):
 
 | Job | Steps |
 |-----|--------|
+| **Repo lint** | `pre-commit run shellcheck` → `actionlint` → `markdownlint` (all files) |
 | **Backend (Python)** | `ruff check` → `ruff format --check` → `mypy` → `bandit -ll` → `pytest` + 80% scoped coverage → `scripts/pip-audit.sh` |
 | **Frontend (Node.js)** | `npm run lint` → `npm run typecheck` → `npm run build` → `npm audit --audit-level=high` (Node from repo-root `.nvmrc`) |
 | **Secrets** | `gitleaks-action` with `.gitleaks.toml` |
 
 Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabot.yml`).
 
-Local mirror: `./scripts/quality-gates.sh` (default). Use `--quick` for lint/typecheck/tests only; `--full` adds local gitleaks + `pre-commit run --all-files`.
+**Local mirrors:** `./scripts/quality-gates.sh` (full, before PR). **`git push`** runs essential pre-commit hooks on all files if `install-git-hooks.sh` was used. `--quick` / `--full` are manual only.
 
 ---
 

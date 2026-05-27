@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Agent docs:** Graph-first exploration workflow in [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md)
 - **Slice 20 toolchain hardening** — unified `./scripts/quality-gates.sh` mirroring CI; `check_integrity.py`, `pip-audit.sh`
 - **CI:** scoped 80% coverage gate, ESLint, bandit SAST, pip-audit, gitleaks secrets scan job
+- **Repo lint:** shellcheck (`scripts/*.sh`), actionlint (GitHub Actions), markdownlint (`.markdownlint.json`) in pre-commit, `scripts/repo-lint.sh`, and CI `repo-lint` job
+- **Pre-push hook:** same essential pre-commit checks on every `git push` (`pre-commit run --all-files` via `install-git-hooks.sh`)
 - **Repo hygiene:** `.gitleaks.toml`, `.nvmrc`, `.editorconfig`, `.gitattributes`, Dependabot
 - **Frontend:** ESLint + `eslint-plugin-security` wired in CI and pre-commit
 
@@ -210,7 +212,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Architecture Decision Records** (ADRs) in `docs/adr/` (two-process architecture, dual providers, MongoDB Atlas choice)
 - **Slice specifications** in `docs/slices/` (detailed acceptance criteria, verification steps)
-- **Pre-commit hooks** (ruff, mypy, prettier) via `.pre-commit-config.yaml`
+- **Pre-commit hooks** (ruff, mypy) via `.pre-commit-config.yaml`
 - **Comprehensive badges** across README and docs (build status, coverage, license, Python/Node versions)
 - **Quality gates baseline documentation** (lint, type check, test counts, bundle size)
 

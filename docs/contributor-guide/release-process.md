@@ -42,7 +42,8 @@ Create a new release when:
 ### 1. Complete the work
 
 - Finish slice implementation
-- All tests pass (`uv run pytest`, `npm run typecheck`)
+- Git hooks installed: `bash scripts/install-git-hooks.sh`
+- All quality gates pass: `./scripts/quality-gates.sh` (full CI mirror; `git push` runs essential pre-commit hooks when installed)
 - Update `docs/_internal/PROGRESS.md` to mark slice complete
 - Commit work with clear messages
 

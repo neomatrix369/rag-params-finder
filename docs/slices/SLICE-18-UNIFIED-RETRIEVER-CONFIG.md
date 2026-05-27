@@ -94,11 +94,9 @@ retrieval:
 - [ ] Troubleshooting guide mentions old vs new format
 
 ### Quality Gates
-- [ ] `uv run ruff check .` → 0 errors
-- [ ] `uv run mypy server/ cli/` → 0 errors
-- [ ] `uv run pytest --tb=short -q` → all tests pass
-- [ ] `npm run typecheck` → 0 errors
-- [ ] `npm run build` → successful build
+- [ ] `bash scripts/install-git-hooks.sh` run on dev machine (commit + pre-push hooks)
+- [ ] `./scripts/quality-gates.sh` passes (full CI mirror before PR — see [`development.md`](../contributor-guide/development.md))
+- [ ] `git push` succeeds with pre-push hook (essential checks) or run `./scripts/quality-gates.sh --quick` manually
 
 ### Manual Verification
 - [ ] Old YAML config → successful sweep
@@ -341,7 +339,7 @@ retrieval:
 - Zero regressions in existing experiments (old configs still run)
 - New config format validates without errors
 - Dashboard displays both old and new experiments correctly
-- All quality gates pass (ruff, mypy, pytest, tsc, build)
+- All quality gates pass (`./scripts/quality-gates.sh`)
 - Documentation updated and clear
 
 ---
@@ -349,7 +347,7 @@ retrieval:
 ## Completion Checklist
 
 - [ ] All acceptance criteria met
-- [ ] Quality gates pass
+- [ ] `./scripts/quality-gates.sh` passes
 - [ ] Manual verification complete
 - [ ] Documentation updated
 - [ ] Example configs updated
