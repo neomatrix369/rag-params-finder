@@ -56,3 +56,11 @@ Cartesian product expansion: one YAML config with N models × M chunking methods
 - POST experiment with 3 chunk_sizes × 2 overlaps → exactly 6 run_ids in response
 - All 6 runs reach COMPLETE (or FAILED with `on_error: continue`)
 - Dashboard ExperimentsScreen shows run count per experiment
+
+## Quality gates (current project standard)
+
+```bash
+./scripts/quality-gates.sh
+```
+
+See [`docs/contributor-guide/development.md`](../contributor-guide/development.md) and [`SLICE-20-TOOLCHAIN-HARDENING.md`](./SLICE-20-TOOLCHAIN-HARDENING.md).

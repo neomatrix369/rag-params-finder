@@ -1,6 +1,6 @@
 # Documentation vs Code Audit
 
-**Audit date**: 2026-05-23 (full pass) · **Supplement**: 2026-05-27 (Slice 20 + test counts)
+**Audit date**: 2026-05-23 (full pass) · **Supplement**: 2026-05-27 (Slice 20 + repo lint + test counts)
 **Auditor**: Claude (automated verification)
 **Scope**: README.md, user guides, contributor guides, code implementation
 
@@ -14,7 +14,8 @@
 
 | Area | Status |
 |------|--------|
-| `quality-gates.sh` ↔ `ci.yml` | ✅ Aligned (bandit, coverage, pip-audit, eslint, gitleaks job) |
+| `quality-gates.sh` ↔ `ci.yml` | ✅ Aligned (repo-lint, bandit, coverage, pip-audit, eslint, gitleaks) |
+| `repo-lint.sh` ↔ pre-commit hooks | ✅ shellcheck, actionlint, markdownlint (same revs via pre-commit) |
 | Test count in contributor docs | ✅ **23** pytest tests (was incorrectly cited as 39 in PROGRESS) |
 | Kimchi provider | ⚠️ `Provider` type includes `kimchi`; embedder/registry on `tessl-hackathon-kimchi-integration` branch only — not on main |
 | `development.md` testing section | ✅ Updated (was "no suite yet") |

@@ -62,3 +62,11 @@ Load test queries from a persona-based JSON file and execute all queries within 
 - Config with 3 personas × 2 queries each → 6 `QueryResult` docs per run in results collection
 - `persona_id` and `focus` fields present on each result
 - URL queries file downloads on first use and uses cache on subsequent runs
+
+## Quality gates (current project standard)
+
+```bash
+./scripts/quality-gates.sh
+```
+
+See [`docs/contributor-guide/development.md`](../contributor-guide/development.md) and [`SLICE-20-TOOLCHAIN-HARDENING.md`](./SLICE-20-TOOLCHAIN-HARDENING.md).

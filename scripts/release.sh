@@ -48,7 +48,7 @@ echo "### Fixed"
 echo "- "
 echo ""
 echo "Press ENTER when you've updated CHANGELOG.md..."
-read
+read -r
 
 # 5. Extract changelog for this version (between this version and next section)
 CHANGELOG_EXCERPT=$(awk "/^## \[$NEW_VERSION\]/,/^## \[/" CHANGELOG.md | head -n -1)
