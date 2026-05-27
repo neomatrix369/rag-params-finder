@@ -173,6 +173,13 @@ Test push hook without pushing:
 pre-commit run --hook-stage pre-push --all-files
 ```
 
+**Push did not run checks?** Git only runs hooks that exist under `.git/hooks/`. A plain `pre-commit install` (no `--hook-type pre-push`) installs **commit** only. After pulling hook changes, re-run:
+
+```bash
+bash scripts/install-git-hooks.sh
+test -x .git/hooks/pre-push && echo "pre-push hook OK"
+```
+
 ### When checks run (local vs GitHub)
 
 | Trigger | What runs |
