@@ -33,13 +33,15 @@ repos:
       - id: gitleaks
         args: [--config, .gitleaks.toml]
 
-  # ── Python SAST ──────────────────────────────────────────
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.10
+  # ── Python SAST (uv bandit — same version as CI) ─────────
+  - repo: local
     hooks:
       - id: bandit
-        args: [-c, pyproject.toml, -r, server/, cli/]
-        additional_dependencies: ["bandit[toml]"]
+        name: bandit SAST (medium+)
+        entry: uv run bandit -c pyproject.toml -r server/ cli/ -q -ll
+        language: system
+        pass_filenames: false
+        types: [python]
 
   # ── Python lint + format (one tool, replaces black+isort+pylint) ─
   - repo: https://github.com/astral-sh/ruff-pre-commit
