@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Slice 14 Docker Compose** — `./start-services.sh`, `stop-services.sh`, `setup.sh`; `docker-compose.yml` + `docker-compose.dev.yml`; server/frontend Dockerfiles; `/healthz` MongoDB ping; `scripts/health-check.sh`
 - **Contributor docs:** Optional `code-review-graph` MCP guidance in [Development Guide](docs/contributor-guide/development.md) and README Contributing section (not required for end users)
 - **Agent docs:** Graph-first exploration workflow in [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md)
 - **Slice 20 toolchain hardening** — unified `./scripts/quality-gates.sh` mirroring CI; `check_integrity.py`, `pip-audit.sh`

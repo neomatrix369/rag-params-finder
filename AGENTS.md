@@ -22,12 +22,18 @@ Agent session entry point for `rag-params-finder`.
 # Quality gates (mirrors CI — run before every commit)
 ./scripts/quality-gates.sh              # full CI mirror (repo lint + backend + frontend + audits)
 bash scripts/repo-lint.sh               # shellcheck + actionlint + markdownlint only
-./scripts/quality-gates.sh --quick      # repo lint + lint + typecheck + unit tests (no coverage/build/audits)
+./scripts/pre-push-gates.sh             # fast gates (same as --quick; runs on git push)
+./scripts/quality-gates.sh --quick      # lint, pytest, frontend verify, gitleaks (no coverage/audits)
 ./scripts/quality-gates.sh --full       # + local gitleaks + pre-commit all-files
 python scripts/check_integrity.py       # unit tests + import smoke
 
+# Docker (server + dashboard; CLI on host)
+./start-services.sh                            # prod profile → :8001, :5173
+./scripts/health-check.sh
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
 # Backend
-uvicorn server.main:app --reload --port 8001   # start server
+uvicorn server.main:app --reload --port 8001   # start server (manual)
 rag-params-finder run --config configs/example-mongodb-local.yaml  # submit experiment
 rag-params-finder pause <experiment-id>   # pause after current phase
 rag-params-finder resume <experiment-id>  # continue paused sweep

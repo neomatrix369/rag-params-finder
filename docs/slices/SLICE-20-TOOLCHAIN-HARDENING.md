@@ -229,7 +229,7 @@ Three-way comparison after inheriting patterns from **price-analysis** and **pre
 | Prettier | ✅ black/isort | ✅ | ❌ (ruff + eslint) |
 | Xenon complexity | ✅ scoped | ❌ | ❌ deferred |
 | Characterization tests | ✅ | ❌ | ❌ (unit tests only) |
-| Docker healthchecks | ✅ | ❌ | ❌ (Slice 14 Won't) |
+| Docker healthchecks | ✅ | ❌ | ✅ Slice 14 |
 | Release script | ❌ | ❌ | ✅ `scripts/release.sh` |
 | ADR + slice governance | partial | ✅ | ✅ |
 | CodeQL / Trivy | ❌ | ❌ deferred | ❌ deferred |

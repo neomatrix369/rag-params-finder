@@ -9,9 +9,9 @@
 #   pre-commit install --hook-type pre-commit --hook-type pre-push
 #   # or: bash scripts/install-git-hooks.sh
 # Run all (commit stage):  pre-commit run --all-files
-# Run push stage only:     pre-commit run essential-checks-pre-push --hook-stage pre-push
-# Same hooks as commit, all files: pre-commit run --all-files --hook-stage pre-commit
-# Full gates: ./scripts/quality-gates.sh [--full]
+# Run push stage only:     pre-commit run pre-push-gates --hook-stage pre-push
+# Full gates (before PR):  ./scripts/quality-gates.sh
+# Full + hygiene sweep:    ./scripts/quality-gates.sh --full
 
 repos:
   # ── Hygiene ──────────────────────────────────────────────
@@ -109,12 +109,12 @@ repos:
         files: ^frontend/
         exclude: ^frontend/node_modules/
 
-  # ── Pre-push: same essential hooks as commit, entire repo ─
+  # ── Pre-push: fast CI gates (pre-rag: Husky → npm run test:all) ─
   - repo: local
     hooks:
-      - id: essential-checks-pre-push
-        name: essential checks (pre-push)
-        entry: pre-commit run --all-files --hook-stage pre-commit
+      - id: pre-push-gates
+        name: pre-push gates (lint, test, verify, secrets)
+        entry: bash scripts/pre-push-gates.sh
         language: system
         pass_filenames: false
         always_run: true

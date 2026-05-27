@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-27 (Slice 20 ✅ toolchain, repo lint, pre-push hooks; docs synced)
-**Current**: … | **Slice 20 ✅ COMPLETE** (toolchain hardening on `chore/slice-20-toolchain-hardening`) | Next: Slice 10 📋 · …
+**Last Updated**: 2026-05-27 (Slice 14 ✅ Docker Compose)
+**Current**: **Slice 14 ✅ COMPLETE** — Docker Compose | Next: Slice 10 📋 · …
 
 ---
 
@@ -32,6 +32,7 @@
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 | 19 — Atlas storage quota guard | 📋 PLANNED | ~3–5 h | Preflight + runtime `OperationFailure` 8000 handling + force-delete recovery; M0 incident 2026-05-23 — see [`SLICE-19-STORAGE-QUOTA-GUARD.md`](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) |
 | 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | quality-gates.sh, repo-lint, pre-push hook (`install-git-hooks.sh`), coverage CI, ESLint, bandit, pip-audit, gitleaks, dependabot — [`SLICE-20-TOOLCHAIN-HARDENING.md`](../slices/SLICE-20-TOOLCHAIN-HARDENING.md) |
+| 14 — Docker Compose | ✅ COMPLETE | ~2–3 h | `./start-services.sh`, prod + `docker-compose.dev.yml`, Atlas `/healthz` — [`SLICE-14-DOCKER-COMPOSE.md`](../slices/SLICE-14-DOCKER-COMPOSE.md) |
 | ~~15 — CI/CD~~ | ✅ (via 20) | — | Superseded by Slice 20 — CI + `quality-gates.sh` + git hooks |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
@@ -622,6 +623,8 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-27 | 20 | Docs synced to toolchain + test reality | 23 pytest tests (not 39); Kimchi on integration branch only; `quality-gates.sh` in interrupt recovery; CI/bandit/gitleaks documented |
 | 2026-05-27 | 20 | Repo lint in CI + pre-commit | shellcheck (`scripts/*.sh`), actionlint, markdownlint; `scripts/repo-lint.sh`; pragmatic `.markdownlint.json`; CI `repo-lint` job (4 jobs total) |
 | 2026-05-27 | 20 | Pre-push = essential pre-commit checks | Every `git push` runs `pre-commit --all-files` (same hooks as commit); full `quality-gates.sh` + CI on PR |
+| 2026-05-27 | 14 | Docker Compose (AIE7-adapted) | 2-service stack (no local vector DB); host CLI; prod default + `docker-compose.dev.yml`; `/healthz` MongoDB ping; `hf_cache` volume |
+| 2026-05-27 | 14 | Dev overlay vs Compose profiles | `docker-compose.dev.yml` merge (not named profiles) — avoids port conflicts between prod/dev frontends |
 
 ---
 
@@ -647,7 +650,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 12 — SSE live updates | Replace 2 s polling with Server-Sent Events | Could | ~20 min |
 | 13 — Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` | Could | ~15 min |
 | 19 — Storage quota guard | Spec: [`SLICE-19-STORAGE-QUOTA-GUARD.md`](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) — preflight at submit (422); runtime `OperationFailure` 8000; HTTP 507 on control APIs; `?force=true` delete; dashboard ≥80% warning; smoke config for M0 | **Should** | ~3–5 h |
-| 14 — Docker Compose | One-command local setup | Won't (now) | ~30 min |
+| ~~14 — Docker Compose~~ | ~~One-command local setup~~ | — | ✅ Delivered in Slice 14 |
 | ~~15 — CI/CD~~ | ~~GitHub Actions~~ | — | ✅ Delivered in Slice 20 |
 | 16 — Parallel sweep (`parallelism` > 1) | Bounded concurrent `_run_single` (+ optional Celery upgrade path); Atlas/Voyage-rate-limit aware | Should | ~2–4 h |
 

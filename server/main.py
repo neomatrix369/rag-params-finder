@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 
 from server.api import experiments, runs
 from server.core.executors import shutdown_executors
+from server.core.health_check import mongodb_health_status
 from server.core.startup_reconciliation import reconcile_orphaned_experiments
 from server.db.indexes import ensure_indexes
 from server.settings import LOCALHOST_CORS_ORIGIN_REGEX, settings
@@ -82,8 +83,13 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 @app.get("/healthz")
 async def healthz():
-    """Health check endpoint."""
-    return {"ok": True}
+    """Health check — process alive and Atlas reachable when MONGODB_URI is configured."""
+    mongodb = mongodb_health_status()
+    ok = mongodb in ("ok", "skipped")
+    body = {"ok": ok, "mongodb": mongodb}
+    if not ok:
+        return JSONResponse(status_code=503, content=body)
+    return body
 
 
 app.include_router(experiments.router, prefix="/experiments", tags=["experiments"])
