@@ -107,6 +107,8 @@ data_paths:
 
 ## 🚀 Start the Server and Dashboard
 
+### Option A — Manual (two terminals)
+
 ```bash
 # Terminal 1: FastAPI server
 uvicorn server.main:app --reload --port 8001
@@ -115,8 +117,19 @@ uvicorn server.main:app --reload --port 8001
 cd frontend && npm run dev
 ```
 
+### Option B — Docker (one command)
+
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) and `uv pip install -e .` on the host for the CLI.
+
+```bash
+./start-services.sh
+```
+
 - Server: `http://localhost:8001` (OpenAPI docs at `/docs`)
 - Dashboard: `http://localhost:5173`
+- Dev hot reload: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build`
+
+See [Troubleshooting → Docker](troubleshooting.md#-docker) if startup fails.
 
 ---
 

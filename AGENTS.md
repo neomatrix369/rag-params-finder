@@ -26,8 +26,13 @@ bash scripts/repo-lint.sh               # shellcheck + actionlint + markdownlint
 ./scripts/quality-gates.sh --full       # + local gitleaks + pre-commit all-files
 python scripts/check_integrity.py       # unit tests + import smoke
 
+# Docker (server + dashboard; CLI on host)
+./start-services.sh                            # prod profile → :8001, :5173
+./scripts/health-check.sh
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
 # Backend
-uvicorn server.main:app --reload --port 8001   # start server
+uvicorn server.main:app --reload --port 8001   # start server (manual)
 rag-params-finder run --config configs/example-mongodb-local.yaml  # submit experiment
 rag-params-finder pause <experiment-id>   # pause after current phase
 rag-params-finder resume <experiment-id>  # continue paused sweep

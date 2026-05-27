@@ -86,6 +86,20 @@ rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 40 runs, V
 
 Open `http://localhost:5173` to watch live progress and explore results.
 
+### Docker Quick Start (optional)
+
+**Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/), MongoDB Atlas configured ([cloud-setup](docs/user-guide/cloud-setup.md)). Install the CLI on the host (`uv pip install -e .`).
+
+```bash
+cp .env.example .env   # set MONGODB_URI (and VOYAGE_API_KEY if needed)
+./start-services.sh    # server :8001 + dashboard :5173
+
+# Submit sweeps from the host (CLI is not containerized)
+rag-params-finder run --config configs/example-mongodb-local.yaml
+```
+
+Dev hot reload: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build`. Details: [Slice 14 spec](docs/slices/SLICE-14-DOCKER-COMPOSE.md) · [Development Guide → Docker](docs/contributor-guide/development.md#-docker-compose).
+
 ---
 
 ## 🗺️ Choose Your Path
@@ -168,7 +182,7 @@ Contributions welcome — please open an issue first to discuss the change.
 
 Optional **AI-assisted development** (Cursor / Claude Code with the `code-review-graph` knowledge graph) is documented in the development guide — it helps navigate this repo faster; it is not part of the RAG sweep runtime.
 
-Priority areas: test suite with mock MongoDB fixtures, Search Explorer dashboard enhancements, SSE live updates, Docker Compose.
+Priority areas: test suite with mock MongoDB fixtures, Search Explorer dashboard enhancements, SSE live updates.
 
 **Agent entry points:** [AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md)
 

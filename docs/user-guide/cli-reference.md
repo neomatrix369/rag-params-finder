@@ -190,7 +190,7 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/healthz` | Health check — returns `{"ok": true}` |
+| GET | `/healthz` | Health check — `{"ok": true, "mongodb": "ok"}` when Atlas is reachable; HTTP 503 if `mongodb` is `error` |
 | POST | `/experiments` | Submit an experiment sweep *(422 if search-index preflight fails)* |
 | GET | `/experiments` | List all experiments |
 | GET | `/experiments/vector-db-stats` | Cluster-grouped vector DB / storage stats for all experiments |

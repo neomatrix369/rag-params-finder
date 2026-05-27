@@ -96,7 +96,7 @@ def submit_experiment(config: dict[str, Any]) -> dict[str, Any]:
             f"No route POST {url} (404). Either nothing is running at "
             f"{server_url}, or it is not this project's API. Start it from the repo "
             f"root with: uv run uvicorn server.main:app --reload --port 8001 "
-            f'— then confirm GET {server_url}/healthz returns {{"ok": true}}.'
+            f'— then confirm GET {server_url}/healthz returns {{"ok": true, "mongodb": "ok"}}.'
         )
     _ensure_ok(response, method="POST", url=url)
     data: dict[str, Any] = cast(dict[str, Any], response.json())
