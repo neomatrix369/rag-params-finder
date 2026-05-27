@@ -5,9 +5,10 @@ Agent session entry point for `rag-params-finder`.
 ## Start here
 
 1. Read [`CLAUDE.md`](CLAUDE.md) — project overview, architecture, commands, quality gates, and slice playbook.
-2. Read [`docs/_internal/PROGRESS.md`](docs/_internal/PROGRESS.md) — current slice status, forward roadmap, and interrupt recovery checklist.
-3. If continuing a slice: read the slice spec in [`docs/slices/`](docs/slices/).
-4. If starting a new slice: check the forward roadmap in `docs/_internal/PROGRESS.md` and create a spec before writing code.
+2. Read [`docs/README.md`](docs/README.md) — documentation map by persona and topic.
+3. Read [`docs/slices/PROGRESS.md`](docs/slices/PROGRESS.md) — current slice status, forward roadmap, and interrupt recovery checklist.
+4. If continuing a slice: read the slice spec in [`docs/slices/`](docs/slices/).
+5. If starting a new slice: check the forward roadmap in `docs/slices/PROGRESS.md` and create a spec before writing code.
 
 ## Key rules
 

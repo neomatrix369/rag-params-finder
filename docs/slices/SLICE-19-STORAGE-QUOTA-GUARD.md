@@ -58,7 +58,7 @@ On M0 (`TheSandboxCluster`), cluster storage reached **515 MB / 512 MB**. Atlas 
 ### Emergency recovery *(quota deadlock)*
 
 - [ ] **`DELETE /experiments/{id}?force=true`** — allow deleting a **running** experiment without prior cancel when storage is critical (deletes free space; confirmed working near quota in incident).
-- [ ] Cross-link [Slice 13](../_internal/PROGRESS.md) cleanup CLI for scheduled eviction of old **complete** experiments.
+- [ ] Cross-link [Slice 13](./PROGRESS.md) cleanup CLI for scheduled eviction of old **complete** experiments.
 - [ ] Optional **`POST /experiments/cleanup`** — delete oldest complete experiments until usage < threshold (shares logic with Slice 13).
 
 ### Dashboard & config guardrails

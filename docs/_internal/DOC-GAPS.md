@@ -1,7 +1,7 @@
 # Documentation Gap Tracker
 
 **Created**: 2026-05-05
-**Last Updated**: 2026-05-27 (baselines refreshed after Slice 20 + repo lint; gaps 7–8 notes superseded)
+**Last Updated**: 2026-05-28 (doc nav + pre-push fast gates + 26 tests)
 **Reference**: Gap analysis vs [pre-rag-explorer-dashboard](https://github.com/neomatrix369/pre-rag-explorer-dashboard)
 
 Each item below is a concrete, actionable doc gap. Check the box when done and record the date.
@@ -80,7 +80,7 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 
 **Reference**: pre-rag has a standalone spec file per slice (`SLICE-07-SLIDING-WINDOW.md`, etc.).
 
-**2026-05-27 supplement:** All slice specs link to `./scripts/quality-gates.sh` / [`development.md`](../contributor-guide/development.md); Slice 20 documents repo lint + `scripts/install-git-hooks.sh` (essential pre-commit checks on commit and push).
+**2026-05-28 supplement:** All slice specs link to `./scripts/quality-gates.sh` / [`development.md`](../contributor-guide/development.md); Slice 20 documents repo lint + `install-git-hooks.sh` (staged pre-commit on commit; `pre-push-gates.sh` on push).
 
 ---
 
@@ -104,7 +104,7 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
   - [x] `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
   - [x] `ruff check .` → 0 errors
   - [x] `mypy server/ cli/` → 0 errors
-  - [x] `pytest` → **23 tests** (2026-05-27): 17 search-index + 3 sweep + 3 tiebreaker; 80% coverage on 4 scoped modules
+  - [x] `pytest` → **26 tests** (2026-05-28): 17 search-index + 3 sweep + 3 tiebreaker + 3 health; 80% coverage on 4 scoped modules
   - [x] `npm run lint` → 0 errors (ESLint + security plugin, Slice 20)
   - [x] `npm run typecheck` → 0 errors
   - [x] `npm run build` → ~4 s, 49 modules
@@ -120,9 +120,9 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 
 - [x] Add `.github/workflows/ci.yml` — repo-lint: shellcheck + actionlint + markdownlint; backend: ruff + format + mypy + bandit + pytest/coverage + pip-audit; frontend: eslint + tsc + build + npm audit; secrets: gitleaks
 - [x] CI documented in `CLAUDE.md`, `development.md`, Slice 20 spec
-- [x] Pre-push hook: essential pre-commit checks on every `git push` (`pre-commit run --all-files`)
+- [x] Pre-push hook: fast gates on every `git push` (`./scripts/pre-push-gates.sh` → `quality-gates.sh --quick`)
 
-**Superseded note (2026-05-27):** ESLint is wired (`frontend/.eslintrc.cjs`). Use `./scripts/quality-gates.sh` for full local/CI parity; `git push` runs essential pre-commit hooks when installed.
+**Note (2026-05-28):** ESLint is wired (`frontend/.eslintrc.cjs`). Use `./scripts/quality-gates.sh` for full local/CI parity before a PR; `git push` runs `--quick` when hooks are installed.
 
 **Reference**: pre-rag's Slice 1 established CI as a first-class deliverable; Slice 20 hardened to Serious tier.
 
@@ -132,7 +132,7 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 
 **Priority**: Low (nice-to-have for agent session consistency)
 
-- [x] Add `AGENTS.md` (thin file) — entry point with links to `CLAUDE.md`, `PROGRESS.md`, and quick commands
+- [x] Add `AGENTS.md` (thin file) — entry point with links to `CLAUDE.md`, `docs/slices/PROGRESS.md`, and quick commands
 - [x] Add **slice execution playbook** block to `CLAUDE.md`:
   - [x] Pre-slice checklist (read PROGRESS, create/read spec, run quality gates)
   - [x] Verify-all commands before commit
@@ -155,8 +155,22 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 | 8 | CI story (GitHub Actions) | ✅ Done |
 | 9 | AGENTS.md + slice playbook | ✅ Done |
 | 10 | README simplified; detail preserved in Reference Guide | ✅ Done |
+| 11 | Doc navigation (QUICKSTART + docs/README + PROGRESS in slices/) | ✅ Done (2026-05-28) |
 
 **Legend**: 📋 Open | 🔨 In Progress | ✅ Done
+
+---
+
+## Gap 11 — Documentation navigation (playgroup-style)
+
+**Priority**: Medium (onboarding + agent session entry)
+
+- [x] Root [QUICKSTART.md](../QUICKSTART.md) for fastest install/run path
+- [x] [docs/README.md](../README.md) persona + task index
+- [x] [docs/slices/PROGRESS.md](../slices/PROGRESS.md) beside slice specs (moved from `docs/_internal/`)
+- [x] README, AGENTS.md, CLAUDE.md, getting-started cross-links updated
+
+**Reference:** commit `86f2e61` — playgroup-style doc map without duplicating guide bodies.
 
 ---
 
