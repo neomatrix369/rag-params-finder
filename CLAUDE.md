@@ -185,7 +185,7 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 ### Post-slice checklist
 ```
 [ ] All acceptance criteria checked ✅
-[ ] Quality gates pass (zero regressions) — ./scripts/quality-gates.sh; git push runs --quick via pre-push hook
+[ ] Quality gates pass (zero regressions) — ./scripts/quality-gates.sh; git push runs essential pre-commit hooks on all files
 [ ] Slice status updated in docs/_internal/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
@@ -199,7 +199,7 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 
 **Git hooks** (after `bash scripts/install-git-hooks.sh`):
 - **commit** → pre-commit (staged-file lint)
-- **push** → `quality-gates.sh --quick` (repo lint + lint + unit tests + eslint + tsc)
+- **push** → same essential pre-commit hooks on entire repo (`pre-commit run --all-files`)
 
 **Repo lint** (2026-05-27):
 - `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass

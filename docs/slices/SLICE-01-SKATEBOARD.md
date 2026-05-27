@@ -185,7 +185,7 @@ All acceptance criteria checked ✅ AND:
 This slice predates Slice 20. For any change today:
 
 ```bash
-bash scripts/install-git-hooks.sh   # once — commit checks + quality-gates --quick on push
+bash scripts/install-git-hooks.sh   # once — essential checks on commit and push
 ./scripts/quality-gates.sh          # full CI mirror before opening a PR
 ```
 

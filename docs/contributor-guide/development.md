@@ -19,7 +19,7 @@ Dev environment setup, quality gates, testing strategy, and the slice workflow f
 # Install Python dev dependencies (includes ruff, mypy, pytest, pre-commit)
 uv pip install -e ".[dev]"
 
-# Git hooks: lint on commit, quality-gates --quick on every push
+# Git hooks: essential checks on commit (staged) and push (whole repo)
 bash scripts/install-git-hooks.sh
 
 # Start the server
@@ -158,10 +158,12 @@ bash scripts/install-git-hooks.sh
 
 | Hook | When | What runs |
 |------|------|-----------|
-| **pre-commit** | `git commit` | Staged-file checks: hygiene, gitleaks, repo lint, ruff, mypy, bandit, frontend eslint/verify (when paths match) |
-| **pre-push** | `git push` | `./scripts/quality-gates.sh --quick` — repo lint, ruff, format, mypy, bandit, unit tests, eslint, tsc |
+| **pre-commit** | `git commit` | Essential checks on **staged** files (see list below) |
+| **pre-push** | `git push` | Same essential checks on the **entire repo** (`pre-commit run --all-files`) |
 
-**pre-push** skips coverage threshold, pip-audit, npm audit, and production build (those run in CI on PR / push to `main`). Run `./scripts/quality-gates.sh` before opening a PR for full parity.
+**Essential checks** (commit + push): trailing whitespace / EOF / YAML·JSON·TOML syntax, merge conflicts, large files, private keys, gitleaks, shellcheck (`scripts/*.sh`), actionlint, markdownlint, bandit, ruff + format, mypy, frontend eslint + verify (when `frontend/` applies).
+
+**Not on push** (run manually or in CI): pytest + coverage, pip-audit, npm audit. Run `./scripts/quality-gates.sh` before opening a PR for full CI parity.
 
 Emergency bypass (use sparingly): `git push --no-verify`
 
@@ -176,8 +178,8 @@ pre-commit run --hook-stage pre-push --all-files
 | Trigger | What runs |
 |---------|-----------|
 | `git commit` | **pre-commit** — staged files (hygiene, secrets, repo lint, ruff, mypy, bandit, frontend when touched) |
-| `git push` | **pre-push** — `./scripts/quality-gates.sh --quick` (repo lint + lint + unit tests + eslint + tsc) |
-| PR or push to `main` | **GitHub Actions** — full CI (four jobs; includes coverage, pip-audit, npm audit, build) |
+| `git push` | **pre-push** — same essential hooks as commit, all files |
+| PR or push to `main` | **GitHub Actions** — full CI (four jobs; includes pytest, coverage, pip-audit, npm audit, build) |
 | Manual | `./scripts/quality-gates.sh` — full local mirror of CI before opening a PR |
 
 ---
@@ -256,7 +258,7 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 
 ```
 [ ] All acceptance criteria checked ✅
-[ ] Quality gates pass — ./scripts/quality-gates.sh; git push exercised pre-push hook
+[ ] Quality gates pass — ./scripts/quality-gates.sh; git push exercised essential pre-push hook
 [ ] Slice status updated in docs/_internal/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
@@ -279,7 +281,7 @@ GitHub Actions runs on every push and PR to `main` (four jobs — see `.github/w
 
 Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabot.yml`).
 
-**Local mirrors:** `./scripts/quality-gates.sh` (full, before PR). **`git push`** runs `--quick` automatically if `install-git-hooks.sh` was used. `--full` adds gitleaks + `pre-commit run --all-files` (manual).
+**Local mirrors:** `./scripts/quality-gates.sh` (full, before PR). **`git push`** runs essential pre-commit hooks on all files if `install-git-hooks.sh` was used. `--quick` / `--full` are manual only.
 
 ---
 

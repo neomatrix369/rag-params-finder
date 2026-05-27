@@ -408,7 +408,7 @@ Implement comprehensive experiment deletion with confirmation flows and cascadin
 - [x] ConfirmDeleteModal shows experiment details and deletion warning
 - [x] Delete button disabled for running experiments with tooltip
 - [x] Success toast shows deletion statistics
-- [x] All pre-commit hooks pass (ruff, mypy, eslint, repo lint, tsc, build); pre-push runs `quality-gates.sh --quick`
+- [x] All pre-commit hooks pass (ruff, mypy, eslint, repo lint, tsc, build); pre-push runs same hooks on all files
 - [x] Documentation updated (CLI reference, troubleshooting guide)
 
 ### Testing Notes
@@ -621,7 +621,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-23 | 19 | Slice 19 spec for storage quota guard | M0 hit 515/512 MB; writes blocked (cancel/delete deadlock); `dbStats` understated cluster usage; mirror search-index preflight pattern — spec in [`SLICE-19-STORAGE-QUOTA-GUARD.md`](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) |
 | 2026-05-27 | 20 | Docs synced to toolchain + test reality | 23 pytest tests (not 39); Kimchi on integration branch only; `quality-gates.sh` in interrupt recovery; CI/bandit/gitleaks documented |
 | 2026-05-27 | 20 | Repo lint in CI + pre-commit | shellcheck (`scripts/*.sh`), actionlint, markdownlint; `scripts/repo-lint.sh`; pragmatic `.markdownlint.json`; CI `repo-lint` job (4 jobs total) |
-| 2026-05-27 | 20 | Pre-push = quality-gates --quick | Every `git push` runs quick stack locally; full gates + CI on PR to `main`; `install-git-hooks.sh` installs both hook types |
+| 2026-05-27 | 20 | Pre-push = essential pre-commit checks | Every `git push` runs `pre-commit --all-files` (same hooks as commit); full `quality-gates.sh` + CI on PR |
 
 ---
 
@@ -695,7 +695,7 @@ Use this when resuming a session mid-slice:
 [ ] Git hooks installed: bash scripts/install-git-hooks.sh (once per machine)
 [ ] Run quality gates to confirm no regressions:
       ./scripts/quality-gates.sh          # full CI mirror before PR
-      # git push runs --quick via pre-push hook when hooks installed
+      # git push runs essential pre-commit hooks on all files when hooks installed
 [ ] Check git status — any uncommitted changes?
 [ ] Read the current slice spec in docs/slices/SLICE-XX-*.md
 [ ] Resume from the last incomplete acceptance criterion

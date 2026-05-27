@@ -35,7 +35,7 @@ rag-params-finder indexes list            # Atlas Search indexes (known vs unkno
 rag-params-finder indexes reset           # drop unknown indexes + ensure required
 rag-params-finder indexes reset --all     # drop all chunks search indexes + recreate
 uv pip install -e ".[dev]"
-bash scripts/install-git-hooks.sh          # pre-commit on commit + quality-gates --quick on push
+bash scripts/install-git-hooks.sh          # essential checks on commit (staged) and push (all files)
 
 # Frontend
 cd frontend && npm run dev                     # start dashboard → http://localhost:5173

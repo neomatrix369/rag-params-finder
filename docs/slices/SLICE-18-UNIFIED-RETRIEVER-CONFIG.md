@@ -96,7 +96,7 @@ retrieval:
 ### Quality Gates
 - [ ] `bash scripts/install-git-hooks.sh` run on dev machine (commit + pre-push hooks)
 - [ ] `./scripts/quality-gates.sh` passes (full CI mirror before PR — see [`development.md`](../contributor-guide/development.md))
-- [ ] `git push` succeeds with pre-push hook (`quality-gates --quick`) or run `--quick` manually during iteration
+- [ ] `git push` succeeds with pre-push hook (essential checks) or run `./scripts/quality-gates.sh --quick` manually
 
 ### Manual Verification
 - [ ] Old YAML config → successful sweep

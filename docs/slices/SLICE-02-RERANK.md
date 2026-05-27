@@ -52,7 +52,7 @@ Add Voyage reranking to refine dense search results: top-`top_k_initial` candida
 ## Quality gates (current project standard)
 
 ```bash
-bash scripts/install-git-hooks.sh   # once — commit + pre-push (--quick)
+bash scripts/install-git-hooks.sh   # once — essential checks on commit and push
 ./scripts/quality-gates.sh          # full mirror before PR
 ```
 
