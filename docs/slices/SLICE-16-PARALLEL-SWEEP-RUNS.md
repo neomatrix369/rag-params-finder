@@ -87,6 +87,18 @@ Recommendation: prototype **Approach A** inside `orchestrator` first *(same Mong
 
 ---
 
+## Automated quality gates
+
+Before merge:
+
+```bash
+./scripts/quality-gates.sh
+```
+
+See [`docs/contributor-guide/development.md`](../contributor-guide/development.md).
+
+---
+
 ## See Also
 
 - `docs/_internal/PROGRESS.md` — roadmap row for this slice

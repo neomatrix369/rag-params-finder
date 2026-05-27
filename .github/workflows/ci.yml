@@ -7,6 +7,36 @@ on:
     branches: [main]
 
 jobs:
+  repo-lint:
+    name: Repo lint (shell, workflows, docs)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dev dependencies (pre-commit hooks)
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Shellcheck
+        run: pre-commit run shellcheck --all-files
+
+      - name: Actionlint
+        run: pre-commit run actionlint --all-files
+
+      - name: Markdownlint
+        run: pre-commit run markdownlint --all-files
+
   backend:
     name: Backend (Python)
     runs-on: ubuntu-latest

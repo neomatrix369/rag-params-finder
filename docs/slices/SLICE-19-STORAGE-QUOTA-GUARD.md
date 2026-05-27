@@ -135,6 +135,18 @@ DELETE /experiments/{id}?force=true
 
 ---
 
+## Automated quality gates
+
+Before merge:
+
+```bash
+./scripts/quality-gates.sh
+```
+
+See [`docs/contributor-guide/development.md`](../contributor-guide/development.md).
+
+---
+
 ## Verification
 
 ```bash
@@ -147,5 +159,6 @@ uv run pytest tests/test_storage_preflight.py -q
 # 3. Trigger quota during sweep → runs fail with clear error_message
 # 4. Cancel fails with 507 → force delete frees space → cancel/delete work again
 
-uv run ruff check . && uv run mypy server/ cli/
+./scripts/quality-gates.sh
+# or during development: ./scripts/quality-gates.sh --quick
 ```

@@ -55,3 +55,11 @@ Real-time phase tracking: CLI shows a live table while runs progress, and the Re
 - CLI `rag-params-finder run --config configs/example-local.yaml` shows live phase updates
 - Dashboard detail screen shows phase dots advancing in real time
 - All 8 phases (QUEUED through COMPLETE) appear correctly coloured
+
+## Quality gates (current project standard)
+
+```bash
+./scripts/quality-gates.sh
+```
+
+See [`docs/contributor-guide/development.md`](../contributor-guide/development.md) and [`SLICE-20-TOOLCHAIN-HARDENING.md`](./SLICE-20-TOOLCHAIN-HARDENING.md).

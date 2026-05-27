@@ -48,3 +48,11 @@ Add Voyage reranking to refine dense search results: top-`top_k_initial` candida
 - RERANKING phase appears in run_status progression
 - Results collection has both `dense_score` and `rerank_score`
 - Config with `rerank_model: null` completes without RERANKING phase
+
+## Quality gates (current project standard)
+
+```bash
+./scripts/quality-gates.sh
+```
+
+See [`docs/contributor-guide/development.md`](../contributor-guide/development.md) and [`SLICE-20-TOOLCHAIN-HARDENING.md`](./SLICE-20-TOOLCHAIN-HARDENING.md).

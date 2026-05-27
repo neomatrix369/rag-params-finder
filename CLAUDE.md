@@ -30,8 +30,9 @@ uv run mypy server/ cli/
 # Tests
 uv run pytest --tb=short -q
 
-# All quality gates (mirrors CI)
+# All quality gates (mirrors CI — repo lint + backend + frontend + audits)
 ./scripts/quality-gates.sh
+bash scripts/repo-lint.sh   # shell + workflows + Markdown only
 ```
 
 ### Frontend (Node.js 22+)
@@ -164,8 +165,11 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 
 ### Verify-all commands (run before each commit)
 ```bash
-# One command — mirrors CI
+# One command — mirrors CI (repo lint is step 1)
 ./scripts/quality-gates.sh
+
+# Repo lint only (shell + workflows + Markdown)
+bash scripts/repo-lint.sh
 
 # Or individually:
 uv run ruff check .
@@ -189,7 +193,10 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 
 ## Quality Gates Baseline
 
-**Unified script:** `./scripts/quality-gates.sh` (mirrors CI)
+**Unified script:** `./scripts/quality-gates.sh` (mirrors CI — 11 steps including repo lint)
+
+**Repo lint** (2026-05-27):
+- `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
 
 **Backend** (2026-05-27):
 - `ruff check .` → 0 errors

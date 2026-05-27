@@ -52,11 +52,20 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 Run all gates before committing. All must pass with zero regressions.
 
+**CI jobs** (`.github/workflows/ci.yml`): `repo-lint` → `backend` → `frontend` → `secrets` (four parallel jobs).
+
+| Layer | Tools |
+|-------|--------|
+| Repo | shellcheck (`scripts/*.sh`), actionlint, markdownlint |
+| Backend | ruff, ruff format, mypy, bandit, pytest + coverage, pip-audit |
+| Frontend | eslint, tsc, build, npm audit |
+| Secrets | gitleaks |
+
 **One command (mirrors CI exactly):**
 
 ```bash
 ./scripts/quality-gates.sh              # full CI mirror (default)
-./scripts/quality-gates.sh --quick      # lint + typecheck + unit tests only
+./scripts/quality-gates.sh --quick      # repo lint + lint + typecheck + unit tests (skips coverage/build/audits)
 ./scripts/quality-gates.sh --full       # CI mirror + local gitleaks + pre-commit all-files
 ```
 
@@ -117,12 +126,32 @@ npm audit --audit-level=high
 - `npm run build` → built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
 
+### Repo lint (shell, workflows, Markdown)
+
+```bash
+bash scripts/repo-lint.sh
+# or individually via pre-commit:
+pre-commit run shellcheck --all-files
+pre-commit run actionlint --all-files
+pre-commit run markdownlint --all-files
+```
+
+| Tool | Scope | Config |
+|------|--------|--------|
+| **Shellcheck** | `scripts/*.sh` | via `shellcheck-py` pre-commit hook |
+| **Actionlint** | `.github/workflows/*.yml` | — |
+| **Markdownlint** | `*.md` (excludes `.claude/`) | `.markdownlint.json` |
+
+Runs in CI (`repo-lint` job), `./scripts/quality-gates.sh`, and pre-commit.
+
 ### Pre-commit
 
 ```bash
 uv pip install -e ".[dev]"
 pre-commit install
 ```
+
+Hooks include Python (ruff, mypy, bandit), frontend (eslint, verify), secrets (gitleaks), hygiene, and repo lint above.
 
 ---
 
@@ -171,7 +200,7 @@ rag-params-finder/
 │   ├── adr/             # Architecture Decision Records
 │   ├── slices/          # Slice specs (dev-internal)
 │   └── _internal/       # Dev log, gap tracker, Graphiti exports
-└── .github/workflows/   # CI (see § CI — backend, frontend, secrets jobs)
+└── .github/workflows/   # CI (see § CI — repo-lint, backend, frontend, secrets)
 ```
 
 ---
@@ -211,10 +240,11 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 
 ## 🔄 CI
 
-GitHub Actions runs on every push and PR to `main` (three jobs — see `.github/workflows/ci.yml`):
+GitHub Actions runs on every push and PR to `main` (four jobs — see `.github/workflows/ci.yml`):
 
 | Job | Steps |
 |-----|--------|
+| **Repo lint** | `pre-commit run shellcheck` → `actionlint` → `markdownlint` (all files) |
 | **Backend (Python)** | `ruff check` → `ruff format --check` → `mypy` → `bandit -ll` → `pytest` + 80% scoped coverage → `scripts/pip-audit.sh` |
 | **Frontend (Node.js)** | `npm run lint` → `npm run typecheck` → `npm run build` → `npm audit --audit-level=high` (Node from repo-root `.nvmrc`) |
 | **Secrets** | `gitleaks-action` with `.gitleaks.toml` |

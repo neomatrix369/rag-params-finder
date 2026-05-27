@@ -2,6 +2,7 @@
 # Principle: one tool per concern, every tool earns its seconds.
 # Intentionally excluded from pre-commit (run via scripts/quality-gates.sh):
 #   pytest+coverage, pip-audit, npm audit
+# Repo lint (shellcheck, actionlint, markdownlint): also in CI via scripts/repo-lint.sh
 #
 # Install:
 #   uv pip install -e ".[dev]" && pre-commit install
@@ -25,6 +26,30 @@ repos:
         args: ['--maxkb=500']
       - id: detect-private-key
       - id: debug-statements
+
+  # ── Shell, GitHub Actions, Markdown ─────────────────────
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        files: ^scripts/.*\.sh$
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.7
+    hooks:
+      - id: actionlint
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.43.0
+    hooks:
+      - id: markdownlint
+        args: [--config, .markdownlint.json]
+        files: \.md$
+        exclude: |
+          (?x)^(
+            \.claude/|
+            frontend/node_modules/
+          )
 
   # ── Secrets ──────────────────────────────────────────────
   - repo: https://github.com/gitleaks/gitleaks
