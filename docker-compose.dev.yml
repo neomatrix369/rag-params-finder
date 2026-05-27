@@ -1,0 +1,38 @@
+# Dev overlay — HMR + uvicorn --reload
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
+# Alias documented as "dev profile" in SLICE-14 (equivalent to --profile dev workflows)
+
+services:
+  server:
+    command:
+      [
+        "uvicorn",
+        "server.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8001",
+        "--reload",
+      ]
+    volumes:
+      - ./server:/app/server
+      - ./cli:/app/cli
+      - ./configs:/app/configs:ro
+      - ./input_data:/app/input_data:ro
+      - hf_cache:/root/.cache/huggingface
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.dev.Dockerfile
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+    environment:
+      VITE_DEV_PROXY_TARGET: http://server:8001
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/tailwind.config.js:/app/tailwind.config.js
+      - ./frontend/postcss.config.js:/app/postcss.config.js
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/tsconfig.node.json:/app/tsconfig.node.json

@@ -46,6 +46,16 @@ npm run typecheck
 npm run build
 ```
 
+### Docker (optional)
+
+```bash
+./start-services.sh                    # server + dashboard (Atlas in .env)
+./scripts/health-check.sh
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build  # dev HMR
+```
+
+Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/slices/SLICE-14-DOCKER-COMPOSE.md`.
+
 ### CLI
 
 ```bash

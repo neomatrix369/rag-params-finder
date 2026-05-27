@@ -316,6 +316,37 @@ db.results.deleteMany({experiment_id: exp_id})
 
 ---
 
+## Docker
+
+**Symptom**: `./start-services.sh` fails, health check reports MongoDB error, or dashboard cannot reach the API.
+
+| Cause | Fix |
+|---|---|
+| Docker not running | Start Docker Desktop; verify with `docker info` |
+| Placeholder `.env` | Set real `MONGODB_URI` (not `your_mongodb_atlas_uri_here`); use `NONINTERACTIVE=1` for fail-fast without prompts |
+| Port 8001 or 5173 in use | Stop local `uvicorn` / `npm run dev`, or use `./start-services.sh` port-conflict menu |
+| Atlas unreachable from container | Atlas **Network Access** must allow your IP (or `0.0.0.0/0` for dev); check `curl http://localhost:8001/healthz` → `"mongodb": "ok"` |
+| Missing `input_data/` | Create `input_data/pdfs/` and add PDFs referenced in your config YAML |
+| Prod dashboard API errors | Browser must use `http://localhost:8001` — set via `VITE_API_URL` at image build time (default in Compose) |
+| Dev profile proxy errors | Ensure `vite.config.ts` proxy targets `http://server:8001` (Compose service name, not `127.0.0.1`) |
+
+**Logs**:
+
+```bash
+docker compose logs server --tail 50
+docker compose logs frontend --tail 50
+```
+
+**Stop / reset**:
+
+```bash
+./stop-services.sh    # option 1: standard stop (keeps hf_cache volume)
+```
+
+Spec: [SLICE-14-DOCKER-COMPOSE.md](../slices/SLICE-14-DOCKER-COMPOSE.md).
+
+---
+
 ## 🔧 Environment Variables Reference
 
 | Variable | Required | Default | Description |

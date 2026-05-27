@@ -49,6 +49,38 @@ source .venv/bin/activate
 rag-params-finder run --config configs/example-mongodb-local.yaml
 ```
 
+### Docker Compose
+
+One-command stack for server + dashboard (MongoDB Atlas stays external). The **CLI runs on the host** at `SERVER_URL=http://localhost:8001` ([ADR-001](../adr/ADR-001-two-process-architecture.md)).
+
+**Prerequisites:** Docker Desktop (or engine + Compose v2), valid `.env` with `MONGODB_URI`, Atlas search indexes per [cloud-setup](../user-guide/cloud-setup.md).
+
+```bash
+cp .env.example .env
+./start-services.sh              # prod: built frontend + uvicorn (ports 8001, 5173)
+./scripts/health-check.sh        # smoke: server, frontend, Atlas via /healthz
+
+# Host CLI (install once: uv pip install -e .)
+rag-params-finder run --config configs/example-mongodb-local.yaml
+
+# Dev overlay: HMR + uvicorn --reload
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+# or: RAG_DEV_STACK=1 ./start-services.sh
+
+./stop-services.sh               # interactive stop (standard / pause / deep cleanup)
+```
+
+| Port | Service |
+|------|---------|
+| 8001 | FastAPI server |
+| 5173 | React dashboard |
+
+**Profiles:** default = production-like (`vite preview`); `dev` = bind-mounted source + `/api` proxy to `http://server:8001`.
+
+**Non-interactive:** `NONINTERACTIVE=1 ./start-services.sh` (fails fast on missing/placeholder `.env`).
+
+Spec: [SLICE-14-DOCKER-COMPOSE.md](../slices/SLICE-14-DOCKER-COMPOSE.md). Troubleshooting: [user-guide/troubleshooting.md](../user-guide/troubleshooting.md#-docker).
+
 ---
 
 ## ✅ Quality Gates
@@ -336,7 +368,6 @@ Areas where help is most needed:
 
 - **Test suite expansion**: integration tier with mock MongoDB + pre-computed embedding fixtures *(23 unit tests shipped — search index, sweep expansion, tiebreaker)*
 - **SSE live updates**: replace the 2-second polling loop with Server-Sent Events
-- **Docker Compose**: one-command `docker compose up` setup
 - **Experiment cleanup CLI**: `rag-params-finder cleanup --older-than 30d`
 
 Please open an issue before starting work on large features to discuss the approach.
