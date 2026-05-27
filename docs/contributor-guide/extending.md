@@ -32,6 +32,8 @@ EMBEDDING_MODELS = {
 
 If the model uses a provider not yet supported, update `server/models/config.py` → `Provider` type and add dispatch logic in the embedder.
 
+**Note on `kimchi`:** The `Provider` literal includes `"kimchi"` for CAST OpenAI-compatible embeddings. Full implementation (embedder module, registry entries, example config) lives on branch `tessl-hackathon-kimchi-integration`; **main** currently supports **`local`** and **`voyage`** only. Merge that branch before documenting Kimchi in the user guide.
+
 ### 3. Update the embedder dispatcher
 
 In `server/core/embedder.py` (Voyage) or `server/core/local_embedder.py` (sentence-transformers): verify the model name routes correctly through the existing dispatch logic. For most new models of an existing provider type, no changes are needed.
