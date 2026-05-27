@@ -52,6 +52,20 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 Run all gates before committing. All must pass with zero regressions.
 
+**One command (mirrors CI exactly):**
+
+```bash
+./scripts/quality-gates.sh          # fast gates
+./scripts/quality-gates.sh --full   # + pip-audit + pre-commit all-files
+```
+
+**Integrity check (unit tests + import smoke):**
+
+```bash
+python scripts/check_integrity.py
+python scripts/check_integrity.py --full   # + quality-gates + pre-commit
+```
+
 ### Backend
 
 ```bash
@@ -61,37 +75,54 @@ uv run ruff check .
 # Type check — expect 0 errors
 uv run mypy server/ cli/
 
-# Tests (search index preflight + guard)
-uv run pytest --tb=short -q
+# Tests + coverage (scoped to unit-tested modules, 80% threshold)
+uv run pytest --tb=short -q \
+  --cov=server.core.search_index_plan \
+  --cov=server.core.search_index_guard \
+  --cov=server.core.results_analyzer \
+  --cov=server.models.config \
+  --cov-fail-under=80
 
-# Coverage
-uv run pytest --cov=server --cov=cli --cov-report=html
+# Python dependency audit (ML transitive vulns tracked — see scripts/pip-audit.sh)
+bash scripts/pip-audit.sh
 ```
 
-**Baseline (as of 2026-05-23)**:
+**Baseline (as of 2026-05-27)**:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 17 tests
+- `pytest` → 23 tests, 83.6% coverage on scoped modules
 
 ### Frontend
 
 ```bash
 cd frontend
 
+# Lint — expect 0 errors, 0 warnings (eslint + security plugin)
+npm run lint
+
 # Type check — expect 0 errors
 npm run typecheck
 
-# Build — expect ~34 modules, ~238 kB JS
+# Build — expect ~49 modules
 npm run build
 
 # Security audit — expect 0 vulnerabilities at high+ severity
 npm audit --audit-level=high
 ```
 
-**Baseline (as of 2026-05-05)**:
+**Baseline (as of 2026-05-27)**:
+- `npm run lint` → 0 errors
 - `npm run typecheck` → 0 errors
-- `npm run build` → built in ~1.8s, 34 modules
-- `npm audit --audit-level=high` → 0 vulnerabilities
+- `npm run build` → built in ~4s, 49 modules
+- `npm audit --audit-level=high` → 0 high vulnerabilities
+
+### Pre-commit
+
+```bash
+uv pip install -e ".[dev]"
+pre-commit install
+pre-commit install --hook-type commit-msg   # strips AI co-author trailers
+```
 
 ---
 
@@ -177,10 +208,12 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 
 GitHub Actions runs on every push and PR to `main`:
 
-- **Backend**: `ruff check` → `mypy` → `pytest`
-- **Frontend**: `npm run typecheck` → `npm run build`
+- **Backend**: `ruff check` → `ruff format --check` → `mypy` → `pytest` + coverage (80% on scoped modules) → `scripts/pip-audit.sh`
+- **Frontend**: `npm run lint` → `npm run typecheck` → `npm run build` → `npm audit --audit-level=high`
 
-See `.github/workflows/ci.yml` for the full pipeline.
+Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabot.yml`).
+
+See `.github/workflows/ci.yml` and `./scripts/quality-gates.sh` for the full pipeline.
 
 ---
 

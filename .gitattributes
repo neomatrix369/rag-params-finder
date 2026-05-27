@@ -1,0 +1,12 @@
+# Normalize line endings and diff behavior.
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.bat text eol=crlf
+
+package-lock.json -diff
+uv.lock -diff linguist-generated=true
+
+*.png binary
+*.jpg binary
+*.pdf binary
