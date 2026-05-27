@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install pre-commit and pre-push hooks (commit checks + quality-gates --quick on push).
+# Install pre-commit and pre-push hooks (essential checks on commit and push).
 set -e
 set -o pipefail
 
@@ -14,7 +14,8 @@ fi
 pre-commit install --hook-type pre-commit --hook-type pre-push
 
 echo "✅ Git hooks installed:"
-echo "   pre-commit  → lint/format on commit (staged files)"
-echo "   pre-push    → ./scripts/quality-gates.sh --quick on every push"
+echo "   pre-commit  → essential checks on staged files (hygiene, secrets, lint, types, …)"
+echo "   pre-push    → same essential checks on entire repo (pre-commit run --all-files)"
 echo ""
+echo "Full CI mirror (pytest, coverage, audits, build): ./scripts/quality-gates.sh"
 echo "Bypass once (emergency only): git push --no-verify"

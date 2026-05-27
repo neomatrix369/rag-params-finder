@@ -34,7 +34,7 @@ Inherit proven hardening patterns from **price-analysis** and **pre-rag-explorer
 | Vitest frontend tests | pre-rag | ❌ — separate slice when UI test tier is planned |
 | Torch/transformers major upgrade | pip-audit findings | ❌ — tracked via `scripts/pip-audit.sh` ignores |
 | `scripts/repo-lint.sh` (shellcheck, actionlint, markdownlint) | governance (Serious tier) | ✅ *(2026-05-27 follow-on)* |
-| `install-git-hooks.sh` + pre-push `quality-gates --quick` | governance | ✅ *(2026-05-27 follow-on)* |
+| `install-git-hooks.sh` + pre-push essential checks (`--all-files`) | governance | ✅ *(2026-05-27 follow-on)* |
 | yamllint / stylelint / markdown “strict” rules | governance | ❌ — `check-yaml` + pragmatic `.markdownlint.json` suffice for now |
 
 ---
@@ -61,7 +61,7 @@ Inherit proven hardening patterns from **price-analysis** and **pre-rag-explorer
 - [x] Shellcheck on `scripts/*.sh` (`shellcheck-py`)
 - [x] Actionlint on `.github/workflows`
 - [x] Markdownlint on `*.md` (excludes `.claude/`)
-- [x] Pre-push hook runs `./scripts/quality-gates.sh --quick` (`scripts/install-git-hooks.sh`)
+- [x] Pre-push hook runs same essential checks as commit on all files (`pre-commit run --all-files`)
 
 ### Coverage scope (baseline-first)
 Measured baseline **83.6%** on:
@@ -184,9 +184,9 @@ python scripts/check_integrity.py
 **Decision:** Use `shellcheck-py` pre-commit repo (no Docker).
 **Rationale:** `koalaman/shellcheck-precommit` rev failed in CI; pip wheel hook matches Serious tier without Docker.
 
-### 8. Pre-push runs `--quick`, not full gates
-**Decision:** Pre-push hook calls `./scripts/quality-gates.sh --quick`; full gates remain manual + CI on PR.
-**Rationale:** Push is frequent; coverage, pip-audit, npm audit, and production build stay in CI. Still stronger than commit-only hooks.
+### 8. Pre-push mirrors commit essential checks, not full gates
+**Decision:** Pre-push runs `pre-commit run --all-files` (same hooks as commit, whole repo); full `quality-gates.sh` stays manual + CI on PR.
+**Rationale:** Matches “essential checks like commit”; pytest, coverage, and dependency audits stay in CI / pre-PR script.
 
 ---
 
@@ -224,7 +224,7 @@ Three-way comparison after inheriting patterns from **price-analysis** and **pre
 | pytest integration/slow markers | ✅ | N/A (vitest) | ✅ (markers defined) |
 | pre-commit (Python framework) | ✅ heavy | ✅ Serious-lite | ✅ |
 | shellcheck / actionlint / markdownlint | partial | partial | ✅ repo-lint job + hooks |
-| pre-push quality gate | ❌ | partial (husky) | ✅ `quality-gates --quick` |
+| pre-push essential checks | ❌ | partial (husky) | ✅ `pre-commit --all-files` |
 | Husky + lint-staged | ❌ | ✅ | ❌ (pre-commit instead) |
 | Prettier | ✅ black/isort | ✅ | ❌ (ruff + eslint) |
 | Xenon complexity | ✅ scoped | ❌ | ❌ deferred |
@@ -245,7 +245,7 @@ chore(ci): slice 20 toolchain hardening from reference repos
 
 - Add quality-gates.sh, check_integrity.py, pip-audit.sh, repo-lint.sh, install-git-hooks.sh
 - CI: repo-lint job; coverage 80% on scoped modules; eslint; pip-audit
-- Git hooks: pre-commit + pre-push (quality-gates --quick); shellcheck, actionlint, markdownlint
+- Git hooks: pre-commit + pre-push (essential checks on all files); shellcheck, actionlint, markdownlint
 - Wire .gitleaks.toml, .nvmrc, dependabot, repo hygiene files
 - Upgrade urllib3/starlette/idna/langchain-core; document ML transitive audit ignores
 
