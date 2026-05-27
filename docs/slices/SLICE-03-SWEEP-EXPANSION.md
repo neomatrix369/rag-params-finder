@@ -56,3 +56,12 @@ Cartesian product expansion: one YAML config with N models × M chunking methods
 - POST experiment with 3 chunk_sizes × 2 overlaps → exactly 6 run_ids in response
 - All 6 runs reach COMPLETE (or FAILED with `on_error: continue`)
 - Dashboard ExperimentsScreen shows run count per experiment
+
+## Quality gates (current project standard)
+
+```bash
+bash scripts/install-git-hooks.sh
+./scripts/quality-gates.sh
+```
+
+See [`development.md`](../contributor-guide/development.md) § Git hooks.

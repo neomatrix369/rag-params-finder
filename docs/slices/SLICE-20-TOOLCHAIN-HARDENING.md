@@ -33,17 +33,22 @@ Inherit proven hardening patterns from **price-analysis** and **pre-rag-explorer
 | Xenon complexity gates | price-analysis | ❌ — defer until legacy debt warrants scoped gates |
 | Vitest frontend tests | pre-rag | ❌ — separate slice when UI test tier is planned |
 | Torch/transformers major upgrade | pip-audit findings | ❌ — tracked via `scripts/pip-audit.sh` ignores |
+| `scripts/repo-lint.sh` (shellcheck, actionlint, markdownlint) | governance (Serious tier) | ✅ *(2026-05-27 follow-on)* |
+| `install-git-hooks.sh` + pre-push essential checks (`--all-files`) | governance | ✅ *(2026-05-27 follow-on)* |
+| yamllint / stylelint / markdown “strict” rules | governance | ❌ — `check-yaml` + pragmatic `.markdownlint.json` suffice for now |
 
 ---
 
 ## Acceptance criteria
 
 ### Scripts & local gates
-- [x] `./scripts/quality-gates.sh` passes (mirrors `.github/workflows/ci.yml`)
+- [x] `./scripts/quality-gates.sh` passes (mirrors `.github/workflows/ci.yml`, including repo lint as step 1)
 - [x] `./scripts/quality-gates.sh --full` runs local gitleaks + `pre-commit run --all-files` (default mode already includes `pip-audit.sh`)
+- [x] `bash scripts/repo-lint.sh` passes (shellcheck, actionlint, markdownlint)
 - [x] `python scripts/check_integrity.py` passes (unit tests + import smoke)
 
 ### CI
+- [x] **Repo-lint job:** shellcheck (`scripts/*.sh`) → actionlint (workflows) → markdownlint (`*.md`, `.markdownlint.json`)
 - [x] Backend job: ruff → format check → mypy → **bandit** → pytest + **80% coverage** → `pip-audit.sh`
 - [x] Frontend job: **eslint** → typecheck → build → npm audit (high+)
 - [x] **Secrets job:** gitleaks-action with `.gitleaks.toml`
@@ -53,6 +58,10 @@ Inherit proven hardening patterns from **price-analysis** and **pre-rag-explorer
 - [x] Gitleaks uses `.gitleaks.toml`
 - [x] Frontend eslint hook on `frontend/**/*.{ts,tsx}`
 - [x] Bandit hook (medium+ via `uv run bandit … -ll`, same as CI)
+- [x] Shellcheck on `scripts/*.sh` (`shellcheck-py`)
+- [x] Actionlint on `.github/workflows`
+- [x] Markdownlint on `*.md` (excludes `.claude/`)
+- [x] Pre-push hook runs same essential checks as commit on all files (`pre-commit run --all-files`)
 
 ### Coverage scope (baseline-first)
 Measured baseline **83.6%** on:
@@ -91,12 +100,18 @@ Threshold set to **80%** (`--cov-fail-under=80` in CI and quality-gates).
 | `.github/dependabot.yml` | Weekly pip/npm/actions updates |
 | `frontend/.eslintrc.cjs` | ESLint + security plugin |
 | `docs/slices/SLICE-20-TOOLCHAIN-HARDENING.md` | This spec |
+| `scripts/repo-lint.sh` | Shell + workflow + Markdown linters (pre-commit wrappers) |
+| `scripts/install-git-hooks.sh` | Installs pre-commit + pre-push hooks |
+| `.markdownlint.json` | Pragmatic Markdown rules for existing docs |
 
 ### Modified
 | File | Change |
 |------|--------|
-| `.github/workflows/ci.yml` | Coverage, eslint, pip-audit, .nvmrc |
-| `.pre-commit-config.yaml` | gitleaks config, frontend lint |
+| `.github/workflows/ci.yml` | Coverage, eslint, pip-audit, .nvmrc; **`repo-lint` job** |
+| `.pre-commit-config.yaml` | gitleaks, frontend lint, **shellcheck / actionlint / markdownlint** |
+| `scripts/quality-gates.sh` | Step 1/11 repo lint; renumbered steps |
+| `scripts/push_tags_incrementally.sh` | Shellcheck quote fix |
+| `scripts/release.sh` | Shellcheck `read -r` |
 | `pyproject.toml` | Coverage config, pytest markers, uv overrides, bandit/pip-audit dev deps |
 | `uv.lock` | Dependency overrides |
 | `frontend/package.json` / `package-lock.json` | eslint-plugin-security |
@@ -111,8 +126,11 @@ Threshold set to **80%** (`--cov-fail-under=80` in CI and quality-gates).
 ## Verification commands
 
 ```bash
-# Primary exit gate
+# Primary exit gate (includes repo lint)
 ./scripts/quality-gates.sh
+
+# Repo lint only (shell + workflows + Markdown)
+bash scripts/repo-lint.sh
 
 # Integrity smoke
 python scripts/check_integrity.py
@@ -125,6 +143,7 @@ python scripts/check_integrity.py
 
 | Gate | Result |
 |------|--------|
+| `bash scripts/repo-lint.sh` | shellcheck + actionlint + markdownlint pass |
 | `ruff check .` | 0 errors |
 | `mypy server/ cli/` | 0 errors |
 | `pytest` | 23 passed, 83.6% scoped coverage |
@@ -156,6 +175,18 @@ python scripts/check_integrity.py
 ### 5. Branch from `main`
 **Decision:** Slice branch targets `main`, not in-flight code-review-graph work.
 **Rationale:** Toolchain hardening is independent; keeps PR reviewable and revertable.
+
+### 6. Pragmatic markdownlint config
+**Decision:** `.markdownlint.json` disables noisy style rules (MD032, MD040, etc.) so legacy docs pass without a mass reformat.
+**Rationale:** Catch structural issues and regressions; tighten rules incrementally if desired.
+
+### 7. shellcheck-py over koalaman/shellcheck-precommit
+**Decision:** Use `shellcheck-py` pre-commit repo (no Docker).
+**Rationale:** `koalaman/shellcheck-precommit` rev failed in CI; pip wheel hook matches Serious tier without Docker.
+
+### 8. Pre-push mirrors commit essential checks, not full gates
+**Decision:** Pre-push runs `pre-commit run --all-files` (same hooks as commit, whole repo); full `quality-gates.sh` stays manual + CI on PR.
+**Rationale:** Matches “essential checks like commit”; pytest, coverage, and dependency audits stay in CI / pre-PR script.
 
 ---
 
@@ -192,6 +223,8 @@ Three-way comparison after inheriting patterns from **price-analysis** and **pre
 | `check_integrity.py` | ✅ | ❌ | ✅ |
 | pytest integration/slow markers | ✅ | N/A (vitest) | ✅ (markers defined) |
 | pre-commit (Python framework) | ✅ heavy | ✅ Serious-lite | ✅ |
+| shellcheck / actionlint / markdownlint | partial | partial | ✅ repo-lint job + hooks |
+| pre-push essential checks | ❌ | partial (husky) | ✅ `pre-commit --all-files` |
 | Husky + lint-staged | ❌ | ✅ | ❌ (pre-commit instead) |
 | Prettier | ✅ black/isort | ✅ | ❌ (ruff + eslint) |
 | Xenon complexity | ✅ scoped | ❌ | ❌ deferred |
@@ -210,9 +243,10 @@ Three-way comparison after inheriting patterns from **price-analysis** and **pre
 ```
 chore(ci): slice 20 toolchain hardening from reference repos
 
-- Add quality-gates.sh, check_integrity.py, pip-audit.sh
-- CI: coverage 80% on scoped modules, eslint, pip-audit; drop pytest exit-5 workaround
-- Wire ESLint+security; .gitleaks.toml, .nvmrc, dependabot, repo hygiene files
+- Add quality-gates.sh, check_integrity.py, pip-audit.sh, repo-lint.sh, install-git-hooks.sh
+- CI: repo-lint job; coverage 80% on scoped modules; eslint; pip-audit
+- Git hooks: pre-commit + pre-push (essential checks on all files); shellcheck, actionlint, markdownlint
+- Wire .gitleaks.toml, .nvmrc, dependabot, repo hygiene files
 - Upgrade urllib3/starlette/idna/langchain-core; document ML transitive audit ignores
 
 Refs: price-analysis, pre-rag-explorer-dashboard toolchain patterns

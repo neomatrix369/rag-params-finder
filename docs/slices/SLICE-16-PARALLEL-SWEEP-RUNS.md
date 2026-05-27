@@ -87,6 +87,17 @@ Recommendation: prototype **Approach A** inside `orchestrator` first *(same Mong
 
 ---
 
+## Automated quality gates
+
+```bash
+bash scripts/install-git-hooks.sh
+./scripts/quality-gates.sh
+```
+
+See [`development.md`](../contributor-guide/development.md) § Git hooks.
+
+---
+
 ## See Also
 
 - `docs/_internal/PROGRESS.md` — roadmap row for this slice

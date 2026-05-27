@@ -11,7 +11,7 @@ Agent session entry point for `rag-params-finder`.
 
 ## Key rules
 
-- Run quality gates before and after every change (see `CLAUDE.md` → Quality Gates Baseline).
+- Run quality gates before and after every change; install hooks with `bash scripts/install-git-hooks.sh` (commit + pre-push checks — see `CLAUDE.md` → Quality Gates Baseline).
 - Follow the slice execution playbook in `CLAUDE.md` → Slice Execution Playbook.
 - Secrets (`VOYAGE_API_KEY`, `MONGODB_URI`) stay server-side — never in CLI configs or committed files.
 - Provider/model must match: `provider: local` + Voyage model → Pydantic validation error.
@@ -20,8 +20,9 @@ Agent session entry point for `rag-params-finder`.
 
 ```bash
 # Quality gates (mirrors CI — run before every commit)
-./scripts/quality-gates.sh              # full CI mirror
-./scripts/quality-gates.sh --quick      # lint + typecheck + unit tests only
+./scripts/quality-gates.sh              # full CI mirror (repo lint + backend + frontend + audits)
+bash scripts/repo-lint.sh               # shellcheck + actionlint + markdownlint only
+./scripts/quality-gates.sh --quick      # repo lint + lint + typecheck + unit tests (no coverage/build/audits)
 ./scripts/quality-gates.sh --full       # + local gitleaks + pre-commit all-files
 python scripts/check_integrity.py       # unit tests + import smoke
 
@@ -34,6 +35,7 @@ rag-params-finder indexes list            # Atlas Search indexes (known vs unkno
 rag-params-finder indexes reset           # drop unknown indexes + ensure required
 rag-params-finder indexes reset --all     # drop all chunks search indexes + recreate
 uv pip install -e ".[dev]"
+bash scripts/install-git-hooks.sh          # essential checks on commit (staged) and push (all files)
 
 # Frontend
 cd frontend && npm run dev                     # start dashboard → http://localhost:5173

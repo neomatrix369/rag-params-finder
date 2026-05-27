@@ -1,7 +1,7 @@
 # Documentation Gap Tracker
 
 **Created**: 2026-05-05
-**Last Updated**: 2026-05-27 (baselines refreshed after Slice 20; gaps 7–8 notes superseded)
+**Last Updated**: 2026-05-27 (baselines refreshed after Slice 20 + repo lint; gaps 7–8 notes superseded)
 **Reference**: Gap analysis vs [pre-rag-explorer-dashboard](https://github.com/neomatrix369/pre-rag-explorer-dashboard)
 
 Each item below is a concrete, actionable doc gap. Check the box when done and record the date.
@@ -80,6 +80,8 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 
 **Reference**: pre-rag has a standalone spec file per slice (`SLICE-07-SLIDING-WINDOW.md`, etc.).
 
+**2026-05-27 supplement:** All slice specs link to `./scripts/quality-gates.sh` / [`development.md`](../contributor-guide/development.md); Slice 20 documents repo lint + `scripts/install-git-hooks.sh` (essential pre-commit checks on commit and push).
+
 ---
 
 ## Gap 6 — PROGRESS.md housekeeping
@@ -98,6 +100,8 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 **Priority**: Medium
 
 - [x] Add `## Quality Gates Baseline` section to `CLAUDE.md` with real numbers:
+  - [x] `bash scripts/install-git-hooks.sh` → pre-commit + pre-push hooks documented
+  - [x] `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
   - [x] `ruff check .` → 0 errors
   - [x] `mypy server/ cli/` → 0 errors
   - [x] `pytest` → **23 tests** (2026-05-27): 17 search-index + 3 sweep + 3 tiebreaker; 80% coverage on 4 scoped modules
@@ -106,7 +110,7 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
   - [x] `npm run build` → ~4 s, 49 modules
   - [x] `npm audit --audit-level=high` → 0 high vulnerabilities
 
-**Reference**: `CLAUDE.md`, `development.md`, `./scripts/quality-gates.sh` (canonical local mirror).
+**Reference**: `CLAUDE.md`, `development.md`, `./scripts/quality-gates.sh` (canonical local mirror), `./scripts/repo-lint.sh`.
 
 ---
 
@@ -114,10 +118,11 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 
 **Priority**: Low–Medium
 
-- [x] Add `.github/workflows/ci.yml` — backend: ruff + format + mypy + bandit + pytest/coverage + pip-audit; frontend: eslint + tsc + build + npm audit; secrets: gitleaks
+- [x] Add `.github/workflows/ci.yml` — repo-lint: shellcheck + actionlint + markdownlint; backend: ruff + format + mypy + bandit + pytest/coverage + pip-audit; frontend: eslint + tsc + build + npm audit; secrets: gitleaks
 - [x] CI documented in `CLAUDE.md`, `development.md`, Slice 20 spec
+- [x] Pre-push hook: essential pre-commit checks on every `git push` (`pre-commit run --all-files`)
 
-**Superseded note (2026-05-27):** ESLint is wired (`frontend/.eslintrc.cjs`). Use `./scripts/quality-gates.sh` for local/CI parity.
+**Superseded note (2026-05-27):** ESLint is wired (`frontend/.eslintrc.cjs`). Use `./scripts/quality-gates.sh` for full local/CI parity; `git push` runs essential pre-commit hooks when installed.
 
 **Reference**: pre-rag's Slice 1 established CI as a first-class deliverable; Slice 20 hardened to Serious tier.
 

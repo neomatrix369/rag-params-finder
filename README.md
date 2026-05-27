@@ -164,7 +164,7 @@ Contributions welcome — please open an issue first to discuss the change.
 
 **Running experiments does not require any extra tooling** — the [user guide](docs/user-guide/getting-started.md) path (Atlas, CLI, optional dashboard) is enough.
 
-**Contributors** use the [Development Guide](docs/contributor-guide/development.md) for quality gates, the slice workflow, and [release cadence](docs/contributor-guide/release-process.md#when-to-release) (release when a slice or feature is user-visible; see [CHANGELOG](CHANGELOG.md) `Unreleased` during development).
+**Contributors** use the [Development Guide](docs/contributor-guide/development.md) for setup (`bash scripts/install-git-hooks.sh` — checks on commit and push), quality gates (`./scripts/quality-gates.sh`), the slice workflow, and [release cadence](docs/contributor-guide/release-process.md#when-to-release) (release when a slice or feature is user-visible; see [CHANGELOG](CHANGELOG.md) `Unreleased` during development).
 
 Optional **AI-assisted development** (Cursor / Claude Code with the `code-review-graph` knowledge graph) is documented in the development guide — it helps navigate this repo faster; it is not part of the RAG sweep runtime.
 

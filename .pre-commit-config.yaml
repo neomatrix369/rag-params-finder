@@ -2,10 +2,15 @@
 # Principle: one tool per concern, every tool earns its seconds.
 # Intentionally excluded from pre-commit (run via scripts/quality-gates.sh):
 #   pytest+coverage, pip-audit, npm audit
+# Repo lint (shellcheck, actionlint, markdownlint): also in CI via scripts/repo-lint.sh
 #
-# Install:
-#   uv pip install -e ".[dev]" && pre-commit install
-# Run all:  pre-commit run --all-files
+# Install (commit + push hooks):
+#   uv pip install -e ".[dev]"
+#   pre-commit install --hook-type pre-commit --hook-type pre-push
+#   # or: bash scripts/install-git-hooks.sh
+# Run all (commit stage):  pre-commit run --all-files
+# Run push stage only:     pre-commit run essential-checks-pre-push --hook-stage pre-push
+# Same hooks as commit, all files: pre-commit run --all-files --hook-stage pre-commit
 # Full gates: ./scripts/quality-gates.sh [--full]
 
 repos:
@@ -25,6 +30,30 @@ repos:
         args: ['--maxkb=500']
       - id: detect-private-key
       - id: debug-statements
+
+  # ── Shell, GitHub Actions, Markdown ─────────────────────
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        files: ^scripts/.*\.sh$
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.7
+    hooks:
+      - id: actionlint
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.43.0
+    hooks:
+      - id: markdownlint
+        args: [--config, .markdownlint.json]
+        files: \.md$
+        exclude: |
+          (?x)^(
+            \.claude/|
+            frontend/node_modules/
+          )
 
   # ── Secrets ──────────────────────────────────────────────
   - repo: https://github.com/gitleaks/gitleaks
@@ -79,3 +108,14 @@ repos:
         pass_filenames: false
         files: ^frontend/
         exclude: ^frontend/node_modules/
+
+  # ── Pre-push: same essential hooks as commit, entire repo ─
+  - repo: local
+    hooks:
+      - id: essential-checks-pre-push
+        name: essential checks (pre-push)
+        entry: pre-commit run --all-files --hook-stage pre-commit
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

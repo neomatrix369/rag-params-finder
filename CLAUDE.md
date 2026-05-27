@@ -19,6 +19,7 @@ Two-process architecture: config submission (CLI) is separate from execution (Se
 # Setup
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
+bash scripts/install-git-hooks.sh   # commit + pre-push hooks
 
 # Run server
 uvicorn server.main:app --reload --port 8001
@@ -30,8 +31,9 @@ uv run mypy server/ cli/
 # Tests
 uv run pytest --tb=short -q
 
-# All quality gates (mirrors CI)
+# All quality gates (mirrors CI — repo lint + backend + frontend + audits)
 ./scripts/quality-gates.sh
+bash scripts/repo-lint.sh   # shell + workflows + Markdown only
 ```
 
 ### Frontend (Node.js 22+)
@@ -152,6 +154,7 @@ Provider/model must match — registry in `model_registry.py` validates at confi
 ```
 [ ] Read docs/_internal/PROGRESS.md — confirm current state and which slice is next
 [ ] Read or create the slice spec in docs/slices/SLICE-XX-*.md
+[ ] bash scripts/install-git-hooks.sh (once per machine — commit + pre-push checks)
 [ ] Run all quality gates — confirm zero regressions before starting
 [ ] Note the exact acceptance criteria — these are the exit conditions
 ```
@@ -164,8 +167,11 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 
 ### Verify-all commands (run before each commit)
 ```bash
-# One command — mirrors CI
+# One command — mirrors CI (repo lint is step 1)
 ./scripts/quality-gates.sh
+
+# Repo lint only (shell + workflows + Markdown)
+bash scripts/repo-lint.sh
 
 # Or individually:
 uv run ruff check .
@@ -179,7 +185,7 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 ### Post-slice checklist
 ```
 [ ] All acceptance criteria checked ✅
-[ ] Quality gates pass (zero regressions)
+[ ] Quality gates pass (zero regressions) — ./scripts/quality-gates.sh; git push runs essential pre-commit hooks on all files
 [ ] Slice status updated in docs/_internal/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
@@ -189,7 +195,14 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 
 ## Quality Gates Baseline
 
-**Unified script:** `./scripts/quality-gates.sh` (mirrors CI)
+**Unified script:** `./scripts/quality-gates.sh` (mirrors CI — 11 steps including repo lint)
+
+**Git hooks** (after `bash scripts/install-git-hooks.sh`):
+- **commit** → pre-commit (staged-file lint)
+- **push** → same essential pre-commit hooks on entire repo (`pre-commit run --all-files`)
+
+**Repo lint** (2026-05-27):
+- `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
 
 **Backend** (2026-05-27):
 - `ruff check .` → 0 errors

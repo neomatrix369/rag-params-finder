@@ -80,3 +80,12 @@ Name: `vector_index_384`
 - `rag-params-finder run --config configs/example-local.yaml` completes without `VOYAGE_API_KEY`
 - Results stored with 384-dim embeddings under `vector_index_384`
 - `provider: local` + Voyage model name → Pydantic validation error at config load
+
+## Quality gates (current project standard)
+
+```bash
+bash scripts/install-git-hooks.sh
+./scripts/quality-gates.sh
+```
+
+See [`development.md`](../contributor-guide/development.md) § Git hooks.
