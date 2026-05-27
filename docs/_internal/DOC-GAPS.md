@@ -1,7 +1,7 @@
 # Documentation Gap Tracker
 
 **Created**: 2026-05-05
-**Last Updated**: 2026-05-05 (README rewritten for simplicity; ARCHITECTURE.md updated for local models)
+**Last Updated**: 2026-05-27 (baselines refreshed after Slice 20; gaps 7–8 notes superseded)
 **Reference**: Gap analysis vs [pre-rag-explorer-dashboard](https://github.com/neomatrix369/pre-rag-explorer-dashboard)
 
 Each item below is a concrete, actionable doc gap. Check the box when done and record the date.
@@ -98,14 +98,15 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 **Priority**: Medium
 
 - [x] Add `## Quality Gates Baseline` section to `CLAUDE.md` with real numbers:
-  - [x] `ruff check .` → 0 errors (after `uv pip install -e ".[dev]"`)
+  - [x] `ruff check .` → 0 errors
   - [x] `mypy server/ cli/` → 0 errors
-  - [x] `pytest` → 17 tests (search index preflight; see `tests/`)
-  - [x] `npm run typecheck` → 0 errors ✓ (fixed `tsconfig.json` to include `vite/client.d.ts`)
-  - [x] `npm run build` → ✓ built in ~1.8 s, 34 modules
-  - [x] `npm audit --audit-level=high` → 0 vulnerabilities
+  - [x] `pytest` → **23 tests** (2026-05-27): 17 search-index + 3 sweep + 3 tiebreaker; 80% coverage on 4 scoped modules
+  - [x] `npm run lint` → 0 errors (ESLint + security plugin, Slice 20)
+  - [x] `npm run typecheck` → 0 errors
+  - [x] `npm run build` → ~4 s, 49 modules
+  - [x] `npm audit --audit-level=high` → 0 high vulnerabilities
 
-**Reference**: pre-rag `CLAUDE.md` records exact numeric baselines per slice gate.
+**Reference**: `CLAUDE.md`, `development.md`, `./scripts/quality-gates.sh` (canonical local mirror).
 
 ---
 
@@ -113,12 +114,12 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 
 **Priority**: Low–Medium
 
-- [x] Add `.github/workflows/ci.yml` covering: `ruff`, `mypy`, `pytest` for backend; `npm run typecheck`, `npm run build`, `npm audit` for frontend
-- [x] CI documented in `CLAUDE.md` Quality Gates Baseline section
+- [x] Add `.github/workflows/ci.yml` — backend: ruff + format + mypy + bandit + pytest/coverage + pip-audit; frontend: eslint + tsc + build + npm audit; secrets: gitleaks
+- [x] CI documented in `CLAUDE.md`, `development.md`, Slice 20 spec
 
-**Note**: `npm run lint` excluded until ESLint config (`eslint.config.js`) is set up.
+**Superseded note (2026-05-27):** ESLint is wired (`frontend/.eslintrc.cjs`). Use `./scripts/quality-gates.sh` for local/CI parity.
 
-**Reference**: pre-rag's Slice 1 established CI as a first-class deliverable.
+**Reference**: pre-rag's Slice 1 established CI as a first-class deliverable; Slice 20 hardened to Serious tier.
 
 ---
 

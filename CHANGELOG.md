@@ -23,7 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Upgraded urllib3, starlette, idna, langchain-core via uv dependency overrides
-- Pre-commit: gitleaks config, frontend lint hook, bandit hook
+- Pre-commit: gitleaks config, frontend lint hook, bandit hook (`uv run bandit … -ll`, aligned with CI)
+
+### Fixed
+
+- CI: read Node version from repo-root `.nvmrc` (`setup-node` resolves paths from checkout root, not `frontend/` working directory)
+- CLI: `httpx.Client(timeout=…)` default timeout on constructor (SAST/runtime parity)
 
 ---
 

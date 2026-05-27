@@ -261,7 +261,7 @@ pytest tests/test_tiebreaker_ranking.py -v
 ### 2. Full Test Suite
 ```bash
 pytest --tb=short -q
-# ✅ 22 passed (including 2 new tiebreaker tests)
+# ✅ 23 passed (including 3 tiebreaker tests in test_tiebreaker_ranking.py)
 ```
 
 ### 3. Frontend Type Safety

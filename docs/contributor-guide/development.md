@@ -128,16 +128,21 @@ pre-commit install
 
 ## 🧪 Testing Strategy
 
-Current approach: manual testing via CLI + Dashboard.
+**Fast unit tier** (`tests/`, run in CI and `./scripts/quality-gates.sh`):
 
-**Planned test layers** (no suite yet — see Contributing):
-- **Unit tests**: individual chunkers, embedders, rerankers with mock inputs
-- **Integration tests**: full pipeline with mock MongoDB collections and pre-computed embedding fixtures (avoids real API calls)
-- **Frontend**: TypeScript compilation serves as the basic type-correctness check (no vitest/jest setup yet)
+| Module | Tests | Focus |
+|--------|-------|--------|
+| `test_search_index_plan.py` | 15 | Required Atlas indexes, capacity scenarios |
+| `test_search_index_guard.py` | 2 | Preflight guard (mocked I/O) |
+| `test_expand_sweep.py` | 3 | Unified `retrievers` sweep expansion |
+| `test_tiebreaker_ranking.py` | 3 | Weighted ranking / tiebreaker logic |
 
-The primary blockers for a proper test suite are:
-- Integration tests need mock MongoDB (or a test Atlas cluster)
-- Embedding tests need either a local model or pre-computed fixtures to avoid slow API calls
+**Total:** 23 pytest tests (2026-05-27 baseline). Coverage is enforced at **80%** on four scoped server modules (see Quality Gates above).
+
+**Still manual / not automated:**
+- End-to-end pipeline via CLI + dashboard (real Atlas + optional Voyage)
+- **Integration tests**: full pipeline with mock MongoDB and pre-computed embedding fixtures (planned — `integration` marker exists in `pyproject.toml`)
+- **Frontend**: ESLint + `tsc` + production build in CI; no Vitest/Jest suite yet
 
 ---
 
@@ -166,7 +171,7 @@ rag-params-finder/
 │   ├── adr/             # Architecture Decision Records
 │   ├── slices/          # Slice specs (dev-internal)
 │   └── _internal/       # Dev log, gap tracker, Graphiti exports
-└── .github/workflows/   # CI (ruff, mypy, pytest, npm typecheck + build)
+└── .github/workflows/   # CI (see § CI — backend, frontend, secrets jobs)
 ```
 
 ---
@@ -206,14 +211,17 @@ Record every non-obvious choice in `docs/_internal/PROGRESS.md` → Decision Log
 
 ## 🔄 CI
 
-GitHub Actions runs on every push and PR to `main`:
+GitHub Actions runs on every push and PR to `main` (three jobs — see `.github/workflows/ci.yml`):
 
-- **Backend**: `ruff check` → `ruff format --check` → `mypy` → `pytest` + coverage (80% on scoped modules) → `scripts/pip-audit.sh`
-- **Frontend**: `npm run lint` → `npm run typecheck` → `npm run build` → `npm audit --audit-level=high`
+| Job | Steps |
+|-----|--------|
+| **Backend (Python)** | `ruff check` → `ruff format --check` → `mypy` → `bandit -ll` → `pytest` + 80% scoped coverage → `scripts/pip-audit.sh` |
+| **Frontend (Node.js)** | `npm run lint` → `npm run typecheck` → `npm run build` → `npm audit --audit-level=high` (Node from repo-root `.nvmrc`) |
+| **Secrets** | `gitleaks-action` with `.gitleaks.toml` |
 
 Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabot.yml`).
 
-See `.github/workflows/ci.yml` and `./scripts/quality-gates.sh` for the full pipeline.
+Local mirror: `./scripts/quality-gates.sh` (default). Use `--quick` for lint/typecheck/tests only; `--full` adds local gitleaks + `pre-commit run --all-files`.
 
 ---
 
@@ -259,7 +267,7 @@ Some contributors use **Cursor** or **Claude Code** with the [`code-review-graph
 
 Areas where help is most needed:
 
-- **Test suite expansion**: pytest fixtures with mock MongoDB + pre-computed embedding fixtures *(17 search-index tests shipped)*
+- **Test suite expansion**: integration tier with mock MongoDB + pre-computed embedding fixtures *(23 unit tests shipped — search index, sweep expansion, tiebreaker)*
 - **SSE live updates**: replace the 2-second polling loop with Server-Sent Events
 - **Docker Compose**: one-command `docker compose up` setup
 - **Experiment cleanup CLI**: `rag-params-finder cleanup --older-than 30d`
