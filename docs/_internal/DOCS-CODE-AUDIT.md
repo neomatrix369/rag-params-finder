@@ -1,6 +1,6 @@
 # Documentation vs Code Audit
 
-**Audit date**: 2026-05-23
+**Audit date**: 2026-05-23 (full pass) · **Supplement**: 2026-05-27 (Slice 20 + test counts)
 **Auditor**: Claude (automated verification)
 **Scope**: README.md, user guides, contributor guides, code implementation
 
@@ -8,12 +8,20 @@
 
 ## Executive Summary
 
-**Overall Status**: ✅ **EXCELLENT** — Documentation is highly accurate with only minor findings.
+**Overall Status (2026-05-23 pass)**: ✅ **EXCELLENT** for CLI, models, env vars, and user guides.
+
+**2026-05-27 supplement** (after Slice 20 toolchain + doc sync):
+
+| Area | Status |
+|------|--------|
+| `quality-gates.sh` ↔ `ci.yml` | ✅ Aligned (bandit, coverage, pip-audit, eslint, gitleaks job) |
+| Test count in contributor docs | ✅ **23** pytest tests (was incorrectly cited as 39 in PROGRESS) |
+| Kimchi provider | ⚠️ `Provider` type includes `kimchi`; embedder/registry on `tessl-hackathon-kimchi-integration` branch only — not on main |
+| `development.md` testing section | ✅ Updated (was "no suite yet") |
 
 - **Critical issues**: 0
-- **Documentation gaps**: 2 minor
-- **Code features undocumented**: 1
-- **Accuracy**: ~98%
+- **Accuracy (user-facing CLI/config)**: ~98% (2026-05-23 baseline still valid)
+- **See also**: `docs/contributor-guide/development.md`, `docs/slices/SLICE-20-TOOLCHAIN-HARDENING.md`
 
 ---
 
