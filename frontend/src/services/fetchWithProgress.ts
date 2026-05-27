@@ -95,6 +95,8 @@ async function readBodyAsTextTracked(
     }
   };
 
+  // Stream reads until the reader signals done — standard ReadableStream pattern.
+  // eslint-disable-next-line no-constant-condition -- termination via reader.read() done flag
   while (true) {
     if (signal?.aborted) {
       reader.cancel().catch(() => undefined);

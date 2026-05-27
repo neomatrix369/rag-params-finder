@@ -49,8 +49,8 @@ def _log_http_error(method: str, url: str, response: httpx.Response) -> None:
 def _request(method: str, url: str, **kwargs: Any) -> httpx.Response:
     """Issue an HTTP request; log connection/timeout failures with server context."""
     try:
-        with httpx.Client() as client:
-            return client.request(method, url, timeout=_DEFAULT_TIMEOUT_S, **kwargs)
+        with httpx.Client(timeout=_DEFAULT_TIMEOUT_S) as client:
+            return client.request(method, url, **kwargs)
     except httpx.ConnectError as exc:
         server_url = get_server_url()
         logger.error("network failure — cannot connect to %s: %s", server_url, exc)

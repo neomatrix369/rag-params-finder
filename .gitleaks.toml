@@ -1,0 +1,25 @@
+# Gitleaks configuration — excludes build artifacts and lockfiles from secret scanning.
+# Adapted from pre-rag-explorer-dashboard/.gitleaks.toml
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist for false positives"
+
+paths = [
+  '''frontend/dist/''',
+  '''frontend/node_modules/''',
+  '''\.venv/''',
+  '''uv\.lock''',
+  '''frontend/package-lock\.json''',
+  '''\.git/''',
+  '''\.mypy_cache/''',
+  '''\.pytest_cache/''',
+  '''\.code-review-graph/''',
+]
+
+regexes = [
+  '''example-mongodb-local''',  # config filenames in docs
+  '''mongodb\+srv://<''',        # placeholder connection strings in docs
+]
