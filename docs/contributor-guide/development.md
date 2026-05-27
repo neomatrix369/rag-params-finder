@@ -133,10 +133,10 @@ uv run pytest --tb=short -q \
 bash scripts/pip-audit.sh
 ```
 
-**Baseline (as of 2026-05-27)**:
+**Baseline (as of 2026-05-28)**:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 23 tests, 83.6% coverage on scoped modules
+- `pytest` → 26 tests, 83.6% coverage on scoped modules
 
 ### Frontend
 
@@ -156,7 +156,7 @@ npm run build
 npm audit --audit-level=high
 ```
 
-**Baseline (as of 2026-05-27)**:
+**Baseline (as of 2026-05-28)**:
 - `npm run lint` → 0 errors
 - `npm run typecheck` → 0 errors
 - `npm run build` → built in ~4s, 49 modules
@@ -238,7 +238,7 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 | `test_expand_sweep.py` | 3 | Unified `retrievers` sweep expansion |
 | `test_tiebreaker_ranking.py` | 3 | Weighted ranking / tiebreaker logic |
 
-**Total:** 23 pytest tests (2026-05-27 baseline). Coverage is enforced at **80%** on four scoped server modules (see Quality Gates above).
+**Total:** 26 pytest tests (2026-05-28 baseline: 17 search-index + 3 sweep + 3 tiebreaker + 3 health). Coverage is enforced at **80%** on four scoped server modules (see Quality Gates above).
 
 **Still manual / not automated:**
 - End-to-end pipeline via CLI + dashboard (real Atlas + optional Voyage)
@@ -302,7 +302,7 @@ Record every non-obvious choice in `docs/slices/PROGRESS.md` → Decision Log:
 
 ```
 [ ] All acceptance criteria checked ✅
-[ ] Quality gates pass — ./scripts/quality-gates.sh; git push exercised essential pre-push hook
+[ ] Quality gates pass — ./scripts/quality-gates.sh; git push exercised pre-push fast gates (`pre-push-gates.sh`)
 [ ] Slice status updated in docs/slices/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message

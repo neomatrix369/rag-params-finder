@@ -1,6 +1,6 @@
 # Documentation vs Code Audit
 
-**Audit date**: 2026-05-23 (full pass) · **Supplement**: 2026-05-27 (Slice 20 + repo lint + test counts)
+**Audit date**: 2026-05-23 (full pass) · **Supplements**: 2026-05-27 (Slice 20 + repo lint) · 2026-05-28 (doc nav + pre-push + test count)
 **Auditor**: Claude (automated verification)
 **Scope**: README.md, user guides, contributor guides, code implementation
 
@@ -16,8 +16,9 @@
 |------|--------|
 | `quality-gates.sh` ↔ `ci.yml` | ✅ Aligned (repo-lint, bandit, coverage, pip-audit, eslint, gitleaks) |
 | `repo-lint.sh` ↔ pre-commit hooks | ✅ shellcheck, actionlint, markdownlint (same revs via pre-commit) |
-| pre-commit `--all-files` ↔ pre-push hook | ✅ same essential hooks as commit; `install-git-hooks.sh` |
-| Test count in contributor docs | ✅ **23** pytest tests (was incorrectly cited as 39 in PROGRESS) |
+| pre-push hook ↔ `pre-push-gates.sh` | ✅ `quality-gates.sh --quick` (pytest + frontend verify + gitleaks); not `pre-commit --all-files` |
+| Test count in contributor docs | ✅ **26** pytest tests (17 search-index + 3 sweep + 3 tiebreaker + 3 health; was 39, then 23) |
+| Doc entry points | ✅ `QUICKSTART.md`, `docs/README.md`, `docs/slices/PROGRESS.md` (2026-05-28 nav reorg) |
 | Kimchi provider | ⚠️ `Provider` type includes `kimchi`; embedder/registry on `tessl-hackathon-kimchi-integration` branch only — not on main |
 | `development.md` testing section | ✅ Updated (was "no suite yet") |
 
