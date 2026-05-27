@@ -8,6 +8,8 @@ useDefault = true
 description = "Allowlist for false positives"
 
 paths = [
+  '''^\.env$''',
+  '''^\.env\.''',
   '''frontend/dist/''',
   '''frontend/node_modules/''',
   '''\.venv/''',
