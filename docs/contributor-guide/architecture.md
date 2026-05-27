@@ -255,6 +255,18 @@ See `docs/adr/` for Architecture Decision Records:
 
 ---
 
+## Local deployment
+
+| Mode | Command | Notes |
+|------|---------|-------|
+| Manual (default dev) | `uvicorn` + `npm run dev` | Two terminals; hot reload |
+| Docker (prod profile) | `./start-services.sh` | Server + dashboard containers; host CLI |
+| Docker (dev profile) | `docker compose --profile dev up` | Bind mounts + HMR |
+
+Atlas connection string and API keys live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../slices/SLICE-14-DOCKER-COMPOSE.md).
+
+---
+
 ## 🔮 Future Enhancements
 
 | Enhancement | Notes |
@@ -264,7 +276,6 @@ See `docs/adr/` for Architecture Decision Records:
 | Parallel sweep (`execution.parallelism` > 1) | Planned as [Slice 16 — Parallel Sweep Runs](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md); bounded in-process pool first; **Celery + Redis** when multi-process fairness or isolation is needed |
 | Dashboard-triggered runs | Submit experiments from the React UI, not just CLI |
 | Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` |
-| Docker Compose | One-command local setup |
 
 ---
 

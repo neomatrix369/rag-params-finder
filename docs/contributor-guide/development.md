@@ -49,6 +49,38 @@ source .venv/bin/activate
 rag-params-finder run --config configs/example-mongodb-local.yaml
 ```
 
+### Docker Compose
+
+One-command stack for server + dashboard (MongoDB Atlas stays external). The **CLI runs on the host** at `SERVER_URL=http://localhost:8001` ([ADR-001](../adr/ADR-001-two-process-architecture.md)).
+
+**Prerequisites:** Docker Desktop (or engine + Compose v2), valid `.env` with `MONGODB_URI`, Atlas search indexes per [cloud-setup](../user-guide/cloud-setup.md).
+
+```bash
+cp .env.example .env
+./start-services.sh              # prod: built frontend + uvicorn (ports 8001, 5173)
+./scripts/health-check.sh        # smoke: server, frontend, Atlas via /healthz
+
+# Host CLI (install once: uv pip install -e .)
+rag-params-finder run --config configs/example-mongodb-local.yaml
+
+# Dev overlay: HMR + uvicorn --reload
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+# or: RAG_DEV_STACK=1 ./start-services.sh
+
+./stop-services.sh               # interactive stop (standard / pause / deep cleanup)
+```
+
+| Port | Service |
+|------|---------|
+| 8001 | FastAPI server |
+| 5173 | React dashboard |
+
+**Profiles:** default = production-like (`vite preview`); `dev` = bind-mounted source + `/api` proxy to `http://server:8001`.
+
+**Non-interactive:** `NONINTERACTIVE=1 ./start-services.sh` (fails fast on missing/placeholder `.env`).
+
+Spec: [SLICE-14-DOCKER-COMPOSE.md](../slices/SLICE-14-DOCKER-COMPOSE.md). Troubleshooting: [user-guide/troubleshooting.md](../user-guide/troubleshooting.md#-docker).
+
 ---
 
 ## ✅ Quality Gates
@@ -68,7 +100,8 @@ Run all gates before committing. All must pass with zero regressions.
 
 ```bash
 ./scripts/quality-gates.sh              # full CI mirror (default)
-./scripts/quality-gates.sh --quick      # repo lint + lint + typecheck + unit tests (skips coverage/build/audits)
+./scripts/quality-gates.sh --quick      # same as git push (lint, tests, frontend verify, gitleaks)
+./scripts/pre-push-gates.sh             # alias for --quick
 ./scripts/quality-gates.sh --full       # CI mirror + local gitleaks + pre-commit all-files
 ```
 
@@ -159,18 +192,21 @@ bash scripts/install-git-hooks.sh
 | Hook | When | What runs |
 |------|------|-----------|
 | **pre-commit** | `git commit` | Essential checks on **staged** files (see list below) |
-| **pre-push** | `git push` | Same essential checks on the **entire repo** (`pre-commit run --all-files`) |
+| **pre-push** | `git push` | Fast CI gates: `./scripts/pre-push-gates.sh` (mirrors pre-rag `npm run test:all`) |
 
-**Essential checks** (commit + push): trailing whitespace / EOF / YAML·JSON·TOML syntax, merge conflicts, large files, private keys, gitleaks, shellcheck (`scripts/*.sh`), actionlint, markdownlint, bandit, ruff + format, mypy, frontend eslint + verify (when `frontend/` applies).
+**Pre-commit** (staged files): hygiene, gitleaks, shellcheck, actionlint, markdownlint, bandit, ruff + format, mypy, frontend eslint + verify when `frontend/` is touched.
 
-**Not on push** (run manually or in CI): pytest + coverage, pip-audit, npm audit. Run `./scripts/quality-gates.sh` before opening a PR for full CI parity.
+**Pre-push** (whole repo, check-only): repo lint, ruff check + format check, mypy, bandit, **pytest**, frontend eslint, **frontend verify** (tsc + build), gitleaks.
+
+**Not on push** (run `./scripts/quality-gates.sh` before a PR or rely on CI): coverage threshold, pip-audit, npm audit, pre-commit hygiene sweep (`--full`).
 
 Emergency bypass (use sparingly): `git push --no-verify`
 
 Test push hook without pushing:
 
 ```bash
-pre-commit run --hook-stage pre-push --all-files
+pre-commit run pre-push-gates --hook-stage pre-push
+# or: ./scripts/pre-push-gates.sh
 ```
 
 **Push did not run checks?** Git only runs hooks that exist under `.git/hooks/`. A plain `pre-commit install` (no `--hook-type pre-push`) installs **commit** only. After pulling hook changes, re-run:
@@ -185,7 +221,7 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 | Trigger | What runs |
 |---------|-----------|
 | `git commit` | **pre-commit** — staged files (hygiene, secrets, repo lint, ruff, mypy, bandit, frontend when touched) |
-| `git push` | **pre-push** — same essential hooks as commit, all files |
+| `git push` | **pre-push** — `./scripts/pre-push-gates.sh` (lint, tests, build, secrets) |
 | PR or push to `main` | **GitHub Actions** — full CI (four jobs; includes pytest, coverage, pip-audit, npm audit, build) |
 | Manual | `./scripts/quality-gates.sh` — full local mirror of CI before opening a PR |
 
@@ -288,7 +324,7 @@ GitHub Actions runs on every push and PR to `main` (four jobs — see `.github/w
 
 Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabot.yml`).
 
-**Local mirrors:** `./scripts/quality-gates.sh` (full, before PR). **`git push`** runs essential pre-commit hooks on all files if `install-git-hooks.sh` was used. `--quick` / `--full` are manual only.
+**Local mirrors:** `./scripts/quality-gates.sh` (full, before PR). **`git push`** runs `./scripts/pre-push-gates.sh` when hooks are installed. `--full` adds pre-commit all-files sweep.
 
 ---
 
@@ -336,7 +372,6 @@ Areas where help is most needed:
 
 - **Test suite expansion**: integration tier with mock MongoDB + pre-computed embedding fixtures *(23 unit tests shipped — search index, sweep expansion, tiebreaker)*
 - **SSE live updates**: replace the 2-second polling loop with Server-Sent Events
-- **Docker Compose**: one-command `docker compose up` setup
 - **Experiment cleanup CLI**: `rag-params-finder cleanup --older-than 30d`
 
 Please open an issue before starting work on large features to discuss the approach.

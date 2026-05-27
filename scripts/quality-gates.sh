@@ -2,7 +2,7 @@
 # Run all quality gates — mirrors .github/workflows/ci.yml (repo-lint + backend + frontend + audits).
 # Usage:
 #   ./scripts/quality-gates.sh          # full CI mirror (default)
-#   ./scripts/quality-gates.sh --quick  # manual fast check (not run on git push; push uses pre-commit --all-files)
+#   ./scripts/quality-gates.sh --quick  # fast gates (git push via scripts/pre-push-gates.sh)
 #   ./scripts/quality-gates.sh --full   # CI mirror + local gitleaks + pre-commit all-files
 
 set -e
@@ -42,16 +42,25 @@ uv run bandit -c pyproject.toml -r server/ cli/ -q -ll
 
 if [[ "${MODE}" == "quick" ]]; then
   echo ""
-  echo "6/11 Backend unit tests (no coverage)..."
+  echo "6/9 Backend unit tests (no coverage)..."
   uv run pytest --tb=short -q -m "not integration"
   echo ""
-  echo "7/11 Frontend lint (eslint)..."
+  echo "7/9 Frontend lint (eslint)..."
   npm --prefix frontend run lint
   echo ""
-  echo "8/11 Frontend typecheck..."
-  npm --prefix frontend run typecheck
+  echo "8/9 Frontend verify (tsc + production build)..."
+  npm --prefix frontend run verify
   echo ""
-  echo "✅ Quick quality gates passed (repo lint + lint/typecheck/tests; coverage, pip-audit, npm audit, build skipped)."
+  echo "9/9 Secrets scan (gitleaks)..."
+  if command -v gitleaks >/dev/null 2>&1; then
+    gitleaks detect --config .gitleaks.toml --verbose
+  else
+    echo "⚠️  gitleaks not installed — skip (brew install gitleaks)"
+  fi
+  echo ""
+  echo "✅ Quick quality gates passed."
+  echo "   (repo lint, ruff, mypy, bandit, pytest, frontend lint+verify, gitleaks)"
+  echo "   Skipped: coverage, pip-audit, npm audit — run ./scripts/quality-gates.sh before a PR."
   exit 0
 fi
 
@@ -82,7 +91,7 @@ if [[ "${MODE}" == "full" ]]; then
   echo ""
   echo "10/11 Full: gitleaks (with .gitleaks.toml)..."
   if command -v gitleaks >/dev/null 2>&1; then
-    gitleaks detect --config .gitleaks.toml --source . --verbose --no-git
+    gitleaks detect --config .gitleaks.toml --verbose
   else
     echo "⚠️  gitleaks not installed — skip (brew install gitleaks)"
   fi
