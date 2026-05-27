@@ -74,8 +74,9 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: "../.nvmrc"
-          cache: "npm"
+          # Path is relative to repository root (not defaults.run.working-directory).
+          node-version-file: .nvmrc
+          cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
