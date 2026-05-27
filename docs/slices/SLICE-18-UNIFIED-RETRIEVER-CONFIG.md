@@ -94,8 +94,9 @@ retrieval:
 - [ ] Troubleshooting guide mentions old vs new format
 
 ### Quality Gates
-- [ ] `./scripts/quality-gates.sh` passes (repo lint + backend + frontend + audits — see [`development.md`](../contributor-guide/development.md))
-- [ ] Or `--quick` during iteration: repo lint + ruff + mypy + unit tests + eslint + tsc
+- [ ] `bash scripts/install-git-hooks.sh` run on dev machine (commit + pre-push hooks)
+- [ ] `./scripts/quality-gates.sh` passes (full CI mirror before PR — see [`development.md`](../contributor-guide/development.md))
+- [ ] `git push` succeeds with pre-push hook (`quality-gates --quick`) or run `--quick` manually during iteration
 
 ### Manual Verification
 - [ ] Old YAML config → successful sweep

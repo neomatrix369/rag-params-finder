@@ -66,7 +66,8 @@ Load test queries from a persona-based JSON file and execute all queries within 
 ## Quality gates (current project standard)
 
 ```bash
+bash scripts/install-git-hooks.sh
 ./scripts/quality-gates.sh
 ```
 
-See [`docs/contributor-guide/development.md`](../contributor-guide/development.md) and [`SLICE-20-TOOLCHAIN-HARDENING.md`](./SLICE-20-TOOLCHAIN-HARDENING.md).
+See [`development.md`](../contributor-guide/development.md) § Git hooks.

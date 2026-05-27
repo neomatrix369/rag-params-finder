@@ -137,13 +137,12 @@ DELETE /experiments/{id}?force=true
 
 ## Automated quality gates
 
-Before merge:
-
 ```bash
+bash scripts/install-git-hooks.sh
 ./scripts/quality-gates.sh
 ```
 
-See [`docs/contributor-guide/development.md`](../contributor-guide/development.md).
+See [`development.md`](../contributor-guide/development.md) § Git hooks.
 
 ---
 

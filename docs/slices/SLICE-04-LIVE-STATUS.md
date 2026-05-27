@@ -59,7 +59,8 @@ Real-time phase tracking: CLI shows a live table while runs progress, and the Re
 ## Quality gates (current project standard)
 
 ```bash
+bash scripts/install-git-hooks.sh
 ./scripts/quality-gates.sh
 ```
 
-See [`docs/contributor-guide/development.md`](../contributor-guide/development.md) and [`SLICE-20-TOOLCHAIN-HARDENING.md`](./SLICE-20-TOOLCHAIN-HARDENING.md).
+See [`development.md`](../contributor-guide/development.md) § Git hooks.

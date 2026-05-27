@@ -16,6 +16,7 @@
 |------|--------|
 | `quality-gates.sh` ↔ `ci.yml` | ✅ Aligned (repo-lint, bandit, coverage, pip-audit, eslint, gitleaks) |
 | `repo-lint.sh` ↔ pre-commit hooks | ✅ shellcheck, actionlint, markdownlint (same revs via pre-commit) |
+| `quality-gates.sh --quick` ↔ pre-push hook | ✅ `install-git-hooks.sh` installs pre-push stage |
 | Test count in contributor docs | ✅ **23** pytest tests (was incorrectly cited as 39 in PROGRESS) |
 | Kimchi provider | ⚠️ `Provider` type includes `kimchi`; embedder/registry on `tessl-hackathon-kimchi-integration` branch only — not on main |
 | `development.md` testing section | ✅ Updated (was "no suite yet") |
