@@ -8,6 +8,10 @@
 
 Everything you need to run your first RAG parameter sweep experiment.
 
+> **Shortest path:** [QUICKSTART.md](../../QUICKSTART.md) — install and first sweep. This guide adds step-by-step detail.
+
+**Documentation map:** [docs/README.md](../README.md)
+
 ---
 
 ## ✅ Prerequisites

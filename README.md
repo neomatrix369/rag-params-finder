@@ -29,6 +29,8 @@ model × chunking method × retrieval method — stores the retrieval scores and
 shows you exactly which configuration performs best.
 **Before you write a single line of your RAG application.**
 
+**Jump to:** [Quickstart](QUICKSTART.md) | [Who is this for?](#who-is-this-for) | [Screenshots](#-screenshots) | [Key Features](#-key-features) | [Documentation](docs/README.md) | [Contributing](#-contributing)
+
 ## Why this matters
 
 | What you avoid | What you get instead |
@@ -48,6 +50,23 @@ shows you exactly which configuration performs best.
 
 One YAML. N experiments. Evidence-based decision. Ship the right config first.
 
+## Who is this for?
+
+> Pick the row that matches you — each links to a **first step**, not the whole README.
+
+| Persona | Start here | What you will do |
+|---------|------------|------------------|
+| **New user — cloud accounts** | [Cloud Account Setup](docs/user-guide/cloud-setup.md) | Atlas + optional Voyage, then [QUICKSTART](QUICKSTART.md) |
+| **New user — first sweep** | [QUICKSTART](QUICKSTART.md) | Install, run server + CLI, open dashboard |
+| **Operator — config & CLI** | [Configuration Reference](docs/user-guide/configuration.md) | YAML sweeps, env vars, `rag-params-finder` commands |
+| **Operator — dashboard** | [Dashboard Guide](docs/user-guide/dashboard-guide.md) | Live phases, Search Explorer, experiment controls |
+| **Operator — fixing errors** | [Troubleshooting](docs/user-guide/troubleshooting.md) | Indexes, Voyage limits, Docker, storage quota |
+| **Contributor — system design** | [Architecture](docs/contributor-guide/architecture.md) | Modules, data flow, ADRs |
+| **Contributor — dev setup** | [Development Guide](docs/contributor-guide/development.md) | Quality gates, slices, Docker, hooks |
+| **Agent / slice worker** | [AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md) | [PROGRESS](docs/slices/PROGRESS.md) → current slice spec |
+
+**All docs by topic:** [docs/README.md](docs/README.md)
+
 ---
 
 ## 📸 Screenshots
@@ -62,43 +81,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 
 ## 🚀 Quick Start
 
-**Prerequisites:** Python 3.12+, Node.js 22+, [MongoDB Atlas account](docs/user-guide/cloud-setup.md#mongodb-atlas-required) (free tier). [Voyage AI](docs/user-guide/cloud-setup.md#voyage-ai-optional) optional for local-only sweeps.
-
-```bash
-# Clone and install
-git clone https://github.com/neomatrix369/rag-params-finder.git
-cd rag-params-finder
-uv venv && source .venv/bin/activate
-uv pip install -e .
-cd frontend && npm install && cd ..
-
-# Configure — see docs/user-guide/cloud-setup.md for minimal Atlas + Voyage checklist
-cp .env.example .env
-
-# Start
-uvicorn server.main:app --reload --port 8001   # Terminal 1
-cd frontend && npm run dev                      # Terminal 2 (optional)
-
-# Sweeps — complete cloud-setup.md checklist first
-rag-params-finder run --config configs/example-mongodb-local.yaml   # 120 runs, no API key
-rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 40 runs, Voyage + Tier 1
-```
-
-Open `http://localhost:5173` to watch live progress and explore results.
-
-### Docker Quick Start (optional)
-
-**Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/), MongoDB Atlas configured ([cloud-setup](docs/user-guide/cloud-setup.md)). Install the CLI on the host (`uv pip install -e .`).
-
-```bash
-cp .env.example .env   # set MONGODB_URI (and VOYAGE_API_KEY if needed)
-./start-services.sh    # server :8001 + dashboard :5173
-
-# Submit sweeps from the host (CLI is not containerized)
-rag-params-finder run --config configs/example-mongodb-local.yaml
-```
-
-Dev hot reload: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build`. Details: [Slice 14 spec](docs/slices/SLICE-14-DOCKER-COMPOSE.md) · [Development Guide → Docker](docs/contributor-guide/development.md#-docker-compose).
+See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, and first sweep commands (including optional Docker).
 
 ---
 

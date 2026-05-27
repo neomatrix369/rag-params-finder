@@ -81,7 +81,7 @@ Threshold set to **80%** (`--cov-fail-under=80` in CI and quality-gates).
 ### Docs
 - [x] `docs/contributor-guide/development.md` — quality gates section updated
 - [x] `CLAUDE.md` — verify-all commands + baseline metrics updated
-- [x] `docs/_internal/PROGRESS.md` — slice 20 row + decision log entry
+- [x] `docs/slices/PROGRESS.md` — slice 20 row + decision log entry
 
 ---
 
@@ -119,7 +119,7 @@ Threshold set to **80%** (`--cov-fail-under=80` in CI and quality-gates).
 | `frontend/src/services/fetchWithProgress.ts` | Stream loop lint fix |
 | `docs/contributor-guide/development.md` | Gate commands + baselines |
 | `CLAUDE.md` | Verify-all + baseline |
-| `docs/_internal/PROGRESS.md` | Slice 20 status |
+| `docs/slices/PROGRESS.md` | Slice 20 status |
 
 ---
 
