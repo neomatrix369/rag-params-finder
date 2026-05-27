@@ -2,8 +2,8 @@
 
 **MoSCoW:** MUST *(reliability and CI/local parity — prevents regressions before feature slices)*
 **Target time:** ~2–3 h
-**Status:** ✅ COMPLETE (pending PR merge)
-**Branch:** `chore/slice-20-toolchain-hardening`
+**Status:** ✅ COMPLETE
+**Branch:** `chore/slice-20-toolchain-hardening` (merge to `main` when ready)
 
 ---
 
@@ -40,7 +40,7 @@ Inherit proven hardening patterns from **price-analysis** and **pre-rag-explorer
 
 ### Scripts & local gates
 - [x] `./scripts/quality-gates.sh` passes (mirrors `.github/workflows/ci.yml`)
-- [x] `./scripts/quality-gates.sh --full` runs `pip-audit.sh` + `pre-commit run --all-files`
+- [x] `./scripts/quality-gates.sh --full` runs local gitleaks + `pre-commit run --all-files` (default mode already includes `pip-audit.sh`)
 - [x] `python scripts/check_integrity.py` passes (unit tests + import smoke)
 
 ### CI
@@ -52,7 +52,7 @@ Inherit proven hardening patterns from **price-analysis** and **pre-rag-explorer
 ### Pre-commit
 - [x] Gitleaks uses `.gitleaks.toml`
 - [x] Frontend eslint hook on `frontend/**/*.{ts,tsx}`
-- [x] Bandit hook (medium+ via pre-commit bandit defaults)
+- [x] Bandit hook (medium+ via `uv run bandit … -ll`, same as CI)
 
 ### Coverage scope (baseline-first)
 Measured baseline **83.6%** on:

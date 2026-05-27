@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-27 (Slice 20 ✅ toolchain hardening complete — PR pending)
-**Current**: … | **Slice 20 ✅ COMPLETE** (toolchain hardening — PR pending) | Next: Slice 10 📋 · …
+**Last Updated**: 2026-05-27 (Slice 20 ✅ toolchain hardening; docs synced to code)
+**Current**: … | **Slice 20 ✅ COMPLETE** (toolchain hardening on `chore/slice-20-toolchain-hardening`) | Next: Slice 10 📋 · …
 
 ---
 
@@ -24,16 +24,17 @@
 | — — Search index preflight + indexes CLI | ✅ COMPLETE | ~2 h | `search_index_plan` + `search_index_guard`; HTTP 422 on submit; fail before runs; `indexes list\|reset`; 17 pytest scenarios |
 | — — Scoped logging (Option A) | ✅ COMPLETE | ~1 h | `scope_log.py` server/CLI; `devLog.ts` dashboard dev console; Voyage error + dashboard failure visibility |
 | — — Dashboard polling + API responsiveness | ✅ COMPLETE | ~1 h | `executors.py` thread pools; list 2 s / stats 60 s / explore 15 s polls; batched db-stats; anti-jitter `PollingIndicator` |
-| — — Kimchi embedding provider | ✅ COMPLETE | ~2 h | CAST OpenAI-compatible embeddings; runtime dimensions; 4-model example sweep; see [`SLICE-16-KIMCHI-PROVIDER.md`](../slices/SLICE-16-KIMCHI-PROVIDER.md) |
-| — — Provider regression pytest | ✅ COMPLETE | ~1 h | 39 tests: embedder dispatch, retriever index, registry, config, db-stats, Kimchi adapter — see [`SLICE-17-TEST-SUITE-EXPANSION.md`](../slices/SLICE-17-TEST-SUITE-EXPANSION.md) § Already delivered |
+| — — Kimchi embedding provider | 🔀 BRANCH | ~2 h | Full CAST integration on `tessl-hackathon-kimchi-integration`; **main** has `kimchi` in `Provider` type only (no registry models / embedder yet) — v0.8.0 release notes are historical |
+| — — Unit pytest suite | ✅ COMPLETE | ~1 h | **23 tests** in `tests/` (17 search-index + 3 sweep expansion + 3 tiebreaker); CI + `quality-gates.sh` enforce 80% on 4 scoped modules |
 | 18 — Unified retriever config | ✅ COMPLETE | ~4–6 h | Unified "retrievers" group (traditional search + rerankers); auto-migrate old format; multi-reranker chains; see [`SLICE-18-UNIFIED-RETRIEVER-CONFIG.md`](../slices/SLICE-18-UNIFIED-RETRIEVER-CONFIG.md) |
 | 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 | 19 — Atlas storage quota guard | 📋 PLANNED | ~3–5 h | Preflight + runtime `OperationFailure` 8000 handling + force-delete recovery; M0 incident 2026-05-23 — see [`SLICE-19-STORAGE-QUOTA-GUARD.md`](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) |
-| 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | quality-gates.sh, coverage CI gate, ESLint, pip-audit, dependabot — see [`SLICE-20-TOOLCHAIN-HARDENING.md`](../slices/SLICE-20-TOOLCHAIN-HARDENING.md) — branch `chore/slice-20-toolchain-hardening` |
+| 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | quality-gates.sh, coverage CI gate, ESLint, bandit, pip-audit, gitleaks CI, dependabot — see [`SLICE-20-TOOLCHAIN-HARDENING.md`](../slices/SLICE-20-TOOLCHAIN-HARDENING.md) |
+| ~~15 — CI/CD~~ | ✅ (via 20) | — | Superseded by Slice 20 — `.github/workflows/ci.yml` + `quality-gates.sh` |
 
-**Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE
+**Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
 
 ---
 
@@ -618,6 +619,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-23 | 18 | Auto-migrate old retrieval config format | Pydantic `@model_validator` converts `methods` + `retrieval_provider`/`retrieval_model` to separate `retrievers` sweep entries |
 | 2026-05-23 | 18 | Maintain old fields indefinitely | Keep `retrieval_method`, `retrieval_provider`, `retrieval_model` in DB — synthesized from single retriever for backward compat |
 | 2026-05-23 | 19 | Slice 19 spec for storage quota guard | M0 hit 515/512 MB; writes blocked (cancel/delete deadlock); `dbStats` understated cluster usage; mirror search-index preflight pattern — spec in [`SLICE-19-STORAGE-QUOTA-GUARD.md`](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) |
+| 2026-05-27 | 20 | Docs synced to toolchain + test reality | 23 pytest tests (not 39); Kimchi on integration branch only; `quality-gates.sh` in interrupt recovery; CI/bandit/gitleaks documented |
 
 ---
 
@@ -644,7 +646,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 13 — Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` | Could | ~15 min |
 | 19 — Storage quota guard | Spec: [`SLICE-19-STORAGE-QUOTA-GUARD.md`](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) — preflight at submit (422); runtime `OperationFailure` 8000; HTTP 507 on control APIs; `?force=true` delete; dashboard ≥80% warning; smoke config for M0 | **Should** | ~3–5 h |
 | 14 — Docker Compose | One-command local setup | Won't (now) | ~30 min |
-| 15 — CI/CD | GitHub Actions: ruff, mypy, pytest, npm lint/build | Should | ~20 min |
+| ~~15 — CI/CD~~ | ~~GitHub Actions~~ | — | ✅ Delivered in Slice 20 |
 | 16 — Parallel sweep (`parallelism` > 1) | Bounded concurrent `_run_single` (+ optional Celery upgrade path); Atlas/Voyage-rate-limit aware | Should | ~2–4 h |
 
 ---
@@ -689,8 +691,8 @@ Use this when resuming a session mid-slice:
 ```
 [ ] Read docs/_internal/PROGRESS.md — note current slice and last known state
 [ ] Run quality gates to confirm no regressions:
-      backend: uv run ruff check . && uv run mypy server/ cli/ && uv run pytest
-      frontend: npm run typecheck && npm run build
+      ./scripts/quality-gates.sh
+      # or --quick: lint + typecheck + unit tests only
 [ ] Check git status — any uncommitted changes?
 [ ] Read the current slice spec in docs/slices/SLICE-XX-*.md
 [ ] Resume from the last incomplete acceptance criterion
