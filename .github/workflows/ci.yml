@@ -17,7 +17,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
@@ -44,8 +44,21 @@ jobs:
       - name: Type check (mypy)
         run: mypy server/ cli/
 
-      - name: Tests (pytest)
-        run: pytest --tb=short -q || [ "$?" = "5" ]
+      - name: SAST (bandit, medium+ severity)
+        run: bandit -c pyproject.toml -r server/ cli/ -q -ll
+
+      - name: Tests + coverage (unit tier)
+        run: |
+          pytest --tb=short -q \
+            --cov=server.core.search_index_plan \
+            --cov=server.core.search_index_guard \
+            --cov=server.core.results_analyzer \
+            --cov=server.models.config \
+            --cov-report=term-missing \
+            --cov-fail-under=80
+
+      - name: Python dependency audit
+        run: bash scripts/pip-audit.sh
 
   frontend:
     name: Frontend (Node.js)
@@ -61,12 +74,16 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "npm"
+          # Path is relative to repository root (not defaults.run.working-directory).
+          node-version-file: .nvmrc
+          cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint (eslint)
+        run: npm run lint
 
       - name: Type check (tsc)
         run: npm run typecheck
@@ -76,3 +93,18 @@ jobs:
 
       - name: Security audit
         run: npm audit --audit-level=high
+
+  secrets:
+    name: Secrets scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml

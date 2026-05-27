@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Contributor docs:** Optional `code-review-graph` MCP guidance in [Development Guide](docs/contributor-guide/development.md) and README Contributing section (not required for end users)
 - **Agent docs:** Graph-first exploration workflow in [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md)
+- **Slice 20 toolchain hardening** — unified `./scripts/quality-gates.sh` mirroring CI; `check_integrity.py`, `pip-audit.sh`
+- **CI:** scoped 80% coverage gate, ESLint, bandit SAST, pip-audit, gitleaks secrets scan job
+- **Repo hygiene:** `.gitleaks.toml`, `.nvmrc`, `.editorconfig`, `.gitattributes`, Dependabot
+- **Frontend:** ESLint + `eslint-plugin-security` wired in CI and pre-commit
+
+### Changed
+
+- Upgraded urllib3, starlette, idna, langchain-core via uv dependency overrides
+- Pre-commit: gitleaks config, frontend lint hook, bandit hook
 
 ---
 

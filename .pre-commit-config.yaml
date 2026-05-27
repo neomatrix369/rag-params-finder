@@ -1,9 +1,12 @@
-# Maturity: Serious-lite — mirrors CI checks that are fast enough for local runs.
+# Maturity: Serious — mirrors CI checks that are fast enough for local runs.
 # Principle: one tool per concern, every tool earns its seconds.
-# Intentionally excluded (CI-only): pytest (slow/integration), npm audit (network).
+# Intentionally excluded from pre-commit (run via scripts/quality-gates.sh):
+#   pytest+coverage, pip-audit, npm audit
 #
-# Install:  pip install pre-commit && pre-commit install
+# Install:
+#   uv pip install -e ".[dev]" && pre-commit install
 # Run all:  pre-commit run --all-files
+# Full gates: ./scripts/quality-gates.sh [--full]
 
 repos:
   # ── Hygiene ──────────────────────────────────────────────
@@ -28,6 +31,17 @@ repos:
     rev: v8.22.1
     hooks:
       - id: gitleaks
+        args: [--config, .gitleaks.toml]
+
+  # ── Python SAST (uv bandit — same version as CI) ─────────
+  - repo: local
+    hooks:
+      - id: bandit
+        name: bandit SAST (medium+)
+        entry: uv run bandit -c pyproject.toml -r server/ cli/ -q -ll
+        language: system
+        pass_filenames: false
+        types: [python]
 
   # ── Python lint + format (one tool, replaces black+isort+pylint) ─
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -49,9 +63,15 @@ repos:
 
   # ── Frontend (Vite + React + TypeScript) ─────────────────
   # Uses npm scripts so versions match package-lock.json (run npm ci in frontend/).
-  # verify = tsc --noEmit && vite build; wire in eslint once eslint.config.js added (Slice 8).
   - repo: local
     hooks:
+      - id: frontend-lint
+        name: frontend lint (eslint)
+        entry: npm --prefix frontend run lint
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.(ts|tsx)$
+        exclude: ^frontend/node_modules/
       - id: frontend-verify
         name: frontend verify (tsc + build)
         entry: npm --prefix frontend run verify
