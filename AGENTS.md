@@ -19,6 +19,12 @@ Agent session entry point for `rag-params-finder`.
 ## Quick commands
 
 ```bash
+# Quality gates (mirrors CI — run before every commit)
+./scripts/quality-gates.sh              # full CI mirror
+./scripts/quality-gates.sh --quick      # lint + typecheck + unit tests only
+./scripts/quality-gates.sh --full       # + local gitleaks + pre-commit all-files
+python scripts/check_integrity.py       # unit tests + import smoke
+
 # Backend
 uvicorn server.main:app --reload --port 8001   # start server
 rag-params-finder run --config configs/example-mongodb-local.yaml  # submit experiment
@@ -27,11 +33,11 @@ rag-params-finder resume <experiment-id>  # continue paused sweep
 rag-params-finder indexes list            # Atlas Search indexes (known vs unknown)
 rag-params-finder indexes reset           # drop unknown indexes + ensure required
 rag-params-finder indexes reset --all     # drop all chunks search indexes + recreate
-uv pip install -e ".[dev]" && uv run ruff check . && uv run mypy server/ cli/ && uv run pytest
+uv pip install -e ".[dev]"
 
 # Frontend
 cd frontend && npm run dev                     # start dashboard → http://localhost:5173
-npm run typecheck && npm run build             # quality gates
+npm run lint && npm run typecheck && npm run build
 ```
 
 <!-- code-review-graph MCP tools -->

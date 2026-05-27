@@ -1,10 +1,10 @@
 # Maturity: Serious — mirrors CI checks that are fast enough for local runs.
 # Principle: one tool per concern, every tool earns its seconds.
-# Intentionally excluded (CI-only): pytest+coverage (run via scripts/quality-gates.sh),
-#   npm audit + pip-audit (network).
+# Intentionally excluded from pre-commit (run via scripts/quality-gates.sh):
+#   pytest+coverage, pip-audit, npm audit
 #
 # Install:
-#   uv pip install -e ".[dev]" && pre-commit install && pre-commit install --hook-type commit-msg
+#   uv pip install -e ".[dev]" && pre-commit install
 # Run all:  pre-commit run --all-files
 # Full gates: ./scripts/quality-gates.sh [--full]
 
@@ -33,14 +33,13 @@ repos:
       - id: gitleaks
         args: [--config, .gitleaks.toml]
 
-  # ── Commit message hygiene ───────────────────────────────
-  - repo: local
+  # ── Python SAST ──────────────────────────────────────────
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.10
     hooks:
-      - id: strip-ai-coauthor
-        name: strip AI co-author trailers
-        entry: python scripts/strip_ai_coauthor.py
-        language: system
-        stages: [commit-msg]
+      - id: bandit
+        args: [-c, pyproject.toml, -r, server/, cli/]
+        additional_dependencies: ["bandit[toml]"]
 
   # ── Python lint + format (one tool, replaces black+isort+pylint) ─
   - repo: https://github.com/astral-sh/ruff-pre-commit
