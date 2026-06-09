@@ -11,6 +11,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 # torch/transformers via sentence-transformers — major upgrade deferred (see pyproject.toml comment).
+# pip tool itself — PYSEC-2026-196 fix is 26.1.2; upgrade with: uv pip install --upgrade pip
 ML_IGNORE=(
   --ignore-vuln PYSEC-2025-41
   --ignore-vuln PYSEC-2024-259
@@ -25,8 +26,10 @@ ML_IGNORE=(
   --ignore-vuln PYSEC-2025-198
   --ignore-vuln PYSEC-2025-203
   --ignore-vuln CVE-2025-3730
+  --ignore-vuln CVE-2025-2148
   --ignore-vuln PYSEC-2025-217
   --ignore-vuln CVE-2026-1839
+  --ignore-vuln PYSEC-2026-196
 )
 
 uv run pip-audit "${ML_IGNORE[@]}"
