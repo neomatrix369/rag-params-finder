@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-28 (docs nav + pre-push fast gates)
-**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain | Next: Slice **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota
+**Last Updated**: 2026-06-27 (Slice 21 — SIE Skateboard)
+**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard | Next: Slice **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota
 
 ---
 
@@ -34,6 +34,7 @@
 | 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | `quality-gates.sh`, `repo-lint.sh`, `pre-push-gates.sh` (`--quick` on push), `install-git-hooks.sh`, coverage CI, ESLint, bandit, pip-audit, gitleaks, dependabot — [`SLICE-20-TOOLCHAIN-HARDENING.md`](SLICE-20-TOOLCHAIN-HARDENING.md) |
 | 14 — Docker Compose | ✅ COMPLETE | ~2–3 h | `./start-services.sh`, prod + `docker-compose.dev.yml`, Atlas `/healthz` — [`SLICE-14-DOCKER-COMPOSE.md`](SLICE-14-DOCKER-COMPOSE.md) |
 | ~~15 — CI/CD~~ | ✅ (via 20) | — | Superseded by Slice 20 — CI + `quality-gates.sh` + git hooks |
+| 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); Tavily live corpus; Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`../plan/slice-21-sie-skateboard.md`](../plan/slice-21-sie-skateboard.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
 
@@ -624,6 +625,10 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-27 | 20 | Repo lint in CI + pre-commit | shellcheck (`scripts/*.sh`), actionlint, markdownlint; `scripts/repo-lint.sh`; pragmatic `.markdownlint.json`; CI `repo-lint` job (4 jobs total) |
 | 2026-05-28 | — | Docs navigation (playgroup-style) | Root `QUICKSTART.md`; `docs/README.md` index; `PROGRESS.md` lives under `docs/slices/` beside slice specs |
 | 2026-05-28 | 20 | Pre-push = fast gates (`--quick`) | `git push` → `pre-push-gates.sh` (repo lint, ruff, mypy, bandit, pytest, frontend verify, gitleaks); commit hook stays staged pre-commit only |
+| 2026-06-27 | 21 | embedder_factory.py as single dispatch point | Factory pattern over Protocol/ABC (Decision #10); orchestrator never does provider if/elif; each provider module exports embed_docs_fn + embed_query_fn |
+| 2026-06-27 | 21 | SIEClient per call (no module-level cache) | Module-level client cache caused test state leakage between test runs; per-call instantiation ensures isolation |
+| 2026-06-27 | 21 | Minimal FastAPI app in sweep tests | Importing server.main chains into voyageai → torch → OpenMP abort in sandbox; sweep router mounted standalone avoids the crash |
+| 2026-06-27 | 21 | SIE health endpoint is /healthz not /health | SIE Docker exposes /healthz; check_sie_health() and CLAUDE.md updated accordingly |
 | 2026-05-27 | 14 | Docker Compose (AIE7-adapted) | 2-service stack (no local vector DB); host CLI; prod default + `docker-compose.dev.yml`; `/healthz` MongoDB ping; `hf_cache` volume |
 | 2026-05-27 | 14 | Dev overlay vs Compose profiles | `docker-compose.dev.yml` merge (not named profiles) — avoids port conflicts between prod/dev frontends |
 | 2026-05-27 | 20 | Pre-push (superseded 2026-05-28) | Was `pre-commit --all-files` on push — replaced by `quality-gates.sh --quick` for pytest + frontend verify |
@@ -637,6 +642,45 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 19 | Atlas M0 storage quota blocks all writes; cancel/delete deadlock when cluster full | 🟡 Workaround exists | 📋 Spec written | Delete **complete** experiments to free space; then cancel works. Force-delete + preflight planned in Slice 19. Incident: `example-mongodb-local` 60-run sweep + voyage experiment on one M0 cluster. |
 
 **Severity**: 🔴 Blocker | 🟡 Workaround exists | 🟢 Minor
+
+---
+
+## Slice 21: SIE Skateboard ✅
+
+**Status**: ✅ COMPLETE | **Started**: 2026-06-27 | **Completed**: 2026-06-27 | **Target**: ~4–6 h
+
+### Goal
+Integrate SIE (Superlinked Inference Engine) as a third embedding provider, wire Tavily for live web corpus fetching, add Aim experiment logging, and expose a new `POST /api/v1/sweep` endpoint for Tier 1 ranked sweeps.
+
+### Acceptance Criteria
+- [x] `POST /api/v1/sweep` returns ranked retrieval methods with scores
+- [x] `GET /health` includes `sie` and `tavily` status fields plus `version`
+- [x] SIE models (BGE-M3, Stella-v5, SPLADE-v3) registered in `model_registry.py`
+- [x] `embedder_factory.py` dispatches voyage/local/sie without orchestrator if/elif
+- [x] `tavily_corpus.py` fetches live web chunks (standalone primitive)
+- [x] `aim_logger.py` logs run params to Aim (no-op on failure — non-fatal)
+- [x] 50 tests pass, 83% coverage (≥80% threshold)
+- [x] ruff: 0 errors, mypy: 0 errors, frontend: 0 errors
+
+### Files Created / Modified
+| File | Change |
+|---|---|
+| `server/core/sie_embedder.py` | NEW — SIE BGE-M3/Stella-v5 embedding functions |
+| `server/core/tavily_corpus.py` | NEW — Tavily live web corpus builder |
+| `server/core/aim_logger.py` | NEW — Aim experiment run logging wrapper (no-op on fail) |
+| `server/core/embedder_factory.py` | NEW — Provider dispatch factory (voyage/local/sie) |
+| `server/api/sweep.py` | NEW — `POST /api/v1/sweep` + health helper functions |
+| `server/core/model_registry.py` | SIE models added (bge-m3, stella-v5, splade-v3) |
+| `server/models/config.py` | `Provider` Literal extended with `sie` |
+| `server/models/status.py` | `Provider` Literal extended with `sie` |
+| `server/core/embedder.py` | Voyage functions renamed to `embed_*_voyage`; dispatch removed |
+| `server/core/orchestrator.py` | Uses `embedder_factory.get_embedder()` + `AimLogger.log_run()` |
+| `server/main.py` | Sweep router mounted + enhanced `/health` endpoint |
+| `pyproject.toml` | Added `sie-sdk`, `aim`, `tavily-python` dependencies |
+| `tests/test_sie_embedder.py` | NEW — 5 GWT tests |
+| `tests/test_tavily_corpus.py` | NEW — 3 GWT tests |
+| `tests/test_embedder_factory.py` | Rewritten — 6 GWT tests (sys.modules mocking) |
+| `tests/test_sweep_endpoint.py` | NEW — 10 GWT tests (minimal FastAPI app) |
 
 ---
 

@@ -60,23 +60,15 @@ def _token_budget_per_request() -> int:
     return limiter._tpm if limiter._tpm > 0 else 100_000
 
 
-def embed_documents(texts: list[str], model: str, provider: str = "local") -> list[list[float]]:
-    """Embed documents, dispatching to local or Voyage AI based on provider."""
-    if provider == "local":
-        from server.core.local_embedder import embed_documents_local
-
-        return embed_documents_local(texts, model)
+def embed_documents_voyage(texts: list[str], model: str) -> list[list[float]]:
+    """Embed documents using Voyage AI — called via embedder_factory.get_embedder("voyage")."""
     if is_contextualized_embedding(model):
         return _embed_documents_voyage_context(texts, model)
     return _embed_documents_voyage(texts, model)
 
 
-def embed_query(text: str, model: str, provider: str = "local") -> list[float]:
-    """Embed a single query, dispatching to local or Voyage AI based on provider."""
-    if provider == "local":
-        from server.core.local_embedder import embed_query_local
-
-        return embed_query_local(text, model)
+def embed_query_voyage(text: str, model: str) -> list[float]:
+    """Embed a single query using Voyage AI — called via embedder_factory.get_embedder("voyage")."""
     if is_contextualized_embedding(model):
         return _embed_query_voyage_context(text, model)
     return _embed_query_voyage(text, model)

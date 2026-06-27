@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from server.api import experiments, runs
+from server.api.sweep import check_sie_health, check_tavily_health
+from server.api.sweep import router as sweep_router
 from server.core.executors import shutdown_executors
 from server.core.health_check import mongodb_health_status
 from server.core.startup_reconciliation import reconcile_orphaned_experiments
@@ -92,5 +94,30 @@ async def healthz():
     return body
 
 
+def _get_version() -> str:
+    try:
+        from importlib.metadata import version
+
+        return version("rag-params-finder")
+    except Exception:
+        return "unknown"
+
+
+@app.get("/health")
+async def health():
+    """Enhanced health check including SIE and Tavily reachability."""
+    mongodb = mongodb_health_status()
+    sie = check_sie_health()
+    tavily = check_tavily_health()
+    return {
+        "status": "ok",
+        "mongodb": mongodb,
+        "sie": sie,
+        "tavily": tavily,
+        "version": _get_version(),
+    }
+
+
 app.include_router(experiments.router, prefix="/experiments", tags=["experiments"])
 app.include_router(runs.router, prefix="/runs", tags=["runs"])
+app.include_router(sweep_router, prefix="/api/v1", tags=["sweep"])

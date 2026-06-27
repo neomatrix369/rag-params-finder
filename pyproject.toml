@@ -22,6 +22,9 @@ dependencies = [
     "pymongo[srv]>=4.6.1",
     "sentence-transformers>=2.6.0,<4.0.0",
     "numpy>=1.26,<3",
+    "sie-sdk>=0.6.0",
+    "aim>=3.0",
+    "tavily-python>=0.3",
 ]
 
 [project.optional-dependencies]
@@ -82,6 +85,10 @@ source = [
     "server/core/search_index_guard.py",
     "server/core/results_analyzer.py",
     "server/models/config.py",
+    "server/core/sie_embedder.py",
+    "server/core/tavily_corpus.py",
+    "server/core/aim_logger.py",
+    "server/core/embedder_factory.py",
 ]
 branch = true
 

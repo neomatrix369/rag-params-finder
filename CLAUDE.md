@@ -86,8 +86,13 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
 | `server/core/atlas_storage.py` | Atlas Admin API cluster quota + tier specs (`resolve_tier_specs`); shared-tier storage fallbacks |
 | `server/core/model_registry.py` | Embedding + reranking model catalog |
-| `server/core/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting |
+| `server/core/embedder_factory.py` | Provider dispatch factory; `get_embedder(provider)` returns `(embed_docs_fn, embed_query_fn)` — add new providers here, not in orchestrator |
+| `server/core/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting; provider dispatch removed to `embedder_factory.py` |
 | `server/core/local_embedder.py` | sentence-transformers embedding (lazy-load) |
+| `server/core/sie_embedder.py` | SIE (Superlinked Inference Engine) embeddings; BGE-M3 + Stella-v5 via self-hosted Docker on `:8080` |
+| `server/core/tavily_corpus.py` | Tavily live web corpus builder; `fetch_corpus(topic, max_results)` — standalone primitive reused across SIE slices |
+| `server/core/aim_logger.py` | Aim experiment run logging wrapper; `AimLogger.log_run()` — no-op if Aim init fails |
+| `server/api/sweep.py` | `POST /api/v1/sweep` (ranked results, SIE vs voyage baseline) + `GET /api/v1/best-config` |
 | `server/core/reranker.py` | Voyage reranking client |
 | `server/core/local_reranker.py` | CrossEncoder reranking (lazy-load) |
 | `server/core/retriever.py` | Atlas Vector Search (dense/sparse/hybrid) |
@@ -124,9 +129,11 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 ## Provider System
 
 **Two independent provider settings**:
-- `embedding.provider`: "local" or "voyage"
+- `embedding.provider`: "local", "voyage", or "sie"
   - Local → `server/core/local_embedder.py` → `all-MiniLM-L6-v2` (384-dim)
   - Voyage → `server/core/embedder.py` → all models in `EMBEDDING_MODELS` with `provider: voyage` (1024-dim; `voyage-context-3` uses `contextualized_embed()` with automatic segment splitting for long documents)
+  - SIE → `server/core/sie_embedder.py` → BGE-M3, Stella-v5 (1024-dim); requires SIE Docker on `:8080`
+  - Dispatch: `server/core/embedder_factory.py` — `get_embedder(provider)` returns the right functions; orchestrator never does if/elif on provider
 - **`retrieval.retrievers`** (unified format):
   - Each list entry is one sweep dimension — one retriever per run
   - Traditional: `{type: dense|sparse|hybrid}` — no provider/model needed
@@ -217,7 +224,7 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 **Backend** (2026-05-27):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 26 tests, 83.6% coverage on scoped modules (80% threshold)
+- `pytest` → 50 tests, 83.3% coverage on scoped modules (80% threshold)
 
 **Frontend** (2026-05-27):
 - `npm run lint` → 0 errors (eslint + security plugin)

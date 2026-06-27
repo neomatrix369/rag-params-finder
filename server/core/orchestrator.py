@@ -4,9 +4,10 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
+from server.core.aim_logger import AimLogger
 from server.core.chunkers import chunk_text
 from server.core.data_loader import load_all_files
-from server.core.embedder import embed_documents, embed_query
+from server.core.embedder_factory import get_embedder
 from server.core.query_loader import load_queries
 from server.core.reranker import rerank_results
 from server.core.retriever import search as retriever_search
@@ -69,13 +70,13 @@ def _search_traditional_retriever(
     query_text: str,
     experiment_id: str,
     embedding_model: str,
-    embedding_provider: str,
+    embed_query_fn,  # Callable[[str, str], list[float]] from embedder_factory
     top_k: int,
     query_embedding: list[float] | None,
 ) -> tuple[list[SearchResult], list[float] | None]:
     needs_embedding = retriever_cfg.type in {RetrieverType.DENSE, RetrieverType.HYBRID}
     if needs_embedding and query_embedding is None:
-        query_embedding = embed_query(query_text, embedding_model, embedding_provider)
+        query_embedding = embed_query_fn(query_text, embedding_model)
 
     results = retriever_search(
         method=RetrievalMethod(retriever_cfg.type.value),
@@ -95,7 +96,7 @@ def _search_reranker_retriever(
     query_text: str,
     experiment_id: str,
     embedding_model: str,
-    embedding_provider: str,
+    embed_query_fn,  # Callable[[str, str], list[float]] from embedder_factory
     top_k_initial: int,
     top_k_final: int,
 ) -> list[SearchResult]:
@@ -107,7 +108,7 @@ def _search_reranker_retriever(
         query_text=query_text,
         experiment_id=experiment_id,
         embedding_model=embedding_model,
-        embedding_provider=embedding_provider,
+        embed_query_fn=embed_query_fn,
         top_k=top_k_initial,
         query_embedding=None,
     )
@@ -495,7 +496,8 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
 
         _check_control(experiment_id)
         _update_phase(run_id, Phase.EMBEDDING)
-        embeddings = embed_documents(chunks, params.embedding_model, params.embedding_provider)
+        embed_docs_fn, embed_query_fn = get_embedder(params.embedding_provider)
+        embeddings = embed_docs_fn(chunks, params.embedding_model)
         logger.info("embed OK — run %s, %s embeddings", run_id, len(embeddings))
 
         _check_control(experiment_id)
@@ -544,7 +546,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
                     query_text=q.text,
                     experiment_id=experiment_id,
                     embedding_model=params.embedding_model,
-                    embedding_provider=params.embedding_provider,
+                    embed_query_fn=embed_query_fn,
                     top_k=params.top_k_initial,
                     query_embedding=query_embedding,
                 )
@@ -564,7 +566,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
                     query_text=q.text,
                     experiment_id=experiment_id,
                     embedding_model=params.embedding_model,
-                    embedding_provider=params.embedding_provider,
+                    embed_query_fn=embed_query_fn,
                     top_k_initial=params.top_k_initial,
                     top_k_final=params.top_k_final,
                 )
@@ -593,6 +595,21 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
 
         logger.info("queries complete — run %s, %s queries", run_id, len(queries))
 
+        AimLogger.log_run(
+            {
+                "experiment_id": experiment_id,
+                "run_id": run_id,
+                "model_name": params.embedding_model,
+                "model_source": params.embedding_provider,
+                "retrieval_method": params.retrieval_method.value,
+                "chunking_method": params.chunking_method.value,
+                "chunk_size": params.chunk_size,
+                "overlap": params.overlap,
+                "latency_ms": int(
+                    (time.monotonic() - _run_start_times.get(run_id, time.monotonic())) * 1000
+                ),
+            }
+        )
         _update_phase(run_id, Phase.COMPLETE)
 
     except ExperimentCancelledError:
