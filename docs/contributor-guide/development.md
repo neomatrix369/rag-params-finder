@@ -127,16 +127,20 @@ uv run pytest --tb=short -q \
   --cov=server.core.search_index_guard \
   --cov=server.core.results_analyzer \
   --cov=server.models.config \
+  --cov=server.core.sie_embedder \
+  --cov=server.core.tavily_corpus \
+  --cov=server.core.aim_logger \
+  --cov=server.core.embedder_factory \
   --cov-fail-under=80
 
 # Python dependency audit (ML transitive vulns tracked — see scripts/pip-audit.sh)
 bash scripts/pip-audit.sh
 ```
 
-**Baseline (as of 2026-05-28)**:
+**Baseline (as of 2026-06-27)**:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 26 tests, 83.6% coverage on scoped modules
+- `pytest` → 50 tests, 83.3% coverage on scoped modules
 
 ### Frontend
 
@@ -237,8 +241,12 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 | `test_search_index_guard.py` | 2 | Preflight guard (mocked I/O) |
 | `test_expand_sweep.py` | 3 | Unified `retrievers` sweep expansion |
 | `test_tiebreaker_ranking.py` | 3 | Weighted ranking / tiebreaker logic |
+| `test_embedder_factory.py` | 6 | Provider dispatch factory (voyage/local/sie) |
+| `test_sie_embedder.py` | 5 | SIE BGE-M3 dense embedding (mocked SIEClient) |
+| `test_sweep_endpoint.py` | 10 | `POST /api/v1/sweep` + health helpers |
+| `test_tavily_corpus.py` | 3 | Tavily corpus builder (mocked TavilyClient) |
 
-**Total:** 26 pytest tests (2026-05-28 baseline: 17 search-index + 3 sweep + 3 tiebreaker + 3 health). Coverage is enforced at **80%** on four scoped server modules (see Quality Gates above).
+**Total:** 50 pytest tests (2026-06-27 baseline: 17 search-index + 3 expand-sweep + 3 tiebreaker + 3 health + 2 search-index-guard + 6 embedder-factory + 5 sie-embedder + 10 sweep-endpoint + 3 tavily-corpus). Coverage is enforced at **80%** on eight scoped server modules (see Quality Gates above).
 
 **Still manual / not automated:**
 - End-to-end pipeline via CLI + dashboard (real Atlas + optional Voyage)
