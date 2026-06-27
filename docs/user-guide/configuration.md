@@ -33,9 +33,9 @@ queries_file: ./configs/questions.example.json  # local path or URL
                                                  # URL downloads to ./configs/ on first use and caches
 
 embedding:
-  provider: local                    # "local" | "voyage" (supported on main); "kimchi" reserved — see extending guide
+  provider: local                    # "local" | "voyage" | "sie" (supported on main); "kimchi" reserved — see extending guide
   models:
-    - all-MiniLM-L6-v2               # must match provider: local models can't be paired with provider: voyage
+    - all-MiniLM-L6-v2               # must match provider: local; sie models need provider: sie (e.g. bge-m3)
 
 chunking:
   methods:
@@ -149,7 +149,7 @@ Canonical list: `server/core/model_registry.py` (`EMBEDDING_MODELS`, `RERANKER_M
 
 **Provider/model must match.** The system validates at config load time — a `provider: local` config with a Voyage model name will fail immediately with a clear error.
 
-**Atlas vector index** selection is automatic: local models (384-dim) use `vector_index_384`; Voyage models (1024-dim) use `vector_index_1024`. Both can coexist on the same `chunks` collection.
+**Atlas vector index** selection is automatic: local models (384-dim) use `vector_index_384`; Voyage and SIE models (1024-dim) use `vector_index_1024`. Both can coexist on the same `chunks` collection.
 
 **Search index preflight:** on submit, the server derives required index names from your config and validates cluster capacity before any run starts:
 
