@@ -4,7 +4,7 @@ We mount only the sweep router in a minimal FastAPI app to avoid importing
 server.main (which chains into orchestrator → voyageai → torch), keeping
 the test suite runnable without a GPU/OpenMP environment.
 
-External calls (fetch_corpus, get_embedder, AimLogger) are all mocked.
+External calls (get_embedder, AimLogger) are all mocked.
 """
 
 from __future__ import annotations
@@ -30,14 +30,12 @@ def sweep_client():
     """TestClient with sweep router and all external calls mocked."""
     mock_embed_docs = MagicMock(return_value=[[0.1] * 1024, [0.2] * 1024])
     mock_embed_query = MagicMock(return_value=[0.15] * 1024)
-    mock_corpus = ["chunk about AI agents", "another relevant chunk"]
 
     with (
         patch(
             "server.core.embedder_factory.get_embedder",
             return_value=(mock_embed_docs, mock_embed_query),
         ),
-        patch("server.api.sweep.fetch_corpus", return_value=mock_corpus),
         patch("server.api.sweep.AimLogger.log_run"),
     ):
         yield _make_sweep_client()
@@ -48,13 +46,17 @@ class TestSweepEndpointTier1:
 
     def test_sweep_returns_200_with_required_fields(self, sweep_client: TestClient):
         """
-        Given SIE running, Tavily reachable, MongoDB connected
-        When POST /api/v1/sweep {"topic":"AI agents","embedding_model":"bge-m3"}
+        Given SIE running, MongoDB connected, and a pre-fetched corpus provided
+        When POST /api/v1/sweep {"topic":"AI agents","embedding_model":"bge-m3","corpus":[...]}
         Then HTTP 200 with body containing best_config, results, experiment_id, corpus_source.
         """
         resp = sweep_client.post(
             "/api/v1/sweep",
-            json={"topic": "AI agents", "embedding_model": "bge-m3"},
+            json={
+                "topic": "AI agents",
+                "embedding_model": "bge-m3",
+                "corpus": ["chunk about AI agents", "another relevant chunk"],
+            },
         )
         assert resp.status_code == 200
         body = resp.json()
@@ -82,14 +84,26 @@ class TestSweepEndpointTier1:
         resp = sweep_client.post("/api/v1/sweep", json={})
         assert resp.status_code == 422
 
-    def test_sweep_corpus_source_is_tavily(self, sweep_client: TestClient):
+    def test_sweep_corpus_source_is_provided_when_corpus_given(self, sweep_client: TestClient):
         """
-        When a sweep runs with Tavily corpus
-        Then corpus_source in the response is "tavily".
+        When a sweep runs with an explicit corpus list
+        Then corpus_source in the response is "provided".
+        """
+        resp = sweep_client.post(
+            "/api/v1/sweep",
+            json={"topic": "machine learning", "corpus": ["chunk one", "chunk two"]},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["corpus_source"] == "provided"
+
+    def test_sweep_corpus_source_is_topic_when_no_corpus_given(self, sweep_client: TestClient):
+        """
+        When a sweep runs without supplying a corpus
+        Then corpus_source in the response is "topic" (falls back to topic string).
         """
         resp = sweep_client.post("/api/v1/sweep", json={"topic": "machine learning"})
         assert resp.status_code == 200
-        assert resp.json()["corpus_source"] == "tavily"
+        assert resp.json()["corpus_source"] == "topic"
 
     def test_sweep_results_list_non_empty(self, sweep_client: TestClient):
         """
@@ -106,7 +120,7 @@ class TestSweepEndpointTier1:
 
 
 class TestHealthEnhanced:
-    """Scenario: GET /health — enhanced to include SIE and Tavily."""
+    """Scenario: GET /health — includes SIE reachability."""
 
     def test_check_sie_health_returns_string(self):
         """check_sie_health returns a string status."""
@@ -126,55 +140,32 @@ class TestHealthEnhanced:
             result = check_sie_health()
         assert result == "unreachable"
 
-    def test_check_tavily_health_reachable_when_key_set(self):
-        """check_tavily_health returns 'reachable' when TAVILY_API_KEY is in env."""
-        with patch.dict("os.environ", {"TAVILY_API_KEY": "tvly-test-key"}):
-            from server.api.sweep import check_tavily_health
-
-            result = check_tavily_health()
-        assert result == "reachable"
-
-    def test_check_tavily_health_key_missing_without_key(self):
-        """check_tavily_health returns 'key_missing' when no API key."""
-        import os
-
-        with patch.dict("os.environ", {}, clear=True):
-            os.environ.pop("TAVILY_API_KEY", None)
-            from server.api.sweep import check_tavily_health
-
-            result = check_tavily_health()
-        assert result == "key_missing"
-
-    def test_health_endpoint_includes_sie_tavily_version(self):
+    def test_health_endpoint_includes_sie_and_version(self):
         """
         Given health endpoint is mounted
         When GET /health
-        Then response contains sie, tavily, version keys.
+        Then response contains sie and version keys.
         """
         app = FastAPI()
 
         @app.get("/health")
         def health():
-            from server.api.sweep import check_sie_health, check_tavily_health
+            from server.api.sweep import check_sie_health
 
             return {
                 "status": "ok",
                 "mongodb": "connected",
                 "sie": check_sie_health(),
-                "tavily": check_tavily_health(),
                 "version": "test",
             }
 
         test_client = TestClient(app)
-        with (
-            patch("server.api.sweep.httpx.get") as mock_get,
-            patch.dict("os.environ", {"TAVILY_API_KEY": "tvly-test"}),
-        ):
+        with patch("server.api.sweep.httpx.get") as mock_get:
             mock_get.return_value.status_code = 200
             resp = test_client.get("/health")
 
         assert resp.status_code == 200
         body = resp.json()
         assert "sie" in body
-        assert "tavily" in body
         assert "version" in body
+        assert "tavily" not in body

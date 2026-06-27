@@ -1,7 +1,7 @@
-"""POST /api/v1/sweep — Tier 1 SIE vs Voyage ranked sweep using Tavily live corpus.
+"""POST /api/v1/sweep — Tier 1 SIE vs Voyage ranked sweep.
 
-Entry point for the SIE Skateboard (Slice 21).  Accepts a topic, fetches live
-web content via Tavily, embeds with the requested model (default: bge-m3 via SIE),
+Entry point for the SIE Skateboard (Slice 21).  Accepts a topic and an optional
+pre-fetched corpus, embeds with the requested model (default: bge-m3 via SIE),
 runs a miniature RAG pipeline, and returns ranked results.
 
 GET /api/v1/best-config is a thin read from MongoDB sweep history (Slice 22 extension).
@@ -19,7 +19,6 @@ from pydantic import BaseModel, Field
 
 from server.core.aim_logger import AimLogger
 from server.core.embedder_factory import get_embedder
-from server.core.tavily_corpus import fetch_corpus
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -27,12 +26,18 @@ router = APIRouter()
 
 _DEFAULT_EMBEDDING_MODEL = "bge-m3"
 _DEFAULT_RETRIEVAL_METHODS = ["dense", "bm25", "hybrid-rrf"]
-_DEFAULT_MAX_RESULTS = 5
 _SIE_BASE_URL = os.getenv("SIE_BASE_URL", "http://localhost:8080")
 
 
 class SweepRequest(BaseModel):
-    topic: str = Field(..., description="Topic / query to search Tavily for")
+    topic: str = Field(..., description="Topic / query to embed and rank")
+    corpus: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Pre-fetched corpus chunks to embed. "
+            "When empty the topic itself is used as a single-chunk corpus."
+        ),
+    )
     embedding_model: str = Field(
         default=_DEFAULT_EMBEDDING_MODEL,
         description="SIE or Voyage model ID (default: bge-m3)",
@@ -40,10 +45,6 @@ class SweepRequest(BaseModel):
     retrieval_methods: list[str] = Field(
         default=_DEFAULT_RETRIEVAL_METHODS,
         description="Retrieval strategies to compare",
-    )
-    max_results: int = Field(
-        default=_DEFAULT_MAX_RESULTS,
-        description="Max Tavily results to fetch",
     )
 
 
@@ -70,16 +71,11 @@ def check_sie_health() -> str:
         return "unreachable"
 
 
-def check_tavily_health() -> str:
-    """Check Tavily reachability — 'reachable' if API key is set, 'unreachable' otherwise."""
-    return "reachable" if os.getenv("TAVILY_API_KEY") else "key_missing"
-
-
 def _run_sweep_internal(request: SweepRequest) -> dict:
     """Embed corpus chunks with the requested model and rank by naive coverage score.
 
-    This is a lightweight Tier 1 pipeline:
-      1. Fetch corpus via Tavily
+    Lightweight Tier 1 pipeline:
+      1. Resolve corpus (caller-supplied or fallback to topic string)
       2. Embed each chunk with the requested model
       3. Embed the topic query
       4. Rank retrieval methods by cosine similarity of top-1 result to query
@@ -87,9 +83,8 @@ def _run_sweep_internal(request: SweepRequest) -> dict:
     experiment_id = str(uuid.uuid4())
     start = time.monotonic()
 
-    corpus_chunks = fetch_corpus(request.topic, max_results=request.max_results)
-    if not corpus_chunks:
-        corpus_chunks = [request.topic]
+    corpus_chunks = request.corpus if request.corpus else [request.topic]
+    corpus_source = "provided" if request.corpus else "topic"
 
     provider = _infer_provider(request.embedding_model)
     embed_docs_fn, embed_query_fn = get_embedder(provider)
@@ -116,7 +111,7 @@ def _run_sweep_internal(request: SweepRequest) -> dict:
 
     return {
         "experiment_id": experiment_id,
-        "corpus_source": "tavily",
+        "corpus_source": corpus_source,
         "best_config": {**ranked[0], "embedding_model": request.embedding_model},
         "results": [{**r, "embedding_model": request.embedding_model} for r in ranked],
     }
@@ -147,8 +142,8 @@ def _rank_methods(
     """Rank retrieval methods by top-1 cosine similarity score.
 
     In a real Tier 2 sweep this would run actual vector DB queries.  For the
-    skateboard, we use embedding similarity as a cheap proxy score so all the
-    wiring (Tavily → embed → rank → Aim log) can be validated end-to-end without
+    skateboard, embedding similarity is used as a cheap proxy score so all the
+    wiring (embed → rank → Aim log) can be validated end-to-end without
     requiring Atlas search indexes to be set up for the topic corpus.
     """
     if not doc_embeddings:
@@ -178,7 +173,7 @@ def _apply_method_modifier(method: str, base_score: float) -> float:
 
 @router.post("/sweep", response_model=SweepResponse)
 async def sweep(request: SweepRequest) -> dict:
-    """Run a Tier 1 SIE vs Voyage embedding sweep over live Tavily corpus.
+    """Run a Tier 1 SIE vs Voyage embedding sweep over the supplied corpus.
 
     Returns ranked retrieval configs comparing embedding models on the given topic.
     All runs are logged to Aim.
