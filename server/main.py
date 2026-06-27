@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from server.api import experiments, runs
-from server.api.sweep import check_sie_health, check_tavily_health
+from server.api.sweep import check_sie_health
 from server.api.sweep import router as sweep_router
 from server.core.executors import shutdown_executors
 from server.core.health_check import mongodb_health_status
@@ -105,15 +105,13 @@ def _get_version() -> str:
 
 @app.get("/health")
 async def health():
-    """Enhanced health check including SIE and Tavily reachability."""
+    """Health check including SIE reachability."""
     mongodb = mongodb_health_status()
     sie = check_sie_health()
-    tavily = check_tavily_health()
     return {
         "status": "ok",
         "mongodb": mongodb,
         "sie": sie,
-        "tavily": tavily,
         "version": _get_version(),
     }
 

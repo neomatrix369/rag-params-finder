@@ -90,7 +90,6 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting; provider dispatch removed to `embedder_factory.py` |
 | `server/core/local_embedder.py` | sentence-transformers embedding (lazy-load) |
 | `server/core/sie_embedder.py` | SIE (Superlinked Inference Engine) embeddings; BGE-M3 + Stella-v5 via self-hosted Docker on `:8080` |
-| `server/core/tavily_corpus.py` | Tavily live web corpus builder; `fetch_corpus(topic, max_results)` — standalone primitive reused across SIE slices |
 | `server/core/aim_logger.py` | Aim experiment run logging wrapper; `AimLogger.log_run()` — no-op if Aim init fails |
 | `server/api/sweep.py` | `POST /api/v1/sweep` (ranked results, SIE vs voyage baseline) + `GET /api/v1/best-config` |
 | `server/core/reranker.py` | Voyage reranking client |

@@ -24,7 +24,6 @@ dependencies = [
     "numpy>=1.26,<3",
     "sie-sdk>=0.6.0",
     "aim>=3.0",
-    "tavily-python>=0.3",
 ]
 
 [project.optional-dependencies]
@@ -86,7 +85,6 @@ source = [
     "server/core/results_analyzer.py",
     "server/models/config.py",
     "server/core/sie_embedder.py",
-    "server/core/tavily_corpus.py",
     "server/core/aim_logger.py",
     "server/core/embedder_factory.py",
 ]
