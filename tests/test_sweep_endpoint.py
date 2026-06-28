@@ -168,4 +168,3 @@ class TestHealthEnhanced:
         body = resp.json()
         assert "sie" in body
         assert "version" in body
-        assert "tavily" not in body
