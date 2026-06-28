@@ -56,7 +56,11 @@ ensure_env() {
 }
 
 check_ports() {
-  local ports=(8001 5173)
+  # Ports are chosen to avoid common conflicts:
+  #   8001 — backend  (uncommon; not a standard framework default)
+  #   5374 — frontend (avoids 5173 which is Vite's own default, shared by every Vite project)
+  #   8720 — SIE      (avoids 8080 used by Jenkins, Tomcat, Hadoop, Spark, etc.)
+  local ports=(8001 5374)
   local conflicts=()
   for port in "${ports[@]}"; do
     if lsof -ti:"$port" >/dev/null 2>&1; then
@@ -108,13 +112,13 @@ if [[ -x ./scripts/health-check.sh ]]; then
   ./scripts/health-check.sh
 else
   curl -sf http://localhost:8001/healthz >/dev/null
-  curl -sf http://localhost:5173/ >/dev/null
+  curl -sf http://localhost:5374/ >/dev/null
 fi
 
 echo ""
 echo "Services ready:"
 echo "  Server:    http://localhost:8001  (docs: /docs)"
-echo "  Dashboard: http://localhost:5173"
+echo "  Dashboard: http://localhost:5374"
 echo "  CLI:       rag-params-finder run --config configs/example-mongodb-local.yaml"
 echo ""
 echo "Dev stack:   RAG_DEV_STACK=1 ./start-services.sh"

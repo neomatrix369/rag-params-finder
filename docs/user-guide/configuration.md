@@ -362,7 +362,7 @@ MONGODB_STORAGE_LIMIT_MB=0
 
 # CORS Configuration (ADVANCED — for production deployment)
 # Comma-separated list of allowed origins. Defaults work for local development.
-# CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
+# CORS_ORIGINS=http://localhost:5374,http://127.0.0.1:5374,http://localhost:3000
 # CORS_ALLOW_LOCALHOST_ORIGIN_REGEX=true  # Auto-allow localhost/127.0.0.1/[::1] on any port
 ```
 
@@ -388,7 +388,7 @@ Query avg prevents high-scoring queries with many results from hiding poorly-per
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000` | Comma-separated list of allowed origins for CORS |
+| `CORS_ORIGINS` | `http://localhost:5374,http://127.0.0.1:5374,http://localhost:3000,http://127.0.0.1:3000` | Comma-separated list of allowed origins for CORS |
 | `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX` | `true` | When true, automatically allow localhost/127.0.0.1/[::1] on any port via regex |
 
 **When to customize**:

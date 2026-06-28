@@ -13,7 +13,7 @@ class TestSIEEmbedderDenseEmbedding:
 
     def test_embed_documents_returns_1024_dim_vectors(self):
         """
-        Given SIEClient is initialised with base_url=http://localhost:8080
+        Given SIEClient is initialised with base_url=http://localhost:8720
         When embed_documents_sie(["test query"], "bge-m3") is called
         Then a list containing one 1024-dim float vector is returned.
         """
@@ -31,7 +31,7 @@ class TestSIEEmbedderDenseEmbedding:
 
     def test_embed_query_returns_1024_dim_vector(self):
         """
-        Given SIEClient is initialised with base_url=http://localhost:8080
+        Given SIEClient is initialised with base_url=http://localhost:8720
         When embed_query_sie("test query", "bge-m3") is called
         Then a 1024-dim float vector is returned.
         """
@@ -71,7 +71,7 @@ class TestSIEEmbedderFallback:
 
     def test_embed_documents_raises_runtime_error_on_connection_failure(self):
         """
-        Given SIEClient cannot connect to http://localhost:8080
+        Given SIEClient cannot connect to http://localhost:8720
         When embed_documents_sie is called
         Then a RuntimeError is raised with message containing "SIE unreachable".
         """
@@ -85,7 +85,7 @@ class TestSIEEmbedderFallback:
 
     def test_embed_query_raises_runtime_error_on_connection_failure(self):
         """
-        Given SIEClient cannot connect to http://localhost:8080
+        Given SIEClient cannot connect to http://localhost:8720
         When embed_query_sie is called
         Then a RuntimeError is raised with message containing "SIE unreachable".
         """

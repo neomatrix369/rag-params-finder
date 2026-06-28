@@ -38,13 +38,13 @@ services:
     image: ${FRONTEND_IMAGE_NAME:-rag-params-finder-frontend}
     container_name: ${FRONTEND_CONTAINER_NAME:-rag-params-finder-frontend}
     ports:
-      - "5173:5173"
+      - "5374:5374"
     depends_on:
       server:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+      test: ["CMD", "curl", "-f", "http://localhost:5374/"]
       interval: 30s
       timeout: 10s
       retries: 3

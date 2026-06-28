@@ -51,12 +51,12 @@ Create from `main` before any work begins: `git checkout main && git pull && git
 
 ```
 Scenario: SIE BGE-M3 dense embedding
-  Given SIEClient is initialised with base_url=http://localhost:8080
+  Given SIEClient is initialised with base_url=http://localhost:8720
   When encode(model="bge-m3", inputs=["test query"]) is called
   Then a list containing one 1024-dim float vector is returned
 
 Scenario: SIE encode falls back gracefully when SIE is unreachable
-  Given SIEClient cannot connect to http://localhost:8080
+  Given SIEClient cannot connect to http://localhost:8720
   When encode is called
   Then a RuntimeError is raised with message containing "SIE unreachable"
 
@@ -76,7 +76,7 @@ Scenario: POST /api/v1/sweep — falls back to topic string when no corpus suppl
   Then HTTP 200 and corpus_source="topic"
 
 Scenario: GET /health — enhanced to include SIE status and version
-  Given SIE running at :8080, MongoDB connected
+  Given SIE running at :8720, MongoDB connected
   When GET /health
   Then HTTP 200 with {"status":"ok","mongodb":"connected","sie":"reachable","version":"<semver>"}
 
@@ -91,8 +91,8 @@ Scenario: Aim logging on sweep run completion
 - [ ] Branch `slice/21-sie-skateboard` created from latest `main` and checked out
 - [ ] Conventional Commits format confirmed: `feat(sie): ...` — write WHY not WHAT; no Co-authored-by
 - [ ] Previous slice gate status is PASSED (Slice 20 — Toolchain hardening ✅)
-- [ ] SIE Docker running: `docker run -p 8080:8080 -v sie-hf-cache:/app/.cache/huggingface -e HF_TOKEN=$HF_TOKEN ghcr.io/superlinked/sie-server:latest-cpu-default`
-- [ ] `curl http://localhost:8080/healthz` returns ok (wait for model warm-up)
+- [ ] SIE Docker running: `docker run -p 8720:8080 -v sie-hf-cache:/app/.cache/huggingface --platform linux/amd64 -e HF_TOKEN=$HF_TOKEN ghcr.io/superlinked/sie-server:latest-cpu-default`
+- [ ] `curl http://localhost:8720/healthz` returns ok (wait for model warm-up)
 - [ ] `HF_TOKEN` present in `.env`
 - [ ] All existing quality gates pass: `./scripts/quality-gates.sh`
 - [ ] Divergence gate: no conflicts detected (confirmed in GAP_ANALYSIS.md — all additions are additive)
@@ -117,7 +117,7 @@ Scenario: Aim logging on sweep run completion
 5. **Write `server/core/aim_logger.py`** — `AimLogger.log_run(run_params: dict)`; no-op if Aim init fails (graceful degradation)
 6. **Update `server/core/orchestrator.py`**: dispatch `sie` provider via `embedder_factory`; call `aim_logger.log_run()` at each run completion
 7. **Write `server/api/sweep.py`**: `POST /api/v1/sweep` accepts `corpus: list[str]` (falls back to topic string when empty); `GET /api/v1/best-config?task=...` (queries MongoDB sweep history)
-8. **Update `server/main.py`**: include `sweep_router` at prefix `/api/v1`; extend `/health` to probe `http://localhost:8080/healthz` (SIE) and include version
+8. **Update `server/main.py`**: include `sweep_router` at prefix `/api/v1`; extend `/health` to probe `http://localhost:8720/healthz` (SIE) and include version
 9. **Write tests** for all GWT scenarios (mock SIEClient)
 10. **Run `./scripts/quality-gates.sh`** — fix any ruff/mypy/coverage failures
 
