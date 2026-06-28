@@ -1,5 +1,11 @@
 <!-- file: docs/plan/slice-21-sie-skateboard.md -->
 
+> **Post-implementation note (2026-06-28):** Tavily was removed after this slice landed.
+> `tavily_corpus.py`, `test_tavily_corpus.py`, and the `tavily-python` dependency were deleted.
+> `SweepRequest` now accepts an optional `corpus: list[str]` field; falls back to the topic
+> string when empty. `GET /health` no longer exposes a `tavily` key. The spec below reflects
+> the original design — treat Tavily references as superseded.
+
 ## Slice Workflow Header
 
 Slice: 21 — SIE Skateboard — `POST /api/v1/sweep` returns ranked Tier 1 results using SIE (BGE-M3) vs voyage-3.5, logged to Aim

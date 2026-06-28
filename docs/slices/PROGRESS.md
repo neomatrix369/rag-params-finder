@@ -34,7 +34,7 @@
 | 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | `quality-gates.sh`, `repo-lint.sh`, `pre-push-gates.sh` (`--quick` on push), `install-git-hooks.sh`, coverage CI, ESLint, bandit, pip-audit, gitleaks, dependabot — [`SLICE-20-TOOLCHAIN-HARDENING.md`](SLICE-20-TOOLCHAIN-HARDENING.md) |
 | 14 — Docker Compose | ✅ COMPLETE | ~2–3 h | `./start-services.sh`, prod + `docker-compose.dev.yml`, Atlas `/healthz` — [`SLICE-14-DOCKER-COMPOSE.md`](SLICE-14-DOCKER-COMPOSE.md) |
 | ~~15 — CI/CD~~ | ✅ (via 20) | — | Superseded by Slice 20 — CI + `quality-gates.sh` + git hooks |
-| 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); Tavily live corpus; Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`../plan/slice-21-sie-skateboard.md`](../plan/slice-21-sie-skateboard.md) |
+| 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); caller-supplied corpus (Tavily removed); Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`../plan/slice-21-sie-skateboard.md`](../plan/slice-21-sie-skateboard.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
 
@@ -650,23 +650,22 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 **Status**: ✅ COMPLETE | **Started**: 2026-06-27 | **Completed**: 2026-06-27 | **Target**: ~4–6 h
 
 ### Goal
-Integrate SIE (Superlinked Inference Engine) as a third embedding provider, wire Tavily for live web corpus fetching, add Aim experiment logging, and expose a new `POST /api/v1/sweep` endpoint for Tier 1 ranked sweeps.
+Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add Aim experiment logging, and expose a new `POST /api/v1/sweep` endpoint for Tier 1 ranked sweeps. Corpus is supplied by the caller (`corpus` field); the Tavily dependency was removed post-implementation.
 
 ### Acceptance Criteria
 - [x] `POST /api/v1/sweep` returns ranked retrieval methods with scores
-- [x] `GET /health` includes `sie` and `tavily` status fields plus `version`
+- [x] `GET /health` includes `sie` and `version` fields
 - [x] SIE models (BGE-M3, Stella-v5, SPLADE-v3) registered in `model_registry.py`
 - [x] `embedder_factory.py` dispatches voyage/local/sie without orchestrator if/elif
-- [x] `tavily_corpus.py` fetches live web chunks (standalone primitive)
+- [x] `SweepRequest.corpus` accepts caller-supplied chunks; falls back to topic string (`tavily_corpus.py` removed)
 - [x] `aim_logger.py` logs run params to Aim (no-op on failure — non-fatal)
-- [x] 50 tests pass, 83% coverage (≥80% threshold)
+- [x] 46 tests pass, coverage ≥80% threshold
 - [x] ruff: 0 errors, mypy: 0 errors, frontend: 0 errors
 
 ### Files Created / Modified
 | File | Change |
 |---|---|
 | `server/core/sie_embedder.py` | NEW — SIE BGE-M3/Stella-v5 embedding functions |
-| `server/core/tavily_corpus.py` | NEW — Tavily live web corpus builder |
 | `server/core/aim_logger.py` | NEW — Aim experiment run logging wrapper (no-op on fail) |
 | `server/core/embedder_factory.py` | NEW — Provider dispatch factory (voyage/local/sie) |
 | `server/api/sweep.py` | NEW — `POST /api/v1/sweep` + health helper functions |
@@ -676,11 +675,10 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, wire
 | `server/core/embedder.py` | Voyage functions renamed to `embed_*_voyage`; dispatch removed |
 | `server/core/orchestrator.py` | Uses `embedder_factory.get_embedder()` + `AimLogger.log_run()` |
 | `server/main.py` | Sweep router mounted + enhanced `/health` endpoint |
-| `pyproject.toml` | Added `sie-sdk`, `aim`, `tavily-python` dependencies |
+| `pyproject.toml` | Added `sie-sdk`, `aim` dependencies (`tavily-python` removed) |
 | `tests/test_sie_embedder.py` | NEW — 5 GWT tests |
-| `tests/test_tavily_corpus.py` | NEW — 3 GWT tests |
 | `tests/test_embedder_factory.py` | Rewritten — 6 GWT tests (sys.modules mocking) |
-| `tests/test_sweep_endpoint.py` | NEW — 10 GWT tests (minimal FastAPI app) |
+| `tests/test_sweep_endpoint.py` | NEW — 9 GWT tests (minimal FastAPI app) |
 
 ---
 

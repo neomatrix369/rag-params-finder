@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Slice 21 — SIE Skateboard** — SIE (Superlinked Inference Engine) as a third embedding provider; `embedder_factory.py` single dispatch point for voyage/local/sie; `sie_embedder.py` (BGE-M3, Stella-v5 via self-hosted Docker on `:8080`); `tavily_corpus.py` live web corpus primitive; `aim_logger.py` Aim experiment run logging (no-op on failure); `POST /api/v1/sweep` Tier 1 ranked sweep endpoint; `GET /health` extended with `sie`, `tavily`, `version` fields; 50 tests, 83.3% coverage
+- **Slice 21 — SIE Skateboard** — SIE (Superlinked Inference Engine) as a third embedding provider; `embedder_factory.py` single dispatch point for voyage/local/sie; `sie_embedder.py` (BGE-M3, Stella-v5 via self-hosted Docker on `:8080`); `aim_logger.py` Aim experiment run logging (no-op on failure); `POST /api/v1/sweep` Tier 1 ranked sweep endpoint (caller supplies `corpus` list; falls back to topic string); `GET /health` extended with `sie`, `version` fields; 46 tests
 - **Documentation navigation** — root [QUICKSTART.md](QUICKSTART.md), [docs/README.md](docs/README.md) persona index; slice tracker at [docs/slices/PROGRESS.md](docs/slices/PROGRESS.md)
 - **Slice 14 Docker Compose** — `./start-services.sh`, `stop-services.sh`, `setup.sh`; `docker-compose.yml` + `docker-compose.dev.yml`; server/frontend Dockerfiles; `/healthz` MongoDB ping; `scripts/health-check.sh`
 - **Contributor docs:** Optional `code-review-graph` MCP guidance in [Development Guide](docs/contributor-guide/development.md) and README Contributing section (not required for end users)
@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pre-push hook:** fast gates on every `git push` (`scripts/pre-push-gates.sh` → `quality-gates.sh --quick`: pytest, frontend verify, gitleaks; via `install-git-hooks.sh`)
 - **Repo hygiene:** `.gitleaks.toml`, `.nvmrc`, `.editorconfig`, `.gitattributes`, Dependabot
 - **Frontend:** ESLint + `eslint-plugin-security` wired in CI and pre-commit
+
+### Removed
+
+- **Tavily corpus dependency** — `tavily_corpus.py`, `test_tavily_corpus.py`, and `tavily-python` dep removed; sweep endpoint now accepts a caller-supplied `corpus: list[str]` field; `GET /health` no longer includes a `tavily` key
 
 ### Changed
 

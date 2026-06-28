@@ -20,5 +20,4 @@ _(populated as slices complete)_
 
 - SIE first-call latency: first `encode` call per model downloads weights from HuggingFace (seconds). Warm-up call in `/health` endpoint mitigates.
 - Atlas M0 storage deadlock: active risk until Slice 19 (storage quota guard) ships. Workaround: delete complete experiments to free space.
-- Tavily rate limits during parallel corpus builds: cache Tavily results by topic in MongoDB to avoid repeated API calls.
 - `embedder.py` currently acts as both Voyage implementation and provider router. Slice 21 extracts the router to `embedder_factory.py` — any code importing `embed_documents` from `embedder.py` directly (outside the orchestrator) must be updated at that point.
