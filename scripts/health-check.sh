@@ -10,7 +10,7 @@ failures=0
 
 check() {
   local label="$1"
-  if "$2"; then
+  if "${@:2}" >/dev/null 2>&1; then
     echo "OK   $label"
   else
     echo "FAIL $label"
@@ -42,7 +42,7 @@ else
   fi
 fi
 
-check "frontend ${FRONTEND_URL}/" curl -sf "${FRONTEND_URL}/" >/dev/null
+check "frontend ${FRONTEND_URL}/" curl -sf "${FRONTEND_URL}/"
 
 echo "===================================="
 if [[ "$failures" -gt 0 ]]; then

@@ -75,8 +75,15 @@ check_ports() {
   read -r -p "Choice [1/2]: " choice
   case "$choice" in
     1)
+      # First try a clean docker compose down — avoids killing Docker's own port proxies on macOS
+      if "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" down 2>/dev/null; then
+        echo "Stopped existing containers."
+      fi
+      # Kill any remaining non-Docker processes still holding the ports
       for port in "${conflicts[@]}"; do
-        lsof -ti:"$port" | xargs kill -9 2>/dev/null || true
+        if lsof -ti:"$port" >/dev/null 2>&1; then
+          lsof -ti:"$port" | xargs kill -9 2>/dev/null || true
+        fi
       done
       ;;
     *)
