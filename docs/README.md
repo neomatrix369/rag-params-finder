@@ -15,7 +15,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | Persona | Start here | Then |
 |---------|------------|------|
 | **New user — cloud accounts** | [user-guide/cloud-setup.md](./user-guide/cloud-setup.md) | [QUICKSTART.md](../QUICKSTART.md) → [user-guide/getting-started.md](./user-guide/getting-started.md) |
-| **New user — first sweep** | [QUICKSTART.md](../QUICKSTART.md) | [user-guide/getting-started.md](./user-guide/getting-started.md) → dashboard at `http://localhost:5173` |
+| **New user — first sweep** | [QUICKSTART.md](../QUICKSTART.md) | [user-guide/getting-started.md](./user-guide/getting-started.md) → dashboard at `http://localhost:5374` |
 | **Operator — config & CLI** | [user-guide/configuration.md](./user-guide/configuration.md) | [user-guide/cli-reference.md](./user-guide/cli-reference.md) |
 | **Operator — dashboard** | [user-guide/dashboard-guide.md](./user-guide/dashboard-guide.md) | [user-guide/configuration.md](./user-guide/configuration.md) (tiebreaker, env vars) |
 | **Operator — fixing errors** | [user-guide/troubleshooting.md](./user-guide/troubleshooting.md) | [user-guide/cloud-setup.md](./user-guide/cloud-setup.md) (indexes, Voyage tiers) |

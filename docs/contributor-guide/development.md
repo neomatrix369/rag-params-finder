@@ -31,7 +31,7 @@ uvicorn server.main:app --reload --port 8001
 ```bash
 cd frontend
 npm install
-npm run dev    # → http://localhost:5173
+npm run dev    # → http://localhost:5374
 ```
 
 ### Three-terminal development loop
@@ -57,7 +57,7 @@ One-command stack for server + dashboard (MongoDB Atlas stays external). The **C
 
 ```bash
 cp .env.example .env
-./start-services.sh              # prod: built frontend + uvicorn (ports 8001, 5173)
+./start-services.sh              # prod: built frontend + uvicorn (ports 8001, 5374)
 ./scripts/health-check.sh        # smoke: server, frontend, Atlas via /healthz
 
 # Host CLI (install once: uv pip install -e .)
@@ -73,7 +73,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 | Port | Service |
 |------|---------|
 | 8001 | FastAPI server |
-| 5173 | React dashboard |
+| 5374 | React dashboard |
 
 **Profiles:** default = production-like (`vite preview`); `dev` = bind-mounted source + `/api` proxy to `http://server:8001`.
 

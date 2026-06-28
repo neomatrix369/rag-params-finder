@@ -40,7 +40,7 @@ All provider dispatch lives in `server/core/embedder_factory.py` — add a new `
 
 - `server/core/embedder.py` — Voyage AI only (`embed_documents_voyage`, `embed_query_voyage`)
 - `server/core/local_embedder.py` — sentence-transformers (`embed_documents_local`, `embed_query_local`)
-- `server/core/sie_embedder.py` — SIE Docker on `:8080` (`embed_documents_sie`, `embed_query_sie`)
+- `server/core/sie_embedder.py` — SIE Docker on `:8720` (`embed_documents_sie`, `embed_query_sie`)
 
 For most new models of an existing provider, no changes to the factory are needed — just add the model to `model_registry.py`.
 

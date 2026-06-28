@@ -1,10 +1,10 @@
 #!/bin/bash
-# Post-start smoke check for Docker or manual stack (server :8001, dashboard :5173)
+# Post-start smoke check for Docker or manual stack (server :8001, dashboard :5374)
 set -e
 set -o pipefail
 
 SERVER_URL="${SERVER_URL:-http://localhost:8001}"
-FRONTEND_URL="${FRONTEND_URL:-http://localhost:5173}"
+FRONTEND_URL="${FRONTEND_URL:-http://localhost:5374}"
 
 failures=0
 

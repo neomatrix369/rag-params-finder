@@ -232,7 +232,7 @@ All 28 files listed in CLAUDE.md verified to exist with correct purposes:
 **Implemented**: `server/settings.py:35, 39`
 
 **Current behavior**:
-- Defaults work for local development (localhost:5173, 127.0.0.1:5173, etc.)
+- Defaults work for local development (localhost:5374, 127.0.0.1:5374, etc.)
 - Advanced users may want to customize for production deployment
 
 **Recommendation**: Document in `configuration.md` under "Environment Variables" as optional advanced settings:
@@ -242,7 +242,7 @@ All 28 files listed in CLAUDE.md verified to exist with correct purposes:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173,...` | Comma-separated list of allowed origins for CORS |
+| `CORS_ORIGINS` | `http://localhost:5374,http://127.0.0.1:5374,...` | Comma-separated list of allowed origins for CORS |
 | `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX` | `true` | When true, automatically allow localhost/127.0.0.1/[::1] on any port via regex |
 ```
 

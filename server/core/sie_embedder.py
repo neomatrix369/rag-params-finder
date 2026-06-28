@@ -1,11 +1,14 @@
-"""SIE (Superlinked Inference Engine) embeddings via self-hosted Docker on :8080.
+"""SIE (Superlinked Inference Engine) embeddings via self-hosted Docker on :8720.
 
 Mirrors the interface of local_embedder.py — plain module-level functions so
 embedder_factory.py can wire them without any class hierarchy.
 
 SIE server must be running:
-    docker run -p 8080:8080 -v sie-hf-cache:/app/.cache/huggingface \\
+    docker run -p 8720:8080 -v sie-hf-cache:/app/.cache/huggingface --platform linux/amd64 \
         -e HF_TOKEN=$HF_TOKEN ghcr.io/superlinked/sie-server:latest-cpu-default
+
+Port 8720 is chosen to avoid the widely-used 8080 (Jenkins, Tomcat, Hadoop, etc.).
+The SIE container internally listens on 8080; the host side maps to 8720.
 
 Models route through the SIE registry full-name (e.g. "BAAI/bge-m3").
 The model_registry maps short IDs ("bge-m3") to huggingface_id for the SDK call.
@@ -22,7 +25,7 @@ from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-_SIE_BASE_URL = os.getenv("SIE_BASE_URL", "http://localhost:8080")
+_SIE_BASE_URL = os.getenv("SIE_BASE_URL", "http://localhost:8720")
 
 
 def _get_client() -> SIEClient:

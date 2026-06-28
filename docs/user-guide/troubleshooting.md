@@ -324,7 +324,7 @@ db.results.deleteMany({experiment_id: exp_id})
 |---|---|
 | Docker not running | Start Docker Desktop; verify with `docker info` |
 | Placeholder `.env` | Set real `MONGODB_URI` (not `your_mongodb_atlas_uri_here`); use `NONINTERACTIVE=1` for fail-fast without prompts |
-| Port 8001 or 5173 in use | Stop local `uvicorn` / `npm run dev`, or use `./start-services.sh` port-conflict menu |
+| Port 8001 or 5374 in use | Stop local `uvicorn` / `npm run dev`, or use `./start-services.sh` port-conflict menu |
 | Atlas unreachable from container | Atlas **Network Access** must allow your IP (or `0.0.0.0/0` for dev); check `curl http://localhost:8001/healthz` → `"mongodb": "ok"` |
 | Missing `input_data/` | Create `input_data/pdfs/` and add PDFs referenced in your config YAML |
 | Prod dashboard API errors | Browser must use `http://localhost:8001` — set via `VITE_API_URL` at image build time (default in Compose) |

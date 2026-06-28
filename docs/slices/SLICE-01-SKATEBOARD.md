@@ -124,7 +124,7 @@ End-to-end RAG parameter sweep pipeline working with one chunker, one embedding 
 3. Display experiment_id, created_at, status columns
 4. Lift Tailwind classes from predecessor (slate-900 bg, blue-600 primary)
 
-**Verification**: `npm run dev` → http://localhost:5173 → see one row after submitting experiment
+**Verification**: `npm run dev` → http://localhost:5374 → see one row after submitting experiment
 
 ## Quick-Win cuts taken
 
