@@ -71,11 +71,10 @@ frontend/dist/
 frontend/.vite/
 frontend/coverage/
 
-ideate/
 .claude
 .cursor/*
 CLAUDE.local.md
 # Added by code-review-graph
 .code-review-graph/
 .mcp.json
-docs/prompts/
+docs/ideate-prompts/

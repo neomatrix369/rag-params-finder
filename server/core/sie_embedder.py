@@ -16,16 +16,13 @@ The model_registry maps short IDs ("bge-m3") to huggingface_id for the SDK call.
 
 from __future__ import annotations
 
-import os
-
 from sie_sdk import SIEClient  # type: ignore[import-untyped]
 
 from server.core.model_registry import get_model_info
+from server.settings import settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
-
-_SIE_BASE_URL = os.getenv("SIE_BASE_URL", "http://localhost:8720")
 
 
 def _get_client() -> SIEClient:
@@ -35,8 +32,8 @@ def _get_client() -> SIEClient:
     so we create one per call rather than caching — keeps tests simple and avoids
     stale-state bugs across test boundaries.
     """
-    client = SIEClient(_SIE_BASE_URL)
-    logger.debug("SIE client created — base_url=%s", _SIE_BASE_URL)
+    client = SIEClient(settings.sie_base_url)
+    logger.debug("SIE client created — base_url=%s", settings.sie_base_url)
     return client
 
 
@@ -67,9 +64,9 @@ def embed_documents_sie(texts: list[str], model_id: str) -> list[list[float]]:
     logger.info("SIE embed batch — texts=%d model=%s", len(texts), sie_model)
     try:
         client = _get_client()
-        result = client.encode(sie_model, [{"text": t} for t in texts])
-        dense = result["dense"]
-        vectors: list[list[float]] = dense.tolist()
+        # SDK returns one {dense, timing} dict per input item — not a batched ndarray.
+        results = client.encode(sie_model, [{"text": t} for t in texts])
+        vectors: list[list[float]] = [item["dense"].tolist() for item in results]
         logger.info("SIE embed OK — count=%d dim=%d", len(vectors), len(vectors[0]))
         return vectors
     except Exception as exc:
@@ -93,10 +90,8 @@ def embed_query_sie(text: str, model_id: str) -> list[float]:
     logger.debug("SIE query embed — model=%s", sie_model)
     try:
         client = _get_client()
-        result = client.encode(sie_model, [{"text": text}])
-        dense = result["dense"]
-        # dense shape: (1, dim) — take the first (and only) row
-        vector: list[float] = dense[0].tolist()
+        results = client.encode(sie_model, [{"text": text}])
+        vector: list[float] = results[0]["dense"].tolist()
         logger.debug("SIE query embed OK — dim=%d", len(vector))
         return vector
     except Exception as exc:

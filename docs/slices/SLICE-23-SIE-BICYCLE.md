@@ -80,7 +80,7 @@ Scenario: Evidently drift monitor detects score drop
 ### Before-Checks [GATE]
 - [ ] Branch `slice/23-sie-bicycle` created from latest `main` (Slice 22 merged and gate PASSED)
 - [ ] Ollama installed and `llama3.2` pulled: `ollama run llama3.2 "ping"` returns output
-- [ ] SIE Docker running
+- [ ] SIE Docker running; BGE-M3 encode probe returns HTTP 200 — [SIE Provider Setup](../user-guide/sie-setup.md)
 - [ ] `./scripts/quality-gates.sh` passes
 
 ### TDD Execution
