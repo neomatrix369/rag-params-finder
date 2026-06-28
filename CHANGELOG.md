@@ -25,10 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Repo hygiene:** `.gitleaks.toml`, `.nvmrc`, `.editorconfig`, `.gitattributes`, Dependabot
 - **Frontend:** ESLint + `eslint-plugin-security` wired in CI and pre-commit
 
-### Removed
-
-- **Tavily corpus dependency** — `tavily_corpus.py`, `test_tavily_corpus.py`, and `tavily-python` dep removed; sweep endpoint now accepts a caller-supplied `corpus: list[str]` field; `GET /health` no longer includes a `tavily` key
-
 ### Changed
 
 - **Pre-push hook** (2026-05-28): replaced `pre-commit run --all-files` on push with `quality-gates.sh --quick` so push runs pytest and frontend verify, not only lint hooks

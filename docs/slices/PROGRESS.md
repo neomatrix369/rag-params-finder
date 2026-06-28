@@ -34,7 +34,7 @@
 | 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | `quality-gates.sh`, `repo-lint.sh`, `pre-push-gates.sh` (`--quick` on push), `install-git-hooks.sh`, coverage CI, ESLint, bandit, pip-audit, gitleaks, dependabot — [`SLICE-20-TOOLCHAIN-HARDENING.md`](SLICE-20-TOOLCHAIN-HARDENING.md) |
 | 14 — Docker Compose | ✅ COMPLETE | ~2–3 h | `./start-services.sh`, prod + `docker-compose.dev.yml`, Atlas `/healthz` — [`SLICE-14-DOCKER-COMPOSE.md`](SLICE-14-DOCKER-COMPOSE.md) |
 | ~~15 — CI/CD~~ | ✅ (via 20) | — | Superseded by Slice 20 — CI + `quality-gates.sh` + git hooks |
-| 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); caller-supplied corpus (Tavily removed); Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`../plan/slice-21-sie-skateboard.md`](../plan/slice-21-sie-skateboard.md) |
+| 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); caller-supplied corpus (`corpus: list[str]`); Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`../plan/slice-21-sie-skateboard.md`](../plan/slice-21-sie-skateboard.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
 
@@ -650,14 +650,14 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 **Status**: ✅ COMPLETE | **Started**: 2026-06-27 | **Completed**: 2026-06-27 | **Target**: ~4–6 h
 
 ### Goal
-Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add Aim experiment logging, and expose a new `POST /api/v1/sweep` endpoint for Tier 1 ranked sweeps. Corpus is supplied by the caller (`corpus` field); the Tavily dependency was removed post-implementation.
+Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add Aim experiment logging, and expose a new `POST /api/v1/sweep` endpoint for Tier 1 ranked sweeps. Corpus is supplied by the caller via the `corpus: list[str]` field; falls back to the topic string when empty.
 
 ### Acceptance Criteria
 - [x] `POST /api/v1/sweep` returns ranked retrieval methods with scores
 - [x] `GET /health` includes `sie` and `version` fields
 - [x] SIE models (BGE-M3, Stella-v5, SPLADE-v3) registered in `model_registry.py`
 - [x] `embedder_factory.py` dispatches voyage/local/sie without orchestrator if/elif
-- [x] `SweepRequest.corpus` accepts caller-supplied chunks; falls back to topic string (`tavily_corpus.py` removed)
+- [x] `SweepRequest.corpus` accepts caller-supplied chunks; falls back to topic string when empty
 - [x] `aim_logger.py` logs run params to Aim (no-op on failure — non-fatal)
 - [x] 46 tests pass, coverage ≥80% threshold
 - [x] ruff: 0 errors, mypy: 0 errors, frontend: 0 errors
@@ -675,7 +675,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | `server/core/embedder.py` | Voyage functions renamed to `embed_*_voyage`; dispatch removed |
 | `server/core/orchestrator.py` | Uses `embedder_factory.get_embedder()` + `AimLogger.log_run()` |
 | `server/main.py` | Sweep router mounted + enhanced `/health` endpoint |
-| `pyproject.toml` | Added `sie-sdk`, `aim` dependencies (`tavily-python` removed) |
+| `pyproject.toml` | Added `sie-sdk`, `aim` dependencies |
 | `tests/test_sie_embedder.py` | NEW — 5 GWT tests |
 | `tests/test_embedder_factory.py` | Rewritten — 6 GWT tests (sys.modules mocking) |
 | `tests/test_sweep_endpoint.py` | NEW — 9 GWT tests (minimal FastAPI app) |
