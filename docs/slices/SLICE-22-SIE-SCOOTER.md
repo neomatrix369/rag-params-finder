@@ -67,7 +67,7 @@ Scenario: GET /api/v1/best-config returns 404 when no history exists
 
 ### Before-Checks [GATE]
 - [ ] Branch `slice/22-sie-scooter` created from latest `main` (Slice 21 merged and gate PASSED)
-- [ ] SIE Docker running; BGE-reranker and SPLADE v3 models accessible at :8720
+- [ ] SIE Docker running; BGE-M3 encode probe returns HTTP 200 — see [SIE Provider Setup](../user-guide/sie-setup.md) (warm-up, 503 logs, disk-cache WARNING)
 - [ ] `./scripts/quality-gates.sh` passes
 
 ### TDD Execution
