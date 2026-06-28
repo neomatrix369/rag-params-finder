@@ -28,7 +28,7 @@ rag-params-finder run --config configs/example-mongodb-local.yaml   # 120 runs, 
 rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 40 runs, Voyage + Tier 1
 ```
 
-Open `http://localhost:5173` to watch live progress and explore results.
+Open `http://localhost:5374` to watch live progress and explore results.
 
 ### Docker Quick Start (optional)
 
@@ -36,7 +36,7 @@ Open `http://localhost:5173` to watch live progress and explore results.
 
 ```bash
 cp .env.example .env   # set MONGODB_URI (and VOYAGE_API_KEY if needed)
-./start-services.sh    # server :8001 + dashboard :5173
+./start-services.sh    # server :8001 + dashboard :5374
 
 # Submit sweeps from the host (CLI is not containerized)
 rag-params-finder run --config configs/example-mongodb-local.yaml

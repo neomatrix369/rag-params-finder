@@ -28,7 +28,7 @@ Submits the experiment config to the server, then optionally polls run progress 
 # Submit and watch progress in the terminal
 rag-params-finder run --config configs/example-mongodb-local.yaml
 
-# Submit and detach — open http://localhost:5173 to track status
+# Submit and detach — open http://localhost:5374 to track status
 rag-params-finder run --config configs/example-mongodb-local.yaml --detach
 
 # Submit, print the submission summary, then exit without polling the server
@@ -178,7 +178,7 @@ rag-params-finder version
 
 There is no `list` or `status` Typer command. Use:
 
-- Dashboard at `http://localhost:5173`, or
+- Dashboard at `http://localhost:5374`, or
 - **`GET /experiments`** and **`GET /experiments/{experiment_id}`** ([interactive API docs](http://localhost:8001/docs)), or
 - **`curl`** / any HTTP client against the same URLs.
 

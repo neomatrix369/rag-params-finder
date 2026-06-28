@@ -130,7 +130,7 @@ Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) and `
 ```
 
 - Server: `http://localhost:8001` (OpenAPI docs at `/docs`)
-- Dashboard: `http://localhost:5173`
+- Dashboard: `http://localhost:5374`
 - Dev hot reload: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build`
 
 See [Troubleshooting → Docker](troubleshooting.md#-docker) if startup fails.
@@ -157,7 +157,7 @@ The CLI will:
 - Display the experiment ID and generated run IDs
 - Poll run progress live unless `--detach` is used
 
-Open `http://localhost:5173` to watch live progress and explore results.
+Open `http://localhost:5374` to watch live progress and explore results.
 
 **Long sweeps**: pause and resume without losing completed runs:
 

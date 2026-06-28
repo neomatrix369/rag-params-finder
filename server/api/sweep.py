@@ -26,7 +26,7 @@ router = APIRouter()
 
 _DEFAULT_EMBEDDING_MODEL = "bge-m3"
 _DEFAULT_RETRIEVAL_METHODS = ["dense", "bm25", "hybrid-rrf"]
-_SIE_BASE_URL = os.getenv("SIE_BASE_URL", "http://localhost:8080")
+_SIE_BASE_URL = os.getenv("SIE_BASE_URL", "http://localhost:8720")
 
 
 class SweepRequest(BaseModel):
