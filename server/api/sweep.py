@@ -9,7 +9,6 @@ GET /api/v1/best-config is a thin read from MongoDB sweep history (Slice 22 exte
 
 from __future__ import annotations
 
-import os
 import time
 import uuid
 
@@ -19,14 +18,22 @@ from pydantic import BaseModel, Field
 
 from server.core.aim_logger import AimLogger
 from server.core.embedder_factory import get_embedder
+from server.settings import settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 router = APIRouter()
 
-_DEFAULT_EMBEDDING_MODEL = "bge-m3"
 _DEFAULT_RETRIEVAL_METHODS = ["dense", "bm25", "hybrid-rrf"]
-_SIE_BASE_URL = os.getenv("SIE_BASE_URL", "http://localhost:8720")
+_LOCAL_DEFAULT_EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+_SIE_DEFAULT_EMBEDDING_MODEL = "bge-m3"
+
+
+def default_embedding_model() -> str:
+    """Default sweep model: SIE bge-m3 when enabled, else local MiniLM."""
+    if settings.sie_enabled:
+        return _SIE_DEFAULT_EMBEDDING_MODEL
+    return _LOCAL_DEFAULT_EMBEDDING_MODEL
 
 
 class SweepRequest(BaseModel):
@@ -39,8 +46,11 @@ class SweepRequest(BaseModel):
         ),
     )
     embedding_model: str = Field(
-        default=_DEFAULT_EMBEDDING_MODEL,
-        description="SIE or Voyage model ID (default: bge-m3)",
+        default_factory=default_embedding_model,
+        description=(
+            "Embedding model ID. Default: bge-m3 when SIE_ENABLED=true, "
+            "else all-MiniLM-L6-v2 (local)."
+        ),
     )
     retrieval_methods: list[str] = Field(
         default=_DEFAULT_RETRIEVAL_METHODS,
@@ -63,9 +73,11 @@ class SweepResponse(BaseModel):
 
 
 def check_sie_health() -> str:
-    """Probe SIE /healthz — returns 'reachable' or 'unreachable'."""
+    """Probe SIE /healthz when enabled — else 'disabled'."""
+    if not settings.sie_enabled:
+        return "disabled"
     try:
-        resp = httpx.get(f"{_SIE_BASE_URL}/healthz", timeout=3.0)
+        resp = httpx.get(f"{settings.sie_base_url}/healthz", timeout=3.0)
         return "reachable" if resp.status_code == 200 else "unreachable"
     except Exception:
         return "unreachable"
@@ -172,11 +184,14 @@ def _apply_method_modifier(method: str, base_score: float) -> float:
 
 
 @router.post("/sweep", response_model=SweepResponse)
-async def sweep(request: SweepRequest) -> dict:
+def sweep(request: SweepRequest) -> dict:
     """Run a Tier 1 SIE vs Voyage embedding sweep over the supplied corpus.
 
     Returns ranked retrieval configs comparing embedding models on the given topic.
     All runs are logged to Aim.
+
+    Intentionally synchronous so FastAPI dispatches it to a thread pool, keeping
+    the event loop unblocked during CPU-bound model loading and inference.
     """
     logger.info("sweep request — topic=%r model=%s", request.topic, request.embedding_model)
     result = _run_sweep_internal(request)
@@ -190,7 +205,7 @@ async def sweep(request: SweepRequest) -> dict:
 
 
 @router.get("/best-config")
-async def best_config(task: str | None = None) -> dict:
+def best_config(task: str | None = None) -> dict:
     """Return the best RAG config from sweep history (placeholder for Slice 22).
 
     Queries MongoDB sweep history for the highest-scoring config for the given task.
