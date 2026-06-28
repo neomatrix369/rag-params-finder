@@ -67,14 +67,29 @@ class TestSweepEndpointTier1:
 
     def test_sweep_defaults_to_bge_m3_when_model_omitted(self, sweep_client: TestClient):
         """
-        Given a valid sweep request with no embedding_model field
+        Given SIE enabled and a valid sweep request with no embedding_model field
         When POST /api/v1/sweep {"topic":"AI agents"}
         Then HTTP 200 and best_config.embedding_model is "bge-m3".
         """
-        resp = sweep_client.post("/api/v1/sweep", json={"topic": "AI agents"})
+        with patch("server.api.sweep.settings") as mock_settings:
+            mock_settings.sie_enabled = True
+            resp = sweep_client.post("/api/v1/sweep", json={"topic": "AI agents"})
         assert resp.status_code == 200
         body = resp.json()
         assert body["best_config"]["embedding_model"] == "bge-m3"
+
+    def test_sweep_defaults_to_local_model_when_sie_disabled(self, sweep_client: TestClient):
+        """
+        Given SIE disabled (default) and no embedding_model field
+        When POST /api/v1/sweep {"topic":"AI agents"}
+        Then HTTP 200 and best_config.embedding_model is all-MiniLM-L6-v2.
+        """
+        with patch("server.api.sweep.settings") as mock_settings:
+            mock_settings.sie_enabled = False
+            resp = sweep_client.post("/api/v1/sweep", json={"topic": "AI agents"})
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["best_config"]["embedding_model"] == "all-MiniLM-L6-v2"
 
     def test_sweep_missing_topic_returns_422(self, sweep_client: TestClient):
         """
@@ -124,7 +139,12 @@ class TestHealthEnhanced:
 
     def test_check_sie_health_returns_string(self):
         """check_sie_health returns a string status."""
-        with patch("server.api.sweep.httpx.get") as mock_get:
+        with (
+            patch("server.api.sweep.settings") as mock_settings,
+            patch("server.api.sweep.httpx.get") as mock_get,
+        ):
+            mock_settings.sie_enabled = True
+            mock_settings.sie_base_url = "http://localhost:8720"
             mock_get.return_value.status_code = 200
             from server.api.sweep import check_sie_health
 
@@ -132,9 +152,23 @@ class TestHealthEnhanced:
         assert isinstance(result, str)
         assert result == "reachable"
 
+    def test_check_sie_health_returns_disabled_when_sie_off(self):
+        """check_sie_health returns 'disabled' when SIE_ENABLED is false."""
+        with patch("server.api.sweep.settings") as mock_settings:
+            mock_settings.sie_enabled = False
+            from server.api.sweep import check_sie_health
+
+            result = check_sie_health()
+        assert result == "disabled"
+
     def test_check_sie_health_unreachable_on_exception(self):
         """check_sie_health returns 'unreachable' when SIE is down."""
-        with patch("server.api.sweep.httpx.get", side_effect=Exception("connection refused")):
+        with (
+            patch("server.api.sweep.settings") as mock_settings,
+            patch("server.api.sweep.httpx.get", side_effect=Exception("connection refused")),
+        ):
+            mock_settings.sie_enabled = True
+            mock_settings.sie_base_url = "http://localhost:8720"
             from server.api.sweep import check_sie_health
 
             result = check_sie_health()
@@ -160,7 +194,12 @@ class TestHealthEnhanced:
             }
 
         test_client = TestClient(app)
-        with patch("server.api.sweep.httpx.get") as mock_get:
+        with (
+            patch("server.api.sweep.settings") as mock_settings,
+            patch("server.api.sweep.httpx.get") as mock_get,
+        ):
+            mock_settings.sie_enabled = True
+            mock_settings.sie_base_url = "http://localhost:8720"
             mock_get.return_value.status_code = 200
             resp = test_client.get("/health")
 

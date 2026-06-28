@@ -17,7 +17,7 @@ class TestSIEEmbedderDenseEmbedding:
         When embed_documents_sie(["test query"], "bge-m3") is called
         Then a list containing one 1024-dim float vector is returned.
         """
-        mock_result = {"dense": np.zeros((1, 1024), dtype=np.float32)}
+        mock_result = [{"dense": np.zeros(1024, dtype=np.float32)}]
         with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
             mock_client_cls.return_value.encode.return_value = mock_result
 
@@ -35,7 +35,7 @@ class TestSIEEmbedderDenseEmbedding:
         When embed_query_sie("test query", "bge-m3") is called
         Then a 1024-dim float vector is returned.
         """
-        mock_result = {"dense": np.zeros((1, 1024), dtype=np.float32)}
+        mock_result = [{"dense": np.zeros(1024, dtype=np.float32)}]
         with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
             mock_client_cls.return_value.encode.return_value = mock_result
 
@@ -52,7 +52,7 @@ class TestSIEEmbedderDenseEmbedding:
         Then a vector per text is returned.
         """
         batch_size = 3
-        mock_result = {"dense": np.zeros((batch_size, 1024), dtype=np.float32)}
+        mock_result = [{"dense": np.zeros(1024, dtype=np.float32)} for _ in range(batch_size)]
         with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
             mock_client_cls.return_value.encode.return_value = mock_result
 

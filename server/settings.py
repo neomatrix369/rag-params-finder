@@ -56,6 +56,12 @@ class Settings(BaseSettings):
     # Leave blank to derive from MONGODB_URI host (e.g. thesandboxcluster.5uaqybx.mongodb.net).
     atlas_cluster_name: str = ""
 
+    # SIE (Superlinked Inference Engine) — opt-in; disabled by default so Docker
+    # and local dev start without the ~4 GB SIE container or BGE-M3 warm-up.
+    # Set SIE_ENABLED=true and start SIE separately — see docs/user-guide/sie-setup.md.
+    sie_enabled: bool = False
+    sie_base_url: str = "http://localhost:8720"
+
     # Tiebreaker metric for ranking configurations when max_score is tied.
     # Options:
     #   - "query_avg" (weighted, per-query average — fairer)

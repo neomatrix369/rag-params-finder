@@ -22,8 +22,11 @@ Everything you need to run your first RAG parameter sweep experiment.
 | Node.js | 22+ | Install via [nodejs.org](https://nodejs.org/) or `nvm install 22` |
 | MongoDB Atlas | Free tier (M0) | **Required** — see [Cloud Account Setup](cloud-setup.md#mongodb-atlas-required) |
 | Voyage AI | Optional | Only for Voyage models — see [Cloud Account Setup](cloud-setup.md#voyage-ai-optional) |
+| Docker Desktop + HF_TOKEN | Optional | Only for SIE (BGE-M3) models — see [SIE Provider Setup](sie-setup.md) |
 
 **New to Atlas or Voyage?** Start with **[Cloud Account Setup](cloud-setup.md)** — account creation, connection string, search indexes, API key, and Tier 1 billing (~15 min).
+
+**Using SIE (open-source BGE-M3 embeddings)?** See **[SIE Provider Setup](sie-setup.md)** — the SIE Docker container requires extra steps and has known warm-up behaviour that is easy to mistake for a bug.
 
 ---
 
@@ -186,6 +189,7 @@ Models are cached in `~/.cache/huggingface/hub/` after the first download.
 ## 👉 Next Steps
 
 - [Cloud Account Setup](cloud-setup.md) — Atlas account, Voyage billing, search indexes
+- [SIE Provider Setup](sie-setup.md) — self-hosted BGE-M3 via Docker (known issues and workarounds)
 - [Configuration reference](configuration.md) — all YAML fields, sweep expansion, queries format
 - [CLI reference](cli-reference.md) — all commands and flags
 - [Dashboard guide](dashboard-guide.md) — reading the experiments list, detail screen, and search explorer

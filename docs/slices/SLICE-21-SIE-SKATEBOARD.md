@@ -91,8 +91,8 @@ Scenario: Aim logging on sweep run completion
 - [ ] Branch `slice/21-sie-skateboard` created from latest `main` and checked out
 - [ ] Conventional Commits format confirmed: `feat(sie): ...` — write WHY not WHAT; no Co-authored-by
 - [ ] Previous slice gate status is PASSED (Slice 20 — Toolchain hardening ✅)
-- [ ] SIE Docker running: `docker run -p 8720:8080 -v sie-hf-cache:/app/.cache/huggingface --platform linux/amd64 -e HF_TOKEN=$HF_TOKEN ghcr.io/superlinked/sie-server:latest-cpu-default`
-- [ ] `curl http://localhost:8720/healthz` returns ok (wait for model warm-up)
+- [ ] SIE Docker running — see [SIE Provider Setup](../user-guide/sie-setup.md) for the canonical `docker run` command, warm-up polling, and known log messages (503 encode, disk-cache WARNING)
+- [ ] SIE **model ready** (not just `/healthz`): encode probe returns HTTP 200 — `curl -sf -o /dev/null -X POST http://localhost:8720/v1/encode/BAAI/bge-m3 -H "Content-Type: application/json" -d '{"items":[{"text":"probe"}]}'`
 - [ ] `HF_TOKEN` present in `.env`
 - [ ] All existing quality gates pass: `./scripts/quality-gates.sh`
 - [ ] Divergence gate: no conflicts detected (confirmed in GAP_ANALYSIS.md — all additions are additive)
