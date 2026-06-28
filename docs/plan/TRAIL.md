@@ -3,7 +3,7 @@
 
 ## Original Material
 
-- **PCTO Spec** (`docs/PCTO-rag-params-finder-2026-06-27.md`): Add SIE as primary open-source inference backend (encode + score + extract), Tavily as live corpus builder, Aim for experiment tracking, and two new API endpoints (`POST /api/v1/sweep`, `GET /api/v1/best-config`)
+- **PCTO Spec** (`docs/PCTO-rag-params-finder-2026-06-27.md`): Add SIE as primary open-source inference backend (encode + score + extract), caller-supplied corpus (`corpus: list[str]` field on `SweepRequest`), Aim for experiment tracking, and two new API endpoints (`POST /api/v1/sweep`, `GET /api/v1/best-config`)
 - **Codebase** (v0.11.0, 20+ slices complete): Mature Voyage AI + local sentence-transformers RAG sweep pipeline, MongoDB Atlas, FastAPI, React dashboard, Docker, full CI toolchain
 - **Constraints**: Hackathon deadline — Slice 21 targets Days 1–5; Voyage AI stays as numeric baseline (not replaced); all PCTO changes are additive (no rewrites)
 
@@ -17,7 +17,7 @@ Each PCTO slice lives in its own file below. Existing planned slices (10, 16, 19
 
 | # | File | Name | MoSCoW | Status | Issue | Read time | Last Updated |
 |---|------|------|--------|--------|-------|-----------|--------------|
-| 21 | [slice-21-sie-skateboard.md](slice-21-sie-skateboard.md) | SIE Skateboard — embeddings + Tavily + Aim + `/api/v1/sweep` | Must | pending | — | ~4 min | 2026-06-27 |
+| 21 | [slice-21-sie-skateboard.md](slice-21-sie-skateboard.md) | SIE Skateboard — embeddings + Aim + `/api/v1/sweep` | Must | ✅ COMPLETE | — | ~4 min | 2026-06-28 |
 | 22 | [slice-22-sie-scooter.md](slice-22-sie-scooter.md) | SIE Scooter — reranking + `/api/v1/best-config` + MCP stub | Should | pending | — | ~3 min | 2026-06-27 |
 | 23 | [slice-23-sie-bicycle.md](slice-23-sie-bicycle.md) | SIE Bicycle — Ollama + Tier 2–3 methods + Evidently AI | Could | pending | — | ~3 min | 2026-06-27 |
 | 19 | [../slices/SLICE-19-STORAGE-QUOTA-GUARD.md](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) | Storage quota guard | Should | pending | — | — | — |
