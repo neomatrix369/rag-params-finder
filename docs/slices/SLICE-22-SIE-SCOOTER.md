@@ -40,7 +40,7 @@ Create from `main` after Slice 21 is merged.
 
 ```
 Scenario: SIE BGE-reranker scores query+document pairs
-  Given SIEClient is initialised at http://localhost:8080
+  Given SIEClient is initialised at http://localhost:8720
   When score(model="bge-reranker", query="AI agents", documents=["doc1","doc2"]) is called
   Then a list of two float scores is returned
 
@@ -67,7 +67,7 @@ Scenario: GET /api/v1/best-config returns 404 when no history exists
 
 ### Before-Checks [GATE]
 - [ ] Branch `slice/22-sie-scooter` created from latest `main` (Slice 21 merged and gate PASSED)
-- [ ] SIE Docker running; BGE-reranker and SPLADE v3 models accessible at :8080
+- [ ] SIE Docker running; BGE-reranker and SPLADE v3 models accessible at :8720
 - [ ] `./scripts/quality-gates.sh` passes
 
 ### TDD Execution

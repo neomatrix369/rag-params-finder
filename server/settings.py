@@ -6,8 +6,8 @@ from server.utils.logger import get_logger
 logger = get_logger(__name__)
 
 _DEFAULT_CORS_ORIGINS: tuple[str, ...] = (
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    "http://localhost:5374",
+    "http://127.0.0.1:5374",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 )
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     recover_on_boot: bool = False
 
     # CORS — comma-separated origins allowed by the server middleware.
-    # Override via CORS_ORIGINS env var, e.g. "http://localhost:5173,http://localhost:3000".
+    # Override via CORS_ORIGINS env var, e.g. "http://localhost:5374,http://localhost:3000".
     # localhost vs 127.0.0.1 are different browser origins; defaults include both for dev.
     cors_origins: list[str] = list(_DEFAULT_CORS_ORIGINS)
 

@@ -205,7 +205,7 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
 ```
 
-Dashboard (optional): `cd frontend && npm run dev` → `http://localhost:5173`
+Dashboard (optional): `cd frontend && npm run dev` → `http://localhost:5374`
 
 ---
 

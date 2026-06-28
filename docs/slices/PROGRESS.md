@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-06-27 (Slice 21 — SIE Skateboard)
-**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard | Next: Slice **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota
+**Last Updated**: 2026-06-28 (Slice 24 — Port Standardisation)
+**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation | Next: Slice **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota
 
 ---
 
@@ -35,6 +35,7 @@
 | 14 — Docker Compose | ✅ COMPLETE | ~2–3 h | `./start-services.sh`, prod + `docker-compose.dev.yml`, Atlas `/healthz` — [`SLICE-14-DOCKER-COMPOSE.md`](SLICE-14-DOCKER-COMPOSE.md) |
 | ~~15 — CI/CD~~ | ✅ (via 20) | — | Superseded by Slice 20 — CI + `quality-gates.sh` + git hooks |
 | 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); caller-supplied corpus (`corpus: list[str]`); Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`../plan/slice-21-sie-skateboard.md`](../plan/slice-21-sie-skateboard.md) |
+| 24 — Port standardisation | ✅ COMPLETE | ~1 h | Unique static ports: frontend 5173→5374 (avoids Vite default), SIE 8080→8720 (avoids Jenkins/Tomcat/etc.); backend 8001 unchanged — spec: [`SLICE-24-PORT-STANDARDISATION.md`](SLICE-24-PORT-STANDARDISATION.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
 

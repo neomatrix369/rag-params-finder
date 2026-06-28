@@ -29,7 +29,7 @@ bash scripts/repo-lint.sh               # shellcheck + actionlint + markdownlint
 python scripts/check_integrity.py       # unit tests + import smoke
 
 # Docker (server + dashboard; CLI on host)
-./start-services.sh                            # prod profile → :8001, :5173
+./start-services.sh                            # prod profile → :8001, :5374
 ./scripts/health-check.sh
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
@@ -45,7 +45,7 @@ uv pip install -e ".[dev]"
 bash scripts/install-git-hooks.sh          # essential checks on commit (staged) and push (all files)
 
 # Frontend
-cd frontend && npm run dev                     # start dashboard → http://localhost:5173
+cd frontend && npm run dev                     # start dashboard → http://localhost:5374
 npm run lint && npm run typecheck && npm run build
 ```
 
