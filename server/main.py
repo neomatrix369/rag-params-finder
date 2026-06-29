@@ -11,7 +11,7 @@ from server.api.sweep import router as sweep_router
 from server.core.executors import shutdown_executors
 from server.core.health_check import mongodb_health_status
 from server.core.startup_reconciliation import reconcile_orphaned_experiments
-from server.db.indexes import ensure_indexes
+from server.db.indexes import bootstrap_indexes
 from server.settings import LOCALHOST_CORS_ORIGIN_REGEX, settings
 from server.utils.logger import get_logger
 
@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     """Ensure indexes exist on startup."""
     logger.info("boot — server starting")
     try:
-        ensure_indexes()
+        bootstrap_indexes()
     except Exception as e:
         logger.warning("boot — index check failed (starting without indexes): %s", e, exc_info=True)
     try:

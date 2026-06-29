@@ -65,6 +65,30 @@ class TestSIEEmbedderDenseEmbedding:
         for vec in result:
             assert len(vec) == 1024
 
+    def test_embed_documents_shards_large_batches(self):
+        """
+        When embed_documents_sie is called with more texts than the SIE queue limit
+        Then encode is invoked in multiple smaller batches and all vectors are returned.
+        """
+        total = 300
+        batch_size = 128
+        expected_batches = (total + batch_size - 1) // batch_size
+        with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
+            mock_client = mock_client_cls.return_value
+
+            def _encode_side_effect(_model: str, items: list[dict[str, str]]) -> list[dict]:
+                return [{"dense": np.zeros(1024, dtype=np.float32)} for _ in items]
+
+            mock_client.encode.side_effect = _encode_side_effect
+
+            from server.core.sie_embedder import embed_documents_sie
+
+            texts = [f"text {i}" for i in range(total)]
+            result = embed_documents_sie(texts, "bge-m3")
+
+        assert len(result) == total
+        assert mock_client.encode.call_count == expected_batches
+
 
 class TestSIEEmbedderFallback:
     """Scenario: SIE encode falls back gracefully when SIE is unreachable."""

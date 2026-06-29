@@ -1,11 +1,11 @@
 # MongoDB Atlas — SIE open-source embeddings (BGE-M3, Stella-v5, SPLADE-v3)
 #
-# Default sweep (3 embedding models enabled below):
-#   3 models × 5 chunking methods × 2 chunk sizes × 1 overlap × 4 retrievers
-#   = 120 runs (each retriever creates a separate run)
+# Default sweep (2 dense SIE models enabled below):
+#   2 models × 5 chunking methods × 2 chunk sizes × 1 overlap × 4 retrievers
+#   = 80 runs (each retriever creates a separate run)
 #
 # Embedding (1024-dim dense: bge-m3, stella-v5 → vector_index_1024):
-#   splade-v3 uses learned sparse vectors (30522-dim → vector_index_30522)
+#   splade-v3 deferred to Slice 22 — Atlas Vector Search max is 4096 dims (not 30522)
 # Chunking:   fixed · recursive · token · sentence · semantic
 # Retrievers: dense · sparse · hybrid · cross_encoder (swept individually — one per run)
 #
@@ -13,10 +13,9 @@
 #   - SIE container warm for each model (encode probes HTTP 200) — docs/user-guide/sie-setup.md
 #   - SIE_ENABLED=true + SIE_BASE_URL in .env
 #   - MONGODB_URI in .env
-#   - vector_index_1024 + vector_index_30522 + text_search_index on chunks
-#     (M0 allows 3 search indexes cluster-wide — this config uses all three slots)
+#   - vector_index_1024 + text_search_index on chunks (2 of 3 M0 slots)
 #
-# Wall-clock: 120 runs × local SIE encode is slower than Voyage API; use --detach and
+# Wall-clock: 80 runs × local SIE encode is slower than Voyage API; use --detach and
 # monitor via dashboard. Narrow chunk_sizes vs local example to control run count.
 #
 # Quick API demo (no YAML): POST /api/v1/sweep — sie-setup.md §6
@@ -35,7 +34,7 @@ embedding:
   models:
     - bge-m3       # 1024-dim dense+sparse+multi-vector; flagship multilingual
     - stella-v5    # 1024-dim dense; strong English retrieval
-    - splade-v3    # 30522-dim learned sparse; requires vector_index_30522
+    # splade-v3: Slice 22 — sparse output + Atlas storage (30522-dim exceeds 4096 limit)
 
 chunking:
   methods:
