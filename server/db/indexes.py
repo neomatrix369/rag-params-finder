@@ -13,6 +13,7 @@ from server.db.atlas import (
     RESULTS_COLLECTION,
     RUN_STATUS_COLLECTION,
     get_collection,
+    get_database,
     get_mongo_client,
 )
 from server.utils.logger import get_logger
@@ -64,6 +65,7 @@ VECTOR_INDEX_CONFIGS: list[_VectorIndexConfig] = [
 
 TEXT_SEARCH_INDEX_NAME = "text_search_index"
 M0_SEARCH_INDEX_LIMIT = 3
+ATLAS_MAX_VECTOR_DIMENSIONS = 4096
 
 
 class SearchIndexInfo(TypedDict):
@@ -180,6 +182,12 @@ def _get_existing_search_indexes(collection) -> set[str]:
         return {idx["name"] for idx in collection.list_search_indexes()}
     except Exception:
         return set()
+
+
+def vector_index_dimensions(name: str) -> int | None:
+    """Return numDimensions for a managed vector index name, or None if not vector."""
+    cfg = _vector_config_by_name().get(name)
+    return cfg["dimensions"] if cfg else None
 
 
 def _vector_config_by_name() -> dict[str, _VectorIndexConfig]:
@@ -399,6 +407,55 @@ def _ensure_standard_indexes() -> None:
         logger.info("standard indexes OK — all present")
     else:
         logger.info("standard indexes synced — created_total=%s", created)
+
+
+def reconcile_chunks_search_indexes(required: frozenset[str]) -> list[str]:
+    """Drop failed and surplus known search indexes on chunks to free cluster quota.
+
+    Surplus = a project-managed index on ``chunks`` that this experiment config
+    does not require (e.g. ``vector_index_384`` when running a Voyage/SIE sweep).
+    """
+    db_name = get_database().name
+    dropped: list[str] = []
+
+    for row in list_cluster_search_indexes():
+        if row["database"] != db_name or row["collection"] != CHUNKS_COLLECTION:
+            continue
+        name = row["name"]
+        status = str(row["status"]).upper()
+        reason: str | None = None
+        if status == "FAILED":
+            reason = "failed"
+        elif row["known"] and name not in required:
+            reason = "surplus"
+
+        if reason is None:
+            continue
+
+        drop_search_index_at(db_name, CHUNKS_COLLECTION, name)
+        dropped.append(f"{name} ({reason})")
+        logger.info(
+            "search index reconciled — dropped %s.%s.%s reason=%s",
+            db_name,
+            CHUNKS_COLLECTION,
+            name,
+            reason,
+        )
+    return dropped
+
+
+def bootstrap_indexes() -> None:
+    """Startup: standard MongoDB indexes + prune unknown Atlas Search indexes.
+
+    Does not create vector/text search indexes — those are provisioned per experiment
+    config during submit preflight (``validate_experiment_search_indexes``).
+    """
+    _ensure_standard_indexes()
+    dropped = prune_unknown_search_indexes()
+    if dropped:
+        logger.info("boot — pruned unknown Atlas Search indexes: %s", dropped)
+    else:
+        logger.info("boot — Atlas Search indexes unchanged (no unknown indexes)")
 
 
 def ensure_indexes() -> None:

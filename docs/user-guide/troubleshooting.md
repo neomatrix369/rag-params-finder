@@ -68,6 +68,19 @@ Both indexes can coexist on the same `chunks` collection — the server selects 
 
 **Fix**:
 
+On **experiment submit**, the server now **automatically reconciles** Atlas Search indexes before failing:
+
+1. Drops **failed** indexes on `chunks` (e.g. a dimension-mismatch build).
+2. Drops **surplus** project indexes on `chunks` not required by your YAML (e.g. `vector_index_384` when running an SIE/Voyage sweep).
+3. Prunes **unknown** indexes cluster-wide if quota is still exhausted.
+4. Creates any **missing required** indexes.
+
+At **server boot**, only standard MongoDB indexes are ensured and unknown Atlas Search indexes are pruned — vector/text indexes are provisioned per config at submit time (not all four at once).
+
+Configs that require vector dimensions above Atlas's **4096** limit (e.g. SPLADE-v3 / `vector_index_30522`) are rejected immediately with a clear error — no manual index swap will fix those.
+
+Manual commands remain for inspection and full reset:
+
 ```bash
 # 1. Inspect cluster-wide index usage
 rag-params-finder indexes list
