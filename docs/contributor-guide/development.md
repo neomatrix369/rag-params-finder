@@ -137,10 +137,10 @@ uv run pytest --tb=short -q \
 bash scripts/pip-audit.sh
 ```
 
-**Baseline (as of 2026-06-27)**:
+**Baseline (as of 2026-06-29)**:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 46 tests, coverage on scoped modules
+- `pytest` → 58 tests, coverage on scoped modules
 
 ### Frontend
 
@@ -341,7 +341,7 @@ Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabo
 **Server and CLI** use Option A scoped logging via `server/utils/scope_log.py`:
 
 ```
-[rag-params-finder] [Orchestrator] sweep scheduled — experiment abc123, 90 run(s)
+[rag-params-finder] [Orchestrator] sweep scheduled — experiment abc123, 120 run(s)
 [rag-params-finder] [indexes] vector indexes OK — already exist
 ```
 

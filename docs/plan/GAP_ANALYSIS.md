@@ -1,5 +1,7 @@
 # Gap Analysis
 > ~2 min read
+>
+> **Historical snapshot** — pre-implementation planning for Slice 21 (2026-06-27). Slice 21 is ✅ COMPLETE on `slice/21-sie-skateboard`; see [PROGRESS.md](../slices/PROGRESS.md) and [sie-setup.md](../user-guide/sie-setup.md) for current state.
 
 ## Capability Gaps (PCTO vs Existing Codebase)
 

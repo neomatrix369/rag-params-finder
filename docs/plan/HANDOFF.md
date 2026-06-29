@@ -1,5 +1,7 @@
 # Handoff
 > ~1 min read
+>
+> **Stub** — pre-slice planning notes. Slice 21 implementation details live in [SLICE-21-SIE-SKATEBOARD.md](../slices/SLICE-21-SIE-SKATEBOARD.md) and [PROGRESS.md](../slices/PROGRESS.md).
 
 _Stub — written at end of final slice._
 
