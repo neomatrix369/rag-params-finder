@@ -6,10 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from server.api import experiments, runs
-from server.api.sweep import check_sie_health
 from server.api.sweep import router as sweep_router
 from server.core.executors import shutdown_executors
 from server.core.health_check import mongodb_health_status
+from server.core.sie_guard import check_sie_health
 from server.core.startup_reconciliation import reconcile_orphaned_experiments
 from server.db.indexes import bootstrap_indexes
 from server.settings import LOCALHOST_CORS_ORIGIN_REGEX, settings

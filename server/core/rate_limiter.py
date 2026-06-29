@@ -85,10 +85,13 @@ def call_with_retry[T](
     estimated_tokens: int = 0,
     *,
     operation: str = "Voyage API call",
+    cancel_check: Callable[[], None] | None = None,
 ) -> T:
     """Wait for rate-limit clearance, call *fn*, and retry on 429s with backoff."""
     backoff = INITIAL_BACKOFF_S
     for attempt in range(1, MAX_RETRIES + 1):
+        if cancel_check is not None:
+            cancel_check()
         limiter.wait(estimated_tokens=estimated_tokens)
         try:
             return fn()

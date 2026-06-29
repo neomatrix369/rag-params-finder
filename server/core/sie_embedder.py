@@ -16,9 +16,13 @@ The model_registry maps short IDs ("bge-m3") to huggingface_id for the SDK call.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from sie_sdk import SIEClient  # type: ignore[import-untyped]
 
+from server.core.experiment_control import ExperimentCancelledError, ExperimentPausedError
 from server.core.model_registry import get_model_info
+from server.core.sie_guard import SIEUnavailableError
 from server.settings import settings
 from server.utils.logger import get_logger
 
@@ -51,7 +55,12 @@ def _resolve_sie_model_name(model_id: str) -> str:
     return info["huggingface_id"] or model_id
 
 
-def embed_documents_sie(texts: list[str], model_id: str) -> list[list[float]]:
+def embed_documents_sie(
+    texts: list[str],
+    model_id: str,
+    *,
+    cancel_check: Callable[[], None] | None = None,
+) -> list[list[float]]:
     """Embed a batch of document texts using SIE (dense output only).
 
     Args:
@@ -62,7 +71,7 @@ def embed_documents_sie(texts: list[str], model_id: str) -> list[list[float]]:
         List of 1024-dim float vectors, one per input text.
 
     Raises:
-        RuntimeError: If SIE server is unreachable or encode fails.
+        SIEUnavailableError: If SIE server is unreachable or encode fails.
     """
     if not texts:
         return []
@@ -80,6 +89,8 @@ def embed_documents_sie(texts: list[str], model_id: str) -> list[list[float]]:
                 batch_count,
             )
         for idx in range(0, len(texts), _SIE_ENCODE_BATCH_SIZE):
+            if cancel_check is not None:
+                cancel_check()
             batch = texts[idx : idx + _SIE_ENCODE_BATCH_SIZE]
             batch_num = idx // _SIE_ENCODE_BATCH_SIZE + 1
             logger.debug(
@@ -93,8 +104,10 @@ def embed_documents_sie(texts: list[str], model_id: str) -> list[list[float]]:
             vectors.extend(item["dense"].tolist() for item in results)
         logger.info("SIE embed OK — count=%d dim=%d", len(vectors), len(vectors[0]))
         return vectors
+    except (ExperimentCancelledError, ExperimentPausedError):
+        raise
     except Exception as exc:
-        raise RuntimeError(f"SIE unreachable or encode failed: {exc}") from exc
+        raise SIEUnavailableError(f"SIE unreachable or encode failed: {exc}") from exc
 
 
 def embed_query_sie(text: str, model_id: str) -> list[float]:
@@ -108,7 +121,7 @@ def embed_query_sie(text: str, model_id: str) -> list[float]:
         1024-dim float vector.
 
     Raises:
-        RuntimeError: If SIE server is unreachable or encode fails.
+        SIEUnavailableError: If SIE server is unreachable or encode fails.
     """
     sie_model = _resolve_sie_model_name(model_id)
     logger.debug("SIE query embed — model=%s", sie_model)
@@ -118,5 +131,7 @@ def embed_query_sie(text: str, model_id: str) -> list[float]:
         vector: list[float] = results[0]["dense"].tolist()
         logger.debug("SIE query embed OK — dim=%d", len(vector))
         return vector
+    except (ExperimentCancelledError, ExperimentPausedError):
+        raise
     except Exception as exc:
-        raise RuntimeError(f"SIE unreachable or encode failed: {exc}") from exc
+        raise SIEUnavailableError(f"SIE unreachable or encode failed: {exc}") from exc
