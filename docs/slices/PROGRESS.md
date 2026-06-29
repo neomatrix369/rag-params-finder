@@ -750,7 +750,8 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
-| 2026-06-29 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — prerequisites: bypassed (no verify-slice/sync-docs run yet; branch is clean and all gates passed on push) |
+| 2026-06-29 | slice/21-25b-sie-and-atlas-local | /verify-slice | Unified MongoDB Entry Points | COMPLETE | 12/12 criteria; quick gates 75 pass; CLI/compose smoke OK; docs current |
+| 2026-06-29 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — prerequisites: met (verify-slice COMPLETE) |
 | 2026-06-29 | slice/21-25b-sie-and-atlas-local | /verify-slice | Unified MongoDB Entry Points | PARTIAL | 12/12 plan criteria; ruff/mypy/pytest 75 pass; smoke OK; PROGRESS 25B row + CHANGELOG stale |
 | 2026-06-29 | slice/21-25b-sie-and-atlas-local | /sync-docs | Unified MongoDB Entry Points | STAGED | PROGRESS.md ✅, CHANGELOG ✅, CLAUDE ⏭, user-guide ⏭ |
 
