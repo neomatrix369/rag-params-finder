@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 
 TERMINAL_PHASES = {"complete", "failed", "interrupted", "cancelled"}
 POLL_INTERVAL_S = 2.0
-_DASHBOARD_URL = "http://localhost:5173"
+_DASHBOARD_URL = "http://localhost:5374"
 
 
 def _build_runs_table(runs: list[dict]) -> Table:

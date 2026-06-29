@@ -20,15 +20,11 @@ from server.api.experiments_shared import (
     mongo_mark_experiment_running,
 )
 from server.core.executors import HEAVY_READ_EXECUTOR, schedule_sweep
-from server.core.orchestrator import (
-    is_sweep_in_flight,
-    request_cancel,
-    request_pause,
-    resume_sweep,
-    run_sweep,
-)
+from server.core.experiment_control import is_sweep_in_flight, request_cancel, request_pause
+from server.core.orchestrator import resume_sweep, run_sweep
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
+from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
 from server.models.config import ExperimentConfig, expand_sweep
 from server.models.enums import ExperimentStatus, RetrieverType
 from server.utils.log_throttle import info_throttled
@@ -51,7 +47,10 @@ async def create_experiment(config: ExperimentConfig):
     """Submit a new experiment sweep configuration."""
     try:
         await asyncio.to_thread(validate_experiment_search_indexes, config)
+        await asyncio.to_thread(validate_sie_readiness, config)
     except SearchIndexMismatchError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except SIEUnavailableError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     experiment_id = str(uuid.uuid4())
@@ -238,15 +237,17 @@ async def cancel_experiment(experiment_id: str):
         )
 
     signalled = request_cancel(experiment_id)
-
-    if not signalled:
-        await asyncio.to_thread(mongo_mark_experiment_cancelled_now, experiment_id)
+    await asyncio.to_thread(mongo_mark_experiment_cancelled_now, experiment_id)
 
     logger.info("cancel OK — %s in-flight=%s", experiment_id, signalled)
     return {
-        "status": "cancel_requested",
+        "status": "cancelled" if not signalled else "cancel_requested",
         "experiment_id": experiment_id,
-        "message": "Experiment will stop after the current phase completes",
+        "message": (
+            "Experiment cancelled"
+            if not signalled
+            else "Cancellation signalled — stopping after the current batch or phase"
+        ),
     }
 
 

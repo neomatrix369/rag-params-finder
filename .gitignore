@@ -49,6 +49,10 @@ htmlcov/
 # Logs
 *.log
 
+# Aim experiment tracking (local repo — never commit)
+.aim/
+.aim-*/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -71,10 +75,10 @@ frontend/dist/
 frontend/.vite/
 frontend/coverage/
 
-ideate/
 .claude
 .cursor/*
 CLAUDE.local.md
 # Added by code-review-graph
 .code-review-graph/
 .mcp.json
+docs/ideate-prompts/
