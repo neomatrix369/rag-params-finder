@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     sie_enabled: bool = False
     sie_base_url: str = "http://localhost:8720"
 
+    # Aim experiment tracking — path to the .aim repo directory (created on first log).
+    # Docker: bind-mount ./.aim → /app/.aim and set AIM_REPO=/app/.aim.
+    # UI: ./scripts/aim-ui.sh (Docker — host `aim up` may fail on macOS OpenSSL).
+    aim_repo: str = ".aim"
+
     # Tiebreaker metric for ranking configurations when max_score is tied.
     # Options:
     #   - "query_avg" (weighted, per-query average — fairer)
@@ -69,6 +74,9 @@ class Settings(BaseSettings):
     # Default: "query_avg" (recommended for fairness).
     # Override via TIEBREAKER_METRIC env var.
     tiebreaker_metric: str = "query_avg"
+
+    # MongoDB ping timeout for /healthz (ms). Keep below Docker healthcheck timeout (10s).
+    health_check_mongodb_timeout_ms: int = 5000
 
     @field_validator("cors_origins", mode="before")
     @classmethod

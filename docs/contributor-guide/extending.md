@@ -57,7 +57,7 @@ A new dimension size requires a new Atlas vector index. See [getting-started.md]
 
 ### 5. Update the example configs
 
-Add the new model to `configs/example-mongodb-local.yaml` or `configs/example-mongodb-voyage.yaml` (whichever provider it belongs to), so users can immediately try it.
+Add the new model to `configs/example-mongodb-local.yaml`, `configs/example-mongodb-voyage.yaml`, or `configs/example-mongodb-sie.yaml` (whichever provider it belongs to), so users can immediately try it.
 
 ---
 

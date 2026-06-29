@@ -176,10 +176,23 @@ returns `"sie":"disabled"` and sweeps default to local `all-MiniLM-L6-v2` instea
 
 ## 5. Use SIE in a config
 
+Use the ready-made example config for a full CLI pipeline sweep:
+
+```bash
+rag-params-finder run --config configs/example-mongodb-sie.yaml
+```
+
+See [`configs/example-mongodb-sie.yaml`](../../configs/example-mongodb-sie.yaml) — **120 runs** (bge-m3, stella-v5, splade-v3; all 5 chunking methods; dense/sparse/hybrid/cross-encoder). Prerequisites: SIE warm for each model (step 3), `SIE_ENABLED=true`, and `vector_index_1024` + `vector_index_30522` + `text_search_index` on Atlas.
+
+Minimal inline snippet:
+
 ```yaml
 embedding:
   provider: sie
-  model: bge-m3   # or stella-v5
+  models:
+    - bge-m3
+    - stella-v5
+    - splade-v3
 
 retrieval:
   retrievers:
@@ -596,6 +609,45 @@ ensure NumPy stays below 2.0.
 
 ---
 
+## Aim experiment UI
+
+Every sweep run (`POST /api/v1/sweep` and full pipeline runs) is logged to Aim via
+`server/core/aim_logger.py`. Runs are stored in `./.aim` (gitignored).
+
+### Start the UI (Docker — recommended)
+
+Host `aim up` may fail on macOS with `cryptography` / OpenSSL errors
+(`symbol not found: _BIO_ADDR_free`). Use the Docker helper instead:
+
+```bash
+./scripts/aim-ui.sh
+# → http://localhost:43800
+```
+
+The script starts the `aim-ui` Compose profile, bind-mounts `./.aim` (shared with the
+server container), and migrates existing runs from the server container on first use.
+
+```bash
+./scripts/aim-ui.sh --stop   # stop the UI container
+```
+
+### Verify logging
+
+```bash
+# Trigger a sweep (SIE must be warm if using bge-m3)
+curl -X POST http://localhost:8001/api/v1/sweep \
+  -H "Content-Type: application/json" \
+  -d '{"topic":"test","corpus":["chunk one","chunk two"]}'
+
+# Check run count in the local repo
+python3 -c "import sqlite3; c=sqlite3.connect('.aim/run_metadata.sqlite'); print(c.execute('SELECT count(*) FROM run').fetchone()[0])"
+```
+
+Open http://localhost:43800 after `./scripts/aim-ui.sh` — you should see runs with
+`model_name`, `model_source`, `retrieval_method`, `score`, `topic`, and `experiment_id`.
+
+---
+
 ## Diagnostics Cheat Sheet
 
 ```bash
@@ -638,6 +690,7 @@ python3 -c "import os; print(os.getenv('SIE_BASE_URL', 'http://localhost:8720'))
 [ ] Server running: uvicorn server.main:app --reload --port 8001
 [ ] GET http://localhost:8001/health shows sie: reachable (confirm encode 200 before sweep)
 [ ] Smoke test (curl POST /api/v1/sweep) returns HTTP 200
+[ ] Aim UI: `./scripts/aim-ui.sh` → http://localhost:43800 shows logged runs
 ```
 
 ---

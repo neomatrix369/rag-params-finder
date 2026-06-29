@@ -569,6 +569,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-06-29 | 21 | Expand `example-mongodb-sie.yaml` to full chunking/retriever grid + 3 SIE models | Parity with local/voyage examples; bge-m3/stella-v5/splade-v3 are registry top tier |
 | 2026-05-27 | 20 | Scoped coverage 80% on four unit-tested modules | Baseline-first (83.6%); whole-repo 28% would force gate off or block merges |
 | 2026-05-27 | 20 | pip-audit ML ignores via scripts/pip-audit.sh | torch/transformers CVEs need major sentence-transformers bump — separate slice |
 | 2026-05-27 | 20 | Extend pre-commit, not Husky | Python repo already on pre-commit; avoids dual hook systems |
@@ -680,6 +681,8 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | `tests/test_sie_embedder.py` | NEW — 5 GWT tests |
 | `tests/test_embedder_factory.py` | Rewritten — 6 GWT tests (sys.modules mocking) |
 | `tests/test_sweep_endpoint.py` | NEW — 9 GWT tests (minimal FastAPI app) |
+| `configs/example-mongodb-sie.yaml` | NEW — CLI full-pipeline SIE sweep (120 runs, bge-m3/stella-v5/splade-v3) |
+| `tests/test_config_examples.py` | NEW — example YAML load/expand/index-plan validation |
 
 ---
 

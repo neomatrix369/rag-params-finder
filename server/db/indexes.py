@@ -53,8 +53,13 @@ STANDARD_INDEX_SPEC: dict[str, list[IndexModel]] = {
 }
 
 VECTOR_INDEX_CONFIGS: list[_VectorIndexConfig] = [
-    {"name": "vector_index_1024", "dimensions": 1024, "desc": "Voyage models"},
+    {
+        "name": "vector_index_1024",
+        "dimensions": 1024,
+        "desc": "Voyage + dense SIE (bge-m3, stella-v5)",
+    },
     {"name": "vector_index_384", "dimensions": 384, "desc": "local models (e.g. all-MiniLM-L6-v2)"},
+    {"name": "vector_index_30522", "dimensions": 30522, "desc": "SIE splade-v3 learned sparse"},
 ]
 
 TEXT_SEARCH_INDEX_NAME = "text_search_index"
@@ -140,6 +145,17 @@ def _search_index_create_unavailable(err_str: str) -> bool:
     )
 
 
+def _vector_index_filter_fields() -> list[dict[str, str]]:
+    """Pre-filter fields shared by all Atlas vector search indexes on chunks."""
+    return [
+        {"type": "filter", "path": "experiment_id"},
+        {"type": "filter", "path": "embedding_model"},
+        {"type": "filter", "path": "chunking_method"},
+        {"type": "filter", "path": "chunk_size"},
+        {"type": "filter", "path": "overlap"},
+    ]
+
+
 def _build_vector_index_model(name: str, dimensions: int) -> SearchIndexModel:
     return SearchIndexModel(
         definition={
@@ -150,8 +166,7 @@ def _build_vector_index_model(name: str, dimensions: int) -> SearchIndexModel:
                     "numDimensions": dimensions,
                     "similarity": "cosine",
                 },
-                {"type": "filter", "path": "experiment_id"},
-                {"type": "filter", "path": "embedding_model"},
+                *_vector_index_filter_fields(),
             ]
         },
         name=name,
@@ -167,45 +182,84 @@ def _get_existing_search_indexes(collection) -> set[str]:
         return set()
 
 
-def create_vector_indexes() -> bool:
-    """Create Atlas vector search indexes programmatically.
+def _vector_config_by_name() -> dict[str, _VectorIndexConfig]:
+    return {cfg["name"]: cfg for cfg in VECTOR_INDEX_CONFIGS}
 
-    Returns True if all indexes are confirmed active, False if creation
-    was skipped (e.g. free-tier cluster) or indexes are still building.
+
+def create_vector_index(name: str, dimensions: int) -> bool:
+    """Create one Atlas vector search index if missing.
+
+    Returns True when the index exists and is READY (or was already ready).
     """
     chunks = get_collection(CHUNKS_COLLECTION)
     existing = _get_existing_search_indexes(chunks)
-
-    needed = [cfg for cfg in VECTOR_INDEX_CONFIGS if cfg["name"] not in existing]
-    if not needed:
-        logger.info("vector indexes OK — already exist")
+    if name in existing:
+        logger.info("vector index OK — already exists name=%s", name)
         return True
 
-    models = [_build_vector_index_model(cfg["name"], cfg["dimensions"]) for cfg in needed]
-    names = [cfg["name"] for cfg in needed]
-
+    model = _build_vector_index_model(name, dimensions)
     try:
-        chunks.create_search_indexes(models=models)
-        logger.info("vector indexes created — names=%s", names)
+        chunks.create_search_indexes(models=[model])
+        logger.info("vector index created — name=%s dimensions=%s", name, dimensions)
     except Exception as e:
         err_str = str(e)
         if _search_index_create_unavailable(err_str):
             if "maximum number of fts indexes" in err_str.lower():
                 logger.warning(
                     "vector index quota exceeded — M0 allows %s search indexes cluster-wide; "
-                    "run `rag-params-finder indexes list` and `indexes reset --unknown-only`",
+                    "run `rag-params-finder indexes list` and drop an unused index "
+                    "(e.g. vector_index_384 when running SIE-only sweeps)",
                     M0_SEARCH_INDEX_LIMIT,
                 )
             else:
                 logger.warning(
                     "vector index programmatic unavailable — M0/M2/M5 tiers; "
-                    "create Atlas vector indexes manually in UI:",
+                    "create Atlas vector indexes manually in UI: name=%s",
+                    name,
                 )
             _log_manual_instructions()
             return False
         raise
 
-    return _wait_for_indexes_ready(chunks, names)
+    return _wait_for_indexes_ready(chunks, [name])
+
+
+def create_vector_indexes() -> bool:
+    """Create all managed Atlas vector search indexes that are missing.
+
+    Returns True if all indexes are confirmed active, False if creation
+    was skipped (e.g. free-tier cluster) or indexes are still building.
+    """
+    chunks = get_collection(CHUNKS_COLLECTION)
+    existing = _get_existing_search_indexes(chunks)
+    needed = [cfg for cfg in VECTOR_INDEX_CONFIGS if cfg["name"] not in existing]
+    if not needed:
+        logger.info("vector indexes OK — already exist")
+        return True
+
+    all_ready = True
+    for cfg in needed:
+        if not create_vector_index(cfg["name"], cfg["dimensions"]):
+            all_ready = False
+    return all_ready
+
+
+def ensure_required_search_indexes(required: frozenset[str]) -> None:
+    """Create only the search indexes an experiment needs (M0-safe subset).
+
+    Standard MongoDB indexes are always ensured. Vector and text search indexes
+    are created only when named in ``required``.
+    """
+    _ensure_standard_indexes()
+    configs = _vector_config_by_name()
+    for index_name in sorted(required):
+        if index_name == TEXT_SEARCH_INDEX_NAME:
+            create_text_search_index()
+        elif index_name in configs:
+            cfg = configs[index_name]
+            create_vector_index(cfg["name"], cfg["dimensions"])
+        else:
+            logger.warning("search index ensure skipped — unknown name=%s", index_name)
 
 
 def _wait_for_indexes_ready(collection, names: list[str], timeout_s: int = 120) -> bool:
@@ -250,8 +304,8 @@ def _log_manual_instructions() -> None:
             cfg["desc"],
         )
     logger.info(
-        "manual vector index hints — "
-        "path=embedding similarity=cosine filters=[experiment_id, embedding_model]"
+        "manual vector index hints — path=embedding similarity=cosine "
+        "filters=[experiment_id, embedding_model, chunking_method, chunk_size, overlap]"
     )
     logger.info(
         "manual vector index docs — %s",

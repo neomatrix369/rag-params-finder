@@ -1,5 +1,8 @@
 #!/bin/bash
 # Start rag-params-finder server + dashboard via Docker Compose (prod stack)
+# Usage: ./start-services.sh [--force-build]
+#   Rebuilds images only when build context changed, images are missing, or --force-build.
+#   Env: RAG_FORCE_BUILD=1 (same as --force-build), RAG_DEV_STACK=1, NONINTERACTIVE=1
 set -e
 set -o pipefail
 
@@ -8,6 +11,52 @@ cd "$SCRIPT_DIR"
 
 # shellcheck source=scripts/docker-cleanup.sh
 source ./scripts/docker-cleanup.sh
+# shellcheck source=scripts/docker-build-context.sh
+source ./scripts/docker-build-context.sh
+
+FORCE_BUILD=0
+
+usage() {
+  cat <<EOF
+Usage: ./start-services.sh [OPTIONS]
+
+Start server + dashboard via Docker Compose.
+
+Options:
+  --force-build, --build, -b   Rebuild images even when build context is unchanged
+  -h, --help                   Show this help
+
+Environment:
+  RAG_FORCE_BUILD=1            Same as --force-build
+  RAG_DEV_STACK=1              Dev overlay (HMR + uvicorn --reload)
+  NONINTERACTIVE=1             Fail fast on missing .env / port conflicts
+EOF
+}
+
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --force-build | --build | -b)
+        FORCE_BUILD=1
+        shift
+        ;;
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "Unknown option: $1 (try --help)" >&2
+        exit 1
+        ;;
+    esac
+  done
+  if [[ "${RAG_FORCE_BUILD:-}" == "1" ]]; then
+    FORCE_BUILD=1
+  fi
+  export FORCE_BUILD
+}
+
+parse_args "$@"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "Docker is not installed. See https://docs.docker.com/get-docker/" >&2
@@ -96,22 +145,51 @@ check_ports() {
   esac
 }
 
+print_unhealthy_server_hint() {
+  echo ""
+  echo "Server did not become healthy (frontend waits on server healthcheck)."
+  echo "Diagnose:"
+  echo "  curl -s http://localhost:8001/healthz"
+  echo "  docker logs rag-params-finder-server 2>&1 | tail -30"
+  echo ""
+  echo "Common Atlas fixes (TLS/SSL errors affect host and Docker alike):"
+  echo "  • Network Access → allow your IP (curl https://api.ipify.org) or 0.0.0.0/0 for dev"
+  echo "  • Database Access → user/password in .env must match Atlas"
+  echo "  • Cluster must not be paused"
+  echo "Docs: docs/user-guide/troubleshooting.md (Docker section)"
+}
+
 mkdir -p input_data/pdfs configs
 
 ensure_env
 docker_cleanup standard
 check_ports
 
-echo "Building and starting containers..."
-"${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" up --build -d
+UP_ARGS=(-d)
+if docker_compose_needs_build "$SCRIPT_DIR"; then
+  echo "Building and starting containers..."
+  UP_ARGS=(--build -d)
+else
+  echo "Starting containers (reusing existing images)..."
+fi
+if ! "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" up "${UP_ARGS[@]}"; then
+  print_unhealthy_server_hint
+  exit 1
+fi
 
 echo "Waiting for services to become healthy..."
 sleep 15
 
 if [[ -x ./scripts/health-check.sh ]]; then
-  ./scripts/health-check.sh
+  if ! ./scripts/health-check.sh; then
+    print_unhealthy_server_hint
+    exit 1
+  fi
 else
-  curl -sf http://localhost:8001/healthz >/dev/null
+  if ! curl -sf http://localhost:8001/healthz >/dev/null; then
+    print_unhealthy_server_hint
+    exit 1
+  fi
   curl -sf http://localhost:5374/ >/dev/null
 fi
 
@@ -123,6 +201,10 @@ echo "  CLI:       rag-params-finder run --config configs/example-mongodb-local.
 echo ""
 echo "SIE (BGE-M3): not started — opt-in only (SIE_ENABLED=false by default)."
 echo "  To enable: docs/user-guide/sie-setup.md"
+echo "  CLI sweep: rag-params-finder run --config configs/example-mongodb-sie.yaml"
+echo ""
+echo "Aim UI:      ./scripts/aim-ui.sh  → http://localhost:43800 (experiment runs in ./.aim)"
 echo ""
 echo "Dev stack:   RAG_DEV_STACK=1 ./start-services.sh"
-echo "             or: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d"
+echo "Force build: ./start-services.sh --force-build"
+echo "             or: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d"

@@ -10,12 +10,13 @@ All YAML fields, sweep expansion rules, and queries file format.
 
 ## ⚙️ Experiment Config (YAML)
 
-Place config files in `configs/`. Two ready-to-run configs are provided, one per vector-DB × provider combination:
+Place config files in `configs/`. Three ready-to-run configs are provided, one per vector-DB × provider combination:
 
 | Config file | Vector DB | Embedding provider | Chunking | Retrievers | Runs | API key? |
 |---|---|---|---|---|---|---|
 | `example-mongodb-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid · cross-encoder | 120 | No |
 | `example-mongodb-voyage.yaml` | MongoDB Atlas | Voyage AI (voyage-3.5-lite) | all 5 methods | hybrid · dense · sparse · reranker | 40 | Yes |
+| `example-mongodb-sie.yaml` | MongoDB Atlas | SIE (bge-m3, stella-v5, splade-v3) | all 5 methods | dense · sparse · hybrid · cross-encoder | 120 | No (SIE Docker) |
 | `example-mongodb-unified-retrievers.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | 2 methods | dense · sparse · hybrid · cross-encoder | 16 | No |
 
 Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retriever runs as an independent experiment. Each entry in `retrieval.retrievers` creates a separate run — retrievers are never combined in a single run.
@@ -153,7 +154,7 @@ Canonical list: `server/core/model_registry.py` (`EMBEDDING_MODELS`, `RERANKER_M
 
 **Provider/model must match.** The system validates at config load time — a `provider: local` config with a Voyage model name will fail immediately with a clear error.
 
-**Atlas vector index** selection is automatic: local models (384-dim) use `vector_index_384`; Voyage and SIE models (1024-dim) use `vector_index_1024`. Both can coexist on the same `chunks` collection.
+**Atlas vector index** selection is automatic: local models (384-dim) use `vector_index_384`; Voyage and dense SIE models (1024-dim) use `vector_index_1024`; SPLADE-v3 (30522-dim) uses `vector_index_30522`. Indexes can coexist on the same `chunks` collection — always filter by `embedding_model`.
 
 **Search index preflight:** on submit, the server derives required index names from your config and validates cluster capacity before any run starts:
 
@@ -286,6 +287,14 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 ```
 
 For a targeted subset, copy the file and trim the `methods` or `chunk_sizes` lists before running.
+
+## SIE Quick Start (Open-Source Embeddings)
+
+Use `configs/example-mongodb-sie.yaml` — same chunking/retriever coverage as the local example, with **3 SIE models** (bge-m3, stella-v5, splade-v3). **120 runs** — local SIE encode is CPU-bound; use `--detach` and monitor the dashboard. Requires SIE Docker warm for each model, `SIE_ENABLED=true`, and three Atlas search indexes (`vector_index_1024`, `vector_index_30522`, `text_search_index`). See **[SIE Provider Setup](sie-setup.md)** and **[Cloud Account Setup → SIE sweep](cloud-setup.md#sie-sweep--example-mongodb-sieyaml)**.
+
+```bash
+rag-params-finder run --config configs/example-mongodb-sie.yaml
+```
 
 To **continue an incomplete sweep** without re-submitting YAML, pause and resume the same experiment (CLI or dashboard) — completed parameter combinations are skipped automatically.
 

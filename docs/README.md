@@ -84,7 +84,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 |------|----------------|
 | Install and run first sweep | [QUICKSTART.md](../QUICKSTART.md) |
 | Atlas vector + text search indexes | [user-guide/cloud-setup.md](./user-guide/cloud-setup.md) |
-| Example YAML configs | `configs/example-mongodb-local.yaml`, `configs/example-mongodb-voyage.yaml` |
+| Example YAML configs | `configs/example-mongodb-local.yaml`, `configs/example-mongodb-voyage.yaml`, `configs/example-mongodb-sie.yaml` |
 | Quality gates before commit | [contributor-guide/development.md](./contributor-guide/development.md) · `./scripts/quality-gates.sh` |
 | Docker server + dashboard | [slices/SLICE-14-DOCKER-COMPOSE.md](./slices/SLICE-14-DOCKER-COMPOSE.md) |
 | SIE (BGE-M3) Docker setup | [user-guide/sie-setup.md](./user-guide/sie-setup.md) |
