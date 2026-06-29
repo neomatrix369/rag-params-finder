@@ -32,7 +32,7 @@ services:
       - hf_cache:/root/.cache/huggingface
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/healthz"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8001/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -53,7 +53,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5374/"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5374/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -97,5 +97,26 @@ services:
       retries: 3
       start_period: 20s
 
+  # MongoDB Atlas Local — opt-in: docker compose -f docker-compose.yml -f docker-compose.local-atlas.yml --profile local-atlas up -d
+  # Runs a full single-node Atlas replica set locally; supports $vectorSearch and $search.
+  # CLI on host: MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true
+  # See docs/user-guide/local-atlas-setup.md
+  mongodb-local:
+    profiles: ["local-atlas"]
+    image: mongodb/mongodb-atlas-local:latest
+    container_name: ${MONGODB_LOCAL_CONTAINER_NAME:-rag-params-finder-mongodb-local}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_local_data:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 volumes:
   hf_cache:
+  mongodb_local_data:
