@@ -1,6 +1,7 @@
 """Collect experiment metadata: git info, runtime versions, and non-sensitive env params."""
 
 import importlib.metadata as _importlib_metadata
+import os
 import subprocess
 import sys
 from functools import lru_cache
@@ -10,7 +11,7 @@ from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-_SENSITIVE_FIELDS = frozenset({"voyage_api_key", "mongodb_uri"})
+_SENSITIVE_FIELDS = frozenset({"voyage_api_key", "mongodb_uri", "sie_api_key"})
 
 
 def _run_git(*args: str) -> str:
@@ -29,11 +30,15 @@ def _run_git(*args: str) -> str:
 
 @lru_cache(maxsize=1)
 def get_git_commit() -> str:
+    if commit := os.environ.get("GIT_COMMIT", "").strip():
+        return commit
     return _run_git("rev-parse", "--short", "HEAD")
 
 
 @lru_cache(maxsize=1)
 def get_git_branch() -> str:
+    if branch := os.environ.get("GIT_BRANCH", "").strip():
+        return branch
     return _run_git("rev-parse", "--abbrev-ref", "HEAD")
 
 

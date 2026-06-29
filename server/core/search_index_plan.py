@@ -5,7 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from server.core.model_registry import get_index_name
-from server.db.indexes import M0_SEARCH_INDEX_LIMIT, TEXT_SEARCH_INDEX_NAME
+from server.db.indexes import (
+    ATLAS_MAX_VECTOR_DIMENSIONS,
+    M0_SEARCH_INDEX_LIMIT,
+    TEXT_SEARCH_INDEX_NAME,
+    vector_index_dimensions,
+)
 from server.models.config import ExperimentConfig
 
 
@@ -38,6 +43,25 @@ class SearchIndexAssessment:
     unknown_count: int
     is_satisfied: bool
     failure_reason: str | None
+
+
+def validate_vector_index_feasibility(required: frozenset[str]) -> str | None:
+    """Return an error message when required vector indexes exceed Atlas limits."""
+    oversized: list[str] = []
+    for name in sorted(required):
+        if name == TEXT_SEARCH_INDEX_NAME:
+            continue
+        dims = vector_index_dimensions(name)
+        if dims is not None and dims > ATLAS_MAX_VECTOR_DIMENSIONS:
+            oversized.append(f"{name} ({dims}-dim)")
+    if not oversized:
+        return None
+    joined = ", ".join(oversized)
+    return (
+        f"Atlas Vector Search cannot index {joined}; "
+        f"maximum is {ATLAS_MAX_VECTOR_DIMENSIONS} dimensions. "
+        "Remove unsupported embedding models from the config."
+    )
 
 
 def required_search_indexes(config: ExperimentConfig) -> frozenset[str]:

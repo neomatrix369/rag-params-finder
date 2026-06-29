@@ -6,8 +6,8 @@ from server.utils.logger import get_logger
 logger = get_logger(__name__)
 
 _DEFAULT_CORS_ORIGINS: tuple[str, ...] = (
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    "http://localhost:5374",
+    "http://127.0.0.1:5374",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 )
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     recover_on_boot: bool = False
 
     # CORS — comma-separated origins allowed by the server middleware.
-    # Override via CORS_ORIGINS env var, e.g. "http://localhost:5173,http://localhost:3000".
+    # Override via CORS_ORIGINS env var, e.g. "http://localhost:5374,http://localhost:3000".
     # localhost vs 127.0.0.1 are different browser origins; defaults include both for dev.
     cors_origins: list[str] = list(_DEFAULT_CORS_ORIGINS)
 
@@ -56,6 +56,19 @@ class Settings(BaseSettings):
     # Leave blank to derive from MONGODB_URI host (e.g. thesandboxcluster.5uaqybx.mongodb.net).
     atlas_cluster_name: str = ""
 
+    # SIE (Superlinked Inference Engine) — opt-in; disabled by default.
+    # SIE_ENABLED: master on/off (same for remote gateway and local Docker).
+    # SIE_ENDPOINT: where to connect. SIE_API_KEY: auth when gateway requires it.
+    # See docs/user-guide/sie-setup.md.
+    sie_enabled: bool = False
+    sie_endpoint: str = "http://localhost:8720"
+    sie_api_key: str = ""
+
+    # Aim experiment tracking — path to the .aim repo directory (created on first log).
+    # Docker: bind-mount ./.aim → /app/.aim and set AIM_REPO=/app/.aim.
+    # UI: ./scripts/aim-ui.sh (Docker — host `aim up` may fail on macOS OpenSSL).
+    aim_repo: str = ".aim"
+
     # Tiebreaker metric for ranking configurations when max_score is tied.
     # Options:
     #   - "query_avg" (weighted, per-query average — fairer)
@@ -63,6 +76,9 @@ class Settings(BaseSettings):
     # Default: "query_avg" (recommended for fairness).
     # Override via TIEBREAKER_METRIC env var.
     tiebreaker_metric: str = "query_avg"
+
+    # MongoDB ping timeout for /healthz (ms). Keep below Docker healthcheck timeout (10s).
+    health_check_mongodb_timeout_ms: int = 5000
 
     @field_validator("cors_origins", mode="before")
     @classmethod

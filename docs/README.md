@@ -4,7 +4,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 
 **Repo entry:** [README.md](../README.md) · **Fastest run:** [QUICKSTART.md](../QUICKSTART.md)
 
-**Maintainers:** slice status and decision log live in [slices/PROGRESS.md](./slices/PROGRESS.md) (updated 2026-05-28 for doc nav, pre-push fast gates, 26 tests).
+**Maintainers:** slice status and decision log live in [slices/PROGRESS.md](./slices/PROGRESS.md) (updated 2026-06-29 for Slice 21 SIE docs sync, 58 tests).
 
 > **Who is this for?** Same personas as [README → Who is this for?](../README.md#who-is-this-for) — this page is the **doc map**; the README is the project entry.
 
@@ -15,9 +15,10 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | Persona | Start here | Then |
 |---------|------------|------|
 | **New user — cloud accounts** | [user-guide/cloud-setup.md](./user-guide/cloud-setup.md) | [QUICKSTART.md](../QUICKSTART.md) → [user-guide/getting-started.md](./user-guide/getting-started.md) |
-| **New user — first sweep** | [QUICKSTART.md](../QUICKSTART.md) | [user-guide/getting-started.md](./user-guide/getting-started.md) → dashboard at `http://localhost:5173` |
+| **New user — first sweep** | [QUICKSTART.md](../QUICKSTART.md) | [user-guide/getting-started.md](./user-guide/getting-started.md) → dashboard at `http://localhost:5374` |
 | **Operator — config & CLI** | [user-guide/configuration.md](./user-guide/configuration.md) | [user-guide/cli-reference.md](./user-guide/cli-reference.md) |
 | **Operator — dashboard** | [user-guide/dashboard-guide.md](./user-guide/dashboard-guide.md) | [user-guide/configuration.md](./user-guide/configuration.md) (tiebreaker, env vars) |
+| **Operator — SIE (BGE-M3 / Stella / SPLADE)** | [user-guide/sie-setup.md](./user-guide/sie-setup.md) | [user-guide/troubleshooting.md](./user-guide/troubleshooting.md#sie-superlinked-inference-engine) |
 | **Operator — fixing errors** | [user-guide/troubleshooting.md](./user-guide/troubleshooting.md) | [user-guide/cloud-setup.md](./user-guide/cloud-setup.md) (indexes, Voyage tiers) |
 | **Contributor — system design** | [contributor-guide/architecture.md](./contributor-guide/architecture.md) | [adr/](./adr/) |
 | **Contributor — extending** | [contributor-guide/extending.md](./contributor-guide/extending.md) | [contributor-guide/development.md](./contributor-guide/development.md) |
@@ -32,10 +33,11 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 |-----|----------------|
 | [user-guide/cloud-setup.md](./user-guide/cloud-setup.md) | MongoDB Atlas + optional Voyage AI accounts, search indexes |
 | [user-guide/getting-started.md](./user-guide/getting-started.md) | Install, configure, first experiment (step-by-step) |
+| [user-guide/sie-setup.md](./user-guide/sie-setup.md) | SIE setup — remote gateway (preferred) or optional self-hosted Docker; warm-up, Aim UI, known issues |
 | [user-guide/configuration.md](./user-guide/configuration.md) | Full YAML config reference, env vars, sweep dimensions |
 | [user-guide/cli-reference.md](./user-guide/cli-reference.md) | All CLI commands (`run`, `pause`, `resume`, `delete`, `indexes`, …) |
 | [user-guide/dashboard-guide.md](./user-guide/dashboard-guide.md) | Experiments list, detail, Search Explorer |
-| [user-guide/troubleshooting.md](./user-guide/troubleshooting.md) | Common errors, Docker, index preflight, storage quota |
+| [user-guide/troubleshooting.md](./user-guide/troubleshooting.md) | Common errors, Docker, index preflight, storage quota, SIE |
 
 ---
 
@@ -82,7 +84,8 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 |------|----------------|
 | Install and run first sweep | [QUICKSTART.md](../QUICKSTART.md) |
 | Atlas vector + text search indexes | [user-guide/cloud-setup.md](./user-guide/cloud-setup.md) |
-| Example YAML configs | `configs/example-mongodb-local.yaml`, `configs/example-mongodb-voyage.yaml` |
+| Example YAML configs | `configs/example-mongodb-local.yaml`, `configs/example-mongodb-voyage.yaml`, `configs/example-mongodb-sie.yaml` |
 | Quality gates before commit | [contributor-guide/development.md](./contributor-guide/development.md) · `./scripts/quality-gates.sh` |
 | Docker server + dashboard | [slices/SLICE-14-DOCKER-COMPOSE.md](./slices/SLICE-14-DOCKER-COMPOSE.md) |
+| SIE (BGE-M3) Docker setup | [user-guide/sie-setup.md](./user-guide/sie-setup.md) |
 | Continue an in-flight slice | [slices/PROGRESS.md](./slices/PROGRESS.md) + matching `slices/SLICE-XX-*.md` |
