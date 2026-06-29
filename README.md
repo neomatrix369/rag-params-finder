@@ -17,7 +17,7 @@
 
 > Find your optimal RAG configuration — **before** you build your RAG application.
 
-**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports Voyage AI (hosted) and local sentence-transformers (no API key needed).
+**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports **Voyage AI** (hosted), **local sentence-transformers** (no API key), and **SIE** open-source embeddings (BGE-M3, Stella-v5, SPLADE-v3 — opt-in Docker).
 
 Most RAG projects start with a guess: pick an embedding model, pick a chunking method, a retrieval method (or a re-ranker), realise it's wrong, refactor. That loop is
 slow and expensive.
@@ -134,7 +134,7 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 
 **Frontend**: React 19 · TypeScript 5.8 · Vite 6 · Tailwind CSS
 
-**AI/ML**: Voyage AI · sentence-transformers · MongoDB Atlas Vector Search
+**AI/ML**: Voyage AI · sentence-transformers · SIE (Superlinked Inference Engine) · MongoDB Atlas Vector Search
 
 **Dev tools**: uv · ruff · mypy · pytest · GitHub Actions
 

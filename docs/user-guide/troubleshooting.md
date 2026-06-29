@@ -167,7 +167,7 @@ embedding:
 **Symptom**: `voyageai.error.RateLimitError: Rate limit exceeded` in server logs; run status shows `failed`.
 
 **Fix**:
-- Complete [Cloud Account Setup → Voyage step 3](cloud-setup.md#3-unlock-tier-1-rate-limits-required-for-90-run-sweep) (payment method + ≥$5 credits + `.env` limits)
+- Complete [Cloud Account Setup → Voyage step 3](cloud-setup.md#3-unlock-tier-1-rate-limits-required-for-40-run-voyage-sweep) (payment method + ≥$5 credits + `.env` limits)
 - Check usage and org limits at [dash.voyageai.com/usage](https://dash.voyageai.com/usage) and [organization rate limits](https://dashboard.voyageai.com/organization/rate-limits)
 - **Free tier** (no payment method): 3 RPM / 10,000 TPM — server defaults match this
 - **Tier 1** (payment method + credits): 2,000 RPM; TPM per model (e.g. `voyage-4-lite` / `voyage-3.5-lite` → 16M, `voyage-4` / `voyage-3.5` → 8M, `rerank-2.5-lite` → 4M). See [Voyage rate limits](https://docs.voyageai.com/docs/rate-limits) and `.env.example`

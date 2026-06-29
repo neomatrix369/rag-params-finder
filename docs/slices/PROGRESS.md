@@ -25,7 +25,7 @@
 | — — Scoped logging (Option A) | ✅ COMPLETE | ~1 h | `scope_log.py` server/CLI; `devLog.ts` dashboard dev console; Voyage error + dashboard failure visibility |
 | — — Dashboard polling + API responsiveness | ✅ COMPLETE | ~1 h | `executors.py` thread pools; list 2 s / stats 60 s / explore 15 s polls; batched db-stats; anti-jitter `PollingIndicator` |
 | — — Kimchi embedding provider | 🔀 BRANCH | ~2 h | Full CAST integration on `tessl-hackathon-kimchi-integration`; **main** has `kimchi` in `Provider` type only (no registry models / embedder yet) — v0.8.0 release notes are historical |
-| — — Unit pytest suite | ✅ COMPLETE | ~1 h | **26 tests** in `tests/` (17 search-index + 3 sweep + 3 tiebreaker + 3 health); CI + `quality-gates.sh` enforce 80% on 4 scoped modules |
+| — — Unit pytest suite | ✅ COMPLETE | ~1 h | **26 tests** at Slice 20 baseline (now **58** — see `development.md`) |
 | 18 — Unified retriever config | ✅ COMPLETE | ~4–6 h | Unified "retrievers" group (traditional search + rerankers); auto-migrate old format; multi-reranker chains; see [`SLICE-18-UNIFIED-RETRIEVER-CONFIG.md`](SLICE-18-UNIFIED-RETRIEVER-CONFIG.md) |
 | 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
@@ -661,7 +661,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 - [x] `embedder_factory.py` dispatches voyage/local/sie without orchestrator if/elif
 - [x] `SweepRequest.corpus` accepts caller-supplied chunks; falls back to topic string when empty
 - [x] `aim_logger.py` logs run params to Aim (no-op on failure — non-fatal)
-- [x] 46 tests pass, coverage ≥80% threshold
+- [x] 58 tests pass, coverage ≥80% threshold
 - [x] ruff: 0 errors, mypy: 0 errors, frontend: 0 errors
 
 ### Files Created / Modified
