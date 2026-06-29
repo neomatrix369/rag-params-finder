@@ -52,13 +52,15 @@ rag-params-finder run --config configs/example-mongodb-sie.yaml
 
 Complete the **local sweep checklist** above (steps 1–5), then add:
 
+Set `SIE_ENABLED=true` for either path below — it is the **same on/off flag**; only `SIE_ENDPOINT` (and usually `SIE_API_KEY` on remote) differ.
+
 | # | Step | Where |
 |---|---|---|
-| 6 | SIE Docker container warm (encode probe HTTP 200) | [SIE setup → steps 1–3](../user-guide/sie-setup.md) |
-| 7 | `SIE_ENABLED=true` + `SIE_ENDPOINT` in `.env` | [SIE setup → step 4](../user-guide/sie-setup.md) |
-| 8 | `vector_index_1024` + `vector_index_30522` + `text_search_index` | [MongoDB → step 6](#6-create-search-indexes-m0--required-before-sweep) |
+| 6 | **Remote gateway:** `SIE_ENABLED=true`, `SIE_ENDPOINT`, `SIE_API_KEY` in `.env` — **no Docker** | [SIE setup → Path A](../user-guide/sie-setup.md#choose-your-path) |
+| 6′ | **Or self-hosted Docker:** SIE container warm (encode probe HTTP 200) | [SIE setup → Path B](../user-guide/sie-setup.md#self-hosted-docker-optional) |
+| 7 | `vector_index_1024` + `text_search_index` on `chunks` | [MongoDB → step 6](#6-create-search-indexes-m0--required-before-sweep) |
 
-Dense SIE models (bge-m3, stella-v5) share `vector_index_1024`. SPLADE-v3 needs `vector_index_30522` (30522 dimensions). All three retriever types that use BM25/hybrid need `text_search_index`. On M0 this config uses all **3** cluster search-index slots.
+Dense SIE models (bge-m3, stella-v5) use `vector_index_1024`. Sparse/hybrid retrievers need `text_search_index`. The example config uses **2 of 3** M0 search-index slots (`splade-v3` deferred — exceeds Atlas 4096-dim limit).
 
 No Voyage API key needed.
 
