@@ -4,21 +4,23 @@
 ![Docker](https://img.shields.io/badge/Docker-required-2496ED?logo=docker&logoColor=white)
 ![BGE-M3](https://img.shields.io/badge/BGE--M3-1024--dim-orange)
 
-The **SIE (Superlinked Inference Engine)** provider lets you run open-source embedding models
-(BGE-M3, Stella-v5) locally via a self-hosted Docker container. This page covers everything
-needed to get SIE working smoothly, including known rough edges and how to work around them.
+The **SIE (Superlinked Inference Engine)** provider runs open-source embedding models
+(BGE-M3, Stella-v5, SPLADE-v3) via any SIE-compatible HTTP endpoint — local Docker on `:8720`
+or a remote gateway your team deploys (Helm/K8s). Configure `SIE_ENDPOINT` (and `SIE_API_KEY`
+when auth is required) in server `.env`. This page covers local Docker setup and known rough edges.
 
 > **Opt-in only — not part of the default stack.** `./start-services.sh` and `docker compose up`
-> start the **server + dashboard only**. SIE is a separate container you start manually when you
-> need `provider: sie` or BGE-M3 sweeps. Default config keeps `SIE_ENABLED=false` so you are not
-> blocked by model downloads, disk usage, or warm-up on every run.
+> start the **server + dashboard only**. For local dev, SIE is a separate container you start
+> manually. For remote gateways, skip Docker and set `SIE_ENDPOINT` to your cluster URL.
+> Default config keeps `SIE_ENABLED=false` so you are not blocked by model downloads,
+> disk usage, or warm-up on every run.
 
-To enable SIE in the server after starting the container:
+To enable SIE in the server (local Docker or remote gateway):
 
 ```bash
 # .env
 SIE_ENABLED=true
-SIE_BASE_URL=http://localhost:8720   # host.docker.internal:8720 when server runs in Docker
+SIE_ENDPOINT=http://localhost:8720   # host.docker.internal:8720 when server runs in Docker
 ```
 
 Restart the server (or `docker compose restart server`) after changing `.env`.
@@ -160,13 +162,13 @@ After the SIE container is warm, tell the app to use it (default is off):
 ```bash
 # .env
 SIE_ENABLED=true
-SIE_BASE_URL=http://localhost:8720
+SIE_ENDPOINT=http://localhost:8720
 ```
 
 When the **server runs in Docker** and SIE runs on the host, use:
 
 ```bash
-SIE_BASE_URL=http://host.docker.internal:8720
+SIE_ENDPOINT=http://host.docker.internal:8720
 ```
 
 Restart the server after editing `.env`. With `SIE_ENABLED=false` (default), `GET /health`
@@ -696,7 +698,7 @@ docker system df -v | grep sie-hf-cache
 lsof -i :8720
 
 # Python: which SIE base URL will the server use?
-python3 -c "import os; print(os.getenv('SIE_BASE_URL', 'http://localhost:8720'))"
+python3 -c "import os; print(os.getenv('SIE_ENDPOINT', 'http://localhost:8720'))"
 ```
 
 ---

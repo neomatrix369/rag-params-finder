@@ -11,7 +11,7 @@
 #
 # Prerequisites (all required before run):
 #   - SIE container warm for each model (encode probes HTTP 200) — docs/user-guide/sie-setup.md
-#   - SIE_ENABLED=true + SIE_BASE_URL in .env
+#   - SIE_ENABLED=true + SIE_ENDPOINT in .env
 #   - MONGODB_URI in .env
 #   - vector_index_1024 + text_search_index on chunks (2 of 3 M0 slots)
 #

@@ -13,6 +13,13 @@ logger = get_logger(__name__)
 _HEALTH_PROBE_TIMEOUT_S = 3.0
 
 
+def sie_auth_headers() -> dict[str, str]:
+    """Return Authorization header when SIE_API_KEY is configured."""
+    if settings.sie_api_key:
+        return {"Authorization": f"Bearer {settings.sie_api_key}"}
+    return {}
+
+
 class SIEUnavailableError(Exception):
     """Raised when a sweep requires SIE but the server is disabled or unreachable."""
 
@@ -26,7 +33,8 @@ def probe_sie_reachable() -> bool:
     """Return True when SIE responds with HTTP 200 on /healthz."""
     try:
         resp = httpx.get(
-            f"{settings.sie_base_url.rstrip('/')}/healthz",
+            f"{settings.sie_endpoint.rstrip('/')}/healthz",
+            headers=sie_auth_headers(),
             timeout=_HEALTH_PROBE_TIMEOUT_S,
         )
         return resp.status_code == 200
@@ -46,16 +54,15 @@ def validate_sie_readiness(config: ExperimentConfig) -> None:
     if not settings.sie_enabled:
         raise SIEUnavailableError(
             "SIE embedding provider requires SIE_ENABLED=true in server .env. "
-            "Start the SIE Docker container and set SIE_ENABLED=true — "
-            "see docs/user-guide/sie-setup.md"
+            "Set SIE_ENDPOINT to your SIE gateway URL — see docs/user-guide/sie-setup.md"
         )
 
     if probe_sie_reachable():
         return
 
     raise SIEUnavailableError(
-        f"SIE server unreachable at {settings.sie_base_url}. "
-        "Start the SIE Docker container before submitting a SIE sweep — "
+        f"SIE server unreachable at {settings.sie_endpoint}. "
+        "Ensure SIE is running and SIE_ENDPOINT (and SIE_API_KEY if required) are set — "
         "see docs/user-guide/sie-setup.md"
     )
 
