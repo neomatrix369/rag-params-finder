@@ -12,7 +12,6 @@ from __future__ import annotations
 import time
 import uuid
 
-import httpx
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
@@ -70,17 +69,6 @@ class SweepResponse(BaseModel):
     corpus_source: str
     best_config: dict
     results: list[dict]
-
-
-def check_sie_health() -> str:
-    """Probe SIE /healthz when enabled — else 'disabled'."""
-    if not settings.sie_enabled:
-        return "disabled"
-    try:
-        resp = httpx.get(f"{settings.sie_base_url}/healthz", timeout=3.0)
-        return "reachable" if resp.status_code == 200 else "unreachable"
-    except Exception:
-        return "unreachable"
 
 
 def _run_sweep_internal(request: SweepRequest) -> dict:

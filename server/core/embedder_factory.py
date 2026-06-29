@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-EmbedDocsFn = Callable[[list[str], str], list[list[float]]]
+EmbedDocsFn = Callable[..., list[list[float]]]
 EmbedQueryFn = Callable[[str, str], list[float]]
 
 
