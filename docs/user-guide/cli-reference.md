@@ -28,7 +28,7 @@ Submits the experiment config to the server, then optionally polls run progress 
 # Submit and watch progress in the terminal
 rag-params-finder run --config configs/example-mongodb-local.yaml
 
-# Submit and detach — open http://localhost:5173 to track status
+# Submit and detach — open http://localhost:5374 to track status
 rag-params-finder run --config configs/example-mongodb-local.yaml --detach
 
 # Submit, print the submission summary, then exit without polling the server
@@ -36,6 +36,9 @@ rag-params-finder run --config configs/example-mongodb-local.yaml --no-watch
 
 # Voyage AI experiment (requires VOYAGE_API_KEY in .env)
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
+
+# SIE experiment (requires SIE warm for bge-m3/stella-v5/splade-v3 + SIE_ENABLED=true)
+rag-params-finder run --config configs/example-mongodb-sie.yaml
 ```
 
 When watching, the CLI renders a live Rich table showing each run's current phase:
@@ -154,7 +157,7 @@ rag-params-finder indexes reset
 rag-params-finder indexes reset --all --force
 ```
 
-Known index names: `vector_index_384`, `vector_index_1024`, `text_search_index`.
+Known index names: `vector_index_384`, `vector_index_1024`, `vector_index_30522`, `text_search_index`.
 
 ---
 
@@ -178,7 +181,7 @@ rag-params-finder version
 
 There is no `list` or `status` Typer command. Use:
 
-- Dashboard at `http://localhost:5173`, or
+- Dashboard at `http://localhost:5374`, or
 - **`GET /experiments`** and **`GET /experiments/{experiment_id}`** ([interactive API docs](http://localhost:8001/docs)), or
 - **`curl`** / any HTTP client against the same URLs.
 
@@ -190,7 +193,10 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/healthz` | Health check — `{"ok": true, "mongodb": "ok"}` when Atlas is reachable; HTTP 503 if `mongodb` is `error` |
+| GET | `/healthz` | Liveness + Atlas ping — `{"ok": true, "mongodb": "ok"}` when reachable; HTTP 503 if `mongodb` is `error` |
+| GET | `/health` | Extended health — `{ status, mongodb, sie, version }`; `sie` is `disabled`, `reachable`, or `unreachable` |
+| POST | `/api/v1/sweep` | Tier 1 ranked SIE vs Voyage sweep over caller-supplied corpus *(see [sie-setup.md](sie-setup.md))* |
+| GET | `/api/v1/best-config` | Best config from sweep history *(placeholder — Slice 22)* |
 | POST | `/experiments` | Submit an experiment sweep *(422 if search-index preflight fails)* |
 | GET | `/experiments` | List all experiments |
 | GET | `/experiments/vector-db-stats` | Cluster-grouped vector DB / storage stats for all experiments |

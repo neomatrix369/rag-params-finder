@@ -1,7 +1,7 @@
 # Documentation Gap Tracker
 
 **Created**: 2026-05-05
-**Last Updated**: 2026-05-28 (doc nav + pre-push fast gates + 26 tests)
+**Last Updated**: 2026-06-29 (Slice 21 doc sync, 58 tests)
 **Reference**: Gap analysis vs [pre-rag-explorer-dashboard](https://github.com/neomatrix369/pre-rag-explorer-dashboard)
 
 Each item below is a concrete, actionable doc gap. Check the box when done and record the date.
@@ -104,7 +104,7 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
   - [x] `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
   - [x] `ruff check .` → 0 errors
   - [x] `mypy server/ cli/` → 0 errors
-  - [x] `pytest` → **26 tests** (2026-05-28): 17 search-index + 3 sweep + 3 tiebreaker + 3 health; 80% coverage on 4 scoped modules
+  - [x] `pytest` → **58 tests** (2026-06-29): search-index, sweep, SIE, config examples, health, db indexes; 80% coverage on scoped modules
   - [x] `npm run lint` → 0 errors (ESLint + security plugin, Slice 20)
   - [x] `npm run typecheck` → 0 errors
   - [x] `npm run build` → ~4 s, 49 modules

@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 
 class EmbeddingModelInfo(TypedDict):
-    provider: str  # "voyage" | "local"
+    provider: str  # "voyage" | "local" | "sie"
     dimensions: int
     huggingface_id: str | None
     description: str
@@ -122,6 +122,28 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "dimensions": 384,
         "huggingface_id": "sentence-transformers/all-MiniLM-L6-v2",
         "description": "Fast general-purpose sentence embeddings (384-dim, ~23MB)",
+        "contextualized": False,
+    },
+    # SIE (Superlinked Inference Engine) — remote gateway or optional self-hosted Docker
+    "bge-m3": {
+        "provider": "sie",
+        "dimensions": 1024,
+        "huggingface_id": "BAAI/bge-m3",
+        "description": "BGE-M3 multi-lingual dense+sparse+multi-vector (1024-dim, SIE)",
+        "contextualized": False,
+    },
+    "stella-v5": {
+        "provider": "sie",
+        "dimensions": 1024,
+        "huggingface_id": "NovaSearch/stella_en_1.5B_v5",
+        "description": "Stella v5 1.5B English dense embeddings (1024-dim, SIE)",
+        "contextualized": False,
+    },
+    "splade-v3": {
+        "provider": "sie",
+        "dimensions": 30522,
+        "huggingface_id": "naver/splade-v3",
+        "description": "SPLADE v3 learned sparse embeddings (30522-dim, SIE)",
         "contextualized": False,
     },
 }

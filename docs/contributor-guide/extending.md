@@ -32,11 +32,17 @@ EMBEDDING_MODELS = {
 
 If the model uses a provider not yet supported, update `server/models/config.py` → `Provider` type and add dispatch logic in the embedder.
 
-**Note on `kimchi`:** The `Provider` literal includes `"kimchi"` for CAST OpenAI-compatible embeddings. Full implementation (embedder module, registry entries, example config) lives on branch `tessl-hackathon-kimchi-integration`; **main** currently supports **`local`** and **`voyage`** only. Merge that branch before documenting Kimchi in the user guide.
+**Note on `kimchi`:** The `Provider` literal includes `"kimchi"` for CAST OpenAI-compatible embeddings. Full implementation (embedder module, registry entries, example config) lives on branch `tessl-hackathon-kimchi-integration`; **main** currently supports **`local`**, **`voyage`**, and **`sie`**. Merge that branch before documenting Kimchi in the user guide.
 
 ### 3. Update the embedder dispatcher
 
-In `server/core/embedder.py` (Voyage) or `server/core/local_embedder.py` (sentence-transformers): verify the model name routes correctly through the existing dispatch logic. For most new models of an existing provider type, no changes are needed.
+All provider dispatch lives in `server/core/embedder_factory.py` — add a new `if provider == "my-provider":` branch that returns `(embed_docs_fn, embed_query_fn)`. The orchestrator calls `get_embedder(provider)` and never inspects the provider name itself.
+
+- `server/core/embedder.py` — Voyage AI only (`embed_documents_voyage`, `embed_query_voyage`)
+- `server/core/local_embedder.py` — sentence-transformers (`embed_documents_local`, `embed_query_local`)
+- `server/core/sie_embedder.py` — SIE via remote gateway or optional Docker on `:8720`; operational notes → [SIE Provider Setup](../user-guide/sie-setup.md)
+
+For most new models of an existing provider, no changes to the factory are needed — just add the model to `model_registry.py`.
 
 **Contextualized models** (`contextualized: True`, e.g. `voyage-context-3`):
 
@@ -51,7 +57,7 @@ A new dimension size requires a new Atlas vector index. See [getting-started.md]
 
 ### 5. Update the example configs
 
-Add the new model to `configs/example-mongodb-local.yaml` or `configs/example-mongodb-voyage.yaml` (whichever provider it belongs to), so users can immediately try it.
+Add the new model to `configs/example-mongodb-local.yaml`, `configs/example-mongodb-voyage.yaml`, or `configs/example-mongodb-sie.yaml` (whichever provider it belongs to), so users can immediately try it.
 
 ---
 
