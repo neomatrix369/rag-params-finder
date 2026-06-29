@@ -24,6 +24,10 @@ from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# SIE gateway rejects encode requests when pending + new items exceed 512.
+# Stay well under so concurrent runs or in-flight work do not hit the cap.
+_SIE_ENCODE_BATCH_SIZE = 128
+
 
 def _get_client() -> SIEClient:
     """Create a SIE client for the configured base URL.
@@ -60,13 +64,33 @@ def embed_documents_sie(texts: list[str], model_id: str) -> list[list[float]]:
     Raises:
         RuntimeError: If SIE server is unreachable or encode fails.
     """
+    if not texts:
+        return []
+
     sie_model = _resolve_sie_model_name(model_id)
     logger.info("SIE embed batch — texts=%d model=%s", len(texts), sie_model)
     try:
         client = _get_client()
-        # SDK returns one {dense, timing} dict per input item — not a batched ndarray.
-        results = client.encode(sie_model, [{"text": t} for t in texts])
-        vectors: list[list[float]] = [item["dense"].tolist() for item in results]
+        vectors: list[list[float]] = []
+        batch_count = (len(texts) + _SIE_ENCODE_BATCH_SIZE - 1) // _SIE_ENCODE_BATCH_SIZE
+        if batch_count > 1:
+            logger.info(
+                "SIE embed sharded — %d texts split into %d batches (queue limit)",
+                len(texts),
+                batch_count,
+            )
+        for idx in range(0, len(texts), _SIE_ENCODE_BATCH_SIZE):
+            batch = texts[idx : idx + _SIE_ENCODE_BATCH_SIZE]
+            batch_num = idx // _SIE_ENCODE_BATCH_SIZE + 1
+            logger.debug(
+                "SIE embed progress — batch %d/%d texts=%d",
+                batch_num,
+                batch_count,
+                len(batch),
+            )
+            # SDK returns one {dense, timing} dict per input item — not a batched ndarray.
+            results = client.encode(sie_model, [{"text": t} for t in batch])
+            vectors.extend(item["dense"].tolist() for item in results)
         logger.info("SIE embed OK — count=%d dim=%d", len(vectors), len(vectors[0]))
         return vectors
     except Exception as exc:
