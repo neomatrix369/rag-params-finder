@@ -44,6 +44,28 @@ Complete the **local sweep checklist** above, then add:
 
 Steps 1–5 use `vector_index_384`; step 9 swaps in `vector_index_1024` for Voyage embeddings. You need **both** vector indexes if you run local and Voyage sweeps on the same cluster.
 
+### SIE sweep — `example-mongodb-sie.yaml`
+
+```bash
+rag-params-finder run --config configs/example-mongodb-sie.yaml
+```
+
+Complete the **local sweep checklist** above (steps 1–5), then add:
+
+Set `SIE_ENABLED=true` for either path below — it is the **same on/off flag**; only `SIE_ENDPOINT` (and usually `SIE_API_KEY` on remote) differ.
+
+| # | Step | Where |
+|---|---|---|
+| 6 | **Remote gateway:** `SIE_ENABLED=true`, `SIE_ENDPOINT`, `SIE_API_KEY` in `.env` — **no Docker** | [SIE setup → Path A](../user-guide/sie-setup.md#choose-your-path) |
+| 6′ | **Or self-hosted Docker:** SIE container warm (encode probe HTTP 200) | [SIE setup → Path B](../user-guide/sie-setup.md#self-hosted-docker-optional) |
+| 7 | `vector_index_1024` + `text_search_index` on `chunks` | [MongoDB → step 6](#6-create-search-indexes-m0--required-before-sweep) |
+
+Dense SIE models (bge-m3, stella-v5) use `vector_index_1024`. Sparse/hybrid retrievers need `text_search_index`. The example config uses **2 of 3** M0 search-index slots (`splade-v3` deferred — exceeds Atlas 4096-dim limit).
+
+No Voyage API key needed.
+
+**Quick API demo (no YAML):** `POST /api/v1/sweep` — see [SIE setup §6](../user-guide/sie-setup.md#6-quick-smoke-test).
+
 ---
 
 ## MongoDB Atlas (required for all sweeps)
@@ -104,6 +126,7 @@ Atlas UI → **Browse Collections** → database `rag_params_finder` → **Creat
 |---|---|---|
 | `example-mongodb-local.yaml` | `vector_index_384` | `384` |
 | `example-mongodb-voyage.yaml` | `vector_index_1024` | `1024` |
+| `example-mongodb-sie.yaml` | `vector_index_1024`, `vector_index_30522` | `1024`, `30522` |
 | Both (same cluster) | create **both** | `384` and `1024` |
 
 **Vector index JSON** (set `numDimensions` and name as above):
@@ -171,7 +194,7 @@ Dashboard → **API Keys** → **Create new secret key** → add to `.env`:
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-### 3. Unlock Tier 1 rate limits (required for 90-run sweep)
+### 3. Unlock Tier 1 rate limits (required for 40-run Voyage sweep)
 
 Without billing, Voyage caps you at **3 RPM / 10,000 TPM** — a full sweep will hit rate limits and fail.
 
@@ -205,7 +228,7 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
 ```
 
-Dashboard (optional): `cd frontend && npm run dev` → `http://localhost:5173`
+Dashboard (optional): `cd frontend && npm run dev` → `http://localhost:5374`
 
 ---
 

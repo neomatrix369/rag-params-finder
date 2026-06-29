@@ -22,8 +22,11 @@ Everything you need to run your first RAG parameter sweep experiment.
 | Node.js | 22+ | Install via [nodejs.org](https://nodejs.org/) or `nvm install 22` |
 | MongoDB Atlas | Free tier (M0) | **Required** — see [Cloud Account Setup](cloud-setup.md#mongodb-atlas-required) |
 | Voyage AI | Optional | Only for Voyage models — see [Cloud Account Setup](cloud-setup.md#voyage-ai-optional) |
+| Docker Desktop + HF_TOKEN | Optional | **Self-hosted SIE only** — remote gateway needs no Docker; see [SIE Provider Setup](sie-setup.md) |
 
 **New to Atlas or Voyage?** Start with **[Cloud Account Setup](cloud-setup.md)** — account creation, connection string, search indexes, API key, and Tier 1 billing (~15 min).
+
+**Using SIE (open-source BGE-M3 embeddings)?** See **[SIE Provider Setup](sie-setup.md)** — set `SIE_ENABLED=true` (on/off), then `SIE_ENDPOINT` (+ `SIE_API_KEY` if needed) for a remote gateway, or optional local Docker.
 
 ---
 
@@ -71,7 +74,7 @@ Full variable reference: [Troubleshooting → Environment Variables](troubleshoo
 
 ### 2. Search indexes (required before sweep)
 
-Both example configs use dense + sparse + hybrid — create **`vector_index_384`** (local) or **`vector_index_1024`** (Voyage) **and** **`text_search_index`** on the `chunks` collection.
+Both example configs use dense + sparse + hybrid — create **`vector_index_384`** (local) or **`vector_index_1024`** (Voyage or SIE) **and** **`text_search_index`** on the `chunks` collection.
 
 **M0 free tier:** do this manually in Atlas UI before running a sweep — see [Cloud Account Setup → step 6](cloud-setup.md#6-create-search-indexes-m0--required-before-sweep). M0 allows **3 search indexes cluster-wide**; unknown indexes from other projects consume quota.
 
@@ -130,7 +133,7 @@ Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) and `
 ```
 
 - Server: `http://localhost:8001` (OpenAPI docs at `/docs`)
-- Dashboard: `http://localhost:5173`
+- Dashboard: `http://localhost:5374`
 - Dev hot reload: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build`
 
 See [Troubleshooting → Docker](troubleshooting.md#-docker) if startup fails.
@@ -148,6 +151,9 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 # Voyage sweep — checklist items 1–9
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
 
+# SIE sweep — SIE_ENABLED=true + SIE_ENDPOINT (+ SIE_API_KEY if remote); see sie-setup.md
+rag-params-finder run --config configs/example-mongodb-sie.yaml
+
 # Submit and detach (check dashboard for status instead)
 rag-params-finder run --config configs/example-mongodb-local.yaml --detach
 ```
@@ -157,7 +163,7 @@ The CLI will:
 - Display the experiment ID and generated run IDs
 - Poll run progress live unless `--detach` is used
 
-Open `http://localhost:5173` to watch live progress and explore results.
+Open `http://localhost:5374` to watch live progress and explore results.
 
 **Long sweeps**: pause and resume without losing completed runs:
 
@@ -186,6 +192,7 @@ Models are cached in `~/.cache/huggingface/hub/` after the first download.
 ## 👉 Next Steps
 
 - [Cloud Account Setup](cloud-setup.md) — Atlas account, Voyage billing, search indexes
+- [SIE Provider Setup](sie-setup.md) — remote gateway (preferred) or optional self-hosted Docker
 - [Configuration reference](configuration.md) — all YAML fields, sweep expansion, queries format
 - [CLI reference](cli-reference.md) — all commands and flags
 - [Dashboard guide](dashboard-guide.md) — reading the experiments list, detail screen, and search explorer

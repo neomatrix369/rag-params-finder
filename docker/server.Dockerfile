@@ -14,7 +14,13 @@ COPY pyproject.toml uv.lock README.md ./
 COPY server ./server
 COPY cli ./cli
 
-RUN uv pip install --system --no-cache -e .
+# Linux torch from PyPI pulls ~2GB NVIDIA CUDA wheels; this container has no GPU.
+RUN uv pip install --system --no-cache \
+    --default-index https://download.pytorch.org/whl/cpu \
+    --index https://pypi.org/simple \
+    --index-strategy unsafe-best-match \
+    "torch==2.11.0" \
+    && uv pip install --system --no-cache -e .
 
 EXPOSE 8001
 

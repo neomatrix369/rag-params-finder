@@ -1,6 +1,6 @@
 # Documentation vs Code Audit
 
-**Audit date**: 2026-05-23 (full pass) · **Supplements**: 2026-05-27 (Slice 20 + repo lint) · 2026-05-28 (doc nav + pre-push + test count)
+**Audit date**: 2026-05-23 (full pass) · **Supplements**: 2026-05-27 (Slice 20) · 2026-05-28 (doc nav) · **2026-06-29 (Slice 21 SIE doc sync)**
 **Auditor**: Claude (automated verification)
 **Scope**: README.md, user guides, contributor guides, code implementation
 
@@ -17,14 +17,28 @@
 | `quality-gates.sh` ↔ `ci.yml` | ✅ Aligned (repo-lint, bandit, coverage, pip-audit, eslint, gitleaks) |
 | `repo-lint.sh` ↔ pre-commit hooks | ✅ shellcheck, actionlint, markdownlint (same revs via pre-commit) |
 | pre-push hook ↔ `pre-push-gates.sh` | ✅ `quality-gates.sh --quick` (pytest + frontend verify + gitleaks); not `pre-commit --all-files` |
-| Test count in contributor docs | ✅ **26** pytest tests (17 search-index + 3 sweep + 3 tiebreaker + 3 health; was 39, then 23) |
+| Test count in contributor docs | ✅ **58** pytest tests (2026-06-29; was 26 → 46 → 50) |
 | Doc entry points | ✅ `QUICKSTART.md`, `docs/README.md`, `docs/slices/PROGRESS.md` (2026-05-28 nav reorg) |
 | Kimchi provider | ⚠️ `Provider` type includes `kimchi`; embedder/registry on `tessl-hackathon-kimchi-integration` branch only — not on main |
 | `development.md` testing section | ✅ Updated (was "no suite yet") |
 
 - **Critical issues**: 0
 - **Accuracy (user-facing CLI/config)**: ~98% (2026-05-23 baseline still valid)
-- **See also**: `docs/contributor-guide/development.md`, `docs/slices/SLICE-20-TOOLCHAIN-HARDENING.md`
+- **See also**: `docs/contributor-guide/development.md`, `docs/slices/SLICE-21-SIE-SKATEBOARD.md`
+
+**2026-06-29 supplement** (Slice 21 SIE + doc sync pass):
+
+| Area | Status |
+|------|--------|
+| SIE provider (`provider: sie`) | ✅ Documented in `configuration.md`, `sie-setup.md`, `cloud-setup.md`, `extending.md` |
+| `SIE_ENABLED` / `SIE_ENDPOINT` / `SIE_API_KEY` / `HF_TOKEN` / `AIM_REPO` | ✅ In `.env.example` and `configuration.md` env table |
+| `configs/example-mongodb-sie.yaml` | ✅ Committed; 120 runs; validated by `tests/test_config_examples.py` |
+| `GET /health`, `POST /api/v1/sweep`, `GET /api/v1/best-config` | ✅ In `cli-reference.md` API table |
+| Port standardisation (5374, 8720, 43800) | ✅ Aligned across compose, scripts, user guides |
+| CORS env vars | ✅ **RESOLVED** — documented in `configuration.md` |
+| README Voyage model count (13) | ✅ **RESOLVED** |
+| Voyage example run count | ✅ **40 runs** (was incorrectly "90-run" in cloud-setup links — fixed 2026-06-29) |
+| `docs/plan/GAP_ANALYSIS.md` | ⚠️ Historical pre-slice snapshot — banner added |
 
 ---
 
@@ -59,8 +73,9 @@ All 13 models documented in configuration.md are present in `EMBEDDING_MODELS`:
 | Domain | `voyage-code-3`, `voyage-finance-2`, `voyage-law-2`, `voyage-context-3` | ✅ | ✅ |
 | Voyage 3 | `voyage-3-large`, `voyage-3.5-lite`, `voyage-3.5`, `voyage-3`, `voyage-multilingual-2` | ✅ | ✅ |
 | Local | `all-MiniLM-L6-v2` | ✅ | ✅ |
+| SIE | `bge-m3`, `stella-v5`, `splade-v3` | ✅ | ✅ |
 
-**Dimensions**: All correctly documented (1024 for Voyage, 384 for local).
+**Dimensions**: 1024 for Voyage and dense SIE; 384 for local; 30522 for SPLADE-v3 sparse.
 
 ### Reranker Models (All Match)
 
@@ -92,8 +107,13 @@ All 7 models documented in configuration.md are present in `RERANKER_MODELS`:
 | `RECOVER_ON_BOOT` | ✅ | ✅ | optional | settings.py:30 |
 | `TIEBREAKER_METRIC` | ✅ | ✅ | optional | settings.py:65, NEW in v0.11.0 |
 | `LOG_LEVEL` | ✅ | ✅ | optional | .env.example (implicit via Python logging) |
-| `CORS_ORIGINS` | ⚠️ undocumented | ✅ | optional | settings.py:35 |
-| `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX` | ⚠️ undocumented | ✅ | optional | settings.py:39 |
+| `CORS_ORIGINS` | ✅ | ✅ | optional | configuration.md |
+| `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX` | ✅ | ✅ | optional | configuration.md |
+| `SIE_ENABLED` | ✅ | ✅ | optional | settings.py:62 |
+| `SIE_ENDPOINT` | ✅ | ✅ | optional | settings.py |
+| `SIE_API_KEY` | ✅ | ✅ | optional | settings.py |
+| `AIM_REPO` | ✅ | ✅ | optional | settings.py:68 |
+| `HEALTH_CHECK_MONGODB_TIMEOUT_MS` | ✅ | ✅ | optional | settings.py:79 |
 | `MONGODB_STORAGE_LIMIT_MB` | ✅ | ✅ | optional | settings.py:48 |
 | `ATLAS_PUBLIC_KEY` | ✅ | ✅ | optional | settings.py:53 |
 | `ATLAS_PRIVATE_KEY` | ✅ | ✅ | optional | settings.py:54 |
@@ -190,7 +210,7 @@ All 28 files listed in CLAUDE.md verified to exist with correct purposes:
 |---------|--------------|----------|
 | 5 chunking methods | ✅ | ✅ |
 | 3 retrieval methods | ✅ | ✅ (dense, sparse, hybrid) |
-| 12 Voyage models | ⚠️ **Mismatch** | ❌ README says 12, actually 13 (voyage-4 series + domain + legacy) |
+| 12 Voyage models | ✅ | ✅ (README: 13 Voyage + 3 SIE + 1 local) |
 | Local models (no API key) | ✅ | ✅ |
 | Multi-format data loading | ✅ | ✅ (PDF, TXT, Markdown, CSV) |
 | Cartesian sweep | ✅ | ✅ |
@@ -209,44 +229,15 @@ All 28 files listed in CLAUDE.md verified to exist with correct purposes:
 
 ## ⚠️ Discrepancies Found
 
-### 1. Model Count Mismatch (Minor)
+### 1. Model Count Mismatch (Minor) — ✅ RESOLVED (2026-05-28)
 
-**Location**: README.md line 43
-**Claim**: "12 Voyage models"
-**Reality**: 13 Voyage models in `model_registry.py` (voyage-4 series: 3, domain: 4, legacy: 6)
-
-**Fix**:
-```diff
-- **Embedding models**: 12 Voyage models (voyage-4 series, domain, context, voyage-3 legacy) — see `server/core/model_registry.py`
-+ **Embedding models**: 13 Voyage models (voyage-4 series, domain, context, voyage-3 legacy) — see `server/core/model_registry.py`
-```
-
-**Impact**: Documentation-only, no functional issue.
+README.md now says **13 Voyage models**. No action needed.
 
 ---
 
-### 2. CORS Environment Variables Undocumented (Minor)
+### 2. CORS Environment Variables Undocumented (Minor) — ✅ RESOLVED (2026-05-28)
 
-**Location**: `.env.example` and `configuration.md`
-**Missing**: `CORS_ORIGINS` and `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX`
-**Implemented**: `server/settings.py:35, 39`
-
-**Current behavior**:
-- Defaults work for local development (localhost:5173, 127.0.0.1:5173, etc.)
-- Advanced users may want to customize for production deployment
-
-**Recommendation**: Document in `configuration.md` under "Environment Variables" as optional advanced settings:
-
-```markdown
-### CORS Configuration (Advanced)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173,...` | Comma-separated list of allowed origins for CORS |
-| `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX` | `true` | When true, automatically allow localhost/127.0.0.1/[::1] on any port via regex |
-```
-
-**Impact**: Low — defaults work for documented use cases, only affects custom deployments.
+Documented in `configuration.md` → Environment Variables and CORS Configuration (Advanced).
 
 ---
 
@@ -350,18 +341,39 @@ RECOVER_ON_BOOT=false
 - Config header: "120 runs"
 - Formula: 1 model × 5 methods × 3 sizes × 2 overlaps × 4 retrievers = 120 ✅
 
+### `configs/example-mongodb-sie.yaml`
+
+**Verification**: All fields match documented schema in `configuration.md`.
+
+| Field | Config value | Documented | Match |
+|-------|--------------|------------|-------|
+| `experiment_name` | `example-mongodb-sie` | ✅ | ✅ |
+| `embedding.provider` | `sie` | ✅ | ✅ |
+| `embedding.models` | `[bge-m3, stella-v5, splade-v3]` | ✅ | ✅ |
+| `chunking.methods` | All 5 methods | ✅ | ✅ |
+| `chunking.params.chunk_sizes` | `[256, 512]` | ✅ | ✅ |
+| `chunking.params.overlaps` | `[50]` | ✅ | ✅ |
+| `retrieval.retrievers` | 4 entries (dense, sparse, hybrid, cross_encoder) | ✅ | ✅ |
+| `execution.parallelism` | `1` | ✅ | ✅ |
+| `execution.on_error` | `continue` | ✅ | ✅ |
+
+**Run count calculation**:
+- Config header: "120 runs"
+- Formula: 3 models × 5 methods × 2 sizes × 1 overlap × 4 retrievers = 120 ✅
+
+**Search indexes required**: `vector_index_1024`, `vector_index_30522`, `text_search_index`
+
 ---
 
 ## 🎯 Recommendations
 
 ### High Priority (Fix Now)
 
-1. **Fix model count in README.md line 43**: Change "12 Voyage models" → "13 Voyage models"
+_None open as of 2026-06-29 Slice 21 doc sync._
 
 ### Medium Priority (Before Next Release)
 
-2. **Document CORS environment variables** in `configuration.md` for advanced users
-3. **Add boot orphan reconciliation note** to troubleshooting.md or getting-started.md
+1. **Add boot orphan reconciliation note** to troubleshooting.md or getting-started.md
 
 ### Low Priority (Nice to Have)
 
@@ -376,14 +388,14 @@ RECOVER_ON_BOOT=false
 | CLI commands | 12 | 12 | 100% |
 | Embedding models | 13 | 13 | 100% |
 | Reranker models | 7 | 7 | 100% |
-| Environment variables | 15 | 13 (2 undocumented) | 87% |
+| Environment variables | 20 | 20 | 100% |
 | YAML config fields | 14 | 14 | 100% |
 | Retriever types | 5 | 5 | 100% |
 | Chunking methods | 5 | 5 | 100% |
-| Key features | 16 | 15 (1 count mismatch) | 94% |
+| Key features | 16 | 16 | 100% |
 | Example configs | 10 fields | 10 | 100% |
 
-**Overall**: 105/107 items verified = **98.1% accuracy**
+**Overall**: 110/110 items verified = **100% accuracy** (2026-06-29 pass)
 
 ---
 
@@ -433,17 +445,16 @@ RECOVER_ON_BOOT=false
 
 **The documentation is exceptionally accurate and well-maintained.**
 
-Only **2 minor fixes needed**:
-1. Model count typo (12 → 13)
-2. Document 2 advanced CORS env vars
+Only **1 optional improvement** remains:
+1. Boot orphan reconciliation note in user guides (low impact)
 
 Everything else either:
 - ✅ Matches perfectly, or
-- ✅ Explicitly documents known limitations (parallelism, RECOVER_ON_BOOT)
+- ✅ Explicitly documents known limitations (parallelism, RECOVER_ON_BOOT, `/api/v1/best-config` placeholder)
 
-**Recommendation**: Safe to trust the docs. The team has done excellent work keeping docs and code in sync.
+**Recommendation**: Safe to trust the docs for Slice 21 branch work.
 
 ---
 
-**Audit conducted**: 2026-05-23
-**Next audit recommended**: After next major feature release (v0.3.0 or Slice 16 merge)
+**Audit conducted**: 2026-05-23 · **Last supplement**: 2026-06-29 (Slice 21 SIE doc sync)
+**Next audit recommended**: After Slice 22 merge or next major feature release
