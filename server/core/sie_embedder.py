@@ -1,14 +1,16 @@
-"""SIE (Superlinked Inference Engine) embeddings via self-hosted Docker on :8720.
+"""SIE (Superlinked Inference Engine) embeddings via HTTP (local Docker or remote gateway).
 
 Mirrors the interface of local_embedder.py — plain module-level functions so
 embedder_factory.py can wire them without any class hierarchy.
 
-SIE server must be running:
+Configure via .env:
+    SIE_ENABLED=true
+    SIE_ENDPOINT=http://localhost:8720          # or https://your-sie-gateway
+    SIE_API_KEY=...                             # optional; required when gateway auth is on
+
+Local Docker quickstart (see docs/user-guide/sie-setup.md):
     docker run -p 8720:8080 -v sie-hf-cache:/app/.cache/huggingface --platform linux/amd64 \
         -e HF_TOKEN=$HF_TOKEN ghcr.io/superlinked/sie-server:latest-cpu-default
-
-Port 8720 is chosen to avoid the widely-used 8080 (Jenkins, Tomcat, Hadoop, etc.).
-The SIE container internally listens on 8080; the host side maps to 8720.
 
 Models route through the SIE registry full-name (e.g. "BAAI/bge-m3").
 The model_registry maps short IDs ("bge-m3") to huggingface_id for the SDK call.
@@ -34,14 +36,19 @@ _SIE_ENCODE_BATCH_SIZE = 128
 
 
 def _get_client() -> SIEClient:
-    """Create a SIE client for the configured base URL.
+    """Create a SIE client for the configured endpoint.
 
     Client objects are lightweight (no network connection until encode() is called),
     so we create one per call rather than caching — keeps tests simple and avoids
     stale-state bugs across test boundaries.
     """
-    client = SIEClient(settings.sie_base_url)
-    logger.debug("SIE client created — base_url=%s", settings.sie_base_url)
+    api_key = settings.sie_api_key or None
+    client = SIEClient(settings.sie_endpoint, api_key=api_key)
+    logger.debug(
+        "SIE client created — endpoint=%s auth=%s",
+        settings.sie_endpoint,
+        "bearer" if api_key else "none",
+    )
     return client
 
 

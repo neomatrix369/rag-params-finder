@@ -144,7 +144,8 @@ class TestHealthEnhanced:
             patch("server.core.sie_guard.httpx.get") as mock_get,
         ):
             mock_settings.sie_enabled = True
-            mock_settings.sie_base_url = "http://localhost:8720"
+            mock_settings.sie_endpoint = "http://localhost:8720"
+            mock_settings.sie_api_key = ""
             mock_get.return_value.status_code = 200
             from server.core.sie_guard import check_sie_health
 
@@ -168,7 +169,8 @@ class TestHealthEnhanced:
             patch("server.core.sie_guard.httpx.get", side_effect=Exception("connection refused")),
         ):
             mock_settings.sie_enabled = True
-            mock_settings.sie_base_url = "http://localhost:8720"
+            mock_settings.sie_endpoint = "http://localhost:8720"
+            mock_settings.sie_api_key = ""
             from server.core.sie_guard import check_sie_health
 
             result = check_sie_health()
@@ -199,7 +201,8 @@ class TestHealthEnhanced:
             patch("server.core.sie_guard.httpx.get") as mock_get,
         ):
             mock_settings.sie_enabled = True
-            mock_settings.sie_base_url = "http://localhost:8720"
+            mock_settings.sie_endpoint = "http://localhost:8720"
+            mock_settings.sie_api_key = ""
             mock_get.return_value.status_code = 200
             resp = test_client.get("/health")
 
