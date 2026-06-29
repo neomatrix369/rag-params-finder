@@ -7,6 +7,8 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
+from server.core.sie_guard import SIEUnavailableError
+
 
 class TestSIEEmbedderDenseEmbedding:
     """Scenario: SIE BGE-M3 dense embedding."""
@@ -97,26 +99,26 @@ class TestSIEEmbedderFallback:
         """
         Given SIEClient cannot connect to http://localhost:8720
         When embed_documents_sie is called
-        Then a RuntimeError is raised with message containing "SIE unreachable".
+        Then a SIEUnavailableError is raised with message containing "SIE unreachable".
         """
         with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
             mock_client_cls.return_value.encode.side_effect = Exception("Connection refused")
 
             from server.core.sie_embedder import embed_documents_sie
 
-            with pytest.raises(RuntimeError, match="SIE unreachable"):
+            with pytest.raises(SIEUnavailableError, match="SIE unreachable"):
                 embed_documents_sie(["test"], "bge-m3")
 
     def test_embed_query_raises_runtime_error_on_connection_failure(self):
         """
         Given SIEClient cannot connect to http://localhost:8720
         When embed_query_sie is called
-        Then a RuntimeError is raised with message containing "SIE unreachable".
+        Then a SIEUnavailableError is raised with message containing "SIE unreachable".
         """
         with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
             mock_client_cls.return_value.encode.side_effect = Exception("Connection refused")
 
             from server.core.sie_embedder import embed_query_sie
 
-            with pytest.raises(RuntimeError, match="SIE unreachable"):
+            with pytest.raises(SIEUnavailableError, match="SIE unreachable"):
                 embed_query_sie("test", "bge-m3")

@@ -60,11 +60,16 @@ def _token_budget_per_request() -> int:
     return limiter._tpm if limiter._tpm > 0 else 100_000
 
 
-def embed_documents_voyage(texts: list[str], model: str) -> list[list[float]]:
+def embed_documents_voyage(
+    texts: list[str],
+    model: str,
+    *,
+    cancel_check: Callable[[], None] | None = None,
+) -> list[list[float]]:
     """Embed documents using Voyage AI — called via embedder_factory.get_embedder("voyage")."""
     if is_contextualized_embedding(model):
-        return _embed_documents_voyage_context(texts, model)
-    return _embed_documents_voyage(texts, model)
+        return _embed_documents_voyage_context(texts, model, cancel_check=cancel_check)
+    return _embed_documents_voyage(texts, model, cancel_check=cancel_check)
 
 
 def embed_query_voyage(text: str, model: str) -> list[float]:
@@ -74,7 +79,12 @@ def embed_query_voyage(text: str, model: str) -> list[float]:
     return _embed_query_voyage(text, model)
 
 
-def _embed_documents_voyage(texts: list[str], model: str) -> list[list[float]]:
+def _embed_documents_voyage(
+    texts: list[str],
+    model: str,
+    *,
+    cancel_check: Callable[[], None] | None = None,
+) -> list[list[float]]:
     """Embed documents using Voyage AI, auto-batching to respect rate limits."""
     logger.info("embedding batch — %s documents model=%s", len(texts), model)
 
@@ -91,6 +101,8 @@ def _embed_documents_voyage(texts: list[str], model: str) -> list[list[float]]:
 
     all_embeddings: list[list[float]] = []
     for idx, batch in enumerate(batches):
+        if cancel_check is not None:
+            cancel_check()
         tokens = estimate_tokens(batch)
         logger.debug(
             "embedding batch progress — batch %s/%s texts=%s est_tokens≈%s",
@@ -108,6 +120,7 @@ def _embed_documents_voyage(texts: list[str], model: str) -> list[list[float]]:
             limiter=get_limiter(),
             estimated_tokens=tokens,
             operation=f"Voyage embed batch {idx + 1}/{len(batches)} model={model}",
+            cancel_check=cancel_check,
         )
         all_embeddings.extend(cast(list[list[float]], result.embeddings))
 
@@ -115,7 +128,12 @@ def _embed_documents_voyage(texts: list[str], model: str) -> list[list[float]]:
     return all_embeddings
 
 
-def _embed_documents_voyage_context(texts: list[str], model: str) -> list[list[float]]:
+def _embed_documents_voyage_context(
+    texts: list[str],
+    model: str,
+    *,
+    cancel_check: Callable[[], None] | None = None,
+) -> list[list[float]]:
     """Embed document chunks with voyage-context-3 (shared document context)."""
     if not texts:
         return []
@@ -134,6 +152,8 @@ def _embed_documents_voyage_context(texts: list[str], model: str) -> list[list[f
 
     all_embeddings: list[list[float]] = []
     for req_idx, request_segments in enumerate(_split_context_requests(segments)):
+        if cancel_check is not None:
+            cancel_check()
         flat = [chunk for segment in request_segments for chunk in segment]
         tokens = _count_context_tokens(flat)
         logger.debug(
@@ -154,6 +174,7 @@ def _embed_documents_voyage_context(texts: list[str], model: str) -> list[list[f
                 f"Voyage contextualized embed request {req_idx + 1} "
                 f"model={model} segments={len(request_segments)}"
             ),
+            cancel_check=cancel_check,
         )
         for segment_result in result.results:
             all_embeddings.extend(cast(list[list[float]], segment_result.embeddings))

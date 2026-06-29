@@ -140,13 +140,13 @@ class TestHealthEnhanced:
     def test_check_sie_health_returns_string(self):
         """check_sie_health returns a string status."""
         with (
-            patch("server.api.sweep.settings") as mock_settings,
-            patch("server.api.sweep.httpx.get") as mock_get,
+            patch("server.core.sie_guard.settings") as mock_settings,
+            patch("server.core.sie_guard.httpx.get") as mock_get,
         ):
             mock_settings.sie_enabled = True
             mock_settings.sie_base_url = "http://localhost:8720"
             mock_get.return_value.status_code = 200
-            from server.api.sweep import check_sie_health
+            from server.core.sie_guard import check_sie_health
 
             result = check_sie_health()
         assert isinstance(result, str)
@@ -154,9 +154,9 @@ class TestHealthEnhanced:
 
     def test_check_sie_health_returns_disabled_when_sie_off(self):
         """check_sie_health returns 'disabled' when SIE_ENABLED is false."""
-        with patch("server.api.sweep.settings") as mock_settings:
+        with patch("server.core.sie_guard.settings") as mock_settings:
             mock_settings.sie_enabled = False
-            from server.api.sweep import check_sie_health
+            from server.core.sie_guard import check_sie_health
 
             result = check_sie_health()
         assert result == "disabled"
@@ -164,12 +164,12 @@ class TestHealthEnhanced:
     def test_check_sie_health_unreachable_on_exception(self):
         """check_sie_health returns 'unreachable' when SIE is down."""
         with (
-            patch("server.api.sweep.settings") as mock_settings,
-            patch("server.api.sweep.httpx.get", side_effect=Exception("connection refused")),
+            patch("server.core.sie_guard.settings") as mock_settings,
+            patch("server.core.sie_guard.httpx.get", side_effect=Exception("connection refused")),
         ):
             mock_settings.sie_enabled = True
             mock_settings.sie_base_url = "http://localhost:8720"
-            from server.api.sweep import check_sie_health
+            from server.core.sie_guard import check_sie_health
 
             result = check_sie_health()
         assert result == "unreachable"
@@ -184,7 +184,7 @@ class TestHealthEnhanced:
 
         @app.get("/health")
         def health():
-            from server.api.sweep import check_sie_health
+            from server.core.sie_guard import check_sie_health
 
             return {
                 "status": "ok",
@@ -195,8 +195,8 @@ class TestHealthEnhanced:
 
         test_client = TestClient(app)
         with (
-            patch("server.api.sweep.settings") as mock_settings,
-            patch("server.api.sweep.httpx.get") as mock_get,
+            patch("server.core.sie_guard.settings") as mock_settings,
+            patch("server.core.sie_guard.httpx.get") as mock_get,
         ):
             mock_settings.sie_enabled = True
             mock_settings.sie_base_url = "http://localhost:8720"

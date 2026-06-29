@@ -162,6 +162,10 @@ print_unhealthy_server_hint() {
 mkdir -p input_data/pdfs configs
 
 ensure_env
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  export GIT_COMMIT="$(git rev-parse --short HEAD)"
+  export GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+fi
 docker_cleanup standard
 check_ports
 
