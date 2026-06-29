@@ -33,7 +33,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 |-----|----------------|
 | [user-guide/cloud-setup.md](./user-guide/cloud-setup.md) | MongoDB Atlas + optional Voyage AI accounts, search indexes |
 | [user-guide/getting-started.md](./user-guide/getting-started.md) | Install, configure, first experiment (step-by-step) |
-| [user-guide/sie-setup.md](./user-guide/sie-setup.md) | SIE Docker setup (bge-m3, stella-v5, splade-v3), warm-up, Aim UI, known issues |
+| [user-guide/sie-setup.md](./user-guide/sie-setup.md) | SIE setup — remote gateway (preferred) or optional self-hosted Docker; warm-up, Aim UI, known issues |
 | [user-guide/configuration.md](./user-guide/configuration.md) | Full YAML config reference, env vars, sweep dimensions |
 | [user-guide/cli-reference.md](./user-guide/cli-reference.md) | All CLI commands (`run`, `pause`, `resume`, `delete`, `indexes`, …) |
 | [user-guide/dashboard-guide.md](./user-guide/dashboard-guide.md) | Experiments list, detail, Search Explorer |

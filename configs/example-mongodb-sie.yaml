@@ -10,8 +10,9 @@
 # Retrievers: dense · sparse · hybrid · cross_encoder (swept individually — one per run)
 #
 # Prerequisites (all required before run):
-#   - SIE container warm for each model (encode probes HTTP 200) — docs/user-guide/sie-setup.md
-#   - SIE_ENABLED=true + SIE_ENDPOINT in .env
+#   - SIE_ENABLED=true (same flag for remote gateway or local Docker)
+#   - SIE_ENDPOINT (+ SIE_API_KEY when gateway auth required) OR self-hosted Docker on :8720
+#     — docs/user-guide/sie-setup.md
 #   - MONGODB_URI in .env
 #   - vector_index_1024 + text_search_index on chunks (2 of 3 M0 slots)
 #

@@ -17,7 +17,8 @@ services:
       - .env
     environment:
       HF_HOME: ${HF_HOME:-/root/.cache/huggingface}
-      # SIE is opt-in — set SIE_ENABLED=true in .env. See docs/user-guide/sie-setup.md.
+      # SIE is opt-in — remote gateway preferred (SIE_ENDPOINT + SIE_API_KEY in .env).
+      # Self-hosted Docker fallback: docs/user-guide/sie-setup.md
       SIE_ENABLED: ${SIE_ENABLED:-false}
       SIE_ENDPOINT: ${SIE_ENDPOINT:-http://host.docker.internal:8720}
       SIE_API_KEY: ${SIE_API_KEY:-}

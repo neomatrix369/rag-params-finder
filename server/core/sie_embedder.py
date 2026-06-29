@@ -1,19 +1,15 @@
-"""SIE (Superlinked Inference Engine) embeddings via HTTP (local Docker or remote gateway).
+"""SIE (Superlinked Inference Engine) embeddings via HTTP.
+
+Preferred: remote SIE gateway — set SIE_ENDPOINT + SIE_API_KEY in .env (no Docker).
+Fallback: self-hosted Docker on :8720 — see docs/user-guide/sie-setup.md.
+
+Configure via .env (same three vars for remote gateway and local Docker):
+    SIE_ENABLED=true                              # master on/off
+    SIE_ENDPOINT=https://your-sie-gateway...      # where (or http://localhost:8720 for Docker)
+    SIE_API_KEY=...                               # auth when gateway requires it
 
 Mirrors the interface of local_embedder.py — plain module-level functions so
 embedder_factory.py can wire them without any class hierarchy.
-
-Configure via .env:
-    SIE_ENABLED=true
-    SIE_ENDPOINT=http://localhost:8720          # or https://your-sie-gateway
-    SIE_API_KEY=...                             # optional; required when gateway auth is on
-
-Local Docker quickstart (see docs/user-guide/sie-setup.md):
-    docker run -p 8720:8080 -v sie-hf-cache:/app/.cache/huggingface --platform linux/amd64 \
-        -e HF_TOKEN=$HF_TOKEN ghcr.io/superlinked/sie-server:latest-cpu-default
-
-Models route through the SIE registry full-name (e.g. "BAAI/bge-m3").
-The model_registry maps short IDs ("bge-m3") to huggingface_id for the SDK call.
 """
 
 from __future__ import annotations

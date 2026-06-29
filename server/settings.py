@@ -57,8 +57,8 @@ class Settings(BaseSettings):
     atlas_cluster_name: str = ""
 
     # SIE (Superlinked Inference Engine) — opt-in; disabled by default.
-    # Point SIE_ENDPOINT at local Docker (:8720) or a remote SIE gateway (Helm/K8s).
-    # SIE_API_KEY is sent as Bearer auth when the gateway requires it (optional locally).
+    # SIE_ENABLED: master on/off (same for remote gateway and local Docker).
+    # SIE_ENDPOINT: where to connect. SIE_API_KEY: auth when gateway requires it.
     # See docs/user-guide/sie-setup.md.
     sie_enabled: bool = False
     sie_endpoint: str = "http://localhost:8720"
