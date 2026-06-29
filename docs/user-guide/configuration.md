@@ -315,7 +315,7 @@ To **re-run only failed combinations inside an existing experiment** *(same `exp
 | `voyage-3.5-lite` | $0.02 / 1M tokens | Legacy lite |
 | `rerank-2.5-lite` | $0.02 / 1M tokens | Cheapest reranker |
 
-**Rate limits**: Required for Voyage sweep — add payment method + ≥$5 credits, then set Tier 1 limits in `.env`. See [Cloud Account Setup → Voyage step 3](cloud-setup.md#3-unlock-tier-1-rate-limits-required-for-90-run-sweep).
+**Rate limits**: Required for Voyage sweep — add payment method + ≥$5 credits, then set Tier 1 limits in `.env`. See [Cloud Account Setup → Voyage step 3](cloud-setup.md#3-unlock-tier-1-rate-limits-required-for-40-run-voyage-sweep).
 
 **Example cost** for a 36-run sweep (3 models × 2 methods × 3 chunk sizes × 2 overlaps):
 - 1 PDF × ~200 pages × 5 chunks/page = 1,000 chunks/run
@@ -335,9 +335,22 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder
 # Voyage AI (OPTIONAL — only if using Voyage models)
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# Voyage rate limits (Tier 1 defaults shown)
-VOYAGE_RPM_LIMIT=300      # Requests per minute
-VOYAGE_TPM_LIMIT=1000000  # Tokens per minute
+# Voyage rate limits — free tier defaults (override for Tier 1 Voyage sweep)
+VOYAGE_RPM_LIMIT=3        # Requests per minute (free tier)
+VOYAGE_TPM_LIMIT=10000    # Tokens per minute (free tier)
+# Tier 1 (example-mongodb-voyage.yaml): VOYAGE_RPM_LIMIT=2000 VOYAGE_TPM_LIMIT=16000000
+
+# SIE (OPTIONAL — only if using provider: sie or POST /api/v1/sweep)
+SIE_ENABLED=false
+# SIE_BASE_URL=http://localhost:8720
+# When server runs in Docker and SIE on the host: SIE_BASE_URL=http://host.docker.internal:8720
+# HF_TOKEN=hf_...   # HuggingFace token for SIE container model downloads (not the server)
+
+# Aim experiment tracking (OPTIONAL — UI via ./scripts/aim-ui.sh)
+# AIM_REPO=.aim      # Docker sets /app/.aim automatically
+
+# MongoDB /healthz ping timeout (ms) — keep below Docker healthcheck (10s)
+# HEALTH_CHECK_MONGODB_TIMEOUT_MS=5000
 
 # Search result ranking tiebreaker (NEW in v0.11.0)
 # When multiple configs achieve the same max score, this setting determines
@@ -403,6 +416,11 @@ Query avg prevents high-scoring queries with many results from hiding poorly-per
 |----------|---------|-------------|
 | `CORS_ORIGINS` | `http://localhost:5374,http://127.0.0.1:5374,http://localhost:3000,http://127.0.0.1:3000` | Comma-separated list of allowed origins for CORS |
 | `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX` | `true` | When true, automatically allow localhost/127.0.0.1/[::1] on any port via regex |
+| `SIE_ENABLED` | `false` | Opt-in SIE provider and `/health` SIE probe — set `true` when SIE Docker is running |
+| `SIE_BASE_URL` | `http://localhost:8720` | SIE HTTP base URL (`host.docker.internal:8720` when server is in Docker) |
+| `HF_TOKEN` | — | HuggingFace token for **SIE container** model downloads (see [sie-setup.md](sie-setup.md)) |
+| `AIM_REPO` | `.aim` | Path to Aim experiment repo (Docker: `/app/.aim`; UI: `./scripts/aim-ui.sh`) |
+| `HEALTH_CHECK_MONGODB_TIMEOUT_MS` | `5000` | MongoDB ping timeout for `/healthz` (ms) |
 
 **When to customize**:
 - Deploying the dashboard on a custom domain (e.g., `https://rag-finder.example.com`)

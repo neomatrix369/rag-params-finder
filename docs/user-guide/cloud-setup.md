@@ -192,7 +192,7 @@ Dashboard → **API Keys** → **Create new secret key** → add to `.env`:
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-### 3. Unlock Tier 1 rate limits (required for 90-run sweep)
+### 3. Unlock Tier 1 rate limits (required for 40-run Voyage sweep)
 
 Without billing, Voyage caps you at **3 RPM / 10,000 TPM** — a full sweep will hit rate limits and fail.
 

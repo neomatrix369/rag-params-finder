@@ -193,7 +193,10 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/healthz` | Health check — `{"ok": true, "mongodb": "ok"}` when Atlas is reachable; HTTP 503 if `mongodb` is `error` |
+| GET | `/healthz` | Liveness + Atlas ping — `{"ok": true, "mongodb": "ok"}` when reachable; HTTP 503 if `mongodb` is `error` |
+| GET | `/health` | Extended health — `{ status, mongodb, sie, version }`; `sie` is `disabled`, `reachable`, or `unreachable` |
+| POST | `/api/v1/sweep` | Tier 1 ranked SIE vs Voyage sweep over caller-supplied corpus *(see [sie-setup.md](sie-setup.md))* |
+| GET | `/api/v1/best-config` | Best config from sweep history *(placeholder — Slice 22)* |
 | POST | `/experiments` | Submit an experiment sweep *(422 if search-index preflight fails)* |
 | GET | `/experiments` | List all experiments |
 | GET | `/experiments/vector-db-stats` | Cluster-grouped vector DB / storage stats for all experiments |
