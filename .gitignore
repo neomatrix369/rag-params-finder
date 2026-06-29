@@ -49,6 +49,10 @@ htmlcov/
 # Logs
 *.log
 
+# Aim experiment tracking (local repo — never commit)
+.aim/
+.aim-*/
+
 # OS
 .DS_Store
 Thumbs.db

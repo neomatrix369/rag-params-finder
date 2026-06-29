@@ -58,6 +58,7 @@ One-command stack for server + dashboard (MongoDB Atlas stays external). The **C
 ```bash
 cp .env.example .env
 ./start-services.sh              # prod: built frontend + uvicorn (ports 8001, 5374)
+./start-services.sh --force-build # rebuild images even when source unchanged
 ./scripts/health-check.sh        # smoke: server, frontend, Atlas via /healthz
 
 # Host CLI (install once: uv pip install -e .)

@@ -36,6 +36,9 @@ rag-params-finder run --config configs/example-mongodb-local.yaml --no-watch
 
 # Voyage AI experiment (requires VOYAGE_API_KEY in .env)
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
+
+# SIE experiment (requires SIE warm for bge-m3/stella-v5/splade-v3 + SIE_ENABLED=true)
+rag-params-finder run --config configs/example-mongodb-sie.yaml
 ```
 
 When watching, the CLI renders a live Rich table showing each run's current phase:
@@ -154,7 +157,7 @@ rag-params-finder indexes reset
 rag-params-finder indexes reset --all --force
 ```
 
-Known index names: `vector_index_384`, `vector_index_1024`, `text_search_index`.
+Known index names: `vector_index_384`, `vector_index_1024`, `vector_index_30522`, `text_search_index`.
 
 ---
 
