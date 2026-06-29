@@ -24,6 +24,6 @@ COPY --from=build /app/package.json ./package.json
 EXPOSE 5374
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-  CMD curl -f http://localhost:5374/ || exit 1
+  CMD wget -qO- http://127.0.0.1:5374/ > /dev/null || exit 1
 
 CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5374"]
