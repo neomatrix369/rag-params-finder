@@ -453,7 +453,7 @@ def bootstrap_indexes() -> None:
     Atlas cloud: prunes unknown search indexes only; vector/text indexes are
     provisioned per-experiment at submit preflight to stay within M0 quota.
     """
-    from server.core.atlas_storage import is_atlas_uri
+    from server.db.mongodb_uri import is_atlas_uri
     from server.settings import settings
 
     _ensure_standard_indexes()

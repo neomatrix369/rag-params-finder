@@ -56,7 +56,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 
 | Persona | Start here | What you will do |
 |---------|------------|------------------|
-| **New user — cloud accounts** | [Cloud Account Setup](docs/user-guide/cloud-setup.md) | Atlas + optional Voyage, then [QUICKSTART](QUICKSTART.md) |
+| **New user — cloud accounts** | [MongoDB Setup](docs/user-guide/mongodb-setup.md) | Atlas + optional Voyage, then [QUICKSTART](QUICKSTART.md) |
 | **New user — first sweep** | [QUICKSTART](QUICKSTART.md) | Install, run server + CLI, open dashboard |
 | **Operator — config & CLI** | [Configuration Reference](docs/user-guide/configuration.md) | YAML sweeps, env vars, `rag-params-finder` commands |
 | **Operator — dashboard** | [Dashboard Guide](docs/user-guide/dashboard-guide.md) | Live phases, Search Explorer, experiment controls |
@@ -89,7 +89,7 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 
 | I want to… | Start here |
 |---|---|
-| Set up MongoDB Atlas or Voyage AI accounts | [Cloud Account Setup](docs/user-guide/cloud-setup.md) |
+| Set up MongoDB Atlas or Voyage AI accounts | [MongoDB Setup](docs/user-guide/mongodb-setup.md) |
 | Run my first experiment | [Getting Started](docs/user-guide/getting-started.md) |
 | Understand all config options | [Configuration Reference](docs/user-guide/configuration.md) |
 | Learn all CLI commands | [CLI Reference](docs/user-guide/cli-reference.md) |

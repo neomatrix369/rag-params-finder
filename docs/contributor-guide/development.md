@@ -53,7 +53,7 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 One-command stack for server + dashboard (MongoDB Atlas stays external). The **CLI runs on the host** at `SERVER_URL=http://localhost:8001` ([ADR-001](../adr/ADR-001-two-process-architecture.md)).
 
-**Prerequisites:** Docker Desktop (or engine + Compose v2), valid `.env` with `MONGODB_URI`, Atlas search indexes per [cloud-setup](../user-guide/cloud-setup.md).
+**Prerequisites:** Docker Desktop (or engine + Compose v2), valid `.env` with `MONGODB_URI`, Atlas search indexes per [mongodb-setup](../user-guide/mongodb-setup.md).
 
 ```bash
 cp .env.example .env

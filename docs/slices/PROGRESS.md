@@ -1,6 +1,6 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-06-29 (Slice 25B — Atlas backend switching complete)
+**Last Updated**: 2026-06-29 (Unified MongoDB entry points — scripts + docs)
 **Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching | Next: Slice **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota
 
 ---
@@ -37,7 +37,7 @@
 | 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); caller-supplied corpus (`corpus: list[str]`); Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`../plan/slice-21-sie-skateboard.md`](../plan/slice-21-sie-skateboard.md) |
 | 24 — Port standardisation | ✅ COMPLETE | ~1 h | Unique static ports: frontend 5173→5374 (avoids Vite default), SIE 8080→8720 (avoids Jenkins/Tomcat/etc.); backend 8001 unchanged — spec: [`SLICE-24-PORT-STANDARDISATION.md`](SLICE-24-PORT-STANDARDISATION.md) |
 | 25 — Atlas Local Dev Mode | ✅ COMPLETE | ~1 h | `mongodb-atlas-local` Docker image as opt-in local backend; `local-atlas` compose profile; auto-provision all search indexes on boot for local URI; eliminates M0 512 MB ceiling for local dev — spec: [`SLICE-25-ATLAS-LOCAL.md`](SLICE-25-ATLAS-LOCAL.md) |
-| 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | `./start-services.sh --local` single-command switching; `scripts/local-atlas.sh` container manager; `RAG_LOCAL_ATLAS=1` CI-friendly; port-conflict check for 27017; CLI URI printed on startup — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](SLICE-25B-ATLAS-SWITCHING.md) |
+| 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | `./start-services.sh --local`; `./start-services.sh mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](SLICE-25B-ATLAS-SWITCHING.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
 
@@ -573,7 +573,8 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 |------|-------|----------|-----|
 | 2026-06-29 | 21 | Officially close Slice 21; populate HANDOFF.md + update TRAIL.md | All acceptance criteria met; SIE_ENDPOINT rename + preflight + batching refinements landed post-completion |
 | 2026-06-29 | 21 | Expand `example-mongodb-sie.yaml` to full chunking/retriever grid + 3 SIE models | Parity with local/voyage examples; bge-m3/stella-v5/splade-v3 are registry top tier |
-| 2026-06-29 | 25B | `./start-services.sh --local` single-command switching; `scripts/local-atlas.sh` container manager; cloud URI validation skipped for local mode | Friction after Slice 25: long compose command, manual URI copy-paste, no "switch back" guidance |
+| 2026-06-29 | 25B | `./start-services.sh --local` single-command switching; cloud URI validation skipped for local mode | Friction after Slice 25: long compose command, manual URI copy-paste, no "switch back" guidance |
+| 2026-06-29 | 25B | Consolidate `local-atlas.sh` + dual setup docs into `start-services.sh mongodb` + `mongodb-setup.md` | Single entry point for cloud/local; compose overlay replaced by env-var overrides in `docker-compose.yml` |
 | 2026-06-29 | 25 | Implemented `mongodb-atlas-local` as opt-in local backend via `local-atlas` compose profile | Atlas M0 free-tier 500 MB limit hit; local Atlas image supports `$vectorSearch` + `$search` with identical syntax — zero code changes in retriever/indexes; `bootstrap_indexes()` auto-provisions all search indexes for local URI |
 | 2026-06-29 | — | Investigating `mongodb/mongodb-atlas-local` Docker image as replacement for Atlas cloud | Atlas M0 free-tier 500 MB limit hit; local Atlas image supports `$vectorSearch` + `$search` with identical syntax — zero code changes required in retriever/indexes |
 | 2026-05-27 | 20 | Scoped coverage 80% on four unit-tested modules | Baseline-first (83.6%); whole-repo 28% would force gate off or block merges |
@@ -750,6 +751,8 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
 | 2026-06-29 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — prerequisites: bypassed (no verify-slice/sync-docs run yet; branch is clean and all gates passed on push) |
+| 2026-06-29 | slice/21-25b-sie-and-atlas-local | /verify-slice | Unified MongoDB Entry Points | PARTIAL | 12/12 plan criteria; ruff/mypy/pytest 75 pass; smoke OK; PROGRESS 25B row + CHANGELOG stale |
+| 2026-06-29 | slice/21-25b-sie-and-atlas-local | /sync-docs | Unified MongoDB Entry Points | STAGED | PROGRESS.md ✅, CHANGELOG ✅, CLAUDE ⏭, user-guide ⏭ |
 
 **Outcome values**: `COMPLETE` · `PARTIAL` · `STAGED` · `PUSHED` · `FAILED` · `SKIPPED`
 
