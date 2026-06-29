@@ -44,6 +44,26 @@ Complete the **local sweep checklist** above, then add:
 
 Steps 1–5 use `vector_index_384`; step 9 swaps in `vector_index_1024` for Voyage embeddings. You need **both** vector indexes if you run local and Voyage sweeps on the same cluster.
 
+### SIE sweep — `example-mongodb-sie.yaml`
+
+```bash
+rag-params-finder run --config configs/example-mongodb-sie.yaml
+```
+
+Complete the **local sweep checklist** above (steps 1–5), then add:
+
+| # | Step | Where |
+|---|---|---|
+| 6 | SIE Docker container warm (encode probe HTTP 200) | [SIE setup → steps 1–3](../user-guide/sie-setup.md) |
+| 7 | `SIE_ENABLED=true` + `SIE_BASE_URL` in `.env` | [SIE setup → step 4](../user-guide/sie-setup.md) |
+| 8 | `vector_index_1024` + `vector_index_30522` + `text_search_index` | [MongoDB → step 6](#6-create-search-indexes-m0--required-before-sweep) |
+
+Dense SIE models (bge-m3, stella-v5) share `vector_index_1024`. SPLADE-v3 needs `vector_index_30522` (30522 dimensions). All three retriever types that use BM25/hybrid need `text_search_index`. On M0 this config uses all **3** cluster search-index slots.
+
+No Voyage API key needed.
+
+**Quick API demo (no YAML):** `POST /api/v1/sweep` — see [SIE setup §6](../user-guide/sie-setup.md#6-quick-smoke-test).
+
 ---
 
 ## MongoDB Atlas (required for all sweeps)
@@ -104,6 +124,7 @@ Atlas UI → **Browse Collections** → database `rag_params_finder` → **Creat
 |---|---|---|
 | `example-mongodb-local.yaml` | `vector_index_384` | `384` |
 | `example-mongodb-voyage.yaml` | `vector_index_1024` | `1024` |
+| `example-mongodb-sie.yaml` | `vector_index_1024`, `vector_index_30522` | `1024`, `30522` |
 | Both (same cluster) | create **both** | `384` and `1024` |
 
 **Vector index JSON** (set `numDimensions` and name as above):

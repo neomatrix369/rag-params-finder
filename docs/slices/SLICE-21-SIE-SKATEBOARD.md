@@ -19,6 +19,9 @@ Files:
 - tests/test_sie_embedder.py              # GWT tests (mock SIEClient)
 - tests/test_sweep_endpoint.py            # GWT tests for POST /api/v1/sweep
 - tests/test_embedder_factory.py          # factory returns correct fns for voyage/local/sie
+- configs/example-mongodb-sie.yaml        # CLI full-pipeline sweep (provider sie; bge-m3, stella-v5, splade-v3)
+- tests/test_config_examples.py             # validates example YAML loads and expands
+- docs/user-guide/sie-setup.md              # link to config file; models: schema
 
 Exit criteria:
 
@@ -28,6 +31,8 @@ Exit criteria:
 - [ ] GET /health returns sie status, mongodb status, and version
 - [ ] Aim UI shows a logged run after sweep completes
 - [ ] No prior tests regressed
+- [ ] `configs/example-mongodb-sie.yaml` loads via CLI config loader without validation errors
+- [ ] `rag-params-finder run --config configs/example-mongodb-sie.yaml` documented as full-pipeline SIE path (manual smoke when SIE warm)
 
 Commit pattern:
 feat(sie): add SIE Skateboard — SIE embeddings, Aim logging, /api/v1/sweep
@@ -84,6 +89,12 @@ Scenario: Aim logging on sweep run completion
   Given a sweep run completes (pass or fail)
   When the run finishes
   Then an Aim Run exists with params: model_name, model_source ("sie"|"voyage"), retrieval_method, score, latency_ms, topic, experiment_id
+
+Scenario: example-mongodb-sie.yaml loads and expands sweep for SIE provider
+  Given configs/example-mongodb-sie.yaml exists
+  When load_config() and ExperimentConfig.model_validate() are called
+  Then embedding.provider is "sie", models includes bge-m3/stella-v5/splade-v3, and expand_sweep() yields 120 runs
+  And required_search_indexes() includes vector_index_1024, vector_index_30522, and text_search_index
 ```
 
 ### Before-Checks [GATE — slice is BLOCKED until all pass]
@@ -120,6 +131,8 @@ Scenario: Aim logging on sweep run completion
 8. **Update `server/main.py`**: include `sweep_router` at prefix `/api/v1`; extend `/health` to probe `http://localhost:8720/healthz` (SIE) and include version
 9. **Write tests** for all GWT scenarios (mock SIEClient)
 10. **Run `./scripts/quality-gates.sh`** — fix any ruff/mypy/coverage failures
+11. **Add `configs/example-mongodb-sie.yaml`** and cascade doc references (see file list in slice spec)
+12. **Add `tests/test_config_examples.py`** — config load + index plan assertions (no SIE Docker in CI)
 
 ### After-Checks [GATE — next slice is BLOCKED until all pass]
 
@@ -130,8 +143,8 @@ Scenario: Aim logging on sweep run completion
 - [ ] Build clean: 0 ruff errors, 0 mypy errors, frontend build passes
 - [ ] Smoke test: `curl -X POST http://localhost:8001/api/v1/sweep -H "Content-Type: application/json" -d '{"topic":"machine learning","corpus":["RAG improves retrieval","vector search scales well"]}'` → HTTP 200 with ranked results
 - [ ] `GET /health` returns SIE status and version
-- [ ] Aim UI (`aim up`) shows at least one logged run
-- [ ] Doc audit → YES: update `docs/slices/PROGRESS.md` (Slice 21 → ✅ COMPLETE); update `CLAUDE.md` Key Files table with new files
+- [ ] Aim UI (`./scripts/aim-ui.sh`) shows at least one logged run
+- [ ] Doc audit → YES: update `docs/slices/PROGRESS.md` (Slice 21 → ✅ COMPLETE); update `CLAUDE.md` Key Files table with new files; cascade `example-mongodb-sie.yaml` across user guide + config reference
 - [ ] Security audit → NO (no auth, no external user input reaching shell/DB directly)
 - [ ] Self-review: read `git diff main` before requesting review
 - [ ] Run `/clean-commit` then push branch; open PR via `/create-pr`
@@ -147,6 +160,8 @@ Scenario: Aim logging on sweep run completion
 - Every run logged to Aim with full model provenance
 - `GET /health` is a first-class observability endpoint including SIE reachability and version
 - All primitives (`sie_embedder`, `aim_logger`, `embedder_factory`) independently testable and composable
+- Third example config completes **DB × provider** trio: local / voyage / **sie**
+- CLI full sweep path documented alongside API skateboard (`POST /api/v1/sweep`)
 
 ### Session Metrics
 

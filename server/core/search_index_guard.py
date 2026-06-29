@@ -14,7 +14,7 @@ from server.db.atlas import CHUNKS_COLLECTION, get_database
 from server.db.indexes import (
     M0_SEARCH_INDEX_LIMIT,
     SearchIndexInfo,
-    ensure_indexes,
+    ensure_required_search_indexes,
     list_cluster_search_indexes,
 )
 from server.models.config import ExperimentConfig
@@ -80,7 +80,7 @@ def validate_experiment_search_indexes(
             "search index preflight — creating missing indexes on chunks: %s",
             sorted(assessment.missing),
         )
-        ensure_indexes()
+        ensure_required_search_indexes(required)
         snapshot = collect_search_index_snapshot(cluster_limit=cluster_limit)
         assessment = assess_search_index_readiness(required=required, snapshot=snapshot)
 

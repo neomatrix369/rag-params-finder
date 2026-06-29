@@ -74,7 +74,7 @@ Full variable reference: [Troubleshooting → Environment Variables](troubleshoo
 
 ### 2. Search indexes (required before sweep)
 
-Both example configs use dense + sparse + hybrid — create **`vector_index_384`** (local) or **`vector_index_1024`** (Voyage) **and** **`text_search_index`** on the `chunks` collection.
+Both example configs use dense + sparse + hybrid — create **`vector_index_384`** (local) or **`vector_index_1024`** (Voyage or SIE) **and** **`text_search_index`** on the `chunks` collection.
 
 **M0 free tier:** do this manually in Atlas UI before running a sweep — see [Cloud Account Setup → step 6](cloud-setup.md#6-create-search-indexes-m0--required-before-sweep). M0 allows **3 search indexes cluster-wide**; unknown indexes from other projects consume quota.
 
@@ -150,6 +150,9 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 # Voyage sweep — checklist items 1–9
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
+
+# SIE sweep — SIE warm for all 3 models + SIE_ENABLED=true; see sie-setup.md and cloud-setup.md
+rag-params-finder run --config configs/example-mongodb-sie.yaml
 
 # Submit and detach (check dashboard for status instead)
 rag-params-finder run --config configs/example-mongodb-local.yaml --detach
