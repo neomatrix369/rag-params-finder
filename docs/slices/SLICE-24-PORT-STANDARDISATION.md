@@ -22,8 +22,8 @@ Ports **5374** and **8720** are unregistered by IANA and unused by any common de
 
 ## Acceptance criteria
 
-- [x] `server/core/sie_embedder.py` — `SIE_BASE_URL` default changed to `http://localhost:8720`; docstring and `docker run` example updated (`-p 8720:8080`)
-- [x] `server/api/sweep.py` — `SIE_BASE_URL` default changed to `http://localhost:8720`
+- [x] `server/core/sie_embedder.py` — SIE endpoint default `http://localhost:8720` (`SIE_ENDPOINT`); docstring and `docker run` example updated (`-p 8720:8080`)
+- [x] `server/api/sweep.py` — SIE endpoint default `http://localhost:8720`
 - [x] `tests/test_sie_embedder.py` — all GWT docstrings updated from 8080 to 8720
 - [x] `server/core/model_registry.py` — SIE section comment updated
 - [x] `docs/slices/SLICE-21-SIE-SKATEBOARD.md` — GWT scenarios, docker run example, health check URL

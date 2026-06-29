@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -15,7 +15,7 @@ class TestSIEEmbedderDenseEmbedding:
 
     def test_embed_documents_returns_1024_dim_vectors(self):
         """
-        Given SIEClient is initialised with base_url=http://localhost:8720
+        Given SIE_ENDPOINT is http://localhost:8720
         When embed_documents_sie(["test query"], "bge-m3") is called
         Then a list containing one 1024-dim float vector is returned.
         """
@@ -33,7 +33,7 @@ class TestSIEEmbedderDenseEmbedding:
 
     def test_embed_query_returns_1024_dim_vector(self):
         """
-        Given SIEClient is initialised with base_url=http://localhost:8720
+        Given SIE_ENDPOINT is http://localhost:8720
         When embed_query_sie("test query", "bge-m3") is called
         Then a 1024-dim float vector is returned.
         """
@@ -90,6 +90,32 @@ class TestSIEEmbedderDenseEmbedding:
 
         assert len(result) == total
         assert mock_client.encode.call_count == expected_batches
+
+    def test_get_client_passes_endpoint_and_api_key(self):
+        """
+        Given SIE_ENDPOINT and SIE_API_KEY are configured
+        When embed_documents_sie is called
+        Then SIEClient is constructed with endpoint and api_key.
+        """
+        mock_result = [{"dense": np.zeros(1024, dtype=np.float32)}]
+        mock_settings = MagicMock(
+            sie_endpoint="https://sie.example.com",
+            sie_api_key="secret-token",
+        )
+        with (
+            patch("server.core.sie_embedder.settings", mock_settings),
+            patch("server.core.sie_embedder.SIEClient") as mock_client_cls,
+        ):
+            mock_client_cls.return_value.encode.return_value = mock_result
+
+            from server.core.sie_embedder import embed_documents_sie
+
+            embed_documents_sie(["test query"], "bge-m3")
+
+        mock_client_cls.assert_called_once_with(
+            "https://sie.example.com",
+            api_key="secret-token",
+        )
 
 
 class TestSIEEmbedderFallback:

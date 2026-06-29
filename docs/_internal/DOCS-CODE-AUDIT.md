@@ -31,7 +31,7 @@
 | Area | Status |
 |------|--------|
 | SIE provider (`provider: sie`) | ✅ Documented in `configuration.md`, `sie-setup.md`, `cloud-setup.md`, `extending.md` |
-| `SIE_ENABLED` / `SIE_BASE_URL` / `HF_TOKEN` / `AIM_REPO` | ✅ In `.env.example` and `configuration.md` env table |
+| `SIE_ENABLED` / `SIE_ENDPOINT` / `SIE_API_KEY` / `HF_TOKEN` / `AIM_REPO` | ✅ In `.env.example` and `configuration.md` env table |
 | `configs/example-mongodb-sie.yaml` | ✅ Committed; 120 runs; validated by `tests/test_config_examples.py` |
 | `GET /health`, `POST /api/v1/sweep`, `GET /api/v1/best-config` | ✅ In `cli-reference.md` API table |
 | Port standardisation (5374, 8720, 43800) | ✅ Aligned across compose, scripts, user guides |
@@ -110,7 +110,8 @@ All 7 models documented in configuration.md are present in `RERANKER_MODELS`:
 | `CORS_ORIGINS` | ✅ | ✅ | optional | configuration.md |
 | `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX` | ✅ | ✅ | optional | configuration.md |
 | `SIE_ENABLED` | ✅ | ✅ | optional | settings.py:62 |
-| `SIE_BASE_URL` | ✅ | ✅ | optional | settings.py:63 |
+| `SIE_ENDPOINT` | ✅ | ✅ | optional | settings.py |
+| `SIE_API_KEY` | ✅ | ✅ | optional | settings.py |
 | `AIM_REPO` | ✅ | ✅ | optional | settings.py:68 |
 | `HEALTH_CHECK_MONGODB_TIMEOUT_MS` | ✅ | ✅ | optional | settings.py:79 |
 | `MONGODB_STORAGE_LIMIT_MB` | ✅ | ✅ | optional | settings.py:48 |
