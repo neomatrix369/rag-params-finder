@@ -21,6 +21,8 @@ services:
       SIE_ENABLED: ${SIE_ENABLED:-false}
       SIE_BASE_URL: ${SIE_BASE_URL:-http://host.docker.internal:8720}
       AIM_REPO: /app/.aim
+      GIT_COMMIT: ${GIT_COMMIT:-}
+      GIT_BRANCH: ${GIT_BRANCH:-}
     volumes:
       - ./configs:/app/configs:ro
       - ./input_data:/app/input_data:ro
