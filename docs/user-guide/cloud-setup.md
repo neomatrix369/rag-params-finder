@@ -55,7 +55,7 @@ Complete the **local sweep checklist** above (steps 1–5), then add:
 | # | Step | Where |
 |---|---|---|
 | 6 | SIE Docker container warm (encode probe HTTP 200) | [SIE setup → steps 1–3](../user-guide/sie-setup.md) |
-| 7 | `SIE_ENABLED=true` + `SIE_BASE_URL` in `.env` | [SIE setup → step 4](../user-guide/sie-setup.md) |
+| 7 | `SIE_ENABLED=true` + `SIE_ENDPOINT` in `.env` | [SIE setup → step 4](../user-guide/sie-setup.md) |
 | 8 | `vector_index_1024` + `vector_index_30522` + `text_search_index` | [MongoDB → step 6](#6-create-search-indexes-m0--required-before-sweep) |
 
 Dense SIE models (bge-m3, stella-v5) share `vector_index_1024`. SPLADE-v3 needs `vector_index_30522` (30522 dimensions). All three retriever types that use BM25/hybrid need `text_search_index`. On M0 this config uses all **3** cluster search-index slots.

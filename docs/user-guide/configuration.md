@@ -342,9 +342,11 @@ VOYAGE_TPM_LIMIT=10000    # Tokens per minute (free tier)
 
 # SIE (OPTIONAL — only if using provider: sie or POST /api/v1/sweep)
 SIE_ENABLED=false
-# SIE_BASE_URL=http://localhost:8720
-# When server runs in Docker and SIE on the host: SIE_BASE_URL=http://host.docker.internal:8720
-# HF_TOKEN=hf_...   # HuggingFace token for SIE container model downloads (not the server)
+# SIE_ENDPOINT=http://localhost:8720
+# SIE_ENDPOINT=https://your-sie-gateway.example.com   # remote gateway
+# SIE_ENDPOINT=http://host.docker.internal:8720       # server in Docker, SIE on host
+# SIE_API_KEY=...                                     # when gateway auth is enabled
+# HF_TOKEN=hf_...   # HuggingFace token for local SIE container model downloads (not the server)
 
 # Aim experiment tracking (OPTIONAL — UI via ./scripts/aim-ui.sh)
 # AIM_REPO=.aim      # Docker sets /app/.aim automatically
@@ -416,8 +418,9 @@ Query avg prevents high-scoring queries with many results from hiding poorly-per
 |----------|---------|-------------|
 | `CORS_ORIGINS` | `http://localhost:5374,http://127.0.0.1:5374,http://localhost:3000,http://127.0.0.1:3000` | Comma-separated list of allowed origins for CORS |
 | `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX` | `true` | When true, automatically allow localhost/127.0.0.1/[::1] on any port via regex |
-| `SIE_ENABLED` | `false` | Opt-in SIE provider and `/health` SIE probe — set `true` when SIE Docker is running |
-| `SIE_BASE_URL` | `http://localhost:8720` | SIE HTTP base URL (`host.docker.internal:8720` when server is in Docker) |
+| `SIE_ENABLED` | `false` | Opt-in SIE provider and `/health` SIE probe — set `true` when SIE is reachable |
+| `SIE_ENDPOINT` | `http://localhost:8720` | SIE HTTP endpoint — local Docker, remote gateway, or `host.docker.internal:8720` when server is in Docker |
+| `SIE_API_KEY` | — | Bearer token when SIE gateway auth is enabled (optional for local Docker) |
 | `HF_TOKEN` | — | HuggingFace token for **SIE container** model downloads (see [sie-setup.md](sie-setup.md)) |
 | `AIM_REPO` | `.aim` | Path to Aim experiment repo (Docker: `/app/.aim`; UI: `./scripts/aim-ui.sh`) |
 | `HEALTH_CHECK_MONGODB_TIMEOUT_MS` | `5000` | MongoDB ping timeout for `/healthz` (ms) |

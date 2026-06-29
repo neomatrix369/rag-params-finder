@@ -67,7 +67,9 @@ class TestSIEGuardPreflight:
         Then SIEUnavailableError is raised mentioning SIE_ENABLED.
         """
         config = _sie_config()
-        mock_settings = MagicMock(sie_enabled=False, sie_base_url="http://localhost:8720")
+        mock_settings = MagicMock(
+            sie_enabled=False, sie_endpoint="http://localhost:8720", sie_api_key=""
+        )
 
         with patch("server.core.sie_guard.settings", mock_settings):
             with pytest.raises(SIEUnavailableError, match="SIE_ENABLED=true"):
@@ -80,7 +82,9 @@ class TestSIEGuardPreflight:
         Then SIEUnavailableError is raised mentioning unreachable.
         """
         config = _sie_config()
-        mock_settings = MagicMock(sie_enabled=True, sie_base_url="http://localhost:8720")
+        mock_settings = MagicMock(
+            sie_enabled=True, sie_endpoint="http://localhost:8720", sie_api_key=""
+        )
 
         with (
             patch("server.core.sie_guard.settings", mock_settings),
@@ -96,10 +100,37 @@ class TestSIEGuardPreflight:
         Then no error is raised.
         """
         config = _sie_config()
-        mock_settings = MagicMock(sie_enabled=True, sie_base_url="http://localhost:8720")
+        mock_settings = MagicMock(
+            sie_enabled=True, sie_endpoint="http://localhost:8720", sie_api_key=""
+        )
 
         with (
             patch("server.core.sie_guard.settings", mock_settings),
             patch("server.core.sie_guard.probe_sie_reachable", return_value=True),
         ):
             validate_sie_readiness(config)
+
+    def test_probe_sends_bearer_token_when_api_key_configured(self):
+        """
+        Given SIE_API_KEY is set
+        When probe_sie_reachable is called
+        Then the health probe includes Authorization Bearer header.
+        """
+        mock_settings = MagicMock(
+            sie_endpoint="https://sie.example.com",
+            sie_api_key="secret-token",
+        )
+        with (
+            patch("server.core.sie_guard.settings", mock_settings),
+            patch("server.core.sie_guard.httpx.get") as mock_get,
+        ):
+            mock_get.return_value.status_code = 200
+            from server.core.sie_guard import probe_sie_reachable
+
+            assert probe_sie_reachable() is True
+
+        mock_get.assert_called_once_with(
+            "https://sie.example.com/healthz",
+            headers={"Authorization": "Bearer secret-token"},
+            timeout=3.0,
+        )
