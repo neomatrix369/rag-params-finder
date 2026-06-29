@@ -9,6 +9,7 @@ from server.core.search_index_plan import (
     assess_search_index_readiness,
     format_mismatch_message,
     required_search_indexes,
+    validate_vector_index_feasibility,
 )
 from server.db.atlas import CHUNKS_COLLECTION, get_database
 from server.db.indexes import (
@@ -16,6 +17,8 @@ from server.db.indexes import (
     SearchIndexInfo,
     ensure_required_search_indexes,
     list_cluster_search_indexes,
+    prune_unknown_search_indexes,
+    reconcile_chunks_search_indexes,
 )
 from server.models.config import ExperimentConfig
 from server.utils.logger import get_logger
@@ -62,19 +65,45 @@ def validate_experiment_search_indexes(
     attempt_ensure: bool = True,
     cluster_limit: int = M0_SEARCH_INDEX_LIMIT,
 ) -> SearchIndexAssessment:
-    """Ensure required indexes exist or raise SearchIndexMismatchError."""
+    """Ensure required indexes exist or raise SearchIndexMismatchError.
+
+    When ``attempt_ensure`` is true (default), automatically:
+    1. Drops failed and surplus known indexes on ``chunks`` to free quota.
+    2. Prunes unknown indexes cluster-wide if still blocked.
+    3. Creates any missing required indexes.
+    """
     required = required_search_indexes(config)
+
+    feasibility_error = validate_vector_index_feasibility(required)
+    if feasibility_error:
+        raise SearchIndexMismatchError(feasibility_error)
+
     snapshot = collect_search_index_snapshot(cluster_limit=cluster_limit)
     assessment = assess_search_index_readiness(required=required, snapshot=snapshot)
 
     if assessment.is_satisfied:
         return assessment
 
-    can_create = (
-        attempt_ensure
-        and assessment.missing
-        and len(assessment.missing) <= assessment.available_slots
-    )
+    if not attempt_ensure:
+        message = format_mismatch_message(assessment)
+        raise SearchIndexMismatchError(message)
+
+    dropped = reconcile_chunks_search_indexes(required)
+    if dropped:
+        logger.info("search index preflight — reconciled chunks indexes: %s", dropped)
+        snapshot = collect_search_index_snapshot(cluster_limit=cluster_limit)
+        assessment = assess_search_index_readiness(required=required, snapshot=snapshot)
+        if assessment.is_satisfied:
+            return assessment
+
+    if assessment.missing and len(assessment.missing) > assessment.available_slots:
+        unknown_dropped = prune_unknown_search_indexes()
+        if unknown_dropped:
+            logger.info("search index preflight — pruned unknown indexes: %s", unknown_dropped)
+            snapshot = collect_search_index_snapshot(cluster_limit=cluster_limit)
+            assessment = assess_search_index_readiness(required=required, snapshot=snapshot)
+
+    can_create = assessment.missing and len(assessment.missing) <= assessment.available_slots
     if can_create:
         logger.info(
             "search index preflight — creating missing indexes on chunks: %s",

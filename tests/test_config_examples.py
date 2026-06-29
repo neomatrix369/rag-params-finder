@@ -13,7 +13,7 @@ from server.models.config import ExperimentConfig, expand_sweep
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _SIE_CONFIG = _REPO_ROOT / "configs" / "example-mongodb-sie.yaml"
-_SIE_MODELS = frozenset({"bge-m3", "stella-v5", "splade-v3"})
+_SIE_MODELS = frozenset({"bge-m3", "stella-v5"})
 
 
 class TestExampleMongoDbSieConfig:
@@ -29,7 +29,7 @@ class TestExampleMongoDbSieConfig:
         assert experiment.embedding.provider == "sie"
         assert _SIE_MODELS <= frozenset(experiment.embedding.models)
 
-    def test_given_sie_yaml_when_expand_sweep_then_yields_one_hundred_twenty_runs(self) -> None:
+    def test_given_sie_yaml_when_expand_sweep_then_yields_eighty_runs(self) -> None:
         # given
         raw = load_config(str(_SIE_CONFIG))
         experiment = ExperimentConfig.model_validate(raw)
@@ -38,8 +38,8 @@ class TestExampleMongoDbSieConfig:
         runs = expand_sweep(experiment)
 
         # then
-        assert len(runs) == 120, (
-            "Expected 3 models × 5 chunking × 2 sizes × 1 overlap × 4 retrievers = 120 runs"
+        assert len(runs) == 80, (
+            "Expected 2 models × 5 chunking × 2 sizes × 1 overlap × 4 retrievers = 80 runs"
         )
 
     def test_given_sie_yaml_when_required_search_indexes_then_vector_and_text(self) -> None:
@@ -52,7 +52,7 @@ class TestExampleMongoDbSieConfig:
 
         # then
         assert "vector_index_1024" in required
-        assert "vector_index_30522" in required
+        assert "vector_index_30522" not in required
         assert TEXT_SEARCH_INDEX_NAME in required
 
 

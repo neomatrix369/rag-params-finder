@@ -257,6 +257,30 @@ can continue for **20–30+ minutes** on first run.
 
 ---
 
+### Encode fails with "Queue full: … cannot add … (limit: 512)"
+
+**Symptom:** Dashboard run fails in the EMBEDDING phase with:
+
+```
+SIE unreachable or encode failed: Queue full: 362 items pending, cannot add 842 more (limit: 512)
+```
+
+**Cause:** The SIE gateway caps in-flight encode items at **512 per request**. A single
+PDF can produce more chunks than that — e.g. the bundled Pell Grant PDF with `fixed` chunking
+at `256+50` yields **842 chunks**. The server must shard encode calls into smaller batches;
+without that, one embedding phase sends the full chunk list and hits the cap.
+
+**Fix:** Restart the server so it picks up batching in `embed_documents_sie`, then
+**resume** the failed experiment from the dashboard (or re-submit).
+
+**Workarounds on an older server build:**
+
+1. Use larger `chunk_sizes` (e.g. `[512]` only) to reduce chunk count below 512.
+2. Run one experiment at a time — a second concurrent sweep adds queue pressure.
+3. Restart the SIE container to drain a stuck queue: `docker restart sie-server`.
+
+---
+
 ### Encode returns 502 Bad Gateway
 
 **Symptom:** SIE access logs show:
