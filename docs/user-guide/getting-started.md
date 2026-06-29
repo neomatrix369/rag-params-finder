@@ -22,11 +22,11 @@ Everything you need to run your first RAG parameter sweep experiment.
 | Node.js | 22+ | Install via [nodejs.org](https://nodejs.org/) or `nvm install 22` |
 | MongoDB Atlas | Free tier (M0) | **Required** — see [Cloud Account Setup](cloud-setup.md#mongodb-atlas-required) |
 | Voyage AI | Optional | Only for Voyage models — see [Cloud Account Setup](cloud-setup.md#voyage-ai-optional) |
-| Docker Desktop + HF_TOKEN | Optional | Only for SIE (BGE-M3) models — see [SIE Provider Setup](sie-setup.md) |
+| Docker Desktop + HF_TOKEN | Optional | **Self-hosted SIE only** — remote gateway needs no Docker; see [SIE Provider Setup](sie-setup.md) |
 
 **New to Atlas or Voyage?** Start with **[Cloud Account Setup](cloud-setup.md)** — account creation, connection string, search indexes, API key, and Tier 1 billing (~15 min).
 
-**Using SIE (open-source BGE-M3 embeddings)?** See **[SIE Provider Setup](sie-setup.md)** — the SIE Docker container requires extra steps and has known warm-up behaviour that is easy to mistake for a bug.
+**Using SIE (open-source BGE-M3 embeddings)?** See **[SIE Provider Setup](sie-setup.md)** — set `SIE_ENABLED=true` (on/off), then `SIE_ENDPOINT` (+ `SIE_API_KEY` if needed) for a remote gateway, or optional local Docker.
 
 ---
 
@@ -151,7 +151,7 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 # Voyage sweep — checklist items 1–9
 rag-params-finder run --config configs/example-mongodb-voyage.yaml
 
-# SIE sweep — SIE warm for all 3 models + SIE_ENABLED=true; see sie-setup.md and cloud-setup.md
+# SIE sweep — SIE_ENABLED=true + SIE_ENDPOINT (+ SIE_API_KEY if remote); see sie-setup.md
 rag-params-finder run --config configs/example-mongodb-sie.yaml
 
 # Submit and detach (check dashboard for status instead)
@@ -192,7 +192,7 @@ Models are cached in `~/.cache/huggingface/hub/` after the first download.
 ## 👉 Next Steps
 
 - [Cloud Account Setup](cloud-setup.md) — Atlas account, Voyage billing, search indexes
-- [SIE Provider Setup](sie-setup.md) — self-hosted BGE-M3 via Docker (known issues and workarounds)
+- [SIE Provider Setup](sie-setup.md) — remote gateway (preferred) or optional self-hosted Docker
 - [Configuration reference](configuration.md) — all YAML fields, sweep expansion, queries format
 - [CLI reference](cli-reference.md) — all commands and flags
 - [Dashboard guide](dashboard-guide.md) — reading the experiments list, detail screen, and search explorer

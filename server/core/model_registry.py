@@ -124,7 +124,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "description": "Fast general-purpose sentence embeddings (384-dim, ~23MB)",
         "contextualized": False,
     },
-    # SIE (Superlinked Inference Engine) — self-hosted Docker on :8720
+    # SIE (Superlinked Inference Engine) — remote gateway or optional self-hosted Docker
     "bge-m3": {
         "provider": "sie",
         "dimensions": 1024,

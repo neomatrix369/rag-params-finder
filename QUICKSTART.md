@@ -26,7 +26,7 @@ cd frontend && npm run dev                      # Terminal 2 (optional)
 # Sweeps — complete cloud-setup.md checklist first
 rag-params-finder run --config configs/example-mongodb-local.yaml   # 120 runs, no API key
 rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 40 runs, Voyage + Tier 1
-# rag-params-finder run --config configs/example-mongodb-sie.yaml   # 120 runs, SIE (bge-m3/stella-v5/splade-v3) — see sie-setup.md
+# rag-params-finder run --config configs/example-mongodb-sie.yaml   # 80 runs, SIE — remote gateway or optional Docker; see sie-setup.md
 ```
 
 Open `http://localhost:5374` to watch live progress and explore results.
