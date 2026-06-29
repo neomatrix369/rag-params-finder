@@ -392,30 +392,27 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../slices/SLICE-14-DOCKER-COMPOSE.md).
 
 ## SIE (Superlinked Inference Engine)
 
-For the full SIE setup guide — including the canonical Docker command, model warm-up
-polling, and all known issues — see **[SIE Provider Setup](sie-setup.md)**.
+**Remote gateway (preferred):** `SIE_ENABLED=true` (on/off), `SIE_ENDPOINT`, and `SIE_API_KEY` when auth is required — no local Docker.
+
+**Self-hosted Docker (fallback):** same `SIE_ENABLED=true`; set `SIE_ENDPOINT` to local URL — see **[SIE Provider Setup](sie-setup.md)**.
 
 Quick reference for the most common SIE problems:
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `curl /health` → 404 | SIE uses `/healthz`, not `/health` | Use `curl http://localhost:8720/healthz` |
-| 503 from `/v1/encode` (access log) | Model still downloading/loading — **expected during warm-up** | Poll encode until HTTP 200 — can take 10–30+ min on Apple Silicon; see [SIE setup §3](sie-setup.md#3-wait-for-the-model-to-warm-up) |
-| **502 from `/v1/encode`** | **Terminal model load failure** — not warm-up | Do not wait — restart container, clear `.incomplete` blobs; see [502 Bad Gateway](sie-setup.md#encode-returns-502-bad-gateway) |
-| `No space left on device` / `Errno 28` in SIE logs | Docker or host disk full during HF download | Free/prune Docker disk, raise Docker Desktop virtual disk limit; see [Errno 28](sie-setup.md#no-space-left-on-device-errno-28) |
-| `Failed to get disk stats ... huggingface/hub` WARNING | Fresh volume — `hub/` not created yet | Usually benign; see [disk cache warning](sie-setup.md#disk-cache-warning-on-first-start) |
-| App `/health` → `sie: disabled` | Default — SIE not enabled | Expected with `SIE_ENABLED=false`; set `SIE_ENABLED=true` only when SIE container is running — [SIE setup](sie-setup.md) |
-| App `/health` → `sie: reachable` but sweep hangs | `/healthz` ≠ model ready; `sie-sdk` retries 900 s | Poll encode to 200 before sweep — [SIE setup](sie-setup.md#app-health-shows-sie-reachable-but-sweep-fails-or-hangs) |
-| "Background writer channel closed" | Transient crash; permanent failure flag set | `docker stop sie-server && docker rm sie-server` then restart |
-| Sweep hangs 15+ minutes | `sie-sdk` retries for 900 s when SIE is down | Ensure SIE and model are ready before submitting |
-| Connection refused on 8720 | Container started without `-p 8720:8080` | Check `docker ps` ports; restart with correct mapping |
-| Container unhealthy (Atlas TLS error) | Docker egress IP not on Atlas allowlist | Add Docker IP to Atlas Network Access |
+| `SIE unreachable at https://...` | Bad `SIE_ENDPOINT` or `SIE_API_KEY` | Verify gateway URL and Bearer token — [Path A](sie-setup.md#path-a--remote-gateway-no-docker) |
+| `curl /health` → 404 *(Docker path)* | SIE uses `/healthz`, not `/health` | Use `curl http://localhost:8720/healthz` |
+| 503 from `/v1/encode` *(Docker path)* | Model still downloading/loading | Poll encode until HTTP 200 — see [warm-up §3](sie-setup.md#3-wait-for-the-model-to-warm-up) |
+| **502 from `/v1/encode`** | **Terminal model load failure** | Restart container; see [502 Bad Gateway](sie-setup.md#encode-returns-502-bad-gateway) |
+| App `/health` → `sie: disabled` | Default — SIE not enabled | Set `SIE_ENABLED=true` when gateway or Docker is ready |
+| App `/health` → `sie: unreachable` | Gateway down or wrong endpoint | Check `SIE_ENDPOINT` / `SIE_API_KEY`; for Docker see connection refused below |
+| Connection refused on 8720 *(Docker path)* | Container not running or wrong port mapping | `docker ps`; restart with `-p 8720:8080` |
 
 ---
 
 ## 👉 See Also
 
-- [SIE Provider Setup](sie-setup.md) — full SIE Docker setup, warm-up, and troubleshooting
+- [SIE Provider Setup](sie-setup.md) — remote gateway (preferred) or optional self-hosted Docker
 - [Cloud Account Setup](cloud-setup.md) — Atlas account, Voyage billing, search indexes
 - [Getting Started](getting-started.md) — install, configure, first run
 - [Configuration Reference](configuration.md) — fix provider/model mismatch errors

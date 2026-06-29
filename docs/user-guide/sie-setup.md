@@ -1,41 +1,100 @@
 # SIE Provider Setup
 
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
-![Docker](https://img.shields.io/badge/Docker-required-2496ED?logo=docker&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-optional-2496ED?logo=docker&logoColor=white)
 ![BGE-M3](https://img.shields.io/badge/BGE--M3-1024--dim-orange)
 
 The **SIE (Superlinked Inference Engine)** provider runs open-source embedding models
-(BGE-M3, Stella-v5, SPLADE-v3) via any SIE-compatible HTTP endpoint — local Docker on `:8720`
-or a remote gateway your team deploys (Helm/K8s). Configure `SIE_ENDPOINT` (and `SIE_API_KEY`
-when auth is required) in server `.env`. This page covers local Docker setup and known rough edges.
+(BGE-M3, Stella-v5, SPLADE-v3) via any SIE-compatible HTTP endpoint.
 
+> **You do not need Docker** if you already have access to a hosted SIE gateway.
+> Point the server at it with `SIE_ENDPOINT` and `SIE_API_KEY` in `.env`.
+> Docker is a **self-hosted fallback** for teams without a remote gateway.
 > **Opt-in only — not part of the default stack.** `./start-services.sh` and `docker compose up`
-> start the **server + dashboard only**. For local dev, SIE is a separate container you start
-> manually. For remote gateways, skip Docker and set `SIE_ENDPOINT` to your cluster URL.
-> Default config keeps `SIE_ENABLED=false` so you are not blocked by model downloads,
-> disk usage, or warm-up on every run.
+> start the **server + dashboard only** — they never start SIE.
+> Default config keeps `SIE_ENABLED=false` so you are not blocked on warm-up or disk usage.
 
-To enable SIE in the server (local Docker or remote gateway):
+---
+
+## Environment variables — what each one does
+
+Three server `.env` variables control SIE. They are **not** split into “local” vs “remote” flags — the same three apply to both paths.
+
+| Variable | Role | Local Docker | Remote gateway |
+|---|---|---|---|
+| `SIE_ENABLED` | **Master on/off** for the SIE provider in this server | `true` | `true` |
+| `SIE_ENDPOINT` | **Where** to send encode requests (HTTP base URL) | `http://localhost:8720` (or `http://host.docker.internal:8720` when server is in Docker) | `https://your-sie-gateway.example.com` |
+| `SIE_API_KEY` | **Auth** — sent as `Authorization: Bearer …` when set | Usually **unset** | Usually **required** |
+
+`HF_TOKEN` is **not** a server variable for routing — it is only for the **Docker container** to download model weights (Path B).
+
+**When `SIE_ENABLED=false` (default):**
+
+- `GET /health` → `"sie": "disabled"`
+- Experiments with `provider: sie` fail preflight
+- `POST /api/v1/sweep` defaults to local `all-MiniLM-L6-v2` instead of BGE-M3
+
+**When `SIE_ENABLED=true`:** the server probes whatever URL is in `SIE_ENDPOINT` (local or remote) via `/healthz`.
+
+---
+
+## Choose your path
+
+| Path | When to use | What you need |
+|---|---|---|
+| **A — Remote gateway** *(recommended if available)* | Your org runs SIE (Helm/K8s, managed gateway, hackathon endpoint) | `SIE_ENABLED=true`, `SIE_ENDPOINT`, `SIE_API_KEY` in server `.env` — **no Docker** |
+| **B — Self-hosted Docker** | No remote gateway; you run SIE locally on `:8720` | Docker Desktop, `HF_TOKEN`, warm-up per [§ Self-hosted Docker](#self-hosted-docker-optional) below |
+
+### Path A — Remote gateway (no Docker)
 
 ```bash
-# .env
+# .env — server only; no SIE container on your machine
+SIE_ENABLED=true
+SIE_ENDPOINT=https://your-sie-gateway.example.com
+SIE_API_KEY=your_gateway_token
+```
+
+Restart the server (`docker compose restart server` or reload uvicorn). Verify:
+
+```bash
+curl -H "Authorization: Bearer $SIE_API_KEY" \
+  "$SIE_ENDPOINT/healthz"
+# → ok
+```
+
+When the gateway is warm, `GET http://localhost:8001/health` returns `"sie":"reachable"`.
+Skip to [§ Use SIE in a config](#use-sie-in-a-config).
+
+### Path B — Self-hosted Docker
+
+Follow [§ Self-hosted Docker (optional)](#self-hosted-docker-optional) below, then set:
+
+```bash
 SIE_ENABLED=true
 SIE_ENDPOINT=http://localhost:8720   # host.docker.internal:8720 when server runs in Docker
 ```
 
-Restart the server (or `docker compose restart server`) after changing `.env`.
+`SIE_API_KEY` is usually empty for local Docker; set it only if you enable auth on the container.
 
 ---
 
-## Prerequisites
+## Self-hosted Docker (optional)
+
+Use this path only when you **do not** have a remote `SIE_ENDPOINT`. The image is ~3.8 GB;
+first-run model download and warm-up can take 10–30+ minutes on Apple Silicon.
+
+### Prerequisites (Docker path only)
 
 | Requirement | Notes |
 |---|---|
-| Docker Desktop | 4 GB+ of free disk space; the image is ~3.8 GB |
-| `HF_TOKEN` | HuggingFace access token — required for model downloads |
+| Docker Desktop | 4 GB+ of free disk space |
+| `HF_TOKEN` | HuggingFace read token — required for model downloads inside the container |
 | Apple Silicon (M1/M2/M3) | Extra `--platform linux/amd64` flag required (see below) |
 
-### Get a HuggingFace token
+> **`HF_TOKEN` is only for the Docker path.** Remote gateways manage their own model weights;
+> the rag-params-finder server never calls HuggingFace directly.
+
+### Get a HuggingFace token (Docker path only)
 
 1. Sign in at [huggingface.co](https://huggingface.co/settings/tokens)
 2. Create a **Read** token
@@ -155,7 +214,7 @@ Model 'BAAI/bge-m3' loaded successfully
 
 ---
 
-## 4. Enable SIE in the server
+## 4. Enable SIE in the server (Docker path)
 
 After the SIE container is warm, tell the app to use it (default is off):
 
@@ -176,7 +235,7 @@ returns `"sie":"disabled"` and sweeps default to local `all-MiniLM-L6-v2` instea
 
 ---
 
-## 5. Use SIE in a config
+## Use SIE in a config
 
 Use the ready-made example config for a full CLI pipeline sweep:
 
@@ -184,7 +243,7 @@ Use the ready-made example config for a full CLI pipeline sweep:
 rag-params-finder run --config configs/example-mongodb-sie.yaml
 ```
 
-See [`configs/example-mongodb-sie.yaml`](../../configs/example-mongodb-sie.yaml) — **120 runs** (bge-m3, stella-v5, splade-v3; all 5 chunking methods; dense/sparse/hybrid/cross-encoder). Prerequisites: SIE warm for each model (step 3), `SIE_ENABLED=true`, and `vector_index_1024` + `vector_index_30522` + `text_search_index` on Atlas.
+See [`configs/example-mongodb-sie.yaml`](../../configs/example-mongodb-sie.yaml) — **80 runs** (bge-m3, stella-v5; all 5 chunking methods; dense/sparse/hybrid/cross-encoder). Prerequisites: reachable SIE gateway (`SIE_ENABLED=true`, `SIE_ENDPOINT`, `SIE_API_KEY` when required) or warm local Docker; `vector_index_1024` + `text_search_index` on Atlas.
 
 Minimal inline snippet:
 
@@ -705,18 +764,29 @@ python3 -c "import os; print(os.getenv('SIE_ENDPOINT', 'http://localhost:8720'))
 
 ## First-Run Setup Checklist
 
+### Path A — Remote gateway (no Docker)
+
+```
+[ ] SIE_ENABLED=true, SIE_ENDPOINT, SIE_API_KEY in server .env
+[ ] curl -H "Authorization: Bearer $SIE_API_KEY" "$SIE_ENDPOINT/healthz" → ok
+[ ] vector_index_1024 + text_search_index on Atlas chunks collection
+[ ] Server running: uvicorn server.main:app --reload --port 8001
+[ ] GET http://localhost:8001/health shows sie: reachable
+[ ] rag-params-finder run --config configs/example-mongodb-sie.yaml --detach
+```
+
+### Path B — Self-hosted Docker
+
 ```
 [ ] Docker Desktop installed and running
 [ ] HF_TOKEN exported: export HF_TOKEN=hf_...
 [ ] SIE container started (with --platform linux/amd64 on Apple Silicon)
 [ ] curl http://localhost:8720/healthz → ok
-[ ] Container logs show expected warm-up (optional disk-cache WARNING, then Fetching/Loading)
-[ ] Model warm-up poll passes (HTTP 200 from POST /v1/encode/BAAI/bge-m3 — not just /healthz)
-[ ] vector_index_1024 created in Atlas (same as Voyage — shared)
-[ ] Server running: uvicorn server.main:app --reload --port 8001
-[ ] GET http://localhost:8001/health shows sie: reachable (confirm encode 200 before sweep)
-[ ] Smoke test (curl POST /api/v1/sweep) returns HTTP 200
-[ ] Aim UI: `./scripts/aim-ui.sh` → http://localhost:43800 shows logged runs
+[ ] Model warm-up poll passes (HTTP 200 from POST /v1/encode/BAAI/bge-m3)
+[ ] SIE_ENABLED=true, SIE_ENDPOINT=http://localhost:8720 in server .env
+[ ] vector_index_1024 + text_search_index on Atlas
+[ ] GET http://localhost:8001/health shows sie: reachable
+[ ] Smoke test: curl POST /api/v1/sweep returns HTTP 200
 ```
 
 ---

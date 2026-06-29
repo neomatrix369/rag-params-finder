@@ -90,7 +90,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/embedder_factory.py` | Provider dispatch factory; `get_embedder(provider)` returns `(embed_docs_fn, embed_query_fn)` — add new providers here, not in orchestrator |
 | `server/core/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting; provider dispatch removed to `embedder_factory.py` |
 | `server/core/local_embedder.py` | sentence-transformers embedding (lazy-load) |
-| `server/core/sie_embedder.py` | SIE (Superlinked Inference Engine) embeddings; BGE-M3, Stella-v5, SPLADE-v3 via self-hosted Docker on `:8720` |
+| `server/core/sie_embedder.py` | SIE embeddings (BGE-M3, Stella-v5, SPLADE-v3) via remote gateway or optional self-hosted Docker |
 | `server/core/aim_logger.py` | Aim experiment run logging wrapper; `AimLogger.log_run()` — no-op if Aim init fails |
 | `scripts/aim-ui.sh` | Start Aim UI on :43800 via Docker (shared `./.aim` repo with server) |
 | `server/api/sweep.py` | `POST /api/v1/sweep` (ranked results, SIE vs voyage baseline) + `GET /api/v1/best-config` |
@@ -133,7 +133,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 - `embedding.provider`: "local", "voyage", or "sie"
   - Local → `server/core/local_embedder.py` → `all-MiniLM-L6-v2` (384-dim)
   - Voyage → `server/core/embedder.py` → all models in `EMBEDDING_MODELS` with `provider: voyage` (1024-dim; `voyage-context-3` uses `contextualized_embed()` with automatic segment splitting for long documents)
-  - SIE → `server/core/sie_embedder.py` → BGE-M3, Stella-v5 (1024-dim dense), SPLADE-v3 (30522-dim sparse); **opt-in** — set `SIE_ENABLED=true`, `SIE_ENDPOINT`, and optional `SIE_API_KEY` (`docs/user-guide/sie-setup.md`); default Docker stack skips SIE
+  - SIE → `server/core/sie_embedder.py` → BGE-M3, Stella-v5 (1024-dim dense), SPLADE-v3 (30522-dim sparse); **opt-in** — remote gateway via `SIE_ENDPOINT` + `SIE_API_KEY` (no Docker), or self-hosted Docker fallback (`docs/user-guide/sie-setup.md`)
   - Dispatch: `server/core/embedder_factory.py` — `get_embedder(provider)` returns the right functions; orchestrator never does if/elif on provider
 - **`retrieval.retrievers`** (unified format):
   - Each list entry is one sweep dimension — one retriever per run

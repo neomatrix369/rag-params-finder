@@ -54,15 +54,16 @@ def validate_sie_readiness(config: ExperimentConfig) -> None:
     if not settings.sie_enabled:
         raise SIEUnavailableError(
             "SIE embedding provider requires SIE_ENABLED=true in server .env. "
-            "Set SIE_ENDPOINT to your SIE gateway URL — see docs/user-guide/sie-setup.md"
+            "Set SIE_ENDPOINT (and SIE_API_KEY when your gateway requires auth) — "
+            "see docs/user-guide/sie-setup.md"
         )
 
     if probe_sie_reachable():
         return
 
     raise SIEUnavailableError(
-        f"SIE server unreachable at {settings.sie_endpoint}. "
-        "Ensure SIE is running and SIE_ENDPOINT (and SIE_API_KEY if required) are set — "
+        f"SIE unreachable at {settings.sie_endpoint}. "
+        "Check SIE_ENDPOINT and SIE_API_KEY, or run self-hosted Docker — "
         "see docs/user-guide/sie-setup.md"
     )
 

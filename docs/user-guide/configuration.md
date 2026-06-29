@@ -16,7 +16,7 @@ Place config files in `configs/`. Three ready-to-run configs are provided, one p
 |---|---|---|---|---|---|---|
 | `example-mongodb-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid · cross-encoder | 120 | No |
 | `example-mongodb-voyage.yaml` | MongoDB Atlas | Voyage AI (voyage-3.5-lite) | all 5 methods | hybrid · dense · sparse · reranker | 40 | Yes |
-| `example-mongodb-sie.yaml` | MongoDB Atlas | SIE (bge-m3, stella-v5, splade-v3) | all 5 methods | dense · sparse · hybrid · cross-encoder | 120 | No (SIE Docker) |
+| `example-mongodb-sie.yaml` | MongoDB Atlas | SIE (bge-m3, stella-v5) | all 5 methods | dense · sparse · hybrid · cross-encoder | 80 | No (remote SIE gateway or optional Docker) |
 | `example-mongodb-unified-retrievers.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | 2 methods | dense · sparse · hybrid · cross-encoder | 16 | No |
 
 Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retriever runs as an independent experiment. Each entry in `retrieval.retrievers` creates a separate run — retrievers are never combined in a single run.
@@ -290,7 +290,21 @@ For a targeted subset, copy the file and trim the `methods` or `chunk_sizes` lis
 
 ## SIE Quick Start (Open-Source Embeddings)
 
-Use `configs/example-mongodb-sie.yaml` — same chunking/retriever coverage as the local example, with **3 SIE models** (bge-m3, stella-v5, splade-v3). **120 runs** — local SIE encode is CPU-bound; use `--detach` and monitor the dashboard. Requires SIE Docker warm for each model, `SIE_ENABLED=true`, and three Atlas search indexes (`vector_index_1024`, `vector_index_30522`, `text_search_index`). See **[SIE Provider Setup](sie-setup.md)** and **[Cloud Account Setup → SIE sweep](cloud-setup.md#sie-sweep--example-mongodb-sieyaml)**.
+Use `configs/example-mongodb-sie.yaml` — same chunking/retriever coverage as the local example, with **2 SIE models** (bge-m3, stella-v5). **80 runs** — SIE encode is slower than Voyage API; use `--detach` and monitor the dashboard.
+
+### SIE environment variables
+
+| Variable | Purpose |
+|---|---|
+| `SIE_ENABLED` | **On/off** — `true` enables the SIE provider; same flag for remote and local Docker |
+| `SIE_ENDPOINT` | **Where** — remote gateway URL or `http://localhost:8720` for self-hosted Docker |
+| `SIE_API_KEY` | **Auth** — Bearer token when the gateway requires it; usually omitted for local Docker |
+
+**If you have a remote SIE gateway** (recommended): set all three in `.env` (API key as required) — **no Docker**.
+
+**Otherwise:** run optional self-hosted Docker, then set `SIE_ENABLED=true` and `SIE_ENDPOINT=http://localhost:8720` — see **[SIE Provider Setup](sie-setup.md)**.
+
+Also requires `vector_index_1024` + `text_search_index` on Atlas. Full checklist: **[Cloud Account Setup → SIE sweep](cloud-setup.md#sie-sweep--example-mongodb-sieyaml)**.
 
 ```bash
 rag-params-finder run --config configs/example-mongodb-sie.yaml
@@ -341,12 +355,16 @@ VOYAGE_TPM_LIMIT=10000    # Tokens per minute (free tier)
 # Tier 1 (example-mongodb-voyage.yaml): VOYAGE_RPM_LIMIT=2000 VOYAGE_TPM_LIMIT=16000000
 
 # SIE (OPTIONAL — only if using provider: sie or POST /api/v1/sweep)
+# SIE_ENABLED = on/off (same for remote and local Docker)
+# SIE_ENDPOINT = where to connect | SIE_API_KEY = auth when required
+# Path A — remote gateway (no local Docker):
 SIE_ENABLED=false
+# SIE_ENDPOINT=https://your-sie-gateway.example.com
+# SIE_API_KEY=your_gateway_token
+# Path B — self-hosted Docker on :8720 (only when no remote gateway):
 # SIE_ENDPOINT=http://localhost:8720
-# SIE_ENDPOINT=https://your-sie-gateway.example.com   # remote gateway
-# SIE_ENDPOINT=http://host.docker.internal:8720       # server in Docker, SIE on host
-# SIE_API_KEY=...                                     # when gateway auth is enabled
-# HF_TOKEN=hf_...   # HuggingFace token for local SIE container model downloads (not the server)
+# SIE_ENDPOINT=http://host.docker.internal:8720   # server in Docker, SIE on host
+# HF_TOKEN=hf_...   # Docker path only — HuggingFace token for container model downloads
 
 # Aim experiment tracking (OPTIONAL — UI via ./scripts/aim-ui.sh)
 # AIM_REPO=.aim      # Docker sets /app/.aim automatically
@@ -418,10 +436,10 @@ Query avg prevents high-scoring queries with many results from hiding poorly-per
 |----------|---------|-------------|
 | `CORS_ORIGINS` | `http://localhost:5374,http://127.0.0.1:5374,http://localhost:3000,http://127.0.0.1:3000` | Comma-separated list of allowed origins for CORS |
 | `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX` | `true` | When true, automatically allow localhost/127.0.0.1/[::1] on any port via regex |
-| `SIE_ENABLED` | `false` | Opt-in SIE provider and `/health` SIE probe — set `true` when SIE is reachable |
-| `SIE_ENDPOINT` | `http://localhost:8720` | SIE HTTP endpoint — local Docker, remote gateway, or `host.docker.internal:8720` when server is in Docker |
-| `SIE_API_KEY` | — | Bearer token when SIE gateway auth is enabled (optional for local Docker) |
-| `HF_TOKEN` | — | HuggingFace token for **SIE container** model downloads (see [sie-setup.md](sie-setup.md)) |
+| `SIE_ENABLED` | `false` | **Master on/off** for SIE — not local-vs-remote; set `true` when you want the server to use SIE (either path) |
+| `SIE_ENDPOINT` | `http://localhost:8720` | **Where** to connect — remote gateway URL or local Docker (`host.docker.internal:8720` when server is in Docker) |
+| `SIE_API_KEY` | — | **Auth** — Bearer token when gateway requires it; usually empty for local Docker |
+| `HF_TOKEN` | — | HuggingFace token for **self-hosted Docker only** — not used when pointing at a remote gateway |
 | `AIM_REPO` | `.aim` | Path to Aim experiment repo (Docker: `/app/.aim`; UI: `./scripts/aim-ui.sh`) |
 | `HEALTH_CHECK_MONGODB_TIMEOUT_MS` | `5000` | MongoDB ping timeout for `/healthz` (ms) |
 
