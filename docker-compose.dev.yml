@@ -19,6 +19,7 @@ services:
       - ./cli:/app/cli
       - ./configs:/app/configs:ro
       - ./input_data:/app/input_data:ro
+      - ./.aim:/app/.aim
       - hf_cache:/root/.cache/huggingface
 
   frontend:

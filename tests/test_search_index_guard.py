@@ -76,8 +76,8 @@ def test_validate_attempts_ensure_when_slots_available() -> None:
         "server.core.search_index_guard.collect_search_index_snapshot",
         side_effect=[before, after],
     ):
-        with patch("server.core.search_index_guard.ensure_indexes") as ensure_mock:
+        with patch("server.core.search_index_guard.ensure_required_search_indexes") as ensure_mock:
             assessment = validate_experiment_search_indexes(config)
 
-    ensure_mock.assert_called_once()
+    ensure_mock.assert_called_once_with(frozenset({"vector_index_384", "text_search_index"}))
     assert assessment.is_satisfied

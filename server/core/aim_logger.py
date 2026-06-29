@@ -19,9 +19,21 @@ Usage:
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
+from server.settings import settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def _ensure_aim_repo() -> Path:
+    """Create the Aim repo directory and set AIM_REPO for the aim SDK."""
+    repo = Path(settings.aim_repo).expanduser().resolve()
+    repo.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("AIM_REPO", str(repo))
+    return repo
 
 
 class AimLogger:
@@ -42,6 +54,7 @@ class AimLogger:
         try:
             from aim import Run  # type: ignore[import-untyped]
 
+            _ensure_aim_repo()
             run = Run()
             for key, value in params.items():
                 if isinstance(value, int | float | str | bool):

@@ -21,7 +21,7 @@ if [[ "${1:-}" == "--manual" ]]; then
 fi
 
 if command -v docker >/dev/null 2>&1; then
-  exec ./start-services.sh
+  exec ./start-services.sh "$@"
 fi
 
 echo "Docker not found — use manual setup:"

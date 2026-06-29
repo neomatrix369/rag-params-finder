@@ -61,6 +61,7 @@ Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/slices/SLICE-1
 ```bash
 rag-params-finder run --config configs/example-mongodb-local.yaml
 rag-params-finder run --config configs/example-mongodb-local.yaml --detach
+rag-params-finder run --config configs/example-mongodb-sie.yaml   # SIE BGE-M3/Stella/SPLADE — see docs/user-guide/sie-setup.md
 rag-params-finder cancel <experiment-id>
 rag-params-finder pause <experiment-id>
 rag-params-finder resume <experiment-id>
@@ -91,6 +92,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/local_embedder.py` | sentence-transformers embedding (lazy-load) |
 | `server/core/sie_embedder.py` | SIE (Superlinked Inference Engine) embeddings; BGE-M3 + Stella-v5 via self-hosted Docker on `:8720` |
 | `server/core/aim_logger.py` | Aim experiment run logging wrapper; `AimLogger.log_run()` — no-op if Aim init fails |
+| `scripts/aim-ui.sh` | Start Aim UI on :43800 via Docker (shared `./.aim` repo with server) |
 | `server/api/sweep.py` | `POST /api/v1/sweep` (ranked results, SIE vs voyage baseline) + `GET /api/v1/best-config` |
 | `server/core/reranker.py` | Voyage reranking client |
 | `server/core/local_reranker.py` | CrossEncoder reranking (lazy-load) |

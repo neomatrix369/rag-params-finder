@@ -350,6 +350,28 @@ RECOVER_ON_BOOT=false
 - Config header: "120 runs"
 - Formula: 1 model × 5 methods × 3 sizes × 2 overlaps × 4 retrievers = 120 ✅
 
+### `configs/example-mongodb-sie.yaml`
+
+**Verification**: All fields match documented schema in `configuration.md`.
+
+| Field | Config value | Documented | Match |
+|-------|--------------|------------|-------|
+| `experiment_name` | `example-mongodb-sie` | ✅ | ✅ |
+| `embedding.provider` | `sie` | ✅ | ✅ |
+| `embedding.models` | `[bge-m3, stella-v5, splade-v3]` | ✅ | ✅ |
+| `chunking.methods` | All 5 methods | ✅ | ✅ |
+| `chunking.params.chunk_sizes` | `[256, 512]` | ✅ | ✅ |
+| `chunking.params.overlaps` | `[50]` | ✅ | ✅ |
+| `retrieval.retrievers` | 4 entries (dense, sparse, hybrid, cross_encoder) | ✅ | ✅ |
+| `execution.parallelism` | `1` | ✅ | ✅ |
+| `execution.on_error` | `continue` | ✅ | ✅ |
+
+**Run count calculation**:
+- Config header: "120 runs"
+- Formula: 3 models × 5 methods × 2 sizes × 1 overlap × 4 retrievers = 120 ✅
+
+**Search indexes required**: `vector_index_1024`, `vector_index_30522`, `text_search_index`
+
 ---
 
 ## 🎯 Recommendations
