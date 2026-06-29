@@ -15,7 +15,7 @@ Agent session entry point for `rag-params-finder`.
 - Run quality gates before and after every change; install hooks with `bash scripts/install-git-hooks.sh` (commit + pre-push checks — see `CLAUDE.md` → Quality Gates Baseline).
 - Follow the slice execution playbook in `CLAUDE.md` → Slice Execution Playbook.
 - Secrets (`VOYAGE_API_KEY`, `MONGODB_URI`) stay server-side — never in CLI configs or committed files.
-- Provider/model must match: `provider: local` + Voyage model → Pydantic validation error.
+- Provider/model must match: `provider: local` + Voyage model → Pydantic validation error. SIE requires `SIE_ENABLED=true` and warm SIE Docker — see `docs/user-guide/sie-setup.md`.
 
 ## Quick commands
 
@@ -36,11 +36,13 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 # Backend
 uvicorn server.main:app --reload --port 8001   # start server (manual)
 rag-params-finder run --config configs/example-mongodb-local.yaml  # submit experiment
+rag-params-finder run --config configs/example-mongodb-sie.yaml    # SIE sweep — see docs/user-guide/sie-setup.md
 rag-params-finder pause <experiment-id>   # pause after current phase
 rag-params-finder resume <experiment-id>  # continue paused sweep
 rag-params-finder indexes list            # Atlas Search indexes (known vs unknown)
 rag-params-finder indexes reset           # drop unknown indexes + ensure required
 rag-params-finder indexes reset --all     # drop all chunks search indexes + recreate
+./scripts/aim-ui.sh                       # Aim experiment UI → http://localhost:43800
 uv pip install -e ".[dev]"
 bash scripts/install-git-hooks.sh          # essential checks on commit (staged) and push (all files)
 
