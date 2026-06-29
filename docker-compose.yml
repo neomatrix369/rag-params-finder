@@ -17,9 +17,18 @@ services:
       - .env
     environment:
       HF_HOME: ${HF_HOME:-/root/.cache/huggingface}
+      # SIE is opt-in — remote gateway preferred (SIE_ENDPOINT + SIE_API_KEY in .env).
+      # Self-hosted Docker fallback: docs/user-guide/sie-setup.md
+      SIE_ENABLED: ${SIE_ENABLED:-false}
+      SIE_ENDPOINT: ${SIE_ENDPOINT:-http://host.docker.internal:8720}
+      SIE_API_KEY: ${SIE_API_KEY:-}
+      AIM_REPO: /app/.aim
+      GIT_COMMIT: ${GIT_COMMIT:-}
+      GIT_BRANCH: ${GIT_BRANCH:-}
     volumes:
       - ./configs:/app/configs:ro
       - ./input_data:/app/input_data:ro
+      - ./.aim:/app/.aim
       - hf_cache:/root/.cache/huggingface
     restart: unless-stopped
     healthcheck:
@@ -38,17 +47,55 @@ services:
     image: ${FRONTEND_IMAGE_NAME:-rag-params-finder-frontend}
     container_name: ${FRONTEND_CONTAINER_NAME:-rag-params-finder-frontend}
     ports:
-      - "5173:5173"
+      - "5374:5374"
     depends_on:
       server:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+      test: ["CMD", "curl", "-f", "http://localhost:5374/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  # Aim experiment UI — opt-in: docker compose --profile aim up -d aim-ui
+  # Or: ./scripts/aim-ui.sh
+  aim-ui:
+    profiles: ["aim"]
+    image: ${SERVER_IMAGE_NAME:-rag-params-finder-server}
+    container_name: ${AIM_UI_CONTAINER_NAME:-rag-params-finder-aim-ui}
+    depends_on:
+      server:
+        condition: service_started
+    ports:
+      - "43800:43800"
+    volumes:
+      - ./.aim:/app/.aim
+    working_dir: /app
+    environment:
+      AIM_REPO: /app/.aim
+    command:
+      [
+        "aim",
+        "up",
+        "--repo",
+        "/app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "43800",
+        "-y",
+        "--workers",
+        "1",
+      ]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:43800/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 volumes:
   hf_cache:
