@@ -1,0 +1,24 @@
+# Local Atlas overlay — use alongside docker-compose.yml with the local-atlas profile.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.local-atlas.yml \
+#     --profile local-atlas up --build -d
+#
+# Overrides MONGODB_URI for the server service so it connects to the local Atlas
+# container instead of a cloud cluster.  No other changes are needed — retriever,
+# indexes, and search guard all work identically against Atlas Local.
+#
+# Host CLI (outside Docker):
+#   MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true
+
+name: ${COMPOSE_PROJECT_NAME:-rag-params-finder}
+
+services:
+  server:
+    environment:
+      MONGODB_URI: "mongodb://mongodb-local:27017/rag_params_finder?directConnection=true"
+      # Storage limit env — local Atlas has no cloud quota; set a high value so the
+      # dashboard quota bar doesn't appear (0 = hidden, which is the correct default).
+      MONGODB_STORAGE_LIMIT_MB: "0"
+    depends_on:
+      mongodb-local:
+        condition: service_healthy

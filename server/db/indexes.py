@@ -445,17 +445,28 @@ def reconcile_chunks_search_indexes(required: frozenset[str]) -> list[str]:
 
 
 def bootstrap_indexes() -> None:
-    """Startup: standard MongoDB indexes + prune unknown Atlas Search indexes.
+    """Startup: standard MongoDB indexes + search index setup.
 
-    Does not create vector/text search indexes — those are provisioned per experiment
-    config during submit preflight (``validate_experiment_search_indexes``).
+    Local Atlas (non-.mongodb.net URI): creates all vector + text search indexes
+    programmatically — no Atlas UI step, no M0 quota limit.
+
+    Atlas cloud: prunes unknown search indexes only; vector/text indexes are
+    provisioned per-experiment at submit preflight to stay within M0 quota.
     """
+    from server.core.atlas_storage import is_atlas_uri
+    from server.settings import settings
+
     _ensure_standard_indexes()
-    dropped = prune_unknown_search_indexes()
-    if dropped:
-        logger.info("boot — pruned unknown Atlas Search indexes: %s", dropped)
+    if not is_atlas_uri(settings.mongodb_uri):
+        create_vector_indexes()
+        create_text_search_index()
+        logger.info("boot — local mode: all search indexes ensured programmatically")
     else:
-        logger.info("boot — Atlas Search indexes unchanged (no unknown indexes)")
+        dropped = prune_unknown_search_indexes()
+        if dropped:
+            logger.info("boot — pruned unknown Atlas Search indexes: %s", dropped)
+        else:
+            logger.info("boot — Atlas Search indexes unchanged (no unknown indexes)")
 
 
 def ensure_indexes() -> None:
