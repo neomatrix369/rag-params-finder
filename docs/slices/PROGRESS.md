@@ -749,7 +749,7 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
-| — | — | — | — | — | *(no entries yet — skills will append here)* |
+| 2026-06-29 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — prerequisites: bypassed (no verify-slice/sync-docs run yet; branch is clean and all gates passed on push) |
 
 **Outcome values**: `COMPLETE` · `PARTIAL` · `STAGED` · `PUSHED` · `FAILED` · `SKIPPED`
 
