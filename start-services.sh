@@ -274,14 +274,14 @@ fi
 docker_cleanup standard
 check_ports
 
-UP_ARGS=(-d "${PROFILES[@]}")
+UP_ARGS=(-d)
 if docker_compose_needs_build "$SCRIPT_DIR"; then
   echo "Building and starting containers..."
-  UP_ARGS=(--build -d "${PROFILES[@]}")
+  UP_ARGS=(--build -d)
 else
   echo "Starting containers (reusing existing images)..."
 fi
-if ! "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" up "${UP_ARGS[@]}"; then
+if ! "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${PROFILES[@]}" up "${UP_ARGS[@]}"; then
   print_unhealthy_server_hint
   exit 1
 fi

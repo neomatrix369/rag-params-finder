@@ -16,7 +16,7 @@ A developer should be able to switch between Atlas cloud and MongoDB Atlas Local
 ## Problem (before this slice)
 
 After Slice 25 the local Atlas container worked, but switching required:
-- Remembering a long `docker compose -f … -f … --profile local-atlas up -d` command
+- Remembering a long `docker compose --profile local-atlas up -d` command
 - Manually setting `MONGODB_URI` in `.env` or shell for the CLI
 - No guidance on when/how to switch back
 
@@ -27,13 +27,13 @@ After Slice 25 the local Atlas container worked, but switching required:
 - [x] `./start-services.sh --local` starts the full stack (server + dashboard + local Atlas) in one command
 - [x] `RAG_LOCAL_ATLAS=1 ./start-services.sh` is the env-var equivalent (CI/script-friendly)
 - [x] `./start-services.sh` (no flag) is unchanged — still starts the cloud stack, same as before
-- [x] `./scripts/local-atlas.sh start` starts only the MongoDB container (for native server/frontend dev)
-- [x] `./scripts/local-atlas.sh stop|reset|status` manage the container lifecycle
+- [x] `./start-services.sh mongodb start` starts only the MongoDB container (for native server/frontend dev)
+- [x] `./start-services.sh mongodb stop|reset|status` manage the container lifecycle
 - [x] `--local` prints the CLI `MONGODB_URI` to the terminal at the end (no need to look it up)
-- [x] `--local` skips the cloud Atlas URI validation in `.env` (overlay provides the URI for the server)
+- [x] `--local` skips the cloud Atlas URI validation in `.env` (server URI from `RAG_SERVER_MONGODB_URI`)
 - [x] Port 27017 is included in the port-conflict check when `--local` is active
 - [x] `./scripts/quality-gates.sh` passes — 0 ruff / mypy / pytest regressions
-- [x] `docs/user-guide/local-atlas-setup.md` updated with switching table + URI detection explanation
+- [x] [`docs/user-guide/mongodb-setup.md`](../user-guide/mongodb-setup.md) documents switching + URI detection
 
 ---
 
@@ -41,10 +41,10 @@ After Slice 25 the local Atlas container worked, but switching required:
 
 | File | Change |
 |------|--------|
-| `start-services.sh` | `--local` / `-l` flag + `RAG_LOCAL_ATLAS=1` env var; compose overlay + profile applied automatically; URI validation skipped for local mode; port 27017 checked; success output shows CLI URI and switch-back hint |
-| `scripts/local-atlas.sh` | **NEW** — standalone container manager: `start\|stop\|reset\|status`; waits for healthy; prints connection string |
-| `docs/user-guide/local-atlas-setup.md` | Switching section: command table, `RAG_LOCAL_ATLAS=1` form, host-native dev URI, auto-detect explanation |
-| `CLAUDE.md` | Docker commands section updated; backend switching table; `local-atlas.sh` + `docker-compose.local-atlas.yml` added to Key Files |
+| `start-services.sh` | `--local` / `-l` flag + `RAG_LOCAL_ATLAS=1` env var; compose profile + `RAG_SERVER_MONGODB_URI` export; URI validation skipped for local mode; port 27017 checked; success output shows CLI URI and switch-back hint; `mongodb` subcommand |
+| `scripts/lib/compose.sh` | Shared compose helpers, local URI constants, `compose_export_local_atlas_env()` |
+| `server/db/mongodb_uri.py` | `is_atlas_uri()` + `mongo_client_kwargs()` — TLS only for cloud Atlas URIs |
+| `docs/user-guide/mongodb-setup.md` | Unified cloud/local setup + switching table |
 
 ---
 
@@ -54,10 +54,10 @@ After Slice 25 the local Atlas container worked, but switching required:
 |------|---------|
 | Full stack — local Atlas | `./start-services.sh --local` |
 | Full stack — Atlas cloud | `./start-services.sh` |
-| Local Atlas only (container) | `./scripts/local-atlas.sh start` |
-| Stop local Atlas | `./scripts/local-atlas.sh stop` |
-| Wipe local data | `./scripts/local-atlas.sh reset` |
-| Status + connection string | `./scripts/local-atlas.sh status` |
+| Local Atlas only (container) | `./start-services.sh mongodb start` |
+| Stop local Atlas | `./start-services.sh mongodb stop` |
+| Wipe local data | `./start-services.sh mongodb reset` |
+| Status + connection string | `./start-services.sh mongodb status` |
 
 **CLI URI for local backend:**
 ```bash
@@ -74,11 +74,11 @@ export MONGODB_URI="mongodb://localhost:27017/rag_params_finder?directConnection
 |----------|-----|
 | `--local` flag on `start-services.sh` (not a new script) | Single entry point for all stack variants — mirrors existing `RAG_DEV_STACK=1` / `--force-build` pattern |
 | `RAG_LOCAL_ATLAS=1` env-var equivalent | CI pipelines and `Makefile` targets can set env vars without flag parsing |
-| Skip cloud URI validation when `LOCAL_ATLAS=1` | Server URI comes from `docker-compose.local-atlas.yml` overlay, not `.env`; rejecting placeholder URI would be a false block |
-| Print CLI URI in success output | Eliminates "what's the connection string again?" friction — it's right there at the end of `start-services.sh --local` |
-| Port 27017 in conflict check only when `--local` | Avoids false conflict warnings on cloud-only starts where 27017 may be in use for other reasons |
-| `local-atlas.sh` as standalone utility | When iterating fast (native server + native frontend), a dedicated container manager is cleaner than a full compose invocation |
-| `reset` command wipes the named volume | Gives a clean escape hatch when index state gets corrupted; named volume (`mongodb_local_data`) is explicit so it can't silently remove unrelated volumes |
+| Skip cloud URI validation when `LOCAL_ATLAS=1` | Server URI comes from `RAG_SERVER_MONGODB_URI` env override in `docker-compose.yml`, not `.env` |
+| Print CLI URI in success output | Eliminates "what's the connection string again?" friction |
+| Port 27017 in conflict check only when `--local` | Avoids false conflict warnings on cloud-only starts |
+| `mongodb` subcommand on `start-services.sh` | Container-only lifecycle without full compose invocation when iterating on native server/frontend |
+| `mongo_client_kwargs()` — no TLS for local URIs | Atlas Local uses plain `mongodb://`; unconditional `tlsCAFile` caused SSL handshake failures |
 
 ---
 
@@ -92,19 +92,20 @@ export MONGODB_URI="mongodb://localhost:27017/rag_params_finder?directConnection
 
 # 2. Run sweep against local Atlas
 export MONGODB_URI="mongodb://localhost:27017/rag_params_finder?directConnection=true"
-rag-params-finder run --config configs/example-mongodb-local.yaml
+rag-params-finder run --config configs/example-mongodb-local.yaml --detach
 
 # 3. Switch back to cloud (no --local)
+docker compose --profile local-atlas down
 ./start-services.sh
-# → expect no mongodb-local container, normal Atlas cloud hints
+# → expect no mongodb-local container, cloud switch-back hint in output
 
 # 4. Standalone container manager
-./scripts/local-atlas.sh start
-./scripts/local-atlas.sh status   # shows connection string
-./scripts/local-atlas.sh reset
+./start-services.sh mongodb start
+./start-services.sh mongodb status
+./start-services.sh mongodb reset
 
 # 5. Quality gates
-./scripts/quality-gates.sh
+./scripts/quality-gates.sh --quick
 ```
 
 ---
@@ -117,8 +118,8 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 4. Run sweeps as normal — all configs, CLI commands, and dashboard are identical.
 
 **Reverting:**
-1. Stop local stack: `docker compose -f docker-compose.yml --profile local-atlas down`
+1. Stop local stack: `docker compose --profile local-atlas down`
 2. Start cloud stack: `./start-services.sh` (reads `MONGODB_URI` from `.env`)
 3. Unset or restore the CLI URI.
 
-Local data is preserved in the `mongodb_local_data` Docker volume until you run `./scripts/local-atlas.sh reset`.
+Local data is preserved in the `mongodb_local_data` Docker volume until you run `./start-services.sh mongodb reset`.

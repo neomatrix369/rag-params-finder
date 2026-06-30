@@ -2,10 +2,23 @@
 
 from __future__ import annotations
 
+from datetime import UTC
+from typing import Any
+
 
 def is_atlas_uri(uri: str) -> bool:
     """True when the URI targets MongoDB Atlas cloud (*.mongodb.net)."""
     return ".mongodb.net" in uri.strip()
+
+
+def mongo_client_kwargs(uri: str, **extra: Any) -> dict[str, Any]:
+    """Build pymongo MongoClient kwargs — TLS only for Atlas cloud URIs."""
+    kwargs: dict[str, Any] = {"tz_aware": True, "tzinfo": UTC, **extra}
+    if is_atlas_uri(uri):
+        import certifi
+
+        kwargs["tlsCAFile"] = certifi.where()
+    return kwargs
 
 
 def parse_atlas_cluster_name(uri: str) -> str | None:

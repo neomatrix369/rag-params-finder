@@ -35,7 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Frontend:** pin `@rollup/rollup-darwin-arm64` and `@rollup/rollup-darwin-x64` optional deps so `vite build` works on Apple Silicon and Rosetta x64 Node
+- **`start-services.sh`** — pass `--profile local-atlas` before `docker compose up` (was incorrectly appended to `up` args, causing `unknown flag: --profile`)
+- **Local Atlas MongoDB connection** — `mongo_client_kwargs()` applies TLS only for cloud `*.mongodb.net` URIs; fixes SSL handshake failures against `mongodb-local`
 - CI: read Node version from repo-root `.nvmrc` (`setup-node` resolves paths from checkout root, not `frontend/` working directory)
 - CI: `astral-sh/setup-uv` v4 → v7 (Dependabot)
 - CLI: `httpx.Client(timeout=…)` default timeout on constructor (SAST/runtime parity)

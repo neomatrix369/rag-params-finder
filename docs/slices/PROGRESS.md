@@ -574,6 +574,8 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-06-29 | 21 | Officially close Slice 21; populate HANDOFF.md + update TRAIL.md | All acceptance criteria met; SIE_ENDPOINT rename + preflight + batching refinements landed post-completion |
 | 2026-06-29 | 21 | Expand `example-mongodb-sie.yaml` to full chunking/retriever grid + 3 SIE models | Parity with local/voyage examples; bge-m3/stella-v5/splade-v3 are registry top tier |
 | 2026-06-29 | 25B | `./start-services.sh --local` single-command switching; cloud URI validation skipped for local mode | Friction after Slice 25: long compose command, manual URI copy-paste, no "switch back" guidance |
+| 2026-06-30 | 25/25B | `mongo_client_kwargs()` — TLS only for cloud Atlas URIs | Local `mongodb://` connections failed with SSL handshake when `tlsCAFile` was always set |
+| 2026-06-30 | 25B | Compose `--profile` before `up`, not in `up` args | `start-services.sh --local` failed with `unknown flag: --profile` |
 | 2026-06-29 | 25B | Consolidate `local-atlas.sh` + dual setup docs into `start-services.sh mongodb` + `mongodb-setup.md` | Single entry point for cloud/local; compose overlay replaced by env-var overrides in `docker-compose.yml` |
 | 2026-06-29 | 25 | Implemented `mongodb-atlas-local` as opt-in local backend via `local-atlas` compose profile | Atlas M0 free-tier 500 MB limit hit; local Atlas image supports `$vectorSearch` + `$search` with identical syntax — zero code changes in retriever/indexes; `bootstrap_indexes()` auto-provisions all search indexes for local URI |
 | 2026-06-29 | — | Investigating `mongodb/mongodb-atlas-local` Docker image as replacement for Atlas cloud | Atlas M0 free-tier 500 MB limit hit; local Atlas image supports `$vectorSearch` + `$search` with identical syntax — zero code changes required in retriever/indexes |
@@ -750,6 +752,7 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-06-30 | slice/21-25b-sie-and-atlas-local | /verify-slice | 21/24/25/25B closing tests | COMPLETE | 78 pytest pass; local+cloud smoke OK; SIE sweep 200; fixes: compose profile + local TLS; docs synced |
 | 2026-06-29 | slice/21-25b-sie-and-atlas-local | /verify-slice | Unified MongoDB Entry Points | COMPLETE | 12/12 criteria; quick gates 75 pass; CLI/compose smoke OK; docs current |
 | 2026-06-29 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — prerequisites: met (verify-slice COMPLETE) |
 | 2026-06-29 | slice/21-25b-sie-and-atlas-local | /verify-slice | Unified MongoDB Entry Points | PARTIAL | 12/12 plan criteria; ruff/mypy/pytest 75 pass; smoke OK; PROGRESS 25B row + CHANGELOG stale |

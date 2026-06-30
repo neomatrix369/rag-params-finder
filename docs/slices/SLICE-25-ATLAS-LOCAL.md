@@ -14,14 +14,14 @@ Add `mongodb/mongodb-atlas-local` Docker image as an opt-in local backend so dev
 
 ## Acceptance Criteria
 
-- [x] `docker compose -f docker-compose.yml -f docker-compose.local-atlas.yml --profile local-atlas up -d` starts without error
-- [x] Server connects to `mongodb-local` container via Docker network
+- [x] `./start-services.sh --local` starts server + dashboard + `mongodb-local` without error
+- [x] Server connects to `mongodb-local` container via Docker network (`RAG_SERVER_MONGODB_URI`)
 - [x] `bootstrap_indexes()` creates all vector + text search indexes programmatically for non-Atlas URIs (no Atlas UI step)
 - [x] Atlas cloud path unchanged — `bootstrap_indexes()` still prunes unknown indexes only, deferring creation to submit preflight
 - [x] Host CLI works: `MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true`
 - [x] `atlas_storage.py` gracefully returns `None` quota (existing `is_atlas_uri()` guard — no code change needed)
 - [x] `./scripts/quality-gates.sh` passes — 0 ruff / mypy / pytest regressions
-- [x] `docs/user-guide/local-atlas-setup.md` written with runnable commands
+- [x] [`docs/user-guide/mongodb-setup.md`](../user-guide/mongodb-setup.md) documents local Atlas path
 
 ---
 
@@ -29,11 +29,14 @@ Add `mongodb/mongodb-atlas-local` Docker image as an opt-in local backend so dev
 
 | File | Change |
 |------|--------|
-| `docker-compose.yml` | Added `mongodb-local` service under `local-atlas` profile; added `mongodb_local_data` named volume |
-| `docker-compose.local-atlas.yml` | **NEW** — overlay: server `MONGODB_URI` override → `mongodb-local:27017`; `depends_on: mongodb-local` |
-| `server/db/indexes.py` | `bootstrap_indexes()`: detect non-Atlas URI → call `create_vector_indexes()` + `create_text_search_index()` on boot |
-| `.env.example` | Document local URI option (Option A/B) with start command |
-| `docs/user-guide/local-atlas-setup.md` | **NEW** — full quick-start: Docker stack, host dev loop, comparison table, reset instructions |
+| `docker-compose.yml` | Added `mongodb-local` service under `local-atlas` profile; `MONGODB_URI: ${RAG_SERVER_MONGODB_URI:-${MONGODB_URI}}`; `mongodb_local_data` volume |
+| `scripts/lib/compose.sh` | Local URI constants + `compose_export_local_atlas_env()` for server override |
+| `start-services.sh` | `--local` / `RAG_LOCAL_ATLAS=1` applies profile + env override |
+| `server/db/indexes.py` | `bootstrap_indexes()`: detect non-Atlas URI → create all search indexes on boot |
+| `server/db/mongodb_uri.py` | `is_atlas_uri()` + `mongo_client_kwargs()` — TLS only for cloud |
+| `server/db/atlas.py`, `server/core/health_check.py` | Use `mongo_client_kwargs()` for local vs cloud connections |
+| `.env.example` | Document local URI option with `./start-services.sh --local` |
+| `docs/user-guide/mongodb-setup.md` | Unified cloud/local setup guide |
 
 ---
 
@@ -42,31 +45,28 @@ Add `mongodb/mongodb-atlas-local` Docker image as an opt-in local backend so dev
 | Decision | Why |
 |----------|-----|
 | `profiles: ["local-atlas"]` in main compose | Opt-in, not default — existing `docker compose up` is unchanged |
-| Separate `docker-compose.local-atlas.yml` overlay | `MONGODB_URI` for the server differs from host CLI; overlay is the compose-native way to override per service |
-| Detect via `is_atlas_uri()` (`.mongodb.net` check) | Reuses existing utility in `atlas_storage.py`; no new settings field required |
-| Create all indexes on boot for local mode | No M0 3-index cluster limit; `create_search_indexes` is supported programmatically on Atlas Local |
-| `MONGODB_STORAGE_LIMIT_MB=0` in overlay | Hides quota bar (no cloud quota applies locally); 0 = hidden is the existing default |
-| No change to `search_index_guard.py` | Local Atlas creates all indexes at startup → `is_satisfied=True` by submit time; cluster_limit logic never triggered |
+| `RAG_SERVER_MONGODB_URI` env override (not a second compose file) | Server container URI differs from host CLI; `start-services.sh --local` exports the override |
+| Detect via `is_atlas_uri()` (`.mongodb.net` check) | Reuses existing utility; no new settings field required |
+| Create all indexes on boot for local mode | No M0 3-index cluster limit; programmatic index creation works on Atlas Local |
+| `MONGODB_STORAGE_LIMIT_MB=0` when local | Hides quota bar (no cloud quota applies locally) |
+| No TLS for local `mongodb://` URIs | Atlas Local is plain TCP; `tlsCAFile` breaks local connections |
 
 ---
 
 ## Verification
 
 ```bash
-# Start local stack
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.local-atlas.yml \
-  --profile local-atlas \
-  up --build -d
+# Start local stack (preferred)
+./start-services.sh --local
+./scripts/health-check.sh
 
-# Check server logs — expect "local mode: all search indexes ensured programmatically"
-docker logs rag-params-finder-server | grep "local mode"
+# Check server logs — vector + text indexes created programmatically
+docker logs rag-params-finder-server 2>&1 | grep -E "vector index created|text search"
 
 # Run sweep from host
 export MONGODB_URI="mongodb://localhost:27017/rag_params_finder?directConnection=true"
-rag-params-finder run --config configs/example-mongodb-local.yaml
+rag-params-finder run --config configs/example-mongodb-local.yaml --detach
 
 # Quality gates (no regressions)
-./scripts/quality-gates.sh
+./scripts/quality-gates.sh --quick
 ```
