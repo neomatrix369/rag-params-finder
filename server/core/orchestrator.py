@@ -1,17 +1,24 @@
-import threading
 import time
 import uuid
-from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
+from server.core.aim_logger import AimLogger
 from server.core.chunkers import chunk_text
 from server.core.data_loader import load_all_files
-from server.core.embedder import embed_documents, embed_query
+from server.core.embedder_factory import get_embedder
+from server.core.experiment_control import (
+    ExperimentCancelledError,
+    ExperimentPausedError,
+    check_control,
+    register_sweep_control,
+    unregister_sweep_control,
+)
 from server.core.query_loader import load_queries
 from server.core.reranker import rerank_results
 from server.core.retriever import search as retriever_search
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
+from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
 from server.db.atlas import (
     CHUNKS_COLLECTION,
     EXPERIMENTS_COLLECTION,
@@ -40,15 +47,6 @@ ParamSignature = tuple[
 ]
 
 
-@dataclass
-class _SweepControl:
-    cancel: threading.Event = field(default_factory=threading.Event)
-    pause: threading.Event = field(default_factory=threading.Event)
-
-
-_sweep_controls: dict[str, _SweepControl] = {}
-
-
 _TRADITIONAL_RETRIEVER_TYPES = {
     RetrieverType.DENSE,
     RetrieverType.SPARSE,
@@ -69,13 +67,13 @@ def _search_traditional_retriever(
     query_text: str,
     experiment_id: str,
     embedding_model: str,
-    embedding_provider: str,
+    embed_query_fn,  # Callable[[str, str], list[float]] from embedder_factory
     top_k: int,
     query_embedding: list[float] | None,
 ) -> tuple[list[SearchResult], list[float] | None]:
     needs_embedding = retriever_cfg.type in {RetrieverType.DENSE, RetrieverType.HYBRID}
     if needs_embedding and query_embedding is None:
-        query_embedding = embed_query(query_text, embedding_model, embedding_provider)
+        query_embedding = embed_query_fn(query_text, embedding_model)
 
     results = retriever_search(
         method=RetrievalMethod(retriever_cfg.type.value),
@@ -95,7 +93,7 @@ def _search_reranker_retriever(
     query_text: str,
     experiment_id: str,
     embedding_model: str,
-    embedding_provider: str,
+    embed_query_fn,  # Callable[[str, str], list[float]] from embedder_factory
     top_k_initial: int,
     top_k_final: int,
 ) -> list[SearchResult]:
@@ -107,7 +105,7 @@ def _search_reranker_retriever(
         query_text=query_text,
         experiment_id=experiment_id,
         embedding_model=embedding_model,
-        embedding_provider=embedding_provider,
+        embed_query_fn=embed_query_fn,
         top_k=top_k_initial,
         query_embedding=None,
     )
@@ -127,36 +125,6 @@ def _search_reranker_retriever(
         top_k=top_k_final,
         provider=retriever_cfg.provider,
     )
-
-
-class ExperimentCancelledError(Exception):
-    pass
-
-
-class ExperimentPausedError(Exception):
-    pass
-
-
-def request_cancel(experiment_id: str) -> bool:
-    """Signal a running experiment to stop. Returns True if it was in-flight."""
-    control = _sweep_controls.get(experiment_id)
-    if control is None:
-        return False
-    control.cancel.set()
-    return True
-
-
-def request_pause(experiment_id: str) -> bool:
-    """Signal a running experiment to pause. Returns True if it was in-flight."""
-    control = _sweep_controls.get(experiment_id)
-    if control is None:
-        return False
-    control.pause.set()
-    return True
-
-
-def is_sweep_in_flight(experiment_id: str) -> bool:
-    return experiment_id in _sweep_controls
 
 
 def _params_signature(params: RunParams) -> ParamSignature:
@@ -213,15 +181,12 @@ def _completed_param_signatures(experiment_id: str) -> set[ParamSignature]:
     return {_run_doc_signature(run) for run in cursor}
 
 
-def _check_control(experiment_id: str) -> None:
-    """Raise if this experiment was cancelled or paused."""
-    control = _sweep_controls.get(experiment_id)
-    if control is None:
-        return
-    if control.cancel.is_set():
-        raise ExperimentCancelledError(f"Experiment {experiment_id} was cancelled")
-    if control.pause.is_set():
-        raise ExperimentPausedError(f"Experiment {experiment_id} was paused")
+def _experiment_cancelled_in_db(experiment_id: str) -> bool:
+    doc = get_collection(EXPERIMENTS_COLLECTION).find_one(
+        {"_id": experiment_id},
+        {"status": 1},
+    )
+    return bool(doc and doc.get("status") == ExperimentStatus.CANCELLED.value)
 
 
 def run_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
@@ -246,13 +211,15 @@ def _execute_sweep(
     skip_signatures: set[ParamSignature],
 ) -> dict:
     """Declared sync; scheduled on the dedicated sweep executor (see executors.py)."""
-    _sweep_controls[experiment_id] = _SweepControl()
+    register_sweep_control(experiment_id)
     try:
         return _run_sweep_inner(experiment_id, config, skip_signatures)
     except SearchIndexMismatchError as exc:
         return _fail_experiment_preflight(experiment_id, config, str(exc))
+    except SIEUnavailableError as exc:
+        return _fail_experiment_preflight(experiment_id, config, str(exc))
     finally:
-        _sweep_controls.pop(experiment_id, None)
+        unregister_sweep_control(experiment_id)
 
 
 def _fail_experiment_preflight(
@@ -293,20 +260,40 @@ def _run_sweep_inner(
     config: ExperimentConfig,
     skip_signatures: set[ParamSignature],
 ) -> dict:
+    if _experiment_cancelled_in_db(experiment_id):
+        logger.info("sweep skipped — experiment %s already cancelled", experiment_id)
+        return {
+            "experiment_id": experiment_id,
+            "run_ids": [],
+            "status": ExperimentStatus.CANCELLED,
+        }
+
+    try:
+        check_control(experiment_id)
+    except ExperimentCancelledError:
+        logger.info("sweep skipped — experiment %s cancel signalled before start", experiment_id)
+        return {
+            "experiment_id": experiment_id,
+            "run_ids": [],
+            "status": ExperimentStatus.CANCELLED,
+        }
+
     validate_experiment_search_indexes(config)
+    validate_sie_readiness(config)
     runs = expand_sweep(config)
     run_ids: list[str] = []
     logger.info("sweep scheduled — experiment %s, %s run(s)", experiment_id, len(runs))
 
     cancelled = False
     paused = False
+    infrastructure_error: str | None = None
     first_run = True
     for params in runs:
         if _params_signature(params) in skip_signatures:
             continue
 
         try:
-            _check_control(experiment_id)
+            check_control(experiment_id)
         except ExperimentCancelledError:
             cancelled = True
             logger.info("experiment cancelled — %s before run %s", experiment_id, len(run_ids) + 1)
@@ -336,6 +323,15 @@ def _run_sweep_inner(
             paused = True
             logger.info("experiment paused — %s during run %s", experiment_id, run_id)
             break
+        except SIEUnavailableError as exc:
+            infrastructure_error = str(exc)
+            logger.error(
+                "SIE unavailable — stopping experiment %s after run %s: %s",
+                experiment_id,
+                run_id,
+                exc,
+            )
+            break
         except Exception as e:
             logger.error("run failed — %s: %s", run_id, e, exc_info=True)
             if config.execution.on_error == "stop":
@@ -351,16 +347,21 @@ def _run_sweep_inner(
         final_status, failed_count = _compute_final_status(experiment_id, len(runs))
 
     completed_at = datetime.now(UTC)
+    experiment_update: dict = {
+        "status": final_status,
+        "run_count": len(runs),
+        "failed_count": failed_count,
+        "completed_at": completed_at,
+    }
+    if infrastructure_error:
+        experiment_update["error_message"] = infrastructure_error
+        if final_status not in {ExperimentStatus.CANCELLED, ExperimentStatus.PAUSED}:
+            final_status = ExperimentStatus.FAILED
+            experiment_update["status"] = final_status
+
     get_collection(EXPERIMENTS_COLLECTION).update_one(
         {"_id": experiment_id},
-        {
-            "$set": {
-                "status": final_status,
-                "run_count": len(runs),
-                "failed_count": failed_count,
-                "completed_at": completed_at,
-            }
-        },
+        {"$set": experiment_update},
     )
     _log_failed_run_summary(experiment_id, failed_count)
     logger.info("sweep finished — experiment %s, status=%s", experiment_id, final_status)
@@ -464,7 +465,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
     get_collection(RUN_STATUS_COLLECTION).insert_one(run_status.model_dump())
 
     try:
-        _check_control(experiment_id)
+        check_control(experiment_id)
         _update_phase(run_id, Phase.PARSING)
         text = load_all_files(params.data_paths)
         if not text.strip():
@@ -481,7 +482,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
                 len(params.data_paths),
             )
 
-        _check_control(experiment_id)
+        check_control(experiment_id)
         _update_phase(run_id, Phase.CHUNKING)
         chunks = chunk_text(text, params.chunking_method, params.chunk_size, params.overlap)
         if not chunks:
@@ -493,12 +494,21 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
         else:
             logger.info("chunking OK — run %s, %s chunks", run_id, len(chunks))
 
-        _check_control(experiment_id)
+        check_control(experiment_id)
         _update_phase(run_id, Phase.EMBEDDING)
-        embeddings = embed_documents(chunks, params.embedding_model, params.embedding_provider)
+        embed_docs_fn, embed_query_fn = get_embedder(params.embedding_provider)
+
+        def cancel_check() -> None:
+            check_control(experiment_id)
+
+        embeddings = embed_docs_fn(
+            chunks,
+            params.embedding_model,
+            cancel_check=cancel_check,
+        )
         logger.info("embed OK — run %s, %s embeddings", run_id, len(embeddings))
 
-        _check_control(experiment_id)
+        check_control(experiment_id)
         _update_phase(run_id, Phase.STORING)
         chunk_docs = [
             {
@@ -518,13 +528,13 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
         get_collection(CHUNKS_COLLECTION).insert_many(chunk_docs)
         logger.info("chunks stored — %s documents", len(chunk_docs))
 
-        _check_control(experiment_id)
+        check_control(experiment_id)
         _update_phase(run_id, Phase.QUERYING)
         queries = load_queries(params.queries_file)
         logger.info("query phase — run %s, %s queries", run_id, len(queries))
 
         for i, q in enumerate(queries, start=1):
-            _check_control(experiment_id)
+            check_control(experiment_id)
             query_id = str(uuid.uuid4())
             logger.debug(
                 "query trace — run %s query %s/%s persona=%s text=%s",
@@ -544,7 +554,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
                     query_text=q.text,
                     experiment_id=experiment_id,
                     embedding_model=params.embedding_model,
-                    embedding_provider=params.embedding_provider,
+                    embed_query_fn=embed_query_fn,
                     top_k=params.top_k_initial,
                     query_embedding=query_embedding,
                 )
@@ -564,7 +574,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
                     query_text=q.text,
                     experiment_id=experiment_id,
                     embedding_model=params.embedding_model,
-                    embedding_provider=params.embedding_provider,
+                    embed_query_fn=embed_query_fn,
                     top_k_initial=params.top_k_initial,
                     top_k_final=params.top_k_final,
                 )
@@ -593,6 +603,21 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
 
         logger.info("queries complete — run %s, %s queries", run_id, len(queries))
 
+        AimLogger.log_run(
+            {
+                "experiment_id": experiment_id,
+                "run_id": run_id,
+                "model_name": params.embedding_model,
+                "model_source": params.embedding_provider,
+                "retrieval_method": params.retrieval_method.value,
+                "chunking_method": params.chunking_method.value,
+                "chunk_size": params.chunk_size,
+                "overlap": params.overlap,
+                "latency_ms": int(
+                    (time.monotonic() - _run_start_times.get(run_id, time.monotonic())) * 1000
+                ),
+            }
+        )
         _update_phase(run_id, Phase.COMPLETE)
 
     except ExperimentCancelledError:

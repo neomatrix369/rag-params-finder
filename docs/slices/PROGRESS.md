@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-05-28 (docs nav + pre-push fast gates)
-**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain | Next: Slice **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota
+**Last Updated**: 2026-07-01 (Slice 28 planned — results export / issue #49)
+**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching | Next: **26** 📋 local MongoDB docs · **27** 📋 MongoDB mode indicator · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49)) · **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota
 
 ---
 
@@ -25,15 +25,23 @@
 | — — Scoped logging (Option A) | ✅ COMPLETE | ~1 h | `scope_log.py` server/CLI; `devLog.ts` dashboard dev console; Voyage error + dashboard failure visibility |
 | — — Dashboard polling + API responsiveness | ✅ COMPLETE | ~1 h | `executors.py` thread pools; list 2 s / stats 60 s / explore 15 s polls; batched db-stats; anti-jitter `PollingIndicator` |
 | — — Kimchi embedding provider | 🔀 BRANCH | ~2 h | Full CAST integration on `tessl-hackathon-kimchi-integration`; **main** has `kimchi` in `Provider` type only (no registry models / embedder yet) — v0.8.0 release notes are historical |
-| — — Unit pytest suite | ✅ COMPLETE | ~1 h | **26 tests** in `tests/` (17 search-index + 3 sweep + 3 tiebreaker + 3 health); CI + `quality-gates.sh` enforce 80% on 4 scoped modules |
+| — — Unit pytest suite | ✅ COMPLETE | ~1 h | **26 tests** at Slice 20 baseline (now **58** — see `development.md`) |
 | 18 — Unified retriever config | ✅ COMPLETE | ~4–6 h | Unified "retrievers" group (traditional search + rerankers); auto-migrate old format; multi-reranker chains; see [`SLICE-18-UNIFIED-RETRIEVER-CONFIG.md`](SLICE-18-UNIFIED-RETRIEVER-CONFIG.md) |
 | 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) |
-| 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
+| 11 — Search Explorer enhancements | 📋 PLANNED | ~45 min | Visualization + query filtering only — **export moved to Slice 28** |
+| 28 — Results export (CSV/JSONL) | 📋 PLANNED | ~1.5 h | `GET /experiments/{id}/export` + dashboard download — [issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49) · spec: [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 | 19 — Atlas storage quota guard | 📋 PLANNED | ~3–5 h | Preflight + runtime `OperationFailure` 8000 handling + force-delete recovery; M0 incident 2026-05-23 — see [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) |
 | 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | `quality-gates.sh`, `repo-lint.sh`, `pre-push-gates.sh` (`--quick` on push), `install-git-hooks.sh`, coverage CI, ESLint, bandit, pip-audit, gitleaks, dependabot — [`SLICE-20-TOOLCHAIN-HARDENING.md`](SLICE-20-TOOLCHAIN-HARDENING.md) |
 | 14 — Docker Compose | ✅ COMPLETE | ~2–3 h | `./start-services.sh`, prod + `docker-compose.dev.yml`, Atlas `/healthz` — [`SLICE-14-DOCKER-COMPOSE.md`](SLICE-14-DOCKER-COMPOSE.md) |
 | ~~15 — CI/CD~~ | ✅ (via 20) | — | Superseded by Slice 20 — CI + `quality-gates.sh` + git hooks |
+| 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); caller-supplied corpus (`corpus: list[str]`); Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`../plan/slice-21-sie-skateboard.md`](../plan/slice-21-sie-skateboard.md) |
+| 24 — Port standardisation | ✅ COMPLETE | ~1 h | Unique static ports: frontend 5173→5374 (avoids Vite default), SIE 8080→8720 (avoids Jenkins/Tomcat/etc.); backend 8001 unchanged — spec: [`SLICE-24-PORT-STANDARDISATION.md`](SLICE-24-PORT-STANDARDISATION.md) |
+| 25 — Atlas Local Dev Mode | ✅ COMPLETE | ~1 h | `mongodb-atlas-local` Docker image as opt-in local backend; `local-atlas` compose profile; auto-provision all search indexes on boot for local URI; eliminates M0 512 MB ceiling for local dev — spec: [`SLICE-25-ATLAS-LOCAL.md`](SLICE-25-ATLAS-LOCAL.md) |
+| 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | `./start-services.sh --local`; `./start-services.sh mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](SLICE-25B-ATLAS-SWITCHING.md) |
+| 26 — Local MongoDB smooth-path docs | 📋 PLANNED | ~1 h | Docker pre-flight, wait-for-healthy, stale volume troubleshooting — spec: [`SLICE-26-LOCAL-MONGODB-DOCS.md`](SLICE-26-LOCAL-MONGODB-DOCS.md) |
+| 27 — MongoDB mode indicator | 📋 PLANNED | ~2 h | `get_mongodb_mode()` → `/healthz` + sweep_summary + CLI banner + dashboard header badge — spec: [`SLICE-27-MONGODB-MODE-INDICATOR.md`](SLICE-27-MONGODB-MODE-INDICATOR.md) |
+| 28 — Results export | 📋 PLANNED | ~1.5 h | Issue #49 — CSV/JSONL export reusing `analyze_results`; detail-screen download button — spec: [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
 
@@ -567,6 +575,14 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-06-29 | 21 | Officially close Slice 21; populate HANDOFF.md + update TRAIL.md | All acceptance criteria met; SIE_ENDPOINT rename + preflight + batching refinements landed post-completion |
+| 2026-06-29 | 21 | Expand `example-mongodb-sie.yaml` to full chunking/retriever grid + 3 SIE models | Parity with local/voyage examples; bge-m3/stella-v5/splade-v3 are registry top tier |
+| 2026-06-29 | 25B | `./start-services.sh --local` single-command switching; cloud URI validation skipped for local mode | Friction after Slice 25: long compose command, manual URI copy-paste, no "switch back" guidance |
+| 2026-06-30 | 25/25B | `mongo_client_kwargs()` — TLS only for cloud Atlas URIs | Local `mongodb://` connections failed with SSL handshake when `tlsCAFile` was always set |
+| 2026-06-30 | 25B | Compose `--profile` before `up`, not in `up` args | `start-services.sh --local` failed with `unknown flag: --profile` |
+| 2026-06-29 | 25B | Consolidate `local-atlas.sh` + dual setup docs into `start-services.sh mongodb` + `mongodb-setup.md` | Single entry point for cloud/local; compose overlay replaced by env-var overrides in `docker-compose.yml` |
+| 2026-06-29 | 25 | Implemented `mongodb-atlas-local` as opt-in local backend via `local-atlas` compose profile | Atlas M0 free-tier 500 MB limit hit; local Atlas image supports `$vectorSearch` + `$search` with identical syntax — zero code changes in retriever/indexes; `bootstrap_indexes()` auto-provisions all search indexes for local URI |
+| 2026-06-29 | — | Investigating `mongodb/mongodb-atlas-local` Docker image as replacement for Atlas cloud | Atlas M0 free-tier 500 MB limit hit; local Atlas image supports `$vectorSearch` + `$search` with identical syntax — zero code changes required in retriever/indexes |
 | 2026-05-27 | 20 | Scoped coverage 80% on four unit-tested modules | Baseline-first (83.6%); whole-repo 28% would force gate off or block merges |
 | 2026-05-27 | 20 | pip-audit ML ignores via scripts/pip-audit.sh | torch/transformers CVEs need major sentence-transformers bump — separate slice |
 | 2026-05-27 | 20 | Extend pre-commit, not Husky | Python repo already on pre-commit; avoids dual hook systems |
@@ -624,6 +640,10 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-27 | 20 | Repo lint in CI + pre-commit | shellcheck (`scripts/*.sh`), actionlint, markdownlint; `scripts/repo-lint.sh`; pragmatic `.markdownlint.json`; CI `repo-lint` job (4 jobs total) |
 | 2026-05-28 | — | Docs navigation (playgroup-style) | Root `QUICKSTART.md`; `docs/README.md` index; `PROGRESS.md` lives under `docs/slices/` beside slice specs |
 | 2026-05-28 | 20 | Pre-push = fast gates (`--quick`) | `git push` → `pre-push-gates.sh` (repo lint, ruff, mypy, bandit, pytest, frontend verify, gitleaks); commit hook stays staged pre-commit only |
+| 2026-06-27 | 21 | embedder_factory.py as single dispatch point | Factory pattern over Protocol/ABC (Decision #10); orchestrator never does provider if/elif; each provider module exports embed_docs_fn + embed_query_fn |
+| 2026-06-27 | 21 | SIEClient per call (no module-level cache) | Module-level client cache caused test state leakage between test runs; per-call instantiation ensures isolation |
+| 2026-06-27 | 21 | Minimal FastAPI app in sweep tests | Importing server.main chains into voyageai → torch → OpenMP abort in sandbox; sweep router mounted standalone avoids the crash |
+| 2026-06-27 | 21 | SIE health endpoint is /healthz not /health | SIE Docker exposes /healthz; check_sie_health() and CLAUDE.md updated accordingly |
 | 2026-05-27 | 14 | Docker Compose (AIE7-adapted) | 2-service stack (no local vector DB); host CLI; prod default + `docker-compose.dev.yml`; `/healthz` MongoDB ping; `hf_cache` volume |
 | 2026-05-27 | 14 | Dev overlay vs Compose profiles | `docker-compose.dev.yml` merge (not named profiles) — avoids port conflicts between prod/dev frontends |
 | 2026-05-27 | 20 | Pre-push (superseded 2026-05-28) | Was `pre-commit --all-files` on push — replaced by `quality-gates.sh --quick` for pytest + frontend verify |
@@ -640,6 +660,45 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 ---
 
+## Slice 21: SIE Skateboard ✅
+
+**Status**: ✅ COMPLETE | **Started**: 2026-06-27 | **Completed**: 2026-06-27 | **Target**: ~4–6 h
+
+### Goal
+Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add Aim experiment logging, and expose a new `POST /api/v1/sweep` endpoint for Tier 1 ranked sweeps. Corpus is supplied by the caller via the `corpus: list[str]` field; falls back to the topic string when empty.
+
+### Acceptance Criteria
+- [x] `POST /api/v1/sweep` returns ranked retrieval methods with scores
+- [x] `GET /health` includes `sie` and `version` fields
+- [x] SIE models (BGE-M3, Stella-v5, SPLADE-v3) registered in `model_registry.py`
+- [x] `embedder_factory.py` dispatches voyage/local/sie without orchestrator if/elif
+- [x] `SweepRequest.corpus` accepts caller-supplied chunks; falls back to topic string when empty
+- [x] `aim_logger.py` logs run params to Aim (no-op on failure — non-fatal)
+- [x] 58 tests pass, coverage ≥80% threshold
+- [x] ruff: 0 errors, mypy: 0 errors, frontend: 0 errors
+
+### Files Created / Modified
+| File | Change |
+|---|---|
+| `server/core/sie_embedder.py` | NEW — SIE BGE-M3/Stella-v5 embedding functions |
+| `server/core/aim_logger.py` | NEW — Aim experiment run logging wrapper (no-op on fail) |
+| `server/core/embedder_factory.py` | NEW — Provider dispatch factory (voyage/local/sie) |
+| `server/api/sweep.py` | NEW — `POST /api/v1/sweep` + health helper functions |
+| `server/core/model_registry.py` | SIE models added (bge-m3, stella-v5, splade-v3) |
+| `server/models/config.py` | `Provider` Literal extended with `sie` |
+| `server/models/status.py` | `Provider` Literal extended with `sie` |
+| `server/core/embedder.py` | Voyage functions renamed to `embed_*_voyage`; dispatch removed |
+| `server/core/orchestrator.py` | Uses `embedder_factory.get_embedder()` + `AimLogger.log_run()` |
+| `server/main.py` | Sweep router mounted + enhanced `/health` endpoint |
+| `pyproject.toml` | Added `sie-sdk`, `aim` dependencies |
+| `tests/test_sie_embedder.py` | NEW — 5 GWT tests |
+| `tests/test_embedder_factory.py` | Rewritten — 6 GWT tests (sys.modules mocking) |
+| `tests/test_sweep_endpoint.py` | NEW — 9 GWT tests (minimal FastAPI app) |
+| `configs/example-mongodb-sie.yaml` | NEW — CLI full-pipeline SIE sweep (120 runs, bge-m3/stella-v5/splade-v3) |
+| `tests/test_config_examples.py` | NEW — example YAML load/expand/index-plan validation |
+
+---
+
 ## Forward Roadmap
 
 | Slice | Goal | Priority | Est. |
@@ -649,6 +708,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 9 — Search Explorer dashboard | Best-params card, ranked configs, per-query results view | Should | ~30 min |
 | 10 — Run recovery | Spec: [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) — `recover` CLI + `POST /experiments/{id}/recover`; per-`run_id` scrub + retry (**FAILED** default; **INTERRUPTED** opt-in); **`RECOVER_ON_BOOT`** retries **INTERRUPTED** only *(not all FAILED)* | Could | ~1–2 h |
 | 11 — Dashboard-triggered runs | Submit experiments from the React UI, not just CLI | Could | ~45 min |
+| 28 — Results export | Spec: [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) — CSV/JSONL download; closes [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | **Should** | ~1.5 h |
 | 12 — SSE live updates | Replace 2 s polling with Server-Sent Events | Could | ~20 min |
 | 13 — Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` | Could | ~15 min |
 | 19 — Storage quota guard | Spec: [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) — preflight at submit (422); runtime `OperationFailure` 8000; HTTP 507 on control APIs; `?force=true` delete; dashboard ≥80% warning; smoke config for M0 | **Should** | ~3–5 h |
@@ -691,11 +751,33 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 ---
 
+## Skill Execution Log
+
+Tracks skill runs across slices and sessions. Appended automatically by `/verify-slice`, `/sync-docs`, `/update-pr`, and other skills. Read this first when resuming a session to know exactly where the slice stands.
+
+| Date | Branch | Skill | Slice | Outcome | Notes |
+|---|---|---|---|---|---|
+| 2026-07-01 | chore/toolchain-prettier-security-scan | /update-pr | Toolchain extension | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/46 — main sync, uv.lock + pip-audit fixes; prerequisites: bypassed (no /verify-slice on branch) |
+| 2026-07-01 | slice/21-25b-sie-and-atlas-local | /sync-docs | 21/24/25/25B audit | STAGED | Full branch audit: CHANGELOG ✅, CLAUDE ✅, development.md + docs/README (78 tests), configuration.md SIE callout, QUICKSTART --local, README path row, HANDOFF 25B fix; user-guide mongodb/sie already current |
+| 2026-07-01 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — SIE screenshot crop + maxkb 1200; prerequisites: met (verify-slice COMPLETE 2026-06-30) |
+| 2026-07-01 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — screenshots + Atlas Local docs + pre-commit limit; prerequisites: met (verify-slice COMPLETE 2026-06-30) |
+| 2026-07-01 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — prerequisites: met (verify-slice COMPLETE 2026-06-30) |
+| 2026-06-30 | slice/21-25b-sie-and-atlas-local | /verify-slice | 21/24/25/25B closing tests | COMPLETE | 78 pytest pass; local+cloud smoke OK; SIE sweep 200; fixes: compose profile + local TLS; docs synced |
+| 2026-06-29 | slice/21-25b-sie-and-atlas-local | /verify-slice | Unified MongoDB Entry Points | COMPLETE | 12/12 criteria; quick gates 75 pass; CLI/compose smoke OK; docs current |
+| 2026-06-29 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — prerequisites: met (verify-slice COMPLETE) |
+| 2026-06-29 | slice/21-25b-sie-and-atlas-local | /verify-slice | Unified MongoDB Entry Points | PARTIAL | 12/12 plan criteria; ruff/mypy/pytest 75 pass; smoke OK; PROGRESS 25B row + CHANGELOG stale |
+| 2026-06-29 | slice/21-25b-sie-and-atlas-local | /sync-docs | Unified MongoDB Entry Points | STAGED | PROGRESS.md ✅, CHANGELOG ✅, CLAUDE ⏭, user-guide ⏭ |
+
+**Outcome values**: `COMPLETE` · `PARTIAL` · `STAGED` · `PUSHED` · `FAILED` · `SKIPPED`
+
+---
+
 ## Interrupt Recovery Checklist
 
 Use this when resuming a session mid-slice:
 
 ```
+[ ] Read the Skill Execution Log above — last skill run tells you where to resume
 [ ] Read docs/slices/PROGRESS.md — note current slice and last known state
 [ ] Git hooks installed: bash scripts/install-git-hooks.sh (once per machine)
 [ ] Run quality gates to confirm no regressions:

@@ -7,7 +7,7 @@ const devProxyTarget =
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    port: 5374,
     proxy: {
       // Same-origin `/api/*` → FastAPI (127.0.0.1 on host; `server` service name in Docker dev).
       '/api': {

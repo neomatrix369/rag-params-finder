@@ -42,7 +42,7 @@ Added to the example `.env` block:
 ```bash
 # CORS Configuration (ADVANCED — for production deployment)
 # Comma-separated list of allowed origins. Defaults work for local development.
-# CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
+# CORS_ORIGINS=http://localhost:5374,http://127.0.0.1:5374,http://localhost:3000
 # CORS_ALLOW_LOCALHOST_ORIGIN_REGEX=true  # Auto-allow localhost/127.0.0.1/[::1] on any port
 ```
 
@@ -57,7 +57,7 @@ Added after "Query Avg vs Chunk Avg" section:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CORS_ORIGINS` | `http://localhost:5173,...` | Comma-separated list of allowed origins for CORS |
+| `CORS_ORIGINS` | `http://localhost:5374,...` | Comma-separated list of allowed origins for CORS |
 | `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX` | `true` | When true, automatically allow localhost/127.0.0.1/[::1] on any port via regex |
 
 **When to customize**:
@@ -82,7 +82,7 @@ Added at the end:
 # ── CORS Configuration (ADVANCED — for production deployment) ────────────────
 # Comma-separated list of allowed origins. Defaults work for local development.
 # Uncomment and customize for production deployment only.
-# CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
+# CORS_ORIGINS=http://localhost:5374,http://127.0.0.1:5374,http://localhost:3000
 # CORS_ALLOW_LOCALHOST_ORIGIN_REGEX=true  # Auto-allow localhost on any port (dev-friendly)
 ```
 

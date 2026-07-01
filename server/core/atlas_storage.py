@@ -7,6 +7,7 @@ from typing import Any
 
 import httpx
 
+from server.db.mongodb_uri import is_atlas_uri, parse_atlas_cluster_name
 from server.settings import settings
 from server.utils.logger import get_logger
 
@@ -26,24 +27,6 @@ TIER_STORAGE_LIMIT_MB: dict[str, float] = {
 
 _limit_cache: tuple[float | None, float] | None = None
 _tier_cache: tuple[dict[str, str | float | None] | None, float] | None = None
-
-
-def parse_atlas_cluster_name(uri: str) -> str | None:
-    """Extract Atlas cluster name from an SRV connection string host."""
-    trimmed = uri.strip()
-    if not trimmed or ".mongodb.net" not in trimmed:
-        return None
-    without_scheme = trimmed.split("://", 1)[-1]
-    host_part = without_scheme.split("@")[-1].split("/")[0].split("?")[0]
-    if not host_part.endswith(".mongodb.net"):
-        return None
-    cluster_part = host_part.removesuffix(".mongodb.net")
-    name = cluster_part.split(".")[0]
-    return name or None
-
-
-def is_atlas_uri(uri: str) -> bool:
-    return ".mongodb.net" in uri.strip()
 
 
 def resolve_storage_limit_mb() -> float | None:
