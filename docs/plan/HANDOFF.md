@@ -15,7 +15,7 @@ _Stub — written at end of final slice._
 - `server/core/sie_embedder.py` — SIE provider: BGE-M3 (1024-dim dense), Stella-v5 (1024-dim dense), SPLADE-v3 (30522-dim learned sparse); remote gateway via `SIE_ENDPOINT` + `SIE_API_KEY`; batched encode with preflight healthcheck; cooperative cancel support
 - `server/core/aim_logger.py` — Aim experiment run logging (no-op on any failure — non-fatal)
 - `server/api/sweep.py` — `POST /api/v1/sweep` Tier 1 ranked sweep; caller supplies `corpus: list[str]`; falls back to topic string when empty; `GET /health` extended with `sie` status and `version`
-- `configs/example-mongodb-sie.yaml` — full CLI sweep config (120 runs: bge-m3 + stella-v5 + splade-v3 × all chunking methods × all retrieval methods)
+- `configs/example-mongodb-sie.yaml` — full CLI sweep config (80 runs: bge-m3 + stella-v5 × chunking × retrievers; splade-v3 deferred — Slice 22)
 - 15 new tests across `test_sie_embedder.py`, `test_embedder_factory.py`, `test_sweep_endpoint.py`, `test_config_examples.py`
 
 **Refinements during slice (post 2026-06-27):**
@@ -30,12 +30,11 @@ _Stub — written at end of final slice._
 
 **Core deliverables:**
 
-- `docker-compose.yml` — added `mongodb-local` service under `profiles: ["local-atlas"]`; `mongodb_local_data` named volume
-- `docker-compose.local-atlas.yml` — **NEW** overlay: server `MONGODB_URI` → `mongodb-local:27017`; `MONGODB_STORAGE_LIMIT_MB=0`; `depends_on: mongodb-local`
+- `docker-compose.yml` — `mongodb-local` service under `profiles: ["local-atlas"]`; server URI via `RAG_SERVER_MONGODB_URI` env override (no separate overlay file)
 - `server/db/indexes.py` — `bootstrap_indexes()` detects non-Atlas URI and auto-provisions all vector + text search indexes on boot (no Atlas UI, no M0 3-index quota)
-- `scripts/local-atlas.sh` — **NEW** standalone container manager: `start|stop|reset|status`; waits for healthy; prints connection string
-- `start-services.sh` — `--local` / `RAG_LOCAL_ATLAS=1` flag; compose overlay + profile auto-applied; cloud URI validation skipped in local mode; port 27017 conflict-checked; CLI URI printed on success
-- `docs/user-guide/local-atlas-setup.md` — **NEW** full quick-start: Docker stack, host dev loop, comparison table, switching reference
+- `scripts/lib/compose.sh` — shared Compose helpers + local/cloud URI constants; `start-services.sh mongodb start|stop|reset|status` subcommands
+- `start-services.sh` — `--local` / `RAG_LOCAL_ATLAS=1` flag; compose profile + env override; cloud URI validation skipped in local mode; port 27017 conflict-checked; CLI URI printed on success
+- `docs/user-guide/mongodb-setup.md` — unified cloud + local setup (replaces `cloud-setup.md` and `local-atlas-setup.md`)
 
 **What it solves:** Atlas M0 512 MB ceiling was blocking large local sweeps (incident 2026-05-23: 515 MB used → all writes blocked). Local Atlas has no storage quota, supports identical `$vectorSearch` and `$search` syntax — zero changes to `retriever.py` or `indexes.py` query paths.
 
