@@ -11,7 +11,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 # torch/transformers via sentence-transformers — major upgrade deferred (see pyproject.toml comment).
-# pip tool itself — PYSEC-2026-196 fix is 26.1.2; upgrade with: uv pip install --upgrade pip
+# aim — no upstream fix available yet (CVE-2025-5321, CVE-2025-51464).
+# langchain/langsmith/langgraph — fix requires langsmith>=0.8.18 which needs websockets>=15,
+#   but sie-sdk pins websockets<15; blocked on sie-sdk upgrading its websockets constraint.
 ML_IGNORE=(
   --ignore-vuln PYSEC-2025-41
   --ignore-vuln PYSEC-2024-259
@@ -26,10 +28,20 @@ ML_IGNORE=(
   --ignore-vuln PYSEC-2025-198
   --ignore-vuln PYSEC-2025-203
   --ignore-vuln CVE-2025-3730
-  --ignore-vuln CVE-2025-2148
   --ignore-vuln PYSEC-2025-217
   --ignore-vuln CVE-2026-1839
-  --ignore-vuln PYSEC-2026-196
+  --ignore-vuln CVE-2025-2148
+  --ignore-vuln CVE-2025-2149
+  --ignore-vuln CVE-2025-2998
+  --ignore-vuln CVE-2025-2999
+  --ignore-vuln CVE-2025-3000
+  --ignore-vuln CVE-2025-3001
+  --ignore-vuln CVE-2025-5321
+  --ignore-vuln CVE-2025-51464
+  --ignore-vuln GHSA-gr75-jv2w-4656
+  --ignore-vuln GHSA-f4xh-w4cj-qxq8
+  --ignore-vuln CVE-2026-48775
+  --ignore-vuln CVE-2026-48776
 )
 
 uv run pip-audit --skip-editable "${ML_IGNORE[@]}"
