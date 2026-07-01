@@ -107,6 +107,7 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 
 | I want to… | Start here |
 |---|---|
+| Run entirely offline (no Atlas cloud account) | [MongoDB Setup → Path B](docs/user-guide/mongodb-setup.md#path-b--atlas-local-docker) · `./start-services.sh --local` |
 | Set up MongoDB Atlas or Voyage AI accounts | [MongoDB Setup](docs/user-guide/mongodb-setup.md) |
 | Run my first experiment | [Getting Started](docs/user-guide/getting-started.md) |
 | Understand all config options | [Configuration Reference](docs/user-guide/configuration.md) |
