@@ -37,6 +37,7 @@ Use **MongoDB Atlas** for all storage — both vector embeddings and structured 
 - **Dimension-specific indexes**: Each embedding dimension (384, 1024) requires its own index. Mixed-dimension queries fail silently or error.
 - **M0 storage limit**: 512 MB on the free tier. A typical sweep (36 runs × 1000 chunks × 1024-dim × 4 bytes) uses ~147 MB. Large experiments or many sweeps may exhaust the free tier.
 - **Shared CPU on M0**: Free-tier clusters share compute. Vector search latency may be higher during peak Atlas usage.
+- **Local dev with Atlas Local Docker** (Slice 25): Developers may use `mongodb/mongodb-atlas-local` via `./start-services.sh --local` with the same `$vectorSearch` / `$search` syntax. Index creation is automatic on boot (`bootstrap_indexes()`); the manual UI steps above apply to cloud M0/M2/M5 only.
 
 ---
 

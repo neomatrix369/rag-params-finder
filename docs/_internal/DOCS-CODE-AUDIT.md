@@ -1,6 +1,6 @@
 # Documentation vs Code Audit
 
-**Audit date**: 2026-05-23 (full pass) · **Supplements**: 2026-05-27 (Slice 20) · 2026-05-28 (doc nav) · **2026-06-29 (Slice 21 SIE doc sync)**
+**Audit date**: 2026-05-23 (full pass) · **Supplements**: 2026-05-27 (Slice 20) · 2026-05-28 (doc nav) · **2026-06-29 (Slice 21 SIE doc sync)** · **2026-07-01 (Slices 25/25B Atlas Local + doc sweep)**
 **Auditor**: Claude (automated verification)
 **Scope**: README.md, user guides, contributor guides, code implementation
 
@@ -17,7 +17,7 @@
 | `quality-gates.sh` ↔ `ci.yml` | ✅ Aligned (repo-lint, bandit, coverage, pip-audit, eslint, gitleaks) |
 | `repo-lint.sh` ↔ pre-commit hooks | ✅ shellcheck, actionlint, markdownlint (same revs via pre-commit) |
 | pre-push hook ↔ `pre-push-gates.sh` | ✅ `quality-gates.sh --quick` (pytest + frontend verify + gitleaks); not `pre-commit --all-files` |
-| Test count in contributor docs | ✅ **58** pytest tests (2026-06-29; was 26 → 46 → 50) |
+| Test count in contributor docs | ✅ **78** pytest tests (2026-07-01; was 58 → 78) |
 | Doc entry points | ✅ `QUICKSTART.md`, `docs/README.md`, `docs/slices/PROGRESS.md` (2026-05-28 nav reorg) |
 | Kimchi provider | ⚠️ `Provider` type includes `kimchi`; embedder/registry on `tessl-hackathon-kimchi-integration` branch only — not on main |
 | `development.md` testing section | ✅ Updated (was "no suite yet") |
@@ -39,6 +39,19 @@
 | README Voyage model count (13) | ✅ **RESOLVED** |
 | Voyage example run count | ✅ **40 runs** (was incorrectly "90-run" in cloud-setup links — fixed 2026-06-29) |
 | `docs/plan/GAP_ANALYSIS.md` | ⚠️ Historical pre-slice snapshot — banner added |
+
+**2026-07-01 supplement** (Slices 25/25B Atlas Local + full doc sweep):
+
+| Area | Status |
+|------|--------|
+| `./start-services.sh --local` / `RAG_LOCAL_ATLAS=1` | ✅ README, QUICKSTART, mongodb-setup Path B, CLAUDE.md, development.md |
+| `mongodb start\|stop\|reset\|status` subcommands | ✅ mongodb-setup, scripts/lib/compose.sh referenced in user guides |
+| Local URI auto-provision (`bootstrap_indexes`) | ✅ mongodb-setup, architecture.md, local-environment.md, ADR-003 footnote |
+| Cloud vs local URI detection (`mongodb_uri.py`) | ✅ architecture.md module map |
+| SIE shields.io badge in user/contributor guides | ✅ 9 files aligned with sie-setup.md canonical badge |
+| architecture.md SIE + embedder_factory + sweep API | ✅ Provider section + module tree updated |
+| DOCS-CODE-AUDIT / DOC-GAPS test count | ✅ **78** tests |
+| Internal audit stale architecture gaps | ✅ Closed in architecture.md + local-environment.md |
 
 ---
 
