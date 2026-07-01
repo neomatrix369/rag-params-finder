@@ -14,7 +14,7 @@ Common errors and how to fix them.
 
 **Cause**: Search indexes are missing or not yet **ACTIVE**. On M0 free tier they must be created manually; on M10+ check server logs for auto-creation failures.
 
-**Fix**: Full steps → [Cloud Account Setup → step 6](cloud-setup.md#6-create-search-indexes-m0--required-before-sweep). Quick reference — **Voyage models** (1024-dim), name: `vector_index_1024`:
+**Fix**: Full steps → [MongoDB Setup → step 6](mongodb-setup.md#6-create-search-indexes-m0--required-before-sweep). Quick reference — **Voyage models** (1024-dim), name: `vector_index_1024`:
 ```json
 {
   "fields": [
@@ -89,7 +89,7 @@ rag-params-finder indexes list
 rag-params-finder indexes reset
 
 # 3. On M0, create any still-missing indexes manually in Atlas UI
-#    → Cloud Account Setup step 6
+#    → MongoDB Setup step 6
 ```
 
 If `indexes list` shows 3/3 with unknown indexes, run `indexes reset` before submitting again.
@@ -180,7 +180,7 @@ embedding:
 **Symptom**: `voyageai.error.RateLimitError: Rate limit exceeded` in server logs; run status shows `failed`.
 
 **Fix**:
-- Complete [Cloud Account Setup → Voyage step 3](cloud-setup.md#3-unlock-tier-1-rate-limits-required-for-40-run-voyage-sweep) (payment method + ≥$5 credits + `.env` limits)
+- Complete [MongoDB Setup → Voyage step 3](mongodb-setup.md#3-unlock-tier-1-rate-limits-required-for-40-run-voyage-sweep) (payment method + ≥$5 credits + `.env` limits)
 - Check usage and org limits at [dash.voyageai.com/usage](https://dash.voyageai.com/usage) and [organization rate limits](https://dashboard.voyageai.com/organization/rate-limits)
 - **Free tier** (no payment method): 3 RPM / 10,000 TPM — server defaults match this
 - **Tier 1** (payment method + credits): 2,000 RPM; TPM per model (e.g. `voyage-4-lite` / `voyage-3.5-lite` → 16M, `voyage-4` / `voyage-3.5` → 8M, `rerank-2.5-lite` → 4M). See [Voyage rate limits](https://docs.voyageai.com/docs/rate-limits) and `.env.example`
@@ -413,7 +413,7 @@ Quick reference for the most common SIE problems:
 ## 👉 See Also
 
 - [SIE Provider Setup](sie-setup.md) — remote gateway (preferred) or optional self-hosted Docker
-- [Cloud Account Setup](cloud-setup.md) — Atlas account, Voyage billing, search indexes
+- [MongoDB Setup](mongodb-setup.md) — Atlas account, Voyage billing, search indexes
 - [Getting Started](getting-started.md) — install, configure, first run
 - [Configuration Reference](configuration.md) — fix provider/model mismatch errors
 - [Dashboard Guide](dashboard-guide.md) — understand what the UI is showing

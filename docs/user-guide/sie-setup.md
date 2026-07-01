@@ -794,6 +794,6 @@ python3 -c "import os; print(os.getenv('SIE_ENDPOINT', 'http://localhost:8720'))
 ## Related docs
 
 - [Getting Started](getting-started.md) — install, configure, first experiment
-- [Cloud Account Setup](cloud-setup.md) — Atlas vector search indexes
+- [MongoDB Setup](mongodb-setup.md) — Atlas vector search indexes
 - [Troubleshooting](troubleshooting.md) — general error fixes
 - [Configuration reference](configuration.md) — full YAML reference including `provider: sie`

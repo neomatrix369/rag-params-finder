@@ -10,9 +10,9 @@ Internal notes for local setup, debugging, and maintenance. Not required for bas
 
 ## 🗄️ MongoDB Atlas — Full Setup Details
 
-**User-facing guide:** [Cloud Account Setup](../user-guide/cloud-setup.md#mongodb-atlas-required) — account, cluster, connection string, and search indexes with official MongoDB doc links.
+**User-facing guide:** [MongoDB Setup](../user-guide/mongodb-setup.md#mongodb-atlas-required) — account, cluster, connection string, and search indexes with official MongoDB doc links.
 
-The sections below are contributor/debugging notes. Prefer the cloud-setup guide for onboarding.
+The sections below are contributor/debugging notes. Prefer the mongodb-setup guide for onboarding.
 
 ### Connection String Format
 
@@ -20,7 +20,7 @@ The sections below are contributor/debugging notes. Prefer the cloud-setup guide
 mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority&appName=<app-name>
 ```
 
-Index JSON definitions: [Cloud Account Setup → Search indexes](../user-guide/cloud-setup.md#6-create-search-indexes-m0--manual).
+Index JSON definitions: [MongoDB Setup → Search indexes](../user-guide/mongodb-setup.md#6-create-search-indexes-m0--required-before-sweep).
 
 ### Checking Index Status
 
@@ -64,7 +64,7 @@ The `text_search_index`, `vector_index_384`, and `vector_index_1024` all coexist
 
 ## 🤖 Voyage AI Setup
 
-**User-facing guide:** [Cloud Account Setup → Voyage AI](../user-guide/cloud-setup.md#voyage-ai-optional) — account, API key, $5 credit for Tier 1 rate limits.
+**User-facing guide:** [MongoDB Setup → Voyage AI](../user-guide/mongodb-setup.md#voyage-ai-optional) — account, API key, $5 credit for Tier 1 rate limits.
 
 **`voyage-context-3`**: uses the contextualized embedding API (not standard `embed()`). The server splits long documents into segments that fit the 32K-token window. See [configuration.md](../user-guide/configuration.md#voyage-context-3-contextualized-api) and [troubleshooting.md](../user-guide/troubleshooting.md#-voyage-context-3-token-limit-exceeded).
 

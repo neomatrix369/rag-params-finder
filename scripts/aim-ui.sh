@@ -13,24 +13,16 @@ set -o pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# shellcheck source=scripts/lib/compose.sh
+source ./scripts/lib/compose.sh
+
 if ! command -v docker >/dev/null 2>&1; then
   echo "Docker is required for Aim UI. See docs/user-guide/sie-setup.md#aim-experiment-ui." >&2
   exit 1
 fi
 
-if docker compose version >/dev/null 2>&1; then
-  DOCKER_COMPOSE=(docker compose)
-elif command -v docker-compose >/dev/null 2>&1; then
-  DOCKER_COMPOSE=(docker-compose)
-else
-  echo "Docker Compose is not available." >&2
-  exit 1
-fi
-
-COMPOSE_FILES=(-f docker-compose.yml)
-if [[ "${RAG_DEV_STACK:-}" == "1" ]]; then
-  COMPOSE_FILES+=(-f docker-compose.dev.yml)
-fi
+compose_detect
+compose_files
 
 mkdir -p .aim
 

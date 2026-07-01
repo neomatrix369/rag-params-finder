@@ -20,11 +20,11 @@ Everything you need to run your first RAG parameter sweep experiment.
 |---|---|---|
 | Python | 3.12+ | Install via [python.org](https://www.python.org/downloads/) or `pyenv install 3.12.2` |
 | Node.js | 22+ | Install via [nodejs.org](https://nodejs.org/) or `nvm install 22` |
-| MongoDB Atlas | Free tier (M0) | **Required** — see [Cloud Account Setup](cloud-setup.md#mongodb-atlas-required) |
-| Voyage AI | Optional | Only for Voyage models — see [Cloud Account Setup](cloud-setup.md#voyage-ai-optional) |
+| MongoDB | Cloud M0 or local Docker | **Required** — see [MongoDB Setup](mongodb-setup.md#choose-your-mongodb-backend) |
+| Voyage AI | Optional | Only for Voyage models — see [MongoDB Setup → Voyage AI](mongodb-setup.md#voyage-ai-required-for-voyage-sweep) |
 | Docker Desktop + HF_TOKEN | Optional | **Self-hosted SIE only** — remote gateway needs no Docker; see [SIE Provider Setup](sie-setup.md) |
 
-**New to Atlas or Voyage?** Start with **[Cloud Account Setup](cloud-setup.md)** — account creation, connection string, search indexes, API key, and Tier 1 billing (~15 min).
+**New to Atlas or Voyage?** Start with **[MongoDB Setup](mongodb-setup.md)** — account creation, connection string, search indexes, API key, and Tier 1 billing (~15 min).
 
 **Using SIE (open-source BGE-M3 embeddings)?** See **[SIE Provider Setup](sie-setup.md)** — set `SIE_ENABLED=true` (on/off), then `SIE_ENDPOINT` (+ `SIE_API_KEY` if needed) for a remote gateway, or optional local Docker.
 
@@ -61,7 +61,7 @@ Edit `.env` — minimum for sweeps:
 # Required (both sweeps)
 MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?retryWrites=true&w=majority
 
-# Required for Voyage sweep only — see cloud-setup.md checklist
+# Required for Voyage sweep only — see mongodb-setup.md checklist
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # Uncomment Tier 1 limits in .env.example (comment out free-tier defaults first)
 VOYAGE_RPM_LIMIT=2000
@@ -76,7 +76,7 @@ Full variable reference: [Troubleshooting → Environment Variables](troubleshoo
 
 Both example configs use dense + sparse + hybrid — create **`vector_index_384`** (local) or **`vector_index_1024`** (Voyage or SIE) **and** **`text_search_index`** on the `chunks` collection.
 
-**M0 free tier:** do this manually in Atlas UI before running a sweep — see [Cloud Account Setup → step 6](cloud-setup.md#6-create-search-indexes-m0--required-before-sweep). M0 allows **3 search indexes cluster-wide**; unknown indexes from other projects consume quota.
+**M0 free tier:** do this manually in Atlas UI before running a sweep — see [MongoDB Setup → step 6](mongodb-setup.md#6-create-search-indexes-m0--required-before-sweep). M0 allows **3 search indexes cluster-wide**; unknown indexes from other projects consume quota.
 
 **M10+ paid tier:** server creates indexes on startup — check uvicorn logs.
 
@@ -142,7 +142,7 @@ See [Troubleshooting → Docker](troubleshooting.md#-docker) if startup fails.
 
 ## ▶️ Run Your First Experiment
 
-Complete the checklist for your sweep path in **[Cloud Account Setup → Before you run a sweep](cloud-setup.md#before-you-run-a-sweep)** first.
+Complete the checklist for your sweep path in **[MongoDB Setup → Before you run a sweep](mongodb-setup.md#before-you-run-a-sweep)** first.
 
 ```bash
 # Local sweep — checklist items 1–5 (no Voyage)
@@ -191,7 +191,7 @@ Models are cached in `~/.cache/huggingface/hub/` after the first download.
 
 ## 👉 Next Steps
 
-- [Cloud Account Setup](cloud-setup.md) — Atlas account, Voyage billing, search indexes
+- [MongoDB Setup](mongodb-setup.md) — Atlas cloud or local Docker, Voyage billing, search indexes
 - [SIE Provider Setup](sie-setup.md) — remote gateway (preferred) or optional self-hosted Docker
 - [Configuration reference](configuration.md) — all YAML fields, sweep expansion, queries format
 - [CLI reference](cli-reference.md) — all commands and flags

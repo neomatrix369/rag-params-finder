@@ -29,7 +29,9 @@ bash scripts/repo-lint.sh               # shellcheck + actionlint + markdownlint
 python scripts/check_integrity.py       # unit tests + import smoke
 
 # Docker (server + dashboard; CLI on host)
-./start-services.sh                            # prod profile → :8001, :5374
+./start-services.sh                            # prod profile → :8001, :5374 (Atlas cloud)
+./start-services.sh --local                    # + MongoDB Atlas Local container
+./start-services.sh mongodb start|stop|reset|status  # MongoDB container only
 ./scripts/health-check.sh
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
