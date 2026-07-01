@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-06-29 (Unified MongoDB entry points — scripts + docs)
-**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching | Next: Slice **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota
+**Last Updated**: 2026-07-01 (Slice 26 + 27 planned — local MongoDB docs + mode indicator)
+**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching | Next: **26** 📋 local MongoDB docs · **27** 📋 MongoDB mode indicator · **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota
 
 ---
 
@@ -38,6 +38,8 @@
 | 24 — Port standardisation | ✅ COMPLETE | ~1 h | Unique static ports: frontend 5173→5374 (avoids Vite default), SIE 8080→8720 (avoids Jenkins/Tomcat/etc.); backend 8001 unchanged — spec: [`SLICE-24-PORT-STANDARDISATION.md`](SLICE-24-PORT-STANDARDISATION.md) |
 | 25 — Atlas Local Dev Mode | ✅ COMPLETE | ~1 h | `mongodb-atlas-local` Docker image as opt-in local backend; `local-atlas` compose profile; auto-provision all search indexes on boot for local URI; eliminates M0 512 MB ceiling for local dev — spec: [`SLICE-25-ATLAS-LOCAL.md`](SLICE-25-ATLAS-LOCAL.md) |
 | 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | `./start-services.sh --local`; `./start-services.sh mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](SLICE-25B-ATLAS-SWITCHING.md) |
+| 26 — Local MongoDB smooth-path docs | 📋 PLANNED | ~1 h | Docker pre-flight, wait-for-healthy, stale volume troubleshooting — spec: [`SLICE-26-LOCAL-MONGODB-DOCS.md`](SLICE-26-LOCAL-MONGODB-DOCS.md) |
+| 27 — MongoDB mode indicator | 📋 PLANNED | ~2 h | `get_mongodb_mode()` → `/healthz` + sweep_summary + CLI banner + dashboard header badge — spec: [`SLICE-27-MONGODB-MODE-INDICATOR.md`](SLICE-27-MONGODB-MODE-INDICATOR.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
 
@@ -752,6 +754,9 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-07-01 | slice/21-25b-sie-and-atlas-local | /sync-docs | 21/24/25/25B audit | STAGED | Full branch audit: CHANGELOG ✅, CLAUDE ✅, development.md + docs/README (78 tests), configuration.md SIE callout, QUICKSTART --local, README path row, HANDOFF 25B fix; user-guide mongodb/sie already current |
+| 2026-07-01 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — SIE screenshot crop + maxkb 1200; prerequisites: met (verify-slice COMPLETE 2026-06-30) |
+| 2026-07-01 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — screenshots + Atlas Local docs + pre-commit limit; prerequisites: met (verify-slice COMPLETE 2026-06-30) |
 | 2026-07-01 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — prerequisites: met (verify-slice COMPLETE 2026-06-30) |
 | 2026-06-30 | slice/21-25b-sie-and-atlas-local | /verify-slice | 21/24/25/25B closing tests | COMPLETE | 78 pytest pass; local+cloud smoke OK; SIE sweep 200; fixes: compose profile + local TLS; docs synced |
 | 2026-06-29 | slice/21-25b-sie-and-atlas-local | /verify-slice | Unified MongoDB Entry Points | COMPLETE | 12/12 criteria; quick gates 75 pass; CLI/compose smoke OK; docs current |

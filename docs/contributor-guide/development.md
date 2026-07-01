@@ -137,10 +137,10 @@ uv run pytest --tb=short -q \
 bash scripts/pip-audit.sh
 ```
 
-**Baseline (as of 2026-06-29)**:
+**Baseline (as of 2026-07-01)**:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 58 tests, coverage on scoped modules
+- `pytest` → 78 tests, coverage on scoped modules
 
 ### Frontend
 
