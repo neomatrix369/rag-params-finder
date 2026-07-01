@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **`server/db/mongodb_uri.py`** — cloud vs local MongoDB URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`), shared by index bootstrap and Atlas storage quota lookup
-- **Slice 21 — SIE Skateboard** — SIE (Superlinked Inference Engine) as a third embedding provider; `embedder_factory.py` single dispatch point for voyage/local/sie; `sie_embedder.py` (BGE-M3, Stella-v5, SPLADE-v3 via self-hosted Docker on `:8720`); `aim_logger.py` Aim experiment run logging (no-op on failure); `POST /api/v1/sweep` Tier 1 ranked sweep endpoint (caller supplies `corpus` list; falls back to topic string); `GET /health` extended with `sie`, `version` fields; 58 tests
+- **Slice 21 — SIE Skateboard** — SIE (Superlinked Inference Engine) as a third embedding provider; `embedder_factory.py` single dispatch point for voyage/local/sie; `sie_embedder.py` (BGE-M3, Stella-v5, SPLADE-v3 via remote gateway `SIE_ENDPOINT` + `SIE_API_KEY` or optional self-hosted Docker on `:8720`); `sie_guard.py` preflight before SIE sweeps; `aim_logger.py` Aim experiment run logging (no-op on failure); `POST /api/v1/sweep` Tier 1 ranked sweep endpoint (caller supplies `corpus` list; falls back to topic string); `GET /health` extended with `sie`, `version` fields; `configs/example-mongodb-sie.yaml`; 58 tests
+- **Slice 25 — Atlas Local dev mode** — `./start-services.sh --local` / `RAG_LOCAL_ATLAS=1`; `mongodb-atlas-local` Docker container; search indexes auto-provisioned on server boot for local URI (no Atlas UI manual step)
 - **Documentation navigation** — root [QUICKSTART.md](QUICKSTART.md), [docs/README.md](docs/README.md) persona index; slice tracker at [docs/slices/PROGRESS.md](docs/slices/PROGRESS.md)
 - **Slice 14 Docker Compose** — `./start-services.sh`, `stop-services.sh`, `setup.sh`; `docker-compose.yml` + `docker-compose.dev.yml`; server/frontend Dockerfiles; `/healthz` MongoDB ping; `scripts/health-check.sh`
 - **Contributor docs:** Optional `code-review-graph` MCP guidance in [Development Guide](docs/contributor-guide/development.md) and README Contributing section (not required for end users)
@@ -28,7 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **MongoDB backend unification** — `./start-services.sh mongodb start|stop|reset|status` replaces `scripts/local-atlas.sh`; `cloud-setup.md` and `local-atlas-setup.md` merged into [`docs/user-guide/mongodb-setup.md`](docs/user-guide/mongodb-setup.md); local Atlas Docker overlay folded into `docker-compose.yml` via `RAG_SERVER_MONGODB_URI` env override
+- **Slice 24 — Port standardisation** — dashboard dev server `:5374` (was Vite default `:5173`); SIE gateway `:8720` (was `:8080`); backend `:8001` unchanged
+- **MongoDB backend unification (Slice 25B)** — `./start-services.sh --local` and `mongodb start|stop|reset|status` replace `scripts/local-atlas.sh`; `cloud-setup.md` merged into [`docs/user-guide/mongodb-setup.md`](docs/user-guide/mongodb-setup.md); local Atlas overlay in `docker-compose.yml` via `RAG_SERVER_MONGODB_URI` env override
 - **Pre-push hook** (2026-05-28): replaced `pre-commit run --all-files` on push with `quality-gates.sh --quick` so push runs pytest and frontend verify, not only lint hooks
 - Upgraded urllib3, starlette, idna, langchain-core via uv dependency overrides
 - Pre-commit: gitleaks config, frontend lint hook, bandit hook (`uv run bandit … -ll`, aligned with CI)

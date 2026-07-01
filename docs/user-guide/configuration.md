@@ -38,9 +38,7 @@ embedding:
   models:
     - all-MiniLM-L6-v2               # must match provider: local; sie models need provider: sie (e.g. bge-m3)
 
-> **Using `provider: sie`?** SIE runs as a separate Docker container. `/healthz` returning `ok`
-> does **not** mean BGE-M3 is ready — encode may return 503 for many minutes on first start.
-> See **[SIE Provider Setup](sie-setup.md)** before your first sweep.
+> **Using `provider: sie`?** Set `SIE_ENABLED=true` and point `SIE_ENDPOINT` at a remote gateway (preferred) or optional self-hosted Docker on `:8720`. `/healthz` returning `ok` does **not** mean encode is ready on the Docker path — first warm-up may take many minutes. See **[SIE Provider Setup](sie-setup.md)** before your first sweep.
 
 chunking:
   methods:
