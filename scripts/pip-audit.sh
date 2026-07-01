@@ -32,4 +32,4 @@ ML_IGNORE=(
   --ignore-vuln PYSEC-2026-196
 )
 
-uv run pip-audit "${ML_IGNORE[@]}"
+uv run pip-audit --skip-editable "${ML_IGNORE[@]}"

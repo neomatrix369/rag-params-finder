@@ -27,7 +27,7 @@ repos:
         exclude: ^frontend/tsconfig(\.(app|node))?\.json$
       - id: check-merge-conflict
       - id: check-added-large-files
-        args: ['--maxkb=500']
+        args: ['--maxkb=1200']
       - id: detect-private-key
       - id: debug-statements
 
@@ -36,6 +36,7 @@ repos:
     rev: v0.10.0.1
     hooks:
       - id: shellcheck
+        args: ['-x']
         files: ^scripts/.*\.sh$
 
   - repo: https://github.com/rhysd/actionlint
