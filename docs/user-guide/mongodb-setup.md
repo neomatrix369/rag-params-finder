@@ -140,6 +140,15 @@ Run the full RAG pipeline — including `$vectorSearch` and `$search` (BM25) —
 
 **Prerequisites:** Docker Desktop running; project dependencies installed (`uv venv && source .venv/bin/activate && uv pip install -e ".[dev]"`).
 
+> **Verify Docker is ready before continuing.** Docker Desktop can appear open in the
+> dock while its daemon is still starting (or has crashed). Run:
+> ```bash
+> docker info 2>&1 | head -3
+> ```
+> You should see `Server Version: ...`. If you see `Cannot connect to the Docker daemon`,
+> quit and relaunch Docker Desktop, wait ~20 s for the menu-bar icon to show "Running",
+> then re-run `docker info` to confirm before proceeding.
+
 ### Quick start (full stack)
 
 ```bash
@@ -174,6 +183,19 @@ uvicorn server.main:app --reload --port 8001
 # Terminal 3 — frontend
 cd frontend && npm run dev
 ```
+
+> **Wait for MongoDB to be healthy before starting uvicorn.** The Atlas Local container
+> takes 30–60 s on first boot to initialise its replica set and create indexes. Starting
+> uvicorn while it is still starting produces `Connection reset by peer` warnings in the
+> server log — those are non-fatal, but the cleanest approach is to wait:
+> ```bash
+> until [ "$(docker inspect --format='{{.State.Health.Status}}' \
+>   rag-params-finder-mongodb-local 2>/dev/null)" = "healthy" ]; do
+>   echo "waiting for MongoDB…"; sleep 5
+> done
+> ```
+> Then start uvicorn in Terminal 2. The server log will show `boot OK — server ready`
+> with no connection errors.
 
 ### Auto-created indexes (local URI)
 
