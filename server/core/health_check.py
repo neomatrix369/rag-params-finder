@@ -1,11 +1,9 @@
 """Health probes for /healthz and Docker Compose."""
 
-from datetime import UTC
-
-import certifi
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
+from server.db.mongodb_uri import mongo_client_kwargs
 from server.settings import settings
 
 _MONGODB_PLACEHOLDER_MARKERS = (
@@ -28,10 +26,10 @@ def mongodb_health_status() -> str:
         # Short timeout — default MongoClient waits ~30s; Docker healthcheck allows 10s.
         client: MongoClient = MongoClient(
             uri,
-            tlsCAFile=certifi.where(),
-            tz_aware=True,
-            tzinfo=UTC,
-            serverSelectionTimeoutMS=settings.health_check_mongodb_timeout_ms,
+            **mongo_client_kwargs(
+                uri,
+                serverSelectionTimeoutMS=settings.health_check_mongodb_timeout_ms,
+            ),
         )
         client.admin.command("ping")
         return "ok"

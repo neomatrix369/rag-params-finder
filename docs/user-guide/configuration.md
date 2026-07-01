@@ -304,7 +304,7 @@ Use `configs/example-mongodb-sie.yaml` — same chunking/retriever coverage as t
 
 **Otherwise:** run optional self-hosted Docker, then set `SIE_ENABLED=true` and `SIE_ENDPOINT=http://localhost:8720` — see **[SIE Provider Setup](sie-setup.md)**.
 
-Also requires `vector_index_1024` + `text_search_index` on Atlas. Full checklist: **[Cloud Account Setup → SIE sweep](cloud-setup.md#sie-sweep--example-mongodb-sieyaml)**.
+Also requires `vector_index_1024` + `text_search_index` on Atlas. Full checklist: **[MongoDB Setup → SIE sweep](mongodb-setup.md#sie-sweep--example-mongodb-sieyaml)**.
 
 ```bash
 rag-params-finder run --config configs/example-mongodb-sie.yaml
@@ -329,7 +329,7 @@ To **re-run only failed combinations inside an existing experiment** *(same `exp
 | `voyage-3.5-lite` | $0.02 / 1M tokens | Legacy lite |
 | `rerank-2.5-lite` | $0.02 / 1M tokens | Cheapest reranker |
 
-**Rate limits**: Required for Voyage sweep — add payment method + ≥$5 credits, then set Tier 1 limits in `.env`. See [Cloud Account Setup → Voyage step 3](cloud-setup.md#3-unlock-tier-1-rate-limits-required-for-40-run-voyage-sweep).
+**Rate limits**: Required for Voyage sweep — add payment method + ≥$5 credits, then set Tier 1 limits in `.env`. See [MongoDB Setup → Voyage step 3](mongodb-setup.md#3-unlock-tier-1-rate-limits-required-for-40-run-voyage-sweep).
 
 **Example cost** for a 36-run sweep (3 models × 2 methods × 3 chunk sizes × 2 overlaps):
 - 1 PDF × ~200 pages × 5 chunks/page = 1,000 chunks/run
@@ -461,7 +461,7 @@ CORS_ALLOW_LOCALHOST_ORIGIN_REGEX=false  # Disable regex, use explicit list only
 ## 👉 See Also
 
 - [Getting Started](getting-started.md) — environment setup and first experiment
-- [Cloud Account Setup](cloud-setup.md) — Atlas and Voyage account setup
+- [MongoDB Setup](mongodb-setup.md) — Atlas and Voyage account setup
 - [CLI Reference](cli-reference.md) — how to submit a config and monitor runs
 - [Dashboard Guide](dashboard-guide.md) — interpreting results and scores (including tiebreaker logic)
 - [Extending the System](../contributor-guide/extending.md) — adding new models or chunking methods

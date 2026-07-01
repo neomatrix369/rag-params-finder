@@ -16,6 +16,9 @@ services:
     env_file:
       - .env
     environment:
+      # Cloud: MONGODB_URI from .env. Local Atlas: RAG_SERVER_MONGODB_URI set by start-services.sh --local
+      MONGODB_URI: ${RAG_SERVER_MONGODB_URI:-${MONGODB_URI}}
+      MONGODB_STORAGE_LIMIT_MB: ${RAG_MONGODB_STORAGE_LIMIT_MB:-${MONGODB_STORAGE_LIMIT_MB:-}}
       HF_HOME: ${HF_HOME:-/root/.cache/huggingface}
       # SIE is opt-in — remote gateway preferred (SIE_ENDPOINT + SIE_API_KEY in .env).
       # Self-hosted Docker fallback: docs/user-guide/sie-setup.md
@@ -30,6 +33,10 @@ services:
       - ./input_data:/app/input_data:ro
       - ./.aim:/app/.aim
       - hf_cache:/root/.cache/huggingface
+    depends_on:
+      mongodb-local:
+        condition: service_healthy
+        required: false
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8001/healthz"]
@@ -97,10 +104,10 @@ services:
       retries: 3
       start_period: 20s
 
-  # MongoDB Atlas Local — opt-in: docker compose -f docker-compose.yml -f docker-compose.local-atlas.yml --profile local-atlas up -d
+  # MongoDB Atlas Local — opt-in: ./start-services.sh --local  (or --profile local-atlas)
   # Runs a full single-node Atlas replica set locally; supports $vectorSearch and $search.
-  # CLI on host: MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true
-  # See docs/user-guide/local-atlas-setup.md
+  # CLI on host: export MONGODB_URI from scripts/lib/compose.sh (RAG_LOCAL_MONGODB_URI_HOST)
+  # See docs/user-guide/mongodb-setup.md
   mongodb-local:
     profiles: ["local-atlas"]
     image: mongodb/mongodb-atlas-local:latest

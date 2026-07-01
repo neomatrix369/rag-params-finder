@@ -82,7 +82,7 @@ flowchart TB
 
 ## Acceptance criteria
 
-- [x] With valid `.env` and Atlas indexes ([cloud-setup](../user-guide/cloud-setup.md)), `./start-services.sh` exits 0 and prints :8001 and :5374 URLs
+- [x] With valid `.env` and Atlas indexes ([mongodb-setup](../user-guide/mongodb-setup.md)), `./start-services.sh` exits 0 and prints :8001 and :5374 URLs
 - [x] `curl -f http://localhost:8001/healthz` returns `{"ok": true, "mongodb": "ok"}`
 - [x] `./scripts/health-check.sh` passes
 - [x] Dashboard at `http://localhost:5374` loads; `GET /experiments` works
@@ -112,7 +112,7 @@ flowchart TB
 ## Verification
 
 ```bash
-cp .env.example .env   # real MONGODB_URI; Atlas indexes per cloud-setup.md
+cp .env.example .env   # real MONGODB_URI; Atlas indexes per mongodb-setup.md
 ./start-services.sh
 ./scripts/health-check.sh
 rag-params-finder run --config configs/example-mongodb-local.yaml --detach
@@ -129,6 +129,6 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
 | Risk | Mitigation |
 |------|------------|
 | Large server image (sentence-transformers) | `hf_cache` volume; document first-run download |
-| Missing `input_data/` | Warn in start script; link cloud-setup |
+| Missing `input_data/` | Warn in start script; link mongodb-setup |
 | Atlas IP allowlist | Document `0.0.0.0/0` for dev clusters |
 | Frontend build needs devDependencies | Full `npm ci` in build stage |
