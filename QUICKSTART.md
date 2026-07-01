@@ -37,7 +37,10 @@ Open `http://localhost:5374` to watch live progress and explore results.
 
 ```bash
 cp .env.example .env   # set MONGODB_URI (and VOYAGE_API_KEY if needed)
-./start-services.sh    # server :8001 + dashboard :5374
+./start-services.sh    # server :8001 + dashboard :5374 (Atlas cloud in .env)
+
+# Zero-cloud dev — no Atlas account; MongoDB Atlas Local in Docker + auto-provisioned indexes:
+# ./start-services.sh --local
 
 # Submit sweeps from the host (CLI is not containerized)
 rag-params-finder run --config configs/example-mongodb-local.yaml
