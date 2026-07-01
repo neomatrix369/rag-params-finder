@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-01 (Slice 26 + 27 planned — local MongoDB docs + mode indicator)
-**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching | Next: **26** 📋 local MongoDB docs · **27** 📋 MongoDB mode indicator · **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota
+**Last Updated**: 2026-07-01 (Slice 28 planned — results export / issue #49)
+**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching | Next: **26** 📋 local MongoDB docs · **27** 📋 MongoDB mode indicator · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49)) · **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota
 
 ---
 
@@ -28,7 +28,8 @@
 | — — Unit pytest suite | ✅ COMPLETE | ~1 h | **26 tests** at Slice 20 baseline (now **58** — see `development.md`) |
 | 18 — Unified retriever config | ✅ COMPLETE | ~4–6 h | Unified "retrievers" group (traditional search + rerankers); auto-migrate old format; multi-reranker chains; see [`SLICE-18-UNIFIED-RETRIEVER-CONFIG.md`](SLICE-18-UNIFIED-RETRIEVER-CONFIG.md) |
 | 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) |
-| 11 — Search Explorer enhancements | 📋 PLANNED | ~1 h | Better visualization, export results, query filtering improvements |
+| 11 — Search Explorer enhancements | 📋 PLANNED | ~45 min | Visualization + query filtering only — **export moved to Slice 28** |
+| 28 — Results export (CSV/JSONL) | 📋 PLANNED | ~1.5 h | `GET /experiments/{id}/export` + dashboard download — [issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49) · spec: [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 | 19 — Atlas storage quota guard | 📋 PLANNED | ~3–5 h | Preflight + runtime `OperationFailure` 8000 handling + force-delete recovery; M0 incident 2026-05-23 — see [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) |
 | 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | `quality-gates.sh`, `repo-lint.sh`, `pre-push-gates.sh` (`--quick` on push), `install-git-hooks.sh`, coverage CI, ESLint, bandit, pip-audit, gitleaks, dependabot — [`SLICE-20-TOOLCHAIN-HARDENING.md`](SLICE-20-TOOLCHAIN-HARDENING.md) |
@@ -40,6 +41,7 @@
 | 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | `./start-services.sh --local`; `./start-services.sh mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](SLICE-25B-ATLAS-SWITCHING.md) |
 | 26 — Local MongoDB smooth-path docs | 📋 PLANNED | ~1 h | Docker pre-flight, wait-for-healthy, stale volume troubleshooting — spec: [`SLICE-26-LOCAL-MONGODB-DOCS.md`](SLICE-26-LOCAL-MONGODB-DOCS.md) |
 | 27 — MongoDB mode indicator | 📋 PLANNED | ~2 h | `get_mongodb_mode()` → `/healthz` + sweep_summary + CLI banner + dashboard header badge — spec: [`SLICE-27-MONGODB-MODE-INDICATOR.md`](SLICE-27-MONGODB-MODE-INDICATOR.md) |
+| 28 — Results export | 📋 PLANNED | ~1.5 h | Issue #49 — CSV/JSONL export reusing `analyze_results`; detail-screen download button — spec: [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
 
@@ -706,6 +708,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | 9 — Search Explorer dashboard | Best-params card, ranked configs, per-query results view | Should | ~30 min |
 | 10 — Run recovery | Spec: [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) — `recover` CLI + `POST /experiments/{id}/recover`; per-`run_id` scrub + retry (**FAILED** default; **INTERRUPTED** opt-in); **`RECOVER_ON_BOOT`** retries **INTERRUPTED** only *(not all FAILED)* | Could | ~1–2 h |
 | 11 — Dashboard-triggered runs | Submit experiments from the React UI, not just CLI | Could | ~45 min |
+| 28 — Results export | Spec: [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) — CSV/JSONL download; closes [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | **Should** | ~1.5 h |
 | 12 — SSE live updates | Replace 2 s polling with Server-Sent Events | Could | ~20 min |
 | 13 — Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` | Could | ~15 min |
 | 19 — Storage quota guard | Spec: [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) — preflight at submit (422); runtime `OperationFailure` 8000; HTTP 507 on control APIs; `?force=true` delete; dashboard ≥80% warning; smoke config for M0 | **Should** | ~3–5 h |
@@ -754,6 +757,7 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-07-01 | chore/toolchain-prettier-security-scan | /update-pr | Toolchain extension | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/46 — main sync, uv.lock + pip-audit fixes; prerequisites: bypassed (no /verify-slice on branch) |
 | 2026-07-01 | slice/21-25b-sie-and-atlas-local | /sync-docs | 21/24/25/25B audit | STAGED | Full branch audit: CHANGELOG ✅, CLAUDE ✅, development.md + docs/README (78 tests), configuration.md SIE callout, QUICKSTART --local, README path row, HANDOFF 25B fix; user-guide mongodb/sie already current |
 | 2026-07-01 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — SIE screenshot crop + maxkb 1200; prerequisites: met (verify-slice COMPLETE 2026-06-30) |
 | 2026-07-01 | slice/21-25b-sie-and-atlas-local | /update-pr | 21/24/25/25B | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/52 — screenshots + Atlas Local docs + pre-commit limit; prerequisites: met (verify-slice COMPLETE 2026-06-30) |
