@@ -8,6 +8,7 @@
 ![Vite](https://img.shields.io/badge/Vite_6-646CFF?logo=vite&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-embeddings_%26_reranking-FF6B6B)
 ![sentence-transformers](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
+![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 
 System design, data flow, module structure, and design decisions for `rag-params-finder`.
 
@@ -45,7 +46,7 @@ FastAPI Server
 └──────────────┬───────────────────────────┘
                │
                ▼
-         MongoDB Atlas
+    MongoDB (Atlas cloud or Atlas Local)
          ┌────────────┐
          │ chunks     │  ← embeddings + vector index
          │ experiments│
@@ -70,7 +71,8 @@ FastAPI Server
 | Python 3.12 | Language runtime |
 | Voyage AI SDK | Embeddings + reranking (hosted) |
 | sentence-transformers | Local embeddings + reranking (offline) |
-| MongoDB Atlas / PyMongo | Vector storage + search |
+| SIE (Superlinked Inference Engine) | Open-source embeddings via remote gateway or optional Docker (`sie_embedder.py`) |
+| MongoDB Atlas / PyMongo | Vector storage + search (cloud or Atlas Local Docker) |
 | LangChain text splitters | Recursive, fixed, token chunking |
 | NLTK | Sentence chunking |
 | tiktoken | Token-based chunking |
@@ -100,9 +102,14 @@ rag-params-finder/
 │   ├── api/
 │   │   ├── experiments.py   # CRUD, explore, db-stats, pause, resume, cancel, delete
 │   │   ├── experiments_shared.py  # Mongo helpers incl. db-stats aggregation
+│   │   ├── sweep.py         # POST /api/v1/sweep, GET /api/v1/best-config (Tier 1 ranked sweep)
 │   │   └── runs.py          # GET /runs/{id}/status
 │   ├── core/
 │   │   ├── orchestrator.py  # run_sweep(), resume_sweep(), run_single() pipeline; index preflight
+│   │   ├── embedder_factory.py  # get_embedder(provider) — voyage | local | sie dispatch
+│   │   ├── sie_embedder.py  # SIE embeddings (BGE-M3, Stella-v5, SPLADE-v3)
+│   │   ├── sie_guard.py     # SIE preflight — SIE_ENABLED + gateway reachability
+│   │   ├── aim_logger.py    # Aim experiment run logging (no-op on init failure)
 │   │   ├── executors.py     # SWEEP_EXECUTOR + HEAVY_READ_EXECUTOR (isolate long work from API pool)
 │   │   ├── search_index_plan.py  # required indexes from config; capacity assessment (pure)
 │   │   ├── search_index_guard.py # cluster snapshot + ensure retry; SearchIndexMismatchError
@@ -129,8 +136,9 @@ rag-params-finder/
 │   │   ├── status.py        # RunStatus model
 │   │   └── results.py       # QueryResult, SearchResult, Chunk
 │   └── db/
-│       ├── atlas.py         # MongoDB connection singleton
-│       └── indexes.py       # collection + search index creation; list_cluster_search_indexes()
+│       ├── atlas.py         # MongoDB connection singleton (TLS for cloud URIs only)
+│       ├── mongodb_uri.py   # is_atlas_uri(), parse_atlas_cluster_name() — cloud vs local detection
+│       └── indexes.py       # collection + search index creation; bootstrap_indexes() on local URI
 ├── cli/
 │   ├── main.py              # Typer app (run, cancel, pause, resume, delete, indexes, version)
 │   ├── indexes_cmd.py       # indexes list | reset subcommands
@@ -175,8 +183,8 @@ Each run progresses through phases tracked in the `run_status` collection:
 | `QUEUED` | Run created, waiting to start |
 | `PARSING` | Source files (PDF/TXT/MD/CSV) → plain text |
 | `CHUNKING` | Text → chunks (per the configured method and params) |
-| `EMBEDDING` | Chunks → embedding vectors (Voyage API or local model) |
-| `STORING` | Write chunks + embeddings to Atlas |
+| `EMBEDDING` | Chunks → embedding vectors (Voyage API, local model, or SIE gateway) |
+| `STORING` | Write chunks + embeddings to MongoDB |
 | `QUERYING` | Execute all test queries against the vector index |
 | `RERANKING` | Cross-encoder reranks top-K initial results to top-K final |
 | `COMPLETE` / `FAILED` / `INTERRUPTED` | Terminal state |
@@ -185,11 +193,12 @@ Each run progresses through phases tracked in the `run_status` collection:
 
 ## 🤖 Provider System
 
-Two independent provider settings in each experiment config:
+Three embedding providers routed via `embedder_factory.get_embedder(provider)` — the orchestrator never branches on provider directly.
 
 **Embedding provider** (`embedding.provider`):
 - `local` → `server/core/local_embedder.py` → sentence-transformers `all-MiniLM-L6-v2` (384-dim)
 - `voyage` → `server/core/embedder.py` → Voyage AI API (1024-dim); `voyage-context-3` uses `contextualized_embed()` with per-document segment splitting (32K-token window)
+- `sie` → `server/core/sie_embedder.py` → BGE-M3, Stella-v5 (1024-dim dense), SPLADE-v3 (30522-dim sparse); preflight via `sie_guard.py`; see [SIE setup](../user-guide/sie-setup.md)
 
 **Retrieval configuration** (`retrieval.retrievers`):
 - List of retriever types to sweep — each entry becomes one run (never combined)
@@ -200,11 +209,26 @@ Two independent provider settings in each experiment config:
   - Reranker runs fetch dense candidates internally before reranking
 - Old format (`methods` + `retrieval_provider`/`retrieval_model`) auto-migrates to `retrievers` via Pydantic validator
 
-Provider flows explicitly through `RunParams` → `orchestrator` → embedder/reranker. The `model_registry.py` validates that model names match the declared provider at config load time.
+Provider flows explicitly through `RunParams` → `orchestrator` → `embedder_factory` → embedder/reranker. The `model_registry.py` validates that model names match the declared provider at config load time.
+
+**Tier 1 sweep API**: `POST /api/v1/sweep` accepts a ranked sweep request (caller supplies corpus list); `GET /health` includes `sie` and `version` fields when SIE is configured.
 
 ---
 
-## 🗄️ MongoDB Atlas Collections
+## 🗄️ MongoDB Backend
+
+Two deployment modes share identical query syntax (`$vectorSearch`, `$search`):
+
+| Mode | URI pattern | Index provisioning |
+|------|-------------|-------------------|
+| **Atlas cloud** | `mongodb+srv://...` | Manual in Atlas UI on M0/M2/M5; server preflights on submit |
+| **Atlas Local (Docker)** | `mongodb://localhost:27017/...?directConnection=true` | `bootstrap_indexes()` on server boot — no UI steps |
+
+Detection: `server/db/mongodb_uri.py` (`is_atlas_uri`). TLS enabled only for cloud URIs (`server/db/atlas.py`). Docker: `./start-services.sh --local` or `RAG_LOCAL_ATLAS=1`. See [MongoDB Setup](../user-guide/mongodb-setup.md).
+
+---
+
+## 🗄️ MongoDB Collections
 
 | Collection | Purpose | Key Indexes |
 |---|---|---|
@@ -260,10 +284,11 @@ See `docs/adr/` for Architecture Decision Records:
 | Mode | Command | Notes |
 |------|---------|-------|
 | Manual (default dev) | `uvicorn` + `npm run dev` | Two terminals; hot reload |
-| Docker (prod profile) | `./start-services.sh` | Server + dashboard containers; host CLI |
+| Docker (prod profile) | `./start-services.sh` | Server + dashboard containers; Atlas cloud from `.env` |
+| Docker + Atlas Local | `./start-services.sh --local` | Adds `mongodb-atlas-local` container; auto-provisions search indexes |
 | Docker (dev profile) | `docker compose --profile dev up` | Bind mounts + HMR |
 
-Atlas connection string and API keys live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../slices/SLICE-14-DOCKER-COMPOSE.md).
+Atlas connection string and API keys live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../slices/SLICE-14-DOCKER-COMPOSE.md) and [MongoDB Setup](../user-guide/mongodb-setup.md).
 
 ---
 
