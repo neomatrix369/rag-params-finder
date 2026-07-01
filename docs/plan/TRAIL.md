@@ -25,8 +25,9 @@ Each PCTO slice lives in its own file below. Existing planned slices (10, 16, 19
 | 19 | [../slices/SLICE-19-STORAGE-QUOTA-GUARD.md](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) | Storage quota guard (cloud production) | Should | pending | — | — | — |
 | 16 | [../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) | Parallel sweep | Should | pending | — | — | — |
 | 10 | [../slices/SLICE-10-RUN-RECOVERY.md](../slices/SLICE-10-RUN-RECOVERY.md) | Run recovery | Could | pending | — | — | — |
+| 28 | [../slices/SLICE-28-RESULTS-EXPORT.md](../slices/SLICE-28-RESULTS-EXPORT.md) | Results export — CSV/JSONL download (issue #49) | Must | 📋 PLANNED | [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | ~3 min | 2026-07-01 |
 
-**Execution order**: 21 → 25 → 25B (done) → 22 → 19 (can overlap) → 16 → 23 → 10
+**Execution order**: 21 → 25 → 25B (done) → 26 → 27 → **28** → 22 → 19 (can overlap) → 16 → 23 → 10
 
 ## Supporting Artifacts
 
