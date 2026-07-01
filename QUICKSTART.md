@@ -6,7 +6,7 @@
 
 ## 🚀 Quick Start
 
-**Prerequisites:** Python 3.12+, Node.js 22+, [MongoDB Atlas account](docs/user-guide/cloud-setup.md#mongodb-atlas-required) (free tier). [Voyage AI](docs/user-guide/cloud-setup.md#voyage-ai-optional) optional for local-only sweeps.
+**Prerequisites:** Python 3.12+, Node.js 22+. MongoDB: [Atlas cloud or local Docker](docs/user-guide/mongodb-setup.md#choose-your-mongodb-backend). [Voyage AI](docs/user-guide/mongodb-setup.md#voyage-ai-required-for-voyage-sweep) optional for local-embedding sweeps.
 
 ```bash
 # Clone and install
@@ -16,14 +16,14 @@ uv venv && source .venv/bin/activate
 uv pip install -e .
 cd frontend && npm install && cd ..
 
-# Configure — see docs/user-guide/cloud-setup.md for minimal Atlas + Voyage checklist
+# Configure — see docs/user-guide/mongodb-setup.md for minimal Atlas + Voyage checklist
 cp .env.example .env
 
 # Start
 uvicorn server.main:app --reload --port 8001   # Terminal 1
 cd frontend && npm run dev                      # Terminal 2 (optional)
 
-# Sweeps — complete cloud-setup.md checklist first
+# Sweeps — complete mongodb-setup.md checklist first
 rag-params-finder run --config configs/example-mongodb-local.yaml   # 120 runs, no API key
 rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 40 runs, Voyage + Tier 1
 # rag-params-finder run --config configs/example-mongodb-sie.yaml   # 80 runs, SIE — remote gateway or optional Docker; see sie-setup.md
@@ -33,7 +33,7 @@ Open `http://localhost:5374` to watch live progress and explore results.
 
 ### Docker Quick Start (optional)
 
-**Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/), MongoDB Atlas configured ([cloud-setup](docs/user-guide/cloud-setup.md)). Install the CLI on the host (`uv pip install -e .`).
+**Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/), MongoDB configured ([mongodb-setup](docs/user-guide/mongodb-setup.md)). Install the CLI on the host (`uv pip install -e .`).
 
 ```bash
 cp .env.example .env   # set MONGODB_URI (and VOYAGE_API_KEY if needed)

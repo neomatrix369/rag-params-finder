@@ -49,12 +49,22 @@ npm run build
 ### Docker (optional)
 
 ```bash
-./start-services.sh                    # server + dashboard (Atlas in .env)
+./start-services.sh                    # server + dashboard (Atlas cloud in .env)
+./start-services.sh --local            # server + dashboard + MongoDB Atlas Local (no cloud account)
+RAG_LOCAL_ATLAS=1 ./start-services.sh  # same as --local via env var
+./start-services.sh mongodb [start|stop|reset|status]  # manage local Atlas container standalone
 ./scripts/health-check.sh
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build  # dev HMR
 ```
 
-Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/slices/SLICE-14-DOCKER-COMPOSE.md`.
+Backend switching — only the start command changes:
+
+| Backend | MONGODB_URI (CLI / host server) |
+|---------|--------------------------------|
+| Atlas cloud | `mongodb+srv://...` (from .env) |
+| Atlas Local | `mongodb://localhost:27017/rag_params_finder?directConnection=true` |
+
+Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/slices/SLICE-14-DOCKER-COMPOSE.md` and `docs/user-guide/mongodb-setup.md`.
 
 ### CLI
 
@@ -85,6 +95,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/search_index_plan.py` | Pure logic: required indexes from config, capacity assessment |
 | `server/core/search_index_guard.py` | Cluster snapshot + ensure_indexes retry; raises on mismatch |
 | `server/core/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
+| `server/db/mongodb_uri.py` | Cloud vs local URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`) |
 | `server/core/atlas_storage.py` | Atlas Admin API cluster quota + tier specs (`resolve_tier_specs`); shared-tier storage fallbacks |
 | `server/core/model_registry.py` | Embedding + reranking model catalog |
 | `server/core/embedder_factory.py` | Provider dispatch factory; `get_embedder(provider)` returns `(embed_docs_fn, embed_query_fn)` — add new providers here, not in orchestrator |
@@ -93,6 +104,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/sie_embedder.py` | SIE embeddings (BGE-M3, Stella-v5, SPLADE-v3) via remote gateway or optional self-hosted Docker |
 | `server/core/aim_logger.py` | Aim experiment run logging wrapper; `AimLogger.log_run()` — no-op if Aim init fails |
 | `scripts/aim-ui.sh` | Start Aim UI on :43800 via Docker (shared `./.aim` repo with server) |
+| `scripts/lib/compose.sh` | Shared Docker Compose helpers + local/cloud MongoDB URI constants; `start-services.sh mongodb` subcommands |
 | `server/api/sweep.py` | `POST /api/v1/sweep` (ranked results, SIE vs voyage baseline) + `GET /api/v1/best-config` |
 | `server/core/reranker.py` | Voyage reranking client |
 | `server/core/local_reranker.py` | CrossEncoder reranking (lazy-load) |

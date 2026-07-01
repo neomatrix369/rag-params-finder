@@ -30,7 +30,7 @@
 
 | Area | Status |
 |------|--------|
-| SIE provider (`provider: sie`) | ✅ Documented in `configuration.md`, `sie-setup.md`, `cloud-setup.md`, `extending.md` |
+| SIE provider (`provider: sie`) | ✅ Documented in `configuration.md`, `sie-setup.md`, `mongodb-setup.md`, `extending.md` |
 | `SIE_ENABLED` / `SIE_ENDPOINT` / `SIE_API_KEY` / `HF_TOKEN` / `AIM_REPO` | ✅ In `.env.example` and `configuration.md` env table |
 | `configs/example-mongodb-sie.yaml` | ✅ Committed; 120 runs; validated by `tests/test_config_examples.py` |
 | `GET /health`, `POST /api/v1/sweep`, `GET /api/v1/best-config` | ✅ In `cli-reference.md` API table |

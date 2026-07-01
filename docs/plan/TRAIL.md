@@ -17,14 +17,16 @@ Each PCTO slice lives in its own file below. Existing planned slices (10, 16, 19
 
 | # | File | Name | MoSCoW | Status | Issue | Read time | Last Updated |
 |---|------|------|--------|--------|-------|-----------|--------------|
-| 21 | [slice-21-sie-skateboard.md](slice-21-sie-skateboard.md) | SIE Skateboard — embeddings + Aim + `/api/v1/sweep` | Must | ✅ COMPLETE | — | ~4 min | 2026-06-28 |
+| 21 | [slice-21-sie-skateboard.md](slice-21-sie-skateboard.md) | SIE Skateboard — embeddings + Aim + `/api/v1/sweep` | Must | ✅ COMPLETE | — | ~4 min | 2026-06-29 |
+| 25 | [../slices/SLICE-25-ATLAS-LOCAL.md](../slices/SLICE-25-ATLAS-LOCAL.md) | Atlas Local Dev Mode — `mongodb-atlas-local` as opt-in backend | Should | ✅ COMPLETE | — | ~2 min | 2026-06-29 |
+| 25B | [../slices/SLICE-25B-ATLAS-SWITCHING.md](../slices/SLICE-25B-ATLAS-SWITCHING.md) | Atlas Backend Switching — single-flag cloud ↔ local switching | Should | ✅ COMPLETE | — | ~2 min | 2026-06-29 |
 | 22 | [slice-22-sie-scooter.md](slice-22-sie-scooter.md) | SIE Scooter — reranking + `/api/v1/best-config` + MCP stub | Should | pending | — | ~3 min | 2026-06-27 |
 | 23 | [slice-23-sie-bicycle.md](slice-23-sie-bicycle.md) | SIE Bicycle — Ollama + Tier 2–3 methods + Evidently AI | Could | pending | — | ~3 min | 2026-06-27 |
-| 19 | [../slices/SLICE-19-STORAGE-QUOTA-GUARD.md](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) | Storage quota guard | Should | pending | — | — | — |
+| 19 | [../slices/SLICE-19-STORAGE-QUOTA-GUARD.md](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) | Storage quota guard (cloud production) | Should | pending | — | — | — |
 | 16 | [../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md](../slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) | Parallel sweep | Should | pending | — | — | — |
 | 10 | [../slices/SLICE-10-RUN-RECOVERY.md](../slices/SLICE-10-RUN-RECOVERY.md) | Run recovery | Could | pending | — | — | — |
 
-**Execution order**: 21 → 19 (can overlap) → 22 → 16 → 23 → 10
+**Execution order**: 21 → 25 → 25B (done) → 22 → 19 (can overlap) → 16 → 23 → 10
 
 ## Supporting Artifacts
 
@@ -32,7 +34,7 @@ Each PCTO slice lives in its own file below. Existing planned slices (10, 16, 19
 |------|--------|-----------|--------------|
 | GAP_ANALYSIS.md | written | ~2 min | 2026-06-27 |
 | DECISIONS.md | written | ~2 min | 2026-06-27 |
-| HANDOFF.md | pending | — | — |
+| HANDOFF.md | written | ~2 min | 2026-06-29 |
 
 ## Slice Token Summary
 
