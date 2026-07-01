@@ -2,6 +2,7 @@
 
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
+![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 
 Common errors and how to fix them.

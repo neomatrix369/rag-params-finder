@@ -5,6 +5,7 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
 ![sentence-transformers](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
+![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 
 Everything you need to run your first RAG parameter sweep experiment.
 

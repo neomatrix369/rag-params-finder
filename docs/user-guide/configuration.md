@@ -3,6 +3,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
 ![sentence-transformers](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
+![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 
 All YAML fields, sweep expansion rules, and queries file format.
 

@@ -2,6 +2,7 @@
 
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
+![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 
 Internal notes for local setup, debugging, and maintenance. Not required for basic contribution — see [development.md](development.md) for the standard dev workflow.
@@ -13,6 +14,21 @@ Internal notes for local setup, debugging, and maintenance. Not required for bas
 **User-facing guide:** [MongoDB Setup](../user-guide/mongodb-setup.md#mongodb-atlas-required) — account, cluster, connection string, and search indexes with official MongoDB doc links.
 
 The sections below are contributor/debugging notes. Prefer the mongodb-setup guide for onboarding.
+
+### Path B — Atlas Local (Docker)
+
+For offline development without a cloud Atlas account, use Atlas Local via Docker. Search indexes are **auto-provisioned on server boot** — skip the manual UI steps below.
+
+→ [MongoDB Setup → Path B](../user-guide/mongodb-setup.md#path-b--atlas-local-docker)
+
+```bash
+./start-services.sh --local          # server + dashboard + mongodb-atlas-local
+./start-services.sh mongodb status     # container health only
+```
+
+Local URI (from `.env.example`): `mongodb://localhost:27017/rag_params_finder?directConnection=true`
+
+**Cloud Path A only:** the manual index JSON definitions below apply when using `mongodb+srv://...` on M0/M2/M5.
 
 ### Connection String Format
 
@@ -70,14 +86,38 @@ The `text_search_index`, `vector_index_384`, and `vector_index_1024` all coexist
 
 ---
 
+## 🔬 SIE (Superlinked Inference Engine)
+
+**User-facing guide:** [SIE Setup](../user-guide/sie-setup.md) — remote gateway (preferred) or optional self-hosted Docker.
+
+Env vars (see [`.env.example`](../../.env.example) for full comments):
+
+```bash
+SIE_ENABLED=true
+SIE_ENDPOINT=https://your-sie-gateway.example.com   # or http://localhost:8720 for local Docker
+SIE_API_KEY=your_gateway_token                      # omit when gateway has no auth
+AIM_REPO=./.aim                                     # optional — Aim UI via ./scripts/aim-ui.sh
+```
+
+Example sweep: `rag-params-finder run --config configs/example-mongodb-sie.yaml`
+
+---
+
 ## 🔑 Full .env Reference
 
 ```bash
-# MongoDB Atlas (REQUIRED)
+# MongoDB Atlas (REQUIRED — cloud or Atlas Local)
 MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?retryWrites=true&w=majority
+# Atlas Local alternative:
+# MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true
 
 # Voyage AI (OPTIONAL — only if using Voyage models)
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# SIE (OPTIONAL — only if using provider: sie)
+# SIE_ENABLED=true
+# SIE_ENDPOINT=https://your-sie-gateway.example.com
+# SIE_API_KEY=
 
 # Server URL (used by CLI, default is localhost:8001)
 SERVER_URL=http://localhost:8001

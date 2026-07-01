@@ -2,6 +2,7 @@
 
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
+![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 
 **Essential, minimal steps** to run the example sweep commands on **Atlas Cloud** or **Atlas Local (Docker)**. Official vendor docs are linked; details you can skip are marked *optional*.
 
@@ -135,6 +136,8 @@ The server **preflights** required indexes on experiment submit — missing inde
 ---
 
 ## Path B — Atlas Local (Docker)
+
+![MongoDB Atlas Local](https://img.shields.io/badge/MongoDB_Atlas_Local-Docker-47A248?logo=mongodb&logoColor=white)
 
 Run the full RAG pipeline — including `$vectorSearch` and `$search` (BM25) — on your laptop using the official `mongodb/mongodb-atlas-local` Docker image. No Atlas cloud account, no 512 MB storage ceiling, no manual UI index creation.
 

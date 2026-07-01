@@ -7,6 +7,8 @@
 
 The React dashboard at `http://localhost:5374` visualizes experiments and results. Experiments are **submitted from the CLI**; the dashboard can **pause, resume, cancel, and delete** active sweeps. It polls the server every 2 seconds while any experiment is `running` or `paused`.
 
+**Prerequisites:** MongoDB backend ready ([MongoDB Setup](mongodb-setup.md)) and server running. Optional SIE sweeps require [SIE Setup](sie-setup.md) before submitting `example-mongodb-sie.yaml`.
+
 All screens feature:
 - **Loading feedback panels** with progress bars during initial data loads
 - **Polling indicators** (subtle "Syncing..." badge) during background refreshes
