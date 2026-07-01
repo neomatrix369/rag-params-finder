@@ -102,6 +102,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting; provider dispatch removed to `embedder_factory.py` |
 | `server/core/local_embedder.py` | sentence-transformers embedding (lazy-load) |
 | `server/core/sie_embedder.py` | SIE embeddings (BGE-M3, Stella-v5, SPLADE-v3) via remote gateway or optional self-hosted Docker |
+| `server/core/sie_guard.py` | SIE preflight guard — verifies `SIE_ENABLED` and gateway reachability before SIE embedding sweeps |
 | `server/core/aim_logger.py` | Aim experiment run logging wrapper; `AimLogger.log_run()` — no-op if Aim init fails |
 | `scripts/aim-ui.sh` | Start Aim UI on :43800 via Docker (shared `./.aim` repo with server) |
 | `scripts/lib/compose.sh` | Shared Docker Compose helpers + local/cloud MongoDB URI constants; `start-services.sh mongodb` subcommands |
@@ -237,7 +238,7 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 **Backend** (2026-05-27):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 58 tests, coverage on scoped modules (80% threshold)
+- `pytest` → 78 tests, coverage on scoped modules (80% threshold)
 
 **Frontend** (2026-05-27):
 - `npm run lint` → 0 errors (eslint + security plugin)
