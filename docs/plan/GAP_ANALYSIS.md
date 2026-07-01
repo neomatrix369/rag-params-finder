@@ -20,6 +20,7 @@
 | Ollama LLM | Context Compression, HyDE, Multi-Query, RAG-Fusion | None | Ollama client + Tier 2–3 retrieval methods | Notable | 23 |
 | Evidently AI monitoring | Retrieval quality drift monitoring | None | Evidently integration, drift alerts | Minor | 23 |
 | MCP server | `get_rag_config(task_description)` via Alpic.ai | None | MCP wrapper around `GET /api/v1/best-config` | Minor | 22 |
+| Results export | `GET /experiments/{id}/export` CSV/JSONL | JSON only via `/results` and `/explore` | No download endpoint or dashboard export button | Notable | [28](../slices/SLICE-28-RESULTS-EXPORT.md) |
 
 ## What Is Already Sufficient (No Gap)
 
