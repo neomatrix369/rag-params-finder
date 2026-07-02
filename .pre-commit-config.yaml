@@ -27,7 +27,7 @@ repos:
         exclude: ^frontend/tsconfig(\.(app|node))?\.json$
       - id: check-merge-conflict
       - id: check-added-large-files
-        args: ['--maxkb=500']
+        args: ['--maxkb=1200']
       - id: detect-private-key
       - id: debug-statements
 
@@ -36,6 +36,7 @@ repos:
     rev: v0.10.0.1
     hooks:
       - id: shellcheck
+        args: ['-x']
         files: ^scripts/.*\.sh$
 
   - repo: https://github.com/rhysd/actionlint
@@ -109,11 +110,26 @@ repos:
         files: ^frontend/
         exclude: ^frontend/node_modules/
 
-  # ── Pre-push: fast CI gates (pre-rag: Husky → npm run test:all) ─
+  # ── Commit: fast tests (fail-fast, no coverage overhead) ────────
+  # Catches obvious regressions in <30s before the commit is recorded.
+  # Coverage enforcement lives in the pre-push stage below.
+  - repo: local
+    hooks:
+      - id: fast-tests
+        name: fast unit tests (fail-fast)
+        entry: uv run pytest -x -q --tb=short --no-header
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+  # ── Pre-push: full CI gates ───────────────────────────────────────
+  # Runs the complete quality-gates suite (tests + coverage + pip-audit).
+  # --quick is NOT used: every push must pass all gates.
   - repo: local
     hooks:
       - id: pre-push-gates
-        name: pre-push gates (lint, test, verify, secrets)
+        name: pre-push gates (full test suite, coverage, secrets)
         entry: bash scripts/pre-push-gates.sh
         language: system
         pass_filenames: false

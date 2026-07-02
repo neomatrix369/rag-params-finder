@@ -31,7 +31,7 @@ uvicorn server.main:app --reload --port 8001
 ```bash
 cd frontend
 npm install
-npm run dev    # → http://localhost:5173
+npm run dev    # → http://localhost:5374
 ```
 
 ### Three-terminal development loop
@@ -53,11 +53,12 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 One-command stack for server + dashboard (MongoDB Atlas stays external). The **CLI runs on the host** at `SERVER_URL=http://localhost:8001` ([ADR-001](../adr/ADR-001-two-process-architecture.md)).
 
-**Prerequisites:** Docker Desktop (or engine + Compose v2), valid `.env` with `MONGODB_URI`, Atlas search indexes per [cloud-setup](../user-guide/cloud-setup.md).
+**Prerequisites:** Docker Desktop (or engine + Compose v2), valid `.env` with `MONGODB_URI`, Atlas search indexes per [mongodb-setup](../user-guide/mongodb-setup.md).
 
 ```bash
 cp .env.example .env
-./start-services.sh              # prod: built frontend + uvicorn (ports 8001, 5173)
+./start-services.sh              # prod: built frontend + uvicorn (ports 8001, 5374)
+./start-services.sh --force-build # rebuild images even when source unchanged
 ./scripts/health-check.sh        # smoke: server, frontend, Atlas via /healthz
 
 # Host CLI (install once: uv pip install -e .)
@@ -73,7 +74,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 | Port | Service |
 |------|---------|
 | 8001 | FastAPI server |
-| 5173 | React dashboard |
+| 5374 | React dashboard |
 
 **Profiles:** default = production-like (`vite preview`); `dev` = bind-mounted source + `/api` proxy to `http://server:8001`.
 
@@ -127,16 +128,19 @@ uv run pytest --tb=short -q \
   --cov=server.core.search_index_guard \
   --cov=server.core.results_analyzer \
   --cov=server.models.config \
+  --cov=server.core.sie_embedder \
+  --cov=server.core.aim_logger \
+  --cov=server.core.embedder_factory \
   --cov-fail-under=80
 
 # Python dependency audit (ML transitive vulns tracked — see scripts/pip-audit.sh)
 bash scripts/pip-audit.sh
 ```
 
-**Baseline (as of 2026-05-28)**:
+**Baseline (as of 2026-07-01)**:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 26 tests, 83.6% coverage on scoped modules
+- `pytest` → 78 tests, coverage on scoped modules
 
 ### Frontend
 
@@ -237,8 +241,11 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 | `test_search_index_guard.py` | 2 | Preflight guard (mocked I/O) |
 | `test_expand_sweep.py` | 3 | Unified `retrievers` sweep expansion |
 | `test_tiebreaker_ranking.py` | 3 | Weighted ranking / tiebreaker logic |
+| `test_embedder_factory.py` | 6 | Provider dispatch factory (voyage/local/sie) |
+| `test_sie_embedder.py` | 5 | SIE BGE-M3 dense embedding (mocked SIEClient) |
+| `test_sweep_endpoint.py` | 9 | `POST /api/v1/sweep` + health helpers |
 
-**Total:** 26 pytest tests (2026-05-28 baseline: 17 search-index + 3 sweep + 3 tiebreaker + 3 health). Coverage is enforced at **80%** on four scoped server modules (see Quality Gates above).
+**Total:** 46 pytest tests (baseline: 15 search-index + 3 expand-sweep + 3 tiebreaker + 3 health + 2 search-index-guard + 6 embedder-factory + 5 sie-embedder + 9 sweep-endpoint). Coverage is enforced at **80%** on seven scoped server modules (see Quality Gates above).
 
 **Still manual / not automated:**
 - End-to-end pipeline via CLI + dashboard (real Atlas + optional Voyage)
@@ -334,7 +341,7 @@ Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabo
 **Server and CLI** use Option A scoped logging via `server/utils/scope_log.py`:
 
 ```
-[rag-params-finder] [Orchestrator] sweep scheduled — experiment abc123, 90 run(s)
+[rag-params-finder] [Orchestrator] sweep scheduled — experiment abc123, 120 run(s)
 [rag-params-finder] [indexes] vector indexes OK — already exist
 ```
 

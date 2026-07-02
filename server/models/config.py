@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, model_validator
 from server.core.model_registry import EMBEDDING_MODELS, RERANKER_MODELS
 from server.models.enums import ChunkingMethod, RetrievalMethod, RetrieverType
 
-Provider = Literal["local", "voyage", "kimchi"]
+Provider = Literal["local", "voyage", "sie", "kimchi"]
 DatabaseProvider = Literal["mongodb"]  # Future: "pinecone", "weaviate", "qdrant"
 
 

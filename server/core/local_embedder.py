@@ -6,6 +6,8 @@ and cached locally.  Subsequent runs load from cache instantly.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from sentence_transformers import SentenceTransformer
 
 from server.core.model_registry import get_model_info
@@ -26,8 +28,15 @@ def _get_model(model_id: str) -> SentenceTransformer:
     return _models[model_id]
 
 
-def embed_documents_local(texts: list[str], model_id: str) -> list[list[float]]:
+def embed_documents_local(
+    texts: list[str],
+    model_id: str,
+    *,
+    cancel_check: Callable[[], None] | None = None,
+) -> list[list[float]]:
     """Embed documents using a local SentenceTransformer model."""
+    if cancel_check is not None:
+        cancel_check()
     logger.info("embedding local batch — texts=%s model=%s", len(texts), model_id)
     model = _get_model(model_id)
     embeddings = model.encode(texts, show_progress_bar=False, normalize_embeddings=True)
