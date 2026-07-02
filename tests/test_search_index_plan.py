@@ -11,6 +11,7 @@ from server.core.search_index_plan import (
     assess_search_index_readiness,
     format_mismatch_message,
     required_search_indexes,
+    validate_vector_index_feasibility,
 )
 from server.db.indexes import M0_SEARCH_INDEX_LIMIT, TEXT_SEARCH_INDEX_NAME
 from server.models.config import (
@@ -96,6 +97,18 @@ class TestRequiredSearchIndexes:
         vector_names = {name for name in required if name.startswith("vector_index_")}
         assert vector_names == {get_index_name("all-MiniLM-L6-v2")}
         assert TEXT_SEARCH_INDEX_NAME in required
+
+
+class TestValidateVectorIndexFeasibility:
+    def test_given_oversized_vector_index_when_validated_then_returns_error(self) -> None:
+        message = validate_vector_index_feasibility(frozenset({"vector_index_30522"}))
+        assert message is not None
+        assert "4096" in message
+        assert "vector_index_30522" in message
+
+    def test_given_m0_footprint_when_validated_then_no_error(self) -> None:
+        required = frozenset({"vector_index_1024", TEXT_SEARCH_INDEX_NAME})
+        assert validate_vector_index_feasibility(required) is None
 
 
 @pytest.mark.parametrize(

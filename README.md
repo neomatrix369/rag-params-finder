@@ -6,6 +6,7 @@
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
+![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 
@@ -17,7 +18,7 @@
 
 > Find your optimal RAG configuration — **before** you build your RAG application.
 
-**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports Voyage AI (hosted) and local sentence-transformers (no API key needed).
+**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports **Voyage AI** (hosted), **local sentence-transformers** (no API key), and **SIE** open-source embeddings (remote gateway preferred; optional self-hosted Docker).
 
 Most RAG projects start with a guess: pick an embedding model, pick a chunking method, a retrieval method (or a re-ranker), realise it's wrong, refactor. That loop is
 slow and expensive.
@@ -56,7 +57,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 
 | Persona | Start here | What you will do |
 |---------|------------|------------------|
-| **New user — cloud accounts** | [Cloud Account Setup](docs/user-guide/cloud-setup.md) | Atlas + optional Voyage, then [QUICKSTART](QUICKSTART.md) |
+| **New user — cloud accounts** | [MongoDB Setup](docs/user-guide/mongodb-setup.md) | Atlas + optional Voyage, then [QUICKSTART](QUICKSTART.md) |
 | **New user — first sweep** | [QUICKSTART](QUICKSTART.md) | Install, run server + CLI, open dashboard |
 | **Operator — config & CLI** | [Configuration Reference](docs/user-guide/configuration.md) | YAML sweeps, env vars, `rag-params-finder` commands |
 | **Operator — dashboard** | [Dashboard Guide](docs/user-guide/dashboard-guide.md) | Live phases, Search Explorer, experiment controls |
@@ -71,11 +72,29 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 
 ## 📸 Screenshots
 
+### Experiments list
+
 | Screen | Description |
 |:---:|:---|
-| ![Experiments list](docs/images/01-experiments-list.png) | **Experiments list** — all submitted sweeps with status badges and run counts |
-| ![Experiment detail](docs/images/02-experiment-detail.png) | **Experiment detail** — metric cards, live phase indicator dots, runs table |
-| ![Search Explorer](docs/images/03-search-explorer.png) | **Search Explorer** — best-parameters card, ranked configs with score bars |
+| ![Experiments list](docs/images/01-experiments-list.png) | All submitted sweeps with status badges and run counts |
+
+### Atlas Local + local embedding models (`example-mongodb-local.yaml`)
+
+Runs entirely offline — no cloud account, no API key. Uses `all-MiniLM-L6-v2` (384-dim) sentence-transformers via `./start-services.sh --local`.
+
+| Screen | Description |
+|:---:|:---|
+| ![Experiment detail — local](docs/images/example-mongodb-local/02-experiment-detail.png) | **Experiment detail** — metric cards, live phase indicator dots, runs table |
+| ![Search Explorer — local](docs/images/example-mongodb-local/03-search-explorer.png) | **Search Explorer** — best-parameters card, ranked configs with score bars |
+
+### Atlas Local + SIE embedding models (`example-mongodb-sie.yaml`)
+
+Uses [SIE](docs/user-guide/sie-setup.md) open-source embeddings — BGE-M3 and Stella-v5 (1024-dim dense) via remote gateway or self-hosted Docker.
+
+| Screen | Description |
+|:---:|:---|
+| ![Experiment detail — SIE](docs/images/example-mongodb-sie/02-experiment-detail.png) | **Experiment detail** — SIE sweep with BGE-M3 / Stella-v5 embeddings |
+| ![Search Explorer — SIE](docs/images/example-mongodb-sie/03-search-explorer.png) | **Search Explorer** — SIE sweep ranked configs |
 
 ---
 
@@ -89,7 +108,8 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 
 | I want to… | Start here |
 |---|---|
-| Set up MongoDB Atlas or Voyage AI accounts | [Cloud Account Setup](docs/user-guide/cloud-setup.md) |
+| Run entirely offline (no Atlas cloud account) | [MongoDB Setup → Path B](docs/user-guide/mongodb-setup.md#path-b--atlas-local-docker) · `./start-services.sh --local` |
+| Set up MongoDB Atlas or Voyage AI accounts | [MongoDB Setup](docs/user-guide/mongodb-setup.md) |
 | Run my first experiment | [Getting Started](docs/user-guide/getting-started.md) |
 | Understand all config options | [Configuration Reference](docs/user-guide/configuration.md) |
 | Learn all CLI commands | [CLI Reference](docs/user-guide/cli-reference.md) |
@@ -134,7 +154,7 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 
 **Frontend**: React 19 · TypeScript 5.8 · Vite 6 · Tailwind CSS
 
-**AI/ML**: Voyage AI · sentence-transformers · MongoDB Atlas Vector Search
+**AI/ML**: Voyage AI · sentence-transformers · SIE (Superlinked Inference Engine) · MongoDB Atlas Vector Search
 
 **Dev tools**: uv · ruff · mypy · pytest · GitHub Actions
 

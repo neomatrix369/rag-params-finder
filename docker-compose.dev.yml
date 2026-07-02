@@ -19,13 +19,14 @@ services:
       - ./cli:/app/cli
       - ./configs:/app/configs:ro
       - ./input_data:/app/input_data:ro
+      - ./.aim:/app/.aim
       - hf_cache:/root/.cache/huggingface
 
   frontend:
     build:
       context: .
       dockerfile: docker/frontend.dev.Dockerfile
-    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5374"]
     environment:
       VITE_DEV_PROXY_TARGET: http://server:8001
     volumes:

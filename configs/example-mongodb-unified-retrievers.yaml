@@ -15,7 +15,7 @@
 # Atlas prerequisites (M0 — create before running sweep):
 #   - chunks collection in rag_params_finder database
 #   - vector_index_384  + text_search_index
-#   See docs/user-guide/cloud-setup.md#before-you-run-a-sweep
+#   See docs/user-guide/mongodb-setup.md#before-you-run-a-sweep
 
 experiment_name: example-unified-retrievers
 
