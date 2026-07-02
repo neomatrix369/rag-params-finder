@@ -42,6 +42,8 @@ ML_IGNORE=(
   --ignore-vuln GHSA-f4xh-w4cj-qxq8
   --ignore-vuln CVE-2026-48775
   --ignore-vuln CVE-2026-48776
+  --ignore-vuln PYSEC-2026-597   # nltk — semantic/sentence chunkers; no fix in current pin
+  --ignore-vuln CVE-2026-4372    # transformers via sentence-transformers — major upgrade deferred
 )
 
 uv run pip-audit --skip-editable "${ML_IGNORE[@]}"

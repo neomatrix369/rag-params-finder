@@ -16,3 +16,13 @@
 | 11 | 2026-07-01 | 28 | Dedicated Slice 28 for results export (issue #49) instead of waiting for bundled Slice 11 | Export is a shippable vertical slice with clear acceptance criteria; unblocks external contributors and stakeholder sharing | Fold into Slice 11 Search Explorer bundle — delays delivery behind visualization work |
 | 12 | 2026-07-01 | 28 | Export rows sourced from `analyze_results()` `detailed_results`, not raw Mongo `results` docs | Scores/ranks match Search Explorer; single normalization path | Duplicate CSV logic in route from raw docs — drift risk vs dashboard |
 | 13 | 2026-07-01 | 28 | Default CSV omits `chunk_text`; JSONL may include it | Keeps CSV small and avoids dumping full chunk bodies into spreadsheets | Always include chunk_text — noisy for stakeholders, large files |
+| 14 | 2026-07-02 | health-check | Gap 2: routing fingerprint | Appended `Routing: Brownfield + Growing Requirement (Flow D)` to TRAIL.md | AUTO-FIXED |
+| 15 | 2026-07-02 | health-check | Gap 4: Depends on column | Added to TRAIL.md Slices table; existing rows defaulted per dependency graph | AUTO-FIXED |
+| 16 | 2026-07-02 | health-check | Gap 5: gate-evidence stubs | Backfilled slice-21.json, slice-25.json, slice-25B.json | AUTO-FIXED |
+| 17 | 2026-07-02 | health-check | Gap 1: interview_summary.md | Reconstructed from TRAIL + PROGRESS + PCTO spec | AUTO-FIXED |
+| 18 | 2026-07-02 | health-check | Gap 3: model split | Defaults: Planning claude-opus-4-8 · Execution claude-sonnet-4-6 | AUTO-FIXED |
+| 19 | 2026-07-02 | — | Created docs/plan/PROGRESS.md | plan-modifier requires plan-level tracker separate from docs/slices/PROGRESS.md | **Superseded by #23** |
+| 23 | 2026-07-02 | — | Merge docs/plan/PROGRESS.md into docs/slices/PROGRESS.md | Single SSOT — AGENTS.md/CLAUDE.md already point to slices/PROGRESS; duplicate caused drift | Delete docs/plan/PROGRESS.md |
+| 20 | 2026-07-02 | — | Dependabot #26–#43 triage recorded | 4 merged (#36–#39 CI actions), 5 closed (breaking toolchain bumps) | Execute when stale |
+| 21 | 2026-07-02 | — | Deferred toolchain upgrades documented in TRAIL + GAP_ANALYSIS | Vite 8, ESLint 9, react-hooks 7, ST v4+ need dedicated slices — not blind Dependabot merges | Close-and-document pattern |
+| 22 | 2026-07-02 | — | GAP_ANALYSIS refresh cadence | Update on slice PASS or quarterly; stale analysis misleads continuation sessions | Manual until automated |
