@@ -1,0 +1,7 @@
+{
+  "slice": "25B",
+  "gate_status": "PASSED",
+  "inferred": true,
+  "verified_date": "2026-06-29",
+  "note": "Backfilled by plan-health-check — verify-slice COMPLETE 2026-06-29"
+}

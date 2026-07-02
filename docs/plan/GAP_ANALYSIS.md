@@ -1,47 +1,79 @@
 # Gap Analysis
-> ~2 min read
->
-> **Historical snapshot** — pre-implementation planning for Slice 21 (2026-06-27). Slice 21 is ✅ COMPLETE on `slice/21-sie-skateboard`; see [PROGRESS.md](../slices/PROGRESS.md) and [sie-setup.md](../user-guide/sie-setup.md) for current state.
+> ~2 min read · **Updated 2026-07-02** after Slice 21/25/25B completion and Dependabot triage
 
-## Capability Gaps (PCTO vs Existing Codebase)
+Canonical build status: [docs/slices/PROGRESS.md](../slices/PROGRESS.md)
 
-| Area | PCTO Requirement | What Exists | Gap | Severity | Target Slice |
-|------|-----------------|-------------|-----|----------|--------------|
-| Inference backend | SIE (self-hosted, Apache 2.0) | Voyage AI (closed API) + local sentence-transformers | `sie-sdk` not installed; no SIE provider in model registry | **Critical** | 21 |
-| Corpus builder | Caller-supplied `corpus: list[str]` | PDF / static files via `pypdf` | New `corpus` field on `SweepRequest`; falls back to topic string | **Critical** | 21 |
-| Experiment tracking | Aim (per-sweep run logging) | MongoDB storage only | `aim` not installed; no logging hook in orchestrator | **Critical** | 21 |
-| Primary API endpoint | `POST /api/v1/sweep` | `POST /experiments` (different shape, different semantics) | New route + router prefix needed | **Critical** | 21 |
-| Best-config lookup | `GET /api/v1/best-config?task=...` | None | New route; requires sweep history queryable by task | **Critical** | 21 |
-| Health check | SIE + MongoDB at `GET /health` | MongoDB only at `GET /healthz` | Extend existing health endpoint | Notable | 21 |
-| SIE models in registry | bge-m3, stella-v5, splade-v3, qwen3-embedding-8b | Voyage + all-MiniLM-L6-v2 only | Add SIE provider + models to `model_registry.py` | **Critical** | 21 |
-| SIE reranking | BGE-reranker via SIE `score` | Voyage reranker + CrossEncoder | New reranker path in `reranker.py`; SIE provider in registry | Notable | 22 |
-| SPLADE v3 sparse | Via SIE `encode` (sparse output) | Atlas text search (BM25 workaround) | Separate sparse index for SPLADE output format | Notable | 22 |
-| Experiment results by ID | `GET /api/v1/experiments/{id}` | `GET /experiments/{id}` (same semantics) | Route alias at `/api/v1` prefix | Minor | 22 |
-| Ollama LLM | Context Compression, HyDE, Multi-Query, RAG-Fusion | None | Ollama client + Tier 2–3 retrieval methods | Notable | 23 |
-| Evidently AI monitoring | Retrieval quality drift monitoring | None | Evidently integration, drift alerts | Minor | 23 |
-| MCP server | `get_rag_config(task_description)` via Alpic.ai | None | MCP wrapper around `GET /api/v1/best-config` | Minor | 22 |
-| Results export | `GET /experiments/{id}/export` CSV/JSONL | JSON only via `/results` and `/explore` | No download endpoint or dashboard export button | Notable | [28](../slices/SLICE-28-RESULTS-EXPORT.md) |
+---
+
+## Closed Gaps (since 2026-06-27 snapshot)
+
+| Area | Was | Now | Closed by |
+|------|-----|-----|-----------|
+| SIE inference backend | Not installed | BGE-M3, Stella-v5 via `sie_embedder.py` + `embedder_factory.py` | Slice 21 ✅ |
+| Caller-supplied corpus | PDF only | `corpus: list[str]` on `SweepRequest` | Slice 21 ✅ |
+| Aim experiment tracking | None | `aim_logger.py` (no-op on failure) | Slice 21 ✅ |
+| `POST /api/v1/sweep` | Missing | Live in `server/api/sweep.py` | Slice 21 ✅ |
+| SIE health check | MongoDB only | `/health` includes SIE status | Slice 21 ✅ |
+| Atlas M0 storage ceiling (local dev) | Blocker | `./start-services.sh --local` + auto indexes | Slice 25/25B ✅ |
+| CI action upgrades (repo-lint, gitleaks) | Mixed v4/v2 | All jobs on checkout/setup-python v6; gitleaks v3 | PRs #36–#39 ✅ |
+
+---
+
+## Remaining Capability Gaps
+
+| Area | PCTO / Roadmap Requirement | What Exists | Gap | Severity | Target |
+|------|---------------------------|-------------|-----|----------|--------|
+| Best-config lookup | `GET /api/v1/best-config?task=...` | Stub returns placeholder message | History query + recommendation logic | **Critical** (PCTO) | Slice 22 |
+| SIE reranking | BGE-reranker via SIE `score` | Voyage + CrossEncoder only | SIE score path in `reranker.py` | Notable | Slice 22 |
+| SPLADE v3 sparse sweep | Full sparse retrieval via SIE | Registry + `vector_index_30522` exist; sweep path incomplete | End-to-end sparse run + index guard | Notable | Slice 22 |
+| Results export | CSV/JSONL download | JSON via `/results` and `/explore` only | Export endpoint + dashboard button | **Must** (#49) | Slice 28 |
+| MongoDB mode visibility | Cloud vs local indicator | URI detection exists (`mongodb_uri.py`) | `/healthz`, CLI banner, dashboard badge | Should | Slice 27 |
+| Local MongoDB UX docs | Smooth onboarding | Unified `mongodb-setup.md` exists | Pre-flight, wait-for-healthy, stale volume troubleshooting | Should | Slice 26 |
+| Storage quota guard | Cloud production safety | Boot reconciliation only | Preflight + runtime 8000 handling | Should | Slice 19 |
+| Parallel sweep | `parallelism > 1` | Sequential `BackgroundTasks` | Bounded concurrency | Should | Slice 16 |
+| Ollama + Tier 2–3 | HyDE, Multi-Query, etc. | None | Full retrieval tier expansion | Could | Slice 23 |
+| Evidently AI monitoring | Drift alerts | None | Integration | Could | Slice 23 |
+| MCP server | `get_rag_config` tool | None | **Won't this cycle** — use best-config HTTP | Won't | — |
+
+---
+
+## Toolchain / Dependabot Gaps (deferred — no active slice)
+
+| Upgrade | Status | Blocker | Action taken |
+|---------|--------|---------|--------------|
+| eslint-plugin-react-hooks 5→7 | Closed (#26) | New React 19 lint rules in SearchExplorerScreen | Defer until screen refactor |
+| eslint-plugin-react-refresh 0.4→0.5 | Closed (#41) | npm ERESOLVE vs eslint@8 | Defer until ESLint 9 slice |
+| eslint-plugin-security 1.7→4.0 | Closed (#42) | `plugin:security/recommended` breaking change | Defer until ESLint config migration |
+| vite 6→8 | Closed (#43) | `@vitejs/plugin-react@4.x` peer range | Defer intentional toolchain slice |
+| sentence-transformers `<4`→`<6` | Closed (#40) | mypy CrossEncoder type mismatch | Defer ML stack slice |
+| actions/checkout 6→7 | Open (#57) | Ecosystem early-adoption risk | Evaluate after v7 stabilises |
+| actions/cache 5→6 | Open (#56) | Low risk | Merge after CI green |
+
+---
 
 ## What Is Already Sufficient (No Gap)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| FastAPI framework | ✅ | Runs on port 8001; add new router at `/api/v1` |
-| MongoDB Atlas integration | ✅ | Collections, indices, connection pool all working |
-| Voyage AI embeddings | ✅ | Stays as numeric baseline; not replaced |
-| Dense/sparse/hybrid retrieval (Tier 1) | ✅ | Reused for SIE sweep runs |
-| Orchestrator pipeline | ✅ | Extend to dispatch `sie` provider; add Aim logging hook |
-| Chunking (fixed, token, sentence, semantic) | ✅ | Used as-is for caller-supplied corpus chunks |
-| Docker Compose stack | ✅ | Add SIE container to `docker-compose.yml` in Slice 21 |
-| CI / quality gates | ✅ | New tests added to existing `pytest` suite |
+| FastAPI + `/experiments` API | ✅ | Unchanged; `/api/v1` is additive |
+| MongoDB Atlas + Local | ✅ | Same query paths; switching via env |
+| Voyage AI embeddings + reranking | ✅ | Numeric baseline preserved |
+| Dense/sparse/hybrid retrieval (Tier 1) | ✅ | Atlas vector + FTS |
+| Orchestrator pipeline | ✅ | Provider dispatch via factory |
+| Docker Compose stack | ✅ | Prod + dev HMR profiles |
+| CI / quality gates | ✅ | 78+ tests; `./scripts/quality-gates.sh` |
+| Chunkers (fixed, token, sentence, semantic) | ✅ | PRs #47/#48 extend further |
 
-## Divergence Check (PCTO Spec ↔ Existing Tests ↔ Existing Code)
+---
 
-| Area | Spec says | Tests assert | Code does | Canonical source | Action |
-|------|-----------|--------------|-----------|------------------|--------|
-| Embedding provider | SIE + Voyage (both) | Voyage + local only | Voyage + local only | **PCTO spec** | Add SIE path — additive, no conflict |
-| Corpus source | Caller-supplied `corpus` field | PDF / static only | PDF / static only | **PCTO spec** | Add `corpus` field to `SweepRequest` — additive |
-| Experiment logging | Aim | MongoDB storage | MongoDB storage | **PCTO spec** | Add Aim alongside MongoDB |
-| API surface | `/api/v1/sweep`, `/api/v1/best-config` | `/experiments` routes | `/experiments` routes | **PCTO spec** | New routes — no overlap |
+## Divergence Check (Spec ↔ Tests ↔ Code)
 
-**Result**: No conflicts detected. All PCTO additions are purely additive — no existing behaviour is changed or removed.
+| Area | Spec says | Code does | Gap | Action |
+|------|-----------|-----------|-----|--------|
+| best-config | Returns recommendation from history | Stub only | **Yes** | Slice 22 |
+| SPLADE sparse sweep | Full open-source BM25 | Index + registry ready; encode path partial | **Partial** | Slice 22 |
+| SIE reranking | BGE-reranker scores | Voyage/CrossEncoder only | **Yes** | Slice 22 |
+| Export | CSV/JSONL download | Not implemented | **Yes** | Slice 28 |
+| All Slice 21 items | SIE + sweep + Aim | Implemented + tested | **No** | — |
+
+**Result**: No conflicts with completed work. Remaining gaps are forward slices with clear ownership.
