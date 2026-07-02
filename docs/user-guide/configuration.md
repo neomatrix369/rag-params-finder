@@ -3,6 +3,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
 ![sentence-transformers](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
+![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 
 All YAML fields, sweep expansion rules, and queries file format.
 
@@ -10,12 +11,13 @@ All YAML fields, sweep expansion rules, and queries file format.
 
 ## ⚙️ Experiment Config (YAML)
 
-Place config files in `configs/`. Two ready-to-run configs are provided, one per vector-DB × provider combination:
+Place config files in `configs/`. Three ready-to-run configs are provided, one per vector-DB × provider combination:
 
 | Config file | Vector DB | Embedding provider | Chunking | Retrievers | Runs | API key? |
 |---|---|---|---|---|---|---|
 | `example-mongodb-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid · cross-encoder | 120 | No |
 | `example-mongodb-voyage.yaml` | MongoDB Atlas | Voyage AI (voyage-3.5-lite) | all 5 methods | hybrid · dense · sparse · reranker | 40 | Yes |
+| `example-mongodb-sie.yaml` | MongoDB Atlas | SIE (bge-m3, stella-v5) | all 5 methods | dense · sparse · hybrid · cross-encoder | 80 | No (remote SIE gateway or optional Docker) |
 | `example-mongodb-unified-retrievers.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | 2 methods | dense · sparse · hybrid · cross-encoder | 16 | No |
 
 Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retriever runs as an independent experiment. Each entry in `retrieval.retrievers` creates a separate run — retrievers are never combined in a single run.
@@ -33,9 +35,11 @@ queries_file: ./configs/questions.example.json  # local path or URL
                                                  # URL downloads to ./configs/ on first use and caches
 
 embedding:
-  provider: local                    # "local" | "voyage" (supported on main); "kimchi" reserved — see extending guide
+  provider: local                    # "local" | "voyage" | "sie" (supported on main); "kimchi" reserved — see extending guide
   models:
-    - all-MiniLM-L6-v2               # must match provider: local models can't be paired with provider: voyage
+    - all-MiniLM-L6-v2               # must match provider: local; sie models need provider: sie (e.g. bge-m3)
+
+> **Using `provider: sie`?** Set `SIE_ENABLED=true` and point `SIE_ENDPOINT` at a remote gateway (preferred) or optional self-hosted Docker on `:8720`. `/healthz` returning `ok` does **not** mean encode is ready on the Docker path — first warm-up may take many minutes. See **[SIE Provider Setup](sie-setup.md)** before your first sweep.
 
 chunking:
   methods:
@@ -149,7 +153,7 @@ Canonical list: `server/core/model_registry.py` (`EMBEDDING_MODELS`, `RERANKER_M
 
 **Provider/model must match.** The system validates at config load time — a `provider: local` config with a Voyage model name will fail immediately with a clear error.
 
-**Atlas vector index** selection is automatic: local models (384-dim) use `vector_index_384`; Voyage models (1024-dim) use `vector_index_1024`. Both can coexist on the same `chunks` collection.
+**Atlas vector index** selection is automatic: local models (384-dim) use `vector_index_384`; Voyage and dense SIE models (1024-dim) use `vector_index_1024`; SPLADE-v3 (30522-dim) uses `vector_index_30522`. Indexes can coexist on the same `chunks` collection — always filter by `embedding_model`.
 
 **Search index preflight:** on submit, the server derives required index names from your config and validates cluster capacity before any run starts:
 
@@ -283,6 +287,28 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 For a targeted subset, copy the file and trim the `methods` or `chunk_sizes` lists before running.
 
+## SIE Quick Start (Open-Source Embeddings)
+
+Use `configs/example-mongodb-sie.yaml` — same chunking/retriever coverage as the local example, with **2 SIE models** (bge-m3, stella-v5). **80 runs** — SIE encode is slower than Voyage API; use `--detach` and monitor the dashboard.
+
+### SIE environment variables
+
+| Variable | Purpose |
+|---|---|
+| `SIE_ENABLED` | **On/off** — `true` enables the SIE provider; same flag for remote and local Docker |
+| `SIE_ENDPOINT` | **Where** — remote gateway URL or `http://localhost:8720` for self-hosted Docker |
+| `SIE_API_KEY` | **Auth** — Bearer token when the gateway requires it; usually omitted for local Docker |
+
+**If you have a remote SIE gateway** (recommended): set all three in `.env` (API key as required) — **no Docker**.
+
+**Otherwise:** run optional self-hosted Docker, then set `SIE_ENABLED=true` and `SIE_ENDPOINT=http://localhost:8720` — see **[SIE Provider Setup](sie-setup.md)**.
+
+Also requires `vector_index_1024` + `text_search_index` on Atlas. Full checklist: **[MongoDB Setup → SIE sweep](mongodb-setup.md#sie-sweep--example-mongodb-sieyaml)**.
+
+```bash
+rag-params-finder run --config configs/example-mongodb-sie.yaml
+```
+
 To **continue an incomplete sweep** without re-submitting YAML, pause and resume the same experiment (CLI or dashboard) — completed parameter combinations are skipped automatically.
 
 To **re-run only failed combinations inside an existing experiment** *(same `experiment_id`, keep successful runs)*, see the planned workflow in [`../slices/SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md) — today this requires manual YAML reshaping, pause/resume for not-yet-started combos, or a new submit.
@@ -302,7 +328,7 @@ To **re-run only failed combinations inside an existing experiment** *(same `exp
 | `voyage-3.5-lite` | $0.02 / 1M tokens | Legacy lite |
 | `rerank-2.5-lite` | $0.02 / 1M tokens | Cheapest reranker |
 
-**Rate limits**: Required for Voyage sweep — add payment method + ≥$5 credits, then set Tier 1 limits in `.env`. See [Cloud Account Setup → Voyage step 3](cloud-setup.md#3-unlock-tier-1-rate-limits-required-for-90-run-sweep).
+**Rate limits**: Required for Voyage sweep — add payment method + ≥$5 credits, then set Tier 1 limits in `.env`. See [MongoDB Setup → Voyage step 3](mongodb-setup.md#3-unlock-tier-1-rate-limits-required-for-40-run-voyage-sweep).
 
 **Example cost** for a 36-run sweep (3 models × 2 methods × 3 chunk sizes × 2 overlaps):
 - 1 PDF × ~200 pages × 5 chunks/page = 1,000 chunks/run
@@ -322,9 +348,28 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder
 # Voyage AI (OPTIONAL — only if using Voyage models)
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# Voyage rate limits (Tier 1 defaults shown)
-VOYAGE_RPM_LIMIT=300      # Requests per minute
-VOYAGE_TPM_LIMIT=1000000  # Tokens per minute
+# Voyage rate limits — free tier defaults (override for Tier 1 Voyage sweep)
+VOYAGE_RPM_LIMIT=3        # Requests per minute (free tier)
+VOYAGE_TPM_LIMIT=10000    # Tokens per minute (free tier)
+# Tier 1 (example-mongodb-voyage.yaml): VOYAGE_RPM_LIMIT=2000 VOYAGE_TPM_LIMIT=16000000
+
+# SIE (OPTIONAL — only if using provider: sie or POST /api/v1/sweep)
+# SIE_ENABLED = on/off (same for remote and local Docker)
+# SIE_ENDPOINT = where to connect | SIE_API_KEY = auth when required
+# Path A — remote gateway (no local Docker):
+SIE_ENABLED=false
+# SIE_ENDPOINT=https://your-sie-gateway.example.com
+# SIE_API_KEY=your_gateway_token
+# Path B — self-hosted Docker on :8720 (only when no remote gateway):
+# SIE_ENDPOINT=http://localhost:8720
+# SIE_ENDPOINT=http://host.docker.internal:8720   # server in Docker, SIE on host
+# HF_TOKEN=hf_...   # Docker path only — HuggingFace token for container model downloads
+
+# Aim experiment tracking (OPTIONAL — UI via ./scripts/aim-ui.sh)
+# AIM_REPO=.aim      # Docker sets /app/.aim automatically
+
+# MongoDB /healthz ping timeout (ms) — keep below Docker healthcheck (10s)
+# HEALTH_CHECK_MONGODB_TIMEOUT_MS=5000
 
 # Search result ranking tiebreaker (NEW in v0.11.0)
 # When multiple configs achieve the same max score, this setting determines
@@ -362,7 +407,7 @@ MONGODB_STORAGE_LIMIT_MB=0
 
 # CORS Configuration (ADVANCED — for production deployment)
 # Comma-separated list of allowed origins. Defaults work for local development.
-# CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
+# CORS_ORIGINS=http://localhost:5374,http://127.0.0.1:5374,http://localhost:3000
 # CORS_ALLOW_LOCALHOST_ORIGIN_REGEX=true  # Auto-allow localhost/127.0.0.1/[::1] on any port
 ```
 
@@ -388,8 +433,14 @@ Query avg prevents high-scoring queries with many results from hiding poorly-per
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000` | Comma-separated list of allowed origins for CORS |
+| `CORS_ORIGINS` | `http://localhost:5374,http://127.0.0.1:5374,http://localhost:3000,http://127.0.0.1:3000` | Comma-separated list of allowed origins for CORS |
 | `CORS_ALLOW_LOCALHOST_ORIGIN_REGEX` | `true` | When true, automatically allow localhost/127.0.0.1/[::1] on any port via regex |
+| `SIE_ENABLED` | `false` | **Master on/off** for SIE — not local-vs-remote; set `true` when you want the server to use SIE (either path) |
+| `SIE_ENDPOINT` | `http://localhost:8720` | **Where** to connect — remote gateway URL or local Docker (`host.docker.internal:8720` when server is in Docker) |
+| `SIE_API_KEY` | — | **Auth** — Bearer token when gateway requires it; usually empty for local Docker |
+| `HF_TOKEN` | — | HuggingFace token for **self-hosted Docker only** — not used when pointing at a remote gateway |
+| `AIM_REPO` | `.aim` | Path to Aim experiment repo (Docker: `/app/.aim`; UI: `./scripts/aim-ui.sh`) |
+| `HEALTH_CHECK_MONGODB_TIMEOUT_MS` | `5000` | MongoDB ping timeout for `/healthz` (ms) |
 
 **When to customize**:
 - Deploying the dashboard on a custom domain (e.g., `https://rag-finder.example.com`)
@@ -409,7 +460,7 @@ CORS_ALLOW_LOCALHOST_ORIGIN_REGEX=false  # Disable regex, use explicit list only
 ## 👉 See Also
 
 - [Getting Started](getting-started.md) — environment setup and first experiment
-- [Cloud Account Setup](cloud-setup.md) — Atlas and Voyage account setup
+- [MongoDB Setup](mongodb-setup.md) — Atlas and Voyage account setup
 - [CLI Reference](cli-reference.md) — how to submit a config and monitor runs
 - [Dashboard Guide](dashboard-guide.md) — interpreting results and scores (including tiebreaker logic)
 - [Extending the System](../contributor-guide/extending.md) — adding new models or chunking methods

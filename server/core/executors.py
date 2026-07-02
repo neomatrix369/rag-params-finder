@@ -13,6 +13,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from typing import ParamSpec
 
+from server.core.experiment_control import register_sweep_control
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -42,6 +43,8 @@ def _run_sweep_safe[R, **P](fn: Callable[P, R], /, *args: P.args, **kwargs: P.kw
 
 def schedule_sweep[R, **P](fn: Callable[P, R], /, *args: P.args, **kwargs: P.kwargs) -> None:
     """Fire-and-forget sweep execution on the isolated sweep pool."""
+    if args:
+        register_sweep_control(str(args[0]))
     SWEEP_EXECUTOR.submit(_run_sweep_safe, fn, *args, **kwargs)
 
 

@@ -8,19 +8,16 @@ cd "$SCRIPT_DIR"
 
 # shellcheck source=scripts/docker-cleanup.sh
 source ./scripts/docker-cleanup.sh
+# shellcheck source=scripts/lib/compose.sh
+source ./scripts/lib/compose.sh
 
-if docker compose version >/dev/null 2>&1; then
-  DOCKER_COMPOSE=(docker compose)
-elif command -v docker-compose >/dev/null 2>&1; then
-  DOCKER_COMPOSE=(docker-compose)
+compose_detect
+compose_files
+if compose_local_atlas_active; then
+  compose_local_atlas_profiles
+  COMPOSE_DOWN_PROFILES=("${COMPOSE_PROFILES[@]}")
 else
-  echo "Docker Compose is not available." >&2
-  exit 1
-fi
-
-COMPOSE_FILES=(-f docker-compose.yml)
-if [[ "${RAG_DEV_STACK:-}" == "1" ]]; then
-  COMPOSE_FILES+=(-f docker-compose.dev.yml)
+  COMPOSE_DOWN_PROFILES=()
 fi
 
 echo "=== Stop rag-params-finder services ==="
@@ -40,23 +37,23 @@ fi
 
 case "$choice" in
   1)
-    "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" down
+    "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]}" down
     docker_cleanup silent
     ;;
   2)
-    "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" stop
+    "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]}" stop
     ;;
   3)
     if [[ "${NONINTERACTIVE:-}" != "1" ]]; then
       echo "Type DELETE HF CACHE to remove HuggingFace model cache volume (Atlas data unaffected):"
       read -r confirm
       if [[ "$confirm" == "DELETE HF CACHE" ]]; then
-        "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" down -v
+        "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]}" down -v
       else
-        "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" down
+        "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]}" down
       fi
     else
-      "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" down
+      "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]}" down
     fi
     docker_cleanup aggressive
     ;;

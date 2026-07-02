@@ -1,9 +1,7 @@
-from datetime import UTC
-
-import certifi
 from pymongo import MongoClient
 from pymongo.database import Database
 
+from server.db.mongodb_uri import mongo_client_kwargs
 from server.settings import settings
 from server.utils.logger import get_logger
 
@@ -19,7 +17,8 @@ def get_mongo_client() -> MongoClient:
         if not settings.mongodb_uri:
             raise ValueError("MONGODB_URI not set in .env or environment")
         _client = MongoClient(
-            settings.mongodb_uri, tlsCAFile=certifi.where(), tz_aware=True, tzinfo=UTC
+            settings.mongodb_uri,
+            **mongo_client_kwargs(settings.mongodb_uri),
         )
         logger.info("mongodb client ready — timezone-aware UTC")
     return _client

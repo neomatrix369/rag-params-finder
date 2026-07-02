@@ -16,14 +16,30 @@ services:
     env_file:
       - .env
     environment:
+      # Cloud: MONGODB_URI from .env. Local Atlas: RAG_SERVER_MONGODB_URI set by start-services.sh --local
+      MONGODB_URI: ${RAG_SERVER_MONGODB_URI:-${MONGODB_URI}}
+      MONGODB_STORAGE_LIMIT_MB: ${RAG_MONGODB_STORAGE_LIMIT_MB:-${MONGODB_STORAGE_LIMIT_MB:-}}
       HF_HOME: ${HF_HOME:-/root/.cache/huggingface}
+      # SIE is opt-in — remote gateway preferred (SIE_ENDPOINT + SIE_API_KEY in .env).
+      # Self-hosted Docker fallback: docs/user-guide/sie-setup.md
+      SIE_ENABLED: ${SIE_ENABLED:-false}
+      SIE_ENDPOINT: ${SIE_ENDPOINT:-http://host.docker.internal:8720}
+      SIE_API_KEY: ${SIE_API_KEY:-}
+      AIM_REPO: /app/.aim
+      GIT_COMMIT: ${GIT_COMMIT:-}
+      GIT_BRANCH: ${GIT_BRANCH:-}
     volumes:
       - ./configs:/app/configs:ro
       - ./input_data:/app/input_data:ro
+      - ./.aim:/app/.aim
       - hf_cache:/root/.cache/huggingface
+    depends_on:
+      mongodb-local:
+        condition: service_healthy
+        required: false
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/healthz"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8001/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -38,17 +54,76 @@ services:
     image: ${FRONTEND_IMAGE_NAME:-rag-params-finder-frontend}
     container_name: ${FRONTEND_CONTAINER_NAME:-rag-params-finder-frontend}
     ports:
-      - "5173:5173"
+      - "5374:5374"
     depends_on:
       server:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5374/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
 
+  # Aim experiment UI — opt-in: docker compose --profile aim up -d aim-ui
+  # Or: ./scripts/aim-ui.sh
+  aim-ui:
+    profiles: ["aim"]
+    image: ${SERVER_IMAGE_NAME:-rag-params-finder-server}
+    container_name: ${AIM_UI_CONTAINER_NAME:-rag-params-finder-aim-ui}
+    depends_on:
+      server:
+        condition: service_started
+    ports:
+      - "43800:43800"
+    volumes:
+      - ./.aim:/app/.aim
+    working_dir: /app
+    environment:
+      AIM_REPO: /app/.aim
+    command:
+      [
+        "aim",
+        "up",
+        "--repo",
+        "/app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "43800",
+        "-y",
+        "--workers",
+        "1",
+      ]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:43800/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # MongoDB Atlas Local — opt-in: ./start-services.sh --local  (or --profile local-atlas)
+  # Runs a full single-node Atlas replica set locally; supports $vectorSearch and $search.
+  # CLI on host: export MONGODB_URI from scripts/lib/compose.sh (RAG_LOCAL_MONGODB_URI_HOST)
+  # See docs/user-guide/mongodb-setup.md
+  mongodb-local:
+    profiles: ["local-atlas"]
+    image: mongodb/mongodb-atlas-local:latest
+    container_name: ${MONGODB_LOCAL_CONTAINER_NAME:-rag-params-finder-mongodb-local}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_local_data:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 volumes:
   hf_cache:
+  mongodb_local_data:
