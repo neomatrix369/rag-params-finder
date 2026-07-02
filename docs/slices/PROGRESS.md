@@ -1,7 +1,9 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-01 (Slice 28 planned — results export / issue #49)
-**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching | Next: **26** 📋 local MongoDB docs · **27** 📋 MongoDB mode indicator · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49)) · **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota
+**Last Updated**: 2026-07-02 (plan tracker merged — single SSOT for slice status)
+**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching | Next: **26** 📋 local MongoDB docs · **27** 📋 MongoDB mode indicator · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49)) · **22** 📋 SIE Scooter · **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota · **23** 📋 SIE Bicycle (Could)
+
+PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md)
 
 ---
 
@@ -35,15 +37,60 @@
 | 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | `quality-gates.sh`, `repo-lint.sh`, `pre-push-gates.sh` (`--quick` on push), `install-git-hooks.sh`, coverage CI, ESLint, bandit, pip-audit, gitleaks, dependabot — [`SLICE-20-TOOLCHAIN-HARDENING.md`](SLICE-20-TOOLCHAIN-HARDENING.md) |
 | 14 — Docker Compose | ✅ COMPLETE | ~2–3 h | `./start-services.sh`, prod + `docker-compose.dev.yml`, Atlas `/healthz` — [`SLICE-14-DOCKER-COMPOSE.md`](SLICE-14-DOCKER-COMPOSE.md) |
 | ~~15 — CI/CD~~ | ✅ (via 20) | — | Superseded by Slice 20 — CI + `quality-gates.sh` + git hooks |
-| 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); caller-supplied corpus (`corpus: list[str]`); Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`../plan/slice-21-sie-skateboard.md`](../plan/slice-21-sie-skateboard.md) |
+| 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); caller-supplied corpus (`corpus: list[str]`); Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`SLICE-21-SIE-SKATEBOARD.md`](SLICE-21-SIE-SKATEBOARD.md) |
 | 24 — Port standardisation | ✅ COMPLETE | ~1 h | Unique static ports: frontend 5173→5374 (avoids Vite default), SIE 8080→8720 (avoids Jenkins/Tomcat/etc.); backend 8001 unchanged — spec: [`SLICE-24-PORT-STANDARDISATION.md`](SLICE-24-PORT-STANDARDISATION.md) |
 | 25 — Atlas Local Dev Mode | ✅ COMPLETE | ~1 h | `mongodb-atlas-local` Docker image as opt-in local backend; `local-atlas` compose profile; auto-provision all search indexes on boot for local URI; eliminates M0 512 MB ceiling for local dev — spec: [`SLICE-25-ATLAS-LOCAL.md`](SLICE-25-ATLAS-LOCAL.md) |
 | 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | `./start-services.sh --local`; `./start-services.sh mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](SLICE-25B-ATLAS-SWITCHING.md) |
 | 26 — Local MongoDB smooth-path docs | 📋 PLANNED | ~1 h | Docker pre-flight, wait-for-healthy, stale volume troubleshooting — spec: [`SLICE-26-LOCAL-MONGODB-DOCS.md`](SLICE-26-LOCAL-MONGODB-DOCS.md) |
 | 27 — MongoDB mode indicator | 📋 PLANNED | ~2 h | `get_mongodb_mode()` → `/healthz` + sweep_summary + CLI banner + dashboard header badge — spec: [`SLICE-27-MONGODB-MODE-INDICATOR.md`](SLICE-27-MONGODB-MODE-INDICATOR.md) |
-| 28 — Results export | 📋 PLANNED | ~1.5 h | Issue #49 — CSV/JSONL export reusing `analyze_results`; detail-screen download button — spec: [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) |
+| 22 — SIE Scooter | 📋 PLANNED | ~3 h | SIE reranking + SPLADE sparse + `GET /api/v1/best-config` (stub on main) — spec: [`SLICE-22-SIE-SCOOTER.md`](SLICE-22-SIE-SCOOTER.md) |
+| 23 — SIE Bicycle | 📋 PLANNED | ~3 h | Ollama + Tier 2–3 retrieval + Evidently AI (Could, post-hackathon) — spec: [`SLICE-23-SIE-BICYCLE.md`](SLICE-23-SIE-BICYCLE.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
+
+---
+
+## Plan Track (PCTO execution order)
+
+Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/`](../plan/gate-evidence/).
+
+| Slice | MoSCoW | Status | Depends on | Notes |
+|-------|--------|--------|------------|-------|
+| 21 | Must | ✅ COMPLETE | — | SIE Skateboard |
+| 25 | Should | ✅ COMPLETE | 21 | Atlas Local |
+| 25B | Should | ✅ COMPLETE | 25 | Atlas switching |
+| 26 | Should | 📋 PLANNED | 25B | **Next** — local MongoDB docs |
+| 27 | Should | 📋 PLANNED | 25B | MongoDB mode indicator |
+| 28 | Must | 📋 PLANNED | — | Results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49)) |
+| 22 | Should | 📋 PLANNED | 21 | SIE Scooter — best-config stub |
+| 19 | Should | 📋 PLANNED | — | Storage quota guard |
+| 16 | Should | 📋 PLANNED | — | Parallel sweep |
+| 23 | Could | 📋 PLANNED | 22 | SIE Bicycle |
+| 10 | Could | 📋 PLANNED | — | Run recovery |
+
+**Execution order**: 21 → 25 → 25B (done) → **26** → 27 → **28** → 22 → 19 → 16 → 23 → 10
+
+---
+
+## Maintenance Log (non-slice)
+
+| Date | Item | Outcome |
+|------|------|---------|
+| 2026-07-01 | Dependabot PR triage #26–#43 | 4 merged (#36–#39), 5 closed (#26, #40–#43) |
+| 2026-07-02 | Plan health-check + gap refresh | TRAIL, GAP_ANALYSIS, HANDOFF updated; gate-evidence backfilled |
+| 2026-07-02 | Merge plan PROGRESS into slices PROGRESS | Single SSOT — removed `docs/plan/PROGRESS.md` duplicate |
+
+---
+
+## Open PR Queue (snapshot 2026-07-02)
+
+| PR | Verdict | Reason |
+|----|---------|--------|
+| #47 | Merge when ready | Semantic chunker overlap fix (#44) |
+| #48 | Merge when ready | Padding chunking dimension (#45) |
+| #13 | Branch track | Kimchi integration — separate hackathon |
+| #56 | Evaluate | actions/cache v5→v6 — low risk after CI green |
+| #57 | Defer | actions/checkout v6→v7 — wait for ecosystem stability |
 
 ---
 
