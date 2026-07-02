@@ -1,7 +1,7 @@
 # Documentation Gap Tracker
 
 **Created**: 2026-05-05
-**Last Updated**: 2026-05-28 (doc nav + pre-push fast gates + 26 tests)
+**Last Updated**: 2026-07-01 (Slice 21–25B doc sweep, 78 tests)
 **Reference**: Gap analysis vs [pre-rag-explorer-dashboard](https://github.com/neomatrix369/pre-rag-explorer-dashboard)
 
 Each item below is a concrete, actionable doc gap. Check the box when done and record the date.
@@ -104,7 +104,7 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
   - [x] `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
   - [x] `ruff check .` → 0 errors
   - [x] `mypy server/ cli/` → 0 errors
-  - [x] `pytest` → **26 tests** (2026-05-28): 17 search-index + 3 sweep + 3 tiebreaker + 3 health; 80% coverage on 4 scoped modules
+  - [x] `pytest` → **78 tests** (2026-07-01): search-index, sweep, SIE, config examples, health, db indexes; 80% coverage on scoped modules
   - [x] `npm run lint` → 0 errors (ESLint + security plugin, Slice 20)
   - [x] `npm run typecheck` → 0 errors
   - [x] `npm run build` → ~4 s, 49 modules
@@ -191,3 +191,14 @@ README was simplified for quick scanning (aligned with pre-rag-explorer-dashboar
 - [x] MongoDB Atlas collections table with cleanup instructions
 - [x] Atlas vector index JSON for both 384-dim and 1024-dim (with all filter fields)
 - [x] README → Documentation table updated to link to `docs/REFERENCE.md`
+
+---
+
+## Gap 12 — Contributor architecture + local-environment drift (closed 2026-07-01)
+
+**Priority**: Medium (contributor onboarding accuracy)
+
+- [x] `architecture.md`: SIE provider, `embedder_factory`, `mongodb_uri`, `bootstrap_indexes`, sweep API
+- [x] `local-environment.md`: Path B Atlas Local, SIE env block, `.env` snippet synced with `.env.example`
+- [x] ADR-002 evolution note (SIE third provider); ADR-003 Atlas Local footnote
+- [x] SIE shields.io badge in all user/contributor guides with Voyage badge rows

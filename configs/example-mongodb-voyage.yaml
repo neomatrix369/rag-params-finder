@@ -15,7 +15,7 @@
 #   - vector_index_1024 + text_search_index
 # Voyage prerequisites:
 #   - VOYAGE_API_KEY + Tier 1 billing (≥$5 credits) in .env
-#   See docs/user-guide/cloud-setup.md#before-you-run-a-sweep
+#   See docs/user-guide/mongodb-setup.md#before-you-run-a-sweep
 
 experiment_name: example-mongodb-voyage
 
