@@ -2,6 +2,7 @@
 
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
+![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 
 Common errors and how to fix them.
@@ -14,7 +15,7 @@ Common errors and how to fix them.
 
 **Cause**: Search indexes are missing or not yet **ACTIVE**. On M0 free tier they must be created manually; on M10+ check server logs for auto-creation failures.
 
-**Fix**: Full steps → [Cloud Account Setup → step 6](cloud-setup.md#6-create-search-indexes-m0--required-before-sweep). Quick reference — **Voyage models** (1024-dim), name: `vector_index_1024`:
+**Fix**: Full steps → [MongoDB Setup → step 6](mongodb-setup.md#6-create-search-indexes-m0--required-before-sweep). Quick reference — **Voyage models** (1024-dim), name: `vector_index_1024`:
 ```json
 {
   "fields": [
@@ -68,6 +69,19 @@ Both indexes can coexist on the same `chunks` collection — the server selects 
 
 **Fix**:
 
+On **experiment submit**, the server now **automatically reconciles** Atlas Search indexes before failing:
+
+1. Drops **failed** indexes on `chunks` (e.g. a dimension-mismatch build).
+2. Drops **surplus** project indexes on `chunks` not required by your YAML (e.g. `vector_index_384` when running an SIE/Voyage sweep).
+3. Prunes **unknown** indexes cluster-wide if quota is still exhausted.
+4. Creates any **missing required** indexes.
+
+At **server boot**, only standard MongoDB indexes are ensured and unknown Atlas Search indexes are pruned — vector/text indexes are provisioned per config at submit time (not all four at once).
+
+Configs that require vector dimensions above Atlas's **4096** limit (e.g. SPLADE-v3 / `vector_index_30522`) are rejected immediately with a clear error — no manual index swap will fix those.
+
+Manual commands remain for inspection and full reset:
+
 ```bash
 # 1. Inspect cluster-wide index usage
 rag-params-finder indexes list
@@ -76,7 +90,7 @@ rag-params-finder indexes list
 rag-params-finder indexes reset
 
 # 3. On M0, create any still-missing indexes manually in Atlas UI
-#    → Cloud Account Setup step 6
+#    → MongoDB Setup step 6
 ```
 
 If `indexes list` shows 3/3 with unknown indexes, run `indexes reset` before submitting again.
@@ -167,7 +181,7 @@ embedding:
 **Symptom**: `voyageai.error.RateLimitError: Rate limit exceeded` in server logs; run status shows `failed`.
 
 **Fix**:
-- Complete [Cloud Account Setup → Voyage step 3](cloud-setup.md#3-unlock-tier-1-rate-limits-required-for-90-run-sweep) (payment method + ≥$5 credits + `.env` limits)
+- Complete [MongoDB Setup → Voyage step 3](mongodb-setup.md#3-unlock-tier-1-rate-limits-required-for-40-run-voyage-sweep) (payment method + ≥$5 credits + `.env` limits)
 - Check usage and org limits at [dash.voyageai.com/usage](https://dash.voyageai.com/usage) and [organization rate limits](https://dashboard.voyageai.com/organization/rate-limits)
 - **Free tier** (no payment method): 3 RPM / 10,000 TPM — server defaults match this
 - **Tier 1** (payment method + credits): 2,000 RPM; TPM per model (e.g. `voyage-4-lite` / `voyage-3.5-lite` → 16M, `voyage-4` / `voyage-3.5` → 8M, `rerank-2.5-lite` → 4M). See [Voyage rate limits](https://docs.voyageai.com/docs/rate-limits) and `.env.example`
@@ -324,7 +338,7 @@ db.results.deleteMany({experiment_id: exp_id})
 |---|---|
 | Docker not running | Start Docker Desktop; verify with `docker info` |
 | Placeholder `.env` | Set real `MONGODB_URI` (not `your_mongodb_atlas_uri_here`); use `NONINTERACTIVE=1` for fail-fast without prompts |
-| Port 8001 or 5173 in use | Stop local `uvicorn` / `npm run dev`, or use `./start-services.sh` port-conflict menu |
+| Port 8001 or 5374 in use | Stop local `uvicorn` / `npm run dev`, or use `./start-services.sh` port-conflict menu |
 | Atlas unreachable from container | Atlas **Network Access** must allow your IP (or `0.0.0.0/0` for dev); check `curl http://localhost:8001/healthz` → `"mongodb": "ok"` |
 | Missing `input_data/` | Create `input_data/pdfs/` and add PDFs referenced in your config YAML |
 | Prod dashboard API errors | Browser must use `http://localhost:8001` — set via `VITE_API_URL` at image build time (default in Compose) |
@@ -377,9 +391,30 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../slices/SLICE-14-DOCKER-COMPOSE.md).
 
 ---
 
+## SIE (Superlinked Inference Engine)
+
+**Remote gateway (preferred):** `SIE_ENABLED=true` (on/off), `SIE_ENDPOINT`, and `SIE_API_KEY` when auth is required — no local Docker.
+
+**Self-hosted Docker (fallback):** same `SIE_ENABLED=true`; set `SIE_ENDPOINT` to local URL — see **[SIE Provider Setup](sie-setup.md)**.
+
+Quick reference for the most common SIE problems:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `SIE unreachable at https://...` | Bad `SIE_ENDPOINT` or `SIE_API_KEY` | Verify gateway URL and Bearer token — [Path A](sie-setup.md#path-a--remote-gateway-no-docker) |
+| `curl /health` → 404 *(Docker path)* | SIE uses `/healthz`, not `/health` | Use `curl http://localhost:8720/healthz` |
+| 503 from `/v1/encode` *(Docker path)* | Model still downloading/loading | Poll encode until HTTP 200 — see [warm-up §3](sie-setup.md#3-wait-for-the-model-to-warm-up) |
+| **502 from `/v1/encode`** | **Terminal model load failure** | Restart container; see [502 Bad Gateway](sie-setup.md#encode-returns-502-bad-gateway) |
+| App `/health` → `sie: disabled` | Default — SIE not enabled | Set `SIE_ENABLED=true` when gateway or Docker is ready |
+| App `/health` → `sie: unreachable` | Gateway down or wrong endpoint | Check `SIE_ENDPOINT` / `SIE_API_KEY`; for Docker see connection refused below |
+| Connection refused on 8720 *(Docker path)* | Container not running or wrong port mapping | `docker ps`; restart with `-p 8720:8080` |
+
+---
+
 ## 👉 See Also
 
-- [Cloud Account Setup](cloud-setup.md) — Atlas account, Voyage billing, search indexes
+- [SIE Provider Setup](sie-setup.md) — remote gateway (preferred) or optional self-hosted Docker
+- [MongoDB Setup](mongodb-setup.md) — Atlas account, Voyage billing, search indexes
 - [Getting Started](getting-started.md) — install, configure, first run
 - [Configuration Reference](configuration.md) — fix provider/model mismatch errors
 - [Dashboard Guide](dashboard-guide.md) — understand what the UI is showing

@@ -16,6 +16,11 @@
    - At least one experiment in the database
    - Experiment with multiple queries for SearchExplorer testing
 
+**Optional smoke checks** (backend + data prerequisites):
+
+- **Atlas Local:** [MongoDB Setup → Path B](docs/user-guide/mongodb-setup.md#path-b--atlas-local-docker) — `./start-services.sh --local`, then submit `example-mongodb-local.yaml`
+- **SIE sweep:** [SIE Setup → verification](docs/user-guide/sie-setup.md#6-verify-the-sie-sweep) — gateway or Docker warm, then `example-mongodb-sie.yaml`
+
 ## Test Cases
 
 ### ✅ Test 1: SearchExplorerScreen Re-Query Progress

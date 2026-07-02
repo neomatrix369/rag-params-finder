@@ -6,10 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from server.api import experiments, runs
+from server.api.sweep import router as sweep_router
 from server.core.executors import shutdown_executors
 from server.core.health_check import mongodb_health_status
+from server.core.sie_guard import check_sie_health
 from server.core.startup_reconciliation import reconcile_orphaned_experiments
-from server.db.indexes import ensure_indexes
+from server.db.indexes import bootstrap_indexes
 from server.settings import LOCALHOST_CORS_ORIGIN_REGEX, settings
 from server.utils.logger import get_logger
 
@@ -23,7 +25,7 @@ async def lifespan(app: FastAPI):
     """Ensure indexes exist on startup."""
     logger.info("boot — server starting")
     try:
-        ensure_indexes()
+        bootstrap_indexes()
     except Exception as e:
         logger.warning("boot — index check failed (starting without indexes): %s", e, exc_info=True)
     try:
@@ -92,5 +94,28 @@ async def healthz():
     return body
 
 
+def _get_version() -> str:
+    try:
+        from importlib.metadata import version
+
+        return version("rag-params-finder")
+    except Exception:
+        return "unknown"
+
+
+@app.get("/health")
+async def health():
+    """Health check including SIE reachability."""
+    mongodb = mongodb_health_status()
+    sie = check_sie_health()
+    return {
+        "status": "ok",
+        "mongodb": mongodb,
+        "sie": sie,
+        "version": _get_version(),
+    }
+
+
 app.include_router(experiments.router, prefix="/experiments", tags=["experiments"])
 app.include_router(runs.router, prefix="/runs", tags=["runs"])
+app.include_router(sweep_router, prefix="/api/v1", tags=["sweep"])
