@@ -26,3 +26,6 @@
 | 20 | 2026-07-02 | — | Dependabot #26–#43 triage recorded | 4 merged (#36–#39 CI actions), 5 closed (breaking toolchain bumps) | Execute when stale |
 | 21 | 2026-07-02 | — | Deferred toolchain upgrades documented in TRAIL + GAP_ANALYSIS | Vite 8, ESLint 9, react-hooks 7, ST v4+ need dedicated slices — not blind Dependabot merges | Close-and-document pattern |
 | 22 | 2026-07-02 | — | GAP_ANALYSIS refresh cadence | Update on slice PASS or quarterly; stale analysis misleads continuation sessions | Manual until automated |
+| 24 | 2026-07-04 | health-check | PRs #56, #57 merged; PR Queue updated | Actions/cache v6 + actions/checkout v7 merged to main; removed from PROGRESS.md open queue | AUTO-FIXED |
+| 25 | 2026-07-04 | health-check | PRs #47, #48 flagged as implementation prerequisites | Chunker fixes should land before implementation slices (28, 22) touching sweep pipeline | Mark "Merge when ready" rows with explicit prerequisite note |
+| 26 | 2026-07-04 | — | Plan health ✅ OK (0 gaps) — no structural changes this session | All 7 audit checks pass; staleness fixes applied; structural options (execution order, Slice 11 tracking) presented to user | Deferred pending user input |

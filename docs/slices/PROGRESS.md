@@ -79,18 +79,18 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 2026-07-01 | Dependabot PR triage #26–#43 | 4 merged (#36–#39), 5 closed (#26, #40–#43) |
 | 2026-07-02 | Plan health-check + gap refresh | TRAIL, GAP_ANALYSIS, HANDOFF updated; gate-evidence backfilled |
 | 2026-07-02 | Merge plan PROGRESS into slices PROGRESS | Single SSOT — removed `docs/plan/PROGRESS.md` duplicate |
+| 2026-07-04 | Merge PRs #56, #57, #58 | Actions upgrades (cache v6, checkout v7) + plan health-check refresh; all merged to main |
+| 2026-07-04 | Plan health-check + gap analysis | TRAIL health ✅ OK (0 legacy gaps); PR queue updated; execution order + PR merge prereqs reviewed |
 
 ---
 
-## Open PR Queue (snapshot 2026-07-02)
+## Open PR Queue (snapshot 2026-07-04)
 
 | PR | Verdict | Reason |
 |----|---------|--------|
-| #47 | Merge when ready | Semantic chunker overlap fix (#44) |
-| #48 | Merge when ready | Padding chunking dimension (#45) |
+| #47 | Merge when ready | Semantic chunker overlap fix (#44) — prerequisite before chunker-touching implementation slices |
+| #48 | Merge when ready | Padding chunking dimension (#45) — prerequisite before chunker-touching implementation slices |
 | #13 | Branch track | Kimchi integration — separate hackathon |
-| #56 | Evaluate | actions/cache v5→v6 — low risk after CI green |
-| #57 | Defer | actions/checkout v6→v7 — wait for ecosystem stability |
 
 ---
 
