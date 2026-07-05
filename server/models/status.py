@@ -20,6 +20,7 @@ class RunStatus(BaseModel):
     chunking_method: ChunkingMethod
     chunk_size: int
     overlap: int
+    padding: int = 0
     retrievers: list[RetrieverConfig] = Field(default_factory=list)
     retrieval_method: RetrievalMethod
     retrieval_provider: Provider

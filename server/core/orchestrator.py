@@ -457,6 +457,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
         chunking_method=params.chunking_method,
         chunk_size=params.chunk_size,
         overlap=params.overlap,
+        padding=params.padding,
         retrievers=params.retrievers,
         retrieval_method=params.retrieval_method,
         retrieval_provider=params.retrieval_provider,
@@ -484,7 +485,9 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
 
         check_control(experiment_id)
         _update_phase(run_id, Phase.CHUNKING)
-        chunks = chunk_text(text, params.chunking_method, params.chunk_size, params.overlap)
+        chunks = chunk_text(
+            text, params.chunking_method, params.chunk_size, params.overlap, params.padding
+        )
         if not chunks:
             logger.warning(
                 "chunking empty — run %s, 0 chunks from %s chars; embedding/retrieval empty",
@@ -522,6 +525,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
                 "chunk_method": params.chunking_method.value,
                 "chunk_size": params.chunk_size,
                 "overlap": params.overlap,
+                "padding": params.padding,
             }
             for i, (chunk, emb) in enumerate(zip(chunks, embeddings))
         ]
