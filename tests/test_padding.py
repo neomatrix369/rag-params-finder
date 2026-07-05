@@ -5,6 +5,8 @@ forward. Covers both the post-processing helper and its expansion as a sweep
 dimension.
 """
 
+import pytest
+
 from server.core.chunkers import _apply_padding
 from server.models.config import (
     ChunkingConfig,
@@ -35,8 +37,12 @@ def test_single_chunk_unchanged() -> None:
     assert _apply_padding(["short"], 100) == ["short"]
 
 
+def test_empty_list_unchanged() -> None:
+    assert _apply_padding([], 10) == []
+
+
 def test_undersized_chunks_merge_forward_to_threshold() -> None:
-    # Each fragment is 3 chars; threshold 7 forces pairs to merge (3+1+3=7).
+    # "aaa" + " " + "bbb" = 7 chars → meets threshold.
     chunks = ["aaa", "bbb", "ccc", "ddd"]
     assert _apply_padding(chunks, 7) == ["aaa bbb", "ccc ddd"]
 
@@ -83,3 +89,11 @@ def test_padding_is_a_swept_dimension() -> None:
     runs = expand_sweep(config)
     assert len(runs) == 3
     assert sorted(run.padding for run in runs) == [0, 100, 200]
+
+
+def test_padding_exceeds_chunk_size_emits_warning() -> None:
+    with pytest.warns(
+        UserWarning,
+        match=r"paddings \[300\] exceed min chunk_size 256",
+    ):
+        ChunkParams(chunk_sizes=[256], paddings=[300])
