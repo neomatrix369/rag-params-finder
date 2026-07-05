@@ -66,6 +66,7 @@ Scenario: GET /api/v1/best-config returns 404 when no history exists
 ```
 
 ### Before-Checks [GATE]
+- [ ] Merge PRs #47 (semantic chunker overlap) and #48 (padding sweep dimension) — chunker pipeline must be stable before SIE reranking and SPLADE sweep tests
 - [ ] Branch `slice/22-sie-scooter` created from latest `main` (Slice 21 merged and gate PASSED)
 - [ ] SIE Docker running; BGE-M3 encode probe returns HTTP 200 — see [SIE Provider Setup](../user-guide/sie-setup.md) (warm-up, 503 logs, disk-cache WARNING)
 - [ ] `./scripts/quality-gates.sh` passes
