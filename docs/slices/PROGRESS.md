@@ -59,16 +59,17 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 21 | Must | ✅ COMPLETE | — | SIE Skateboard |
 | 25 | Should | ✅ COMPLETE | 21 | Atlas Local |
 | 25B | Should | ✅ COMPLETE | 25 | Atlas switching |
-| 26 | Should | 📋 PLANNED | 25B | **Next** — local MongoDB docs |
+| 28 | Must | 📋 PLANNED | — | **Next** — Results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49)); merge PRs #47/#48 first |
+| 22 | Should | 📋 PLANNED | 21 | SIE Scooter — best-config stub; merge PRs #47/#48 first |
+| 26 | Should | 📋 PLANNED | 25B | Local MongoDB docs |
 | 27 | Should | 📋 PLANNED | 25B | MongoDB mode indicator |
-| 28 | Must | 📋 PLANNED | — | Results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49)) |
-| 22 | Should | 📋 PLANNED | 21 | SIE Scooter — best-config stub |
 | 19 | Should | 📋 PLANNED | — | Storage quota guard |
 | 16 | Should | 📋 PLANNED | — | Parallel sweep |
+| 11 | Could | 📋 PLANNED | — | Search Explorer enhancements |
 | 23 | Could | 📋 PLANNED | 22 | SIE Bicycle |
 | 10 | Could | 📋 PLANNED | — | Run recovery |
 
-**Execution order**: 21 → 25 → 25B (done) → **26** → 27 → **28** → 22 → 19 → 16 → 23 → 10
+**Execution order**: 21 → 25 → 25B (done) → **28** → **22** → 26 → 27 → 19 → 16 → 11 → 23 → 10
 
 ---
 

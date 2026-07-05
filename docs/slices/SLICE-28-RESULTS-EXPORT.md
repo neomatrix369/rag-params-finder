@@ -171,6 +171,7 @@ Scenario: dashboard download
 
 ## Before-checks
 
+- [ ] Merge PRs #47 (semantic chunker overlap) and #48 (padding sweep dimension) — chunker pipeline must be stable before adding export tests that touch the same data path
 - [ ] `./scripts/quality-gates.sh --quick` green on `main`
 - [ ] Branch `slice/28-results-export` from latest `main`
 
