@@ -13,6 +13,9 @@ DatabaseProvider = Literal["mongodb"]  # Future: "pinecone", "weaviate", "qdrant
 class ChunkParams(BaseModel):
     chunk_sizes: list[int] = Field(default=[512])
     overlaps: list[int] = Field(default=[50])
+    # Minimum chunk character length. Undersized chunks are merged forward into
+    # the next chunk until they reach this length. 0 disables padding (no-op).
+    paddings: list[int] = Field(default=[0])
 
 
 class EmbeddingConfig(BaseModel):
@@ -167,6 +170,7 @@ class RunParams(BaseModel):
     chunking_method: ChunkingMethod
     chunk_size: int
     overlap: int
+    padding: int = Field(default=0)
     top_k_initial: int
     top_k_final: int
     data_paths: list[str]
@@ -198,7 +202,8 @@ def _legacy_retrieval_fields(
 def expand_sweep(config: ExperimentConfig) -> list[RunParams]:
     """Cartesian product of all sweep dimensions into individual RunParams.
 
-    Sweep dimensions: embedding models × chunking methods × chunk sizes × overlaps × retrievers.
+    Sweep dimensions: embedding models × chunking methods × chunk sizes × overlaps
+    × paddings × retrievers.
     Each retriever list entry becomes exactly one run — retrievers are never combined.
 
     Example:
@@ -214,11 +219,12 @@ def expand_sweep(config: ExperimentConfig) -> list[RunParams]:
         config.chunking.methods,
         config.chunking.params.chunk_sizes,
         config.chunking.params.overlaps,
+        config.chunking.params.paddings or [0],
         retrievers_to_sweep,
     )
 
     runs: list[RunParams] = []
-    for model, method, size, overlap, retriever in combos:
+    for model, method, size, overlap, padding, retriever in combos:
         legacy_method, legacy_provider, legacy_model = _legacy_retrieval_fields(retriever)
         runs.append(
             RunParams(
@@ -228,6 +234,7 @@ def expand_sweep(config: ExperimentConfig) -> list[RunParams]:
                 chunking_method=method,
                 chunk_size=size,
                 overlap=overlap,
+                padding=padding,
                 top_k_initial=config.retrieval.top_k_initial,
                 top_k_final=config.retrieval.top_k_final,
                 data_paths=config.data_paths,

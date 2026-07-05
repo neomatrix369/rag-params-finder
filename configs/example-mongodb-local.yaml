@@ -41,6 +41,7 @@ chunking:
   params:
     chunk_sizes: [256, 512, 1024]
     overlaps: [50, 100]
+    paddings: [0]   # minimum chunk length (chars); undersized chunks merge forward. 0 = off.
 
 # NEW: Unified retriever configuration
 retrieval:
