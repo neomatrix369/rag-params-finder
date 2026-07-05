@@ -1,12 +1,18 @@
 """Tests for sentence-granular overlap in the semantic chunker.
 
-These cover the overlap-seeding logic only (``_overlap_sentences``), which is
-deterministic and dependency-free. The full ``chunk_semantic`` path requires
-downloading NLTK data and the sentence-transformers model, so it is exercised
-in integration runs rather than here.
+Covers the overlap-seeding helper (``_overlap_sentences``), config-load warnings
+for degenerate overlap values, and the ``chunk_text(SEMANTIC)`` dispatch chain
+(mocked — no NLTK or sentence-transformers required).
 """
 
+from unittest.mock import patch
+
+import pytest
+
+from server.core.chunkers import chunk_text
 from server.core.chunkers.semantic import _overlap_sentences
+from server.models.config import ChunkParams
+from server.models.enums import ChunkingMethod
 
 
 def test_no_overlap_carries_nothing() -> None:
@@ -42,3 +48,29 @@ def test_overlap_preserves_sentence_order() -> None:
     flushed = ["Alpha.", "Beta.", "Gamma."]
     carried = _overlap_sentences(flushed, 100)
     assert carried == ["Alpha.", "Beta.", "Gamma."]
+
+
+def test_overlap_exceeds_chunk_size_emits_warning() -> None:
+    with pytest.warns(
+        UserWarning,
+        match=r"overlaps \[512\] >= chunk_size 512",
+    ):
+        ChunkParams(chunk_sizes=[512], overlaps=[512])
+
+
+def test_semantic_dispatch_passes_overlap_to_chunk_semantic() -> None:
+    with patch("server.core.chunkers.semantic.chunk_semantic") as mock_semantic:
+        mock_semantic.return_value = ["chunk-a", "chunk-b"]
+        result = chunk_text("Hello world.", ChunkingMethod.SEMANTIC, chunk_size=200, overlap=60)
+        mock_semantic.assert_called_once_with("Hello world.", 200, 60)
+        assert result == ["chunk-a", "chunk-b"]
+
+
+def test_semantic_dispatch_overlap_zero_vs_nonzero() -> None:
+    """Regression guard for issue #44 — overlap must reach chunk_semantic."""
+    with patch("server.core.chunkers.semantic.chunk_semantic") as mock_semantic:
+        mock_semantic.return_value = []
+        chunk_text("Text.", ChunkingMethod.SEMANTIC, chunk_size=200, overlap=0)
+        chunk_text("Text.", ChunkingMethod.SEMANTIC, chunk_size=200, overlap=60)
+        assert mock_semantic.call_args_list[0].args[2] == 0
+        assert mock_semantic.call_args_list[1].args[2] == 60

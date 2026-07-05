@@ -12,7 +12,9 @@ def _overlap_sentences(flushed: list[str], overlap: int) -> list[str]:
     Sentence-granular (whole sentences only, never a mid-sentence cut), taking
     as many trailing sentences as fit within `overlap` characters.  At least the
     final sentence is always carried when overlap > 0, so consecutive semantic
-    chunks share boundary context.  Returns an empty list when overlap <= 0.
+    chunks share boundary context.  Carried sentences count toward the next
+    group's ``chunk_size`` character budget.  Returns an empty list when
+    overlap <= 0.
     """
     if overlap <= 0 or not flushed:
         return []
@@ -23,9 +25,9 @@ def _overlap_sentences(flushed: list[str], overlap: int) -> list[str]:
         # Always keep the last sentence; add earlier ones only while within budget.
         if carried and carried_len + len(sentence) > overlap:
             break
-        carried.insert(0, sentence)
+        carried.append(sentence)
         carried_len += len(sentence) + 1  # +1 for the joining space
-    return carried
+    return list(reversed(carried))
 
 
 def chunk_semantic(text: str, chunk_size: int, overlap: int = 0) -> list[str]:
@@ -40,8 +42,11 @@ def chunk_semantic(text: str, chunk_size: int, overlap: int = 0) -> list[str]:
     `overlap` carries the trailing sentence(s) of a flushed group (up to
     `overlap` characters, whole sentences only) into the start of the next
     group, mirroring how the sentence chunker preserves cross-boundary context.
-    With overlap=0 the behaviour is unchanged — semantic boundaries alone decide
-    splits.
+    Overlap seeds count toward the next group's ``chunk_size`` budget, so
+    effective new content per chunk is ``chunk_size - carried_overlap``.  Sweeps
+    comparing overlap=0 vs overlap=N therefore measure both context continuity
+    and reduced effective chunk capacity.  With overlap=0 the behaviour is
+    unchanged — semantic boundaries alone decide splits.
 
     Trade-off: always uses the local model regardless of the experiment's
     embedding provider, keeping the chunker provider-agnostic while adding a

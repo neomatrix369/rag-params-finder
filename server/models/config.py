@@ -30,6 +30,18 @@ class ChunkParams(BaseModel):
             )
         return self
 
+    @model_validator(mode="after")
+    def warn_overlap_exceeds_chunk_size(self) -> "ChunkParams":
+        for chunk_size in self.chunk_sizes:
+            bad = [o for o in self.overlaps if o >= chunk_size]
+            if bad:
+                warnings.warn(
+                    f"overlaps {bad} >= chunk_size {chunk_size}: "
+                    "semantic/fixed chunkers may produce degenerate near-identical chunks",
+                    stacklevel=2,
+                )
+        return self
+
 
 class EmbeddingConfig(BaseModel):
     provider: Provider = Field(default="local")
