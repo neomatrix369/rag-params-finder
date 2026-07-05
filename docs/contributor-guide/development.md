@@ -137,10 +137,10 @@ uv run pytest --tb=short -q \
 bash scripts/pip-audit.sh
 ```
 
-**Baseline (as of 2026-07-01)**:
+**Baseline (as of 2026-07-05)**:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 78 tests, coverage on scoped modules
+- `pytest` → 97 tests, coverage on scoped modules
 
 ### Frontend
 
@@ -245,7 +245,7 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 | `test_sie_embedder.py` | 5 | SIE BGE-M3 dense embedding (mocked SIEClient) |
 | `test_sweep_endpoint.py` | 9 | `POST /api/v1/sweep` + health helpers |
 
-**Total:** 46 pytest tests (baseline: 15 search-index + 3 expand-sweep + 3 tiebreaker + 3 health + 2 search-index-guard + 6 embedder-factory + 5 sie-embedder + 9 sweep-endpoint). Coverage is enforced at **80%** on seven scoped server modules (see Quality Gates above).
+**Total:** 97 pytest tests (includes semantic overlap, padding, SIE, search-index, sweep-endpoint suites). Coverage is enforced at **80%** on scoped server modules (see Quality Gates above).
 
 **Still manual / not automated:**
 - End-to-end pipeline via CLI + dashboard (real Atlas + optional Voyage)

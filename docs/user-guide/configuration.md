@@ -48,7 +48,7 @@ chunking:
     # - token
   params:
     chunk_sizes: [256, 512, 1024]    # all sizes × all overlaps = cartesian product of runs
-    overlaps: [0, 50]
+    overlaps: [0, 50]                # avoid overlap >= chunk_size (degenerate chunks)
 
 retrieval:
   top_k_initial: 20                  # candidates for reranker runs (dense fetch is internal)
@@ -194,7 +194,9 @@ See [Troubleshooting — voyage-context-3 token limit](troubleshooting.md#-voyag
 | `fixed` | Fixed-size character windows with configurable overlap | Baseline comparisons |
 | `token` | tiktoken-based splits at token boundaries | Token-budget-sensitive pipelines |
 | `sentence` | NLTK sentence tokenizer | Narrative text, Q&A pairs |
-| `semantic` | Groups sentences by cosine similarity of `all-MiniLM-L6-v2` embeddings; `overlap` is ignored | Topic-coherent chunks |
+| `semantic` | Groups sentences by cosine similarity of `all-MiniLM-L6-v2` embeddings; sentence-granular overlap (whole trailing sentences carried into the next chunk, mirroring the sentence chunker) | Topic-coherent chunks |
+
+> **Semantic overlap note:** Overlap seeds count toward each chunk's `chunk_size` budget, so effective new content per chunk is `chunk_size − carried_overlap`. When comparing overlap values in a semantic sweep, results reflect both shared boundary context and reduced effective chunk capacity. Avoid `overlap >= chunk_size` — the config loader emits a warning and chunkers may produce degenerate near-identical chunks.
 
 ---
 

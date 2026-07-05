@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`server/db/mongodb_uri.py`** — cloud vs local MongoDB URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`), shared by index bootstrap and Atlas storage quota lookup
+- **Padding sweep dimension** (PR #48, closes #45) — `paddings` in `ChunkParams`; post-chunk merge-forward via `_apply_padding` in `chunk_text`
 - **Slice 21 — SIE Skateboard** — SIE (Superlinked Inference Engine) as a third embedding provider; `embedder_factory.py` single dispatch point for voyage/local/sie; `sie_embedder.py` (BGE-M3, Stella-v5, SPLADE-v3 via remote gateway `SIE_ENDPOINT` + `SIE_API_KEY` or optional self-hosted Docker on `:8720`); `sie_guard.py` preflight before SIE sweeps; `aim_logger.py` Aim experiment run logging (no-op on failure); `POST /api/v1/sweep` Tier 1 ranked sweep endpoint (caller supplies `corpus` list; falls back to topic string); `GET /health` extended with `sie`, `version` fields; `configs/example-mongodb-sie.yaml`; 58 tests
 - **Slice 25 — Atlas Local dev mode** — `./start-services.sh --local` / `RAG_LOCAL_ATLAS=1`; `mongodb-atlas-local` Docker container; search indexes auto-provisioned on server boot for local URI (no Atlas UI manual step)
 - **Documentation navigation** — root [QUICKSTART.md](QUICKSTART.md), [docs/README.md](docs/README.md) persona index; slice tracker at [docs/slices/PROGRESS.md](docs/slices/PROGRESS.md)
@@ -37,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Semantic chunker overlap** (PR #47, closes #44) — `overlap` honored with sentence-granular trailing-sentence carry; fixes duplicate sweep runs when varying overlap
+- **Semantic chunker review follow-up** (PR #61) — config warning when `overlap >= chunk_size`; mocked dispatch-chain regression tests; `_overlap_sentences` append+reverse perf fix
+- **Padding config warnings** (PR #60) — `UserWarning` when `paddings` exceed `chunk_size`
 - **`start-services.sh`** — pass `--profile local-atlas` before `docker compose up` (was incorrectly appended to `up` args, causing `unknown flag: --profile`)
 - **Local Atlas MongoDB connection** — `mongo_client_kwargs()` applies TLS only for cloud `*.mongodb.net` URIs; fixes SSL handshake failures against `mongodb-local`
 - CI: read Node version from repo-root `.nvmrc` (`setup-node` resolves paths from checkout root, not `frontend/` working directory)
