@@ -1,3 +1,4 @@
+import warnings
 from itertools import product
 from typing import Literal
 
@@ -16,6 +17,18 @@ class ChunkParams(BaseModel):
     # Minimum chunk character length. Undersized chunks are merged forward into
     # the next chunk until they reach this length. 0 disables padding (no-op).
     paddings: list[int] = Field(default=[0])
+
+    @model_validator(mode="after")
+    def warn_padding_exceeds_chunk_size(self) -> "ChunkParams":
+        min_size = min(self.chunk_sizes)
+        bad = [p for p in self.paddings if p > min_size]
+        if bad:
+            warnings.warn(
+                f"paddings {bad} exceed min chunk_size {min_size}: "
+                "chunks may all merge into a single blob",
+                stacklevel=2,
+            )
+        return self
 
 
 class EmbeddingConfig(BaseModel):
@@ -219,7 +232,7 @@ def expand_sweep(config: ExperimentConfig) -> list[RunParams]:
         config.chunking.methods,
         config.chunking.params.chunk_sizes,
         config.chunking.params.overlaps,
-        config.chunking.params.paddings or [0],
+        config.chunking.params.paddings or [0],  # fallback: YAML [] would skip padding dimension
         retrievers_to_sweep,
     )
 
