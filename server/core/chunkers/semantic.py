@@ -6,15 +6,42 @@ _SIMILARITY_THRESHOLD = 0.6
 _MODEL_NAME = "all-MiniLM-L6-v2"
 
 
-def chunk_semantic(text: str, chunk_size: int) -> list[str]:
+def _overlap_sentences(flushed: list[str], overlap: int) -> list[str]:
+    """Trailing sentences of a flushed group to seed the next chunk.
+
+    Sentence-granular (whole sentences only, never a mid-sentence cut), taking
+    as many trailing sentences as fit within `overlap` characters.  At least the
+    final sentence is always carried when overlap > 0, so consecutive semantic
+    chunks share boundary context.  Returns an empty list when overlap <= 0.
+    """
+    if overlap <= 0 or not flushed:
+        return []
+
+    carried: list[str] = []
+    carried_len = 0
+    for sentence in reversed(flushed):
+        # Always keep the last sentence; add earlier ones only while within budget.
+        if carried and carried_len + len(sentence) > overlap:
+            break
+        carried.insert(0, sentence)
+        carried_len += len(sentence) + 1  # +1 for the joining space
+    return carried
+
+
+def chunk_semantic(text: str, chunk_size: int, overlap: int = 0) -> list[str]:
     """Semantic chunking using sentence-level cosine similarity.
 
     Splits text into sentences, embeds each one with all-MiniLM-L6-v2, then
     groups consecutive sentences into chunks when the cosine similarity between
     adjacent sentence embeddings falls below the threshold (0.6).  chunk_size
     acts as a hard character cap — a group that would exceed it is flushed
-    first.  The `overlap` parameter is intentionally unused: semantic boundaries
-    determine splits, not a fixed character offset.
+    first.
+
+    `overlap` carries the trailing sentence(s) of a flushed group (up to
+    `overlap` characters, whole sentences only) into the start of the next
+    group, mirroring how the sentence chunker preserves cross-boundary context.
+    With overlap=0 the behaviour is unchanged — semantic boundaries alone decide
+    splits.
 
     Trade-off: always uses the local model regardless of the experiment's
     embedding provider, keeping the chunker provider-agnostic while adding a
@@ -58,8 +85,9 @@ def chunk_semantic(text: str, chunk_size: int) -> list[str]:
 
         if should_flush and group:
             chunks.append(" ".join(group))
-            group = []
-            group_len = 0
+            # Seed the next group with trailing sentences for overlap context.
+            group = _overlap_sentences(group, overlap)
+            group_len = sum(len(s) + 1 for s in group)
 
         group.append(sentence)
         group_len += sentence_len + 1  # +1 for joining space

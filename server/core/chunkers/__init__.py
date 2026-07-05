@@ -36,7 +36,7 @@ def chunk_text(
     elif method == ChunkingMethod.SEMANTIC:
         from server.core.chunkers.semantic import chunk_semantic
 
-        chunks = chunk_semantic(text, chunk_size)
+        chunks = chunk_semantic(text, chunk_size, overlap)
     else:
         raise ValueError(f"Unknown chunking method: {method}")
 
