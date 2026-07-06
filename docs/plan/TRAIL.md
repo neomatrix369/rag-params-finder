@@ -24,7 +24,7 @@ Each PCTO slice lives in its own file below. Existing planned slices (10, 16, 19
 | 21 | [../slices/SLICE-21-SIE-SKATEBOARD.md](../slices/SLICE-21-SIE-SKATEBOARD.md) | SIE Skateboard — embeddings + Aim + `/api/v1/sweep` | Must | ✅ PASSED | none | — | ~4 min | 2026-06-29 |
 | 25 | [../slices/SLICE-25-ATLAS-LOCAL.md](../slices/SLICE-25-ATLAS-LOCAL.md) | Atlas Local Dev Mode — `mongodb-atlas-local` as opt-in backend | Should | ✅ PASSED | 21 | — | ~2 min | 2026-06-29 |
 | 25B | [../slices/SLICE-25B-ATLAS-SWITCHING.md](../slices/SLICE-25B-ATLAS-SWITCHING.md) | Atlas Backend Switching — single-flag cloud ↔ local switching | Should | ✅ PASSED | 25 | — | ~2 min | 2026-06-29 |
-| 28 | [../slices/SLICE-28-RESULTS-EXPORT.md](../slices/SLICE-28-RESULTS-EXPORT.md) | Results export — CSV/JSONL download (issue #49) | Must | 📋 PLANNED | none | [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | ~3 min | 2026-07-01 |
+| 28 | [../slices/SLICE-28-RESULTS-EXPORT.md](../slices/SLICE-28-RESULTS-EXPORT.md) | Results export — CSV/JSONL download (issue #49) | Must | ⏸️ DEFERRED | none | [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | ~3 min | 2026-07-06 |
 | 22 | [../slices/SLICE-22-SIE-SCOOTER.md](../slices/SLICE-22-SIE-SCOOTER.md) | SIE Scooter — reranking + SPLADE v3 sparse + `/api/v1/best-config` | Should | 📋 PLANNED | 21 | — | ~3 min | 2026-06-27 |
 | 26 | [../slices/SLICE-26-LOCAL-MONGODB-DOCS.md](../slices/SLICE-26-LOCAL-MONGODB-DOCS.md) | Local MongoDB: smooth path docs + script feedback | Should | 📋 PLANNED | 25B | — | ~1.5 min | 2026-06-29 |
 | 27 | [../slices/SLICE-27-MONGODB-MODE-INDICATOR.md](../slices/SLICE-27-MONGODB-MODE-INDICATOR.md) | MongoDB mode indicator (cloud vs local) | Should | 📋 PLANNED | 25B | — | ~2 min | 2026-06-29 |
@@ -34,7 +34,7 @@ Each PCTO slice lives in its own file below. Existing planned slices (10, 16, 19
 | 23 | [../slices/SLICE-23-SIE-BICYCLE.md](../slices/SLICE-23-SIE-BICYCLE.md) | SIE Bicycle — Ollama + Tier 2–3 methods + Evidently AI | Could | 📋 PLANNED | 22 | — | ~3 min | 2026-06-27 |
 | 10 | [../slices/SLICE-10-RUN-RECOVERY.md](../slices/SLICE-10-RUN-RECOVERY.md) | Run recovery | Could | 📋 PLANNED | none | — | — | — |
 
-**Execution order**: 21 → 25 → 25B (done) → **28** → **22** → 26 → 27 → 19 → 16 → 11 → 23 → 10
+**Execution order**: 21 → 25 → 25B (done) → **22** → 26 → 27 → 19 → 16 → 11 → 23 → 10 *(28 deferred — spec on main, no implementation branch)*
 
 ### Infrastructure slices (complete — tracked in [docs/slices/PROGRESS.md](../slices/PROGRESS.md))
 
@@ -59,9 +59,9 @@ Each PCTO slice lives in its own file below. Existing planned slices (10, 16, 19
 | File | Status | Read time | Last Updated |
 |------|--------|-----------|--------------|
 | GAP_ANALYSIS.md | updated | ~2 min | 2026-07-02 |
-| DECISIONS.md | updated | ~2 min | 2026-07-05 |
-| HANDOFF.md | updated | ~2 min | 2026-07-05 |
-| [../slices/PROGRESS.md](../slices/PROGRESS.md) | merged SSOT | ~2 min | 2026-07-05 |
+| DECISIONS.md | updated | ~2 min | 2026-07-06 |
+| HANDOFF.md | updated | ~2 min | 2026-07-06 |
+| [../slices/PROGRESS.md](../slices/PROGRESS.md) | merged SSOT | ~2 min | 2026-07-06 |
 | interview_summary.md | reconstructed | ~1 min | 2026-07-02 |
 | gate-evidence/ | backfilled (21, 25, 25B) | — | 2026-07-02 |
 
