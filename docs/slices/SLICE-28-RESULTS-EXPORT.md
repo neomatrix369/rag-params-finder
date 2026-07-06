@@ -1,12 +1,12 @@
 # Slice 28 — Experiment Results Export (CSV / JSONL)
 
-**Status**: 📋 PLANNED
-**Branch**: `slice/28-results-export`
+**Status**: 📋 PLANNED *(external contributor — not core-team active queue)*
+**Owner**: [@cschanhniem](https://github.com/cschanhniem) — [issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49) author and assignee
 **GitHub**: [Issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49)
 **Estimated time**: ~1.5 h
 **MoSCoW**: Must (backend export) · Should (dashboard download) · Could (JSONL) · Won't (CLI, Excel, auth)
 **Flow**: Brownfield — small requirement on mature API (`/explore` + `results_analyzer.py`)
-**Execution order**: 26 → 27 → **28** → 10 → 16 → 19 (no hard dependency on 26/27)
+**Execution order**: **28** → 22 → 26 → 27 → 19 → 16 → 11 → 23 → 10 (no hard dependency on 26/27)
 
 ## Slice workflow
 
@@ -171,9 +171,9 @@ Scenario: dashboard download
 
 ## Before-checks
 
-- [ ] Merge PRs #47 (semantic chunker overlap) and #48 (padding sweep dimension) — chunker pipeline must be stable before adding export tests that touch the same data path
+- [x] Merge PRs #47 (semantic chunker overlap) and #48 (padding sweep dimension) — merged to `main` 2026-07-05 (#60/#61 review follow-ups included)
 - [ ] `./scripts/quality-gates.sh --quick` green on `main`
-- [ ] Branch `slice/28-results-export` from latest `main`
+- [ ] Branch `slice/28-results-export` from latest `main` *(contributor-owned — @cschanhniem per issue #49)*
 
 ## After-checks
 
