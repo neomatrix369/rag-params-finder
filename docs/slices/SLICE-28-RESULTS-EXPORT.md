@@ -1,6 +1,6 @@
 # Slice 28 — Experiment Results Export (CSV / JSONL)
 
-**Status**: ⏸️ DEFERRED (spec only — no implementation branch; issue [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) remains open)
+**Status**: 📋 PLANNED *(not starting immediately — Slice 22 active first)*
 **GitHub**: [Issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49)
 **Estimated time**: ~1.5 h
 **MoSCoW**: Must (backend export) · Should (dashboard download) · Could (JSONL) · Won't (CLI, Excel, auth)
@@ -171,8 +171,8 @@ Scenario: dashboard download
 ## Before-checks
 
 - [x] Merge PRs #47 (semantic chunker overlap) and #48 (padding sweep dimension) — merged to `main` 2026-07-05 (#60/#61 review follow-ups included)
-- [ ] `./scripts/quality-gates.sh --quick` green on `main` *(when implementation resumes)*
-- [ ] Branch `slice/28-results-export` from latest `main` *(deferred — no implementation branch active)*
+- [ ] `./scripts/quality-gates.sh --quick` green on `main`
+- [ ] Branch `slice/28-results-export` from latest `main` *(when implementation starts)*
 
 ## After-checks
 

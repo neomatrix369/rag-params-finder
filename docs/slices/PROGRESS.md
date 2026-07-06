@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-06 (Slice 28 deferred; plan sync to main)
-**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching | Next: **22** 📋 SIE Scooter · **26** 📋 local MongoDB docs · **27** 📋 MongoDB mode indicator · **28** ⏸️ results export deferred ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49)) · **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota · **23** 📋 SIE Bicycle (Could)
+**Last Updated**: 2026-07-06 (Slice 28 PLANNED — active work on 22)
+**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching | Next: **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), not starting immediately) · **26** 📋 local MongoDB docs · **27** 📋 MongoDB mode indicator · **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota · **23** 📋 SIE Bicycle (Could)
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md)
 
@@ -31,7 +31,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 18 — Unified retriever config | ✅ COMPLETE | ~4–6 h | Unified "retrievers" group (traditional search + rerankers); auto-migrate old format; multi-reranker chains; see [`SLICE-18-UNIFIED-RETRIEVER-CONFIG.md`](SLICE-18-UNIFIED-RETRIEVER-CONFIG.md) |
 | 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~45 min | Visualization + query filtering only — **export moved to Slice 28** |
-| 28 — Results export (CSV/JSONL) | ⏸️ DEFERRED | ~1.5 h | Spec on `main` (PR #55); implementation deferred — [issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49) · [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) |
+| 28 — Results export (CSV/JSONL) | 📋 PLANNED | ~1.5 h | Not starting immediately — [issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49) · [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 | 19 — Atlas storage quota guard | 📋 PLANNED | ~3–5 h | Preflight + runtime `OperationFailure` 8000 handling + force-delete recovery; M0 incident 2026-05-23 — see [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) |
 | 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | `quality-gates.sh`, `repo-lint.sh`, `pre-push-gates.sh` (`--quick` on push), `install-git-hooks.sh`, coverage CI, ESLint, bandit, pip-audit, gitleaks, dependabot — [`SLICE-20-TOOLCHAIN-HARDENING.md`](SLICE-20-TOOLCHAIN-HARDENING.md) |
@@ -59,7 +59,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 21 | Must | ✅ COMPLETE | — | SIE Skateboard |
 | 25 | Should | ✅ COMPLETE | 21 | Atlas Local |
 | 25B | Should | ✅ COMPLETE | 25 | Atlas switching |
-| 28 | Must | ⏸️ DEFERRED | — | Spec on main (PR #55); implementation deferred — [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) |
+| 28 | Must | 📋 PLANNED | — | Queued — results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49)); not starting immediately |
 | 22 | Should | 📋 PLANNED | 21 | **Next** — SIE Scooter — best-config stub; prereqs #47/#48 ✅ |
 | 26 | Should | 📋 PLANNED | 25B | Local MongoDB docs |
 | 27 | Should | 📋 PLANNED | 25B | MongoDB mode indicator |
@@ -69,7 +69,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 23 | Could | 📋 PLANNED | 22 | SIE Bicycle |
 | 10 | Could | 📋 PLANNED | — | Run recovery |
 
-**Execution order**: 21 → 25 → 25B (done) → **22** → 26 → 27 → 19 → 16 → 11 → 23 → 10 *(28 deferred)*
+**Execution order**: 21 → 25 → 25B (done) → **28** → **22** → 26 → 27 → 19 → 16 → 11 → 23 → 10 *(active work: 22)*
 
 ---
 
@@ -84,7 +84,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 2026-07-04 | Plan health-check + gap analysis | TRAIL health ✅ OK (0 legacy gaps); PR queue updated; execution order + PR merge prereqs reviewed |
 | 2026-07-05 | Merge PRs #47, #48, #59, #60, #61 | Chunker fixes + plan gap analysis + review follow-ups on main; Slice 28 unblocked |
 | 2026-07-06 | Plan prereq clearance sync | HANDOFF, PROGRESS queue, slice Before-Checks updated; #47/#48 marked satisfied |
-| 2026-07-06 | Slice 28 implementation deferred | Spec retained (PR #55 on main); deleted `slice/28-results-export` branch; no export code in repo |
+| 2026-07-06 | Slice 28 status clarified | Remains PLANNED (not DEFERRED); no impl branch; active work starts at Slice 22 |
 
 ---
 
@@ -757,7 +757,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | 9 — Search Explorer dashboard | Best-params card, ranked configs, per-query results view | Should | ~30 min |
 | 10 — Run recovery | Spec: [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) — `recover` CLI + `POST /experiments/{id}/recover`; per-`run_id` scrub + retry (**FAILED** default; **INTERRUPTED** opt-in); **`RECOVER_ON_BOOT`** retries **INTERRUPTED** only *(not all FAILED)* | Could | ~1–2 h |
 | 11 — Dashboard-triggered runs | Submit experiments from the React UI, not just CLI | Could | ~45 min |
-| 28 — Results export | Spec: [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) — CSV/JSONL download; [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | **Must** | ⏸️ DEFERRED (~1.5 h when resumed) |
+| 28 — Results export | Spec: [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) — CSV/JSONL download; [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | **Must** | 📋 PLANNED (~1.5 h; not starting immediately) |
 | 12 — SSE live updates | Replace 2 s polling with Server-Sent Events | Could | ~20 min |
 | 13 — Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` | Could | ~15 min |
 | 19 — Storage quota guard | Spec: [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) — preflight at submit (422); runtime `OperationFailure` 8000; HTTP 507 on control APIs; `?force=true` delete; dashboard ≥80% warning; smoke config for M0 | **Should** | ~3–5 h |
@@ -806,7 +806,7 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
-| 2026-07-06 | main | plan sync | Slice 28 deferral | STAGED | HANDOFF/TRAIL/PROGRESS + spec status; deleted impl branch; planning on main via PR #55/#59 |
+| 2026-07-06 | main | plan sync | Slice 28 status | STAGED | PLANNED (not immediate); active work 22; planning on main via PR #55/#59 |
 | 2026-07-06 | main | plan sync | prereq clearance | STAGED | HANDOFF + PROGRESS + slice Before-Checks; #47/#48/#59 merged |
 | 2026-07-05 | docs/plan-gap-analysis-jul4 | /update-pr | plan gap analysis | MERGED | https://github.com/neomatrix369/rag-params-finder/pull/59 — footprint backfilled post-merge (commit landed after merge) |
 | 2026-07-05 | fix/pr47-review-suggestions | /update-pr | PR #61 follow-up | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/61 — CI all green, mergeState CLEAN; prerequisites: bypassed (no /verify-slice) |
