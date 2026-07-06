@@ -64,6 +64,7 @@ def _primary_retriever(params: RunParams) -> RetrieverConfig:
 def _search_traditional_retriever(
     retriever_cfg: RetrieverConfig,
     *,
+    run_id: str,
     query_text: str,
     experiment_id: str,
     embedding_model: str,
@@ -80,6 +81,7 @@ def _search_traditional_retriever(
         query_text=query_text,
         experiment_id=experiment_id,
         embedding_model=embedding_model,
+        run_id=run_id,
         top_k=top_k,
         query_embedding=query_embedding,
     )
@@ -102,6 +104,7 @@ def _search_reranker_retriever(
 
     candidates, _ = _search_traditional_retriever(
         RetrieverConfig(type=RetrieverType.DENSE),
+        run_id=run_id,
         query_text=query_text,
         experiment_id=experiment_id,
         embedding_model=embedding_model,
@@ -555,6 +558,7 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
             if retriever_cfg.type in _TRADITIONAL_RETRIEVER_TYPES:
                 search_results, _ = _search_traditional_retriever(
                     retriever_cfg,
+                    run_id=run_id,
                     query_text=q.text,
                     experiment_id=experiment_id,
                     embedding_model=params.embedding_model,

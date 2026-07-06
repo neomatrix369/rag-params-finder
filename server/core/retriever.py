@@ -1,3 +1,5 @@
+import time
+
 from server.core.model_registry import get_index_name
 from server.db.atlas import CHUNKS_COLLECTION, get_collection
 from server.db.indexes import TEXT_SEARCH_INDEX_NAME
@@ -8,6 +10,8 @@ from server.utils.logger import get_logger
 logger = get_logger(__name__)
 _RRF_K = 60  # Reciprocal Rank Fusion constant — higher value smooths rank differences
 _CANDIDATES_MULTIPLIER = 2  # numCandidates = top_k * multiplier for Atlas $vectorSearch
+_SPARSE_INDEX_RETRY_ATTEMPTS = 3
+_SPARSE_INDEX_RETRY_DELAY_S = 2.0  # Atlas Search may lag behind insert_many on fresh chunks
 
 
 def _run_search_aggregate(
@@ -35,14 +39,19 @@ def _run_search_aggregate(
 
 
 def dense_search(
-    query_embedding: list[float], experiment_id: str, embedding_model: str, top_k: int = 20
+    query_embedding: list[float],
+    experiment_id: str,
+    embedding_model: str,
+    run_id: str,
+    top_k: int = 20,
 ) -> list[SearchResult]:
     """Perform dense vector search using Atlas $vectorSearch."""
 
     index_name = get_index_name(embedding_model)
     logger.debug(
-        "dense search start — experiment=%s model=%s index=%s k=%s",
+        "dense search start — experiment=%s run=%s model=%s index=%s k=%s",
         experiment_id,
+        run_id,
         embedding_model,
         index_name,
         top_k,
@@ -59,6 +68,7 @@ def dense_search(
                 "filter": {
                     "experiment_id": {"$eq": experiment_id},
                     "embedding_model": {"$eq": embedding_model},
+                    "run_id": {"$eq": run_id},
                 },
             }
         },
@@ -88,17 +98,22 @@ def dense_search(
 
 
 def sparse_search(
-    query_text: str, experiment_id: str, embedding_model: str, top_k: int = 20
+    query_text: str,
+    experiment_id: str,
+    embedding_model: str,
+    run_id: str,
+    top_k: int = 20,
 ) -> list[SearchResult]:
     """BM25 full-text search using Atlas Search ($search).
 
     Requires a 'text_search_index' Atlas Search index on the chunks collection
-    with field mappings for 'text' (string), 'experiment_id' (token), and
-    'embedding_model' (token).  See CLAUDE.local.md for index creation steps.
+    with field mappings for 'text' (string), 'experiment_id' (token),
+    'embedding_model' (token), and 'run_id' (token).
     """
     logger.debug(
-        "sparse search start — experiment=%s model=%s k=%s",
+        "sparse search start — experiment=%s run=%s model=%s k=%s",
         experiment_id,
+        run_id,
         embedding_model,
         top_k,
     )
@@ -112,6 +127,7 @@ def sparse_search(
                     "filter": [
                         {"equals": {"path": "experiment_id", "value": experiment_id}},
                         {"equals": {"path": "embedding_model", "value": embedding_model}},
+                        {"equals": {"path": "run_id", "value": run_id}},
                     ],
                 },
             }
@@ -130,13 +146,25 @@ def sparse_search(
         },
     ]
 
-    results = _run_search_aggregate(
-        pipeline,
-        search_kind="Sparse",
-        experiment_id=experiment_id,
-        embedding_model=embedding_model,
-        index_name=TEXT_SEARCH_INDEX_NAME,
-    )
+    results: list = []
+    for attempt in range(1, _SPARSE_INDEX_RETRY_ATTEMPTS + 1):
+        results = _run_search_aggregate(
+            pipeline,
+            search_kind="Sparse",
+            experiment_id=experiment_id,
+            embedding_model=embedding_model,
+            index_name=TEXT_SEARCH_INDEX_NAME,
+        )
+        if results:
+            break
+        if attempt < _SPARSE_INDEX_RETRY_ATTEMPTS:
+            logger.info(
+                "sparse search 0 hits — retry after index sync attempt=%s run=%s",
+                attempt,
+                run_id,
+            )
+            time.sleep(_SPARSE_INDEX_RETRY_DELAY_S)
+
     logger.debug("sparse search OK — %s hits", len(results))
 
     return _to_search_results(results, retrieval_method="sparse")
@@ -147,6 +175,7 @@ def hybrid_search(
     query_embedding: list[float],
     experiment_id: str,
     embedding_model: str,
+    run_id: str,
     top_k: int = 20,
 ) -> list[SearchResult]:
     """Reciprocal Rank Fusion (RRF) merge of dense + sparse results.
@@ -157,14 +186,15 @@ def hybrid_search(
     advantage of rank-1 results and reduces sensitivity to outliers.
     """
     logger.debug(
-        "hybrid search start — experiment=%s model=%s k=%s",
+        "hybrid search start — experiment=%s run=%s model=%s k=%s",
         experiment_id,
+        run_id,
         embedding_model,
         top_k,
     )
 
-    dense_results = dense_search(query_embedding, experiment_id, embedding_model, top_k)
-    sparse_results = sparse_search(query_text, experiment_id, embedding_model, top_k)
+    dense_results = dense_search(query_embedding, experiment_id, embedding_model, run_id, top_k)
+    sparse_results = sparse_search(query_text, experiment_id, embedding_model, run_id, top_k)
 
     rrf_scores: dict[str, float] = {}
     chunk_by_id: dict[str, SearchResult] = {}
@@ -203,6 +233,7 @@ def search(
     query_text: str,
     experiment_id: str,
     embedding_model: str,
+    run_id: str,
     top_k: int = 20,
     query_embedding: list[float] | None = None,
 ) -> list[SearchResult]:
@@ -210,15 +241,17 @@ def search(
     if method == RetrievalMethod.DENSE:
         if query_embedding is None:
             raise ValueError("query_embedding is required for dense search")
-        return dense_search(query_embedding, experiment_id, embedding_model, top_k)
+        return dense_search(query_embedding, experiment_id, embedding_model, run_id, top_k)
 
     if method == RetrievalMethod.SPARSE:
-        return sparse_search(query_text, experiment_id, embedding_model, top_k)
+        return sparse_search(query_text, experiment_id, embedding_model, run_id, top_k)
 
     if method == RetrievalMethod.HYBRID:
         if query_embedding is None:
             raise ValueError("query_embedding is required for hybrid search")
-        return hybrid_search(query_text, query_embedding, experiment_id, embedding_model, top_k)
+        return hybrid_search(
+            query_text, query_embedding, experiment_id, embedding_model, run_id, top_k
+        )
 
     raise ValueError(f"Unknown retrieval method: {method}")
 
