@@ -127,6 +127,9 @@ jobs:
   secrets:
     name: Secrets scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v7
