@@ -22,6 +22,10 @@ import { devInfo, devInfoThrottled, devWarn } from '../utils/devLog';
 
 let xfSeq = 0;
 
+function formatChunkDimensions(config: { chunk_size: number; overlap: number; padding?: number }): string {
+  return `${config.chunk_size}/${config.overlap}/${config.padding ?? 0}`;
+}
+
 function xfAppend(prev: FeedEntry[], text: string, variant: FeedEntry['variant']): FeedEntry[] {
   xfSeq += 1;
   return [...prev, { id: `${Date.now()}-${xfSeq}`, text, variant }];
@@ -87,7 +91,8 @@ function BestParamsCard({ config }: { config: RankedConfig }) {
           <p className="text-xs text-slate-300 leading-relaxed">
             <span className="font-semibold text-amber-300">Tiebreaker applied:</span> When multiple configurations achieve the same max score,
             we rank by <strong>query avg score</strong> (weighted per-query average — each query contributes equally),
-            then <strong>chunk size</strong> (smaller = faster), then <strong>overlap</strong> (smaller = less storage).
+            then <strong>chunk size</strong> (smaller = faster), then <strong>overlap</strong> (smaller = less storage),
+            then <strong>padding</strong> (smaller = less merge-forward padding).
           </p>
           <p className="text-xs text-slate-400 mt-2">
             ℹ️ Query avg is fairer than chunk avg because it prevents queries with many results from dominating the average.
@@ -124,6 +129,10 @@ function BestParamsCard({ config }: { config: RankedConfig }) {
             <div>
               <div className="text-xs text-slate-400 uppercase tracking-wider">Overlap</div>
               <div className="text-sm font-semibold">{config.overlap}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider">Padding</div>
+              <div className="text-sm font-semibold">{config.padding ?? 0}</div>
             </div>
             <div>
               <div className="text-xs text-slate-400 uppercase tracking-wider">Retrieval</div>
@@ -211,8 +220,8 @@ function ConfigCard({ config, badge, annotation }: {
             <div className="font-medium text-slate-700 capitalize">{config.chunking_method}</div>
           </div>
           <div>
-            <span className="text-xs text-slate-400 uppercase tracking-wider">Size/Overlap</span>
-            <div className="font-mono text-slate-700">{config.chunk_size}/{config.overlap}</div>
+            <span className="text-xs text-slate-400 uppercase tracking-wider">Size/Overlap/Pad</span>
+            <div className="font-mono text-slate-700">{formatChunkDimensions(config)}</div>
           </div>
         </div>
         <div className="flex gap-3">
@@ -333,6 +342,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
   const uniqueChunking = [...new Set(data.ranked_configs.map((c) => c.chunking_method))];
   const uniqueSizes = [...new Set(data.ranked_configs.map((c) => c.chunk_size))].sort((a, b) => a - b);
   const uniqueOverlaps = [...new Set(data.ranked_configs.map((c) => c.overlap))].sort((a, b) => a - b);
+  const uniquePaddings = [...new Set(data.ranked_configs.map((c) => c.padding ?? 0))].sort((a, b) => a - b);
   const uniqueRetrievers = [...new Set(data.ranked_configs.map((c) => c.retrieval_method))];
   const totalConfigs = data.ranked_configs.length;
 
@@ -344,7 +354,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
       <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
         <p className="text-sm text-purple-800">
           <strong>Aggregated configuration performance</strong> — Each card represents one unique parameter combination
-          (chunking method + chunk size + overlap + model + retrieval). Scores are averaged across all queries.
+          (chunking method + chunk size + overlap + padding + model + retrieval). Scores are averaged across all queries.
           See <strong>Detailed Results</strong> tab for individual chunk-level results.
         </p>
       </div>
@@ -408,7 +418,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <div className="text-xs text-slate-400 uppercase tracking-wider mb-1.5">Chunk Sizes ({uniqueSizes.length})</div>
                   <div className="flex flex-wrap gap-1.5">
@@ -430,12 +440,23 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
                     ))}
                   </div>
                 </div>
+
+                <div>
+                  <div className="text-xs text-slate-400 uppercase tracking-wider mb-1.5">Paddings ({uniquePaddings.length})</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {uniquePaddings.map((p) => (
+                      <span key={p} className="inline-flex px-2 py-1 text-xs font-mono rounded bg-purple-50 text-purple-700 border border-purple-200">
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="pt-2 border-t border-slate-100">
               <p className="text-xs text-slate-500">
-                <strong>Cartesian product:</strong> {uniqueModels.length} model{uniqueModels.length !== 1 ? 's' : ''} × {uniqueChunking.length} chunking method{uniqueChunking.length !== 1 ? 's' : ''} × {uniqueSizes.length} size{uniqueSizes.length !== 1 ? 's' : ''} × {uniqueOverlaps.length} overlap{uniqueOverlaps.length !== 1 ? 's' : ''} × {uniqueRetrievers.length} retriever{uniqueRetrievers.length !== 1 ? 's' : ''} = {totalConfigs} configuration{totalConfigs !== 1 ? 's' : ''}
+                <strong>Cartesian product:</strong> {uniqueModels.length} model{uniqueModels.length !== 1 ? 's' : ''} × {uniqueChunking.length} chunking method{uniqueChunking.length !== 1 ? 's' : ''} × {uniqueSizes.length} size{uniqueSizes.length !== 1 ? 's' : ''} × {uniqueOverlaps.length} overlap{uniqueOverlaps.length !== 1 ? 's' : ''} × {uniquePaddings.length} padding{uniquePaddings.length !== 1 ? 's' : ''} × {uniqueRetrievers.length} retriever{uniqueRetrievers.length !== 1 ? 's' : ''} = {totalConfigs} configuration{totalConfigs !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
@@ -448,7 +469,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
           {hasTies ? (
             <>
               <strong>{tiedInTop3} configurations achieved {bestMaxScore}% max score.</strong>{' '}
-              Ranked by query avg (weighted per-query average), then chunk size (smaller = faster), then overlap (smaller = less storage).
+              Ranked by query avg (weighted per-query average), then chunk size (smaller = faster), then overlap (smaller = less storage), then padding (smaller = less merge-forward).
             </>
           ) : (
             <>
@@ -478,6 +499,8 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
                 reasons.push(`smallest chunk size (${c.chunk_size} vs ${topConfigs[1]?.chunk_size})`);
               } else if (c.overlap < (topConfigs[1]?.overlap ?? Infinity)) {
                 reasons.push(`smallest overlap (${c.overlap} vs ${topConfigs[1]?.overlap})`);
+              } else if ((c.padding ?? 0) < (topConfigs[1]?.padding ?? Infinity)) {
+                reasons.push(`smallest padding (${c.padding ?? 0} vs ${topConfigs[1]?.padding ?? 0})`);
               }
               annotation = reasons.length > 0
                 ? `✓ Ranked #1 by: ${reasons.join(', ')} → faster processing + less storage`
@@ -492,6 +515,8 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
                 diff.push(`larger chunks (${c.chunk_size} vs ${topConfigs[0].chunk_size})`);
               } else if (c.overlap > (topConfigs[0]?.overlap ?? 0)) {
                 diff.push(`larger overlap (${c.overlap} vs ${topConfigs[0].overlap})`);
+              } else if ((c.padding ?? 0) > (topConfigs[0]?.padding ?? 0)) {
+                diff.push(`larger padding (${c.padding ?? 0} vs ${topConfigs[0].padding ?? 0})`);
               }
               annotation = diff.length > 0
                 ? `⚡ Same max score (${c.max_score}%), but: ${diff.join(', ')}`
@@ -501,7 +526,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
 
           return (
             <ConfigCard
-              key={`${c.database_provider}-${c.embedding_provider}-${c.embedding_model}-${c.chunking_method}-${c.chunk_size}-${c.overlap}-${c.retrieval_method}-${c.retrieval_provider}`}
+              key={`${c.database_provider}-${c.embedding_provider}-${c.embedding_model}-${c.chunking_method}-${c.chunk_size}-${c.overlap}-${c.padding ?? 0}-${c.retrieval_method}-${c.retrieval_provider}`}
               config={c}
               badge={badge}
               annotation={annotation}
@@ -525,7 +550,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Embed Prov</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Embedding Model</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Chunking</th>
-                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Size/Overlap</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Size/Overlap/Pad</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Retrieval</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Retrieval Prov</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Max Score</th>
@@ -541,7 +566,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
                   <td className="px-4 py-2.5 text-xs font-bold text-teal-700 uppercase">{c.embedding_provider || 'local'}</td>
                   <td className="px-4 py-2.5 text-sm font-mono text-slate-700">{c.embedding_model}</td>
                   <td className="px-4 py-2.5 text-sm capitalize">{c.chunking_method}</td>
-                  <td className="px-4 py-2.5 text-sm font-mono">{c.chunk_size}/{c.overlap}</td>
+                  <td className="px-4 py-2.5 text-sm font-mono">{formatChunkDimensions(c)}</td>
                   <td className="px-4 py-2.5"><MethodBadge method={c.retrieval_method} variant="retrieval" /></td>
                   <td className="px-4 py-2.5 text-xs font-bold text-teal-700 uppercase">{c.retrieval_provider || 'local'}</td>
                   <td className="px-4 py-2.5 text-sm font-bold">{c.max_score}%</td>
@@ -596,7 +621,7 @@ function DetailedResultsTab({ results }: { results: DetailedResult[] }) {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
         <p className="text-sm text-blue-800">
           <strong>Individual chunk results</strong> — Each row shows one retrieved chunk from one query.
-          Multiple rows may share the same config (chunking + size/overlap).
+          Multiple rows may share the same config (chunking + size/overlap/padding).
           See <strong>Hyperparameters</strong> tab for aggregated config performance.
         </p>
       </div>
@@ -643,10 +668,10 @@ function DetailedResultsTab({ results }: { results: DetailedResult[] }) {
                       <MethodBadge method={r.chunking_method} variant="chunking" />
                     </div>
 
-                    {/* NEW: Show chunk_size/overlap to map back to configs */}
+                    {/* Show chunk_size/overlap/padding to map back to configs */}
                     <div className="shrink-0">
                       <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-purple-50 text-purple-700 border border-purple-200">
-                        {r.chunk_size}/{r.overlap}
+                        {formatChunkDimensions(r)}
                       </span>
                     </div>
                   </div>
@@ -725,7 +750,7 @@ function ConfigSidebar({ data, selectedMethods, onToggleMethod }: {
               <div className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-xs truncate">
-                  {c.chunking_method}/{c.chunk_size}+{c.overlap}
+                  {c.chunking_method}/{formatChunkDimensions(c)}
                 </div>
                 <div className="text-xs text-slate-400">{c.result_count} results</div>
               </div>

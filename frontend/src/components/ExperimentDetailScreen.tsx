@@ -1065,7 +1065,8 @@ export default function ExperimentDetailScreen({
                   {detail.sweep_summary.models.length *
                     detail.sweep_summary.chunking_methods.length *
                     detail.sweep_summary.chunk_sizes.length *
-                    detail.sweep_summary.overlaps.length}{' '}
+                    detail.sweep_summary.overlaps.length *
+                    (detail.sweep_summary.paddings?.length ?? 1)}{' '}
                   combinations
                 </span>
               }
@@ -1077,6 +1078,9 @@ export default function ExperimentDetailScreen({
                 <DimensionBadge label="Chunking" values={detail.sweep_summary.chunking_methods} />
                 <DimensionBadge label="Chunk Sizes" values={detail.sweep_summary.chunk_sizes} />
                 <DimensionBadge label="Overlaps" values={detail.sweep_summary.overlaps} />
+                {detail.sweep_summary.paddings && detail.sweep_summary.paddings.length > 0 && (
+                  <DimensionBadge label="Paddings" values={detail.sweep_summary.paddings} />
+                )}
 
                 {/* Unified Retrievers display with backward compatibility */}
                 {detail.sweep_summary.retrievers ? (
@@ -1143,7 +1147,7 @@ export default function ExperimentDetailScreen({
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Embed Prov</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Embedding Model</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Chunker</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Size/Overlap</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Size/Overlap/Pad</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Retrievers</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Phase</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Elapsed</th>
@@ -1190,7 +1194,7 @@ export default function ExperimentDetailScreen({
                           </td>
                           <td className="px-4 py-4">
                             <span className="text-sm font-mono text-slate-700 font-semibold">
-                              {run.chunk_size} / {run.overlap}
+                              {run.chunk_size}/{run.overlap}/{run.padding ?? 0}
                             </span>
                           </td>
                           <td className="px-4 py-4">
@@ -1253,7 +1257,7 @@ export default function ExperimentDetailScreen({
                       {run.run_id.slice(0, 8)}
                     </span>
                     <span className="text-sm text-slate-700 font-medium">
-                      {run.embedding_model} · {run.chunking_method} · {run.chunk_size}+{run.overlap}
+                      {run.embedding_model} · {run.chunking_method} · {run.chunk_size}/{run.overlap}/{run.padding ?? 0}
                     </span>
                   </div>
                   <div className="bg-amber-50 rounded-md p-3 border border-amber-100">
@@ -1286,7 +1290,7 @@ export default function ExperimentDetailScreen({
                       {run.run_id.slice(0, 8)}
                     </span>
                     <span className="text-sm text-slate-700 font-medium">
-                      {run.embedding_model} · {run.chunking_method} · {run.chunk_size}+{run.overlap}
+                      {run.embedding_model} · {run.chunking_method} · {run.chunk_size}/{run.overlap}/{run.padding ?? 0}
                     </span>
                     {run.elapsed_ms > 0 && (
                       <span className="ml-auto text-xs text-slate-500 flex items-center gap-1">

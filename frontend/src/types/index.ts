@@ -66,6 +66,7 @@ export interface SweepSummary {
   chunking_methods: string[];
   chunk_sizes: number[];
   overlaps: number[];
+  paddings?: number[];
 
   // NEW — unified retriever configuration
   retrievers?: string[];  // Human-readable retriever descriptions
@@ -112,6 +113,7 @@ export interface RunStatus {
   chunking_method: ChunkingMethod;
   chunk_size: number;
   overlap: number;
+  padding?: number;
   created_at: string;
   updated_at: string;
   elapsed_ms: number;
@@ -163,6 +165,7 @@ export interface RankedConfig {
   chunking_method: string;
   chunk_size: number;
   overlap: number;
+  padding?: number;
   max_score: number;
   avg_score: number;           // Unweighted (chunk-level average)
   query_avg_score: number;     // NEW: Weighted (query-level average — fairer)
@@ -187,6 +190,7 @@ export interface DetailedResult {
   chunking_method: string;
   chunk_size: number;
   overlap: number;
+  padding?: number;
   chunk_text: string;
   query_text: string;
   run_id: string;

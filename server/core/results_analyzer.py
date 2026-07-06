@@ -20,7 +20,7 @@ def _effective_score(result: dict) -> float:
     return float(result.get("dense_score", 0.0))
 
 
-def _run_config_key(run: dict) -> tuple[str, str, str, str, int, int, str, str, str]:
+def _run_config_key(run: dict) -> tuple[str, str, str, str, int, int, int, str, str, str]:
     retriever_type = run["retrieval_method"]
     retriever_model = run.get("retrieval_model") or ""
     if run.get("retrievers"):
@@ -34,6 +34,7 @@ def _run_config_key(run: dict) -> tuple[str, str, str, str, int, int, str, str, 
         run["chunking_method"],
         int(run["chunk_size"]),
         int(run["overlap"]),
+        int(run.get("padding", 0)),
         retriever_type,
         run.get("retrieval_provider", "local"),
         retriever_model,
@@ -103,7 +104,7 @@ def analyze_results(
         key = (
             _run_config_key(run)
             if run
-            else ("unknown", "unknown", "unknown", "unknown", 0, 0, "unknown", "unknown", "")
+            else ("unknown", "unknown", "unknown", "unknown", 0, 0, 0, "unknown", "unknown", "")
         )
 
         for sr in qr.get("results", []):
@@ -127,6 +128,7 @@ def analyze_results(
                     "chunking_method": chunk.get("chunk_method", run.get("chunking_method", "")),
                     "chunk_size": run.get("chunk_size", 0),
                     "overlap": run.get("overlap", 0),
+                    "padding": run.get("padding", 0),
                     "retrieval_method": sr.get("retrieval_method", ""),
                     "rerank_provider": run.get("retrieval_provider", "local"),
                     "retrieval_model": run.get("retrieval_model"),
@@ -151,6 +153,7 @@ def analyze_results(
             chunker,
             chunk_size,
             overlap,
+            padding,
             retrieval,
             rerank_provider,
             retrieval_model,
@@ -173,6 +176,7 @@ def analyze_results(
                 "chunking_method": chunker,
                 "chunk_size": chunk_size,
                 "overlap": overlap,
+                "padding": padding,
                 "retrieval_method": retrieval,
                 "rerank_provider": rerank_provider,
                 "retrieval_model": retrieval_model or None,
@@ -186,7 +190,7 @@ def analyze_results(
         )
 
     # Sort by: max_score DESC, then avg_score (configurable) DESC,
-    # then chunk_size ASC, then overlap ASC
+    # then chunk_size ASC, then overlap ASC, then padding ASC
     # Tiebreaker rationale:
     #   1. max_score: primary quality metric
     #   2. avg_score: consistency (configurable: query_avg or chunk_avg)
@@ -196,6 +200,7 @@ def analyze_results(
     #        (queries with more results dominate)
     #   3. chunk_size: smaller = faster processing + less storage
     #   4. overlap: smaller = fewer duplicate chunks
+    #   5. padding: smaller = less merge-forward padding
 
     # Choose which avg metric to use for tiebreaking based on TIEBREAKER_METRIC setting
     use_query_avg = settings.tiebreaker_metric == "query_avg"
@@ -213,6 +218,7 @@ def analyze_results(
             -c[avg_metric_key],  # Higher is better (configurable metric)
             c["chunk_size"],  # Lower is better (ASC)
             c["overlap"],  # Lower is better (ASC)
+            c["padding"],  # Lower is better (ASC)
         )
     )
     for i, c in enumerate(ranked_configs, start=1):

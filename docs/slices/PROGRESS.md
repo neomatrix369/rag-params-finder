@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-06 (Slice 28 contributor-owned; core team on 22)
-**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching | Next: **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26** 📋 local MongoDB docs · **27** 📋 MongoDB mode indicator · **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota · **23** 📋 SIE Bicycle (Could)
+**Last Updated**: 2026-07-06 (Slice 29 padding propagation complete)
+**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation | Next: **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26** 📋 local MongoDB docs · **27** 📋 MongoDB mode indicator · **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota · **23** 📋 SIE Bicycle (Could)
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md)
 
@@ -32,6 +32,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~45 min | Visualization + query filtering only — **export moved to Slice 28** |
 | 28 — Results export (CSV/JSONL) | 📋 PLANNED | ~1.5 h | Contributor [@cschanhniem](https://github.com/cschanhniem) — [issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49) author/assignee · [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) |
+| 29 — Padding cross-cutting propagation | ✅ COMPLETE | ~2 h | `_run_config_key()` + API + TS types + UI — spec: [`SLICE-29-PADDING-PROPAGATION.md`](SLICE-29-PADDING-PROPAGATION.md) |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 | 19 — Atlas storage quota guard | 📋 PLANNED | ~3–5 h | Preflight + runtime `OperationFailure` 8000 handling + force-delete recovery; M0 incident 2026-05-23 — see [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) |
 | 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | `quality-gates.sh`, `repo-lint.sh`, `pre-push-gates.sh` (`--quick` on push), `install-git-hooks.sh`, coverage CI, ESLint, bandit, pip-audit, gitleaks, dependabot — [`SLICE-20-TOOLCHAIN-HARDENING.md`](SLICE-20-TOOLCHAIN-HARDENING.md) |
@@ -60,6 +61,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 25 | Should | ✅ COMPLETE | 21 | Atlas Local |
 | 25B | Should | ✅ COMPLETE | 25 | Atlas switching |
 | 28 | Must | 📋 PLANNED | — | External — [@cschanhniem](https://github.com/cschanhniem) owns [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) |
+| 29 | Must | ✅ COMPLETE | — | Padding in config key, explore API, sweep_summary, dashboard UI |
 | 22 | Should | 📋 PLANNED | 21 | **Next** — SIE Scooter — best-config stub; prereqs #47/#48 ✅ |
 | 26 | Should | 📋 PLANNED | 25B | Local MongoDB docs |
 | 27 | Should | 📋 PLANNED | 25B | MongoDB mode indicator |
@@ -69,7 +71,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 23 | Could | 📋 PLANNED | 22 | SIE Bicycle |
 | 10 | Could | 📋 PLANNED | — | Run recovery |
 
-**Execution order**: 21 → 25 → 25B (done) → **28** → **22** → 26 → 27 → 19 → 16 → 11 → 23 → 10 *(active work: 22)*
+**Execution order**: 21 → 25 → 25B (done) → **28** → **22** → **29** (done) → 26 → 27 → 19 → 16 → 11 → 23 → 10 *(active work: 22)*
 
 ---
 
@@ -85,6 +87,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 2026-07-05 | Merge PRs #47, #48, #59, #60, #61 | Chunker fixes + plan gap analysis + review follow-ups on main; Slice 28 unblocked |
 | 2026-07-06 | Plan prereq clearance sync | HANDOFF, PROGRESS queue, slice Before-Checks updated; #47/#48 marked satisfied |
 | 2026-07-06 | Slice 28 contributor assigned | @cschanhniem (issue #49 author/assignee) owns implementation; core team on Slice 22 |
+| 2026-07-06 | Slice 29 complete | Padding in `_run_config_key()`, explore responses, sweep_summary, TS types, ExperimentDetail + SearchExplorer UI |
 
 ---
 
@@ -624,6 +627,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-06 | 29 | Include padding in `_run_config_key()` tuple after overlap; default 0 for legacy runs | PR #48 added sweep dimension but ranked configs merged runs differing only by padding |
 | 2026-06-29 | 21 | Officially close Slice 21; populate HANDOFF.md + update TRAIL.md | All acceptance criteria met; SIE_ENDPOINT rename + preflight + batching refinements landed post-completion |
 | 2026-06-29 | 21 | Expand `example-mongodb-sie.yaml` to full chunking/retriever grid + 3 SIE models | Parity with local/voyage examples; bge-m3/stella-v5/splade-v3 are registry top tier |
 | 2026-06-29 | 25B | `./start-services.sh --local` single-command switching; cloud URI validation skipped for local mode | Friction after Slice 25: long compose command, manual URI copy-paste, no "switch back" guidance |
