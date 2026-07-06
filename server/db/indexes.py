@@ -155,6 +155,7 @@ def _vector_index_filter_fields() -> list[dict[str, str]]:
         {"type": "filter", "path": "chunking_method"},
         {"type": "filter", "path": "chunk_size"},
         {"type": "filter", "path": "overlap"},
+        {"type": "filter", "path": "run_id"},
     ]
 
 
@@ -313,7 +314,7 @@ def _log_manual_instructions() -> None:
         )
     logger.info(
         "manual vector index hints — path=embedding similarity=cosine "
-        "filters=[experiment_id, embedding_model, chunking_method, chunk_size, overlap]"
+        "filters=[experiment_id, embedding_model, chunking_method, chunk_size, overlap, run_id]"
     )
     logger.info(
         "manual vector index docs — %s",
@@ -342,6 +343,7 @@ def create_text_search_index() -> bool:
                     "text": [{"type": "string"}],
                     "experiment_id": [{"type": "token"}],
                     "embedding_model": [{"type": "token"}],
+                    "run_id": [{"type": "token"}],
                 },
             }
         },

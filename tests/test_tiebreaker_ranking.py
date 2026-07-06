@@ -5,6 +5,7 @@ When multiple configurations achieve the same max score, verify they are ranked 
 2. avg_score (DESC) — consistency across queries
 3. chunk_size (ASC) — smaller = faster processing + less storage
 4. overlap (ASC) — smaller = fewer duplicate chunks
+5. padding (ASC) — smaller = less merge-forward padding
 """
 
 from server.core.results_analyzer import analyze_results
@@ -220,3 +221,105 @@ def test_weighted_avg_vs_unweighted_avg():
     # Key insight: weighted avg is LOWER because Query 2's low scores
     # get equal weight (not drowned out by Query 1's high scores)
     assert config["query_avg_score"] < config["avg_score"]
+
+
+def test_same_padding_collapses_to_one_ranked_config():
+    """Runs that differ only by run_id but share padding merge into one config."""
+    run_statuses = [
+        {
+            "run_id": "run-a",
+            "database_provider": "mongodb",
+            "embedding_provider": "local",
+            "embedding_model": "all-MiniLM-L6-v2",
+            "chunking_method": "semantic",
+            "chunk_size": 512,
+            "overlap": 50,
+            "padding": 0,
+            "retrieval_method": "sparse",
+            "retrieval_provider": "local",
+            "retrievers": [{"type": "sparse"}],
+        },
+        {
+            "run_id": "run-b",
+            "database_provider": "mongodb",
+            "embedding_provider": "local",
+            "embedding_model": "all-MiniLM-L6-v2",
+            "chunking_method": "semantic",
+            "chunk_size": 512,
+            "overlap": 50,
+            "padding": 0,
+            "retrieval_method": "sparse",
+            "retrieval_provider": "local",
+            "retrievers": [{"type": "sparse"}],
+        },
+    ]
+
+    query_results = [
+        {
+            "run_id": "run-a",
+            "query_text": "query1",
+            "results": [{"dense_score": 1.0, "chunk": {"text": "chunk-a"}}],
+        },
+        {
+            "run_id": "run-b",
+            "query_text": "query1",
+            "results": [{"dense_score": 0.9, "chunk": {"text": "chunk-b"}}],
+        },
+    ]
+
+    result = analyze_results(query_results, run_statuses)
+
+    assert len(result["ranked_configs"]) == 1
+    assert result["ranked_configs"][0]["padding"] == 0
+
+
+def test_padding_distinguishes_ranked_configs():
+    """Two runs identical except padding produce two distinct ranked configs."""
+    run_statuses = [
+        {
+            "run_id": "run-padding-0",
+            "database_provider": "mongodb",
+            "embedding_provider": "local",
+            "embedding_model": "all-MiniLM-L6-v2",
+            "chunking_method": "semantic",
+            "chunk_size": 512,
+            "overlap": 50,
+            "padding": 0,
+            "retrieval_method": "sparse",
+            "retrieval_provider": "local",
+            "retrievers": [{"type": "sparse"}],
+        },
+        {
+            "run_id": "run-padding-50",
+            "database_provider": "mongodb",
+            "embedding_provider": "local",
+            "embedding_model": "all-MiniLM-L6-v2",
+            "chunking_method": "semantic",
+            "chunk_size": 512,
+            "overlap": 50,
+            "padding": 50,
+            "retrieval_method": "sparse",
+            "retrieval_provider": "local",
+            "retrievers": [{"type": "sparse"}],
+        },
+    ]
+
+    query_results = [
+        {
+            "run_id": "run-padding-0",
+            "query_text": "query1",
+            "results": [{"dense_score": 1.0, "chunk": {"text": "chunk-a"}}],
+        },
+        {
+            "run_id": "run-padding-50",
+            "query_text": "query1",
+            "results": [{"dense_score": 1.0, "chunk": {"text": "chunk-b"}}],
+        },
+    ]
+
+    result = analyze_results(query_results, run_statuses)
+
+    assert len(result["ranked_configs"]) == 2
+    paddings = sorted(c["padding"] for c in result["ranked_configs"])
+    assert paddings == [0, 50]
+    assert {d["padding"] for d in result["detailed_results"]} == {0, 50}

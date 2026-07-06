@@ -82,3 +82,4 @@ CLAUDE.local.md
 .code-review-graph/
 .mcp.json
 docs/ideate-prompts/
+.gate-cache/

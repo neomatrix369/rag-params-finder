@@ -67,10 +67,12 @@ cmd_mongodb_stop() {
 }
 
 cmd_mongodb_reset() {
-  echo "Stopping and wiping MongoDB Atlas Local data volume..."
+  echo "Stopping and wiping MongoDB Atlas Local data volumes..."
   "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" rm -sf mongodb-local
-  docker volume rm "$RAG_MONGODB_LOCAL_VOLUME" 2>/dev/null || true
-  echo "Volume wiped. Run './start-services.sh mongodb start' to recreate."
+  for vol in "${RAG_MONGODB_LOCAL_VOLUMES[@]}"; do
+    docker volume rm "$vol" 2>/dev/null || true
+  done
+  echo "Volumes wiped. Run './start-services.sh mongodb start' to recreate."
 }
 
 cmd_mongodb_status() {
@@ -91,6 +93,7 @@ run_mongodb_subcommand() {
     echo "Docker is not installed. See https://docs.docker.com/get-docker/" >&2
     exit 1
   fi
+  compose_require_docker_daemon || exit 1
   compose_detect
   compose_files
   compose_local_atlas_profiles
@@ -151,6 +154,7 @@ if ! command -v docker >/dev/null 2>&1; then
   echo "Docker is not installed. See https://docs.docker.com/get-docker/" >&2
   exit 1
 fi
+compose_require_docker_daemon || exit 1
 
 compose_detect
 compose_files
@@ -212,6 +216,10 @@ check_ports() {
   local conflicts=()
   for port in "${ports[@]}"; do
     if lsof -ti:"$port" >/dev/null 2>&1; then
+      # Re-use an already-running Atlas Local container (e.g. after mongodb start)
+      if [[ "$port" == "27017" ]] && docker inspect --format='{{.State.Status}}' "$RAG_MONGODB_LOCAL_CONTAINER" 2>/dev/null | grep -q running; then
+        continue
+      fi
       conflicts+=("$port")
     fi
   done
@@ -220,6 +228,11 @@ check_ports() {
   fi
   echo "Port conflict on: ${conflicts[*]}"
   if [[ "${NONINTERACTIVE:-}" == "1" ]]; then
+    if [[ " ${conflicts[*]} " == *" 27017 "* ]]; then
+      echo "Port 27017 may be held by another MongoDB or a stale rag-params-finder container." >&2
+      echo "  ./start-services.sh mongodb status" >&2
+      echo "  ./start-services.sh mongodb reset   # wipe and recreate local Atlas volumes" >&2
+    fi
     echo "Stop processes on those ports or set NONINTERACTIVE=0 for interactive menu." >&2
     exit 1
   fi
@@ -255,6 +268,7 @@ print_unhealthy_server_hint() {
     echo "Local Atlas hints:"
     echo "  docker logs rag-params-finder-mongodb-local 2>&1 | tail -20"
     echo "  ./start-services.sh mongodb status"
+    echo "  ./start-services.sh mongodb reset   # stale keyfile / unhealthy volume"
   else
     echo "Common Atlas fixes (TLS/SSL errors affect host and Docker alike):"
     echo "  • Network Access → allow your IP (curl https://api.ipify.org) or 0.0.0.0/0 for dev"

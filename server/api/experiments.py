@@ -97,6 +97,7 @@ async def create_experiment(config: ExperimentConfig):
             "chunking_methods": [m.value for m in config.chunking.methods],
             "chunk_sizes": config.chunking.params.chunk_sizes,
             "overlaps": config.chunking.params.overlaps,
+            "paddings": config.chunking.params.paddings,
             "retrieval_methods": retrieval_methods_for_summary,
             "retrieval_provider": retrieval_provider_for_summary,
         },
