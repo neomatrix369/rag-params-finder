@@ -9,7 +9,24 @@ RAG_LOCAL_MONGODB_URI_HOST="${RAG_LOCAL_MONGODB_URI_HOST:-mongodb://localhost:27
 # Server container on the compose network
 RAG_LOCAL_MONGODB_URI_DOCKER="${RAG_LOCAL_MONGODB_URI_DOCKER:-mongodb://mongodb-local:27017/rag_params_finder?directConnection=true}"
 RAG_MONGODB_LOCAL_CONTAINER="${MONGODB_LOCAL_CONTAINER_NAME:-rag-params-finder-mongodb-local}"
-RAG_MONGODB_LOCAL_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_mongodb_local_data"
+RAG_MONGODB_LOCAL_DB_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_mongodb_local_data"
+RAG_MONGODB_LOCAL_CONFIGDB_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_mongodb_local_configdb"
+RAG_MONGODB_LOCAL_MONGOT_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_mongodb_local_mongot"
+RAG_MONGODB_LOCAL_VOLUMES=(
+  "$RAG_MONGODB_LOCAL_DB_VOLUME"
+  "$RAG_MONGODB_LOCAL_CONFIGDB_VOLUME"
+  "$RAG_MONGODB_LOCAL_MONGOT_VOLUME"
+)
+# Back-compat alias (db volume only)
+RAG_MONGODB_LOCAL_VOLUME="$RAG_MONGODB_LOCAL_DB_VOLUME"
+
+compose_require_docker_daemon() {
+  if ! docker info >/dev/null 2>&1; then
+    echo "Cannot connect to the Docker daemon. Is Docker Desktop running?" >&2
+    echo "  macOS: open Docker Desktop and wait until it shows 'Running'." >&2
+    return 1
+  fi
+}
 
 compose_detect() {
   if docker compose version >/dev/null 2>&1; then
@@ -66,15 +83,36 @@ print_local_atlas_cli_hints() {
   echo "    ./start-services.sh mongodb reset"
 }
 
+print_mongodb_local_reset_hint() {
+  echo "If logs mention 'keyfile' or 'Unable to acquire security key', reset stale volumes:" >&2
+  echo "  ./start-services.sh mongodb reset && ./start-services.sh --local" >&2
+}
+
 wait_for_mongodb_local_healthy() {
   local tries=0
-  until docker inspect --format='{{.State.Health.Status}}' "$RAG_MONGODB_LOCAL_CONTAINER" 2>/dev/null | grep -q "healthy"; do
-    tries=$((tries + 1))
-    if [[ $tries -ge 30 ]]; then
-      echo "Timed out waiting for $RAG_MONGODB_LOCAL_CONTAINER to become healthy." >&2
-      echo "  docker logs $RAG_MONGODB_LOCAL_CONTAINER" >&2
+  local health=""
+  while true; do
+    health="$(docker inspect --format='{{.State.Health.Status}}' "$RAG_MONGODB_LOCAL_CONTAINER" 2>/dev/null || echo "")"
+    if [[ "$health" == "healthy" ]]; then
+      echo ""
+      return 0
+    fi
+    if [[ "$health" == "unhealthy" ]]; then
+      echo ""
+      echo "MongoDB Atlas Local is unhealthy." >&2
+      echo "  docker logs $RAG_MONGODB_LOCAL_CONTAINER 2>&1 | tail -20" >&2
+      print_mongodb_local_reset_hint
       return 1
     fi
+    tries=$((tries + 1))
+    if [[ $tries -ge 90 ]]; then
+      echo ""
+      echo "Timed out waiting for $RAG_MONGODB_LOCAL_CONTAINER to become healthy." >&2
+      echo "  docker logs $RAG_MONGODB_LOCAL_CONTAINER 2>&1 | tail -20" >&2
+      print_mongodb_local_reset_hint
+      return 1
+    fi
+    printf "."
     sleep 2
   done
 }

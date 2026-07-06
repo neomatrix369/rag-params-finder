@@ -114,16 +114,22 @@ services:
     container_name: ${MONGODB_LOCAL_CONTAINER_NAME:-rag-params-finder-mongodb-local}
     ports:
       - "27017:27017"
+    # All three paths must be named volumes — mounting only /data/db loses the
+    # replica-set keyfile in /data/configdb on restart (Unable to acquire security key[s]).
     volumes:
       - mongodb_local_data:/data/db
+      - mongodb_local_configdb:/data/configdb
+      - mongodb_local_mongot:/data/mongot
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 20s
+      retries: 12
+      start_period: 60s
 
 volumes:
   hf_cache:
   mongodb_local_data:
+  mongodb_local_configdb:
+  mongodb_local_mongot:

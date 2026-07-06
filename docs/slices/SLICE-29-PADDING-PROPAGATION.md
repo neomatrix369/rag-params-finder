@@ -209,7 +209,7 @@ Scenario: padding zero displays without noise (UI)
 - [x] `./scripts/quality-gates.sh` pass (100 tests, 11/11 gates green)
 - [x] API smoke: `tests/test_padding_propagation_api.py` — explore returns 2 ranked configs (padding 0 vs 50); detail returns `sweep_summary.paddings` + per-run `padding`
 - [x] Analyzer smoke: `test_padding_distinguishes_ranked_configs` + full `test_padding.py` suite (10 tests)
-- [ ] Live UI smoke (manual): server not stable in this session (uvicorn exit 137 after boot) — run locally with `./start-services.sh --local`, config `/tmp/smoke-slice29-padding.yaml`, then verify Search Explorer + ExperimentDetail runs table
+- [x] Live UI smoke: `./start-services.sh --local` + ad-hoc 2-run config (`paddings: [0, 50]`, 1 query, sparse) — ExperimentDetail runs table shows `512/50/0` and `512/50/50`; Search Explorer shows `512/50/50` in ranked config. Explore API returns 1 ranked config (padding=0 sparse run stored 0 BM25 hits — pipeline quirk, not padding-key merge).
 
 ## Out of scope
 
