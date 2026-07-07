@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-06 (Slice 29 padding propagation complete)
-**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation | Next: **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26** 📋 local MongoDB docs · **27** 📋 MongoDB mode indicator · **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota · **23** 📋 SIE Bicycle (Could)
+**Last Updated**: 2026-07-07 (plan review + nw-review NEEDS_REVISION resolved; Slices 30/31 added)
+**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation | Next: **22** 📋 SIE Scooter (Must) · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26** 📋 local MongoDB docs · **27** 📋 MongoDB mode indicator · **30** 📋 Search Explorer UX · **31** 📋 experiment list filter · **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota · **23** 📋 SIE Bicycle (Could)
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md)
 
@@ -44,8 +44,10 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | `./start-services.sh --local`; `./start-services.sh mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](SLICE-25B-ATLAS-SWITCHING.md) |
 | 26 — Local MongoDB smooth-path docs | 📋 PLANNED | ~1 h | Docker pre-flight, wait-for-healthy, stale volume troubleshooting — spec: [`SLICE-26-LOCAL-MONGODB-DOCS.md`](SLICE-26-LOCAL-MONGODB-DOCS.md) |
 | 27 — MongoDB mode indicator | 📋 PLANNED | ~2 h | `get_mongodb_mode()` → `/healthz` + sweep_summary + CLI banner + dashboard header badge — spec: [`SLICE-27-MONGODB-MODE-INDICATOR.md`](SLICE-27-MONGODB-MODE-INDICATOR.md) |
-| 22 — SIE Scooter | 📋 PLANNED | ~3 h | SIE reranking + SPLADE sparse + `GET /api/v1/best-config` (stub on main) — spec: [`SLICE-22-SIE-SCOOTER.md`](SLICE-22-SIE-SCOOTER.md) |
+| 22 — SIE Scooter | 📋 PLANNED | ~3 h | SIE reranking + SPLADE sparse + `GET /api/v1/best-config` (stub on main) — Must — spec: [`SLICE-22-SIE-SCOOTER.md`](SLICE-22-SIE-SCOOTER.md) |
 | 23 — SIE Bicycle | 📋 PLANNED | ~3 h | Ollama + Tier 2–3 retrieval + Evidently AI (Could, post-hackathon) — spec: [`SLICE-23-SIE-BICYCLE.md`](SLICE-23-SIE-BICYCLE.md) |
+| 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
+| 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
 
@@ -62,7 +64,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 25B | Should | ✅ COMPLETE | 25 | Atlas switching |
 | 28 | Must | 📋 PLANNED | — | External — [@cschanhniem](https://github.com/cschanhniem) owns [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) |
 | 29 | Must | ✅ COMPLETE | — | Padding in config key, explore API, sweep_summary, dashboard UI |
-| 22 | Should | 📋 PLANNED | 21 | **Next** — SIE Scooter — best-config stub; prereqs #47/#48 ✅ |
+| 22 | Must | 📋 PLANNED | 21 | **Next** — SIE Scooter — best-config stub; prereqs #47/#48 ✅ |
 | 26 | Should | 📋 PLANNED | 25B | Local MongoDB docs |
 | 27 | Should | 📋 PLANNED | 25B | MongoDB mode indicator |
 | 19 | Should | 📋 PLANNED | — | Storage quota guard |
@@ -627,6 +629,9 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-07 | 22 | Reclassified Slice 22 Should → Must | nw-review: Slice 22 delivers PCTO-critical score/reranking + best-config; both halves of SIE must be Must |
+| 2026-07-07 | 30 | Added Slice 30 (Search Explorer UX) | Assessment found 4 untracked UX issues; bundled as Could/~2h |
+| 2026-07-07 | 31 | Added Slice 31 (Experiment list filter) | Assessment found navigability gap at scale; Should/~2h |
 | 2026-07-06 | 29 | Include padding in `_run_config_key()` tuple after overlap; default 0 for legacy runs | PR #48 added sweep dimension but ranked configs merged runs differing only by padding |
 | 2026-06-29 | 21 | Officially close Slice 21; populate HANDOFF.md + update TRAIL.md | All acceptance criteria met; SIE_ENDPOINT rename + preflight + batching refinements landed post-completion |
 | 2026-06-29 | 21 | Expand `example-mongodb-sie.yaml` to full chunking/retriever grid + 3 SIE models | Parity with local/voyage examples; bge-m3/stella-v5/splade-v3 are registry top tier |
@@ -768,6 +773,8 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | ~~14 — Docker Compose~~ | ~~One-command local setup~~ | — | ✅ Delivered in Slice 14 |
 | ~~15 — CI/CD~~ | ~~GitHub Actions~~ | — | ✅ Delivered in Slice 20 |
 | 16 — Parallel sweep (`parallelism` > 1) | Bounded concurrent `_run_single` (+ optional Celery upgrade path); Atlas/Voyage-rate-limit aware | Should | ~2–4 h |
+| 30 — Search Explorer UX fixes | Spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) — tab switch latency, zero-score noise, BM25 score labels, VDB card default-expanded | Could | ~2 h |
+| 31 — Experiment list filter | Spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) — status dropdown + name/ID search above experiments table | Should | ~2 h |
 
 ---
 
@@ -816,6 +823,7 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 | 2026-07-06 | slice/29-padding-propagation | /update-pr | Slice 29 | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/63 — gate-cache gitignore + skill footprints committed; prerequisites: bypassed (no /verify-slice, no /sync-docs) |
 | 2026-07-06 | slice/29-padding-propagation | /update-pr | Slice 29 | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/63 — run_id retrieval scoping + pathway tests; prerequisites: bypassed (no /verify-slice, no /sync-docs; pre-push gates passed) |
 | 2026-07-06 | slice/29-padding-propagation | /update-pr | Slice 29 | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/63 — Atlas Local volume fix + padding propagation; prerequisites: bypassed (quality-gates --quick passed in session) |
+| 2026-07-07 | main | /sync-docs | plan review + nw-review | STAGED | T1-2: PROGRESS.md (Slices 30/31 added, Slice 22 Must, header updated, decision log); DECISIONS.md rows 37-38 (reclassification + AC rewrite); TRAIL.md Slice 22 Must; SLICE-30 ACs rewritten (behavioral only) |
 | 2026-07-06 | main | plan sync | Slice 28 status | STAGED | PLANNED (not immediate); active work 22; planning on main via PR #55/#59 |
 | 2026-07-06 | main | plan sync | prereq clearance | STAGED | HANDOFF + PROGRESS + slice Before-Checks; #47/#48/#59 merged |
 | 2026-07-05 | docs/plan-gap-analysis-jul4 | /update-pr | plan gap analysis | MERGED | https://github.com/neomatrix369/rag-params-finder/pull/59 — footprint backfilled post-merge (commit landed after merge) |

@@ -83,6 +83,14 @@ volume's filesystem capacity, not the host Mac's disk. No Docker API calls or `s
 | `frontend/src/components/ExperimentsScreen.tsx` | pass badge to `AppPageChrome` `topRight` |
 | `frontend/src/components/ExperimentDetailScreen.tsx` | pass badge to `AppPageChrome` `topRight` |
 
+## After-Checks
+
+- [ ] `./scripts/quality-gates.sh` pass
+- [ ] Specification coverage: every acceptance criterion has ≥1 test; badge graceful-degradation path covered
+- [ ] Branch coverage: 100% target for `get_mongodb_mode()` and storage-limit branching; exclusions documented (test-writing-craft-quality.mdc §12)
+- [ ] Mutation testing: survival budget met if slice is feature-complete (§23)
+- [ ] Manual: start `--local` → badge shows "Local"; start without `--local` → badge shows "Cloud"
+
 ## Commits
 
 ```

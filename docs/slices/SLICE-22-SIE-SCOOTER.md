@@ -30,7 +30,7 @@ feat(sie): add SIE Scooter — reranking, SPLADE sparse, best-config API
 
 ---
 
-## Slice 22 — SIE Scooter [Should]
+## Slice 22 — SIE Scooter [Must]
 
 ### Branch
 `slice/22-sie-scooter`
@@ -94,6 +94,9 @@ Scenario: GET /api/v1/best-config returns 404 when no history exists
 ### After-Checks [GATE]
 - [ ] All GWT scenarios have passing named tests
 - [ ] Full suite green, quality gates pass
+- [ ] Specification coverage: every GWT clause has ≥1 test; essential error paths covered (90–100% of clauses)
+- [ ] Branch coverage: 100% target; exclusions documented (test-writing-craft-quality.mdc §12)
+- [ ] Mutation testing: survival budget met if slice is feature-complete (§23)
 - [ ] Manual: run a sweep → then `GET /api/v1/best-config?task=<topic>` returns a real config
 - [ ] Doc audit → YES: update PROGRESS.md (Slice 22 → ✅ COMPLETE); note SPLADE v3 index requirement in `CLAUDE.local.md`
 - [ ] Security audit → NO (no new auth surface; MongoDB query uses parameterised task filter)

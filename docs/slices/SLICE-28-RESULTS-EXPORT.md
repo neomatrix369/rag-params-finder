@@ -178,6 +178,9 @@ Scenario: dashboard download
 ## After-checks
 
 - [ ] `./scripts/quality-gates.sh` pass
+- [ ] Specification coverage: every GWT clause has ≥1 test; essential error paths covered (90–100% of clauses)
+- [ ] Branch coverage: 100% target; exclusions documented (test-writing-craft-quality.mdc §12)
+- [ ] Mutation testing: survival budget met if slice is feature-complete (§23)
 - [ ] Manual: run local experiment → Export CSV → open in spreadsheet
 - [ ] Close or comment on GitHub #49 with PR link
 
