@@ -1,6 +1,7 @@
 # Slice 26 — Local MongoDB: Smooth Path Documentation + Script Feedback
 
-**Status**: 📋 PLANNED
+**Status**: 📦 DEFERRED — re-scope after Postgres local/cloud path (Slice 37) and cutover (38). Mongo-only smooth-path docs are low value while **32–38** is the critical path.
+**Depends on**: 25B *(Atlas Local must exist before doc polish)*
 **Branch**: `slice/26-local-mongodb-docs`
 **Estimated time**: ~1.5 h
 
@@ -25,6 +26,12 @@ step should never hit a surprise.
 **Key discovery**: `./start-services.sh mongodb start` already calls
 `wait_for_mongodb_local_healthy()` — it blocks until the container is healthy. Docs
 delegate to the script rather than duplicating the wait loop.
+
+## Before-Checks [GATE] *(when re-activated post-cutover)*
+
+- [ ] Slice **38** cutover complete or Mongo path explicitly still primary
+- [ ] Slice **25B** ✅ complete
+- [ ] `./start-services.sh --local` smoke passes on `main`
 
 ## Acceptance Criteria
 

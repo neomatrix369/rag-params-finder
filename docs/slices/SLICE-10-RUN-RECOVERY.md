@@ -6,6 +6,14 @@
 
 ---
 
+## Before-Checks [GATE]
+
+- [ ] `./scripts/quality-gates.sh --quick` green on `main`
+- [ ] Branch `slice/10-run-recovery` from latest `main`
+- [ ] Boot reconciliation tests pass (`tests/` covering `startup_reconciliation.py`)
+
+---
+
 ## Goal
 
 Let operators **retry only the runs that did not succeed** inside an **existing** experiment, without re-executing **COMPLETE** runs or mutating their stored chunks or results.

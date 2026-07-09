@@ -1,44 +1,40 @@
-# Handoff — 2026-07-06
+# Handoff — 2026-07-09
 
 ## Where We Are
 
-Plan gap analysis merged (PR #59). Chunker prerequisites landed: PRs #47, #48, #60, #61 on `main`. **Slice 22** is the core-team active implementation slice. **Slice 28** remains **📋 PLANNED** — owned by [@cschanhniem](https://github.com/cschanhniem) ([issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49) author/assignee); spec on `main` via PR #55.
+Enhanced-flow-planner **continuation + gap bridge** complete; **nw-review iter 3 follow-ups** applied. Supabase migration (**32–38**) remains the critical path. Branch `docs/supabase-migration-plan` ready for PR.
 
 ## What's Done
 
-- Slice 21: SIE Skateboard — ✅ PASSED
-- Slice 25: Atlas Local Dev Mode — ✅ PASSED
-- Slice 25B: Atlas Backend Switching — ✅ PASSED
-- Plan health-check (2026-07-04): ✅ OK — 0 legacy gaps
-- Plan gap analysis (2026-07-05): merged via PR #59 — execution reorder + Slice 11 tracked
-- PRs #47, #48, #60, #61: chunker overlap + padding sweep + review follow-ups — ✅ merged
-- Slice 28 spec: on `main` via PR #55 — 📋 PLANNED; contributor-owned
+- Slice 21, 25, 25B, 29 — ✅ PASSED
+- Plan health-check (2026-07-09): ✅ OK — gate-evidence slice-29 backfilled earlier
+- Gap bridge (2026-07-09): created **SLICE-11** spec; synced 19/26/27 DEFERRED; 10 PARTIAL; deps/order on 22/28/23
+- nw-review polish (2026-07-09): latency handoff SLICE-11/30; cutover baseline in PRD; escape-hatch threshold in TRAIL
 
 ## What's Next
 
-- **Slice 22**: SIE Scooter (best-config + SPLADE + SIE rerank) — 📋 PLANNED ← **core team starts here**
-- Slice 26: Local MongoDB docs — 📋 PLANNED
-- Slice 27: MongoDB mode indicator — 📋 PLANNED
-- Slice 28: Results export (#49) — 📋 PLANNED *(external — @cschanhniem)*
+- **Slice 32**: Storage Backend Protocol + Mongo adapter — 📋 PLANNED ← **start here**
+- Slices 33–38: Postgres chain → ADR-004 cutover
+- Slice 22: SIE Scooter — after 32 (hard) / 38 (soft)
+- Slice 28: external (@cschanhniem / #49)
+- Deferred Mongo QoL: 26, 27 (→36), 19 — re-scope post-38
 
 ## Blockers / Open Questions
 
-- `GET /api/v1/best-config` stub still present — Slice 22 required for PCTO completion
-- Cloud production lacks storage quota guard (Slice 19) — mitigated locally via Atlas Local
+- SPLADE `sparsevec` ≤1000 non-zeros — verify in Slice 35
 
 ## Context for Next Session
 
-- **Execution order**: **28** → **22** → 26 → 27 → 19 → 16 → 11 → 23 → 10 *(core-team active: 22; Slice 28 with issue author)*
-- Slice 11 (Search Explorer) tracked in TRAIL.md as Could / no hard dep
-- DECISIONS.md rows go up to #32
-- Open PR queue: #13 only (Kimchi — separate hackathon track)
-- Slice 28 implementation branch: contributor creates when ready (`slice/28-results-export` convention in spec)
+- **Execution order**: 32 → … → 38 → 22 → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
+- PRD: `docs/plan/PRD-supabase-pgvector-migration.md`
+- DECISIONS.md through #60 (gap bridge + review follow-ups)
+- Slice 10: boot reconciliation shipped; retry work remains
 
 ## Retrospective
 
-> Scenario: Brownfield + Growing Requirement | Session: 2026-07-06 | Steps: post-merge plan sync
+> Scenario: Brownfield + Growing Requirement | Session: 2026-07-09 | Steps: health-check + gap bridge (no Add/Defer user prompts — auto-remediation)
 
-- What took longer: PR #59 merged before footprint commit landed — Skill Execution Log row backfilled in PROGRESS.md
-- Interview depth: not applicable (continuation mode)
-- Improve future slices: sync HANDOFF + PROGRESS immediately after prerequisite PRs merge
-- Do differently next session: record external contributor ownership on issue-linked slices at assignment time
+- What took longer: TRAIL linked SLICE-11 before file existed — fixed this session
+- Interview depth: not applicable
+- Improve future slices: add spec file in same commit as TRAIL row
+- Do differently next session: start Slice 32 implementation; do not re-audit 32–38 specs (already aligned)

@@ -1,6 +1,9 @@
 # Slice 27 — MongoDB Mode Indicator (Cloud vs Local)
 
-**Status**: 📋 PLANNED
+> **📦 DEFERRED / SUPERSEDED (2026-07-09):** Standalone Mongo cloud vs local indicator is **absorbed into Slice 36** (`storage mode`: `mongo` | `local-postgres` | `supabase`). Keep this spec as historical scope; implement mode visibility in [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md). Re-open 27 only if post-cutover Mongo-only operators need a badge without Postgres modes.
+
+**Status**: 📦 DEFERRED *(superseded by Slice 36)*
+**Depends on**: 25B
 **Branch**: `slice/27-mongodb-mode-indicator`
 **Estimated time**: ~2 h
 

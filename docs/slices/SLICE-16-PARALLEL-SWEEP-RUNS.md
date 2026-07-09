@@ -6,6 +6,14 @@
 
 ---
 
+## Before-Checks [GATE]
+
+- [ ] `./scripts/quality-gates.sh --quick` green on `main`
+- [ ] Branch `slice/16-parallel-sweep` from latest `main`
+- [ ] Characterization: `parallelism: 1` sweep baseline captured (timing + run_status rows)
+
+---
+
 ## Goal
 
 Honor `execution.parallelism` in YAML: run independent sweep slices **up to N at a time** instead of strictly sequential `_run_single()` calls, **without** sacrificing correct `run_id` / phase tracking / `on_error` / cancellation semantics already defined in Slice 3 and Slice 4.
