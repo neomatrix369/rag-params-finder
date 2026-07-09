@@ -6,7 +6,7 @@
 **Estimated time**: ~1.5 h
 **MoSCoW**: Must (backend export) · Should (dashboard download) · Could (JSONL) · Won't (CLI, Excel, auth)
 **Flow**: Brownfield — small requirement on mature API (`/explore` + `results_analyzer.py`)
-**Execution order**: **28** → 22 → 26 → 27 → 19 → 16 → 11 → 23 → 10 (no hard dependency on 26/27)
+**Execution order**: **32 → 33 → 34 → 35 → 36 → 37 → 38 → 22 → 28***(external)* → 31 → 30 → 16 → 11 → 23 → 10 *(26, 27, 19 deferred — see TRAIL)*
 
 ## Slice workflow
 

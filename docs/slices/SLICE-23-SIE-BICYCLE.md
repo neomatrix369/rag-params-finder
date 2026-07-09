@@ -1,4 +1,7 @@
-<!-- file: docs/plan/slice-23-sie-bicycle.md -->
+# Slice 23 — SIE Bicycle — Ollama LLM + Tier 2–3 retrieval + Evidently AI
+
+**Status**: 📋 PLANNED *(Could — post-hackathon expansion)*
+**Depends on**: 22
 
 ## Slice Workflow Header
 

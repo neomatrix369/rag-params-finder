@@ -1,8 +1,8 @@
 # SLICE 19 — Atlas Storage Quota Guard
 
+**Status:** 📦 DEFERRED — Atlas M0 quota guard; re-scope after Slice 38 cutover. Postgres storage stats and preflight live in **Slice 36**. Execute only if Mongo remains a supported primary backend post-cutover.
+**Depends on:** none *(was Should; deferred 2026-07-09)*
 **MoSCoW:** SHOULD *(M0 free tier is 512 MB; large sweeps exhaust quota and block all MongoDB writes)*
-**Target time:** ~3–5 h *(preflight + runtime handling + emergency recovery + dashboard warning; tests)*
-**Status:** 📋 PLANNED — incident documented 2026-05-23; no implementation yet
 
 ---
 
@@ -153,6 +153,14 @@ bash scripts/install-git-hooks.sh
 ```
 
 See [`development.md`](../contributor-guide/development.md) § Git hooks.
+
+---
+
+## Before-Checks [GATE] *(when re-activated post-cutover)*
+
+- [ ] `./scripts/quality-gates.sh --quick` green on `main`
+- [ ] Confirm Atlas M0 path still supported (not Postgres-only default)
+- [ ] Slice **36** storage stats evaluated — avoid duplicating Postgres quota UX
 
 ---
 

@@ -1,5 +1,5 @@
 # Gap Analysis
-> ~2 min read · **Updated 2026-07-09** after Supabase/pgvector migration PRD integration
+> ~2 min read · **Updated 2026-07-09** after Supabase PRD integration · **Gap bridge 2026-07-09** (planned/deferred spec ↔ TRAIL sync)
 
 Canonical build status: [docs/slices/PROGRESS.md](../slices/PROGRESS.md) · Migration PRD: [PRD-supabase-pgvector-migration.md](PRD-supabase-pgvector-migration.md)
 
@@ -17,6 +17,8 @@ Canonical build status: [docs/slices/PROGRESS.md](../slices/PROGRESS.md) · Migr
 | Atlas M0 storage ceiling (local dev) | Blocker | `./start-services.sh --local` + auto indexes | Slice 25/25B ✅ |
 | CI action upgrades (repo-lint, gitleaks) | Mixed v4/v2 | All jobs on checkout/setup-python v6; gitleaks v3 | PRs #36–#39 ✅ |
 | Migration decision | ADR-003 locked Atlas | Team approved Supabase/pgvector + dual-backend | PRD 2026-07-09 |
+| Slice 11 spec missing | TRAIL linked 404 | `SLICE-11-SEARCH-EXPLORER.md` created; scope bounded vs 28/30 | Gap bridge 2026-07-09 |
+| Plan ↔ spec drift (10, 19, 26, 27) | TRAIL vs spec status mismatch | TRAIL + specs synced; Before-Checks on deferred slices | Gap bridge 2026-07-09 |
 
 ---
 

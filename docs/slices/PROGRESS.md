@@ -29,7 +29,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | — — Kimchi embedding provider | 🔀 BRANCH | ~2 h | Full CAST integration on `tessl-hackathon-kimchi-integration`; **main** has `kimchi` in `Provider` type only (no registry models / embedder yet) — v0.8.0 release notes are historical |
 | — — Unit pytest suite | ✅ COMPLETE | ~1 h | **26 tests** at Slice 20 baseline (now **58** — see `development.md`) |
 | 18 — Unified retriever config | ✅ COMPLETE | ~4–6 h | Unified "retrievers" group (traditional search + rerankers); auto-migrate old format; multi-reranker chains; see [`SLICE-18-UNIFIED-RETRIEVER-CONFIG.md`](SLICE-18-UNIFIED-RETRIEVER-CONFIG.md) |
-| 10 — Run recovery (retry) | 📋 PLANNED | ~1–2 h | Retry FAILED `(± INTERRUPTED)` runs in-place; boot **reconciliation** done; pause/resume covers not-yet-started combos; **retry** not yet — see [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) |
+| 10 — Run recovery (retry) | 🔨 PARTIAL | ~1–2 h | Boot reconciliation ✅; retry CLI/API remaining — [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~45 min | Visualization + query filtering only — **export moved to Slice 28** |
 | 28 — Results export (CSV/JSONL) | 📋 PLANNED | ~1.5 h | Contributor [@cschanhniem](https://github.com/cschanhniem) — [issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49) author/assignee · [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) |
 | 29 — Padding cross-cutting propagation | ✅ COMPLETE | ~2 h | `_run_config_key()` + API + TS types + UI — spec: [`SLICE-29-PADDING-PROPAGATION.md`](SLICE-29-PADDING-PROPAGATION.md) |
@@ -78,14 +78,14 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 37 | Must | 📋 PLANNED | 36 | Supabase local/hosted parity |
 | 38 | Must | 📋 PLANNED | 37 | ADR-004 + quality comparison artifact |
 | 28 | Must | 📋 PLANNED | — | External — @cschanhniem / #49 |
-| 22 | Must | 📋 PLANNED | 21, 38 (soft) | SIE Scooter — Protocol required (32); escape hatch in TRAIL |
+| 22 | Must | 📋 PLANNED | 21, 32, 38 (soft) | SIE Scooter — hard dep 32 Protocol; soft 38 cutover |
 | 26 | Should | 📦 DEFERRED | 25B | Mongo docs — re-scope post-cutover |
 | 27 | Should | 📦 DEFERRED | — | Absorbed into Slice 36 storage-mode indicator |
 | 19 | Should | 📦 DEFERRED | — | Atlas quota — Postgres path in 36 |
 | 16 | Should | 📋 PLANNED | — | Parallel sweep |
 | 11 | Could | 📋 PLANNED | — | Search Explorer enhancements |
 | 23 | Could | 📋 PLANNED | 22 | SIE Bicycle |
-| 10 | Could | 📋 PLANNED | — | Run recovery |
+| 10 | Could | 🔨 PARTIAL | — | Boot reconciliation ✅; retry CLI/API remaining |
 | 30 | Could | 📋 PLANNED | — | Search Explorer UX |
 | 31 | Should | 📋 PLANNED | — | Experiment list filter |
 
@@ -107,6 +107,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 2026-07-06 | Slice 28 contributor assigned | @cschanhniem (issue #49 author/assignee) owns implementation; core team on Slice 22 |
 | 2026-07-06 | Slice 29 complete | Padding in `_run_config_key()`, explore responses, sweep_summary, TS types, ExperimentDetail + SearchExplorer UI |
 | 2026-07-09 | Supabase migration plan | PRD integrated; slices 32–38 Must; dual-backend; ahead of 22; deferred 26/27/19 |
+| 2026-07-09 | Plan gap bridge (continuation) | Health ✅; created SLICE-11; aligned 19/26/27 DEFERRED specs; 10 PARTIAL; Before-Checks 10/16; deps 22/23/28 order |
 
 ---
 

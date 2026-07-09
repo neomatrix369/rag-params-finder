@@ -1,4 +1,8 @@
-<!-- file: docs/plan/slice-22-sie-scooter.md -->
+# Slice 22 — SIE Scooter — SIE reranking + SPLADE v3 sparse + `/api/v1/best-config`
+
+**Status**: 📋 PLANNED
+**MoSCoW**: Must (PCTO)
+**Depends on**: 21 ✅, **32** (hard — StorageBackend Protocol), **38** (soft — cutover; escape hatch in TRAIL)
 
 ## Slice Workflow Header
 

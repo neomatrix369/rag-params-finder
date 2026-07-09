@@ -2,43 +2,40 @@
 
 ## Where We Are
 
-Enhanced-flow-planner continuation integrated the **Supabase/pgvector migration PRD** into the plan. Dual-backend Protocol chosen; migration slices **32–38** are Must and **ahead of Slice 22**. Mongo QoL slices 26/27/19 deferred pending cutover.
+Enhanced-flow-planner **continuation + gap bridge** complete. Supabase migration (**32–38**) remains the critical path. Plan health ✅ (legacy checks pass). All PLANNED/DEFERRED slice specs now align with TRAIL.
 
 ## What's Done
 
-- Slice 21: SIE Skateboard — ✅ PASSED
-- Slice 25 / 25B: Atlas Local + switching — ✅ PASSED
-- Slice 29: Padding propagation — ✅ PASSED
-- Plan health-check (2026-07-09): Gap 5 fixed (`gate-evidence/slice-29.json`)
-- Plan Add path: Slices 32–38 specs + PRD pointer — 📋 PLANNED
+- Slice 21, 25, 25B, 29 — ✅ PASSED
+- Plan health-check (2026-07-09): ✅ OK — gate-evidence slice-29 backfilled earlier
+- Gap bridge (2026-07-09): created **SLICE-11** spec; synced 19/26/27 DEFERRED; 10 PARTIAL; deps/order on 22/28/23
 
 ## What's Next
 
 - **Slice 32**: Storage Backend Protocol + Mongo adapter — 📋 PLANNED ← **start here**
-- Slices 33–38: Postgres CRUD → dense → sparse/hybrid → preflight/stats → local/cloud → ADR-004 cutover
-- Slice 22: SIE Scooter — after **38** (depends on storage cutover for clean best-config/history path)
-- Slice 28: Results export — external (@cschanhniem / #49); can proceed on Mongo in parallel
+- Slices 33–38: Postgres chain → ADR-004 cutover
+- Slice 22: SIE Scooter — after 32 (hard) / 38 (soft)
+- Slice 28: external (@cschanhniem / #49)
+- Deferred Mongo QoL: 26, 27 (→36), 19 — re-scope post-38
 
 ## Blockers / Open Questions
 
-- SPLADE `sparsevec` ≤1000 non-zeros — verify in Slice 35; fallback to tsvector path documented
-- Supabase free-tier auto-pause — Pro tier if demos must stay warm (Slice 37 user-guide)
-- Slice 22: hard dep on 32 (Protocol); soft dep on 38 — escape hatch in TRAIL if PCTO deadline forces earlier 22
+- SPLADE `sparsevec` ≤1000 non-zeros — verify in Slice 35
+- Slice 22 escape hatch if PCTO deadline forces start after 32 only (TRAIL)
+- Slice 11 vs 30 ordering: UX fixes (30) before visualization (11) recommended
 
 ## Context for Next Session
 
-- **Plan review applied** (2026-07-09): 3/4 APPROVED; platform conditionally approved — cutover gates + CI applied
-- **Ready for Slice 32** after commit of review follow-up edits
-- **Execution order**: **32 → 33 → 34 → 35 → 36 → 37 → 38 → 22** → 28*(external)* → …
+- **Execution order**: 32 → … → 38 → 22 → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
 - PRD: `docs/plan/PRD-supabase-pgvector-migration.md`
-- DECISIONS.md rows through #44
-- Graphiti: migration decision episode 2026-07-09 (due-diligence “don’t migrate” fact superseded)
+- DECISIONS.md through #59 (gap bridge)
+- Slice 10: boot reconciliation shipped; retry work remains
 
 ## Retrospective
 
-> Scenario: Brownfield + Growing Requirement | Session: 2026-07-09 | Steps: continuation health-check + plan-modifier Add
+> Scenario: Brownfield + Growing Requirement | Session: 2026-07-09 | Steps: health-check + gap bridge (no Add/Defer user prompts — auto-remediation)
 
-- What took longer: none — PRD was complete; slicing was the work
-- Interview depth: not applicable (continuation + approved PRD)
-- Improve future slices: keep vendor PRDs under `docs/plan/` at decision time
-- Do differently next session: start Slice 32 immediately; do not reopen dual-backend vs replace
+- What took longer: TRAIL linked SLICE-11 before file existed — fixed this session
+- Interview depth: not applicable
+- Improve future slices: add spec file in same commit as TRAIL row
+- Do differently next session: start Slice 32 implementation; do not re-audit 32–38 specs (already aligned)

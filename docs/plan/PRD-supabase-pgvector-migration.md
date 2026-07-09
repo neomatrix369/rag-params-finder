@@ -105,6 +105,12 @@ User guides, dev docs, and agent docs are **gated per slice** — same commit as
 
 Flip documented default to `STORAGE_BACKEND=postgres` only when **all** pass on the same persona query-set and corpus:
 
+**Baseline snapshot (record in `gate-evidence/slice-38-quality-comparison.md`):**
+
+- Corpus: configs under `configs/` used for ADR-003 baseline sweep (e.g. `example-mongodb-local.yaml` corpus paths)
+- Query set: persona JSON referenced by baseline config `queries_file`
+- Snapshot date: date of first passing comparison run
+
 | Gate | Metric | Pass threshold |
 |---|---|---|
 | Latency | Postgres p99 vs Mongo p99 on ADR-003 baseline sweep (36×1000×1024) | Postgres ≤ **2×** Mongo p99 |

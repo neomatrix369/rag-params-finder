@@ -68,6 +68,7 @@ Scenario: indexes list shows known vs missing indexes on Postgres
 - [ ] 422 parity with Mongo preflight UX
 - [ ] Dashboard stats smoke on Postgres
 - [ ] Storage mode badge/field documented
+- [ ] **Slice 27 absorbed:** db-stats / health returns `mongo` | `local-postgres` | `supabase` with correct value per backend (named tests for each mode)
 - [ ] Mongo preflight/stats still pass
 - [ ] Coverage + quality gates
 - [ ] Doc audit: PRD §Documentation matrix rows for slice **36** (`cli-reference.md`, `configuration.md` storage-mode)
