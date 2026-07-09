@@ -30,7 +30,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | — — Unit pytest suite | ✅ COMPLETE | ~1 h | **26 tests** at Slice 20 baseline (now **58** — see `development.md`) |
 | 18 — Unified retriever config | ✅ COMPLETE | ~4–6 h | Unified "retrievers" group (traditional search + rerankers); auto-migrate old format; multi-reranker chains; see [`SLICE-18-UNIFIED-RETRIEVER-CONFIG.md`](SLICE-18-UNIFIED-RETRIEVER-CONFIG.md) |
 | 10 — Run recovery (retry) | 🔨 PARTIAL | ~1–2 h | Boot reconciliation ✅; retry CLI/API remaining — [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) |
-| 11 — Search Explorer enhancements | 📋 PLANNED | ~45 min | Visualization + query filtering only — **export moved to Slice 28** |
+| 11 — Search Explorer enhancements | 📋 PLANNED | ~45 min | Viz + query filter; soft dep **30**; export → Slice 28 |
 | 28 — Results export (CSV/JSONL) | 📋 PLANNED | ~1.5 h | Contributor [@cschanhniem](https://github.com/cschanhniem) — [issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49) author/assignee · [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) |
 | 29 — Padding cross-cutting propagation | ✅ COMPLETE | ~2 h | `_run_config_key()` + API + TS types + UI — spec: [`SLICE-29-PADDING-PROPAGATION.md`](SLICE-29-PADDING-PROPAGATION.md) |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md) |
@@ -83,7 +83,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 27 | Should | 📦 DEFERRED | — | Absorbed into Slice 36 storage-mode indicator |
 | 19 | Should | 📦 DEFERRED | — | Atlas quota — Postgres path in 36 |
 | 16 | Should | 📋 PLANNED | — | Parallel sweep |
-| 11 | Could | 📋 PLANNED | — | Search Explorer enhancements |
+| 11 | Could | 📋 PLANNED | 30 (soft) | Search Explorer — viz + filters; after Slice 30 UX |
 | 23 | Could | 📋 PLANNED | 22 | SIE Bicycle |
 | 10 | Could | 🔨 PARTIAL | — | Boot reconciliation ✅; retry CLI/API remaining |
 | 30 | Could | 📋 PLANNED | — | Search Explorer UX |
@@ -108,6 +108,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 2026-07-06 | Slice 29 complete | Padding in `_run_config_key()`, explore responses, sweep_summary, TS types, ExperimentDetail + SearchExplorer UI |
 | 2026-07-09 | Supabase migration plan | PRD integrated; slices 32–38 Must; dual-backend; ahead of 22; deferred 26/27/19 |
 | 2026-07-09 | Plan gap bridge (continuation) | Health ✅; created SLICE-11; aligned 19/26/27 DEFERRED specs; 10 PARTIAL; Before-Checks 10/16; deps 22/23/28 order |
+| 2026-07-09 | nw-review iter 3 polish | TRAIL soft dep 30; escape-hatch >2d; PRD cutover baseline; SLICE-11 latency handoff; SLICE-36 storage-mode AC |
 
 ---
 
@@ -839,6 +840,7 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-07-09 | docs/supabase-migration-plan | /update-pr | plan 32–38 + gap bridge | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/72 — gap-bridge + nw-review polish commits; prerequisites: bypassed (docs-only plan PR) |
 | 2026-07-09 | docs/supabase-migration-plan | /update-pr | plan 32–38 | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/72 — doc matrix commit reflected; prerequisites: bypassed (no /verify-slice, no /sync-docs; docs-only plan PR) |
 | 2026-07-06 | slice/29-padding-propagation | /update-pr | Slice 29 | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/63 — rebased docs footprint; PR already current; prerequisites: bypassed (no /verify-slice, no /sync-docs) |
 | 2026-07-06 | slice/29-padding-propagation | /update-pr | Slice 29 | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/63 — docs footprint commit + PR refresh; prerequisites: bypassed (no /verify-slice, no /sync-docs) |

@@ -49,6 +49,11 @@ Scenario: Storage mode visible to operators
   When GET /healthz (or dashboard header) is queried
   Then mode indicates supabase (or local-postgres for Docker URI) — not generic "postgres" only
 
+Scenario: Storage mode covers all backends (absorbed Slice 27)
+  Given STORAGE_BACKEND is mongo, local-postgres Docker, or hosted Supabase
+  When db-stats or health is queried
+  Then storage_mode field is one of mongo | local-postgres | supabase with the correct value per backend
+
 Scenario: indexes list shows known vs missing indexes on Postgres
   When rag-params-finder indexes list runs with STORAGE_BACKEND=postgres
   Then output distinguishes present vs required-missing indexes

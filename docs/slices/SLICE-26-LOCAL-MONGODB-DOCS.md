@@ -23,6 +23,10 @@ Make the scripts emit clear, actionable messages at each failure point, and make
 `docs/user-guide/mongodb-setup.md` Path B self-sufficient — a user following it step by
 step should never hit a surprise.
 
+**Key discovery**: `./start-services.sh mongodb start` already calls
+`wait_for_mongodb_local_healthy()` — it blocks until the container is healthy. Docs
+delegate to the script rather than duplicating the wait loop.
+
 ## Before-Checks [GATE] *(when re-activated post-cutover)*
 
 - [ ] Slice **38** cutover complete or Mongo path explicitly still primary

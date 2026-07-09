@@ -62,3 +62,4 @@
 | 57 | 2026-07-09 | 19/26/27 | Spec status → DEFERRED aligned with TRAIL | 27 superseded by 36; 19/26 re-scope post-cutover | Keep PLANNED in specs |
 | 58 | 2026-07-09 | 10/16/22/23/28 | Bridge Before-Checks + deps + execution order | 10 PARTIAL in TRAIL; 22 hard dep 32; 28 order matches migration-first | Leave stale pre-2026-07-09 order in specs |
 | 59 | 2026-07-09 | 32–38 | PRD Documentation matrix + per-slice doc gates | User/dev setup docs (supabase-setup, getting-started, etc.) staged by slice; `/sync-docs` at 37/38 | Abbreviated Doc audit lines only |
+| 60 | 2026-07-09 | nw-review | Iter 3 follow-ups applied post gap-bridge | Soft dep 30 (TRAIL/SLICE-11); escape-hatch >2d threshold; PRD cutover baseline snapshot; SLICE-36 Slice 27 storage-mode tests | Defer all review notes to next PR |
