@@ -61,7 +61,8 @@ Scenario: Dense sweep end-to-end
 - [ ] Real dense sweep smoke on local Postgres
 - [ ] Mongo dense path unchanged
 - [ ] Coverage + quality gates
-- [ ] Doc audit: architecture retrieval section notes Postgres dense
+- [ ] Doc audit: PRD §Documentation matrix rows for slice **34** (`architecture.md` Postgres dense)
+- [ ] `docs/slices/PROGRESS.md` updated
 
 ## Gate Status
 

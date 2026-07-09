@@ -98,7 +98,8 @@ Scenario: External experiment_id preserved
 - [ ] `docker compose --profile local-postgres up` documented for manual smoke (one-liner in slice notes)
 - [ ] `.env.example` documents `STORAGE_BACKEND` + `DATABASE_URL`
 - [ ] `./scripts/quality-gates.sh` passes
-- [ ] Doc audit: PRD glossary + env table stub
+- [ ] Doc audit: PRD §Documentation matrix rows for slice **33** (`.env.example`, PRD glossary, `configuration.md` env vars)
+- [ ] `docs/slices/PROGRESS.md` updated
 
 ## Gate Status
 

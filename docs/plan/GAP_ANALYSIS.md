@@ -29,6 +29,7 @@ Canonical build status: [docs/slices/PROGRESS.md](../slices/PROGRESS.md) · Migr
 | Index preflight / db-stats on Postgres | HTTP 422 + dashboard panels | Atlas Admin + search index guard | Postgres introspection + `pg_*` sizes | **Critical** | 36 |
 | Local + cloud Postgres DX | Mirror Atlas Local story | Atlas Local only | Docker pgvector + Supabase URI | **Critical** | 37 |
 | ADR-004 + quality comparison | Supersede ADR-003 | ADR-003 Accepted | Side-by-side + cutover docs | **Critical** | 38 |
+| User/dev doc footprint | Supabase setup parity with mongodb-setup | Mongo guides only | PRD §Documentation matrix; sync-docs at 37/38 | **Critical** | 32–38 |
 | Best-config lookup | `GET /api/v1/best-config?task=...` | Stub returns placeholder message | History query + recommendation logic | **Critical** (PCTO) | Slice 22 *(after 38)* |
 | SIE reranking | BGE-reranker via SIE `score` | Voyage + CrossEncoder only | SIE score path in `reranker.py` | Notable | Slice 22 |
 | SPLADE v3 sparse sweep | Full sparse retrieval via SIE | Registry + sparse index exist; sweep path incomplete | End-to-end + Postgres sparsevec gate | Notable | 35 + 22 |

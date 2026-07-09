@@ -69,6 +69,38 @@ Replace MongoDB Atlas as the *primary* storage backend with Supabase (PostgreSQL
 | 37 | Full local/cloud parity (`start-services.sh`), Supabase pooler/TLS docs |
 | 38 | Side-by-side quality artifact, ADR-004, default-backend cutover |
 
+## Documentation matrix
+
+User guides, dev docs, and agent docs are **gated per slice** — same commit as behaviour (see `documentation-best-practices.mdc`). Full 14-row audit from `plan-generator` applies at slice close; this matrix names **which files** and **which slice owns them**.
+
+**Every slice (32–38):** update `docs/slices/PROGRESS.md` (status + decision log). Run `/sync-docs` at **37** and **38** (user-facing doc footprint).
+
+| Doc | Audience | Slice | Action / gate |
+|---|---|---|---|
+| `docs/slices/PROGRESS.md` | Maintainer | **32–38** | Slice status 🔨→✅; decision log row if non-obvious |
+| `CLAUDE.md` Key Files | Agent | **32**, **37**, **38** | Ports (32); `STORAGE_BACKEND` + `DATABASE_URL` env table (37); cutover default (38) |
+| `docs/contributor-guide/architecture.md` | Dev | **32**, **34**, **38** | Storage/Retriever ports (32); Postgres dense retrieval (34); dual-backend diagram (38) |
+| `docs/contributor-guide/extending.md` | Dev | **32** | How to add a `StorageBackend` / `RetrieverBackend` adapter |
+| `.env.example` | Dev | **33** | `STORAGE_BACKEND`, `DATABASE_URL` documented |
+| `docs/plan/PRD-supabase-pgvector-migration.md` | Plan | **33** | Glossary + env vars aligned with implementation |
+| `docs/user-guide/configuration.md` | User | **33**, **35**, **36** | New env vars (33); sparse/hybrid retrieval notes (35); storage-mode field (36) |
+| `docs/contributor-guide/development.md` | Dev | **37** | `start-services.sh --local-postgres`, docker profile, quality-gates `--postgres` |
+| `docs/user-guide/supabase-setup.md` | User | **37** | **Create** — hosted Supabase (pooler Session mode, TLS, extensions, free-tier pause) + local Docker path |
+| `docs/user-guide/getting-started.md` | User | **37** | Postgres/Supabase path (or branch: “Mongo vs Supabase” with links) |
+| `docs/user-guide/troubleshooting.md` | User | **37** | Supabase connection, pooler, paused project, HNSW/index errors |
+| `docs/user-guide/cli-reference.md` | User | **36** | `indexes` CLI behaviour on both backends |
+| `README.md` | User | **37**, **38** | Backend switching table; default backend note at cutover (38) |
+| `docs/README.md` | All | **37** | Persona row + user-guide table entry for `supabase-setup.md` |
+| `docs/user-guide/mongodb-setup.md` | User | **38** | Cross-link: when to use Mongo (rollback) vs Supabase (default) |
+| `configs/example-supabase-local.yaml` | User | **37** | Example sweep config for local pgvector |
+| `docs/adr/ADR-004-postgresql-pgvector-vector-store.md` | All | **38** | **Create** — supersedes ADR-003; cost + monitoring rationale |
+| `docs/adr/ADR-003-mongodb-atlas-vector-store.md` | All | **38** | Status → Superseded by ADR-004 |
+| `docs/plan/gate-evidence/slice-38-quality-comparison.md` | Maintainer | **38** | Cutover quality + latency + rollback evidence |
+| `CHANGELOG.md` | User | **38** | User-visible: default backend, new env vars, setup path |
+| `QUICKSTART.md` | User | **37** | Optional one-liner or link to `supabase-setup.md` if Postgres is primary DX |
+
+**N/A rule:** If a matrix row does not apply to a slice, note `N/A — <reason>` in the slice After-Checks before marking ✅.
+
 ## Cutover decision gates (Slice 38 — required before default flip)
 
 Flip documented default to `STORAGE_BACKEND=postgres` only when **all** pass on the same persona query-set and corpus:

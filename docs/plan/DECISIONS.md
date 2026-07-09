@@ -57,3 +57,4 @@
 | 52 | 2026-07-09 | 38 | Cutover gates: latency ≤2× Mongo p99; hybrid drift ≤5%; equivalence ≥80% top-3 | Platform review blocker — operators need explicit PASS/FAIL before default flip | Qualitative comparison only |
 | 53 | 2026-07-09 | 33–37 | Mandatory Postgres CI job before merging storage slices | Dual-backend regression; prevent Postgres path bitrot | Optional local gate only at Slice 38 |
 | 54 | 2026-07-09 | 38 | Rollback: revert to mongo if incident recovery >30 min | Platform review rollback playbook | No documented rollback |
+| 55 | 2026-07-09 | 32–38 | PRD Documentation matrix + per-slice doc gates | User/dev setup docs (supabase-setup, getting-started, etc.) staged by slice; `/sync-docs` at 37/38 | Abbreviated Doc audit lines only |

@@ -20,6 +20,7 @@
   - Optional: remove dead Mongo-only docs paths only after comparison signed off
 - Exit criteria: ADR-004 merged; side-by-side comparison documented; default backend Postgres with Mongo still selectable
 - Commit pattern: `docs(slice-38): adr-004 pgvector cutover and quality comparison`
+- **Doc exit:** `/sync-docs` — ADR-004, CHANGELOG, README default backend, mongodb-setup cross-link, architecture dual-backend
 
 ---
 
@@ -79,7 +80,9 @@ Scenario: Default backend is Postgres; Mongo still works
 - [ ] Rollback criteria documented: revert to mongo if incident recovery >30 min
 - [ ] ADR-004 includes quality comparison rationale, cost note, and post-cutover monitoring plan
 - [ ] CI dual-backend regression green (mongo + postgres jobs) recorded in gate-evidence
-- [ ] Quality gates + doc audit (architecture, README, user-guide)
+- [ ] Doc audit: PRD §Documentation matrix rows for slice **38** (ADR-004, ADR-003, gate-evidence, CHANGELOG, mongodb-setup cross-link, README default)
+- [ ] `/sync-docs` run — full user + contributor footprint after cutover
+- [ ] `docs/slices/PROGRESS.md` updated
 - [ ] Graphiti episode: cutover decision
 
 ## Gate Status

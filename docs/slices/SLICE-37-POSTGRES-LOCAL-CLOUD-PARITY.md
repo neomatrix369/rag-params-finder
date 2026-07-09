@@ -21,6 +21,7 @@
   - `tests/test_startup_reconciliation_postgres.py`
 - Exit criteria: One-command local stack; hosted Supabase smoke; boot reconciliation on both
 - Commit pattern: `feat(slice-37): supabase local and hosted parity`
+- **Doc exit:** `/sync-docs` — user-guide footprint (supabase-setup, getting-started, troubleshooting, docs/README, README, development.md)
 
 ---
 
@@ -89,7 +90,9 @@ Scenario: Supabase paused project surfaces clear error
 - [ ] Boot reconciliation tests for Postgres path
 - [ ] Mongo `--local` path still works unchanged
 - [ ] Coverage + quality gates
-- [ ] Doc audit: README + CLAUDE.md env table + supabase-setup.md
+- [ ] Doc audit: PRD §Documentation matrix rows for slice **37** (all user + dev setup docs; `supabase-setup.md` created)
+- [ ] `/sync-docs` run — README, docs/README, user-guide, development.md footprint verified
+- [ ] `docs/slices/PROGRESS.md` updated
 
 ## Gate Status
 

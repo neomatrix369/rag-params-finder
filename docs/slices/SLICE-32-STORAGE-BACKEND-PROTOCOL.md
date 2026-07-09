@@ -95,7 +95,8 @@ Scenario: Retrieval flows through RetrieverBackend
 - [ ] Specification coverage: every GWT clause ≥1 test; essential error paths covered
 - [ ] Branch coverage: 100% target on new modules; exclusions documented
 - [ ] `./scripts/quality-gates.sh` passes
-- [ ] Doc audit: CLAUDE.md Key Files + architecture note for ports
+- [ ] Doc audit: PRD §Documentation matrix rows for slice **32** (architecture, extending, CLAUDE Key Files)
+- [ ] `docs/slices/PROGRESS.md` updated (status + decision log if applicable)
 
 ## Gate Status
 

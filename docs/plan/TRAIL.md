@@ -52,6 +52,8 @@ Each PCTO / migration slice lives in its own file below. Existing planned slices
 
 **CI:** Mandatory Postgres regression job from Slice 33 merge onward; cutover gates in PRD (latency ≤2× p99, hybrid drift ≤5%, rollback >30 min).
 
+**Docs:** Per-slice user/dev guide gates in [PRD §Documentation matrix](PRD-supabase-pgvector-migration.md#documentation-matrix); `/sync-docs` at Slices **37** and **38**.
+
 ### Infrastructure slices (complete — tracked in [docs/slices/PROGRESS.md](../slices/PROGRESS.md))
 
 | # | Name | Status | Notes |

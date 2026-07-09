@@ -70,7 +70,8 @@ Scenario: indexes list shows known vs missing indexes on Postgres
 - [ ] Storage mode badge/field documented
 - [ ] Mongo preflight/stats still pass
 - [ ] Coverage + quality gates
-- [ ] Doc audit: indexes CLI + health endpoint mention both backends
+- [ ] Doc audit: PRD §Documentation matrix rows for slice **36** (`cli-reference.md`, `configuration.md` storage-mode)
+- [ ] `docs/slices/PROGRESS.md` updated
 
 ## Gate Status
 

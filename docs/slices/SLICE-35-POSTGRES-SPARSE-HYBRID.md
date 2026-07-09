@@ -66,7 +66,8 @@ Scenario: SPLADE sparsevec gate and fallback
 - [ ] Equivalence gate: run dense/sparse/hybrid on same query set vs Mongo baseline; top-3 rank overlap ≥80% OR explicit trade-off justification documented (e.g. SPLADE ceiling, acceptable drift %)
 - [ ] SPLADE v3 sparse encoding ceiling verified on test corpus (≤1000 non-zeros per doc) or fallback path active
 - [ ] Coverage + quality gates
-- [ ] Doc audit: configuration.md retrieval notes
+- [ ] Doc audit: PRD §Documentation matrix rows for slice **35** (`configuration.md` sparse/hybrid)
+- [ ] `docs/slices/PROGRESS.md` updated
 
 ## Gate Status
 
