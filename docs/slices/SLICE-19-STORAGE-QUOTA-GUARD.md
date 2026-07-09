@@ -135,6 +135,16 @@ DELETE /experiments/{id}?force=true
 
 ---
 
+## After-Checks
+
+- [ ] `./scripts/quality-gates.sh` pass
+- [ ] Specification coverage: every GWT clause has ≥1 test; quota-exceeded and runtime-failure paths covered
+- [ ] Branch coverage: 100% target for `test_storage_preflight.py`; exclusions documented (test-writing-craft-quality.mdc §12)
+- [ ] Mutation testing: survival budget met if slice is feature-complete (§23)
+- [ ] Manual: trigger quota limit with `MONGODB_STORAGE_LIMIT_MB` override → 422 before run starts
+
+---
+
 ## Automated quality gates
 
 ```bash

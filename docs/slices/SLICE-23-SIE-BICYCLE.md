@@ -117,6 +117,9 @@ Scenario: Evidently drift monitor detects score drop
 - [ ] Evidently drift report generated after ≥ 2 sweep runs
 - [ ] All GWT scenarios covered by passing tests
 - [ ] Quality gates pass
+- [ ] Specification coverage: every GWT clause has ≥1 test; essential error paths covered (90–100% of clauses)
+- [ ] Branch coverage: 100% target; exclusions documented (test-writing-craft-quality.mdc §12)
+- [ ] Mutation testing: survival budget met if slice is feature-complete (§23)
 - [ ] Doc audit → YES: update PROGRESS.md (Slice 23 → ✅ COMPLETE); update `CLAUDE.local.md` with Ollama setup instructions
 - [ ] Security audit → NO (Ollama is local; no new external API surface beyond existing pattern)
 - [ ] Self-review + `/code-review` + `/clean-commit` + PR

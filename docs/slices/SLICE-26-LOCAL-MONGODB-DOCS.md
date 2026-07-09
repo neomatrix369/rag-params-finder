@@ -50,6 +50,14 @@ delegate to the script rather than duplicating the wait loop.
 | `docs/user-guide/troubleshooting.md` | New `## MongoDB Atlas Local — Docker` section (3 symptom/fix rows) |
 | `README.md` | Fix cloud-only framing on lines 59 and 92 |
 
+## After-Checks
+
+- [ ] `./scripts/quality-gates.sh` pass
+- [ ] Specification coverage: every acceptance criterion has ≥1 test or manual verification step; essential error paths covered
+- [ ] Branch coverage: 100% target for any new Python functions; exclusions documented (test-writing-craft-quality.mdc §12)
+- [ ] Mutation testing: survival budget met if slice adds testable logic (§23)
+- [ ] Manual: follow Path B in mongodb-setup.md step-by-step from a clean state; no surprises
+
 ## Commits
 
 ```

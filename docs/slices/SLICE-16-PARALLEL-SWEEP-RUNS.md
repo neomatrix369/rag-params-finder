@@ -87,6 +87,16 @@ Recommendation: prototype **Approach A** inside `orchestrator` first *(same Mong
 
 ---
 
+## After-Checks
+
+- [ ] `./scripts/quality-gates.sh` pass
+- [ ] Specification coverage: every GWT clause has ≥1 test; concurrency and cancellation paths covered (90–100% of clauses)
+- [ ] Branch coverage: 100% target; exclusions documented (test-writing-craft-quality.mdc §12)
+- [ ] Mutation testing: survival budget met if slice is feature-complete (§23)
+- [ ] Manual: submit config with `parallelism: 2` → confirm runs execute concurrently in server logs
+
+---
+
 ## Automated quality gates
 
 ```bash

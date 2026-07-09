@@ -99,6 +99,16 @@ Recovery should **reuse the same `run_id`** for a retried run so dashboards, URL
 
 ---
 
+## After-Checks
+
+- [ ] `./scripts/quality-gates.sh` pass
+- [ ] Specification coverage: every GWT clause has ≥1 test; interrupted and partial-recovery paths covered
+- [ ] Branch coverage: 100% target; exclusions documented (test-writing-craft-quality.mdc §12)
+- [ ] Mutation testing: survival budget met if slice is feature-complete (§23)
+- [ ] Manual: kill server mid-run → restart → confirm interrupted run is recoverable or cleanly marked failed
+
+---
+
 ## Automated quality gates
 
 ```bash
