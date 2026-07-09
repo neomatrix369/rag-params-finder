@@ -1,0 +1,6 @@
+{
+  "slice": 29,
+  "gate_status": "PASSED",
+  "inferred": true,
+  "note": "Backfilled by plan-health-check — verify fields before downstream use"
+}

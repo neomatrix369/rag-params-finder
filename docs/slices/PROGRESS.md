@@ -1,9 +1,9 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-07 (plan review + nw-review NEEDS_REVISION resolved; Slices 30/31 added)
-**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation | Next: **22** 📋 SIE Scooter (Must) · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26** 📋 local MongoDB docs · **27** 📋 MongoDB mode indicator · **30** 📋 Search Explorer UX · **31** 📋 experiment list filter · **10** 📋 run recovery · **16** 📋 parallel · **19** 📋 storage quota · **23** 📋 SIE Bicycle (Could)
+**Last Updated**: 2026-07-09 (Supabase/pgvector migration PRD → slices 32–38; dual-backend; ahead of Slice 22)
+**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/16/11/23/10** as before
 
-PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md)
+PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
 ---
 
@@ -34,7 +34,6 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 28 — Results export (CSV/JSONL) | 📋 PLANNED | ~1.5 h | Contributor [@cschanhniem](https://github.com/cschanhniem) — [issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49) author/assignee · [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) |
 | 29 — Padding cross-cutting propagation | ✅ COMPLETE | ~2 h | `_run_config_key()` + API + TS types + UI — spec: [`SLICE-29-PADDING-PROPAGATION.md`](SLICE-29-PADDING-PROPAGATION.md) |
 | 16 — Parallel sweep execution | 📋 PLANNED | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md) |
-| 19 — Atlas storage quota guard | 📋 PLANNED | ~3–5 h | Preflight + runtime `OperationFailure` 8000 handling + force-delete recovery; M0 incident 2026-05-23 — see [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) |
 | 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | `quality-gates.sh`, `repo-lint.sh`, `pre-push-gates.sh` (`--quick` on push), `install-git-hooks.sh`, coverage CI, ESLint, bandit, pip-audit, gitleaks, dependabot — [`SLICE-20-TOOLCHAIN-HARDENING.md`](SLICE-20-TOOLCHAIN-HARDENING.md) |
 | 14 — Docker Compose | ✅ COMPLETE | ~2–3 h | `./start-services.sh`, prod + `docker-compose.dev.yml`, Atlas `/healthz` — [`SLICE-14-DOCKER-COMPOSE.md`](SLICE-14-DOCKER-COMPOSE.md) |
 | ~~15 — CI/CD~~ | ✅ (via 20) | — | Superseded by Slice 20 — CI + `quality-gates.sh` + git hooks |
@@ -42,38 +41,55 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 24 — Port standardisation | ✅ COMPLETE | ~1 h | Unique static ports: frontend 5173→5374 (avoids Vite default), SIE 8080→8720 (avoids Jenkins/Tomcat/etc.); backend 8001 unchanged — spec: [`SLICE-24-PORT-STANDARDISATION.md`](SLICE-24-PORT-STANDARDISATION.md) |
 | 25 — Atlas Local Dev Mode | ✅ COMPLETE | ~1 h | `mongodb-atlas-local` Docker image as opt-in local backend; `local-atlas` compose profile; auto-provision all search indexes on boot for local URI; eliminates M0 512 MB ceiling for local dev — spec: [`SLICE-25-ATLAS-LOCAL.md`](SLICE-25-ATLAS-LOCAL.md) |
 | 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | `./start-services.sh --local`; `./start-services.sh mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](SLICE-25B-ATLAS-SWITCHING.md) |
-| 26 — Local MongoDB smooth-path docs | 📋 PLANNED | ~1 h | Docker pre-flight, wait-for-healthy, stale volume troubleshooting — spec: [`SLICE-26-LOCAL-MONGODB-DOCS.md`](SLICE-26-LOCAL-MONGODB-DOCS.md) |
-| 27 — MongoDB mode indicator | 📋 PLANNED | ~2 h | `get_mongodb_mode()` → `/healthz` + sweep_summary + CLI banner + dashboard header badge — spec: [`SLICE-27-MONGODB-MODE-INDICATOR.md`](SLICE-27-MONGODB-MODE-INDICATOR.md) |
-| 22 — SIE Scooter | 📋 PLANNED | ~3 h | SIE reranking + SPLADE sparse + `GET /api/v1/best-config` (stub on main) — Must — spec: [`SLICE-22-SIE-SCOOTER.md`](SLICE-22-SIE-SCOOTER.md) |
+| 22 — SIE Scooter | 📋 PLANNED | ~3 h | SIE reranking + SPLADE sparse + `GET /api/v1/best-config` — Must — **after Slice 38** — spec: [`SLICE-22-SIE-SCOOTER.md`](SLICE-22-SIE-SCOOTER.md) |
 | 23 — SIE Bicycle | 📋 PLANNED | ~3 h | Ollama + Tier 2–3 retrieval + Evidently AI (Could, post-hackathon) — spec: [`SLICE-23-SIE-BICYCLE.md`](SLICE-23-SIE-BICYCLE.md) |
+| 26 — Local MongoDB smooth-path docs | 📦 DEFERRED | ~1 h | Re-scope after Postgres cutover — [`SLICE-26-LOCAL-MONGODB-DOCS.md`](SLICE-26-LOCAL-MONGODB-DOCS.md) |
+| 27 — MongoDB mode indicator | 📦 DEFERRED | ~2 h | Re-scope as storage-mode indicator — [`SLICE-27-MONGODB-MODE-INDICATOR.md`](SLICE-27-MONGODB-MODE-INDICATOR.md) |
+| 19 — Atlas storage quota guard | 📦 DEFERRED | ~3–5 h | Atlas-specific; Postgres stats in Slice 36 — [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) |
+| 32 — Storage Backend Protocol | 📋 PLANNED | ~3–4 h | **Next** — Protocol + Mongo adapter — [`SLICE-32-STORAGE-BACKEND-PROTOCOL.md`](SLICE-32-STORAGE-BACKEND-PROTOCOL.md) |
+| 33 — Postgres schema + CRUD | 📋 PLANNED | ~4–6 h | Pool, schema, cascade delete — [`SLICE-33-POSTGRES-SCHEMA-CRUD.md`](SLICE-33-POSTGRES-SCHEMA-CRUD.md) |
+| 34 — Postgres dense retrieval | 📋 PLANNED | ~3–4 h | pgvector HNSW + embedding_model filter — [`SLICE-34-POSTGRES-DENSE-RETRIEVAL.md`](SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) |
+| 35 — Postgres sparse + hybrid | 📋 PLANNED | ~4–5 h | tsvector + RRF; SPLADE sparsevec gate — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
+| 36 — Postgres preflight + stats | 📋 PLANNED | ~3–4 h | Index guard, db-stats, indexes CLI — [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md) |
+| 37 — Postgres local/cloud parity | 📋 PLANNED | ~3–4 h | Docker pgvector + Supabase + boot reconciliation — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) |
+| 38 — Cutover + ADR-004 | 📋 PLANNED | ~3–4 h | Side-by-side quality, ADR-004, default Postgres — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) |
 | 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
 | 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
 
-**Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH (implemented on named branch, not main)
+**Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH | 📦 DEFERRED
 
 ---
 
-## Plan Track (PCTO execution order)
+## Plan Track (PCTO + storage migration)
 
-Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/`](../plan/gate-evidence/).
+Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/`](../plan/gate-evidence/). PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md).
 
 | Slice | MoSCoW | Status | Depends on | Notes |
 |-------|--------|--------|------------|-------|
 | 21 | Must | ✅ COMPLETE | — | SIE Skateboard |
 | 25 | Should | ✅ COMPLETE | 21 | Atlas Local |
 | 25B | Should | ✅ COMPLETE | 25 | Atlas switching |
-| 28 | Must | 📋 PLANNED | — | External — [@cschanhniem](https://github.com/cschanhniem) owns [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) |
-| 29 | Must | ✅ COMPLETE | — | Padding in config key, explore API, sweep_summary, dashboard UI |
-| 22 | Must | 📋 PLANNED | 21 | **Next** — SIE Scooter — best-config stub; prereqs #47/#48 ✅ |
-| 26 | Should | 📋 PLANNED | 25B | Local MongoDB docs |
-| 27 | Should | 📋 PLANNED | 25B | MongoDB mode indicator |
-| 19 | Should | 📋 PLANNED | — | Storage quota guard |
+| 29 | Must | ✅ COMPLETE | — | Padding propagation |
+| 32 | Must | 📋 PLANNED | — | **Next** — Storage Protocol + Mongo adapter |
+| 33 | Must | 📋 PLANNED | 32 | Postgres schema + CRUD |
+| 34 | Must | 📋 PLANNED | 33 | Dense pgvector |
+| 35 | Must | 📋 PLANNED | 34 | Sparse + hybrid RRF |
+| 36 | Must | 📋 PLANNED | 35 | Preflight + db-stats |
+| 37 | Must | 📋 PLANNED | 36 | Local/cloud parity |
+| 38 | Must | 📋 PLANNED | 37 | ADR-004 cutover |
+| 28 | Must | 📋 PLANNED | — | External — [@cschanhniem](https://github.com/cschanhniem) / [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) |
+| 22 | Must | 📋 PLANNED | 21, 38 | SIE Scooter — after storage cutover |
+| 26 | Should | 📦 DEFERRED | 25B | Mongo docs — re-scope post-cutover |
+| 27 | Should | 📦 DEFERRED | 25B | Mode indicator — re-scope |
+| 19 | Should | 📦 DEFERRED | — | Atlas quota — Postgres path in 36 |
 | 16 | Should | 📋 PLANNED | — | Parallel sweep |
 | 11 | Could | 📋 PLANNED | — | Search Explorer enhancements |
 | 23 | Could | 📋 PLANNED | 22 | SIE Bicycle |
 | 10 | Could | 📋 PLANNED | — | Run recovery |
+| 30 | Could | 📋 PLANNED | — | Search Explorer UX |
+| 31 | Should | 📋 PLANNED | — | Experiment list filter |
 
-**Execution order**: 21 → 25 → 25B (done) → **28** → **22** → **29** (done) → 26 → 27 → 19 → 16 → 11 → 23 → 10 *(active work: 22)*
+**Execution order**: 21 → 25 → 25B → 29 (done) → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
 
 ---
 
@@ -90,6 +106,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 2026-07-06 | Plan prereq clearance sync | HANDOFF, PROGRESS queue, slice Before-Checks updated; #47/#48 marked satisfied |
 | 2026-07-06 | Slice 28 contributor assigned | @cschanhniem (issue #49 author/assignee) owns implementation; core team on Slice 22 |
 | 2026-07-06 | Slice 29 complete | Padding in `_run_config_key()`, explore responses, sweep_summary, TS types, ExperimentDetail + SearchExplorer UI |
+| 2026-07-09 | Supabase migration plan | PRD integrated; slices 32–38 Must; dual-backend; ahead of 22; deferred 26/27/19 |
 
 ---
 
@@ -629,6 +646,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-09 | 32–38 | Dual-backend Protocol; migrate to Supabase/pgvector before Slice 22; defer 26/27/19 | Approved PRD + plan-modifier Add; rollback/A-B required; Mongo QoL low value until cutover |
 | 2026-07-07 | 22 | Reclassified Slice 22 Should → Must | nw-review: Slice 22 delivers PCTO-critical score/reranking + best-config; both halves of SIE must be Must |
 | 2026-07-07 | 30 | Added Slice 30 (Search Explorer UX) | Assessment found 4 untracked UX issues; bundled as Could/~2h |
 | 2026-07-07 | 31 | Added Slice 31 (Experiment list filter) | Assessment found navigability gap at scale; Should/~2h |
@@ -767,9 +785,12 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | 10 — Run recovery | Spec: [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) — `recover` CLI + `POST /experiments/{id}/recover`; per-`run_id` scrub + retry (**FAILED** default; **INTERRUPTED** opt-in); **`RECOVER_ON_BOOT`** retries **INTERRUPTED** only *(not all FAILED)* | Could | ~1–2 h |
 | 11 — Dashboard-triggered runs | Submit experiments from the React UI, not just CLI | Could | ~45 min |
 | 28 — Results export | Spec: [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) — CSV/JSONL download; [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | **Must** | 📋 PLANNED — @cschanhniem (~1.5 h) |
+| 32–38 — Supabase/pgvector | Dual-backend Protocol → Postgres cutover + ADR-004 — [`PRD`](../plan/PRD-supabase-pgvector-migration.md) | **Must** | 📋 PLANNED — core team next |
 | 12 — SSE live updates | Replace 2 s polling with Server-Sent Events | Could | ~20 min |
 | 13 — Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` | Could | ~15 min |
-| 19 — Storage quota guard | Spec: [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) — preflight at submit (422); runtime `OperationFailure` 8000; HTTP 507 on control APIs; `?force=true` delete; dashboard ≥80% warning; smoke config for M0 | **Should** | ~3–5 h |
+| 19 — Storage quota guard | Atlas M0 guard — **📦 DEFERRED**; Postgres stats in Slice 36 | Should | deferred |
+| 26 — Local MongoDB docs | **📦 DEFERRED** — re-scope after Postgres local path (37) | Should | deferred |
+| 27 — MongoDB mode indicator | **📦 DEFERRED** — re-scope as storage-backend indicator | Should | deferred |
 | ~~14 — Docker Compose~~ | ~~One-command local setup~~ | — | ✅ Delivered in Slice 14 |
 | ~~15 — CI/CD~~ | ~~GitHub Actions~~ | — | ✅ Delivered in Slice 20 |
 | 16 — Parallel sweep (`parallelism` > 1) | Bounded concurrent `_run_single` (+ optional Celery upgrade path); Atlas/Voyage-rate-limit aware | Should | ~2–4 h |

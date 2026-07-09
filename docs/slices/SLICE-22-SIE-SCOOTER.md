@@ -34,7 +34,7 @@ feat(sie): add SIE Scooter — reranking, SPLADE sparse, best-config API
 
 ### Branch
 `slice/22-sie-scooter`
-Create from `main` after Slice 21 is merged.
+Create from `main` after **Slice 38** (storage cutover) is merged — Depends on: 21, 38 (TRAIL 2026-07-09). If PCTO deadline forces earlier start, implement against StorageBackend Protocol (Mongo) and retest on Postgres after 38.
 
 ### Spec (GWT)
 
