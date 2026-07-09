@@ -60,15 +60,25 @@ Scenario: Default backend is Postgres; Mongo still works
 ## Before-Checks [GATE]
 
 - [ ] Slices 32–37 ✅ PASSED
-- [ ] Latency smoke vs ADR-003 baseline noted (pass/fail with numbers)
+- [ ] Cutover gates measured per PRD (latency ≤2× Mongo p99; hybrid drift ≤5%; equivalence ≥80% top-3 overlap)
+- [ ] Rollback playbook smoke-tested: flip `STORAGE_BACKEND=mongo`, restart, verify sweep
 
 ---
 
 ## After-Checks [GATE]
 
-- [ ] All PRD §9 acceptance criteria checked or explicitly deferred with reason
+- [ ] All PRD acceptance criteria checked or explicitly deferred with reason
 - [ ] ADR-004 + ADR-003 status update
-- [ ] Comparison artifact linked from TRAIL/PROGRESS
+- [ ] Comparison artifact in `docs/plan/gate-evidence/slice-38-quality-comparison.md`:
+  - Query set, corpus, metrics (top-1, top-3, top-5 rank overlap; NDCG or similar)
+  - **Latency:** Mongo vs Postgres p99 on baseline sweep; PASS if ≤2×
+  - **Hybrid drift:** ≤5% top-3 reordering or documented CONDITIONAL
+  - Dense/sparse/hybrid results for Mongo and Supabase/Postgres backends
+  - Equivalence decision: PASS or CONDITIONAL with trade-offs
+- [ ] Cutover decision explicit: default backend flipped to postgres only if all gates PASS
+- [ ] Rollback criteria documented: revert to mongo if incident recovery >30 min
+- [ ] ADR-004 includes quality comparison rationale, cost note, and post-cutover monitoring plan
+- [ ] CI dual-backend regression green (mongo + postgres jobs) recorded in gate-evidence
 - [ ] Quality gates + doc audit (architecture, README, user-guide)
 - [ ] Graphiti episode: cutover decision
 

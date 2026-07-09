@@ -1,4 +1,4 @@
-# SLICE 35 — Postgres Sparse + Hybrid Retrieval
+# SLICE 35 — Supabase Sparse + Hybrid Retrieval
 
 **MoSCoW:** MUST
 **Target time:** ~4–5 h
@@ -41,10 +41,12 @@ Scenario: Hybrid uses RRF fusion
   When hybrid_search runs with rrf_k and weights
   Then fused ranking differs from pure dense and pure sparse in the expected direction
 
-Scenario: SPLADE sparsevec gate
+Scenario: SPLADE sparsevec gate and fallback
   Given a real SPLADE-v3 encode on project corpus
   When non-zero element counts are logged
-  Then design commits to sparsevec only if max non-zeros ≤ 1000; otherwise document fallback
+  Then if max non-zeros ≤ 1000: commit to sparsevec column
+  And if max non-zeros > 1000: use tsvector/BM25-equivalent path for SPLADE sweeps
+  And the chosen path is logged in DECISIONS.md with measured counts
 ```
 
 ---
@@ -60,7 +62,9 @@ Scenario: SPLADE sparsevec gate
 
 - [ ] Sparse + hybrid real-sweep smoke
 - [ ] RRF weights/`rrf_k` wired or explicitly N/A with reason
-- [ ] SPLADE decision logged in DECISIONS.md
+- [ ] SPLADE decision logged in DECISIONS.md (sparsevec vs tsvector fallback)
+- [ ] Equivalence gate: run dense/sparse/hybrid on same query set vs Mongo baseline; top-3 rank overlap ≥80% OR explicit trade-off justification documented (e.g. SPLADE ceiling, acceptable drift %)
+- [ ] SPLADE v3 sparse encoding ceiling verified on test corpus (≤1000 non-zeros per doc) or fallback path active
 - [ ] Coverage + quality gates
 - [ ] Doc audit: configuration.md retrieval notes
 

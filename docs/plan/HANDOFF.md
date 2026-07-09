@@ -21,13 +21,15 @@ Enhanced-flow-planner continuation integrated the **Supabase/pgvector migration 
 
 ## Blockers / Open Questions
 
-- SPLADE `sparsevec` ≤1000 non-zeros — verify in Slice 35 before locking schema
-- Supabase free-tier auto-pause — Pro tier if demos must stay warm
-- Slice 22 soft-depends on 38 for Postgres-native history; if PCTO deadline forces earlier 22, implement against Protocol (Mongo) then retest on Postgres
+- SPLADE `sparsevec` ≤1000 non-zeros — verify in Slice 35; fallback to tsvector path documented
+- Supabase free-tier auto-pause — Pro tier if demos must stay warm (Slice 37 user-guide)
+- Slice 22: hard dep on 32 (Protocol); soft dep on 38 — escape hatch in TRAIL if PCTO deadline forces earlier 22
 
 ## Context for Next Session
 
-- **Execution order**: **32 → 33 → 34 → 35 → 36 → 37 → 38 → 22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
+- **Plan review applied** (2026-07-09): 3/4 APPROVED; platform conditionally approved — cutover gates + CI applied
+- **Ready for Slice 32** after commit of review follow-up edits
+- **Execution order**: **32 → 33 → 34 → 35 → 36 → 37 → 38 → 22** → 28*(external)* → …
 - PRD: `docs/plan/PRD-supabase-pgvector-migration.md`
 - DECISIONS.md rows through #44
 - Graphiti: migration decision episode 2026-07-09 (due-diligence “don’t migrate” fact superseded)

@@ -48,3 +48,12 @@
 | 43 | 2026-07-09 | planning | Deferred slices 26, 27, 19 (Mongo QoL / Atlas quota) | Postgres becomes primary; Mongo-local docs and Atlas quota guard are low value until post-cutover re-scope | Keep 26/27/19 in active execution order |
 | 44 | 2026-07-09 | 22 | Slice 22 Depends on 21 + 38 | best-config/history and SPLADE paths should land on cut-over storage; Protocol allows earlier 22 if deadline forces | Soft dep only — risk of double-porting history queries |
 | 45 | 2026-07-09 | skill-proposer | Keep model split defaults; propose /tdd /verify-slice /architecture /security-review for 32–38 | Brownfield dual-backend + secrets in DATABASE_URL; no new UI design system | Change models — user can override next session |
+| 46 | 2026-07-09 | review | nw-solution-architect-reviewer: conditionally approved | Applied behavioral AC (32), equivalence gates (35/38), Protocol dep (22), PRD SSOT | Start Slice 32 without edits |
+| 47 | 2026-07-09 | 32 | StorageBackend + RetrieverBackend seam locked | CRUD vs retrieval query APIs differ; orchestrator uses ports only | Single monolithic Protocol |
+| 48 | 2026-07-09 | 33 | Keep external string experiment_id | No breaking API/CLI/dashboard ID change when adding Postgres PK | UUID-only external IDs |
+| 49 | 2026-07-09 | 35 | SPLADE fallback: tsvector path if non-zeros > 1000 | sparsevec ceiling is hard Postgres limit | Block SPLADE on Postgres |
+| 50 | 2026-07-09 | 36 | Slice 27 (mode indicator) absorbed into 36 | Storage mode mongo \| local-postgres \| supabase during migration | Keep 27 as separate deferred slice |
+| 51 | 2026-07-09 | 22 | PCTO escape hatch in TRAIL | If 32–36 slip, start 22 on Protocol after 32; retest after 38 | Hard block 22 until 38 always |
+| 52 | 2026-07-09 | 38 | Cutover gates: latency ≤2× Mongo p99; hybrid drift ≤5%; equivalence ≥80% top-3 | Platform review blocker — operators need explicit PASS/FAIL before default flip | Qualitative comparison only |
+| 53 | 2026-07-09 | 33–37 | Mandatory Postgres CI job before merging storage slices | Dual-backend regression; prevent Postgres path bitrot | Optional local gate only at Slice 38 |
+| 54 | 2026-07-09 | 38 | Rollback: revert to mongo if incident recovery >30 min | Platform review rollback playbook | No documented rollback |

@@ -26,15 +26,15 @@ Each PCTO / migration slice lives in its own file below. Existing planned slices
 | 25 | [../slices/SLICE-25-ATLAS-LOCAL.md](../slices/SLICE-25-ATLAS-LOCAL.md) | Atlas Local Dev Mode — `mongodb-atlas-local` as opt-in backend | Should | ✅ PASSED | 21 | — | ~2 min | 2026-06-29 |
 | 25B | [../slices/SLICE-25B-ATLAS-SWITCHING.md](../slices/SLICE-25B-ATLAS-SWITCHING.md) | Atlas Backend Switching — single-flag cloud ↔ local switching | Should | ✅ PASSED | 25 | — | ~2 min | 2026-06-29 |
 | 29 | [../slices/SLICE-29-PADDING-PROPAGATION.md](../slices/SLICE-29-PADDING-PROPAGATION.md) | Padding cross-cutting propagation — config key, API, types, UI | Must | ✅ PASSED | none | — | ~2 min | 2026-07-05 |
-| 32 | [../slices/SLICE-32-STORAGE-BACKEND-PROTOCOL.md](../slices/SLICE-32-STORAGE-BACKEND-PROTOCOL.md) | Storage Backend Protocol + Mongo adapter extract | Must | 📋 PLANNED | none | — | ~2 min | 2026-07-09 |
-| 33 | [../slices/SLICE-33-POSTGRES-SCHEMA-CRUD.md](../slices/SLICE-33-POSTGRES-SCHEMA-CRUD.md) | Postgres schema + pool + metadata/chunks CRUD | Must | 📋 PLANNED | 32 | — | ~2 min | 2026-07-09 |
-| 34 | [../slices/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md](../slices/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) | Postgres dense retrieval (pgvector HNSW) | Must | 📋 PLANNED | 33 | — | ~2 min | 2026-07-09 |
-| 35 | [../slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md](../slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md) | Postgres sparse + hybrid RRF | Must | 📋 PLANNED | 34 | — | ~2 min | 2026-07-09 |
-| 36 | [../slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md](../slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md) | Postgres index preflight + db-stats + indexes CLI | Must | 📋 PLANNED | 35 | — | ~2 min | 2026-07-09 |
-| 37 | [../slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md](../slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) | Local Postgres + Supabase parity + boot reconciliation | Must | 📋 PLANNED | 36 | — | ~2 min | 2026-07-09 |
-| 38 | [../slices/SLICE-38-CUTOVER-ADR-004.md](../slices/SLICE-38-CUTOVER-ADR-004.md) | Side-by-side quality + ADR-004 + default cutover | Must | 📋 PLANNED | 37 | — | ~2 min | 2026-07-09 |
+| 32 | [../slices/SLICE-32-STORAGE-BACKEND-PROTOCOL.md](../slices/SLICE-32-STORAGE-BACKEND-PROTOCOL.md) | Storage Protocol + Mongo adapter (Storage + Retriever ports) | Must | 📋 PLANNED | none | — | ~2 min | 2026-07-09 |
+| 33 | [../slices/SLICE-33-POSTGRES-SCHEMA-CRUD.md](../slices/SLICE-33-POSTGRES-SCHEMA-CRUD.md) | Supabase schema + pool + CRUD (+ minimal local pgvector) | Must | 📋 PLANNED | 32 | — | ~2 min | 2026-07-09 |
+| 34 | [../slices/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md](../slices/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) | Supabase dense retrieval (pgvector HNSW) | Must | 📋 PLANNED | 33 | — | ~2 min | 2026-07-09 |
+| 35 | [../slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md](../slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md) | Supabase sparse + hybrid RRF (+ Mongo equivalence gate) | Must | 📋 PLANNED | 34 | — | ~2 min | 2026-07-09 |
+| 36 | [../slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md](../slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md) | Supabase preflight + db-stats + storage mode indicator | Must | 📋 PLANNED | 35 | — | ~2 min | 2026-07-09 |
+| 37 | [../slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md](../slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) | Supabase local + hosted parity + boot reconciliation | Must | 📋 PLANNED | 36 | — | ~2 min | 2026-07-09 |
+| 38 | [../slices/SLICE-38-CUTOVER-ADR-004.md](../slices/SLICE-38-CUTOVER-ADR-004.md) | Quality comparison + ADR-004 + default cutover | Must | 📋 PLANNED | 37 | — | ~2 min | 2026-07-09 |
 | 28 | [../slices/SLICE-28-RESULTS-EXPORT.md](../slices/SLICE-28-RESULTS-EXPORT.md) | Results export — CSV/JSONL download (issue #49; @cschanhniem) | Must | 📋 PLANNED | none | [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | ~3 min | 2026-07-06 |
-| 22 | [../slices/SLICE-22-SIE-SCOOTER.md](../slices/SLICE-22-SIE-SCOOTER.md) | SIE Scooter — reranking + SPLADE v3 sparse + `/api/v1/best-config` | Must | 📋 PLANNED | 21, **38** | — | ~3 min | 2026-07-09 |
+| 22 | [../slices/SLICE-22-SIE-SCOOTER.md](../slices/SLICE-22-SIE-SCOOTER.md) | SIE Scooter — reranking + SPLADE v3 sparse + `/api/v1/best-config` | Must | 📋 PLANNED | 21, 38 (soft) | — | ~3 min | 2026-07-09 |
 | 26 | [../slices/SLICE-26-LOCAL-MONGODB-DOCS.md](../slices/SLICE-26-LOCAL-MONGODB-DOCS.md) | Local MongoDB: smooth path docs + script feedback | Should | 📦 DEFERRED | 25B | — | ~1.5 min | 2026-07-09 |
 | 27 | [../slices/SLICE-27-MONGODB-MODE-INDICATOR.md](../slices/SLICE-27-MONGODB-MODE-INDICATOR.md) | MongoDB mode indicator (cloud vs local) | Should | 📦 DEFERRED | 25B | — | ~2 min | 2026-07-09 |
 | 19 | [../slices/SLICE-19-STORAGE-QUOTA-GUARD.md](../slices/SLICE-19-STORAGE-QUOTA-GUARD.md) | Storage quota guard (cloud production) | Should | 📦 DEFERRED | none | — | — | 2026-07-09 |
@@ -46,7 +46,11 @@ Each PCTO / migration slice lives in its own file below. Existing planned slices
 | 31 | [../slices/SLICE-31-EXPERIMENT-LIST-FILTER.md](../slices/SLICE-31-EXPERIMENT-LIST-FILTER.md) | Experiment list filter — status dropdown + name/ID search | Should | 📋 PLANNED | none | — | ~2 min | 2026-07-07 |
 
 **Execution order**: 21 → 25 → 25B → 29 (done) → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
-*(Deferred Mongo QoL: 26, 27, 19 — re-scope after cutover or drop if Postgres is sole primary)*
+*(Deferred Mongo QoL: 26, 19 — re-scope after cutover. Slice 27 scope absorbed into 36 as storage-mode indicator.)*
+
+**PCTO escape hatch (Slice 22):** If slices 32–36 slip past deadline, start Slice 22 using StorageBackend Protocol only (hard dep: 32 merged); retest on Supabase backend after 38.
+
+**CI:** Mandatory Postgres regression job from Slice 33 merge onward; cutover gates in PRD (latency ≤2× p99, hybrid drift ≤5%, rollback >30 min).
 
 ### Infrastructure slices (complete — tracked in [docs/slices/PROGRESS.md](../slices/PROGRESS.md))
 
@@ -91,3 +95,14 @@ Updated as each slice reaches Gate Status PASSED.
 | 32–38 — Supabase migration | — / — | — / — | — | — |
 | 22 — SIE Scooter | — / — | — / — | — | — |
 | 23 — SIE Bicycle | — / — | — / — | — | — |
+
+## Reviews
+
+| Date | Reviewer | Verdict | Notes |
+|---|---|---|---|
+| 2026-07-09 | nw-solution-architect-reviewer (iter 1) | Conditionally approved | AC coupling, equivalence gates, Slice 22 Protocol dep — edits applied same day |
+| 2026-07-09 | local (data/platform/PO) | Partial | Usage limit — merged into PRD/TRAIL/33/36/37 |
+| 2026-07-09 | nw-product-owner-reviewer (iter 2) | **APPROVED** | DoR 9/9; escape hatch, soft dep 22→38, Slice 27→36, CI note verified |
+| 2026-07-09 | nw-data-engineer-reviewer (iter 2) | **APPROVED** | 8.3/10; 7 non-blocking gaps (CI schedule, cost row, boot-recon GWT, minimal-docker trade-off) |
+| 2026-07-09 | nw-solution-architect-reviewer (iter 2) | **APPROVED** | Conditional items verified: behavioral ACs, storage seam, experiment_id contract, SPLADE fallback; ready for Slice 32 |
+| 2026-07-09 | nw-platform-architect-reviewer (iter 2) | **Conditionally approved** | Cutover gates + mandatory Postgres CI — applied to PRD/33/38 |

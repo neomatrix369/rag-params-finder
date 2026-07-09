@@ -33,7 +33,7 @@ Canonical build status: [docs/slices/PROGRESS.md](../slices/PROGRESS.md) · Migr
 | SIE reranking | BGE-reranker via SIE `score` | Voyage + CrossEncoder only | SIE score path in `reranker.py` | Notable | Slice 22 |
 | SPLADE v3 sparse sweep | Full sparse retrieval via SIE | Registry + sparse index exist; sweep path incomplete | End-to-end + Postgres sparsevec gate | Notable | 35 + 22 |
 | Results export | CSV/JSONL download | JSON via `/results` and `/explore` only | Export endpoint + dashboard button | **Must** (#49) | Slice 28 |
-| MongoDB mode visibility | Cloud vs local indicator | URI detection exists | **📦 DEFERRED** — re-scope as storage-backend indicator | Should | was 27 |
+| MongoDB mode visibility | Cloud vs local indicator | URI detection exists | **Absorbed into Slice 36** (storage mode: mongo \| local-postgres \| supabase) | Should | 36 |
 | Local MongoDB UX docs | Smooth onboarding | Unified `mongodb-setup.md` | **📦 DEFERRED** | Should | was 26 |
 | Storage quota guard (Atlas) | Cloud production safety | Boot reconciliation only | **📦 DEFERRED** — Postgres stats in 36 | Should | was 19 |
 | Parallel sweep | `parallelism > 1` | Sequential `BackgroundTasks` | Bounded concurrency | Should | Slice 16 |

@@ -22,7 +22,7 @@ feat(sie): add SIE Scooter — reranking, SPLADE sparse, best-config API
 
 - Wire BGE-reranker via SIE score primitive (replaces rerank-2.5-lite)
 - Add SPLADE v3 sparse index support for full open-source BM25
-- Complete GET /api/v1/best-config querying MongoDB sweep history
+- Complete GET /api/v1/best-config querying sweep history via StorageBackend
 
 > **MCP note**: MCP server exposure (`get_rag_config` tool) is explicitly deferred — Won't have this cycle.
 > If ever built, it MUST be a standalone reusable skill or global tool (not embedded in this service).
@@ -55,21 +55,25 @@ Scenario: SPLADE v3 sparse sweep variant runs alongside dense
   Then the sweep runs and returns sparse BM25 results with correct index used
 
 Scenario: GET /api/v1/best-config returns recommendation from sweep history
-  Given MongoDB contains completed sweep results for topic="machine learning"
+  Given the active storage backend contains completed sweep results for topic="machine learning"
   When GET /api/v1/best-config?task=machine+learning
   Then HTTP 200 with recommended_config (retrieval_method, embedding_model, score), confidence, based_on_experiments ≥ 1
 
 Scenario: GET /api/v1/best-config returns 404 when no history exists
-  Given MongoDB has no sweep results for the requested task
+  Given the active storage backend has no sweep results for the requested task
   When GET /api/v1/best-config?task=unknown-topic
   Then HTTP 404
 ```
 
 ### Before-Checks [GATE]
 - [x] Merge PRs #47 (semantic chunker overlap) and #48 (padding sweep dimension) — merged to `main` 2026-07-05
-- [ ] Branch `slice/22-sie-scooter` created from latest `main` (Slice 21 merged and gate PASSED)
-- [ ] SIE Docker running; BGE-M3 encode probe returns HTTP 200 — see [SIE Provider Setup](../user-guide/sie-setup.md) (warm-up, 503 logs, disk-cache WARNING)
+- [ ] Slice 32 StorageBackend + RetrieverBackend Protocol merged to current branch
+- [ ] All history and best-config queries use StorageBackend — no direct `server.db.atlas` or `mongo_store` imports in sweep/history code
+- [ ] Branch `slice/22-sie-scooter` created from latest `main` (Slice 21 ✅; prefer after Slice 38 — see escape hatch in TRAIL)
+- [ ] SIE Docker running; BGE-M3 encode probe returns HTTP 200 — see [SIE Provider Setup](../user-guide/sie-setup.md)
 - [ ] `./scripts/quality-gates.sh` passes
+
+> **Soft dep on Slice 38:** If cutover delays, implement via Protocol so Postgres porting is isolated to adapters, not Slice 22 code.
 
 ### TDD Execution
 
@@ -85,8 +89,8 @@ Scenario: GET /api/v1/best-config returns 404 when no history exists
 2. **Extend `server/core/reranker.py`** — add `sie` dispatch branch calling `SIEClient.score()`; raise `RuntimeError` on connection failure
 3. **Add SPLADE v3 sparse index support**: ensure Atlas vector index for sparse output format is created; document in `CLAUDE.local.md`
 4. **Complete `GET /api/v1/best-config`** in `server/api/sweep.py`:
-   - Query MongoDB `experiments` collection for completed sweeps matching task keywords
-   - Aggregate best score per config; return top result with confidence heuristic (`high`/`medium`/`low` based on experiment count)
+   - Query completed sweeps via `StorageBackend` (not direct Mongo collections)
+   - Aggregate best score per config; return top result with confidence heuristic
 5. **Add `GET /api/v1/experiments/{id}` alias** at `/api/v1` prefix (one-liner forwarding to existing route)
 6. **Write tests** for all GWT scenarios
 7. **Run `./scripts/quality-gates.sh`**

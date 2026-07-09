@@ -1,4 +1,4 @@
-# SLICE 34 — Postgres Dense Retrieval (pgvector)
+# SLICE 34 — Supabase Dense Retrieval (pgvector)
 
 **MoSCoW:** MUST
 **Target time:** ~3–4 h
