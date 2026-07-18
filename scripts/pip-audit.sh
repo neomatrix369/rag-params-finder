@@ -51,6 +51,14 @@ ML_IGNORE=(
   --ignore-vuln PYSEC-2026-2290  # transformers — unused LightGlue path; ST major upgrade required
 )
 
-# `uv run` creates/syncs the project environment before launching pip-audit.
-# Point pip-api at that same interpreter even when CI previously installed tools system-wide.
-PIPAPI_PYTHON_LOCATION="$ROOT/.venv/bin/python" uv run pip-audit --skip-editable "${ML_IGNORE[@]}"
+# Audit the environment that supplied pip-audit. CI installs it into the hosted Python;
+# local development normally resolves it through the project environment via `uv run`.
+if command -v pip-audit >/dev/null 2>&1; then
+  AUDIT_PYTHON="$(command -v python)"
+  AUDIT_COMMAND=(pip-audit)
+else
+  AUDIT_PYTHON="$ROOT/.venv/bin/python"
+  AUDIT_COMMAND=(uv run pip-audit)
+fi
+
+PIPAPI_PYTHON_LOCATION="$AUDIT_PYTHON" "${AUDIT_COMMAND[@]}" --skip-editable "${ML_IGNORE[@]}"
