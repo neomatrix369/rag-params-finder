@@ -15,6 +15,8 @@ type PollingIndicatorProps = {
   minVisibleMs?: number;
   /** When true, reserve layout space even when hidden. */
   reserveSpace?: boolean;
+  /** Match the indicator text to its light canvas or dark frame. */
+  tone?: 'light' | 'dark';
 };
 
 function useStableSyncVisible(
@@ -79,8 +81,10 @@ export default function PollingIndicator({
   showDelayMs = 500,
   minVisibleMs = 800,
   reserveSpace = true,
+  tone = 'light',
 }: PollingIndicatorProps) {
   const visible = useStableSyncVisible(active, showDelayMs, minVisibleMs);
+  const textColor = tone === 'dark' ? 'text-slate-400' : 'text-muted';
 
   if (!reserveSpace && !visible) {
     return null;
@@ -88,7 +92,7 @@ export default function PollingIndicator({
 
   return (
     <div
-      className={`flex h-5 items-center gap-2 text-xs text-slate-500 transition-opacity duration-300 ${
+      className={`flex h-5 items-center gap-2 text-xs ${textColor} transition-opacity duration-300 ${
         visible ? 'opacity-100' : 'opacity-0'
       } ${reserveSpace ? 'min-w-[5.5rem]' : ''}`}
       role="status"

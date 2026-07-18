@@ -419,10 +419,10 @@ function StatCard({
 }) {
   const colors = {
     blue: 'bg-blue-50 text-blue-600 border-blue-200',
-    green: 'bg-green-50 text-green-600 border-green-200',
+    green: 'bg-green-50 text-green-700 border-green-200',
     purple: 'bg-accent-soft text-accent-strong border-accent',
-    amber: 'bg-amber-50 text-amber-600 border-amber-200',
-    red: 'bg-red-50 text-red-600 border-red-200',
+    amber: 'bg-amber-50 text-amber-700 border-amber-200',
+    red: 'bg-red-50 text-red-700 border-red-200',
     slate: 'bg-slate-50 text-slate-600 border-slate-200',
   } as const;
   // color is a typed union — safe lookup, not user-controlled injection.
