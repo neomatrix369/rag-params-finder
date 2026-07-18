@@ -59,6 +59,7 @@ override-dependencies = [
     "langchain-core>=1.3.3",
     "aiohttp>=3.14.1",
     "msgpack>=1.2.1",
+    "pillow>=12.3.0",
 ]
 
 [build-system]
@@ -106,6 +107,7 @@ exclude_dirs = ["tests", ".venv"]
 skips = ["B101"]
 
 # Transitive ML stack (torch/transformers via sentence-transformers) — tracked; major upgrade deferred.
+# The current compensating control is an allowlisted model registry; arbitrary HuggingFace IDs are rejected.
 # Ignores are applied in scripts/pip-audit.sh (pip-audit has no pyproject config).
 
 [tool.mypy]

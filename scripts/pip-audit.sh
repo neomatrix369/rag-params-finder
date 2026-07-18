@@ -11,6 +11,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 # torch/transformers via sentence-transformers — major upgrade deferred (see pyproject.toml comment).
+# Model IDs are validated against server/core/model_registry.py; arbitrary model repositories are rejected.
+# PYSEC-2026-2286: patched torch has no macOS x86_64 wheel; retain the last supported wheel only there.
+# PYSEC-2026-2290: LightGlue-only path is unused; patched transformers requires the deferred ST 4+ upgrade.
 # aim — no upstream fix available yet (CVE-2025-5321, CVE-2025-51464).
 # langchain/langsmith/langgraph — fix requires langsmith>=0.8.18 which needs websockets>=15,
 #   but sie-sdk pins websockets<15; blocked on sie-sdk upgrading its websockets constraint.
@@ -44,6 +47,15 @@ ML_IGNORE=(
   --ignore-vuln CVE-2026-48776
   --ignore-vuln PYSEC-2026-597   # nltk — semantic/sentence chunkers; no fix in current pin
   --ignore-vuln CVE-2026-4372    # transformers via sentence-transformers — major upgrade deferred
+  --ignore-vuln PYSEC-2026-2286  # torch — no patched macOS x86_64 wheel; allowlisted models only
+  --ignore-vuln PYSEC-2026-2290  # transformers — unused LightGlue path; ST major upgrade required
 )
 
-uv run pip-audit --skip-editable "${ML_IGNORE[@]}"
+AUDIT_PYTHON="${VIRTUAL_ENV:-$ROOT/.venv}/bin/python"
+if [[ ! -x "$AUDIT_PYTHON" ]]; then
+  echo "Audit interpreter not found: $AUDIT_PYTHON" >&2
+  echo "Run: uv sync --extra dev" >&2
+  exit 1
+fi
+
+PIPAPI_PYTHON_LOCATION="$AUDIT_PYTHON" uv run pip-audit --skip-editable "${ML_IGNORE[@]}"
