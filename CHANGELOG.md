@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Dependency audit determinism** — audit the project `.venv`, upgrade Pillow to `>=12.3.0`, and document narrow ML advisory exceptions where patched releases require an incompatible major upgrade or lack a declared-platform wheel
 - **Semantic chunker overlap** (PR #47, closes #44) — `overlap` honored with sentence-granular trailing-sentence carry; fixes duplicate sweep runs when varying overlap
 - **Semantic chunker review follow-up** (PR #61) — config warning when `overlap >= chunk_size`; mocked dispatch-chain regression tests; `_overlap_sentences` append+reverse perf fix
 - **Padding config warnings** (PR #60) — `UserWarning` when `paddings` exceed `chunk_size`
