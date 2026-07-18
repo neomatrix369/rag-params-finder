@@ -22,6 +22,35 @@ Make the existing list-to-detail demo journey feel coherent, intentional, and pr
 
 The visual-direction prompt supplied before implementation is an input to the look and feel. It may refine colour, typography, surface, and composition choices, but it must not expand the scope or weaken the acceptance criteria below.
 
+## Research input: evidence-led results storytelling
+
+The independent ARC-AGI-3 cold-solve results site supplied during planning is a **presentation reference, not a product dependency or visual template**. Its transferable thesis is that an evaluation interface becomes compelling when it connects a clear question to comparative evidence, depth, and a traceable case study.
+
+For this project, that narrative maps to the existing product without importing ARC-specific mechanics:
+
+| Priority | Adopt for `rag-params-finder` | Treatment in Slice 39 |
+|----------|-------------------------------|-----------------------|
+| **Must** | Thesis-first framing | State the decision the dashboard supports: finding an evidence-backed RAG configuration for a corpus and query set |
+| **Must** | Evidence ladder | Present existing summary → experiment → configuration/run evidence in a deliberate visual order |
+| **Must** | Traceability | Keep experiment identity, lifecycle state, configuration facts, and run outcomes connected and accurately labelled |
+| **Must** | Progressive disclosure | Lead with decision-critical evidence; preserve collapsible detail for operational and secondary data |
+| **Should** | Guided case-study path | Make list → selected experiment → existing deeper evidence feel like one coherent demo journey |
+| **Could** | Editorial rhythm | Use section labels and restrained visual pacing where existing content already supports them |
+| **Won't** | ARC mechanics and unverified lineage | Do not add game metaphors, scratch files, action budgets, Firebase assumptions, external-repo claims, or unresolved source-code claims |
+| **Won't** | New analytical capabilities | Do not add ablation charts, model-sweep charts, heatmaps, replay, or new aggregation in this slice |
+
+The ARC study's reported results, harness, hosting, authorship, and repository investigation must not appear as claims in the product UI. The source code is not public at planning time, so no implementation may depend on or claim lineage from it. This plan adopts only the information-design principles described above.
+
+### Ownership of deferred analytical ideas
+
+| Research pattern | Existing project owner |
+|------------------|------------------------|
+| Model/configuration comparison visualization | Slice 11 — Search Explorer visualization + query filtering |
+| Score semantics and zero-match clarity | Slice 30 — Search Explorer UX |
+| Experiment archive discovery | Slice 31 — status filter + name/ID search |
+| Per-query depth or heatmap views | Future scope only after Slice 11 data and performance are verified |
+| Full reasoning-style replay | Won't for Slice 39; no equivalent event contract exists today |
+
 ## Scope boundary
 
 | In scope | Out of scope |
@@ -53,6 +82,22 @@ The visual-direction prompt supplied before implementation is an input to the lo
 - [ ] At 1440 × 900, the first viewport clearly presents experiment identity, current status, progress/outcome, and valid controls before secondary run details.
 - [ ] Running, paused, complete, partial, failed, and cancelled states remain distinguishable by text as well as colour.
 - [ ] Existing pause, resume, cancel, delete, navigation, pagination, and collapsible-card behavior is unchanged.
+
+### Evidence narrative and product truth (Must)
+
+- [ ] The dashboard's first viewport states the concrete decision it supports without claiming automatic optimization, best-config selection, or other planned capabilities as implemented.
+- [ ] The list-to-detail sequence visually progresses from experiment overview to existing configuration/run evidence without adding, transforming, or reinterpreting metrics.
+- [ ] Experiment IDs, provider/model names, retrieval methods, statuses, counts, scores, and durations remain sourced from their existing fields and retain their current units and semantics.
+- [ ] An unfamiliar reviewer can identify the product purpose, the selected experiment's state, and the next available action from the desktop first viewport in a five-second comprehension check.
+- [ ] Existing deeper-evidence navigation remains discoverable, but no Search Explorer content or behavior changes in this slice.
+
+### Regression budget (Must)
+
+- [ ] The same user actions produce the same API calls, request parameters, polling cadence, timeouts, and mutations before and after the visual changes.
+- [ ] List → detail → back navigation preserves the same selected experiment, cached handoff, pagination state, and collapsible-card persistence behavior.
+- [ ] No lifecycle status, action-visibility rule, score, count, duration, or storage statistic changes solely because presentation changed.
+- [ ] The production build contains no new runtime dependency; JavaScript and CSS output sizes are recorded before and after, and any increase above 5% is removed or explicitly justified before completion.
+- [ ] A regression matrix covers running, paused, complete, partial, failed, cancelled, empty, loading, polling, and error presentations.
 
 ### Responsive and accessible presentation (Must)
 
@@ -92,6 +137,17 @@ Scenario: asynchronous states share the visual language
   When that state is displayed
   Then it uses the same typography, surfaces, and spacing as the populated experience
   And its meaning remains explicit in text
+
+Scenario: evidence remains truthful after visual restructuring
+  Given an experiment has known configuration, status, score, count, and duration fields
+  When the redesigned list and detail views render that experiment
+  Then every displayed value retains its original field, unit, and meaning
+  And no planned capability is presented as available
+
+Scenario: presentation does not change network behavior
+  Given baseline API requests and polling behavior are recorded on main
+  When the same list-to-detail journey is repeated after the visual changes
+  Then the endpoints, parameters, request cadence, and mutations are unchanged
 ```
 
 ## Expected files
@@ -112,8 +168,10 @@ Existing reusable primitives such as `ExperimentProgressCard`, `CollapsibleCard`
 ## Before-checks [GATE]
 
 - [ ] Capture desktop and mobile baseline screenshots from current `main`.
+- [ ] Record baseline list-to-detail network activity, polling cadence, valid controls, persisted UI state, and production bundle sizes.
 - [ ] Record the supplied visual-direction prompt in this spec or link to its stable project artifact.
 - [ ] Reduce that prompt to explicit palette, typography, spacing, surface, and motion constraints.
+- [ ] Reduce the evidence-led research input to the adoption table above; do not use external implementation details or unresolved claims.
 - [ ] Confirm `npm run lint`, `npm run typecheck`, and `npm run build` pass before editing.
 - [ ] Confirm no new runtime dependency is required.
 
@@ -137,9 +195,13 @@ If implementation reaches 95 minutes with any Must criterion incomplete, stop op
 - [ ] `cd frontend && npm run build`
 - [ ] Manual list → detail → back journey passes at 390 × 844 and 1440 × 900.
 - [ ] Pause/resume/cancel/delete visibility rules match the pre-change behavior.
+- [ ] Before/after network comparison confirms unchanged endpoints, parameters, polling cadence, timeouts, and mutations.
+- [ ] Before/after bundle-size comparison meets the 5% regression budget or records an approved justification.
 - [ ] Loading, empty, error, polling, pagination, and collapsed/expanded states are manually checked.
+- [ ] Lifecycle-state regression matrix passes for running, paused, complete, partial, failed, and cancelled experiments.
 - [ ] Keyboard focus and contrast checks pass for every touched interactive primitive.
 - [ ] Before/after screenshots demonstrate each visual acceptance criterion.
+- [ ] Five-second comprehension check identifies purpose, experiment state, and next action without prompting.
 - [ ] No backend, API, polling, or data-model file changed.
 
 ## Test strategy
