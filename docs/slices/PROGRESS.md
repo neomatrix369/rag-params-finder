@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-09 (Supabase/pgvector migration PRD → slices 32–38; dual-backend; ahead of Slice 22)
-**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/16/11/23/10** as before
+**Last Updated**: 2026-07-18 (Slice 39 demo-ready dashboard polish added as a ≤2 h interrupt)
+**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation | Next: **39** 📋 demo-ready dashboard polish (time-boxed) → resume **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/16/11/23/10** as before
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -55,6 +55,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 38 — Cutover + ADR-004 | 📋 PLANNED | ~3–4 h | Side-by-side quality, ADR-004, default Postgres — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) |
 | 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
 | 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
+| 39 — Demo-ready dashboard polish | 📋 PLANNED | ≤2 h | Time-boxed list-to-detail visual polish; resume Slice 32 afterward — Should — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH | 📦 DEFERRED
 
@@ -88,8 +89,9 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 10 | Could | 🔨 PARTIAL | — | Boot reconciliation ✅; retry CLI/API remaining |
 | 30 | Could | 📋 PLANNED | — | Search Explorer UX |
 | 31 | Should | 📋 PLANNED | — | Experiment list filter |
+| 39 | Should | 📋 PLANNED | — | **Next** — ≤2 h demo-ready dashboard polish; then resume 32 |
 
-**Execution order**: 21 → 25 → 25B → 29 (done) → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
+**Execution order**: 21 → 25 → 25B → 29 (done) → **39** *(time-boxed demo interrupt)* → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
 
 ---
 
@@ -649,6 +651,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
 | 2026-07-09 | 32–38 | nw-review edits applied | Behavioral ACs; equivalence gates; PRD SSOT; experiment_id contract; Supabase naming; Slice 27→36 |
+| 2026-07-18 | 39 | Added demo-ready dashboard polish | User prioritised an impressive list-to-detail presentation; strict ≤2 h visual-only interrupt before resuming Slice 32 |
 | 2026-07-07 | 22 | Reclassified Slice 22 Should → Must | nw-review: Slice 22 delivers PCTO-critical score/reranking + best-config; both halves of SIE must be Must |
 | 2026-07-07 | 30 | Added Slice 30 (Search Explorer UX) | Assessment found 4 untracked UX issues; bundled as Could/~2h |
 | 2026-07-07 | 31 | Added Slice 31 (Experiment list filter) | Assessment found navigability gap at scale; Should/~2h |

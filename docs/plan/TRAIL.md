@@ -6,7 +6,7 @@
 - **PCTO Spec** (`docs/PCTO-rag-params-finder-2026-06-27.md`): Add SIE as primary open-source inference backend (encode + score + extract), caller-supplied corpus (`corpus: list[str]` field on `SweepRequest`), Aim for experiment tracking, and two new API endpoints (`POST /api/v1/sweep`, `GET /api/v1/best-config`)
 - **Supabase migration PRD** (`docs/plan/PRD-supabase-pgvector-migration.md`, 2026-07-09): Dual-backend storage Protocol; Postgres/pgvector + Supabase as target primary store; Mongo retained for rollback/A-B until Slice 38 cutover
 - **Codebase** (v0.11.0, 20+ slices complete): Mature Voyage AI + local sentence-transformers RAG sweep pipeline, MongoDB Atlas, FastAPI, React dashboard, Docker, full CI toolchain
-- **Constraints**: Hackathon deadline — Slice 21 targets Days 1–5; Voyage AI stays as numeric baseline (not replaced); PCTO changes remain additive; **storage migration prioritized ahead of Slice 22** (2026-07-09)
+- **Constraints**: Hackathon deadline — Slice 21 targets Days 1–5; Voyage AI stays as numeric baseline (not replaced); PCTO changes remain additive; **Slice 39 is a ≤2 h demo interrupt, then storage migration resumes ahead of Slice 22** (2026-07-18)
 
 Routing: Brownfield + Growing Requirement (Flow D) · Chosen: 2026-07-02 · Source: health-check-inferred · Reconfirmed: 2026-07-09 (Supabase PRD Add path)
 
@@ -44,8 +44,9 @@ Each PCTO / migration slice lives in its own file below. Existing planned slices
 | 10 | [../slices/SLICE-10-RUN-RECOVERY.md](../slices/SLICE-10-RUN-RECOVERY.md) | Run recovery | Could | 🔨 PARTIAL | none | — | — | 2026-07-09 |
 | 30 | [../slices/SLICE-30-SEARCH-EXPLORER-UX.md](../slices/SLICE-30-SEARCH-EXPLORER-UX.md) | Search Explorer UX fixes — tab latency, zero-score, BM25 labels, VDB card | Could | 📋 PLANNED | none | — | ~2 min | 2026-07-07 |
 | 31 | [../slices/SLICE-31-EXPERIMENT-LIST-FILTER.md](../slices/SLICE-31-EXPERIMENT-LIST-FILTER.md) | Experiment list filter — status dropdown + name/ID search | Should | 📋 PLANNED | none | — | ~2 min | 2026-07-07 |
+| 39 | [../slices/SLICE-39-DEMO-READY-DASHBOARD-POLISH.md](../slices/SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) | Demo-ready dashboard polish — list-to-detail visual journey | Should | 📋 PLANNED | none | — | ~3 min | 2026-07-18 |
 
-**Execution order**: 21 → 25 → 25B → 29 (done) → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
+**Execution order**: 21 → 25 → 25B → 29 (done) → **39** *(≤2 h demo interrupt)* → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
 *(Deferred Mongo QoL: 26, 19 — re-scope after cutover. Slice 27 scope absorbed into 36 as storage-mode indicator.)*
 
 **PCTO escape hatch (Slice 22):** If slices 32–36 slip **>2 days** past the PCTO deadline, start Slice 22 on Mongo via StorageBackend Protocol only (hard dep: 32 merged); budget ~30 min to re-port history queries when Slice 38 lands; retest on Supabase backend after 38.
