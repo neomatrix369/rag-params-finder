@@ -1,8 +1,8 @@
 # Slice 39 — Demo-Ready Dashboard Polish
 
-**Status**: 📋 PLANNED
+**Status**: 🔨 IN PROGRESS
 
-**Branch**: `slice/39-demo-ready-dashboard-polish`
+**Branch**: `slice/39-demo-ready-dashboard-polish-implementation`
 
 **Estimated time**: ≤2 h
 
@@ -21,6 +21,28 @@ The two screens are also high-degree, currently untested frontend hotspots. A br
 Make the existing list-to-detail demo journey feel coherent, intentional, and presentation-ready while preserving every current behavior, API contract, polling interval, and experiment control.
 
 The visual-direction prompt supplied before implementation is an input to the look and feel. It may refine colour, typography, surface, and composition choices, but it must not expand the scope or weaken the acceptance criteria below.
+
+## Implementation direction
+
+The promised visual-direction prompt was not present in project artifacts when implementation started. The bounded fallback direction is **editorial scientific instrument**: a warm paper canvas within an ink/navy application frame, precise teal and cobalt accents, compact evidence labels, and restrained state colour. This direction preserves the existing product character while making the evidence path easier to scan.
+
+| Token concern | Constraint |
+|---------------|------------|
+| Palette | Ink/navy frame, warm paper canvas, white surfaces, teal/cobalt action accents, semantic lifecycle colours only for status evidence |
+| Typography | Local serif display face, local humanist sans body face, and system monospace for identifiers; no font download or runtime request |
+| Spacing | 4 px base with an 8/12/16/24/32 px working rhythm; denser metadata stays subordinate to status and outcome |
+| Surfaces | Fine borders, low-elevation shadows, restrained corner radii, and one subtle grid texture; no glassmorphism or decorative gradients in content cards |
+| Motion | CSS-only colour, opacity, and transform transitions; no animation dependency; `prefers-reduced-motion` disables non-essential motion |
+| Stack | Existing React 19 + Tailwind 3 only; no component, state, chart, icon, font, or animation dependency |
+
+## Baseline evidence — 2026-07-18
+
+- **Source**: clean `main` at `1647164` before implementation.
+- **Quality**: `./scripts/quality-gates.sh` passed; 116 backend tests passed, scoped coverage was 83.0%, and frontend lint, typecheck, build, and audit passed.
+- **Bundle**: `dist/assets/index-B2cakIdP.js` 316.88 kB / 90.21 kB gzip; `dist/assets/index-DFeJVCRg.css` 43.12 kB / 7.50 kB gzip; HTML 0.72 kB / 0.40 kB gzip.
+- **Network contract**: list and running-detail polls remain 2 s; vector-database stats remain 60 s; standard and storage timeouts remain 30 s and 90 s. The production calls remain `GET /experiments`, `GET /experiments/{id}`, `GET /experiments/vector-db-stats`, `GET /experiments/{id}/db-stats`, `POST` pause/resume/cancel, and `DELETE /experiments/{id}`.
+- **State and navigation contract**: `App.tsx` remains the list → detail → explorer router and carries the cached experiment, storage summary, page state, and persisted collapse keys across the journey.
+- **Visual evidence limitation**: the in-app browser had no active browser connection. Existing repository screenshots were reviewed as historical context, but current-main desktop/mobile capture and live DevTools network comparison remain open verification items.
 
 ## Research input: evidence-led results storytelling
 
