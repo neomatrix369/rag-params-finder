@@ -1020,7 +1020,7 @@ export default function SearchExplorerScreen({
 
   return (
     <DashboardShell
-      asideWidthClass="w-72"
+      asideWidthClass="w-full lg:w-72"
       contentMaxWidthClass="max-w-6xl"
       header={
         <AppPageChrome

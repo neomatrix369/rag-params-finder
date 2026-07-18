@@ -16,12 +16,20 @@ interface ProgressRingProps {
 }
 
 function ProgressRing({ percent, size = 80 }: ProgressRingProps) {
+  const safePercent = Math.min(100, Math.max(0, percent));
   const radius = (size - 8) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (percent / 100) * circumference;
+  const offset = circumference - (safePercent / 100) * circumference;
 
   return (
-    <div className="relative inline-flex items-center justify-center">
+    <div
+      className="relative inline-flex items-center justify-center"
+      role="progressbar"
+      aria-label="Experiment completion"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(safePercent)}
+    >
       <svg width={size} height={size} className="transform -rotate-90">
         <circle
           cx={size / 2}
@@ -30,7 +38,7 @@ function ProgressRing({ percent, size = 80 }: ProgressRingProps) {
           stroke="currentColor"
           strokeWidth="4"
           fill="none"
-          className="text-slate-200"
+          className="text-accent-soft"
         />
         <circle
           cx={size / 2}
@@ -41,11 +49,11 @@ function ProgressRing({ percent, size = 80 }: ProgressRingProps) {
           fill="none"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          className="text-green-500 transition-all duration-500"
+          className="text-accent transition-all duration-500"
           strokeLinecap="round"
         />
       </svg>
-      <span className="absolute text-lg font-bold text-slate-700">{Math.round(percent)}%</span>
+      <span className="absolute font-display text-lg font-semibold text-ink">{Math.round(safePercent)}%</span>
     </div>
   );
 }
@@ -78,20 +86,21 @@ export default function ExperimentProgressCard({
 
   const containerClasses =
     variant === 'compact'
-      ? 'bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-200 p-4'
-      : 'bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-sm border border-blue-200 p-6';
+      ? 'relative overflow-hidden rounded-xl border border-line bg-paper p-4 shadow-panel'
+      : 'relative overflow-hidden rounded-panel border border-line bg-paper p-6 shadow-panel';
 
   const titleClasses =
     variant === 'compact'
-      ? 'text-base font-bold text-slate-800'
-      : 'text-lg font-bold text-slate-800 mb-1';
+      ? 'font-display text-base font-semibold text-ink'
+      : 'mb-1 font-display text-xl font-semibold text-ink';
 
-  const subtitleClasses = 'text-sm text-slate-600';
+  const subtitleClasses = 'text-sm text-muted';
 
   return (
     <div className={`${containerClasses} ${className}`}>
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="absolute inset-y-0 left-0 w-1 bg-accent" aria-hidden="true" />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h3 className={titleClasses}>{title}</h3>
           <div className={subtitleClasses}>{subtitle}</div>
         </div>

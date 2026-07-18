@@ -1,6 +1,6 @@
 # Slice 39 — Demo-Ready Dashboard Polish
 
-**Status**: 🔨 IN PROGRESS
+**Status**: 🔨 IN PROGRESS — implementation and automated gates complete; live visual verification pending
 
 **Branch**: `slice/39-demo-ready-dashboard-polish-implementation`
 
@@ -43,6 +43,40 @@ The promised visual-direction prompt was not present in project artifacts when i
 - **Network contract**: list and running-detail polls remain 2 s; vector-database stats remain 60 s; standard and storage timeouts remain 30 s and 90 s. The production calls remain `GET /experiments`, `GET /experiments/{id}`, `GET /experiments/vector-db-stats`, `GET /experiments/{id}/db-stats`, `POST` pause/resume/cancel, and `DELETE /experiments/{id}`.
 - **State and navigation contract**: `App.tsx` remains the list → detail → explorer router and carries the cached experiment, storage summary, page state, and persisted collapse keys across the journey.
 - **Visual evidence limitation**: the in-app browser had no active browser connection. Existing repository screenshots were reviewed as historical context, but current-main desktop/mobile capture and live DevTools network comparison remain open verification items.
+
+## Implementation evidence — 2026-07-18
+
+- **Evidence journey**: the list now states the decision the workspace supports, promotes lifecycle and sweep outcome above secondary metadata, and exposes an explicit `Open evidence` action. Detail now leads with experiment identity, lifecycle truth, configured/completed run counts, and the next evidence action before configuration, run evidence, and operational storage context.
+- **Shared visual language**: the existing shell, chrome, progress card, collapsible card, and control primitives use the same ink/navy frame, warm paper canvas, local typography, teal action accent, semantic status colours, fine borders, and restrained elevation.
+- **Compact layout**: list/detail help rails are hidden on compact screens, detail receives a compact `Back` action, controls wrap, page padding steps down, long identifiers and data-source names wrap, and intentional run-table overflow remains locally scrollable. Search Explorer receives only the responsive width required by the shared shell; its content, state, and actions are unchanged.
+- **Accessibility implementation**: touched actions have visible global focus treatment, meaningful text labels, decorative SVGs hidden from assistive technology, and 44 px minimum target height where space permits. Progress exposes native progressbar semantics and reduced-motion disables non-essential animation and transitions.
+- **Behavior preservation**: a source-diff audit found no changes to API calls, request parameters, polling setup, timeouts, mutations, cache handoff, routing, or action handlers. `App.tsx`, service modules, constants, backend, and data models are unchanged.
+- **Automated quality**: `./scripts/quality-gates.sh` passed after implementation: repository lint, Ruff, mypy, Bandit, 116 backend tests, 83.0% scoped coverage, pip audit, frontend lint/typecheck/build, and frontend audit all passed.
+- **Graph review**: the code-review graph rated the change low risk (`0.40`) and found no affected execution flow. It reported the changed presentation functions as lacking direct component coverage; as planned, this slice does not introduce a component-test tier.
+
+| Production asset | Baseline | Implemented | Delta |
+|------------------|----------|-------------|-------|
+| JavaScript | 316.88 kB / 90.21 kB gzip | 327.58 kB / 92.48 kB gzip | +3.38% / +2.52% gzip |
+| CSS | 43.12 kB / 7.50 kB gzip | 39.83 kB / 7.31 kB gzip | -7.63% / -2.53% gzip |
+| HTML | 0.72 kB / 0.40 kB gzip | 0.72 kB / 0.40 kB gzip | unchanged |
+
+No runtime dependency was added. The JavaScript change remains below the 5% regression budget.
+
+### Regression matrix
+
+| State | Preserved presentation and actions | Source/automated evidence | Live visual evidence |
+|-------|------------------------------------|---------------------------|----------------------|
+| Running | Text status, live progress, Pause, Cancel, and live evidence action | ✅ | ⏳ Browser unavailable |
+| Paused | Text status, Resume, Delete, and completed-run evidence action | ✅ | ⏳ Browser unavailable |
+| Complete | Text outcome, completed count, Explore, and Delete | ✅ | ⏳ Browser unavailable |
+| Partial | Explicit incomplete-evidence copy, counts, Explore, and Delete | ✅ | ⏳ Browser unavailable |
+| Failed | Text failure status, failed-run evidence, Explore, and Delete | ✅ | ⏳ Browser unavailable |
+| Cancelled | Text cancellation outcome, completed count, Explore, and Delete | ✅ | ⏳ Browser unavailable |
+| Loading / polling | Existing feedback panels, cadence labels, and polling indicators | ✅ | ⏳ Browser unavailable |
+| Empty / error | Existing conditions retained with explicit text and valid first-run command | ✅ | ⏳ Browser unavailable |
+| Pagination / collapse | Existing state handlers and persisted collapse keys retained | ✅ | ⏳ Browser unavailable |
+
+The slice remains in progress because 390 × 844 and 1440 × 900 screenshots, keyboard traversal, contrast inspection, the five-second comprehension check, and live DevTools network comparison require an active browser connection.
 
 ## Research input: evidence-led results storytelling
 
@@ -88,9 +122,9 @@ The ARC study's reported results, harness, hosting, authorship, and repository i
 
 ### Cohesive visual language (Must)
 
-- [ ] The experiment list and experiment detail screens use a consistent palette, typography hierarchy, spacing rhythm, corner treatment, and surface treatment.
-- [ ] Shared shell, page chrome, cards, badges, and primary actions appear as parts of one interface rather than independently styled regions.
-- [ ] The supplied visual-direction prompt is translated into a small set of reusable tokens; component files do not introduce scattered one-off colour values.
+- [x] The experiment list and experiment detail screens use a consistent palette, typography hierarchy, spacing rhythm, corner treatment, and surface treatment.
+- [x] Shared shell, page chrome, cards, badges, and primary actions appear as parts of one interface rather than independently styled regions.
+- [x] The bounded fallback visual direction is translated into reusable CSS/Tailwind tokens; component files do not introduce scattered one-off colour values.
 - [ ] A side-by-side review at 1440 × 900 shows a material improvement over the captured `main` baseline without hiding or removing existing information.
 
 ### Experiment list first impression (Must)
@@ -102,29 +136,29 @@ The ARC study's reported results, harness, hosting, authorship, and repository i
 ### Experiment detail hierarchy (Must)
 
 - [ ] At 1440 × 900, the first viewport clearly presents experiment identity, current status, progress/outcome, and valid controls before secondary run details.
-- [ ] Running, paused, complete, partial, failed, and cancelled states remain distinguishable by text as well as colour.
-- [ ] Existing pause, resume, cancel, delete, navigation, pagination, and collapsible-card behavior is unchanged.
+- [x] Running, paused, complete, partial, failed, and cancelled states remain distinguishable by text as well as colour.
+- [x] Existing pause, resume, cancel, delete, navigation, pagination, and collapsible-card behavior is unchanged in source and automated checks; live interaction remains open.
 
 ### Evidence narrative and product truth (Must)
 
-- [ ] The dashboard's first viewport states the concrete decision it supports without claiming automatic optimization, best-config selection, or other planned capabilities as implemented.
-- [ ] The list-to-detail sequence visually progresses from experiment overview to existing configuration/run evidence without adding, transforming, or reinterpreting metrics.
-- [ ] Experiment IDs, provider/model names, retrieval methods, statuses, counts, scores, and durations remain sourced from their existing fields and retain their current units and semantics.
+- [x] The dashboard states the concrete decision it supports without claiming automatic optimization, best-config selection, or other planned capabilities as implemented.
+- [x] The list-to-detail sequence progresses from experiment overview to existing configuration/run evidence without adding, transforming, or reinterpreting metrics.
+- [x] Experiment IDs, provider/model names, retrieval methods, statuses, counts, scores, and durations remain sourced from their existing fields and retain their current units and semantics.
 - [ ] An unfamiliar reviewer can identify the product purpose, the selected experiment's state, and the next available action from the desktop first viewport in a five-second comprehension check.
-- [ ] Existing deeper-evidence navigation remains discoverable, but no Search Explorer content or behavior changes in this slice.
+- [x] Existing deeper-evidence navigation remains discoverable; Search Explorer receives only a shared-shell responsive width integration, with no content or behavior change.
 
 ### Regression budget (Must)
 
-- [ ] The same user actions produce the same API calls, request parameters, polling cadence, timeouts, and mutations before and after the visual changes.
-- [ ] List → detail → back navigation preserves the same selected experiment, cached handoff, pagination state, and collapsible-card persistence behavior.
-- [ ] No lifecycle status, action-visibility rule, score, count, duration, or storage statistic changes solely because presentation changed.
-- [ ] The production build contains no new runtime dependency; JavaScript and CSS output sizes are recorded before and after, and any increase above 5% is removed or explicitly justified before completion.
-- [ ] A regression matrix covers running, paused, complete, partial, failed, cancelled, empty, loading, polling, and error presentations.
+- [x] Source comparison confirms the same API calls, request parameters, polling cadence, timeouts, and mutations; live DevTools comparison remains open.
+- [x] List → detail → back source paths preserve the same selected experiment, cached handoff, pagination state, and collapsible-card persistence behavior.
+- [x] No lifecycle status, action-visibility rule, score, count, duration, or storage statistic changes solely because presentation changed.
+- [x] The production build contains no new runtime dependency; JavaScript and CSS output sizes are recorded above and remain inside the 5% budget.
+- [x] The regression matrix above covers running, paused, complete, partial, failed, cancelled, empty, loading, polling, and error presentations.
 
 ### Responsive and accessible presentation (Must)
 
 - [ ] At 390 × 844 and 1440 × 900, the list-to-detail journey has no unintended horizontal page scrolling, clipped controls, or overlapping content.
-- [ ] Interactive elements retain visible keyboard focus, meaningful labels, and a minimum 44 × 44 px touch target where space permits.
+- [x] Interactive elements implement visible keyboard focus, meaningful labels, and a minimum 44 × 44 px touch target where space permits; live keyboard traversal remains open.
 - [ ] Normal text meets WCAG AA contrast (4.5:1); large text and essential UI boundaries meet at least 3:1.
 - [ ] Information conveyed by colour is also conveyed by text, iconography, or position.
 
@@ -184,18 +218,19 @@ Prefer editing existing foundations. The implementation should stay within this 
 | `frontend/src/components/AppPageChrome.tsx` | Shared brand and page hierarchy |
 | `frontend/src/components/ExperimentsScreen.tsx` | List first impression and existing states |
 | `frontend/src/components/ExperimentDetailScreen.tsx` | Above-the-fold detail hierarchy |
+| `frontend/src/components/SearchExplorerScreen.tsx` | One responsive width utility required by the shared shell; no content, state, or action change |
 
 Existing reusable primitives such as `ExperimentProgressCard`, `CollapsibleCard`, and control buttons may be edited only when the same small change is required by both target screens.
 
 ## Before-checks [GATE]
 
 - [ ] Capture desktop and mobile baseline screenshots from current `main`.
-- [ ] Record baseline list-to-detail network activity, polling cadence, valid controls, persisted UI state, and production bundle sizes.
+- [x] Record baseline source-level list-to-detail network contract, polling cadence, valid controls, persisted UI state, and production bundle sizes.
 - [ ] Record the supplied visual-direction prompt in this spec or link to its stable project artifact.
-- [ ] Reduce that prompt to explicit palette, typography, spacing, surface, and motion constraints.
-- [ ] Reduce the evidence-led research input to the adoption table above; do not use external implementation details or unresolved claims.
-- [ ] Confirm `npm run lint`, `npm run typecheck`, and `npm run build` pass before editing.
-- [ ] Confirm no new runtime dependency is required.
+- [x] Reduce the documented fallback direction to explicit palette, typography, spacing, surface, and motion constraints.
+- [x] Reduce the evidence-led research input to the adoption table above; do not use external implementation details or unresolved claims.
+- [x] Confirm `npm run lint`, `npm run typecheck`, and `npm run build` pass before editing.
+- [x] Confirm no new runtime dependency is required.
 
 ## Two-hour stop line
 
@@ -212,19 +247,19 @@ If implementation reaches 95 minutes with any Must criterion incomplete, stop op
 
 ## After-checks
 
-- [ ] `cd frontend && npm run lint`
-- [ ] `cd frontend && npm run typecheck`
-- [ ] `cd frontend && npm run build`
+- [x] `cd frontend && npm run lint`
+- [x] `cd frontend && npm run typecheck`
+- [x] `cd frontend && npm run build`
 - [ ] Manual list → detail → back journey passes at 390 × 844 and 1440 × 900.
-- [ ] Pause/resume/cancel/delete visibility rules match the pre-change behavior.
+- [x] Pause/resume/cancel/delete visibility rules match the pre-change source behavior; live interaction remains open.
 - [ ] Before/after network comparison confirms unchanged endpoints, parameters, polling cadence, timeouts, and mutations.
-- [ ] Before/after bundle-size comparison meets the 5% regression budget or records an approved justification.
+- [x] Before/after bundle-size comparison meets the 5% regression budget.
 - [ ] Loading, empty, error, polling, pagination, and collapsed/expanded states are manually checked.
 - [ ] Lifecycle-state regression matrix passes for running, paused, complete, partial, failed, and cancelled experiments.
 - [ ] Keyboard focus and contrast checks pass for every touched interactive primitive.
 - [ ] Before/after screenshots demonstrate each visual acceptance criterion.
 - [ ] Five-second comprehension check identifies purpose, experiment state, and next action without prompting.
-- [ ] No backend, API, polling, or data-model file changed.
+- [x] No backend, API, polling, or data-model file changed.
 
 ## Test strategy
 

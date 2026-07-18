@@ -27,6 +27,22 @@ function appendFeed(prev: FeedEntry[], text: string, variant: FeedEntry['variant
   return [...prev, { id: `${Date.now()}-${feedSeq}`, text, variant }];
 }
 
+function ArrowRightIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M4 10h11M11 6l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M4.5 6h11M8 3.5h4M6.5 6l.6 10h5.8l.6-10M8.5 8.5v5M11.5 8.5v5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function Pagination({
   currentPage,
   totalItems,
@@ -45,22 +61,22 @@ function Pagination({
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200">
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-slate-600">
+    <div className="flex flex-col gap-3 border-t border-line bg-canvas px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+        <span className="text-sm text-muted">
           Showing <span className="font-medium">{startItem}</span> to{' '}
           <span className="font-medium">{endItem}</span> of{' '}
           <span className="font-medium">{totalItems}</span>
         </span>
         <div className="flex items-center gap-2">
-          <label htmlFor="experiments-per-page" className="text-sm text-slate-600">
+          <label htmlFor="experiments-per-page" className="text-sm text-muted">
             Per page:
           </label>
           <select
             id="experiments-per-page"
             value={itemsPerPage}
             onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-            className="rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="min-h-11 rounded-lg border border-line bg-paper px-3 text-sm text-ink"
           >
             <option value={10}>10</option>
             <option value={15}>15</option>
@@ -69,22 +85,24 @@ function Pagination({
           </select>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
+          type="button"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+          className="min-h-11 rounded-lg border border-line bg-paper px-3 text-sm font-semibold text-ink hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           Previous
         </button>
-        <span className="text-sm text-slate-600">
+        <span className="text-sm text-muted">
           Page <span className="font-medium">{currentPage}</span> of{' '}
           <span className="font-medium">{totalPages}</span>
         </span>
         <button
+          type="button"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+          className="min-h-11 rounded-lg border border-line bg-paper px-3 text-sm font-semibold text-ink hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           Next
         </button>
@@ -97,24 +115,51 @@ function experimentsRailHelp() {
   return (
     <>
       <div className="mb-6">
-        <div className="text-sm font-semibold text-slate-200">Sidebar</div>
-        <div className="mt-0.5 text-[11px] uppercase tracking-wider text-slate-500">Experiment list</div>
+        <div className="font-display text-lg font-semibold text-white">Evidence path</div>
+        <div className="mt-1 text-xs font-bold uppercase tracking-widest text-emerald-300">Experiment list</div>
       </div>
-      <div className="rounded-lg border border-slate-600/50 bg-slate-700/40 px-3 py-3 text-xs leading-relaxed text-slate-300 ring-1 ring-slate-600/35">
-        Running sweeps show Pause and Cancel on each row. Paused sweeps show Resume. Open an experiment for the same controls in the page header.
-      </div>
+      <ol className="space-y-4 border-l border-white/15 pl-4 text-xs text-slate-300">
+        <li><span className="block font-mono text-xs text-emerald-300">01 · OVERVIEW</span>Scan lifecycle state and sweep health.</li>
+        <li><span className="block font-mono text-xs text-emerald-300">02 · EXPERIMENT</span>Open identity, controls, and configuration.</li>
+        <li><span className="block font-mono text-xs text-emerald-300">03 · EVIDENCE</span>Trace completed runs into stored results.</li>
+      </ol>
+      <p className="mt-6 rounded-xl border border-white/10 bg-white/5 p-3 text-xs leading-relaxed text-slate-300">
+        Running sweeps expose Pause and Cancel. Paused sweeps expose Resume. Controls keep their existing API behavior.
+      </p>
     </>
   );
 }
 
 function statusBadgeClass(status: Experiment['status']): string {
-  if (status === 'complete') return 'bg-green-100 text-green-700';
-  if (status === 'running') return 'bg-blue-100 text-blue-700';
-  if (status === 'partial') return 'bg-yellow-100 text-yellow-700';
-  if (status === 'failed') return 'bg-red-100 text-red-700';
-  if (status === 'cancelled') return 'bg-orange-100 text-orange-700';
-  if (status === 'paused') return 'bg-violet-100 text-violet-700';
-  return 'bg-slate-100 text-slate-700';
+  if (status === 'complete') return 'border-emerald-200 bg-emerald-50 text-emerald-800';
+  if (status === 'running') return 'border-blue-200 bg-blue-50 text-blue-800';
+  if (status === 'partial') return 'border-amber-200 bg-amber-50 text-amber-900';
+  if (status === 'failed') return 'border-red-200 bg-red-50 text-red-800';
+  if (status === 'cancelled') return 'border-slate-300 bg-slate-100 text-slate-800';
+  if (status === 'paused') return 'border-violet-200 bg-violet-50 text-violet-800';
+  return 'border-line bg-canvas text-ink';
+}
+
+function statusEdgeClass(status: Experiment['status']): string {
+  if (status === 'complete') return 'border-l-emerald-500';
+  if (status === 'running') return 'border-l-blue-500';
+  if (status === 'partial') return 'border-l-amber-500';
+  if (status === 'failed') return 'border-l-red-500';
+  if (status === 'paused') return 'border-l-violet-500';
+  return 'border-l-slate-400';
+}
+
+function experimentOutcomeLabel(experiment: Experiment): string {
+  const configuredRuns = experiment.run_count == null
+    ? 'Run count pending'
+    : `${experiment.run_count} run${experiment.run_count === 1 ? '' : 's'} configured`;
+  if (experiment.status === 'running') return `${configuredRuns} · evidence collection in progress`;
+  if (experiment.status === 'paused') return `${configuredRuns} · waiting to resume`;
+  if (experiment.status === 'complete') return `${configuredRuns} · sweep complete`;
+  if (experiment.status === 'partial') return `${configuredRuns} · incomplete outcome`;
+  if (experiment.status === 'cancelled') return `${configuredRuns} · collection stopped`;
+  if (experiment.failed_count) return `${configuredRuns} · ${experiment.failed_count} failed`;
+  return `${configuredRuns} · sweep failed`;
 }
 
 function experimentStatsMap(groups: VectorDbStatsGroup[]): Map<string, ExperimentDbStatsSummary> {
@@ -452,30 +497,47 @@ export default function ExperimentsScreen({
     : 'Waiting for the server to finish this refresh cycle.';
 
   const pageHint = showLoadingPanel
-    ? 'Loading experiment list and vector database stats from your server.'
-    : `History and live status for every sweep. This table refreshes every ${EXPERIMENTS_POLL_MS / 1000}s while you keep the page open.`;
+    ? 'Loading the experiment evidence trail from your server.'
+    : `Compare sweep health, then open an experiment to inspect configuration and run evidence. Live state refreshes every ${EXPERIMENTS_POLL_MS / 1000}s.`;
 
   return (
     <DashboardShell
-      asideWidthClass="w-56 lg:w-60"
+      asideWidthClass="w-full lg:w-60"
+      hideSidebarOnCompact
       header={
         <AppPageChrome
           tone="darkFrame"
+          pageEyebrow="Evidence workspace"
           pageTitle="Experiments"
           pageHint={pageHint}
         />
       }
       sidebar={experimentsRailHelp()}
     >
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{error}</div>
-      )}
+      <section
+        className="mb-5 flex flex-col gap-4 rounded-panel border border-line bg-paper p-5 shadow-panel sm:flex-row sm:items-end sm:justify-between"
+        aria-labelledby="decision-workspace-title"
+      >
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Decision workspace</p>
+          <h2 id="decision-workspace-title" className="mt-1 font-display text-2xl font-semibold leading-tight text-ink">
+            Choose the RAG configuration you can defend with evidence.
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
+            Start with lifecycle state and sweep health. Open an experiment to connect its identity and configuration to the runs and stored results already produced.
+          </p>
+        </div>
+        <div className="shrink-0 rounded-xl border border-accent bg-accent-soft px-4 py-3 text-right">
+          <div className="font-display text-2xl font-semibold text-accent-strong">
+            {initialLoadDone ? experiments.length : '—'}
+          </div>
+          <div className="text-xs font-bold uppercase tracking-widest text-accent-strong">Experiments</div>
+        </div>
+      </section>
 
-      <VectorDbStatsPanel
-        groups={vectorDbGroups}
-        loading={vectorDbLoading}
-        error={vectorDbError}
-      />
+      {error && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{error}</div>
+      )}
 
       {showLoadingPanel && (
         <div className="flex justify-center py-8">
@@ -496,19 +558,20 @@ export default function ExperimentsScreen({
         </div>
       )}
 
-        {showEmptyConfirmed && (
-          <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-            <div className="mb-2 text-lg text-slate-400">No experiments yet</div>
-            <div className="text-sm text-slate-500">
-              The server is connected and returned an empty list. Submit your first experiment using the CLI:
-              <code className="mt-2 block rounded bg-slate-100 p-2 text-xs">
-                rag-params-finder run --config configs/example.yaml
-              </code>
-            </div>
-          </div>
-        )}
+      {showEmptyConfirmed && (
+        <div className="rounded-panel border border-line bg-paper p-8 text-center shadow-panel sm:p-12">
+          <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Evidence starts here</p>
+          <h2 className="mt-2 font-display text-2xl font-semibold text-ink">No experiments yet</h2>
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-muted">
+            The server is connected and returned an empty list. Submit the first sweep from the CLI, then return here to follow its lifecycle and inspect its evidence.
+          </p>
+          <code className="mx-auto mt-4 block max-w-xl overflow-x-auto rounded-xl border border-line bg-canvas p-3 text-left text-xs text-ink">
+            rag-params-finder run --config configs/example-mongodb-local.yaml
+          </code>
+        </div>
+      )}
 
-        {!showLoadingPanel && experiments.length > 0 && (() => {
+      {!showLoadingPanel && experiments.length > 0 && (() => {
           const startIndex = (currentPage - 1) * itemsPerPage;
           const endIndex = startIndex + itemsPerPage;
           const paginatedExperiments = experiments.slice(startIndex, endIndex);
@@ -519,37 +582,38 @@ export default function ExperimentsScreen({
           return (
             <>
               {selectedExperiments.size > 0 && (
-                <div className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-blue-900">
+                <div className="mb-4 flex flex-col gap-3 rounded-xl border border-accent bg-accent-soft px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-sm font-semibold text-ink">
                       {selectedExperiments.size} experiment{selectedExperiments.size > 1 ? 's' : ''} selected
                     </span>
                     <button
+                      type="button"
                       onClick={() => setSelectedExperiments(new Set())}
-                      className="text-xs text-blue-600 hover:text-blue-800 underline"
+                      className="min-h-11 rounded-lg px-2 text-xs font-semibold text-accent-strong underline underline-offset-4 hover:bg-white/50"
                     >
                       Clear selection
                     </button>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setShowDeleteModal(true)}
-                    className="rounded-lg border border-red-300 bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 text-sm font-semibold text-red-800 transition-colors hover:bg-red-100"
                   >
-                    🗑 Delete {selectedExperiments.size}
+                    <TrashIcon />
+                    Delete {selectedExperiments.size}
                   </button>
                 </div>
               )}
-              <div className="mb-3 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+              <label className="mb-3 flex min-h-11 w-fit cursor-pointer items-center gap-3 rounded-lg border border-line bg-paper px-3 text-xs font-bold uppercase tracking-wider text-muted shadow-panel">
                 <input
                   type="checkbox"
                   checked={allSelectableSelected}
                   onChange={(e) => handleSelectAll(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                  className="h-5 w-5 rounded border-line text-accent"
                 />
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                  Select all deletable experiments
-                </span>
-              </div>
+                Select all deletable experiments
+              </label>
               <div className="space-y-3">
                 {paginatedExperiments.map((exp) => {
                   const isSelected = selectedExperiments.has(exp.experiment_id);
@@ -558,33 +622,42 @@ export default function ExperimentsScreen({
                   const isCollapsed = collapsedExperiments.has(exp.experiment_id);
                   const dbStats = statsByExperimentId.get(exp.experiment_id);
                   const showRowControls = isRunning || isPaused;
+                  const detailsRegionId = `experiment-details-${exp.experiment_id}`;
                   return (
                     <div
                       key={exp.experiment_id}
-                      className={`overflow-hidden rounded-xl border bg-white shadow-sm transition-colors ${
-                        isSelected ? 'border-blue-300 ring-1 ring-blue-200' : 'border-slate-200'
+                      className={`overflow-hidden rounded-panel border border-l-4 bg-paper shadow-panel transition-all hover:-translate-y-0.5 hover:shadow-lift ${statusEdgeClass(exp.status)} ${
+                        isSelected ? 'border-accent ring-2 ring-accent-soft' : 'border-y-line border-r-line'
                       }`}
                     >
-                      <div className="flex items-center gap-3 px-4 py-4">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          disabled={isRunning}
-                          onChange={(e) => handleSelectExperiment(exp.experiment_id, e.target.checked)}
-                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
-                          title={isRunning ? 'Cannot delete running experiment' : ''}
-                        />
+                      <div className="flex flex-wrap items-start gap-2 p-4">
+                        <label
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${isRunning ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-canvas'}`}
+                          title={isRunning ? 'Cannot delete running experiment' : 'Select experiment for deletion'}
+                        >
+                          <span className="sr-only">Select {exp.experiment_name}</span>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            disabled={isRunning}
+                            onChange={(e) => handleSelectExperiment(exp.experiment_id, e.target.checked)}
+                            className="h-5 w-5 rounded border-line text-accent disabled:cursor-not-allowed disabled:opacity-40"
+                          />
+                        </label>
                         <button
                           type="button"
                           onClick={() => toggleCollapse(exp.experiment_id)}
-                          className="rounded p-1 transition-colors hover:bg-slate-100"
-                          title={isCollapsed ? 'Expand details' : 'Collapse details'}
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-canvas hover:text-ink"
+                          aria-label={isCollapsed ? `Expand ${exp.experiment_name}` : `Collapse ${exp.experiment_name}`}
+                          aria-expanded={!isCollapsed}
+                          aria-controls={detailsRegionId}
                         >
                           <svg
-                            className={`h-4 w-4 text-slate-600 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                            className={`h-4 w-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
+                            aria-hidden="true"
                           >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
@@ -592,28 +665,27 @@ export default function ExperimentsScreen({
                         <button
                           type="button"
                           onClick={() => onSelect?.(exp)}
-                          className="min-w-0 flex-1 text-left"
+                          className="min-w-56 flex-1 rounded-lg px-2 py-1 text-left"
                         >
-                          <div className="truncate text-sm font-semibold text-slate-900">{exp.experiment_name}</div>
-                          {isCollapsed && (
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                              <span className={`inline-flex rounded px-2 py-0.5 font-bold ${statusBadgeClass(exp.status)}`}>
-                                {exp.status}
-                              </span>
-                              <span>{exp.run_count ?? '—'} runs</span>
-                              {exp.failed_count ? <span className="text-red-500">({exp.failed_count} failed)</span> : null}
-                              {dbStats ? (
-                                <>
-                                  <span>{dbStats.total_chunks.toLocaleString()} chunks</span>
-                                  <span>{dbStats.total_results.toLocaleString()} results</span>
-                                  <span>{dbStats.estimated_storage_mb} MB</span>
-                                </>
-                              ) : null}
-                              <span>{new Date(exp.created_at).toLocaleString()}</span>
-                            </div>
-                          )}
+                          <span className="block text-xs font-bold uppercase tracking-widest text-accent-strong">Experiment</span>
+                          <span className="mt-0.5 block truncate font-display text-lg font-semibold text-ink sm:text-xl">{exp.experiment_name}</span>
+                          <span className="mt-1 block text-sm leading-snug text-muted">{experimentOutcomeLabel(exp)}</span>
+                          <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                            <span className="font-mono">{exp.experiment_id.slice(0, 8)}…</span>
+                            <span>{new Date(exp.created_at).toLocaleString()}</span>
+                            {exp.failed_count ? <span className="font-semibold text-red-700">{exp.failed_count} failed</span> : null}
+                            {isCollapsed && dbStats ? <span>{dbStats.total_results.toLocaleString()} stored results</span> : null}
+                          </span>
+                          <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-accent-strong">
+                            Open evidence <ArrowRightIcon />
+                          </span>
                         </button>
-                        <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
+                        <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-2 sm:w-auto sm:flex-col sm:items-end">
+                          <span
+                            className={`inline-flex min-h-8 items-center rounded-full border px-3 text-xs font-bold uppercase tracking-wide ${statusBadgeClass(exp.status)}`}
+                          >
+                            {exp.status}
+                          </span>
                           {showRowControls && (
                             <ExperimentControlButtons
                               experimentId={exp.experiment_id}
@@ -623,29 +695,24 @@ export default function ExperimentsScreen({
                               onError={(message) => setError(message)}
                             />
                           )}
-                          <span
-                            className={`inline-flex rounded px-2 py-1 text-xs font-bold ${statusBadgeClass(exp.status)}`}
-                          >
-                            {exp.status}
-                          </span>
                         </div>
                       </div>
                       {!isCollapsed && (
-                        <div className="space-y-4 border-t border-slate-100 bg-slate-50/60 px-4 py-4">
+                        <div id={detailsRegionId} className="space-y-4 border-t border-line bg-canvas px-4 py-4">
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                             <div>
-                              <div className="text-xs uppercase tracking-wider text-slate-500">Experiment ID</div>
+                              <div className="text-xs font-bold uppercase tracking-wider text-muted">Experiment ID</div>
                               <button
                                 type="button"
                                 onClick={() => onSelect?.(exp)}
-                                className="font-mono text-sm text-blue-700 hover:underline"
+                                className="inline-flex min-h-11 items-center font-mono text-sm text-cobalt hover:underline"
                               >
                                 {exp.experiment_id.slice(0, 8)}...
                               </button>
                             </div>
                             <div>
-                              <div className="text-xs uppercase tracking-wider text-slate-500">Runs</div>
-                              <div className="text-sm text-slate-800">
+                              <div className="text-xs font-bold uppercase tracking-wider text-muted">Runs</div>
+                              <div className="mt-2 text-sm text-ink">
                                 {exp.run_count ?? '—'}
                                 {exp.failed_count ? (
                                   <span className="ml-1 text-red-500">({exp.failed_count} failed)</span>
@@ -653,12 +720,12 @@ export default function ExperimentsScreen({
                               </div>
                             </div>
                             <div>
-                              <div className="text-xs uppercase tracking-wider text-slate-500">Git Commit</div>
-                              <div className="font-mono text-sm text-slate-700">{exp.git_commit?.slice(0, 8) ?? '—'}</div>
+                              <div className="text-xs font-bold uppercase tracking-wider text-muted">Git Commit</div>
+                              <div className="mt-2 font-mono text-sm text-ink">{exp.git_commit?.slice(0, 8) ?? '—'}</div>
                             </div>
                             <div>
-                              <div className="text-xs uppercase tracking-wider text-slate-500">Created</div>
-                              <div className="text-sm text-slate-700">{new Date(exp.created_at).toLocaleString()}</div>
+                              <div className="text-xs font-bold uppercase tracking-wider text-muted">Created</div>
+                              <div className="mt-2 text-sm text-ink">{new Date(exp.created_at).toLocaleString()}</div>
                             </div>
                           </div>
                           <ExperimentVectorDbStatsCard
@@ -672,7 +739,7 @@ export default function ExperimentsScreen({
                   );
                 })}
               </div>
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="overflow-hidden rounded-panel border border-line bg-paper shadow-panel">
                 <Pagination
                   currentPage={currentPage}
                   totalItems={experiments.length}
@@ -683,14 +750,25 @@ export default function ExperimentsScreen({
               </div>
             </>
           );
-        })()}
+      })()}
 
       {initialLoadDone && !showLoadingPanel && (
-        <div className="mt-4 flex items-center justify-center gap-3 text-xs text-slate-500">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs text-muted">
           <span>Auto-refresh every {EXPERIMENTS_POLL_MS / 1000}s</span>
           <PollingIndicator active={isPolling} />
         </div>
       )}
+
+      <section className="mt-8 border-t border-line pt-6" aria-labelledby="operational-context-title">
+        <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Progressive disclosure</p>
+        <h2 id="operational-context-title" className="mt-1 font-display text-xl font-semibold text-ink">Operational storage context</h2>
+        <p className="mb-4 mt-1 text-sm text-muted">Secondary vector-database evidence stays available without competing with experiment lifecycle and run outcomes.</p>
+        <VectorDbStatsPanel
+          groups={vectorDbGroups}
+          loading={vectorDbLoading}
+          error={vectorDbError}
+        />
+      </section>
 
       <ConfirmDeleteModal
         isOpen={showDeleteModal}
