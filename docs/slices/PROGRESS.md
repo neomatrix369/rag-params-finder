@@ -652,6 +652,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 |------|-------|----------|-----|
 | 2026-07-09 | 32–38 | nw-review edits applied | Behavioral ACs; equivalence gates; PRD SSOT; experiment_id contract; Supabase naming; Slice 27→36 |
 | 2026-07-18 | 39 | Added demo-ready dashboard polish | User prioritised an impressive list-to-detail presentation; strict ≤2 h visual-only interrupt before resuming Slice 32 |
+| 2026-07-18 | 39 | Adopted evidence-led results storytelling | ARC-AGI-3 study informed thesis → evidence → trace hierarchy only; analytical views stay with Slices 30/11/31 and regression budgets protect behavior |
 | 2026-07-07 | 22 | Reclassified Slice 22 Should → Must | nw-review: Slice 22 delivers PCTO-critical score/reranking + best-config; both halves of SIE must be Must |
 | 2026-07-07 | 30 | Added Slice 30 (Search Explorer UX) | Assessment found 4 untracked UX issues; bundled as Could/~2h |
 | 2026-07-07 | 31 | Added Slice 31 (Experiment list filter) | Assessment found navigability gap at scale; Should/~2h |
