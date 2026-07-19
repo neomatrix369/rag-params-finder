@@ -42,6 +42,7 @@ bash scripts/repo-lint.sh   # shell + workflows + Markdown only
 cd frontend
 npm install
 npm run dev           # → http://localhost:5374
+npm run test
 npm run typecheck
 npm run build
 ```
@@ -210,7 +211,7 @@ uv run mypy server/ cli/
 uv run pytest --tb=short -q --cov=server.core.search_index_plan \
   --cov=server.core.search_index_guard --cov=server.core.results_analyzer \
   --cov=server.models.config --cov-fail-under=80
-cd frontend && npm run lint && npm run typecheck && npm run build
+cd frontend && npm run lint && npm run test && npm run typecheck && npm run build
 ```
 
 ### Post-slice checklist
@@ -240,8 +241,9 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 - `mypy server/ cli/` → 0 errors
 - `pytest` → 97 tests, coverage on scoped modules (80% threshold)
 
-**Frontend** (2026-05-27):
+**Frontend** (2026-07-19):
 - `npm run lint` → 0 errors (eslint + security plugin)
+- `npm run test` → 7 component scenarios pass (Vitest + React Testing Library)
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities

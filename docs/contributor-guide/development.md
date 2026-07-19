@@ -94,7 +94,7 @@ Run all gates before committing. All must pass with zero regressions.
 |-------|--------|
 | Repo | shellcheck (`scripts/*.sh`), actionlint, markdownlint |
 | Backend | ruff, ruff format, mypy, bandit, pytest + coverage, pip-audit |
-| Frontend | eslint, tsc, build, npm audit |
+| Frontend | Vitest + React Testing Library, eslint, tsc, build, npm audit |
 | Secrets | gitleaks |
 
 **One command (mirrors CI exactly):**
@@ -150,6 +150,9 @@ cd frontend
 # Lint — expect 0 errors, 0 warnings (eslint + security plugin)
 npm run lint
 
+# Component tests — expect all lifecycle scenarios to pass
+npm run test
+
 # Type check — expect 0 errors
 npm run typecheck
 
@@ -160,8 +163,9 @@ npm run build
 npm audit --audit-level=high
 ```
 
-**Baseline (as of 2026-05-28)**:
+**Baseline (as of 2026-07-19)**:
 - `npm run lint` → 0 errors
+- `npm run test` → 7 component scenarios pass
 - `npm run typecheck` → 0 errors
 - `npm run build` → built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
@@ -200,7 +204,7 @@ bash scripts/install-git-hooks.sh
 
 **Pre-commit** (staged files): hygiene, gitleaks, shellcheck, actionlint, markdownlint, bandit, ruff + format, mypy, frontend eslint + verify when `frontend/` is touched.
 
-**Pre-push** (whole repo, check-only): repo lint, ruff check + format check, mypy, bandit, **pytest**, frontend eslint, **frontend verify** (tsc + build), gitleaks.
+**Pre-push** (whole repo, check-only): repo lint, ruff check + format check, mypy, bandit, **pytest**, frontend eslint, **frontend verify** (component tests + tsc + build), gitleaks.
 
 **Not on push** (run `./scripts/quality-gates.sh` before a PR or rely on CI): coverage threshold, pip-audit, npm audit, pre-commit hygiene sweep (`--full`).
 

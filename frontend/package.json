@@ -8,14 +8,19 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "verify": "tsc --noEmit && vite build"
+    "verify": "vitest run && tsc --noEmit && vite build"
   },
   "dependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.2.6"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
@@ -26,10 +31,12 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "eslint-plugin-security": "^1.7.1",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.17",
     "typescript": "^6.0.3",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^4.1.10"
   },
   "optionalDependencies": {
     "@rollup/rollup-darwin-arm64": "4.60.4",

@@ -60,8 +60,8 @@ Product copy uses a meaning-specific vocabulary rather than one umbrella term:
 - **Compact layout**: list/detail help rails are hidden on compact screens, detail receives a compact `Back` action, controls wrap, page padding steps down, long identifiers and data-source names wrap, and intentional run-table overflow remains locally scrollable. Search Explorer receives only the responsive width required by the shared shell; its content, state, and actions are unchanged.
 - **Accessibility implementation**: touched actions have visible global focus treatment, meaningful text labels, decorative SVGs hidden from assistive technology, and 44 px minimum target height where space permits. Progress exposes native progressbar semantics and reduced-motion disables non-essential animation and transitions. Live contrast inspection led to a darker shared muted token, stronger detail-state text colours, and an explicit light/dark polling-indicator tone without changing polling behavior.
 - **Behavior preservation**: a source-diff audit found no changes to API calls, request parameters, polling setup, timeouts, mutations, cache handoff, routing, or action handlers. `App.tsx`, service modules, constants, backend, and data models are unchanged.
-- **Automated quality**: `./scripts/quality-gates.sh` passed after final verification: repository lint, Ruff, mypy, Bandit, 120 backend tests, 83.0% scoped coverage, pip audit, frontend lint/typecheck/build, and frontend audit all passed.
-- **Graph review**: the code-review graph rated the change low risk (`0.40`) and found no affected execution flow. It reported the changed presentation functions as lacking direct component coverage; as planned, this slice does not introduce a component-test tier.
+- **Automated quality**: `./scripts/quality-gates.sh` passed after the review revision: repository lint, Ruff, mypy, Bandit, 120 backend tests at 83.0% scoped coverage, pip audit, 7 frontend component scenarios, frontend lint/typecheck/build, and frontend audit all passed.
+- **Graph review**: the code-review graph rated the presentation change low risk (`0.40`) and found no affected execution flow. Its direct-component-coverage finding is addressed by the focused Slice 39 test tier described below.
 
 | Production asset | Baseline | Implemented | Delta |
 |------------------|----------|-------------|-------|
@@ -268,6 +268,7 @@ If implementation reaches 95 minutes with any Must criterion incomplete, stop op
 
 - [x] `cd frontend && npm run lint`
 - [x] `cd frontend && npm run typecheck`
+- [x] `cd frontend && npm run test`
 - [x] `cd frontend && npm run build`
 - [x] Manual list → detail → back journey passes at 390 × 844 and 1440 × 900.
 - [x] Pause/resume/cancel/delete visibility rules match the pre-change source behavior across the live state matrix.
@@ -282,9 +283,9 @@ If implementation reaches 95 minutes with any Must criterion incomplete, stop op
 
 ## Test strategy
 
-This slice changes presentation without intentionally changing state or data logic. The current frontend has no component-test tier, so this time-box does not introduce one. TypeScript, ESLint, production build, responsive inspection, keyboard navigation, contrast checks, and explicit before/after behavior comparison are the required verification activities.
+This slice changes presentation without intentionally changing state or data logic. The focused Vitest + React Testing Library/jsdom tier renders the real list and detail components against controlled API responses. Its 7 scenarios cover running, paused, complete, partial, failed, and cancelled copy plus Pause, Cancel, Resume, Explore, Delete, and list-to-detail action visibility.
 
-If implementation changes conditional rendering or extracts new behavioral utilities, stop and add focused component/unit coverage before calling the slice complete; that work replaces optional polish rather than expanding the time-box.
+`npm run test` is part of frontend `verify`, the quick/full quality gates, and CI. TypeScript, ESLint, production build, responsive inspection, keyboard navigation, contrast checks, and explicit before/after behavior comparison remain complementary verification activities.
 
 ## Commit
 
