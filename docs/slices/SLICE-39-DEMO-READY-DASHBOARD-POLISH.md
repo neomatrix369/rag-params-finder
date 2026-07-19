@@ -1,6 +1,6 @@
 # Slice 39 — Demo-Ready Dashboard Polish
 
-**Status**: ✅ COMPLETE — implementation, live visual verification, and regression evidence complete
+**Status**: ✅ COMPLETE — implementation and live regression verification complete
 
 **Branch**: `slice/39-demo-ready-dashboard-polish-implementation`
 
@@ -24,18 +24,28 @@ The visual-direction prompt supplied before implementation is an input to the lo
 
 ## Implementation direction
 
-The promised visual-direction prompt was not present in project artifacts when implementation started. The bounded fallback direction is **editorial scientific instrument**: a warm paper canvas within an ink/navy application frame, precise teal and cobalt accents, compact evidence labels, and restrained state colour. This direction preserves the existing product character while making the evidence path easier to scan.
+The promised visual-direction prompt was not present in project artifacts when implementation started. The bounded fallback direction is **editorial scientific instrument**: a warm paper canvas within an ink/navy application frame, precise teal and cobalt accents, compact result labels, and restrained state colour. This direction preserves the existing product character while making the path from sweep to results easier to scan.
+
+Product copy uses a meaning-specific vocabulary rather than one umbrella term:
+
+| Meaning | Preferred term |
+|---------|----------------|
+| Experiment output | Results |
+| Execution lifecycle | Progress or status |
+| Available user action | Next step |
+| Vector-database information | Storage metrics |
+| Checks that demonstrate the slice passed | Verification |
 
 | Token concern | Constraint |
 |---------------|------------|
-| Palette | Ink/navy frame, warm paper canvas, white surfaces, teal/cobalt action accents, semantic lifecycle colours only for status evidence |
+| Palette | Ink/navy frame, warm paper canvas, white surfaces, teal/cobalt action accents, and semantic lifecycle colours used only to communicate status |
 | Typography | Local serif display face, local humanist sans body face, and system monospace for identifiers; no font download or runtime request |
 | Spacing | 4 px base with an 8/12/16/24/32 px working rhythm; denser metadata stays subordinate to status and outcome |
 | Surfaces | Fine borders, low-elevation shadows, restrained corner radii, and one subtle grid texture; no glassmorphism or decorative gradients in content cards |
 | Motion | CSS-only colour, opacity, and transform transitions; no animation dependency; `prefers-reduced-motion` disables non-essential motion |
 | Stack | Existing React 19 + Tailwind 3 only; no component, state, chart, icon, font, or animation dependency |
 
-## Baseline evidence — 2026-07-18
+## Baseline verification — 2026-07-18
 
 - **Source**: clean `main` at `1647164` before implementation.
 - **Quality**: `./scripts/quality-gates.sh` passed; 116 backend tests passed, scoped coverage was 83.0%, and frontend lint, typecheck, build, and audit passed.
@@ -44,9 +54,9 @@ The promised visual-direction prompt was not present in project artifacts when i
 - **State and navigation contract**: `App.tsx` remains the list → detail → explorer router and carries the cached experiment, storage summary, page state, and persisted collapse keys across the journey.
 - **Visual baseline**: exact `main@1647164` captures were taken from a detached worktree at 1440 × 900 and 390 × 844. Existing repository screenshots remain supplementary historical context.
 
-## Implementation evidence — 2026-07-18
+## Implementation verification — 2026-07-18
 
-- **Evidence journey**: the list now states the decision the workspace supports, promotes lifecycle and sweep outcome above secondary metadata, and exposes an explicit `Open evidence` action. Detail now leads with experiment identity, lifecycle truth, configured/completed run counts, and the next evidence action before configuration, run evidence, and operational storage context.
+- **Results journey**: the list now states the decision the workspace supports, promotes lifecycle and sweep outcome above secondary metadata, and exposes an explicit `View experiment` action. Detail now leads with experiment identity, lifecycle truth, configured/completed run counts, and the next step before configuration, run results, and operational storage context.
 - **Shared visual language**: the existing shell, chrome, progress card, collapsible card, and control primitives use the same ink/navy frame, warm paper canvas, local typography, teal action accent, semantic status colours, fine borders, and restrained elevation.
 - **Compact layout**: list/detail help rails are hidden on compact screens, detail receives a compact `Back` action, controls wrap, page padding steps down, long identifiers and data-source names wrap, and intentional run-table overflow remains locally scrollable. Search Explorer receives only the responsive width required by the shared shell; its content, state, and actions are unchanged.
 - **Accessibility implementation**: touched actions have visible global focus treatment, meaningful text labels, decorative SVGs hidden from assistive technology, and 44 px minimum target height where space permits. Progress exposes native progressbar semantics and reduced-motion disables non-essential animation and transitions. Live contrast inspection led to a darker shared muted token, stronger detail-state text colours, and an explicit light/dark polling-indicator tone without changing polling behavior.
@@ -56,13 +66,13 @@ The promised visual-direction prompt was not present in project artifacts when i
 
 | Production asset | Baseline | Implemented | Delta |
 |------------------|----------|-------------|-------|
-| JavaScript | 316.88 kB / 90.21 kB gzip | 327.64 kB / 92.50 kB gzip | +3.40% / +2.54% gzip |
+| JavaScript | 316.88 kB / 90.21 kB gzip | 327.57 kB / 92.48 kB gzip | +3.37% / +2.52% gzip |
 | CSS | 43.12 kB / 7.50 kB gzip | 39.74 kB / 7.31 kB gzip | -7.84% / -2.53% gzip |
 | HTML | 0.72 kB / 0.40 kB gzip | 0.72 kB / 0.40 kB gzip | unchanged |
 
 No runtime dependency was added. The JavaScript change remains below the 5% regression budget.
 
-### Live browser evidence
+### Live browser verification
 
 The Docker-served frontend on port 5374 was inspected against the unchanged backend on port 8001. Because the in-app browser had no active connection, a standalone Chromium/Playwright session was used for the same live checks.
 
@@ -72,7 +82,7 @@ The Docker-served frontend on port 5374 was inspected against the unchanged back
 - **Contrast**: 107 desktop-list, 291 desktop-detail, 98 mobile-list, and 282 mobile-detail non-decorative text samples produced zero WCAG AA failures after the final token corrections. The corrected green, amber, and red detail-state text measured 4.79:1, 4.84:1, and 5.91:1 on their tinted surfaces.
 - **Network behavior**: the live journey issued only the expected `GET /experiments`, `GET /experiments/vector-db-stats`, and `GET /experiments/{id}` requests. Repeated list/detail requests measured approximately 1995–2010 ms, confirming the 2 s cadence. Source comparison confirms unchanged parameters, 30/90 s timeouts, 60 s stats cadence, and mutation endpoints; destructive mutations were intentionally not executed for visual verification.
 - **State coverage**: live data covered running, complete, and failed presentation during the session. Browser-local intercepted GET responses covered paused, partial, cancelled, loading, empty, error, and 16-item pagination states while all non-GET requests were blocked. Every lifecycle state completed a collapse → expand round trip and exposed the expected text status and valid action labels.
-- **Five-second comprehension**: the desktop first viewports expose the RAG decision purpose, selected experiment identity/state, run outcome, and next evidence or lifecycle action without opening secondary panels.
+- **Five-second comprehension**: the desktop first viewports expose the RAG decision purpose, selected experiment identity/state, run outcome, and next results or lifecycle action without opening secondary panels.
 
 | View | Exact `main@1647164` baseline | Completed Slice 39 |
 |------|------------------------------|--------------------|
@@ -83,31 +93,31 @@ The Docker-served frontend on port 5374 was inspected against the unchanged back
 
 ### Regression matrix
 
-| State | Preserved presentation and actions | Source/automated evidence | Live visual evidence |
+| State | Preserved presentation and actions | Source/automated verification | Live visual verification |
 |-------|------------------------------------|---------------------------|----------------------|
-| Running | Text status, live progress, Pause, Cancel, and live evidence action | ✅ | ✅ Live data |
-| Paused | Text status, Resume, Delete, and completed-run evidence action | ✅ | ✅ Intercepted GET fixture |
+| Running | Text status, live progress, Pause, Cancel, and live-results action | ✅ | ✅ Live data |
+| Paused | Text status, Resume, Delete, and completed-run results action | ✅ | ✅ Intercepted GET fixture |
 | Complete | Text outcome, completed count, Explore, and Delete | ✅ | ✅ Live data + fixture |
-| Partial | Explicit incomplete-evidence copy, counts, Explore, and Delete | ✅ | ✅ Intercepted GET fixture |
-| Failed | Text failure status, failed-run evidence, Explore, and Delete | ✅ | ✅ Live data + fixture |
+| Partial | Explicit preliminary-results copy, counts, Explore, and Delete | ✅ | ✅ Intercepted GET fixture |
+| Failed | Text failure status, failed-run details, Explore, and Delete | ✅ | ✅ Live data + fixture |
 | Cancelled | Text cancellation outcome, completed count, Explore, and Delete | ✅ | ✅ Intercepted GET fixture |
 | Loading / polling | Existing feedback panels, cadence labels, and polling indicators | ✅ | ✅ Delayed fixture + live cadence |
 | Empty / error | Existing conditions retained with explicit text and valid first-run command | ✅ | ✅ Intercepted GET fixtures |
 | Pagination / collapse | Existing state handlers and persisted collapse keys retained | ✅ | ✅ 16-item fixture + round trips |
 
-## Research input: evidence-led results storytelling
+## Research input: results-led decision storytelling
 
-The independent ARC-AGI-3 cold-solve results site supplied during planning is a **presentation reference, not a product dependency or visual template**. Its transferable thesis is that an evaluation interface becomes compelling when it connects a clear question to comparative evidence, depth, and a traceable case study.
+The independent ARC-AGI-3 cold-solve results site supplied during planning is a **presentation reference, not a product dependency or visual template**. Its transferable thesis is that an evaluation interface becomes compelling when it connects a clear question to comparative results, depth, and a traceable case study.
 
 For this project, that narrative maps to the existing product without importing ARC-specific mechanics:
 
 | Priority | Adopt for `rag-params-finder` | Treatment in Slice 39 |
 |----------|-------------------------------|-----------------------|
-| **Must** | Thesis-first framing | State the decision the dashboard supports: finding an evidence-backed RAG configuration for a corpus and query set |
-| **Must** | Evidence ladder | Present existing summary → experiment → configuration/run evidence in a deliberate visual order |
+| **Must** | Thesis-first framing | State the decision the dashboard supports: choosing a RAG configuration from observed sweep results for a corpus and query set |
+| **Must** | Results hierarchy | Present existing summary → experiment → configuration/run results in a deliberate visual order |
 | **Must** | Traceability | Keep experiment identity, lifecycle state, configuration facts, and run outcomes connected and accurately labelled |
-| **Must** | Progressive disclosure | Lead with decision-critical evidence; preserve collapsible detail for operational and secondary data |
-| **Should** | Guided case-study path | Make list → selected experiment → existing deeper evidence feel like one coherent demo journey |
+| **Must** | Progressive disclosure | Lead with decision-critical results; preserve collapsible detail for operational and secondary data |
+| **Should** | Guided case-study path | Make list → selected experiment → existing deeper results feel like one coherent demo journey |
 | **Could** | Editorial rhythm | Use section labels and restrained visual pacing where existing content already supports them |
 | **Won't** | ARC mechanics and unverified lineage | Do not add game metaphors, scratch files, action budgets, Firebase assumptions, external-repo claims, or unresolved source-code claims |
 | **Won't** | New analytical capabilities | Do not add ablation charts, model-sweep charts, heatmaps, replay, or new aggregation in this slice |
@@ -156,13 +166,13 @@ The ARC study's reported results, harness, hosting, authorship, and repository i
 - [x] Running, paused, complete, partial, failed, and cancelled states remain distinguishable by text as well as colour.
 - [x] Existing pause, resume, cancel, delete, navigation, pagination, and collapsible-card behavior is unchanged in source and automated checks; the live state matrix confirms action visibility and non-destructive interactions.
 
-### Evidence narrative and product truth (Must)
+### Results narrative and source fidelity (Must)
 
 - [x] The dashboard states the concrete decision it supports without claiming automatic optimization, best-config selection, or other planned capabilities as implemented.
-- [x] The list-to-detail sequence progresses from experiment overview to existing configuration/run evidence without adding, transforming, or reinterpreting metrics.
+- [x] The list-to-detail sequence progresses from experiment overview to existing configuration/run results without adding, transforming, or reinterpreting metrics.
 - [x] Experiment IDs, provider/model names, retrieval methods, statuses, counts, scores, and durations remain sourced from their existing fields and retain their current units and semantics.
 - [x] An unfamiliar reviewer can identify the product purpose, the selected experiment's state, and the next available action from the desktop first viewport in a five-second comprehension check.
-- [x] Existing deeper-evidence navigation remains discoverable; Search Explorer receives only a shared-shell responsive width integration, with no content or behavior change.
+- [x] Existing detailed-results navigation remains discoverable; Search Explorer receives only a shared-shell responsive width integration, with no content or behavior change.
 
 ### Regression budget (Must)
 
@@ -211,7 +221,7 @@ Scenario: asynchronous states share the visual language
   Then it uses the same typography, surfaces, and spacing as the populated experience
   And its meaning remains explicit in text
 
-Scenario: evidence remains truthful after visual restructuring
+Scenario: results remain faithful to source data after visual restructuring
   Given an experiment has known configuration, status, score, count, and duration fields
   When the redesigned list and detail views render that experiment
   Then every displayed value retains its original field, unit, and meaning
@@ -245,7 +255,7 @@ Existing reusable primitives such as `ExperimentProgressCard`, `CollapsibleCard`
 - [x] Record baseline source-level list-to-detail network contract, polling cadence, valid controls, persisted UI state, and production bundle sizes.
 - [x] Record that no supplied visual-direction prompt was present and constrain the documented fallback direction.
 - [x] Reduce the documented fallback direction to explicit palette, typography, spacing, surface, and motion constraints.
-- [x] Reduce the evidence-led research input to the adoption table above; do not use external implementation details or unresolved claims.
+- [x] Reduce the results-led research input to the adoption table above; do not use external implementation details or unresolved claims.
 - [x] Confirm `npm run lint`, `npm run typecheck`, and `npm run build` pass before editing.
 - [x] Confirm no new runtime dependency is required.
 
@@ -258,7 +268,7 @@ Existing reusable primitives such as `ExperimentProgressCard`, `CollapsibleCard`
 | 25–65 min | Experiment list Must criteria complete |
 | 65–95 min | Experiment detail Must criteria complete |
 | 95–115 min | Responsive, keyboard, contrast, and behavior verification |
-| 115–120 min | Build evidence and final screenshots |
+| 115–120 min | Build verification and final screenshots |
 
 If implementation reaches 95 minutes with any Must criterion incomplete, stop optional styling and finish only the smallest changes needed to pass the Must criteria. Do not borrow time by adding dependencies or changing behavior.
 
@@ -280,7 +290,7 @@ If implementation reaches 95 minutes with any Must criterion incomplete, stop op
 
 ## Test strategy
 
-This slice changes presentation without intentionally changing state or data logic. The current frontend has no component-test tier, so this time-box does not introduce one. TypeScript, ESLint, production build, responsive inspection, keyboard navigation, contrast checks, and explicit before/after behavior comparison are the required evidence.
+This slice changes presentation without intentionally changing state or data logic. The current frontend has no component-test tier, so this time-box does not introduce one. TypeScript, ESLint, production build, responsive inspection, keyboard navigation, contrast checks, and explicit before/after behavior comparison are the required verification activities.
 
 If implementation changes conditional rendering or extracts new behavioral utilities, stop and add focused component/unit coverage before calling the slice complete; that work replaces optional polish rather than expanding the time-box.
 

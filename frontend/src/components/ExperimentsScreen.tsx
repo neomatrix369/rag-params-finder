@@ -115,13 +115,13 @@ function experimentsRailHelp() {
   return (
     <>
       <div className="mb-6">
-        <div className="font-display text-lg font-semibold text-white">Evidence path</div>
+        <div className="font-display text-lg font-semibold text-white">From sweep to results</div>
         <div className="mt-1 text-xs font-bold uppercase tracking-widest text-emerald-300">Experiment list</div>
       </div>
       <ol className="space-y-4 border-l border-white/15 pl-4 text-xs text-slate-300">
         <li><span className="block font-mono text-xs text-emerald-300">01 · OVERVIEW</span>Scan lifecycle state and sweep health.</li>
         <li><span className="block font-mono text-xs text-emerald-300">02 · EXPERIMENT</span>Open identity, controls, and configuration.</li>
-        <li><span className="block font-mono text-xs text-emerald-300">03 · EVIDENCE</span>Trace completed runs into stored results.</li>
+        <li><span className="block font-mono text-xs text-emerald-300">03 · RESULTS</span>Trace completed runs into stored results.</li>
       </ol>
       <p className="mt-6 rounded-xl border border-white/10 bg-white/5 p-3 text-xs leading-relaxed text-slate-300">
         Running sweeps expose Pause and Cancel. Paused sweeps expose Resume. Controls keep their existing API behavior.
@@ -153,7 +153,7 @@ function experimentOutcomeLabel(experiment: Experiment): string {
   const configuredRuns = experiment.run_count == null
     ? 'Run count pending'
     : `${experiment.run_count} run${experiment.run_count === 1 ? '' : 's'} configured`;
-  if (experiment.status === 'running') return `${configuredRuns} · evidence collection in progress`;
+  if (experiment.status === 'running') return `${configuredRuns} · sweep in progress`;
   if (experiment.status === 'paused') return `${configuredRuns} · waiting to resume`;
   if (experiment.status === 'complete') return `${configuredRuns} · sweep complete`;
   if (experiment.status === 'partial') return `${configuredRuns} · incomplete outcome`;
@@ -497,8 +497,8 @@ export default function ExperimentsScreen({
     : 'Waiting for the server to finish this refresh cycle.';
 
   const pageHint = showLoadingPanel
-    ? 'Loading the experiment evidence trail from your server.'
-    : `Compare sweep health, then open an experiment to inspect configuration and run evidence. Live state refreshes every ${EXPERIMENTS_POLL_MS / 1000}s.`;
+    ? 'Loading experiments from your server.'
+    : `Compare sweep progress, then open an experiment to inspect its configuration and run results. Live state refreshes every ${EXPERIMENTS_POLL_MS / 1000}s.`;
 
   return (
     <DashboardShell
@@ -507,7 +507,7 @@ export default function ExperimentsScreen({
       header={
         <AppPageChrome
           tone="darkFrame"
-          pageEyebrow="Evidence workspace"
+          pageEyebrow="Sweep workspace"
           pageTitle="Experiments"
           pageHint={pageHint}
         />
@@ -521,7 +521,7 @@ export default function ExperimentsScreen({
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Decision workspace</p>
           <h2 id="decision-workspace-title" className="mt-1 font-display text-2xl font-semibold leading-tight text-ink">
-            Choose the RAG configuration you can defend with evidence.
+            Compare sweep results to choose a RAG configuration.
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
             Start with lifecycle state and sweep health. Open an experiment to connect its identity and configuration to the runs and stored results already produced.
@@ -560,10 +560,10 @@ export default function ExperimentsScreen({
 
       {showEmptyConfirmed && (
         <div className="rounded-panel border border-line bg-paper p-8 text-center shadow-panel sm:p-12">
-          <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Evidence starts here</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Start with a sweep</p>
           <h2 className="mt-2 font-display text-2xl font-semibold text-ink">No experiments yet</h2>
           <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-muted">
-            The server is connected and returned an empty list. Submit the first sweep from the CLI, then return here to follow its lifecycle and inspect its evidence.
+            The server is connected and returned an empty list. Submit the first sweep from the CLI, then return here to follow its lifecycle and inspect its results.
           </p>
           <code className="mx-auto mt-4 block max-w-xl overflow-x-auto rounded-xl border border-line bg-canvas p-3 text-left text-xs text-ink">
             rag-params-finder run --config configs/example-mongodb-local.yaml
@@ -677,7 +677,7 @@ export default function ExperimentsScreen({
                             {isCollapsed && dbStats ? <span>{dbStats.total_results.toLocaleString()} stored results</span> : null}
                           </span>
                           <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-accent-strong">
-                            Open evidence <ArrowRightIcon />
+                            View experiment <ArrowRightIcon />
                           </span>
                         </button>
                         <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-2 sm:w-auto sm:flex-col sm:items-end">
@@ -762,7 +762,7 @@ export default function ExperimentsScreen({
       <section className="mt-8 border-t border-line pt-6" aria-labelledby="operational-context-title">
         <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Progressive disclosure</p>
         <h2 id="operational-context-title" className="mt-1 font-display text-xl font-semibold text-ink">Operational storage context</h2>
-        <p className="mb-4 mt-1 text-sm text-muted">Secondary vector-database evidence stays available without competing with experiment lifecycle and run outcomes.</p>
+        <p className="mb-4 mt-1 text-sm text-muted">Storage metrics stay available without competing with experiment lifecycle and run outcomes.</p>
         <VectorDbStatsPanel
           groups={vectorDbGroups}
           loading={vectorDbLoading}

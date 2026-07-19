@@ -789,14 +789,14 @@ export default function ExperimentDetailScreen({
     return (
       <>
         <div className="mb-6">
-          <div className="font-display text-lg font-semibold text-white">Evidence path</div>
+          <div className="font-display text-lg font-semibold text-white">From sweep to results</div>
           <div className="mt-1 text-xs font-bold uppercase tracking-widest text-emerald-300">Experiment detail</div>
         </div>
         {backToList}
         <ol className="space-y-4 border-l border-white/15 pl-4 text-xs text-slate-300">
           <li><span className="block font-mono text-xs text-emerald-300">01 · IDENTITY</span>Confirm the sweep and lifecycle state.</li>
           <li><span className="block font-mono text-xs text-emerald-300">02 · CONFIG</span>Trace the parameter space that produced each run.</li>
-          <li><span className="block font-mono text-xs text-emerald-300">03 · EVIDENCE</span>Inspect completed runs and stored results.</li>
+          <li><span className="block font-mono text-xs text-emerald-300">03 · RESULTS</span>Inspect completed runs and stored results.</li>
         </ol>
         <p className="mt-6 rounded-xl border border-white/10 bg-white/5 p-3 text-xs leading-relaxed text-slate-300">{extra}</p>
       </>
@@ -879,29 +879,29 @@ export default function ExperimentDetailScreen({
   }
 
   const runSummary = summarizeExperimentRuns(detail.runs, detail.run_count);
-  const evidenceSummary = (() => {
+  const sweepSummary = (() => {
     if (detail.status === 'running') {
-      return `${runSummary.complete} of ${runSummary.expected} runs are complete; stored evidence can grow as the sweep continues.`;
+      return `${runSummary.complete} of ${runSummary.expected} runs are complete; stored results can grow as the sweep continues.`;
     }
     if (detail.status === 'paused') {
-      return `Paused after ${runSummary.complete} of ${runSummary.expected} runs completed; resume to collect the remaining evidence.`;
+      return `Paused after ${runSummary.complete} of ${runSummary.expected} runs completed; resume to run the remaining parameter combinations.`;
     }
     if (detail.status === 'complete') {
       return `All ${runSummary.expected} configured runs completed; stored results are ready to inspect.`;
     }
     if (detail.status === 'partial') {
-      return `${runSummary.complete} of ${runSummary.expected} runs completed; treat rankings from completed runs as partial evidence.`;
+      return `${runSummary.complete} of ${runSummary.expected} runs completed; treat rankings from completed runs as preliminary results.`;
     }
     if (detail.status === 'cancelled') {
       return `Collection stopped after ${runSummary.complete} of ${runSummary.expected} runs completed.`;
     }
     return `${runSummary.failed} failed and ${runSummary.complete} completed of ${runSummary.expected} configured runs.`;
   })();
-  const nextEvidenceLabel = runSummary.complete > 0
+  const nextStepLabel = runSummary.complete > 0
     ? 'Inspect stored results'
     : isRunning
       ? 'Await first completed run'
-      : 'No completed-run evidence';
+      : 'No completed results';
   const metricsGridClass = runSummary.inProgress > 0
     ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 p-4'
     : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 p-4';
@@ -914,14 +914,14 @@ export default function ExperimentDetailScreen({
       header={
         <AppPageChrome
           tone="darkFrame"
-          pageEyebrow="Experiment evidence"
+          pageEyebrow="Experiment results"
           pageTitle={detail.experiment_name}
           pageMeta={<span className="font-mono">{experimentId}</span>}
           pageHint={
             isRunning
-              ? `Live updates every ${DETAIL_POLL_MS / 1000}s. Follow completed runs into stored evidence while the sweep continues.`
+              ? `Live updates every ${DETAIL_POLL_MS / 1000}s. Follow completed runs into stored results while the sweep continues.`
               : isPaused
-                ? 'The sweep is paused. Review completed-run evidence now or resume the remaining parameter combinations.'
+                ? 'The sweep is paused. Review completed-run results now or resume the remaining parameter combinations.'
                 : 'Connect this experiment’s identity and configuration to its run outcomes and stored results.'
           }
           topRight={
@@ -950,15 +950,15 @@ export default function ExperimentDetailScreen({
       )}
     >
 
-        {/* Overview: identity, evidence truth, actions, and run-outcome metrics. */}
-        <section className="mb-6 overflow-hidden rounded-panel border border-line bg-paper shadow-panel" aria-labelledby="sweep-evidence-title">
+        {/* Overview: identity, result fidelity, actions, and run-outcome metrics. */}
+        <section className="mb-6 overflow-hidden rounded-panel border border-line bg-paper shadow-panel" aria-labelledby="sweep-overview-title">
           <div className="flex flex-col gap-4 border-b border-line p-5 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Identity → configuration → evidence</p>
-              <h2 id="sweep-evidence-title" className="mt-1 font-display text-2xl font-semibold text-ink">Sweep evidence</h2>
+              <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Identity → configuration → results</p>
+              <h2 id="sweep-overview-title" className="mt-1 font-display text-2xl font-semibold text-ink">Sweep overview</h2>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <StatusBadge status={detail.status} />
-                <p className="max-w-3xl text-sm leading-relaxed text-muted">{evidenceSummary}</p>
+                <p className="max-w-3xl text-sm leading-relaxed text-muted">{sweepSummary}</p>
               </div>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -975,7 +975,7 @@ export default function ExperimentDetailScreen({
                   }
                   className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-strong"
                 >
-                  {icons.search} {isRunning ? 'Explore live evidence' : 'Explore evidence'}
+                  {icons.search} {isRunning ? 'Explore live results' : 'Explore results'}
                 </button>
               )}
               {canDelete && (
@@ -1000,8 +1000,8 @@ export default function ExperimentDetailScreen({
               <p className="mt-1 text-sm font-semibold text-ink">{runSummary.complete} complete · {runSummary.expected} configured</p>
             </div>
             <div className="rounded-xl border border-line bg-paper p-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted">Next evidence</p>
-              <p className="mt-1 text-sm font-semibold text-accent-strong">{nextEvidenceLabel}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted">Next step</p>
+              <p className="mt-1 text-sm font-semibold text-accent-strong">{nextStepLabel}</p>
             </div>
           </div>
 
@@ -1209,10 +1209,10 @@ export default function ExperimentDetailScreen({
           const paginatedRuns = detail.runs.slice(startIndex, endIndex);
 
           return (
-            <section className="overflow-hidden rounded-panel border border-line bg-paper shadow-panel" aria-labelledby="run-evidence-title">
+            <section className="overflow-hidden rounded-panel border border-line bg-paper shadow-panel" aria-labelledby="run-details-title">
               <div className="border-b border-line bg-canvas px-6 py-4">
-                <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Run-level evidence</p>
-                <h2 id="run-evidence-title" className="font-display text-xl font-semibold text-ink">
+                <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Run results</p>
+                <h2 id="run-details-title" className="font-display text-xl font-semibold text-ink">
                   Run details ({detail.runs.length})
                 </h2>
               </div>
@@ -1411,7 +1411,7 @@ export default function ExperimentDetailScreen({
                   onClick={onExplore}
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-accent px-5 text-sm font-semibold text-white shadow-sm hover:bg-accent-strong"
                 >
-                  {icons.search} Explore evidence
+                  {icons.search} Explore results
                 </button>
               )}
             </div>
@@ -1444,7 +1444,7 @@ export default function ExperimentDetailScreen({
                   onClick={onExplore}
                   className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-accent px-5 text-sm font-semibold text-white shadow-sm hover:bg-accent-strong"
                 >
-                  {icons.search} Explore completed-run evidence
+                  {icons.search} Explore completed-run results
                 </button>
               )}
             </div>
@@ -1490,7 +1490,7 @@ export default function ExperimentDetailScreen({
         <section className="mt-8 border-t border-line pt-6" aria-labelledby="experiment-storage-context-title">
           <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Operational context</p>
           <h2 id="experiment-storage-context-title" className="mt-1 font-display text-xl font-semibold text-ink">Stored-result footprint</h2>
-          <p className="mb-4 mt-1 text-sm text-muted">Supporting database evidence stays available after the run outcome, without competing with the primary decision path.</p>
+          <p className="mb-4 mt-1 text-sm text-muted">Storage metrics remain available after the run outcome, without competing with the primary decision path.</p>
           <ExperimentVectorDbStatsCard
             experimentId={experimentId}
             stats={dbStats ?? undefined}

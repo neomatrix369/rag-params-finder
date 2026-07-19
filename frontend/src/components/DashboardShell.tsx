@@ -12,7 +12,7 @@ export type DashboardShellProps = {
   children: ReactNode;
 };
 
-/** Shared instrument frame: ink rail, warm evidence canvas, responsive content column. */
+/** Shared instrument frame: ink rail, warm paper canvas, responsive content column. */
 export default function DashboardShell({
   header,
   sidebar,
