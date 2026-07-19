@@ -20,24 +20,27 @@ All screens feature:
 
 ### 📋 Experiments List
 
-The landing screen shows all submitted experiments, newest first.
+The landing screen presents all submitted experiments as result-led cards, newest first. Each card keeps lifecycle state and sweep outcome ahead of secondary metadata so you can decide which experiment to inspect without expanding it first.
 
-| Column | Description |
+| At-a-glance field | Description |
 |---|---|
-| Name | Experiment name with timestamp suffix |
-| Status | Color-coded badge (see below) |
-| Runs | Total runs / successful runs / failed runs |
+| Experiment | Name plus shortened experiment ID |
+| Status | Text-labelled, color-coded lifecycle badge (see below) |
+| Outcome | Configured-run count and current sweep outcome |
 | Created | Submission timestamp |
+| Primary action | Explicit **View experiment** link to the detail journey |
 
 **Pagination**: Shows 10 experiments per page. Navigate using Previous/Next buttons at the bottom.
 
-**Collapsible rows**: Click the chevron on a row to expand inline details without leaving the list. Expansion state is remembered per experiment (`localStorage`).
+**Collapsible cards**: Click the chevron on a card to expand inline details without leaving the list. Expansion state is remembered per experiment (`localStorage`).
 
-**Vector DB stats panel** (top of list): Aggregated storage footprint for your Atlas cluster — total chunks, estimated embedding storage, active index names, and per-experiment breakdown. Loads from `GET /experiments/vector-db-stats` on its own schedule (**every 60 s**, 90 s fetch timeout) so a slow stats aggregation does not block the experiment list (2 s poll, 30 s timeout). When Atlas Admin API credentials or `MONGODB_STORAGE_LIMIT_MB` is configured, the panel also shows cluster quota (used/free MB), instance tier (e.g. `M0 (shared)`), cloud provider, and region. The Atlas API does not expose RAM, vCPU, or pricing — only tier and storage limits.
+**Operational storage context** (after the experiment list): Aggregated storage footprint for your Atlas cluster — total chunks, estimated embedding storage, active index names, and per-experiment breakdown. Keeping this section after the result-led cards preserves the metrics without competing with lifecycle and outcome information. It loads from `GET /experiments/vector-db-stats` on its own schedule (**every 60 s**, 90 s fetch timeout) so a slow stats aggregation does not block the experiment list (2 s poll, 30 s timeout). When Atlas Admin API credentials or `MONGODB_STORAGE_LIMIT_MB` is configured, the section also shows cluster quota (used/free MB), instance tier (e.g. `M0 (shared)`), cloud provider, and region. The Atlas API does not expose RAM, vCPU, or pricing — only tier and storage limits.
 
 **Actions**:
-- **View details**: Click any row to open the Experiment Detail screen
-- **Delete**: Click the trash icon button in the Actions column to delete an experiment (confirmation required)
+- **View experiment**: Use the explicit action on a card to open the Experiment Detail screen
+- **Expand/collapse**: Use the labelled chevron button to reveal or hide inline metadata and per-experiment storage context
+- **Pause / Resume / Cancel**: Active-state controls remain available on the relevant experiment card
+- **Delete**: Select one or more deletable experiments, then use the **Delete N** action (confirmation required)
   - Cannot delete **running** experiments — pause or cancel first (**paused** experiments can be deleted)
   - Deletion is permanent and removes all associated data (chunks, results, run statuses)
 
@@ -56,9 +59,9 @@ The landing screen shows all submitted experiments, newest first.
 
 ### 🔬 Experiment Detail
 
-Opened by clicking a row in the Experiments List. Polls every 2 seconds while status is non-terminal. List→detail navigation reuses cached experiment payloads when available to reduce duplicate fetches.
+Opened through a card's **View experiment** action. Polls every 2 seconds while status is non-terminal. List→detail navigation reuses cached experiment payloads when available to reduce duplicate fetches.
 
-**Overview panel** (top): Status badge, control buttons, and compact run-outcome metrics in one card:
+**Overview panel** (top): Experiment identity, text-labelled lifecycle state, configured/completed run counts, the valid next step, and state-specific controls are grouped before configuration, run results, and storage context.
 
 **Control buttons** (header, via `ExperimentControlButtons`):
 
@@ -96,7 +99,7 @@ Pause, resume, and cancel controls appear **only in the overview header** — no
 | Preflight failed | Experiment `error_message` explains missing indexes or quota — fix with `rag-params-finder indexes list` / `indexes reset`; see [Troubleshooting](troubleshooting.md#-search-index-preflight-failed) |
 | Interrupted runs | Amber panel listing interruption reason |
 
-**Vector DB stats card**: Collapsible panel with per-experiment chunk counts, embedding model breakdown, estimated storage, and index names. Loaded from `GET /experiments/{id}/db-stats`.
+**Vector DB stats card**: Collapsible operational-context panel after the run outcome, with per-experiment chunk counts, embedding model breakdown, estimated storage, and index names. Loaded from `GET /experiments/{id}/db-stats`.
 
 **Phase indicator dots**: one row of colored dots per run, representing each pipeline phase in order:
 
@@ -115,8 +118,8 @@ QUEUED → PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERAN
 
 **Pagination**: Shows 10 runs per page. Navigate using Previous/Next buttons below the table.
 
-**Actions** (top-right header):
-- **Delete experiment**: Click the trash icon button to delete the entire experiment
+**Actions** (experiment overview):
+- **Delete experiment**: Click **Delete** to remove the entire experiment
   - Opens a confirmation modal showing experiment details and deletion statistics
   - Cannot delete **running** experiments — pause or cancel first (**paused** experiments can be deleted)
   - Deletion is permanent and removes all associated data
