@@ -288,6 +288,14 @@ This slice changes presentation without intentionally changing state or data log
 
 `npm run test` is part of frontend `verify`, the quick/full quality gates, and CI. TypeScript, ESLint, production build, responsive inspection, keyboard navigation, contrast checks, and explicit before/after behavior comparison remain complementary verification activities.
 
+## Review — nw-review
+
+- **Iteration 1**: `NEEDS_REVISION` — remove unrelated MongoDB work and add replayable lifecycle presentation coverage.
+- **Iteration 2**: `APPROVED` at `6cf05d6` on 2026-07-19.
+- **Reviewer**: `nw-software-crafter-reviewer`.
+- **Resolution**: the clean `main...HEAD` range contains no backend, Compose, MongoDB, or API-test changes; component tests render both production screens and cover all six lifecycle narratives and state-specific actions.
+- **Advisory**: lower-level presentation-helper gaps remain non-blocking until a future behavior change makes them independently risky.
+
 ## Commit
 
 ```text

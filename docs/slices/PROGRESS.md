@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-19 (Slice 39 review blockers addressed; refreshed review pending)
-**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** 🔨 dashboard polish review | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/16/11/23/10** as before
+**Last Updated**: 2026-07-19 (Slice 39 complete; nw-review iteration 2 approved)
+**Current**: Slices **14** ✅ Docker · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/16/11/23/10** as before
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -55,7 +55,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 38 — Cutover + ADR-004 | 📋 PLANNED | ~3–4 h | Side-by-side quality, ADR-004, default Postgres — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) |
 | 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
 | 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
-| 39 — Demo-ready dashboard polish | 🔨 IN PROGRESS | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, and network verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
+| 39 — Demo-ready dashboard polish | ✅ COMPLETE | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, network, and component verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
 
 **Legend**: 📋 PLANNED | 🔨 IN PROGRESS | ✅ COMPLETE | 🔀 BRANCH | 📦 DEFERRED
 
@@ -89,9 +89,9 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 10 | Could | 🔨 PARTIAL | — | Boot reconciliation ✅; retry CLI/API remaining |
 | 30 | Could | 📋 PLANNED | — | Search Explorer UX |
 | 31 | Should | 📋 PLANNED | — | Experiment list filter |
-| 39 | Should | 🔨 IN PROGRESS | — | Review revisions: lifecycle component coverage and clean implementation history |
+| 39 | Should | ✅ COMPLETE | — | Demo-ready list/detail journey; lifecycle component coverage and clean implementation history verified |
 
-**Execution order**: 21 → 25 → 25B → 29 → 39 (review revisions) → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
+**Execution order**: 21 → 25 → 25B → 29 → 39 (done) → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
 
 ---
 
@@ -847,6 +847,7 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-07-19 | slice/39-demo-ready-dashboard-polish-implementation | /nw-review | Slice 39 iteration 2 | APPROVED | Both prior blockers cleared: unrelated MongoDB scope removed; 7 rendered lifecycle component scenarios wired into local gates and CI |
 | 2026-07-18 | slice/39-demo-ready-dashboard-polish-implementation | /browser:control-in-app-browser | Slice 39 | COMPLETE | In-app connection unavailable; standalone Playwright fallback verified 1440×900 and 390×844 list/detail, six lifecycle states, async states, keyboard focus, zero contrast violations, and unchanged 2 s GET cadence |
 | 2026-07-09 | docs/supabase-migration-plan | /update-pr | plan 32–38 + gap bridge | CURRENT | https://github.com/neomatrix369/rag-params-finder/pull/72 — branch up-to-date; PR title/body unchanged; prerequisites: bypassed (docs-only plan PR) |
 | 2026-07-09 | docs/supabase-migration-plan | /update-pr | plan 32–38 + gap bridge | PUSHED | https://github.com/neomatrix369/rag-params-finder/pull/72 — gap-bridge + nw-review polish commits; prerequisites: bypassed (docs-only plan PR) |
