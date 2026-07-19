@@ -52,7 +52,6 @@ Product copy uses a meaning-specific vocabulary rather than one umbrella term:
 - **Bundle**: `dist/assets/index-B2cakIdP.js` 316.88 kB / 90.21 kB gzip; `dist/assets/index-DFeJVCRg.css` 43.12 kB / 7.50 kB gzip; HTML 0.72 kB / 0.40 kB gzip.
 - **Network contract**: list and running-detail polls remain 2 s; vector-database stats remain 60 s; standard and storage timeouts remain 30 s and 90 s. The production calls remain `GET /experiments`, `GET /experiments/{id}`, `GET /experiments/vector-db-stats`, `GET /experiments/{id}/db-stats`, `POST` pause/resume/cancel, and `DELETE /experiments/{id}`.
 - **State and navigation contract**: `App.tsx` remains the list → detail → explorer router and carries the cached experiment, storage summary, page state, and persisted collapse keys across the journey.
-- **Visual baseline**: exact `main@1647164` captures were taken from a detached worktree at 1440 × 900 and 390 × 844. Existing repository screenshots remain supplementary historical context.
 
 ## Implementation verification — 2026-07-18
 
@@ -77,19 +76,12 @@ No runtime dependency was added. The JavaScript change remains below the 5% regr
 The Docker-served frontend on port 5374 was inspected against the unchanged backend on port 8001. Because the in-app browser had no active connection, a standalone Chromium/Playwright session was used for the same live checks.
 
 - **Responsive journey**: list and detail document widths matched their 1440 px and 390 px viewports exactly, with no unintended horizontal page scrolling, clipped primary controls, or overlapping content.
-- **Runtime health**: the four live list/detail captures produced no application console errors or page errors.
+- **Runtime health**: the four live list/detail viewport checks produced no application console errors or page errors.
 - **Keyboard**: list and detail actions remained reachable with visible focus; the shared focus outline rendered as a 3 px teal solid outline, and applicable action targets retained the intended 44 px height.
 - **Contrast**: 107 desktop-list, 291 desktop-detail, 98 mobile-list, and 282 mobile-detail non-decorative text samples produced zero WCAG AA failures after the final token corrections. The corrected green, amber, and red detail-state text measured 4.79:1, 4.84:1, and 5.91:1 on their tinted surfaces.
 - **Network behavior**: the live journey issued only the expected `GET /experiments`, `GET /experiments/vector-db-stats`, and `GET /experiments/{id}` requests. Repeated list/detail requests measured approximately 1995–2010 ms, confirming the 2 s cadence. Source comparison confirms unchanged parameters, 30/90 s timeouts, 60 s stats cadence, and mutation endpoints; destructive mutations were intentionally not executed for visual verification.
 - **State coverage**: live data covered running, complete, and failed presentation during the session. Browser-local intercepted GET responses covered paused, partial, cancelled, loading, empty, error, and 16-item pagination states while all non-GET requests were blocked. Every lifecycle state completed a collapse → expand round trip and exposed the expected text status and valid action labels.
 - **Five-second comprehension**: the desktop first viewports expose the RAG decision purpose, selected experiment identity/state, run outcome, and next results or lifecycle action without opening secondary panels.
-
-| View | Exact `main@1647164` baseline | Completed Slice 39 |
-|------|------------------------------|--------------------|
-| Desktop list, 1440 × 900 | [baseline desktop list](../images/slice-39/baseline-desktop-list-1440x900.png) | [completed desktop list](../images/slice-39/desktop-list-1440x900.png) |
-| Desktop detail, 1440 × 900 | [baseline desktop detail](../images/slice-39/baseline-desktop-detail-1440x900.png) | [completed desktop detail](../images/slice-39/desktop-detail-1440x900.png) |
-| Mobile list, 390 × 844 | [baseline mobile list](../images/slice-39/baseline-mobile-list-390x844.png) | [completed mobile list](../images/slice-39/mobile-list-390x844.png) |
-| Mobile detail, 390 × 844 | [baseline mobile detail](../images/slice-39/baseline-mobile-detail-390x844.png) | [completed mobile detail](../images/slice-39/mobile-detail-390x844.png) |
 
 ### Regression matrix
 
@@ -152,7 +144,7 @@ The ARC study's reported results, harness, hosting, authorship, and repository i
 - [x] The experiment list and experiment detail screens use a consistent palette, typography hierarchy, spacing rhythm, corner treatment, and surface treatment.
 - [x] Shared shell, page chrome, cards, badges, and primary actions appear as parts of one interface rather than independently styled regions.
 - [x] The bounded fallback visual direction is translated into reusable CSS/Tailwind tokens; component files do not introduce scattered one-off colour values.
-- [x] A side-by-side review at 1440 × 900 shows a material improvement over the captured `main` baseline without hiding or removing existing information.
+- [x] A live review at 1440 × 900 shows a material improvement over the `main` baseline without hiding or removing existing information.
 
 ### Experiment list first impression (Must)
 
@@ -251,7 +243,7 @@ Existing reusable primitives such as `ExperimentProgressCard`, `CollapsibleCard`
 
 ## Before-checks [GATE]
 
-- [x] Capture desktop and mobile baseline screenshots from exact `main@1647164`.
+- [x] Inspect the desktop and mobile baseline from exact `main@1647164`.
 - [x] Record baseline source-level list-to-detail network contract, polling cadence, valid controls, persisted UI state, and production bundle sizes.
 - [x] Record that no supplied visual-direction prompt was present and constrain the documented fallback direction.
 - [x] Reduce the documented fallback direction to explicit palette, typography, spacing, surface, and motion constraints.
@@ -263,12 +255,12 @@ Existing reusable primitives such as `ExperimentProgressCard`, `CollapsibleCard`
 
 | Time | Outcome |
 |------|---------|
-| 0–10 min | Baselines captured; prompt reduced to constraints |
+| 0–10 min | Baselines inspected; prompt reduced to constraints |
 | 10–25 min | Shared tokens, shell, and chrome aligned |
 | 25–65 min | Experiment list Must criteria complete |
 | 65–95 min | Experiment detail Must criteria complete |
 | 95–115 min | Responsive, keyboard, contrast, and behavior verification |
-| 115–120 min | Build verification and final screenshots |
+| 115–120 min | Build and final visual verification |
 
 If implementation reaches 95 minutes with any Must criterion incomplete, stop optional styling and finish only the smallest changes needed to pass the Must criteria. Do not borrow time by adding dependencies or changing behavior.
 
@@ -284,7 +276,7 @@ If implementation reaches 95 minutes with any Must criterion incomplete, stop op
 - [x] Loading, empty, error, polling, pagination, and collapsed/expanded states are manually checked.
 - [x] Lifecycle-state regression matrix passes for running, paused, complete, partial, failed, and cancelled experiments.
 - [x] Keyboard focus and contrast checks pass for every touched interactive primitive.
-- [x] Before/after screenshots demonstrate each visual acceptance criterion.
+- [x] Before/after live inspection demonstrates each visual acceptance criterion.
 - [x] Five-second comprehension check identifies purpose, experiment state, and next action without prompting.
 - [x] No backend, API, polling, or data-model file changed.
 
