@@ -10,10 +10,13 @@
 #   # or: bash scripts/install-git-hooks.sh
 # Run all (commit stage):  pre-commit run --all-files
 # Run push stage only:     pre-commit run pre-push-gates --hook-stage pre-push
+# Run fast hook stack on commit by default; pre-push hooks are explicit.
+default_stages: [pre-commit]
 # Full gates (before PR):  ./scripts/quality-gates.sh
 # Full + hygiene sweep:    ./scripts/quality-gates.sh --full
 
 repos:
+
   # ── Hygiene ──────────────────────────────────────────────
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
