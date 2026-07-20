@@ -1,0 +1,65 @@
+# MongoDB Atlas — SIE open-source embeddings (BGE-M3, Stella-v5, SPLADE-v3)
+#
+# Default sweep (2 dense SIE models enabled below):
+#   2 models × 5 chunking methods × 2 chunk sizes × 1 overlap × 4 retrievers
+#   = 80 runs (each retriever creates a separate run)
+#
+# Embedding (1024-dim dense: bge-m3, stella-v5 → vector_index_1024):
+#   splade-v3 deferred to Slice 22 — Atlas Vector Search max is 4096 dims (not 30522)
+# Chunking:   fixed · recursive · token · sentence · semantic
+# Retrievers: dense · sparse · hybrid · cross_encoder (swept individually — one per run)
+#
+# Prerequisites (all required before run):
+#   - SIE_ENABLED=true (same flag for remote gateway or local Docker)
+#   - SIE_ENDPOINT (+ SIE_API_KEY when gateway auth required) OR self-hosted Docker on :8720
+#     — docs/user-guide/sie-setup.md
+#   - MONGODB_URI in .env
+#   - vector_index_1024 + text_search_index on chunks (2 of 3 M0 slots)
+#
+# Wall-clock: 80 runs × local SIE encode is slower than Voyage API; use --detach and
+# monitor via dashboard. Narrow chunk_sizes vs local example to control run count.
+#
+# Quick API demo (no YAML): POST /api/v1/sweep — sie-setup.md §6
+
+experiment_name: example-mongodb-sie-parallel
+
+data_paths:
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+
+queries_file: ./configs/questions.example.json
+
+database_provider: mongodb
+
+embedding:
+  provider: sie
+  models:
+    - bge-m3       # 1024-dim dense+sparse+multi-vector; flagship multilingual
+    - stella-v5    # 1024-dim dense; strong English retrieval
+    # splade-v3: Slice 22 — sparse output + Atlas storage (30522-dim exceeds 4096 limit)
+
+chunking:
+  methods:
+    - fixed       # character-window slicing
+    - recursive   # LangChain recursive splitter (splits on \n\n → \n → space)
+    - token       # LangChain TokenTextSplitter (cl100k_base, sizes in tokens)
+    - sentence    # NLTK sentence grouping with character budget
+    - semantic    # sentence-transformers cosine similarity grouping
+  params:
+    chunk_sizes: [256, 512]   # narrower than local to control SIE encode time
+    overlaps: [50]
+
+retrieval:
+  top_k_initial: 20  # Candidates from traditional retrieval
+  top_k_final: 5     # Final results after reranking
+  retrievers:
+    # Each entry is one sweep dimension — one retriever per run (never combined).
+    - type: dense    # Atlas $vectorSearch (cosine similarity)
+    - type: sparse   # Atlas $search BM25 full-text  ← requires text_search_index
+    - type: hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
+    - type: cross_encoder
+      provider: local
+      model: cross-encoder/ms-marco-MiniLM-L-6-v2
+
+execution:
+  parallelism: 4
+  on_error: continue
