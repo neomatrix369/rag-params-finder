@@ -1,5 +1,6 @@
 import time
 import uuid
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from datetime import UTC, datetime
 
 from server.core.aim_logger import AimLogger
@@ -283,62 +284,121 @@ def _run_sweep_inner(
 
     validate_experiment_search_indexes(config)
     validate_sie_readiness(config)
-    runs = expand_sweep(config)
+    all_runs = list(expand_sweep(config))
+    runs = [params for params in all_runs if _params_signature(params) not in skip_signatures]
     run_ids: list[str] = []
-    logger.info("sweep scheduled — experiment %s, %s run(s)", experiment_id, len(runs))
+    logger.info(
+        "sweep scheduled — experiment %s, %s runnable run(s) of %s total",
+        experiment_id,
+        len(runs),
+        len(all_runs),
+    )
 
     cancelled = False
     paused = False
     infrastructure_error: str | None = None
-    first_run = True
-    for params in runs:
-        if _params_signature(params) in skip_signatures:
-            continue
+    stop_after_failure = False
+    max_workers = config.execution.parallelism
+
+    run_iter = iter(runs)
+    futures: dict[Future, tuple[str, RunParams]] = {}
+    first_run_set = False
+
+    def _submit_next() -> bool:
+        """Submit exactly one run if available and control allows execution."""
+        nonlocal first_run_set
+        nonlocal cancelled
+        nonlocal paused
+        nonlocal stop_after_failure
+
+        if stop_after_failure:
+            return False
+
+        try:
+            params = next(run_iter)
+        except StopIteration:
+            return False
 
         try:
             check_control(experiment_id)
         except ExperimentCancelledError:
             cancelled = True
-            logger.info("experiment cancelled — %s before run %s", experiment_id, len(run_ids) + 1)
-            break
+            stop_after_failure = True
+            return False
         except ExperimentPausedError:
             paused = True
-            logger.info("experiment paused — %s before run %s", experiment_id, len(run_ids) + 1)
-            break
+            stop_after_failure = True
+            return False
 
-        # Set started_at when first run actually begins (not when experiment was created)
-        if first_run:
+        if not first_run_set:
             get_collection(EXPERIMENTS_COLLECTION).update_one(
                 {"_id": experiment_id},
                 {"$set": {"started_at": datetime.now(UTC)}},
             )
-            first_run = False
+            first_run_set = True
 
         run_id = str(uuid.uuid4())
         run_ids.append(run_id)
-        try:
-            _run_single(experiment_id, run_id, params)
-        except ExperimentCancelledError:
-            cancelled = True
-            logger.info("experiment cancelled — %s during run %s", experiment_id, run_id)
-            break
-        except ExperimentPausedError:
-            paused = True
-            logger.info("experiment paused — %s during run %s", experiment_id, run_id)
-            break
-        except SIEUnavailableError as exc:
-            infrastructure_error = str(exc)
-            logger.error(
-                "SIE unavailable — stopping experiment %s after run %s: %s",
-                experiment_id,
-                run_id,
-                exc,
-            )
-            break
-        except Exception as e:
-            logger.error("run failed — %s: %s", run_id, e, exc_info=True)
-            if config.execution.on_error == "stop":
+        logger.info("run submitted — experiment %s, run_id=%s", experiment_id, run_id)
+        futures[executor.submit(_run_single, experiment_id, run_id, params)] = (run_id, params)
+        return True
+
+    with ThreadPoolExecutor(
+        max_workers=max_workers, thread_name_prefix=f"sweep-{experiment_id[:8]}"
+    ) as executor:
+        for _ in range(max_workers):
+            if not _submit_next():
                 break
+
+        while futures:
+            done, _ = wait(futures.keys(), return_when=FIRST_COMPLETED)
+            if not done:
+                break
+
+            for future in done:
+                run_id, _ = futures.pop(future)
+                try:
+                    future.result()
+                except ExperimentCancelledError:
+                    cancelled = True
+                    logger.info("experiment cancelled — %s during run %s", experiment_id, run_id)
+                except ExperimentPausedError:
+                    paused = True
+                    logger.info("experiment paused — %s during run %s", experiment_id, run_id)
+                except SIEUnavailableError as exc:
+                    infrastructure_error = str(exc)
+                    stop_after_failure = True
+                    logger.error(
+                        "SIE unavailable — stopping experiment %s after run %s: %s",
+                        experiment_id,
+                        run_id,
+                        exc,
+                    )
+                except Exception as e:
+                    logger.error("run failed — %s: %s", run_id, e, exc_info=True)
+                    if config.execution.on_error == "stop":
+                        stop_after_failure = True
+
+                if cancelled or paused:
+                    stop_after_failure = True
+
+            if stop_after_failure:
+                continue
+
+            try:
+                check_control(experiment_id)
+            except ExperimentCancelledError:
+                cancelled = True
+                stop_after_failure = True
+                continue
+            except ExperimentPausedError:
+                paused = True
+                stop_after_failure = True
+                continue
+
+            submitted = True
+            while submitted:
+                submitted = _submit_next()
 
     if cancelled:
         final_status = ExperimentStatus.CANCELLED
@@ -347,12 +407,12 @@ def _run_sweep_inner(
         final_status = ExperimentStatus.PAUSED
         failed_count = _count_failed_runs(experiment_id)
     else:
-        final_status, failed_count = _compute_final_status(experiment_id, len(runs))
+        final_status, failed_count = _compute_final_status(experiment_id, len(all_runs))
 
     completed_at = datetime.now(UTC)
     experiment_update: dict = {
         "status": final_status,
-        "run_count": len(runs),
+        "run_count": len(all_runs),
         "failed_count": failed_count,
         "completed_at": completed_at,
     }
