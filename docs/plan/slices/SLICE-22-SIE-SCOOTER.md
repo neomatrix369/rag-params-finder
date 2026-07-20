@@ -111,7 +111,7 @@ Scenario: GET /api/v1/best-config returns 404 when no history exists
 - [ ] Self-review + `/code-review` + `/clean-commit` + PR
 
 ### Gate Status
-PENDING
+PLANNED
 
 ### Expected Outcomes
 - SIE reranking (BGE-reranker) available as Tier 2 reranker option in sweep configs
