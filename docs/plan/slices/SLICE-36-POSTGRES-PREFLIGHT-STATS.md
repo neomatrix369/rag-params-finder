@@ -77,7 +77,7 @@ Scenario: indexes list shows known vs missing indexes on Postgres
 - [ ] Mongo preflight/stats still pass
 - [ ] Coverage + quality gates
 - [ ] Doc audit: PRD §Documentation matrix rows for slice **36** (`cli-reference.md`, `configuration.md` storage-mode)
-- [ ] `docs/slices/PROGRESS.md` updated
+- [ ] `docs/plan/slices/PROGRESS.md` updated
 
 ## Gate Status
 

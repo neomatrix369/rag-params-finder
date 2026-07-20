@@ -142,7 +142,7 @@ RECOVER_ON_BOOT=false
 LOG_LEVEL=INFO   # DEBUG for verbose output
 ```
 
-Slice 10 *(planned)* documents CLI/API **retry** of failed/interrupted runs: [`SLICE-10-RUN-RECOVERY.md`](../slices/SLICE-10-RUN-RECOVERY.md). **Boot status reconciliation** (fix stale `running` experiments) is already implemented in `server/core/startup_reconciliation.py`.
+Slice 10 *(planned)* documents CLI/API **retry** of failed/interrupted runs: [`SLICE-10-RUN-RECOVERY.md`](../plan/slices/SLICE-10-RUN-RECOVERY.md). **Boot status reconciliation** (fix stale `running` experiments) is already implemented in `server/core/startup_reconciliation.py`.
 
 **Never commit `.env` to git** — it is in `.gitignore`.
 

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Agent guidance for `rag-params-finder`. Start with `AGENTS.md` → this file → `docs/README.md` → `docs/slices/PROGRESS.md`.
+Agent guidance for `rag-params-finder`. Start with `AGENTS.md` → this file → `docs/README.md` → `docs/plan/slices/PROGRESS.md`.
 
 ## Project Overview
 
@@ -65,7 +65,7 @@ Backend switching — only the start command changes:
 | Atlas cloud | `mongodb+srv://...` (from .env) |
 | Atlas Local | `mongodb://localhost:27017/rag_params_finder?directConnection=true` |
 
-Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/slices/SLICE-14-DOCKER-COMPOSE.md` and `docs/user-guide/mongodb-setup.md`.
+Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/SLICE-14-DOCKER-COMPOSE.md` and `docs/user-guide/mongodb-setup.md`.
 
 ### CLI
 
@@ -184,15 +184,15 @@ Provider/model must match — registry in `model_registry.py` validates at confi
 
 ### Pre-slice checklist
 ```
-[ ] Read docs/slices/PROGRESS.md — confirm current state and which slice is next
-[ ] Read or create the slice spec in docs/slices/SLICE-XX-*.md
+[ ] Read docs/plan/slices/PROGRESS.md — confirm current state and which slice is next
+[ ] Read or create the slice spec in docs/plan/slices/SLICE-XX-*.md
 [ ] bash scripts/install-git-hooks.sh (once per machine — commit + pre-push checks)
 [ ] Run all quality gates — confirm zero regressions before starting
 [ ] Note the exact acceptance criteria — these are the exit conditions
 ```
 
 ### Decision log template
-Record every non-obvious choice in `docs/slices/PROGRESS.md` → Decision Log:
+Record every non-obvious choice in `docs/plan/slices/PROGRESS.md` → Decision Log:
 ```
 | <date> | <slice> | <decision> | <why> |
 ```
@@ -218,7 +218,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 ```
 [ ] All acceptance criteria checked ✅
 [ ] Quality gates pass (zero regressions) — ./scripts/quality-gates.sh; git push runs pre-push-gates (full local gates) when hooks installed
-[ ] Slice status updated in docs/slices/PROGRESS.md (🔨 → ✅ COMPLETE)
+[ ] Slice status updated in docs/plan/slices/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
 [ ] Consider release: ./scripts/release.sh minor (slices/features) or patch (fixes/polish)
@@ -276,7 +276,7 @@ The project follows [Semantic Versioning](https://semver.org/). Release automati
 | `docs/contributor-guide/extending.md` | Contributors | Adding models, chunkers, endpoints |
 | `docs/contributor-guide/development.md` | Contributors | Dev loop, quality gates |
 | `docs/contributor-guide/release-process.md` | Contributors | Creating releases, versioning strategy |
-| `docs/slices/PROGRESS.md` | Agents | Slice status, decision log, roadmap |
+| `docs/plan/slices/PROGRESS.md` | Agents | Slice status, decision log, roadmap |
 | `docs/README.md` | All | Documentation index (personas, topics, tasks) |
 | `docs/adr/` | All | Architecture Decision Records |
 

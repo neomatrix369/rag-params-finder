@@ -19,7 +19,7 @@
 - `frontend/src/types/index.ts` — four interfaces updated
 - `frontend/src/components/ExperimentDetailScreen.tsx` — sweep badges + runs table
 - `frontend/src/components/SearchExplorerScreen.tsx` — all display locations
-- `docs/slices/PROGRESS.md` — Slice 29 row + decision log entry
+- `docs/plan/slices/PROGRESS.md` — Slice 29 row + decision log entry
 
 **Exit criteria:**
 - [x] `_run_config_key()` includes padding — multi-padding sweeps show distinct ranked configs
@@ -176,7 +176,7 @@ Nine locations mirror the `chunk_size`/`overlap` pattern:
 | `frontend/src/types/index.ts` | **EDIT** — add `padding`/`paddings` to four interfaces |
 | `frontend/src/components/ExperimentDetailScreen.tsx` | **EDIT** — sweep badges + runs table (3 locations) |
 | `frontend/src/components/SearchExplorerScreen.tsx` | **EDIT** — all display locations (9 locations) |
-| `docs/slices/PROGRESS.md` | **EDIT** — Slice 29 row + decision log entry |
+| `docs/plan/slices/PROGRESS.md` | **EDIT** — Slice 29 row + decision log entry |
 
 ## GWT Scenarios (tests)
 

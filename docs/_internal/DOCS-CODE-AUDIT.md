@@ -18,13 +18,13 @@
 | `repo-lint.sh` ↔ pre-commit hooks | ✅ shellcheck, actionlint, markdownlint (same revs via pre-commit) |
 | pre-push hook ↔ `pre-push-gates.sh` | ✅ `quality-gates.sh --quick` (pytest + frontend verify + gitleaks); not `pre-commit --all-files` |
 | Test count in contributor docs | ✅ **78** pytest tests (2026-07-01; was 58 → 78) |
-| Doc entry points | ✅ `QUICKSTART.md`, `docs/README.md`, `docs/slices/PROGRESS.md` (2026-05-28 nav reorg) |
+| Doc entry points | ✅ `QUICKSTART.md`, `docs/README.md`, `docs/plan/slices/PROGRESS.md` (2026-05-28 nav reorg) |
 | Kimchi provider | ⚠️ `Provider` type includes `kimchi`; embedder/registry on `tessl-hackathon-kimchi-integration` branch only — not on main |
 | `development.md` testing section | ✅ Updated (was "no suite yet") |
 
 - **Critical issues**: 0
 - **Accuracy (user-facing CLI/config)**: ~98% (2026-05-23 baseline still valid)
-- **See also**: `docs/contributor-guide/development.md`, `docs/slices/SLICE-21-SIE-SKATEBOARD.md`
+- **See also**: `docs/contributor-guide/development.md`, `docs/plan/slices/SLICE-21-SIE-SKATEBOARD.md`
 
 **2026-06-29 supplement** (Slice 21 SIE + doc sync pass):
 
@@ -297,7 +297,7 @@ When the server restarts, any experiments left in `running` status are automatic
 **Current behavior** (`server/core/orchestrator.py`):
 - Value is stored and visible in dashboard
 - Runs execute sequentially regardless of value
-- Planned for **Slice 16** (see `docs/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md`)
+- Planned for **Slice 16** (see `docs/plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md`)
 
 **Documentation accuracy**: ✅ **Correct** — configuration.md explicitly states:
 ```markdown
@@ -318,13 +318,13 @@ than `1` have **no throughput effect** until implemented.
 **Current behavior**:
 - Setting is loaded and stored in experiment metadata
 - No actual auto-retry happens on boot
-- Planned for **Slice 10** (see `docs/slices/SLICE-10-RUN-RECOVERY.md`)
+- Planned for **Slice 10** (see `docs/plan/slices/SLICE-10-RUN-RECOVERY.md`)
 
 **Documentation accuracy**: ✅ **Correct** — `.env.example` explicitly states:
 ```bash
 # Optional — echoed in experiment metadata / dashboard ("Recover on Boot").
 # Boot-time auto-retry is not implemented yet. Planned semantics (Slice 10):
-#   docs/slices/SLICE-10-RUN-RECOVERY.md — INTERRUPTED runs only on boot, not all FAILED.
+#   docs/plan/slices/SLICE-10-RUN-RECOVERY.md — INTERRUPTED runs only on boot, not all FAILED.
 RECOVER_ON_BOOT=false
 ```
 

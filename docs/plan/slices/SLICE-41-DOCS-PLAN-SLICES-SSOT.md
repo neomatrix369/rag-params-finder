@@ -15,7 +15,7 @@
 The repository has both:
 
 - `docs/plan/*` (planning artifacts, policy, and process records), and
-- `docs/slices/*` (per-slice specs plus the SSOT `PROGRESS.md` progress tracker).
+- `docs/plan/slices/*` (per-slice specs plus the SSOT `PROGRESS.md` progress tracker).
 
 There is still occasional confusion between these folders, and previous continuity work left repeated references that can be misread as duplicate progress trackers.
 
@@ -25,14 +25,14 @@ This slice removes ambiguity by explicitly documenting the role boundary and upd
 
 Make documentation ownership explicit so every contributor can tell:
 
-- which files are canonical for execution status (`docs/slices/PROGRESS.md`),
+- which files are canonical for execution status (`docs/plan/slices/PROGRESS.md`),
 - which files are canonical for plan decisions and continuity (`docs/plan`),
 - and where to find this slice.
 
 ## Acceptance criteria
 
-- [ ] `docs/slices/SLICE-41-DOCS-PLAN-SLICES-SSOT.md` exists with a clear problem, goal, and behavioral criteria.
-- [ ] `docs/slices/PROGRESS.md` includes this slice in its Quick Status and Plan Track entries with `📋 PLANNED`.
+- [ ] `docs/plan/slices/SLICE-41-DOCS-PLAN-SLICES-SSOT.md` exists with a clear problem, goal, and behavioral criteria.
+- [ ] `docs/plan/slices/PROGRESS.md` includes this slice in its Quick Status and Plan Track entries with `📋 PLANNED`.
 - [ ] `docs/plan/TRAIL.md` includes this slice row, same status, and a non-disruptive execution-note update.
 - [ ] `docs/plan/DECISIONS.md` records the boundary decision and the rationale.
 - [ ] No plan execution sequencing is changed for the migration path (`32 → 33 → 34 → 35 → 36 → 37 → 38`).
@@ -41,15 +41,15 @@ Make documentation ownership explicit so every contributor can tell:
 
 ```text
 Scenario: Canonical status tracker is obvious
-  Given an engineer opens docs/plan and docs/slices
+  Given an engineer opens `docs/plan` and `docs/plan/slices`
   When they search for current execution status
-  Then they can identify `docs/slices/PROGRESS.md` as the SSOT status tracker
-  And they can find slice-level detail in `docs/slices/SLICE-*.md`
+  Then they can identify `docs/plan/slices/PROGRESS.md` as the SSOT status tracker
+  And they can find slice-level detail in `docs/plan/slices/SLICE-*.md`
 
 Scenario: Canonical boundary for planning records is preserved
   Given a future implementation decision is made
-  When the decision is recorded in docs/plan/DECISIONS.md
-  Then the execution artifacts in docs/slices are updated without duplicating `docs/plan/PROGRESS.md`
+  When the decision is recorded in `docs/plan/DECISIONS.md`
+  Then the execution artifacts in `docs/plan/slices/` are updated without duplicating `docs/plan/PROGRESS.md`
   And there is no active `docs/plan/PROGRESS.md` source of truth conflict
 
 Scenario: Planner slice list remains stable
@@ -61,12 +61,12 @@ Scenario: Planner slice list remains stable
 ## Implementation details
 
 - Do not introduce new runtime code.
-- Keep changes limited to planning artifacts (`docs/slices/PROGRESS.md`, `docs/plan/TRAIL.md`, `docs/plan/DECISIONS.md`).
+- Keep changes limited to planning artifacts (`docs/plan/slices/PROGRESS.md`, `docs/plan/TRAIL.md`, `docs/plan/DECISIONS.md`).
 - Use a neutral wording that avoids implying a second SSOT.
 
 ## Files to update
 
-- `docs/slices/SLICE-41-DOCS-PLAN-SLICES-SSOT.md` (new)
-- `docs/slices/PROGRESS.md`
+- `docs/plan/slices/SLICE-41-DOCS-PLAN-SLICES-SSOT.md` (new)
+- `docs/plan/slices/PROGRESS.md`
 - `docs/plan/TRAIL.md`
 - `docs/plan/DECISIONS.md`

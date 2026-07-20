@@ -4,7 +4,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 
 **Repo entry:** [README.md](../README.md) · **Fastest run:** [QUICKSTART.md](../QUICKSTART.md)
 
-**Maintainers:** slice status and decision log live in [slices/PROGRESS.md](./slices/PROGRESS.md) (updated 2026-07-01 for slices 21/24/25/25B; 97 tests).
+**Maintainers:** slice status and decision log live in [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) (updated 2026-07-01 for slices 21/24/25/25B; 97 tests).
 
 > **Who is this for?** Same personas as [README → Who is this for?](../README.md#who-is-this-for) — this page is the **doc map**; the README is the project entry.
 
@@ -22,8 +22,8 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | **Operator — fixing errors** | [user-guide/troubleshooting.md](./user-guide/troubleshooting.md) | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) (indexes, Voyage tiers) |
 | **Contributor — system design** | [contributor-guide/architecture.md](./contributor-guide/architecture.md) | [adr/](./adr/) |
 | **Contributor — extending** | [contributor-guide/extending.md](./contributor-guide/extending.md) | [contributor-guide/development.md](./contributor-guide/development.md) |
-| **Contributor — dev environment** | [contributor-guide/development.md](./contributor-guide/development.md) | [slices/PROGRESS.md](./slices/PROGRESS.md) · [slices/](./slices/) specs |
-| **Agent / slice worker** | [AGENTS.md](../AGENTS.md) · [CLAUDE.md](../CLAUDE.md) | [slices/PROGRESS.md](./slices/PROGRESS.md) → current `SLICE-XX-*.md` |
+| **Contributor — dev environment** | [contributor-guide/development.md](./contributor-guide/development.md) | [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) · [plan/slices/](./plan/slices/) specs |
+| **Agent / slice worker** | [AGENTS.md](../AGENTS.md) · [CLAUDE.md](../CLAUDE.md) |  [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) → current `SLICE-XX-*.md` |
 
 ---
 
@@ -60,8 +60,8 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | [adr/ADR-001-two-process-architecture.md](./adr/ADR-001-two-process-architecture.md) | CLI + server separation |
 | [adr/ADR-002-voyage-and-local-providers.md](./adr/ADR-002-voyage-and-local-providers.md) | Dual embedding/rerank providers |
 | [adr/ADR-003-mongodb-atlas-vector-store.md](./adr/ADR-003-mongodb-atlas-vector-store.md) | MongoDB Atlas as vector store |
-| [slices/PROGRESS.md](./slices/PROGRESS.md) | Slice status, decision log, forward roadmap |
-| [slices/SLICE-*.md](./slices/) | Per-slice specs (acceptance criteria, verification) |
+| [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) | Slice status, decision log, forward roadmap |
+| [plan/slices/SLICE-*.md](./plan/slices/) | Per-slice specs (acceptance criteria, verification) |
 
 ---
 
@@ -86,6 +86,6 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | Atlas vector + text search indexes | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) |
 | Example YAML configs | `configs/example-mongodb-local.yaml`, `configs/example-mongodb-voyage.yaml`, `configs/example-mongodb-sie.yaml` |
 | Quality gates before commit | [contributor-guide/development.md](./contributor-guide/development.md) · `./scripts/quality-gates.sh` |
-| Docker server + dashboard | [slices/SLICE-14-DOCKER-COMPOSE.md](./slices/SLICE-14-DOCKER-COMPOSE.md) |
+| Docker server + dashboard | [plan/slices/SLICE-14-DOCKER-COMPOSE.md](./plan/slices/SLICE-14-DOCKER-COMPOSE.md) |
 | SIE (BGE-M3) Docker setup | [user-guide/sie-setup.md](./user-guide/sie-setup.md) |
-| Continue an in-flight slice | [slices/PROGRESS.md](./slices/PROGRESS.md) + matching `slices/SLICE-XX-*.md` |
+| Continue an in-flight slice |  [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) + matching `plan/slices/SLICE-XX-*.md` |

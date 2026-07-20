@@ -56,7 +56,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
 | 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
 | 39 — Demo-ready dashboard polish | ✅ COMPLETE | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, network, and component verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
-| 41 — Documentation Plan/Slices SSOT alignment | 📋 PLANNED | ~1 h | Clarify `docs/plan` vs `docs/slices` roles; keep `docs/slices/PROGRESS.md` as the status SSOT |
+| 41 — Documentation Plan/Slices SSOT alignment | 📋 PLANNED | ~1 h | Clarify `docs/plan` vs `docs/plan/slices` roles; keep `docs/plan/slices/PROGRESS.md` as the status SSOT |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
 
@@ -91,7 +91,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 30 | Could | 📋 PLANNED | — | Search Explorer UX |
 | 31 | Should | 📋 PLANNED | — | Experiment list filter |
 | 39 | Should | ✅ COMPLETE | — | Demo-ready list/detail journey; lifecycle component coverage and clean implementation history verified |
-| 41 | Should | 📋 PLANNED | — | Clarify `docs/plan` vs `docs/slices` roles; status SSOT remains here |
+| 41 | Should | 📋 PLANNED | — | Clarify `docs/plan` vs `docs/plan/slices` roles; status SSOT remains here |
 
 **Execution order**: 21 → 25 → 25B → 29 → 39 (done) → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
 
@@ -104,7 +104,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 2026-07-20 | Slice 40 merged into Slice 20 | CI/CD trigger topology hardening (tooling split, path filters, lockfile-aware audits) consolidated into Slice 20 as Round 2 follow-up and tracked as part of complete Slice 20 |
 | 2026-07-19 | Slice 39 review revisions | Added 7 lifecycle component scenarios, wired them into local/CI gates, and removed unrelated MongoDB work from the implementation branch |
 | 2026-07-18 | Slice 39 implementation verified | Exact-main before/after checks at 1440×900 and 390×844; lifecycle, async, keyboard, WCAG contrast, and 2 s polling checks passed |
-| 2026-07-20 | Slice 41 introduced | Added a docs-alignment maintenance slice to formalize plan/slice tracking boundaries and keep PROGRESS SSOT in `docs/slices` |
+| 2026-07-20 | Slice 41 introduced | Added a docs-alignment maintenance slice to formalize plan/slice tracking boundaries and keep PROGRESS SSOT in `docs/plan/slices/PROGRESS.md` |
 | 2026-07-01 | Dependabot PR triage #26–#43 | 4 merged (#36–#39), 5 closed (#26, #40–#43) |
 | 2026-07-02 | Plan health-check + gap refresh | TRAIL, GAP_ANALYSIS, HANDOFF updated; gate-evidence backfilled |
 | 2026-07-02 | Merge plan PROGRESS into slices PROGRESS | Single SSOT — removed `docs/plan/PROGRESS.md` duplicate |
@@ -191,7 +191,7 @@ End-to-end pipeline working with one chunker (RECURSIVE), one embedding model (v
 - `configs/questions.example.json`
 
 **Docs**:
-- `docs/slices/SLICE-01-SKATEBOARD.md`
+- `docs/plan/slices/SLICE-01-SKATEBOARD.md`
 - `docs/ARCHITECTURE.md` (brief)
 
 ### Quick-Win Cuts
@@ -219,7 +219,7 @@ cd frontend && npm run dev
 
 **Foundation** (7):
 - pyproject.toml, .env.example, .gitignore, README.md
-- docs/slices/PROGRESS.md, docs/ARCHITECTURE.md, docs/slices/SLICE-01-SKATEBOARD.md
+- docs/plan/slices/PROGRESS.md, docs/ARCHITECTURE.md, docs/plan/slices/SLICE-01-SKATEBOARD.md
 
 **Server** (20):
 - server/{__init__.py, main.py, utils/logger.py}
@@ -644,7 +644,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 ## Deferred
 
-- Parallel sweep concurrency *(Slice 16 — [`docs/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md))*
+- Parallel sweep concurrency *(Slice 16 — [`docs/plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md))*
 - All SHOULD/COULD slices
 - Error handling (basic only in Slice 1)
 - Logging structure (prints for now)
@@ -696,8 +696,8 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-17 | 6 | sparse/hybrid require text_search_index | Atlas $search is the BM25 engine; full-text + vector indexes can coexist on same collection |
 | 2026-05-17 | 6 | query_embedding optional in search() dispatcher | Avoids embedding API call for sparse retrieval runs |
 | 2026-05-17 | — | Reorganise configs: 1 file per DB×provider | Replaced 7 single-purpose example files with `example-mongodb-local.yaml` and `example-mongodb-voyage.yaml`; each covers all embedding models, all chunking methods, and all retrieval methods for that DB+provider |
-| 2026-05-17 | — | Slice 16 spec for parallel sweep runs | Formalized deferred work: bounded in-process parallelism vs Celery; honor `execution.parallelism`; specs in [`docs/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md) |
-| 2026-05-17 | 10 | Slice 10 spec for run recovery | In-place retry for FAILED runs (`--include-interrupted` optional); reuse `run_id`; delete stale `chunks`/`results` for that run only; config from Mongo `experiments.config`; boot recovery scoped to INTERRUPTED only; spec in [`docs/slices/SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) |
+| 2026-05-17 | — | Slice 16 spec for parallel sweep runs | Formalized deferred work: bounded in-process parallelism vs Celery; honor `execution.parallelism`; specs in [`docs/plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md) |
+| 2026-05-17 | 10 | Slice 10 spec for run recovery | In-place retry for FAILED runs (`--include-interrupted` optional); reuse `run_id`; delete stale `chunks`/`results` for that run only; config from Mongo `experiments.config`; boot recovery scoped to INTERRUPTED only; spec in [`docs/plan/slices/SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) |
 | 2026-05-17 | 8 | Dual loading indicators (panel + polling badge) | Full LoadingFeedbackPanel for initial loads provides detailed progress; subtle PollingIndicator for background refreshes avoids visual noise |
 | 2026-05-17 | 8 | fetchWithProgress with ReadableStream | Byte-level progress via `response.body.getReader()` enables real-time progress bars; better UX than spinners for large payloads |
 | 2026-05-17 | 8 | Shared DashboardShell + AppPageChrome components | Unified header/nav/layout across all screens; DRY principle, consistent UX, easier to maintain |
@@ -727,7 +727,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-23 | 19 | Slice 19 spec for storage quota guard | M0 hit 515/512 MB; writes blocked (cancel/delete deadlock); `dbStats` understated cluster usage; mirror search-index preflight pattern — spec in [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) |
 | 2026-05-27 | 20 | Docs synced to toolchain + test reality | pytest count corrected (was 39); Kimchi on integration branch only; `quality-gates.sh` in interrupt recovery; CI/bandit/gitleaks documented |
 | 2026-05-27 | 20 | Repo lint in CI + pre-commit | shellcheck (`scripts/*.sh`), actionlint, markdownlint; `scripts/repo-lint.sh`; pragmatic `.markdownlint.json`; CI `repo-lint` job (4 jobs total) |
-| 2026-05-28 | — | Docs navigation (playgroup-style) | Root `QUICKSTART.md`; `docs/README.md` index; `PROGRESS.md` lives under `docs/slices/` beside slice specs |
+| 2026-05-28 | — | Docs navigation (playgroup-style) | Root `QUICKSTART.md`; `docs/README.md` index; `PROGRESS.md` lives under `docs/plan/slices/` beside slice specs |
 | 2026-05-28 | 20 | Pre-push = fast gates (`--quick`) | `git push` → `pre-push-gates.sh` (repo lint, ruff, mypy, bandit, pytest, frontend verify, gitleaks); commit hook stays staged pre-commit only |
 | 2026-06-27 | 21 | embedder_factory.py as single dispatch point | Factory pattern over Protocol/ABC (Decision #10); orchestrator never does provider if/elif; each provider module exports embed_docs_fn + embed_query_fn |
 | 2026-06-27 | 21 | SIEClient per call (no module-level cache) | Module-level client cache caused test state leakage between test runs; per-call instantiation ensures isolation |
@@ -890,13 +890,13 @@ Use this when resuming a session mid-slice:
 
 ```
 [ ] Read the Skill Execution Log above — last skill run tells you where to resume
-[ ] Read docs/slices/PROGRESS.md — note current slice and last known state
+[ ] Read docs/plan/slices/PROGRESS.md — note current slice and last known state
 [ ] Git hooks installed: bash scripts/install-git-hooks.sh (once per machine)
 [ ] Run quality gates to confirm no regressions:
       ./scripts/quality-gates.sh          # full CI mirror before PR
       # git push runs ./scripts/pre-push-gates.sh (full gates) when hooks installed
 [ ] Check git status — any uncommitted changes?
-[ ] Read the current slice spec in docs/slices/SLICE-XX-*.md
+[ ] Read the current slice spec in docs/plan/slices/SLICE-XX-*.md
 [ ] Resume from the last incomplete acceptance criterion
 [ ] Verify after every change before moving to the next criterion
 ```

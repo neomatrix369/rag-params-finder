@@ -82,7 +82,7 @@ Scenario: Default backend is Postgres; Mongo still works
 - [ ] CI dual-backend regression green (mongo + postgres jobs) recorded in gate-evidence
 - [ ] Doc audit: PRD §Documentation matrix rows for slice **38** (ADR-004, ADR-003, gate-evidence, CHANGELOG, mongodb-setup cross-link, README default)
 - [ ] `/sync-docs` run — full user + contributor footprint after cutover
-- [ ] `docs/slices/PROGRESS.md` updated
+- [ ] `docs/plan/slices/PROGRESS.md` updated
 - [ ] Graphiti episode: cutover decision
 
 ## Gate Status

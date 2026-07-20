@@ -1,4 +1,4 @@
-<!-- file: docs/slices/SLICE-21-SIE-SKATEBOARD.md -->
+<!-- file: docs/plan/slices/SLICE-21-SIE-SKATEBOARD.md -->
 
 ## Slice Workflow Header
 
@@ -144,11 +144,11 @@ Scenario: example-mongodb-sie.yaml loads and expands sweep for SIE provider
 - [ ] Smoke test: `curl -X POST http://localhost:8001/api/v1/sweep -H "Content-Type: application/json" -d '{"topic":"machine learning","corpus":["RAG improves retrieval","vector search scales well"]}'` → HTTP 200 with ranked results
 - [ ] `GET /health` returns SIE status and version
 - [ ] Aim UI (`./scripts/aim-ui.sh`) shows at least one logged run
-- [ ] Doc audit → YES: update `docs/slices/PROGRESS.md` (Slice 21 → ✅ COMPLETE); update `CLAUDE.md` Key Files table with new files; cascade `example-mongodb-sie.yaml` across user guide + config reference
+- [ ] Doc audit → YES: update `docs/plan/slices/PROGRESS.md` (Slice 21 → ✅ COMPLETE); update `CLAUDE.md` Key Files table with new files; cascade `example-mongodb-sie.yaml` across user guide + config reference
 - [ ] Security audit → NO (no auth, no external user input reaching shell/DB directly)
 - [ ] Self-review: read `git diff main` before requesting review
 - [ ] Run `/clean-commit` then push branch; open PR via `/create-pr`
-- [ ] `docs/slices/PROGRESS.md` updated: Slice 21 → ✅ COMPLETE
+- [ ] `docs/plan/slices/PROGRESS.md` updated: Slice 21 → ✅ COMPLETE
 
 ### Gate Status
 

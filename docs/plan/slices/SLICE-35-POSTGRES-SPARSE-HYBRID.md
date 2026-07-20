@@ -67,7 +67,7 @@ Scenario: SPLADE sparsevec gate and fallback
 - [ ] SPLADE v3 sparse encoding ceiling verified on test corpus (≤1000 non-zeros per doc) or fallback path active
 - [ ] Coverage + quality gates
 - [ ] Doc audit: PRD §Documentation matrix rows for slice **35** (`configuration.md` sparse/hybrid)
-- [ ] `docs/slices/PROGRESS.md` updated
+- [ ] `docs/plan/slices/PROGRESS.md` updated
 
 ## Gate Status
 

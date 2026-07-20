@@ -92,7 +92,7 @@ Scenario: Supabase paused project surfaces clear error
 - [ ] Coverage + quality gates
 - [ ] Doc audit: PRD §Documentation matrix rows for slice **37** (all user + dev setup docs; `supabase-setup.md` created)
 - [ ] `/sync-docs` run — README, docs/README, user-guide, development.md footprint verified
-- [ ] `docs/slices/PROGRESS.md` updated
+- [ ] `docs/plan/slices/PROGRESS.md` updated
 
 ## Gate Status
 

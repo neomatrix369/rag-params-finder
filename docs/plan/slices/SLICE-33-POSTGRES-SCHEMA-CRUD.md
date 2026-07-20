@@ -99,7 +99,7 @@ Scenario: External experiment_id preserved
 - [ ] `.env.example` documents `STORAGE_BACKEND` + `DATABASE_URL`
 - [ ] `./scripts/quality-gates.sh` passes
 - [ ] Doc audit: PRD §Documentation matrix rows for slice **33** (`.env.example`, PRD glossary, `configuration.md` env vars)
-- [ ] `docs/slices/PROGRESS.md` updated
+- [ ] `docs/plan/slices/PROGRESS.md` updated
 
 ## Gate Status
 

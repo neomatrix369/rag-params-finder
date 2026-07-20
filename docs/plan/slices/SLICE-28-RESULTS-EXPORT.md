@@ -143,7 +143,7 @@ Omit `chunk_text` from default CSV (size); include in JSONL only.
 | `tests/test_results_export.py` | **NEW** — GWT tests (mock mongo + analyzer) |
 | `frontend/src/services/apiClient.ts` | **EDIT** — `downloadExperimentExport()` |
 | `frontend/src/components/ExperimentDetailScreen.tsx` | **EDIT** — Export CSV button |
-| `docs/slices/PROGRESS.md` | Slice 28 row + decision log |
+| `docs/plan/slices/PROGRESS.md` | Slice 28 row + decision log |
 
 ## GWT Scenarios (tests)
 

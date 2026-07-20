@@ -24,7 +24,7 @@
 
 - Slice 21 skateboard: SIE encode + sweep endpoint + Aim logging + quality gates green.
 - Local dev: `./start-services.sh --local` with auto-provisioned search indexes.
-- Plan artifacts stay synced with `docs/slices/PROGRESS.md` (canonical slice status).
+- Plan artifacts stay synced with `docs/plan/slices/PROGRESS.md` (canonical slice status).
 
 ## Out of Scope (confirmed)
 

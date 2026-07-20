@@ -21,8 +21,8 @@
 | 16 | 2026-07-02 | health-check | Gap 5: gate-evidence stubs | Backfilled slice-21.json, slice-25.json, slice-25B.json | AUTO-FIXED |
 | 17 | 2026-07-02 | health-check | Gap 1: interview_summary.md | Reconstructed from TRAIL + PROGRESS + PCTO spec | AUTO-FIXED |
 | 18 | 2026-07-02 | health-check | Gap 3: model split | Defaults: Planning claude-opus-4-8 · Execution claude-sonnet-4-6 | AUTO-FIXED |
-| 19 | 2026-07-02 | — | Created docs/plan/PROGRESS.md | plan-modifier requires plan-level tracker separate from docs/slices/PROGRESS.md | **Superseded by #23** |
-| 23 | 2026-07-02 | — | Merge docs/plan/PROGRESS.md into docs/slices/PROGRESS.md | Single SSOT — AGENTS.md/CLAUDE.md already point to slices/PROGRESS; duplicate caused drift | Delete docs/plan/PROGRESS.md |
+| 19 | 2026-07-02 | — | Created docs/plan/PROGRESS.md | plan-modifier requires plan-level tracker separate from docs/plan/slices/PROGRESS.md | **Superseded by #23** |
+| 23 | 2026-07-02 | — | Merge docs/plan/PROGRESS.md into docs/plan/slices/PROGRESS.md | Single SSOT — AGENTS.md/CLAUDE.md already point to slices/PROGRESS; duplicate caused drift | Delete docs/plan/PROGRESS.md |
 | 20 | 2026-07-02 | — | Dependabot #26–#43 triage recorded | 4 merged (#36–#39 CI actions), 5 closed (breaking toolchain bumps) | Execute when stale |
 | 21 | 2026-07-02 | — | Deferred toolchain upgrades documented in TRAIL + GAP_ANALYSIS | Vite 8, ESLint 9, react-hooks 7, ST v4+ need dedicated slices — not blind Dependabot merges | Close-and-document pattern |
 | 22 | 2026-07-02 | — | GAP_ANALYSIS refresh cadence | Update on slice PASS or quarterly; stale analysis misleads continuation sessions | Manual until automated |
@@ -57,7 +57,7 @@
 | 52 | 2026-07-09 | 38 | Cutover gates: latency ≤2× Mongo p99; hybrid drift ≤5%; equivalence ≥80% top-3 | Platform review blocker — operators need explicit PASS/FAIL before default flip | Qualitative comparison only |
 | 53 | 2026-07-09 | 33–37 | Mandatory Postgres CI job before merging storage slices | Dual-backend regression; prevent Postgres path bitrot | Optional local gate only at Slice 38 |
 | 54 | 2026-07-09 | 38 | Rollback: revert to mongo if incident recovery >30 min | Platform review rollback playbook | No documented rollback |
-| 55 | 2026-07-09 | health-check | Continuation audit: legacy gaps 1–7 OK | Gap 8 N/A — specs live under `docs/slices/` not `docs/plan/slice-*.md` | Require duplicate stubs in docs/plan |
+| 55 | 2026-07-09 | health-check | Continuation audit: legacy gaps 1–7 OK | Gap 8 N/A — specs live under `docs/plan/slices/` not `docs/plan/slice-*.md` | Require duplicate stubs in docs/plan |
 | 56 | 2026-07-09 | 11 | Created SLICE-11-SEARCH-EXPLORER.md | TRAIL linked missing file; scope = viz + query filter only (export→28, UX→30) | Fold into Slice 30 |
 | 57 | 2026-07-09 | 19/26/27 | Spec status → DEFERRED aligned with TRAIL | 27 superseded by 36; 19/26 re-scope post-cutover | Keep PLANNED in specs |
 | 58 | 2026-07-09 | 10/16/22/23/28 | Bridge Before-Checks + deps + execution order | 10 PARTIAL in TRAIL; 22 hard dep 32; 28 order matches migration-first | Leave stale pre-2026-07-09 order in specs |
@@ -66,4 +66,4 @@
 | 61 | 2026-07-18 | 39 | Add a ≤2 h demo-ready dashboard polish slice before Slice 32 | User prioritised an impressive UI for the imminent demo; visual-only list-to-detail work has higher immediate presentation value than migration foundations and resumes the approved migration sequence afterward | Start Slice 32 immediately — strategically correct but produces little visible demo improvement within the available time |
 | 62 | 2026-07-18 | 39 | Adopt ARC-AGI-3 results storytelling principles, not its domain or implementation | Thesis-first framing, evidence progression, traceability, and progressive disclosure strengthen the existing RAG demo without depending on unpublished source or inventing capabilities; charts/search remain owned by Slices 11/30/31 | Copy the external site's structure and analytics — scope expansion, unverifiable lineage, and regression risk inside a ≤2 h visual slice |
 | 63 | 2026-07-20 | 20/40 | Merge Round 2 trigger hardening into Slice 20 | Slice 20 is now the single spec source for toolchain work; Slice 40 artifact is consolidated and removed from active scope | Keep implementation in Slice 20; track follow-up in PROGRESS/DECISIONS only |
-| 64 | 2026-07-20 | 41 | Plan-slices boundary clarification | Treat `docs/slices/PROGRESS.md` as the status SSOT and keep `docs/plan` as planning continuity documents (TRAIL, GAP, decisions, handoff). Slice 41 formalizes this to avoid reintroducing a docs/slices mismatch signal | Keep a second progress tracker under `docs/plan/PROGRESS.md` |
+| 64 | 2026-07-20 | 41 | Plan-slices boundary clarification | Treat `docs/plan/slices/PROGRESS.md` as the status SSOT and keep `docs/plan` as planning continuity documents (TRAIL, GAP, decisions, handoff). Slice 41 formalizes this to avoid reintroducing a `docs/slices` naming mismatch | No second status tracker under `docs/plan/PROGRESS.md` |

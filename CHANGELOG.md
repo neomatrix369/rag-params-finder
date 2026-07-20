@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Padding sweep dimension** (PR #48, closes #45) — `paddings` in `ChunkParams`; post-chunk merge-forward via `_apply_padding` in `chunk_text`
 - **Slice 21 — SIE Skateboard** — SIE (Superlinked Inference Engine) as a third embedding provider; `embedder_factory.py` single dispatch point for voyage/local/sie; `sie_embedder.py` (BGE-M3, Stella-v5, SPLADE-v3 via remote gateway `SIE_ENDPOINT` + `SIE_API_KEY` or optional self-hosted Docker on `:8720`); `sie_guard.py` preflight before SIE sweeps; `aim_logger.py` Aim experiment run logging (no-op on failure); `POST /api/v1/sweep` Tier 1 ranked sweep endpoint (caller supplies `corpus` list; falls back to topic string); `GET /health` extended with `sie`, `version` fields; `configs/example-mongodb-sie.yaml`; 58 tests
 - **Slice 25 — Atlas Local dev mode** — `./start-services.sh --local` / `RAG_LOCAL_ATLAS=1`; `mongodb-atlas-local` Docker container; search indexes auto-provisioned on server boot for local URI (no Atlas UI manual step)
-- **Documentation navigation** — root [QUICKSTART.md](QUICKSTART.md), [docs/README.md](docs/README.md) persona index; slice tracker at [docs/slices/PROGRESS.md](docs/slices/PROGRESS.md)
+- **Documentation navigation** — root [QUICKSTART.md](QUICKSTART.md), [docs/README.md](docs/README.md) persona index; slice tracker at [docs/plan/slices/PROGRESS.md](docs/plan/slices/PROGRESS.md)
 - **Slice 14 Docker Compose** — `./start-services.sh`, `stop-services.sh`, `setup.sh`; `docker-compose.yml` + `docker-compose.dev.yml`; server/frontend Dockerfiles; `/healthz` MongoDB ping; `scripts/health-check.sh`
 - **Contributor docs:** Optional `code-review-graph` MCP guidance in [Development Guide](docs/contributor-guide/development.md) and README Contributing section (not required for end users)
 - **Agent docs:** Graph-first exploration workflow in [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md)
@@ -228,7 +228,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Architecture Decision Records** (ADRs) in `docs/adr/` (two-process architecture, dual providers, MongoDB Atlas choice)
-- **Slice specifications** in `docs/slices/` (detailed acceptance criteria, verification steps)
+- **Slice specifications** in `docs/plan/slices/` (detailed acceptance criteria, verification steps)
 - **Pre-commit hooks** (ruff, mypy) via `.pre-commit-config.yaml`
 - **Comprehensive badges** across README and docs (build status, coverage, license, Python/Node versions)
 - **Quality gates baseline documentation** (lint, type check, test counts, bundle size)

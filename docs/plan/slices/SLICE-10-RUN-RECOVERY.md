@@ -77,7 +77,7 @@ Recovery should **reuse the same `run_id`** for a retried run so dashboards, URL
 | `server/core/startup_reconciliation.py` | ✅ Boot status fix *(shipped)* — mark orphans `interrupted`, recompute experiment status |
 | `server/api/experiments_shared.py` *(or new db helper)* | Bulk delete chunks/results by `run_id`; experiment status recomputation |
 | `docs/user-guide/cli-reference.md` | Document `recover` |
-| `docs/slices/PROGRESS.md` | Mark slice complete; decision log |
+| `docs/plan/slices/PROGRESS.md` | Mark slice complete; decision log |
 
 ---
 
@@ -130,6 +130,6 @@ See [`development.md`](../contributor-guide/development.md) § Git hooks and § 
 
 ## See Also
 
-- [`docs/slices/PROGRESS.md`](./PROGRESS.md) — roadmap
+- [`docs/plan/slices/PROGRESS.md`](./PROGRESS.md) — roadmap
 - [`SLICE-03-SWEEP-EXPANSION.md`](./SLICE-03-SWEEP-EXPANSION.md) — sweep expansion
 - [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](./SLICE-16-PARALLEL-SWEEP-RUNS.md) — parallelism vs recovery
