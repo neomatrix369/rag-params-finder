@@ -172,6 +172,16 @@ execution:
 - Use `configs/example-mongodb-voyage-parallel.yaml` or `configs/example-mongodb-sie-parallel.yaml` for provider-specific parallel demo baselines.
 - Keep `1` for deterministic small runs and reserved resource profiles.
 
+Example configs:
+- Sequential (`parallelism: 1`):
+  - [configs/example-mongodb-local.yaml](../../configs/example-mongodb-local.yaml)
+  - [configs/example-mongodb-voyage.yaml](../../configs/example-mongodb-voyage.yaml)
+  - [configs/example-mongodb-sie.yaml](../../configs/example-mongodb-sie.yaml)
+- Parallel (`parallelism: 4`):
+  - [configs/example-mongodb-local-parallel.yaml](../../configs/example-mongodb-local-parallel.yaml)
+  - [configs/example-mongodb-voyage-parallel.yaml](../../configs/example-mongodb-voyage-parallel.yaml)
+  - [configs/example-mongodb-sie-parallel.yaml](../../configs/example-mongodb-sie-parallel.yaml)
+
 For provider-specific caveats and limits (`1..16`, Voyage/SIE quota behavior, and `on_error` semantics), see [Configuration reference → Parallelism](configuration.md#parallelism-executionparallelism).
 
 The CLI will:
