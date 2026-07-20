@@ -128,7 +128,7 @@ Scenario: Evidently drift monitor detects score drop
 - [ ] Self-review + `/code-review` + `/clean-commit` + PR
 
 ### Gate Status
-PENDING
+PLANNED
 
 ### Expected Outcomes
 - HyDE and Multi-Query both run; SIE handles embedding, Ollama handles generation — zero API cost
