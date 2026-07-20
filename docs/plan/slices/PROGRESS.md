@@ -84,7 +84,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 26 | Should | 📦 DEFERRED | 25B | Mongo docs — re-scope post-cutover |
 | 27 | Should | 📦 DEFERRED | — | Absorbed into Slice 36 storage-mode indicator |
 | 19 | Should | 📦 DEFERRED | — | Atlas quota — Postgres path in 36 |
-| 16 | Should | 📋 PLANNED | — | Parallel sweep |
+| 16 | Should | ✅ COMPLETE | — | Parallel sweep |
 | 11 | Could | 📋 PLANNED | 30 (soft) | Search Explorer — viz + filters; after Slice 30 UX |
 | 23 | Could | 📋 PLANNED | 22 | SIE Bicycle |
 | 10 | Could | 🔨 PARTIAL | — | Boot reconciliation ✅; retry CLI/API remaining |

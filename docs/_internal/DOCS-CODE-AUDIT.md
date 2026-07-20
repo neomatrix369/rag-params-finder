@@ -292,21 +292,16 @@ When the server restarts, any experiments left in `running` status are automatic
 ### 1. `execution.parallelism > 1`
 
 **Documented**: ✅ `configuration.md:65-72`
-**Implemented**: ⚠️ **Partial** — stored on experiment doc but orchestrator always runs sequentially
+**Implemented**: ✅ **Complete** — slice 16 now applies bounded in-process parallelism in orchestrator
 
 **Current behavior** (`server/core/orchestrator.py`):
 - Value is stored and visible in dashboard
-- Runs execute sequentially regardless of value
-- Planned for **Slice 16** (see `docs/plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md`)
+- Runs submit up to `execution.parallelism` concurrent workers
+- Stop/error/cancel semantics remain stable for terminal outcomes and partial completion
 
-**Documentation accuracy**: ✅ **Correct** — configuration.md explicitly states:
-```markdown
-**Current behavior**: The value is stored on each experiment *(and visible in the dashboard)*
-but **`server/core/orchestrator.py` always runs sweep runs sequentially** — values greater
-than `1` have **no throughput effect** until implemented.
-```
+**Documentation accuracy**: ✅ **Correct** — configuration.md documents defaults, limits, and semantics.
 
-**No fix needed** — documentation is accurate about the limitation.
+**No fix needed** — behavior and docs are aligned.
 
 ---
 

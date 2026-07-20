@@ -38,7 +38,7 @@ Each PCTO / migration slice lives in its own file below. Existing planned slices
 | 26 | [../plan/slices/SLICE-26-LOCAL-MONGODB-DOCS.md](../plan/slices/SLICE-26-LOCAL-MONGODB-DOCS.md) | Local MongoDB: smooth path docs + script feedback | Should | 📦 DEFERRED | 25B | — | ~1.5 min | 2026-07-09 |
 | 27 | [../plan/slices/SLICE-27-MONGODB-MODE-INDICATOR.md](../plan/slices/SLICE-27-MONGODB-MODE-INDICATOR.md) | MongoDB mode indicator (cloud vs local) | Should | 📦 DEFERRED | 25B | — | ~2 min | 2026-07-09 |
 | 19 | [../plan/slices/SLICE-19-STORAGE-QUOTA-GUARD.md](../plan/slices/SLICE-19-STORAGE-QUOTA-GUARD.md) | Storage quota guard (cloud production) | Should | 📦 DEFERRED | none | — | — | 2026-07-09 |
-| 16 | [../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) | Parallel sweep | Should | 📋 PLANNED | none | — | — | — |
+| 16 | [../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) | Parallel sweep | Should | ✅ PASSED | none | — | — | — |
 | 11 | [../plan/slices/SLICE-11-SEARCH-EXPLORER.md](../plan/slices/SLICE-11-SEARCH-EXPLORER.md) | Search Explorer enhancements — visualization + query filtering | Could | 📋 PLANNED | none (soft: 30) | — | ~3 min | 2026-07-09 |
 | 23 | [../plan/slices/SLICE-23-SIE-BICYCLE.md](../plan/slices/SLICE-23-SIE-BICYCLE.md) | SIE Bicycle — Ollama + Tier 2–3 methods + Evidently AI | Could | 📋 PLANNED | 22 | — | ~3 min | 2026-07-09 |
 | 10 | [../plan/slices/SLICE-10-RUN-RECOVERY.md](../plan/slices/SLICE-10-RUN-RECOVERY.md) | Run recovery | Could | 🔨 PARTIAL | none | — | — | 2026-07-09 |
