@@ -1,10 +1,10 @@
-# Slice 41 — Documentation Plan/Slices SSOT Alignment
+# Slice 40 — Documentation Plan/Slices SSOT Alignment
 
 **Status**: 📋 PLANNED
 
 **MoSCoW**: Should
 
-**Branch**: `slice/41-documentation-ssot-alignment`
+**Branch**: `slice/40-documentation-ssot-alignment`
 
 **Depends on**: none
 
@@ -31,7 +31,7 @@ Make documentation ownership explicit so every contributor can tell:
 
 ## Acceptance criteria
 
-- [ ] `docs/plan/slices/SLICE-41-DOCS-PLAN-SLICES-SSOT.md` exists with a clear problem, goal, and behavioral criteria.
+- [ ] `docs/plan/slices/SLICE-40-DOCS-PLAN-SLICES-SSOT.md` exists with a clear problem, goal, and behavioral criteria.
 - [ ] `docs/plan/slices/PROGRESS.md` includes this slice in its Quick Status and Plan Track entries with `📋 PLANNED`.
 - [ ] `docs/plan/TRAIL.md` includes this slice row, same status, and a non-disruptive execution-note update.
 - [ ] `docs/plan/DECISIONS.md` records the boundary decision and the rationale.
@@ -66,7 +66,7 @@ Scenario: Planner slice list remains stable
 
 ## Files to update
 
-- `docs/plan/slices/SLICE-41-DOCS-PLAN-SLICES-SSOT.md` (new)
+- `docs/plan/slices/SLICE-40-DOCS-PLAN-SLICES-SSOT.md` (new)
 - `docs/plan/slices/PROGRESS.md`
 - `docs/plan/TRAIL.md`
 - `docs/plan/DECISIONS.md`

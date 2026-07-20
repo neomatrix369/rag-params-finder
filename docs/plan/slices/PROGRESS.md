@@ -56,7 +56,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
 | 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
 | 39 — Demo-ready dashboard polish | ✅ COMPLETE | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, network, and component verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
-| 41 — Documentation Plan/Slices SSOT alignment | 📋 PLANNED | ~1 h | Clarify `docs/plan` vs `docs/plan/slices` roles; keep `docs/plan/slices/PROGRESS.md` as the status SSOT |
+| 40 — Documentation Plan/Slices SSOT alignment | 📋 PLANNED | ~1 h | Clarify `docs/plan` vs `docs/plan/slices` roles; keep `docs/plan/slices/PROGRESS.md` as the status SSOT |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
 
@@ -91,7 +91,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 30 | Could | 📋 PLANNED | — | Search Explorer UX |
 | 31 | Should | 📋 PLANNED | — | Experiment list filter |
 | 39 | Should | ✅ COMPLETE | — | Demo-ready list/detail journey; lifecycle component coverage and clean implementation history verified |
-| 41 | Should | 📋 PLANNED | — | Clarify `docs/plan` vs `docs/plan/slices` roles; status SSOT remains here |
+| 40 | Should | 📋 PLANNED | — | Clarify `docs/plan` vs `docs/plan/slices` roles; status SSOT remains here |
 
 **Execution order**: 21 → 25 → 25B → 29 → 39 (done) → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
 
@@ -104,7 +104,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 2026-07-20 | Slice 40 merged into Slice 20 | CI/CD trigger topology hardening (tooling split, path filters, lockfile-aware audits) consolidated into Slice 20 as Round 2 follow-up and tracked as part of complete Slice 20 |
 | 2026-07-19 | Slice 39 review revisions | Added 7 lifecycle component scenarios, wired them into local/CI gates, and removed unrelated MongoDB work from the implementation branch |
 | 2026-07-18 | Slice 39 implementation verified | Exact-main before/after checks at 1440×900 and 390×844; lifecycle, async, keyboard, WCAG contrast, and 2 s polling checks passed |
-| 2026-07-20 | Slice 41 introduced | Added a docs-alignment maintenance slice to formalize plan/slice tracking boundaries and keep PROGRESS SSOT in `docs/plan/slices/PROGRESS.md` |
+| 2026-07-20 | Slice 40 introduced | Added a docs-alignment maintenance slice to formalize plan/slice tracking boundaries and keep PROGRESS SSOT in `docs/plan/slices/PROGRESS.md` |
 | 2026-07-01 | Dependabot PR triage #26–#43 | 4 merged (#36–#39), 5 closed (#26, #40–#43) |
 | 2026-07-02 | Plan health-check + gap refresh | TRAIL, GAP_ANALYSIS, HANDOFF updated; gate-evidence backfilled |
 | 2026-07-02 | Merge plan PROGRESS into slices PROGRESS | Single SSOT — removed `docs/plan/PROGRESS.md` duplicate |
@@ -851,6 +851,8 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-07-20 | main | /enhanced-flow-planner | Slice 39 | COMPLETE | Continuation check reviewed pending/planned slices; no migration needed this pass beyond confirming Slice 39's status alignment |
+| 2026-07-20 | main | /sync-docs | 39 plan sync | COMPLETE | Added Skill Execution Log entries for this sync/session and confirmed `TRAIL.md` and `PROGRESS.md` now align on Slice 39 completion state |
 | 2026-07-19 | slice/39-demo-ready-dashboard-polish-implementation | /nw-review | Slice 39 iteration 2 | APPROVED | Both prior blockers cleared: unrelated MongoDB scope removed; 7 rendered lifecycle component scenarios wired into local gates and CI |
 | 2026-07-18 | slice/39-demo-ready-dashboard-polish-implementation | /browser:control-in-app-browser | Slice 39 | COMPLETE | In-app connection unavailable; standalone Playwright fallback verified 1440×900 and 390×844 list/detail, six lifecycle states, async states, keyboard focus, zero contrast violations, and unchanged 2 s GET cadence |
 | 2026-07-09 | docs/supabase-migration-plan | /update-pr | plan 32–38 + gap bridge | CURRENT | https://github.com/neomatrix369/rag-params-finder/pull/72 — branch up-to-date; PR title/body unchanged; prerequisites: bypassed (docs-only plan PR) |

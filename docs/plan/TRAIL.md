@@ -44,10 +44,10 @@ Each PCTO / migration slice lives in its own file below. Existing planned slices
 | 10 | [../plan/slices/SLICE-10-RUN-RECOVERY.md](../plan/slices/SLICE-10-RUN-RECOVERY.md) | Run recovery | Could | 🔨 PARTIAL | none | — | — | 2026-07-09 |
 | 30 | [../plan/slices/SLICE-30-SEARCH-EXPLORER-UX.md](../plan/slices/SLICE-30-SEARCH-EXPLORER-UX.md) | Search Explorer UX fixes — tab latency, zero-score, BM25 labels, VDB card | Could | 📋 PLANNED | none | — | ~2 min | 2026-07-07 |
 | 31 | [../plan/slices/SLICE-31-EXPERIMENT-LIST-FILTER.md](../plan/slices/SLICE-31-EXPERIMENT-LIST-FILTER.md) | Experiment list filter — status dropdown + name/ID search | Should | 📋 PLANNED | none | — | ~2 min | 2026-07-07 |
-| 39 | [../plan/slices/SLICE-39-DEMO-READY-DASHBOARD-POLISH.md](../plan/slices/SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) | Demo-ready dashboard polish — list-to-detail visual journey | Should | 📋 PLANNED | none | — | ~3 min | 2026-07-18 |
-| 41 | [../plan/slices/SLICE-41-DOCS-PLAN-SLICES-SSOT.md](../plan/slices/SLICE-41-DOCS-PLAN-SLICES-SSOT.md) | Documentation plan/slices SSOT alignment | Should | 📋 PLANNED | none | — | ~1 h | 2026-07-20 |
+| 39 | [../plan/slices/SLICE-39-DEMO-READY-DASHBOARD-POLISH.md](../plan/slices/SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) | Demo-ready dashboard polish — list-to-detail visual journey | Should | ✅ COMPLETE | none | — | ~3 min | 2026-07-18 |
+| 40 | [../plan/slices/SLICE-40-DOCS-PLAN-SLICES-SSOT.md](../plan/slices/SLICE-40-DOCS-PLAN-SLICES-SSOT.md) | Documentation plan/slices SSOT alignment | Should | 📋 PLANNED | none | — | ~1 h | 2026-07-20 |
 
-**Execution order**: 21 → 25 → 25B → 29 (done) → **39** *(≤2 h demo interrupt)* → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10. Slice 41 is docs housekeeping and can run independently of this sequence.
+**Execution order**: 21 → 25 → 25B → 29 (done) → **39** *(≤2 h demo interrupt)* → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10. Slice 40 is docs housekeeping and can run independently of this sequence.
 *Deferred Mongo QoL: 26, 19 — re-scope after cutover. Slice 27 scope absorbed into 36 as a storage-mode indicator.*
 
 **PCTO escape hatch (Slice 22):** If slices 32–36 slip **>2 days** past the PCTO deadline, start Slice 22 on Mongo via StorageBackend Protocol only (hard dep: 32 merged); budget ~30 min to re-port history queries when Slice 38 lands; retest on Supabase backend after 38.
