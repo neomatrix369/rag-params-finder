@@ -253,7 +253,7 @@ See `docs/adr/` for Architecture Decision Records:
 
 | Decision | Rationale |
 |---|---|
-| FastAPI `BackgroundTasks` (not Celery) | No queue infrastructure needed while sweep runs execute sequentially *(see [`SLICE-16`](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) for honoring `parallelism > 1` and optional Celery path)* |
+| FastAPI `BackgroundTasks` (not Celery) | No queue infrastructure needed while sweep runs execute with bounded in-process concurrency *(see [`SLICE-16`](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) for hardening path)* |
 | Hand-mirrored TypeScript types | No codegen tooling (typeshare/quicktype); 5 types + 3 enums is manageable manually |
 | Separate vector indexes per dimension | Atlas requires exact `numDimensions` — `vector_index_1024` (Voyage) and `vector_index_384` (local) coexist on the same collection |
 | Lazy-load + cache for local models | First run downloads from HuggingFace; subsequent runs instant — avoids blocking server startup |
@@ -298,7 +298,7 @@ Atlas connection string and API keys live in `.env` on the host (mounted into th
 |---|---|
 | Run recovery (retry failed / interrupted runs) | **Reconciliation on boot** ✅ — status fix only. **Retry** planned as [Slice 10](../plan/slices/SLICE-10-RUN-RECOVERY.md): `recover` CLI + API; **`RECOVER_ON_BOOT`** = retry **INTERRUPTED** only |
 | SSE live updates | Replace 2-second polling with Server-Sent Events |
-| Parallel sweep (`execution.parallelism` > 1) | Planned as [Slice 16 — Parallel Sweep Runs](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md); bounded in-process pool first; **Celery + Redis** when multi-process fairness or isolation is needed |
+| Parallel sweep (`execution.parallelism` > 1) | Implemented in [Slice 16 — Parallel Sweep Runs](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) with a bounded in-process pool; **Celery + Redis** remains optional for future scale/fairness needs |
 | Dashboard-triggered runs | Submit experiments from the React UI, not just CLI |
 | Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` |
 

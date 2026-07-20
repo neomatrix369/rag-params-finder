@@ -78,6 +78,17 @@ execution:
 - **Voyage / remote providers**: larger parallelism can hit external RPM/TPM quotas; for that path, use cautious values and dedicated throttling (not part of this slice).
 - **Slice 16 implemented**: **[Slice 16 — Parallel Sweep Runs](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md)** adds bounded concurrent `_run_single` scheduling with current `on_error` and cancellation semantics; optional queue-based rollout remains out of scope.
 
+### Example config files
+
+- Sequential example (`parallelism: 1`):
+  - [example-mongodb-local.yaml](../../configs/example-mongodb-local.yaml)
+  - [example-mongodb-voyage.yaml](../../configs/example-mongodb-voyage.yaml)
+  - [example-mongodb-sie.yaml](../../configs/example-mongodb-sie.yaml)
+- Parallel example (`parallelism: 4`):
+  - [example-mongodb-local-parallel.yaml](../../configs/example-mongodb-local-parallel.yaml)
+  - [example-mongodb-voyage-parallel.yaml](../../configs/example-mongodb-voyage-parallel.yaml)
+  - [example-mongodb-sie-parallel.yaml](../../configs/example-mongodb-sie-parallel.yaml)
+
 ---
 
 ## 🔁 Sweep Expansion

@@ -84,7 +84,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 26 | Should | 📦 DEFERRED | 25B | Mongo docs — re-scope post-cutover |
 | 27 | Should | 📦 DEFERRED | — | Absorbed into Slice 36 storage-mode indicator |
 | 19 | Should | 📦 DEFERRED | — | Atlas quota — Postgres path in 36 |
-| 16 | Should | 📋 PLANNED | — | Parallel sweep |
+| 16 | Should | ✅ COMPLETE | — | Parallel sweep |
 | 11 | Could | 📋 PLANNED | 30 (soft) | Search Explorer — viz + filters; after Slice 30 UX |
 | 23 | Could | 📋 PLANNED | 22 | SIE Bicycle |
 | 10 | Could | 🔨 PARTIAL | — | Boot reconciliation ✅; retry CLI/API remaining |
@@ -307,7 +307,7 @@ Cartesian product expansion: one YAML config with N models × M methods × P siz
 | Decision | Why |
 |---|---|
 | `expand_sweep()` as pure function on config | Testable without side effects; called both in API (preview count) and orchestrator (execute) |
-| Sequential runs (not parallel) | `parallelism` stored on experiments but orchestrator ignores it pending [Slice 16](SLICE-16-PARALLEL-SWEEP-RUNS.md) |
+| Bounded in-process parallelism implemented | `execution.parallelism` now caps concurrent sweep runs (default 1, max 16); see [Slice 16](SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 | `run_sweep()` + `run_single()` split | Single Responsibility — sweep management vs pipeline execution |
 | `on_error: continue/stop` | Allows partial completion without losing all results |
 | `partial` status for mixed outcomes | Distinguishes "some failed" from "all failed" or "all complete" |

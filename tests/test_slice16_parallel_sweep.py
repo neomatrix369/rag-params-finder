@@ -251,6 +251,55 @@ class TestSlice16ParallelSweep:
         assert result["status"] == ExperimentStatus.CANCELLED
         mock_expand_sweep.assert_not_called()
 
+    @patch("server.core.orchestrator.check_control")
+    @patch("server.core.orchestrator._compute_final_status")
+    @patch("server.core.orchestrator.get_collection")
+    @patch("server.core.orchestrator.expand_sweep")
+    @patch("server.core.orchestrator._run_single")
+    @patch("server.core.orchestrator.validate_experiment_search_indexes")
+    @patch("server.core.orchestrator.validate_sie_readiness")
+    def test_cancelled_after_some_runs_only_drains_inflight_workers(
+        self,
+        mock_validate_sie_readiness: MagicMock,
+        mock_validate_search_indexes: MagicMock,
+        mock_run_single: MagicMock,
+        mock_expand_sweep: MagicMock,
+        mock_get_collection: MagicMock,
+        mock_compute_final_status: MagicMock,
+        mock_check_control: MagicMock,
+    ) -> None:
+        """
+        Scenario: cancellation during sweep stops new scheduling and keeps inflight runs
+
+        Given 4 run parameter sets with parallelism=2 and cancel signal after one wave starts
+        When one running batch completes and control is cancelled
+        Then only the initial wave runs; in-flight completion sets experiment to CANCELLED.
+        """
+        # Given
+        config = _slice_config(parallelism=2, on_error="continue")
+        mock_expand_sweep.return_value = [_run_param() for _ in range(4)]
+        mock_get_collection.return_value = _FakeCollection()
+        mock_validate_sie_readiness.return_value = None
+        mock_validate_search_indexes.return_value = None
+        mock_compute_final_status.return_value = (ExperimentStatus.CANCELLED, 0)
+
+        state = {"check_calls": 0}
+
+        def check_control_side_effect(*_args) -> None:
+            state["check_calls"] += 1
+            if state["check_calls"] >= 4:
+                raise ExperimentCancelledError("cancel requested")
+
+        mock_check_control.side_effect = check_control_side_effect
+        mock_run_single.return_value = None
+
+        # When
+        result = _run_sweep_inner("exp-cancel-mid", config, set())
+
+        # Then
+        assert result["status"] == ExperimentStatus.CANCELLED
+        assert mock_run_single.call_count == 2
+
 
 def test_parallelism_bounds_are_enforced_in_model() -> None:
     """
