@@ -64,7 +64,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 | **Operator — fixing errors** | [Troubleshooting](docs/user-guide/troubleshooting.md) | Indexes, Voyage limits, Docker, storage quota |
 | **Contributor — system design** | [Architecture](docs/contributor-guide/architecture.md) | Modules, data flow, ADRs |
 | **Contributor — dev setup** | [Development Guide](docs/contributor-guide/development.md) | Quality gates, slices, Docker, hooks |
-| **Agent / slice worker** | [AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md) | [PROGRESS](docs/slices/PROGRESS.md) → current slice spec |
+| **Agent / slice worker** | [AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md) | [PROGRESS](docs/plan/slices/PROGRESS.md) → current slice spec |
 
 **All docs by topic:** [docs/README.md](docs/README.md)
 

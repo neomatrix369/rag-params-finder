@@ -33,7 +33,7 @@ Create a new release when:
 
 **Rule of thumb**: If it's worth announcing to users, it's worth a release. Bundle related changes; release when value is deliverable.
 
-**Reminder**: Mark slice ✅ COMPLETE in `docs/slices/PROGRESS.md` before creating the release.
+**Reminder**: Mark slice ✅ COMPLETE in `docs/plan/slices/PROGRESS.md` before creating the release.
 
 ---
 
@@ -44,7 +44,7 @@ Create a new release when:
 - Finish slice implementation
 - Git hooks installed: `bash scripts/install-git-hooks.sh`
 - All quality gates pass: `./scripts/quality-gates.sh` (full CI mirror; `git push` runs essential pre-commit hooks when installed)
-- Update `docs/slices/PROGRESS.md` to mark slice complete
+- Update `docs/plan/slices/PROGRESS.md` to mark slice complete
 - Commit work with clear messages
 
 ### 2. Update CHANGELOG.md

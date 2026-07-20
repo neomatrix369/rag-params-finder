@@ -70,13 +70,13 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 
 **Priority**: Medium (process clarity for future contributors / sessions)
 
-- [x] Refresh `docs/slices/SLICE-01-SKATEBOARD.md` (status → ✅ COMPLETE, path fixed to `example-local.yaml`, acceptance criteria checked)
+- [x] Refresh `docs/plan/slices/SLICE-01-SKATEBOARD.md` (status → ✅ COMPLETE, path fixed to `example-local.yaml`, acceptance criteria checked)
 - [x] Add slice spec files for slices that were delivered but have no standalone doc:
-  - [x] `docs/slices/SLICE-02-RERANK.md`
-  - [x] `docs/slices/SLICE-03-SWEEP-EXPANSION.md`
-  - [x] `docs/slices/SLICE-04-LIVE-STATUS.md`
-  - [x] `docs/slices/SLICE-05-PERSONA-QUERIES.md`
-  - [x] `docs/slices/SLICE-07-LOCAL-MODELS.md`
+  - [x] `docs/plan/slices/SLICE-02-RERANK.md`
+  - [x] `docs/plan/slices/SLICE-03-SWEEP-EXPANSION.md`
+  - [x] `docs/plan/slices/SLICE-04-LIVE-STATUS.md`
+  - [x] `docs/plan/slices/SLICE-05-PERSONA-QUERIES.md`
+  - [x] `docs/plan/slices/SLICE-07-LOCAL-MODELS.md`
 
 **Reference**: pre-rag has a standalone spec file per slice (`SLICE-07-SLIDING-WINDOW.md`, etc.).
 
@@ -132,7 +132,7 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 
 **Priority**: Low (nice-to-have for agent session consistency)
 
-- [x] Add `AGENTS.md` (thin file) — entry point with links to `CLAUDE.md`, `docs/slices/PROGRESS.md`, and quick commands
+- [x] Add `AGENTS.md` (thin file) — entry point with links to `CLAUDE.md`, `docs/plan/slices/PROGRESS.md`, and quick commands
 - [x] Add **slice execution playbook** block to `CLAUDE.md`:
   - [x] Pre-slice checklist (read PROGRESS, create/read spec, run quality gates)
   - [x] Verify-all commands before commit
@@ -167,7 +167,7 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 
 - [x] Root [QUICKSTART.md](../QUICKSTART.md) for fastest install/run path
 - [x] [docs/README.md](../README.md) persona + task index
-- [x] [docs/slices/PROGRESS.md](../slices/PROGRESS.md) beside slice specs (moved from `docs/_internal/`)
+- [x] [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.md) beside slice specs (moved from `docs/_internal/`)
 - [x] README, AGENTS.md, CLAUDE.md, getting-started cross-links updated
 
 **Reference:** commit `86f2e61` — playgroup-style doc map without duplicating guide bodies.

@@ -1,7 +1,7 @@
 # Gap Analysis
 > ~2 min read · **Updated 2026-07-09** after Supabase PRD integration · **Gap bridge 2026-07-09** (planned/deferred spec ↔ TRAIL sync)
 
-Canonical build status: [docs/slices/PROGRESS.md](../slices/PROGRESS.md) · Migration PRD: [PRD-supabase-pgvector-migration.md](PRD-supabase-pgvector-migration.md)
+Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.md) · Migration PRD: [PRD-supabase-pgvector-migration.md](PRD-supabase-pgvector-migration.md)
 
 ---
 

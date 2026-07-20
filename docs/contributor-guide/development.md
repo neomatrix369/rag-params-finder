@@ -80,7 +80,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 **Non-interactive:** `NONINTERACTIVE=1 ./start-services.sh` (fails fast on missing/placeholder `.env`).
 
-Spec: [SLICE-14-DOCKER-COMPOSE.md](../slices/SLICE-14-DOCKER-COMPOSE.md). Troubleshooting: [user-guide/troubleshooting.md](../user-guide/troubleshooting.md#-docker).
+Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md). Troubleshooting: [user-guide/troubleshooting.md](../user-guide/troubleshooting.md#-docker).
 
 ---
 
@@ -281,7 +281,7 @@ rag-params-finder/
 │   ├── user-guide/      # End-user documentation
 │   ├── contributor-guide/ # This directory
 │   ├── adr/             # Architecture Decision Records
-│   ├── slices/          # Slice specs + PROGRESS.md (status, roadmap)
+│   ├── plan/slices/     # Slice specs + PROGRESS.md (status, roadmap)
 │   ├── _internal/       # Gap tracker, audits, Graphiti exports
 │   └── README.md        # Documentation index (doc map)
 └── .github/workflows/   # CI (see § CI — repo-lint, backend, frontend, secrets)
@@ -294,8 +294,8 @@ rag-params-finder/
 ### Pre-slice checklist
 
 ```
-[ ] Read docs/slices/PROGRESS.md — confirm current state and which slice is next
-[ ] Read or create the slice spec in docs/slices/SLICE-XX-*.md
+[ ] Read docs/plan/slices/PROGRESS.md — confirm current state and which slice is next
+[ ] Read or create the slice spec in docs/plan/slices/SLICE-XX-*.md
 [ ] bash scripts/install-git-hooks.sh (once per machine if not already installed)
 [ ] Run all quality gates — confirm zero regressions before starting
 [ ] Note the exact acceptance criteria — these are the exit conditions
@@ -303,7 +303,7 @@ rag-params-finder/
 
 ### Decision log template
 
-Record every non-obvious choice in `docs/slices/PROGRESS.md` → Decision Log:
+Record every non-obvious choice in `docs/plan/slices/PROGRESS.md` → Decision Log:
 
 ```
 | <date> | <slice> | <decision> | <why> |
@@ -314,11 +314,11 @@ Record every non-obvious choice in `docs/slices/PROGRESS.md` → Decision Log:
 ```
 [ ] All acceptance criteria checked ✅
 [ ] Quality gates pass — ./scripts/quality-gates.sh; git push exercised full local gates (`pre-push-gates.sh`)
-[ ] Slice status updated in docs/slices/PROGRESS.md (🔨 → ✅ COMPLETE)
+[ ] Slice status updated in docs/plan/slices/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
 [ ] Consider release: ./scripts/release.sh minor (slices/features) or patch (fixes/polish)
-    See docs/slices/PROGRESS.md § Release Cadence for guidance
+    See docs/plan/slices/PROGRESS.md § Release Cadence for guidance
 ```
 
 ---
@@ -397,5 +397,5 @@ Please open an issue before starting work on large features to discuss the appro
 - [Local Environment](local-environment.md) — Atlas setup, debugging, and maintenance details
 - [Release Process](release-process.md) — creating releases, versioning strategy, when to release
 - [AGENTS.md](../../AGENTS.md) · [CLAUDE.md](../../CLAUDE.md) — agent entry points (incl. optional code-review-graph MCP)
-- [docs/slices/PROGRESS.md](../slices/PROGRESS.md) — slice status, decision log, forward roadmap
+- [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.md) — slice status, decision log, forward roadmap
 - [docs/README.md](../README.md) — documentation index by persona and topic

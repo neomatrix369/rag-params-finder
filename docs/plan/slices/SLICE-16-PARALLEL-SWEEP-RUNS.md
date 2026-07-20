@@ -118,6 +118,6 @@ See [`development.md`](../contributor-guide/development.md) § Git hooks.
 
 ## See Also
 
-- `docs/slices/PROGRESS.md` — roadmap row for this slice
+- `docs/plan/slices/PROGRESS.md` — roadmap row for this slice
 - [`SLICE-03-SWEEP-EXPANSION.md`](./SLICE-03-SWEEP-EXPANSION.md) — baseline sequential behavior
 - [`../contributor-guide/architecture.md`](../contributor-guide/architecture.md) — BackgroundTasks vs future Celery narrative

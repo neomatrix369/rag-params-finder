@@ -73,11 +73,11 @@ Replace MongoDB Atlas as the *primary* storage backend with Supabase (PostgreSQL
 
 User guides, dev docs, and agent docs are **gated per slice** — same commit as behaviour (see `documentation-best-practices.mdc`). Full 14-row audit from `plan-generator` applies at slice close; this matrix names **which files** and **which slice owns them**.
 
-**Every slice (32–38):** update `docs/slices/PROGRESS.md` (status + decision log). Run `/sync-docs` at **37** and **38** (user-facing doc footprint).
+**Every slice (32–38):** update `docs/plan/slices/PROGRESS.md` (status + decision log). Run `/sync-docs` at **37** and **38** (user-facing doc footprint).
 
 | Doc | Audience | Slice | Action / gate |
 |---|---|---|---|
-| `docs/slices/PROGRESS.md` | Maintainer | **32–38** | Slice status 🔨→✅; decision log row if non-obvious |
+| `docs/plan/slices/PROGRESS.md` | Maintainer | **32–38** | Slice status 🔨→✅; decision log row if non-obvious |
 | `CLAUDE.md` Key Files | Agent | **32**, **37**, **38** | Ports (32); `STORAGE_BACKEND` + `DATABASE_URL` env table (37); cutover default (38) |
 | `docs/contributor-guide/architecture.md` | Dev | **32**, **34**, **38** | Storage/Retriever ports (32); Postgres dense retrieval (34); dual-backend diagram (38) |
 | `docs/contributor-guide/extending.md` | Dev | **32** | How to add a `StorageBackend` / `RetrieverBackend` adapter |

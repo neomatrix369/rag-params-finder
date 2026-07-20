@@ -108,6 +108,22 @@ retrieval:
 
 ---
 
+## Before-Checks [GATE]
+
+- [ ] Branch `slice/18-unified-retriever-config` from latest `main`
+- [ ] `./scripts/quality-gates.sh --quick` green on baseline
+- [ ] DECISIONS includes migration seam + fallback policy for old config formats
+
+## After-Checks [GATE]
+
+- [ ] `./scripts/quality-gates.sh` pass
+- [ ] Old and new config formats run end-to-end on Mongo
+- [ ] Mongo experiments and dashboard display both old/new formats without errors
+- [ ] Manual: migration scenario with reranker chain preserves `rerank_score`
+- [ ] Specification coverage: every GWT clause has ≥1 test
+- [ ] Branch coverage: 100% target for touched modules; exclusions documented
+- [ ] Mutation testing: run for migrated backend/frontend modules (or document explicit feature-complete waiver)
+
 ## Implementation Steps
 
 ### Step 1: Backend Models (1 hour)

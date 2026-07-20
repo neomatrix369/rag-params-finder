@@ -69,6 +69,9 @@ Scenario: Default backend is Postgres; Mongo still works
 ## After-Checks [GATE]
 
 - [ ] All PRD acceptance criteria checked or explicitly deferred with reason
+- [ ] Specification coverage: every GWT clause has at least one test (BDD/GWT-first); essential error and timeout paths covered
+- [ ] Branch coverage: target 100% where practical; document any exclusions
+- [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors
 - [ ] ADR-004 + ADR-003 status update
 - [ ] Comparison artifact in `docs/plan/gate-evidence/slice-38-quality-comparison.md`:
   - Query set, corpus, metrics (top-1, top-3, top-5 rank overlap; NDCG or similar)
@@ -82,7 +85,7 @@ Scenario: Default backend is Postgres; Mongo still works
 - [ ] CI dual-backend regression green (mongo + postgres jobs) recorded in gate-evidence
 - [ ] Doc audit: PRD §Documentation matrix rows for slice **38** (ADR-004, ADR-003, gate-evidence, CHANGELOG, mongodb-setup cross-link, README default)
 - [ ] `/sync-docs` run — full user + contributor footprint after cutover
-- [ ] `docs/slices/PROGRESS.md` updated
+- [ ] `docs/plan/slices/PROGRESS.md` updated
 - [ ] Graphiti episode: cutover decision
 
 ## Gate Status

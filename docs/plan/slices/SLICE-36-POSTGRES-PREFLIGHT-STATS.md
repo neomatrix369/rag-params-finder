@@ -75,9 +75,12 @@ Scenario: indexes list shows known vs missing indexes on Postgres
 - [ ] Storage mode badge/field documented
 - [ ] **Slice 27 absorbed:** db-stats / health returns `mongo` | `local-postgres` | `supabase` with correct value per backend (named tests for each mode)
 - [ ] Mongo preflight/stats still pass
+- [ ] Specification coverage: every GWT clause has at least one test (BDD/GWT-first); essential error and timeout paths covered
+- [ ] Branch coverage: target 100% where practical; document any exclusions
+- [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors
 - [ ] Coverage + quality gates
 - [ ] Doc audit: PRD §Documentation matrix rows for slice **36** (`cli-reference.md`, `configuration.md` storage-mode)
-- [ ] `docs/slices/PROGRESS.md` updated
+- [ ] `docs/plan/slices/PROGRESS.md` updated
 
 ## Gate Status
 

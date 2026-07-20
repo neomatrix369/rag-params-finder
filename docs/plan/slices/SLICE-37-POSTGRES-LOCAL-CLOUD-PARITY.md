@@ -89,10 +89,13 @@ Scenario: Supabase paused project surfaces clear error
 - [ ] Local + cloud smoke documented in supabase-setup.md
 - [ ] Boot reconciliation tests for Postgres path
 - [ ] Mongo `--local` path still works unchanged
+- [ ] Specification coverage: every GWT clause has at least one test (BDD/GWT-first); essential error and timeout paths covered
+- [ ] Branch coverage: target 100% where practical; document any exclusions
+- [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors
 - [ ] Coverage + quality gates
 - [ ] Doc audit: PRD §Documentation matrix rows for slice **37** (all user + dev setup docs; `supabase-setup.md` created)
 - [ ] `/sync-docs` run — README, docs/README, user-guide, development.md footprint verified
-- [ ] `docs/slices/PROGRESS.md` updated
+- [ ] `docs/plan/slices/PROGRESS.md` updated
 
 ## Gate Status
 

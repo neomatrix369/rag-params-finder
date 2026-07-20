@@ -26,8 +26,8 @@ Ports **5374** and **8720** are unregistered by IANA and unused by any common de
 - [x] `server/api/sweep.py` — SIE endpoint default `http://localhost:8720`
 - [x] `tests/test_sie_embedder.py` — all GWT docstrings updated from 8080 to 8720
 - [x] `server/core/model_registry.py` — SIE section comment updated
-- [x] `docs/slices/SLICE-21-SIE-SKATEBOARD.md` — GWT scenarios, docker run example, health check URL
-- [x] `docs/slices/SLICE-22-SIE-SCOOTER.md` — GWT scenario and before-check
+- [x] `docs/plan/slices/SLICE-21-SIE-SKATEBOARD.md` — GWT scenarios, docker run example, health check URL
+- [x] `docs/plan/slices/SLICE-22-SIE-SCOOTER.md` — GWT scenario and before-check
 - [x] `CLAUDE.md` — key-files table and provider system section
 - [x] `CHANGELOG.md` — v0.11.0 SIE Skateboard entry
 - [x] `docs/contributor-guide/extending.md` — SIE note
@@ -44,7 +44,7 @@ Ports **5374** and **8720** are unregistered by IANA and unused by any common de
 - [x] `CLAUDE.md`, `AGENTS.md`, `CLAUDE.local.md` — dashboard URL references updated
 - [x] All user-guide docs (`getting-started.md`, `dashboard-guide.md`, `cli-reference.md`, `cloud-setup.md`, `configuration.md`, `troubleshooting.md`)
 - [x] `QUICKSTART.md`, `docs/README.md` — dashboard URL references
-- [x] `docs/slices/SLICE-14-DOCKER-COMPOSE.md`, `docs/slices/SLICE-01-SKATEBOARD.md` — port references
+- [x] `docs/plan/slices/SLICE-14-DOCKER-COMPOSE.md`, `docs/plan/slices/SLICE-01-SKATEBOARD.md` — port references
 - [x] `docs/_internal/DOCS-CODE-AUDIT.md`, `docs/_internal/DOCS-CODE-AUDIT-FIXES.md` — CORS examples
 
 ## What does NOT change
@@ -65,4 +65,4 @@ Ports **5374** and **8720** are unregistered by IANA and unused by any common de
 
 **Config** (1 file): `.env.example`
 
-**Docs** (18 files): CLAUDE.md, AGENTS.md, CLAUDE.local.md, QUICKSTART.md, CHANGELOG.md, docs/README.md, docs/contributor-guide/extending.md, docs/contributor-guide/development.md, docs/user-guide/getting-started.md, docs/user-guide/dashboard-guide.md, docs/user-guide/cli-reference.md, docs/user-guide/cloud-setup.md, docs/user-guide/configuration.md, docs/user-guide/troubleshooting.md, docs/slices/SLICE-01-SKATEBOARD.md, docs/slices/SLICE-14-DOCKER-COMPOSE.md, docs/slices/SLICE-21-SIE-SKATEBOARD.md, docs/slices/SLICE-22-SIE-SCOOTER.md, docs/_internal/DOCS-CODE-AUDIT.md, docs/_internal/DOCS-CODE-AUDIT-FIXES.md
+**Docs** (18 files): CLAUDE.md, AGENTS.md, CLAUDE.local.md, QUICKSTART.md, CHANGELOG.md, docs/README.md, docs/contributor-guide/extending.md, docs/contributor-guide/development.md, docs/user-guide/getting-started.md, docs/user-guide/dashboard-guide.md, docs/user-guide/cli-reference.md, docs/user-guide/cloud-setup.md, docs/user-guide/configuration.md, docs/user-guide/troubleshooting.md, docs/plan/slices/SLICE-01-SKATEBOARD.md, docs/plan/slices/SLICE-14-DOCKER-COMPOSE.md, docs/plan/slices/SLICE-21-SIE-SKATEBOARD.md, docs/plan/slices/SLICE-22-SIE-SCOOTER.md, docs/_internal/DOCS-CODE-AUDIT.md, docs/_internal/DOCS-CODE-AUDIT-FIXES.md

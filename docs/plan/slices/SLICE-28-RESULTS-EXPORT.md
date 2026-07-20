@@ -143,7 +143,7 @@ Omit `chunk_text` from default CSV (size); include in JSONL only.
 | `tests/test_results_export.py` | **NEW** — GWT tests (mock mongo + analyzer) |
 | `frontend/src/services/apiClient.ts` | **EDIT** — `downloadExperimentExport()` |
 | `frontend/src/components/ExperimentDetailScreen.tsx` | **EDIT** — Export CSV button |
-| `docs/slices/PROGRESS.md` | Slice 28 row + decision log |
+| `docs/plan/slices/PROGRESS.md` | Slice 28 row + decision log |
 
 ## GWT Scenarios (tests)
 
@@ -169,13 +169,13 @@ Scenario: dashboard download
   Then  browser saves e1-results.csv
 ```
 
-## Before-checks
+## Before-Checks [GATE]
 
 - [x] Merge PRs #47 (semantic chunker overlap) and #48 (padding sweep dimension) — merged to `main` 2026-07-05 (#60/#61 review follow-ups included)
 - [ ] `./scripts/quality-gates.sh --quick` green on `main`
 - [ ] Branch `slice/28-results-export` from latest `main` *(contributor-owned — @cschanhniem per issue #49)*
 
-## After-checks
+## After-Checks [GATE]
 
 - [ ] `./scripts/quality-gates.sh` pass
 - [ ] Specification coverage: every GWT clause has ≥1 test; essential error paths covered (90–100% of clauses)

@@ -86,6 +86,12 @@ volume's filesystem capacity, not the host Mac's disk. No Docker API calls or `s
 | `frontend/src/components/ExperimentsScreen.tsx` | pass badge to `AppPageChrome` `topRight` |
 | `frontend/src/components/ExperimentDetailScreen.tsx` | pass badge to `AppPageChrome` `topRight` |
 
+## Before-Checks [GATE]
+
+- [ ] Branch `slice/27-mongodb-mode-indicator` from latest `main`
+- [ ] `./scripts/quality-gates.sh --quick` green on baseline
+- [ ] Deferred status remains valid (superseded by Slice 36, no active dependency)
+
 ## After-Checks
 
 - [ ] `./scripts/quality-gates.sh` pass

@@ -94,12 +94,15 @@ Scenario: External experiment_id preserved
 ## After-Checks [GATE]
 
 - [ ] All GWT scenarios passing
+- [ ] Specification coverage: every GWT clause has at least one test (BDD/GWT-first); essential error and timeout paths covered
+- [ ] Branch coverage: target 100% where practical; document any exclusions
+- [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors
 - [ ] Mongo backend still green (dual-backend regression)
 - [ ] `docker compose --profile local-postgres up` documented for manual smoke (one-liner in slice notes)
 - [ ] `.env.example` documents `STORAGE_BACKEND` + `DATABASE_URL`
 - [ ] `./scripts/quality-gates.sh` passes
 - [ ] Doc audit: PRD §Documentation matrix rows for slice **33** (`.env.example`, PRD glossary, `configuration.md` env vars)
-- [ ] `docs/slices/PROGRESS.md` updated
+- [ ] `docs/plan/slices/PROGRESS.md` updated
 
 ## Gate Status
 

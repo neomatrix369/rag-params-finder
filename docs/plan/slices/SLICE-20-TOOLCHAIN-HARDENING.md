@@ -81,7 +81,7 @@ Threshold set to **80%** (`--cov-fail-under=80` in CI and quality-gates).
 ### Docs
 - [x] `docs/contributor-guide/development.md` — quality gates section updated
 - [x] `CLAUDE.md` — verify-all commands + baseline metrics updated
-- [x] `docs/slices/PROGRESS.md` — slice 20 row + decision log entry
+- [x] `docs/plan/slices/PROGRESS.md` — slice 20 row + decision log entry
 
 ---
 
@@ -99,7 +99,7 @@ Threshold set to **80%** (`--cov-fail-under=80` in CI and quality-gates).
 | `.gitattributes` | Line endings + lockfile diff hygiene |
 | `.github/dependabot.yml` | Weekly pip/npm/actions updates |
 | `frontend/.eslintrc.cjs` | ESLint + security plugin |
-| `docs/slices/SLICE-20-TOOLCHAIN-HARDENING.md` | This spec |
+| `docs/plan/slices/SLICE-20-TOOLCHAIN-HARDENING.md` | This spec |
 | `scripts/repo-lint.sh` | Shell + workflow + Markdown linters (pre-commit wrappers) |
 | `scripts/install-git-hooks.sh` | Installs pre-commit + pre-push hooks |
 | `.markdownlint.json` | Pragmatic Markdown rules for existing docs |
@@ -119,7 +119,7 @@ Threshold set to **80%** (`--cov-fail-under=80` in CI and quality-gates).
 | `frontend/src/services/fetchWithProgress.ts` | Stream loop lint fix |
 | `docs/contributor-guide/development.md` | Gate commands + baselines |
 | `CLAUDE.md` | Verify-all + baseline |
-| `docs/slices/PROGRESS.md` | Slice 20 status |
+| `docs/plan/slices/PROGRESS.md` | Slice 20 status |
 
 ---
 
