@@ -101,8 +101,8 @@ Run all gates before committing. All must pass with zero regressions.
 
 ```bash
 ./scripts/quality-gates.sh              # full CI mirror (default)
-./scripts/quality-gates.sh --quick      # same as git push (lint, tests, frontend verify, gitleaks)
-./scripts/pre-push-gates.sh             # alias for --quick
+./scripts/quality-gates.sh --quick      # fast local subset (pytest no coverage, no scoped SCA/audit)
+./scripts/pre-push-gates.sh             # full local gates on push (quality-gates.sh default mode)
 ./scripts/quality-gates.sh --full       # CI mirror + local gitleaks + pre-commit all-files
 ```
 
@@ -200,13 +200,13 @@ bash scripts/install-git-hooks.sh
 | Hook | When | What runs |
 |------|------|-----------|
 | **pre-commit** | `git commit` | Essential checks on **staged** files (see list below) |
-| **pre-push** | `git push` | Fast CI gates: `./scripts/pre-push-gates.sh` (mirrors pre-rag `npm run test:all`) |
+| **pre-push** | `git push` | Full local gate run: `./scripts/pre-push-gates.sh` (`quality-gates.sh` default mode) |
 
 **Pre-commit** (staged files): hygiene, gitleaks, shellcheck, actionlint, markdownlint, bandit, ruff + format, mypy, frontend eslint + verify when `frontend/` is touched.
 
-**Pre-push** (whole repo, check-only): repo lint, ruff check + format check, mypy, bandit, **pytest**, frontend eslint, **frontend verify** (component tests + tsc + build), gitleaks.
+**Pre-push** (whole repo, check-only): repo lint, ruff check + format check, mypy, bandit, coverage+**pytest**, frontend eslint + component tests + tsc + build, pip-audit (lockfile-changed), npm audit (lockfile-changed), gitleaks.
 
-**Not on push** (run `./scripts/quality-gates.sh` before a PR or rely on CI): coverage threshold, pip-audit, npm audit, pre-commit hygiene sweep (`--full`).
+**Not on push**: `./scripts/quality-gates.sh --full` adds a repo-wide pre-commit all-files sweep; coverage and scoped SCA remain part of default pre-push mode.
 
 Emergency bypass (use sparingly): `git push --no-verify`
 
@@ -229,7 +229,7 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 | Trigger | What runs |
 |---------|-----------|
 | `git commit` | **pre-commit** — staged files (hygiene, secrets, repo lint, ruff, mypy, bandit, frontend when touched) |
-| `git push` | **pre-push** — `./scripts/pre-push-gates.sh` (lint, tests, build, secrets) |
+| `git push` | **pre-push** — `./scripts/pre-push-gates.sh` (repo lint, lint/type-check, coverage, frontend tests/typecheck/build, lockfile-scoped SCA, gitleaks) |
 | PR or push to `main` | **GitHub Actions** — full CI (four jobs; includes pytest, coverage, pip-audit, npm audit, build) |
 | Manual | `./scripts/quality-gates.sh` — full local mirror of CI before opening a PR |
 
@@ -313,7 +313,7 @@ Record every non-obvious choice in `docs/slices/PROGRESS.md` → Decision Log:
 
 ```
 [ ] All acceptance criteria checked ✅
-[ ] Quality gates pass — ./scripts/quality-gates.sh; git push exercised pre-push fast gates (`pre-push-gates.sh`)
+[ ] Quality gates pass — ./scripts/quality-gates.sh; git push exercised full local gates (`pre-push-gates.sh`)
 [ ] Slice status updated in docs/slices/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message

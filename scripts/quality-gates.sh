@@ -2,7 +2,7 @@
 # Run all quality gates — mirrors .github/workflows/ci.yml (repo-lint + backend + frontend + audits).
 # Usage:
 #   ./scripts/quality-gates.sh          # full CI mirror (default)
-#   ./scripts/quality-gates.sh --quick  # fast gates (git push via scripts/pre-push-gates.sh)
+#   ./scripts/quality-gates.sh --quick  # fast subset (manual/local; no coverage, no scoped SCA/audit)
 #   ./scripts/quality-gates.sh --full   # CI mirror + local gitleaks + pre-commit all-files
 
 set -e
@@ -17,6 +17,24 @@ if [[ "${1:-}" == "--quick" ]]; then
 elif [[ "${1:-}" == "--full" ]]; then
   MODE="full"
 fi
+
+lockfiles_changed_since_last_push() {
+  if [[ -z "${PRE_COMMIT_FROM_REF:-}" || -z "${PRE_COMMIT_TO_REF:-}" ]]; then
+    return 0
+  fi
+
+  if [[ "${PRE_COMMIT_FROM_REF}" == "0000000000000000000000000000000000000000" ]]; then
+    return 0
+  fi
+
+  if git diff --name-only "${PRE_COMMIT_FROM_REF}" "${PRE_COMMIT_TO_REF}" -- \
+    uv.lock pyproject.toml frontend/package.json frontend/package-lock.json | grep -q .
+  then
+    return 0
+  fi
+
+  return 1
+}
 
 echo "=== Quality Gates (rag-params-finder) ==="
 
@@ -75,7 +93,11 @@ uv run pytest --tb=short -q --cov=server.core.search_index_plan \
 
 echo ""
 echo "7/11 Python dependency audit (pip-audit)..."
-bash scripts/pip-audit.sh
+if lockfiles_changed_since_last_push; then
+  bash scripts/pip-audit.sh
+else
+  echo "   Skipped (no backend dependency lockfile changes in last push)"
+fi
 
 echo ""
 echo "8/11 Frontend tests + lint + typecheck + build..."
@@ -86,7 +108,11 @@ npm --prefix frontend run build
 
 echo ""
 echo "9/11 Frontend security audit..."
-npm --prefix frontend audit --audit-level=high
+if lockfiles_changed_since_last_push; then
+  npm --prefix frontend audit --audit-level=high
+else
+  echo "   Skipped (no frontend dependency lockfile changes in last push)"
+fi
 
 if [[ "${MODE}" == "full" ]]; then
   echo ""

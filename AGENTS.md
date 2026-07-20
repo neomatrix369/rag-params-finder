@@ -23,8 +23,8 @@ Agent session entry point for `rag-params-finder`.
 # Quality gates (mirrors CI — run before every commit)
 ./scripts/quality-gates.sh              # full CI mirror (repo lint + backend + frontend + audits)
 bash scripts/repo-lint.sh               # shellcheck + actionlint + markdownlint only
-./scripts/pre-push-gates.sh             # fast gates (same as --quick; runs on git push)
-./scripts/quality-gates.sh --quick      # lint, pytest, frontend verify, gitleaks (no coverage/audits)
+./scripts/pre-push-gates.sh             # full local gates on push (quality-gates.sh default mode)
+./scripts/quality-gates.sh --quick      # fast local subset (pytest no coverage + no scoped SCA/audit); not used by pre-push by default
 ./scripts/quality-gates.sh --full       # + local gitleaks + pre-commit all-files
 python scripts/check_integrity.py       # unit tests + import smoke
 

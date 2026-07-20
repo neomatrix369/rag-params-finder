@@ -34,7 +34,7 @@ Inherit proven hardening patterns from **price-analysis** and **pre-rag-explorer
 | Vitest frontend tests | pre-rag | ❌ — separate slice when UI test tier is planned |
 | Torch/transformers major upgrade | pip-audit findings | ❌ — tracked via `scripts/pip-audit.sh` ignores |
 | `scripts/repo-lint.sh` (shellcheck, actionlint, markdownlint) | governance (Serious tier) | ✅ *(2026-05-27 follow-on)* |
-| `install-git-hooks.sh` + pre-push fast gates (`quality-gates.sh --quick`) | pre-rag | ✅ *(2026-05-28: superseded `--all-files` on push)* |
+| `install-git-hooks.sh` + pre-push full gates (`pre-push-gates.sh` → `quality-gates.sh`) | pre-rag | ✅ *(2026-05-28 superseded; full gates now run on push)* |
 | yamllint / stylelint / markdown “strict” rules | governance | ❌ — `check-yaml` + pragmatic `.markdownlint.json` suffice for now |
 
 ---
@@ -50,7 +50,7 @@ Inherit proven hardening patterns from **price-analysis** and **pre-rag-explorer
 ### CI
 - [x] **Repo-lint job:** shellcheck (`scripts/*.sh`) → actionlint (workflows) → markdownlint (`*.md`, `.markdownlint.json`)
 - [x] Backend job: ruff → format check → mypy → **bandit** → pytest + **80% coverage** → `pip-audit.sh`
-- [x] Frontend job: **eslint** → typecheck → build → npm audit (high+)
+- [x] Frontend job: **eslint** → verify (`tsc` + `vite build`) → npm audit (high+)
 - [x] **Secrets job:** gitleaks-action with `.gitleaks.toml`
 - [x] Node from `.nvmrc`; Python from `.python-version`
 
@@ -61,7 +61,7 @@ Inherit proven hardening patterns from **price-analysis** and **pre-rag-explorer
 - [x] Shellcheck on `scripts/*.sh` (`shellcheck-py`)
 - [x] Actionlint on `.github/workflows`
 - [x] Markdownlint on `*.md` (excludes `.claude/`)
-- [x] Pre-push hook runs fast CI gates (`./scripts/pre-push-gates.sh` → `quality-gates.sh --quick`: pytest, frontend verify, gitleaks)
+- [x] Pre-push hook runs full CI-aligned gates (`./scripts/pre-push-gates.sh` → `quality-gates.sh`: pytest, coverage, gitleaks, SCA, etc.; no quick mode)
 
 ### Coverage scope (baseline-first)
 Measured baseline **83.6%** on:
@@ -184,10 +184,27 @@ python scripts/check_integrity.py
 **Decision:** Use `shellcheck-py` pre-commit repo (no Docker).
 **Rationale:** `koalaman/shellcheck-precommit` rev failed in CI; pip wheel hook matches Serious tier without Docker.
 
-### 8. Pre-push fast gates (`--quick`), not full CI mirror
-**Decision (2026-05-28):** Pre-push runs `./scripts/pre-push-gates.sh` → `quality-gates.sh --quick` (repo lint, ruff, mypy, bandit, pytest without coverage, frontend lint+verify, gitleaks). Commit hook stays staged pre-commit only.
-**Rationale:** Mirrors pre-rag `npm run test:all` on push — catches test/build regressions before remote; coverage, pip-audit, and npm audit stay in full `quality-gates.sh` + CI.
-**Superseded:** 2026-05-27 choice of `pre-commit run --all-files` on push (lint-only, no pytest).
+### 8. Pre-push runs full gates, not quick mode
+**Decision (2026-07-20):** Pre-push runs `./scripts/pre-push-gates.sh` → `quality-gates.sh` (full local gates: repo-lint, ruff, mypy, bandit, full pytest, frontend verify, gitleaks, SCA). Commit hook stays staged pre-commit only.
+**Rationale:** Every push is required to pass the same gate quality as a CI review gate; keeping push local gates strict preserves correctness when branch protection is absent.
+**Update:** This supersedes the older `--quick` behavior documented for 2026-05-28.
+
+### 9. Merge follow-up: CI/CD trigger hardening (Round 2)
+**Decision (2026-07-20):** Consolidate Slice 40 trigger hardening as a Round 2 follow-up to Slice 20 instead of a disjoint implementation.
+
+- Path-filtered CI (`changes`) gates backend/frontend/repo jobs on changed files.
+- Dependency audits split by cost/signature:
+  - PR-only lockfile changes (`dependency-audit`)
+  - schedule-only full lockfile sweep (`nightly-dependency-audit`)
+- Secrets scans split by cost:
+  - fast diff-only on PR/push (`secrets`)
+  - scheduled full-history sweep with cache-based skip (`nightly-full-secrets-scan`)
+- Frontend job now uses a single `verify` step (`tsc` + `vite build`) instead of separate build/typecheck work.
+- `default_stages: [pre-commit]` prevents fast hooks from re-running at push.
+- `quality-gates.sh` now gates `pip-audit` and frontend `npm audit` by changed lockfiles in pre-push context; unchanged lockfiles skip these scans.
+
+**Result:** This follow-up preserves Slice 20's baseline gate behavior while reducing duplicated risk and cost across commit/push/PR/schedule.
+
 
 ---
 
@@ -225,7 +242,7 @@ Three-way comparison after inheriting patterns from **price-analysis** and **pre
 | pytest integration/slow markers | ✅ | N/A (vitest) | ✅ (markers defined) |
 | pre-commit (Python framework) | ✅ heavy | ✅ Serious-lite | ✅ |
 | shellcheck / actionlint / markdownlint | partial | partial | ✅ repo-lint job + hooks |
-| pre-push fast test gates | ❌ | partial (husky) | ✅ `quality-gates.sh --quick` |
+| pre-push gates | ❌ | partial (`pre-commit --all-files`) | ✅ `quality-gates.sh` (full gates via `pre-push-gates.sh`) |
 | Husky + lint-staged | ❌ | ✅ | ❌ (pre-commit instead) |
 | Prettier | ✅ black/isort | ✅ | ❌ (ruff + eslint) |
 | Xenon complexity | ✅ scoped | ❌ | ❌ deferred |
@@ -246,7 +263,7 @@ chore(ci): slice 20 toolchain hardening from reference repos
 
 - Add quality-gates.sh, check_integrity.py, pip-audit.sh, repo-lint.sh, install-git-hooks.sh
 - CI: repo-lint job; coverage 80% on scoped modules; eslint; pip-audit
-- Git hooks: pre-commit (staged) + pre-push (`quality-gates.sh --quick`); shellcheck, actionlint, markdownlint
+- Git hooks: pre-commit (staged) + pre-push (`quality-gates.sh` full gates via `pre-push-gates.sh`); shellcheck, actionlint, markdownlint
 - Wire .gitleaks.toml, .nvmrc, dependabot, repo hygiene files
 - Upgrade urllib3/starlette/idna/langchain-core; document ML transitive audit ignores
 

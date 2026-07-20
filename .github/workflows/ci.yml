@@ -5,12 +5,66 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: "0 2 * * *"
 
 jobs:
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend || steps.schedule_defaults.outputs.backend || 'false' }}
+      frontend: ${{ steps.filter.outputs.frontend || steps.schedule_defaults.outputs.frontend || 'false' }}
+      repo: ${{ steps.filter.outputs.repo || steps.schedule_defaults.outputs.repo || 'false' }}
+      deps: ${{ steps.filter.outputs.deps || steps.schedule_defaults.outputs.deps || 'false' }}
+
+    steps:
+      - name: Checkout for path filtering
+        uses: actions/checkout@v7
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'server/**'
+              - 'cli/**'
+            frontend:
+              - 'frontend/**'
+            repo:
+              - '.github/**'
+              - '.pre-commit-config.yaml'
+              - '.markdownlint.json'
+              - '.gitleaks.toml'
+              - 'CLAUDE.md'
+              - 'AGENTS.md'
+              - 'docs/**'
+              - 'scripts/**'
+            deps:
+              - 'uv.lock'
+              - 'pyproject.toml'
+              - 'frontend/package.json'
+              - 'frontend/package-lock.json'
+
+      - name: Scheduled run defaults
+        id: schedule_defaults
+        if: github.event_name == 'schedule'
+        run: |
+          {
+            echo "backend=false"
+            echo "frontend=false"
+            echo "repo=false"
+            echo "deps=false"
+          } >> "$GITHUB_OUTPUT"
+
   repo-lint:
     name: Repo lint (shell, workflows, docs)
     runs-on: ubuntu-latest
-
+    needs: [changes]
+    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.repo == 'true' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -40,6 +94,8 @@ jobs:
   backend:
     name: Backend (Python)
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.backend == 'true' }}
 
     steps:
       - uses: actions/checkout@v7
@@ -87,12 +143,11 @@ jobs:
             --cov-report=term-missing \
             --cov-fail-under=80
 
-      - name: Python dependency audit
-        run: bash scripts/pip-audit.sh
-
   frontend:
     name: Frontend (Node.js)
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.frontend == 'true' }}
 
     defaults:
       run:
@@ -115,29 +170,174 @@ jobs:
       - name: Lint (eslint)
         run: npm run lint
 
-      - name: Component tests (Vitest)
-        run: npm run test
+      - name: Verify (tests + tsc + build)
+        run: npm run verify
 
-      - name: Type check (tsc)
-        run: npm run typecheck
-
-      - name: Build
-        run: npm run build
-
-      - name: Security audit
-        run: npm audit --audit-level=high
-
-  secrets:
-    name: Secrets scan
+  dependency-audit:
+    name: Dependency audit (PR + deps changes)
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ github.event_name == 'pull_request' && needs.changes.outputs.deps == 'true' }}
+    steps:
+      - uses: actions/checkout@v7
 
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install backend dependencies (dev)
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          # Path is relative to repository root (not defaults.run.working-directory).
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Python dependency audit
+        run: bash scripts/pip-audit.sh
+
+      - name: Frontend security audit
+        run: npm --prefix frontend audit --audit-level=high
+
+  nightly-dependency-audit:
+    name: Nightly dependency audit (full lockfile sweep)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Gitleaks
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install backend dependencies (dev)
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          # Path is relative to repository root (not defaults.run.working-directory).
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Python dependency audit
+        run: bash scripts/pip-audit.sh
+
+      - name: Frontend security audit
+        run: npm --prefix frontend audit --audit-level=high
+
+  secrets:
+    name: Secrets scan (diff-only)
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ github.event_name != 'schedule' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Fetch base ref for PR
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+
+      - name: Configure gitleaks diff range
+        id: gitleaks-range
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "range=origin/${{ github.base_ref }}..${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            echo "range=" >> "$GITHUB_OUTPUT"
+          else
+            echo "range=${{ github.event.before }}..${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fast diff-only gitleaks (incremental range)
+        if: steps.gitleaks-range.outputs.range != ''
         uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_CONFIG: .gitleaks.toml
+        with:
+          args: detect --config ./.gitleaks.toml --redact --log-opts "${{ steps.gitleaks-range.outputs.range }}"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fast full-range gitleaks for first push/new branch
+        if: steps.gitleaks-range.outputs.range == ''
+        uses: gitleaks/gitleaks-action@v3
+        with:
+          args: detect --config ./.gitleaks.toml --redact
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  nightly-full-secrets-scan:
+    name: Nightly full-history secrets scan
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Restore last-secrets-scan marker
+        id: restore-secrets-marker
+        uses: actions/cache@v6
+        with:
+          path: .github/.cache/last-secrets-scan-sha
+          key: gitleaks-full-scan-marker
+
+      - name: Check if any new commits since last full scan
+        id: secrets-scan-gate
+        run: |
+          LAST_SHA=""
+          if [ -f .github/.cache/last-secrets-scan-sha ]; then
+            LAST_SHA="$(cat .github/.cache/last-secrets-scan-sha)"
+          fi
+          echo "last_scan_sha=${LAST_SHA}" >> "$GITHUB_OUTPUT"
+          if [ -n "$LAST_SHA" ] && [ "$LAST_SHA" = "${{ github.sha }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Full-history gitleaks
+        if: steps.secrets-scan-gate.outputs.skip != 'true'
+        uses: gitleaks/gitleaks-action@v3
+        with:
+          args: detect --log-opts "--all" --config ./.gitleaks.toml --redact
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update last-secrets-scan marker
+        if: steps.secrets-scan-gate.outputs.skip != 'true'
+        run: |
+          mkdir -p .github/.cache
+          echo "${{ github.sha }}" > .github/.cache/last-secrets-scan-sha
+
+      - name: Cache last-secrets-scan marker
+        if: steps.secrets-scan-gate.outputs.skip != 'true'
+        uses: actions/cache@v6
+        with:
+          path: .github/.cache/last-secrets-scan-sha
+          key: gitleaks-full-scan-marker
