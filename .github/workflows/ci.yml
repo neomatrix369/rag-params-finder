@@ -280,17 +280,20 @@ jobs:
 
       - name: Fast diff-only gitleaks (incremental range)
         if: steps.gitleaks-range.outputs.range != ''
-        uses: gitleaks/gitleaks-action@v3
-        with:
-          args: detect --config ./.gitleaks.toml --redact --log-opts "${{ steps.gitleaks-range.outputs.range }}"
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            ghcr.io/gitleaks/gitleaks:v8.24.3 \
+            detect --source /workspace --config /workspace/.gitleaks.toml \
+              --redact --log-opts "${{ steps.gitleaks-range.outputs.range }}"
 
       - name: Fast full-range gitleaks for first push/new branch
         if: steps.gitleaks-range.outputs.range == ''
-        uses: gitleaks/gitleaks-action@v3
-        with:
-          args: detect --config ./.gitleaks.toml --redact
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            ghcr.io/gitleaks/gitleaks:v8.24.3 \
+            detect --source /workspace --config /workspace/.gitleaks.toml --redact
 
   nightly-full-secrets-scan:
     name: Nightly full-history secrets scan
@@ -324,10 +327,12 @@ jobs:
 
       - name: Full-history gitleaks
         if: steps.secrets-scan-gate.outputs.skip != 'true'
-        uses: gitleaks/gitleaks-action@v3
-        with:
-          args: detect --log-opts "--all" --config ./.gitleaks.toml --redact
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            ghcr.io/gitleaks/gitleaks:v8.24.3 \
+            detect --source /workspace --config /workspace/.gitleaks.toml \
+              --redact --log-opts "--all"
 
       - name: Update last-secrets-scan marker
         if: steps.secrets-scan-gate.outputs.skip != 'true'
