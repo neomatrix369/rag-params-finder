@@ -1020,7 +1020,7 @@ export default function SearchExplorerScreen({
 
   return (
     <DashboardShell
-      asideWidthClass="w-72"
+      asideWidthClass="w-full lg:w-72"
       contentMaxWidthClass="max-w-6xl"
       header={
         <AppPageChrome
@@ -1029,7 +1029,7 @@ export default function SearchExplorerScreen({
           pageHint={`Aggregates for experiment ${experimentId.slice(0, 8)}… — ranked configs, optional query filter, and per-hit scores. Sidebar controls retrieval-method visibility.`}
           topRight={
             pollWhileRunning ? (
-              <PollingIndicator active={isPolling} showDelayMs={600} minVisibleMs={1000} />
+              <PollingIndicator active={isPolling} showDelayMs={600} minVisibleMs={1000} tone="dark" />
             ) : undefined
           }
         />

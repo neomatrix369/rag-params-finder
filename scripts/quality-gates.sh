@@ -48,7 +48,7 @@ if [[ "${MODE}" == "quick" ]]; then
   echo "7/9 Frontend lint (eslint)..."
   npm --prefix frontend run lint
   echo ""
-  echo "8/9 Frontend verify (tsc + production build)..."
+  echo "8/9 Frontend verify (component tests + tsc + production build)..."
   npm --prefix frontend run verify
   echo ""
   echo "9/9 Secrets scan (gitleaks)..."
@@ -78,7 +78,8 @@ echo "7/11 Python dependency audit (pip-audit)..."
 bash scripts/pip-audit.sh
 
 echo ""
-echo "8/11 Frontend lint + typecheck + build..."
+echo "8/11 Frontend tests + lint + typecheck + build..."
+npm --prefix frontend run test
 npm --prefix frontend run lint
 npm --prefix frontend run typecheck
 npm --prefix frontend run build

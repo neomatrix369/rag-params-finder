@@ -53,45 +53,65 @@ function appendDetailFeed(prev: FeedEntry[], text: string, variant: FeedEntry['v
 // Icon components (minimal SVG)
 const icons = {
   clock: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
   check: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
     </svg>
   ),
   x: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
     </svg>
   ),
   play: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
   code: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
     </svg>
   ),
   database: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
     </svg>
   ),
   settings: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   ),
   grid: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+    </svg>
+  ),
+  search: (
+    <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m21 21-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+  ),
+  trash: (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16m-10 4v6m4-6v6m-7-10 .75 13h8.5L17 7m-7-3h4l1 3H9l1-3z" />
+    </svg>
+  ),
+  document: (
+    <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 3h7l4 4v14H7V3zm7 0v5h5M10 12h5m-5 4h5" />
+    </svg>
+  ),
+  back: (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m15 18-6-6 6-6" />
     </svg>
   ),
 };
@@ -153,22 +173,22 @@ function Pagination({
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200">
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-slate-600">
+    <div className="flex flex-col gap-3 border-t border-line bg-canvas px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+        <span className="text-sm text-muted">
           Showing <span className="font-medium">{startItem}</span> to{' '}
           <span className="font-medium">{endItem}</span> of{' '}
           <span className="font-medium">{totalItems}</span>
         </span>
         <div className="flex items-center gap-2">
-          <label htmlFor="runs-per-page" className="text-sm text-slate-600">
+          <label htmlFor="runs-per-page" className="text-sm text-muted">
             Per page:
           </label>
           <select
             id="runs-per-page"
             value={itemsPerPage}
             onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-            className="rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="min-h-11 rounded-lg border border-line bg-paper px-3 text-sm text-ink"
           >
             <option value={10}>10</option>
             <option value={15}>15</option>
@@ -177,22 +197,24 @@ function Pagination({
           </select>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
+          type="button"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+          className="min-h-11 rounded-lg border border-line bg-paper px-3 text-sm font-semibold text-ink hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           Previous
         </button>
-        <span className="text-sm text-slate-600">
+        <span className="text-sm text-muted">
           Page <span className="font-medium">{currentPage}</span> of{' '}
           <span className="font-medium">{totalPages}</span>
         </span>
         <button
+          type="button"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+          className="min-h-11 rounded-lg border border-line bg-paper px-3 text-sm font-semibold text-ink hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           Next
         </button>
@@ -315,18 +337,18 @@ function ProgressSubtitle({
 
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm">
-      <span className="font-medium text-slate-700">
+      <span className="font-medium text-ink">
         {completed} of {total} runs completed
       </span>
-      <span className="text-slate-400">•</span>
+      <span className="text-line">•</span>
       <span className="inline-flex items-center gap-1.5">
-        <span className="text-xs font-semibold uppercase tracking-wide text-blue-600">Elapsed</span>
-        <span className="font-mono font-semibold text-blue-700">{elapsedStr}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-cobalt">Elapsed</span>
+        <span className="font-mono font-semibold text-cobalt">{elapsedStr}</span>
       </span>
-      <span className="text-slate-400">•</span>
+      <span className="text-line">•</span>
       <span className="inline-flex items-center gap-1.5">
-        <span className="text-xs font-semibold uppercase tracking-wide text-purple-600">ETA</span>
-        <span className="font-mono font-semibold text-purple-700">{etaStr}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-accent-strong">ETA</span>
+        <span className="font-mono font-semibold text-accent-strong">{etaStr}</span>
       </span>
     </div>
   );
@@ -349,8 +371,8 @@ function MetadataItem({ label, value }: { label: string; value: string | number 
 
   return (
     <div className="flex flex-col">
-      <span className="text-xs text-slate-400 uppercase tracking-wider">{label}</span>
-      <span className="text-sm text-slate-700 font-mono">{formatValue(value)}</span>
+      <span className="text-xs uppercase tracking-wider text-muted">{label}</span>
+      <span className="font-mono text-sm text-ink">{formatValue(value)}</span>
     </div>
   );
 }
@@ -358,21 +380,21 @@ function MetadataItem({ label, value }: { label: string; value: string | number 
 // Status badge with color coding
 function StatusBadge({ status }: { status: string }) {
   const configByStatus = {
-    complete: { bg: 'bg-green-100', text: 'text-green-800', icon: icons.check, ring: 'ring-green-600' },
-    running: { bg: 'bg-blue-100', text: 'text-blue-800', icon: icons.play, ring: 'ring-blue-600' },
-    failed: { bg: 'bg-red-100', text: 'text-red-800', icon: icons.x, ring: 'ring-red-600' },
-    partial: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: icons.x, ring: 'ring-yellow-600' },
-    cancelled: { bg: 'bg-gray-100', text: 'text-gray-800', icon: icons.x, ring: 'ring-gray-600' },
-    paused: { bg: 'bg-violet-100', text: 'text-violet-800', icon: icons.clock, ring: 'ring-violet-600' },
+    complete: { bg: 'bg-emerald-50', text: 'text-emerald-800', icon: icons.check, border: 'border-emerald-200' },
+    running: { bg: 'bg-blue-50', text: 'text-blue-800', icon: icons.play, border: 'border-blue-200' },
+    failed: { bg: 'bg-red-50', text: 'text-red-800', icon: icons.x, border: 'border-red-200' },
+    partial: { bg: 'bg-amber-50', text: 'text-amber-900', icon: icons.x, border: 'border-amber-200' },
+    cancelled: { bg: 'bg-slate-100', text: 'text-slate-800', icon: icons.x, border: 'border-slate-300' },
+    paused: { bg: 'bg-violet-50', text: 'text-violet-800', icon: icons.clock, border: 'border-violet-200' },
   } as const;
-  const defaultConfig = { bg: 'bg-slate-100', text: 'text-slate-800', icon: icons.clock, ring: 'ring-slate-600' };
+  const defaultConfig = { bg: 'bg-canvas', text: 'text-ink', icon: icons.clock, border: 'border-line' };
   const config =
     status in configByStatus
       ? configByStatus[status as keyof typeof configByStatus]
       : defaultConfig;
 
   return (
-    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${config.bg} ${config.text} font-semibold ring-2 ${config.ring}`}>
+    <div className={`inline-flex min-h-9 items-center gap-2 rounded-full border px-4 py-2 font-semibold ${config.bg} ${config.text} ${config.border}`}>
       {config.icon}
       <span className="uppercase text-sm tracking-wide">{status}</span>
     </div>
@@ -397,10 +419,10 @@ function StatCard({
 }) {
   const colors = {
     blue: 'bg-blue-50 text-blue-600 border-blue-200',
-    green: 'bg-green-50 text-green-600 border-green-200',
-    purple: 'bg-purple-50 text-purple-600 border-purple-200',
-    amber: 'bg-amber-50 text-amber-600 border-amber-200',
-    red: 'bg-red-50 text-red-600 border-red-200',
+    green: 'bg-green-50 text-green-700 border-green-200',
+    purple: 'bg-accent-soft text-accent-strong border-accent',
+    amber: 'bg-amber-50 text-amber-700 border-amber-200',
+    red: 'bg-red-50 text-red-700 border-red-200',
     slate: 'bg-slate-50 text-slate-600 border-slate-200',
   } as const;
   // color is a typed union — safe lookup, not user-controlled injection.
@@ -414,12 +436,12 @@ function StatCard({
           <div className="shrink-0 scale-90 opacity-80">{icon}</div>
           <div className="min-w-0 flex-1">
             <div className="text-lg font-bold leading-none tabular-nums truncate">{value}</div>
-            <div className="text-[10px] font-semibold uppercase tracking-wide mt-1 opacity-75 truncate">
+            <div className="mt-1 truncate text-xs font-semibold uppercase tracking-wide opacity-75">
               {label}
             </div>
           </div>
           {trend && (
-            <span className="shrink-0 text-[10px] font-medium opacity-75">{trend}</span>
+            <span className="shrink-0 text-xs font-medium opacity-75">{trend}</span>
           )}
         </div>
       </div>
@@ -447,14 +469,14 @@ function StatCard({
 // Dimension badge for sweep params
 function DimensionBadge({ label, values }: { label: string; values: (string | number)[] }) {
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-3">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-        <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">{label}</span>
+    <div className="rounded-xl border border-line bg-paper p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <div className="h-2 w-2 rounded-full bg-accent"></div>
+        <span className="text-xs font-bold uppercase tracking-wider text-muted">{label}</span>
       </div>
       <div className="flex flex-wrap gap-1">
         {values.map((v, i) => (
-          <span key={i} className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium">
+          <span key={i} className="inline-flex items-center rounded-md border border-line bg-canvas px-2 py-1 text-xs font-medium text-ink">
             {String(v)}
           </span>
         ))}
@@ -747,9 +769,19 @@ export default function ExperimentDetailScreen({
     <button
       type="button"
       onClick={onBack}
-      className="mb-6 w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-blue-400 hover:bg-slate-700/55 hover:text-blue-300"
+      className="mb-6 inline-flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold text-emerald-300 hover:bg-white/10 hover:text-white"
     >
-      ← All experiments
+      {icons.back} All experiments
+    </button>
+  );
+
+  const compactBackToList = (
+    <button
+      type="button"
+      onClick={onBack}
+      className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/20 px-3 text-sm font-semibold text-white hover:border-emerald-300 hover:bg-white/10 lg:hidden"
+    >
+      {icons.back} Back
     </button>
   );
 
@@ -757,11 +789,16 @@ export default function ExperimentDetailScreen({
     return (
       <>
         <div className="mb-6">
-          <div className="text-sm font-semibold text-slate-200">Sidebar</div>
-          <div className="mt-0.5 text-[11px] uppercase tracking-wider text-slate-500">Experiment</div>
+          <div className="font-display text-lg font-semibold text-white">From sweep to results</div>
+          <div className="mt-1 text-xs font-bold uppercase tracking-widest text-emerald-300">Experiment detail</div>
         </div>
         {backToList}
-        <p className="mt-4 text-xs leading-relaxed text-slate-400">{extra}</p>
+        <ol className="space-y-4 border-l border-white/15 pl-4 text-xs text-slate-300">
+          <li><span className="block font-mono text-xs text-emerald-300">01 · IDENTITY</span>Confirm the sweep and lifecycle state.</li>
+          <li><span className="block font-mono text-xs text-emerald-300">02 · CONFIG</span>Trace the parameter space that produced each run.</li>
+          <li><span className="block font-mono text-xs text-emerald-300">03 · RESULTS</span>Inspect completed runs and stored results.</li>
+        </ol>
+        <p className="mt-6 rounded-xl border border-white/10 bg-white/5 p-3 text-xs leading-relaxed text-slate-300">{extra}</p>
       </>
     );
   }
@@ -769,7 +806,8 @@ export default function ExperimentDetailScreen({
   if (hydrating && !detail && !error) {
     return (
       <DashboardShell
-        asideWidthClass="w-56 lg:w-60"
+        asideWidthClass="w-full lg:w-60"
+        hideSidebarOnCompact
         header={
           <AppPageChrome
             tone="darkFrame"
@@ -777,6 +815,7 @@ export default function ExperimentDetailScreen({
             pageTitle="Loading"
             pageMeta={<span className="font-mono">{experimentId}</span>}
             pageHint="Fetching runs, configuration, and live progress from the API."
+            topRight={compactBackToList}
             showDashboardFootnote={false}
           />
         }
@@ -800,7 +839,8 @@ export default function ExperimentDetailScreen({
   if (!hydrating && !detail && error) {
     return (
       <DashboardShell
-        asideWidthClass="w-56 lg:w-60"
+        asideWidthClass="w-full lg:w-60"
+        hideSidebarOnCompact
         header={
           <AppPageChrome
             tone="darkFrame"
@@ -808,6 +848,7 @@ export default function ExperimentDetailScreen({
             pageTitle="Could not load"
             pageMeta={<span className="font-mono">{experimentId}</span>}
             pageHint="Check server connectivity or permissions. Diagnostics below may show which step failed."
+            topRight={compactBackToList}
             showDashboardFootnote={false}
           />
         }
@@ -838,35 +879,62 @@ export default function ExperimentDetailScreen({
   }
 
   const runSummary = summarizeExperimentRuns(detail.runs, detail.run_count);
+  const sweepSummary = (() => {
+    if (detail.status === 'running') {
+      return `${runSummary.complete} of ${runSummary.expected} runs are complete; stored results can grow as the sweep continues.`;
+    }
+    if (detail.status === 'paused') {
+      return `Paused after ${runSummary.complete} of ${runSummary.expected} runs completed; resume to run the remaining parameter combinations.`;
+    }
+    if (detail.status === 'complete') {
+      return `All ${runSummary.expected} configured runs completed; stored results are ready to inspect.`;
+    }
+    if (detail.status === 'partial') {
+      return `${runSummary.complete} of ${runSummary.expected} runs completed; treat rankings from completed runs as preliminary results.`;
+    }
+    if (detail.status === 'cancelled') {
+      return `Collection stopped after ${runSummary.complete} of ${runSummary.expected} runs completed.`;
+    }
+    return `${runSummary.failed} failed and ${runSummary.complete} completed of ${runSummary.expected} configured runs.`;
+  })();
+  const nextStepLabel = runSummary.complete > 0
+    ? 'Inspect stored results'
+    : isRunning
+      ? 'Await first completed run'
+      : 'No completed results';
   const metricsGridClass = runSummary.inProgress > 0
     ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 p-4'
     : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 p-4';
 
   return (
     <DashboardShell
-      asideWidthClass="w-56 lg:w-60"
+      asideWidthClass="w-full lg:w-60"
       contentMaxWidthClass="max-w-7xl"
+      hideSidebarOnCompact
       header={
         <AppPageChrome
           tone="darkFrame"
-          pageEyebrow="Experiment"
+          pageEyebrow="Experiment results"
           pageTitle={detail.experiment_name}
           pageMeta={<span className="font-mono">{experimentId}</span>}
           pageHint={
             isRunning
-              ? `Live updates every ${DETAIL_POLL_MS / 1000}s. Pause or cancel from the controls above.`
+              ? `Live updates every ${DETAIL_POLL_MS / 1000}s. Follow completed runs into stored results while the sweep continues.`
               : isPaused
-                ? 'Experiment is paused — resume to continue remaining parameter combinations.'
-                : 'Runs, sweep metadata, and stored results appear in the sections below.'
+                ? 'The sweep is paused. Review completed-run results now or resume the remaining parameter combinations.'
+                : 'Connect this experiment’s identity and configuration to its run outcomes and stored results.'
           }
           topRight={
-            <ExperimentControlButtons
-              experimentId={experimentId}
-              status={detail.status}
-              tone="dark"
-              onStatusChange={refreshDetailAfterControl}
-              onError={(message) => setError(message)}
-            />
+            <>
+              {compactBackToList}
+              <ExperimentControlButtons
+                experimentId={experimentId}
+                status={detail.status}
+                tone="dark"
+                onStatusChange={refreshDetailAfterControl}
+                onError={(message) => setError(message)}
+              />
+            </>
           }
           showDashboardFootnote={false}
         />
@@ -882,14 +950,16 @@ export default function ExperimentDetailScreen({
       )}
     >
 
-        {/* Overview: status, actions, and run-outcome metrics in one panel */}
-        <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-              <StatusBadge status={detail.status} />
-              <p className="text-xs text-slate-500">
-                {runSummary.complete} of {runSummary.expected} runs complete
-              </p>
+        {/* Overview: identity, result fidelity, actions, and run-outcome metrics. */}
+        <section className="mb-6 overflow-hidden rounded-panel border border-line bg-paper shadow-panel" aria-labelledby="sweep-overview-title">
+          <div className="flex flex-col gap-4 border-b border-line p-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Identity → configuration → results</p>
+              <h2 id="sweep-overview-title" className="mt-1 font-display text-2xl font-semibold text-ink">Sweep overview</h2>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <StatusBadge status={detail.status} />
+                <p className="max-w-3xl text-sm leading-relaxed text-muted">{sweepSummary}</p>
+              </div>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               {canExplore && (
@@ -903,20 +973,35 @@ export default function ExperimentDetailScreen({
                         ? 'Explore results from completed runs; resume to continue the sweep.'
                         : undefined
                   }
-                  className="rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:from-blue-700 hover:to-blue-800"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-strong"
                 >
-                  {isRunning ? '🔍 Explore live' : '🔍 Explore'}
+                  {icons.search} {isRunning ? 'Explore live results' : 'Explore results'}
                 </button>
               )}
               {canDelete && (
                 <button
                   type="button"
                   onClick={() => setShowDeleteModal(true)}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line bg-paper px-4 text-sm font-semibold text-ink shadow-sm transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-700"
                 >
-                  🗑 Delete
+                  {icons.trash} Delete
                 </button>
               )}
+            </div>
+          </div>
+
+          <div className="grid gap-3 border-b border-line bg-canvas p-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-line bg-paper p-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted">Lifecycle</p>
+              <p className="mt-1 text-sm font-semibold capitalize text-ink">{detail.status}</p>
+            </div>
+            <div className="rounded-xl border border-line bg-paper p-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted">Run set</p>
+              <p className="mt-1 text-sm font-semibold text-ink">{runSummary.complete} complete · {runSummary.expected} configured</p>
+            </div>
+            <div className="rounded-xl border border-line bg-paper p-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted">Next step</p>
+              <p className="mt-1 text-sm font-semibold text-accent-strong">{nextStepLabel}</p>
             </div>
           </div>
 
@@ -937,7 +1022,7 @@ export default function ExperimentDetailScreen({
               color="purple"
             />
           </div>
-        </div>
+        </section>
 
         {/* Progress visualization for running experiments */}
         {detail && isRunning && detail.runs && detail.runs.length > 0 && (
@@ -957,18 +1042,10 @@ export default function ExperimentDetailScreen({
           </div>
         )}
 
-        <div className="mb-6">
-          <ExperimentVectorDbStatsCard
-            experimentId={experimentId}
-            stats={dbStats ?? undefined}
-            loading={dbStatsLoading && !dbStats}
-          />
-        </div>
-
         {/* Metadata sections */}
         {detail && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="rounded-panel border border-line bg-paper p-5 shadow-panel">
               <CollapsibleCard
                 title="Git & Timeline"
                 icon={icons.code}
@@ -976,7 +1053,7 @@ export default function ExperimentDetailScreen({
                 storageKey={`detail-git-${experimentId}`}
                 headerExtra={
                   detail.git_commit ? (
-                    <span className="font-mono text-xs text-slate-500">
+                    <span className="font-mono text-xs text-muted">
                       {detail.git_commit.slice(0, 8)}
                       {detail.git_dirty ? ' *' : ''}
                     </span>
@@ -1005,7 +1082,7 @@ export default function ExperimentDetailScreen({
               </CollapsibleCard>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <div className="rounded-panel border border-line bg-paper p-5 shadow-panel">
               <CollapsibleCard
                 title="Configuration"
                 icon={icons.settings}
@@ -1013,11 +1090,11 @@ export default function ExperimentDetailScreen({
                 storageKey={`detail-config-${experimentId}`}
                 headerExtra={
                   detail.retrieval_model ? (
-                    <span className="text-xs text-slate-500 truncate max-w-[140px]" title={detail.retrieval_model}>
+                    <span className="max-w-36 truncate text-xs text-muted" title={detail.retrieval_model}>
                       {detail.retrieval_model}
                     </span>
                   ) : (
-                    <span className="text-xs text-slate-400">no rerank</span>
+                    <span className="text-xs text-muted">no rerank</span>
                   )
                 }
               >
@@ -1036,17 +1113,17 @@ export default function ExperimentDetailScreen({
 
         {/* Data Paths */}
         {detail?.data_paths && detail.data_paths.length > 0 && (
-          <div className="mb-6 bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-            <div className="flex items-center gap-2 mb-3">
+          <div className="mb-6 rounded-panel border border-line bg-paper p-5 shadow-panel">
+            <div className="mb-3 flex items-center gap-2 text-accent-strong">
               {icons.database}
-              <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-ink">
                 Data Sources
               </h2>
             </div>
             <div className="flex flex-wrap gap-2">
               {detail.data_paths.map((p) => (
-                <span key={p} className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-slate-100 to-slate-50 border border-slate-200 text-slate-700 text-sm font-mono rounded-lg shadow-sm">
-                  📄 {p.split('/').pop()}
+                <span key={p} className="inline-flex min-h-11 max-w-full items-center gap-2 break-all rounded-lg border border-line bg-canvas px-3 font-mono text-sm text-ink">
+                  {icons.document} {p.split('/').pop()}
                 </span>
               ))}
             </div>
@@ -1055,13 +1132,13 @@ export default function ExperimentDetailScreen({
 
         {/* Sweep Dimensions - Visual Grid */}
         {detail?.sweep_summary && (
-          <div className="mb-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl shadow-sm border border-purple-200 p-6">
+          <div className="mb-6 rounded-panel border border-line bg-paper p-5 shadow-panel">
             <CollapsibleCard
               title="Sweep Dimensions"
               icon={icons.grid}
               storageKey={`detail-sweep-${experimentId}`}
               headerExtra={
-                <span className="text-sm text-purple-700 font-semibold">
+                <span className="text-sm font-semibold text-accent-strong">
                   {detail.sweep_summary.models.length *
                     detail.sweep_summary.chunking_methods.length *
                     detail.sweep_summary.chunk_sizes.length *
@@ -1100,8 +1177,8 @@ export default function ExperimentDetailScreen({
 
         {/* Environment */}
         {detail?.env_params && (
-          <div className="mb-6 bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+          <div className="mb-6 rounded-panel border border-line bg-paper p-5 shadow-panel">
+            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted">
               Environment
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1120,7 +1197,7 @@ export default function ExperimentDetailScreen({
         )}
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700" role="alert">
             {error}
           </div>
         )}
@@ -1132,15 +1209,16 @@ export default function ExperimentDetailScreen({
           const paginatedRuns = detail.runs.slice(startIndex, endIndex);
 
           return (
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-              <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
-                <h2 className="text-lg font-bold text-slate-800">
-                  Run Details ({detail.runs.length})
+            <section className="overflow-hidden rounded-panel border border-line bg-paper shadow-panel" aria-labelledby="run-details-title">
+              <div className="border-b border-line bg-canvas px-6 py-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Run results</p>
+                <h2 id="run-details-title" className="font-display text-xl font-semibold text-ink">
+                  Run details ({detail.runs.length})
                 </h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-slate-50 border-b-2 border-slate-200">
+                  <thead className="border-b-2 border-line bg-canvas">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Run ID</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Database</th>
@@ -1153,7 +1231,7 @@ export default function ExperimentDetailScreen({
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Elapsed</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-line">
                     {paginatedRuns.map((run, idx) => {
                       const isComplete = run.phase === Phase.COMPLETE;
                       const isFailed = run.phase === Phase.FAILED || run.phase === Phase.INTERRUPTED;
@@ -1164,31 +1242,31 @@ export default function ExperimentDetailScreen({
                         <tr key={run.run_id} className={`hover:bg-blue-50/40 transition-all duration-200 ${rowBg}`}>
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-2">
-                              <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center">
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-canvas text-xs font-bold text-muted">
                                 {absoluteIndex + 1}
                               </span>
-                              <span className="text-sm font-mono text-slate-600">
+                              <span className="font-mono text-sm text-muted">
                                 {run.run_id.slice(0, 8)}
                               </span>
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-100 text-indigo-800 text-xs font-bold uppercase">
+                            <span className="inline-flex items-center rounded-md border border-line bg-canvas px-2.5 py-1 text-xs font-bold uppercase text-ink">
                               {run.database_provider || 'mongodb'}
                             </span>
                           </td>
                           <td className="px-4 py-4">
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-teal-100 text-teal-800 text-xs font-medium uppercase">
+                            <span className="inline-flex items-center rounded-md border border-line bg-canvas px-2.5 py-1 text-xs font-medium uppercase text-ink">
                               {run.embedding_provider || 'local'}
                             </span>
                           </td>
                           <td className="px-4 py-4">
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 text-xs font-medium">
+                            <span className="inline-flex items-center rounded-md border border-line bg-paper px-2.5 py-1 text-xs font-medium text-cobalt">
                               {run.embedding_model}
                             </span>
                           </td>
                           <td className="px-4 py-4">
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-purple-100 text-purple-800 text-xs font-medium">
+                            <span className="inline-flex items-center rounded-md border border-line bg-paper px-2.5 py-1 text-xs font-medium text-accent-strong">
                               {run.chunking_method}
                             </span>
                           </td>
@@ -1202,7 +1280,7 @@ export default function ExperimentDetailScreen({
                               {displayRetrievers(run).map((retriever, idx) => (
                                 <span
                                   key={idx}
-                                  className="inline-flex items-center px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 text-xs font-medium"
+                                  className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900"
                                   title={retriever}
                                 >
                                   {retriever}
@@ -1234,15 +1312,15 @@ export default function ExperimentDetailScreen({
                 onPageChange={setRunsCurrentPage}
                 onItemsPerPageChange={handleRunsItemsPerPageChange}
               />
-            </div>
+            </section>
           );
         })()}
 
         {/* Interrupted runs detail */}
         {detail?.runs && runSummary.interrupted > 0 && (
-          <div className="mt-6 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6 shadow-lg">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white">
+          <div className="mt-6 rounded-panel border border-amber-200 bg-amber-50 p-5 shadow-panel sm:p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white">
                 {icons.x}
               </div>
               <h2 className="text-lg font-bold text-amber-900">
@@ -1251,12 +1329,12 @@ export default function ExperimentDetailScreen({
             </div>
             <div className="space-y-3">
               {detail.runs.filter((run) => run.phase === Phase.INTERRUPTED).map((run) => (
-                <div key={run.run_id} className="bg-white border-l-4 border-amber-400 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center gap-3 mb-2">
+                <div key={run.run_id} className="rounded-lg border border-l-4 border-amber-200 border-l-amber-400 bg-paper p-4 shadow-sm">
+                  <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                     <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-mono font-bold rounded">
                       {run.run_id.slice(0, 8)}
                     </span>
-                    <span className="text-sm text-slate-700 font-medium">
+                    <span className="break-words text-sm font-medium text-ink">
                       {run.embedding_model} · {run.chunking_method} · {run.chunk_size}/{run.overlap}/{run.padding ?? 0}
                     </span>
                   </div>
@@ -1273,9 +1351,9 @@ export default function ExperimentDetailScreen({
 
         {/* Failed runs detail */}
         {detail?.runs && detail.runs.filter(r => r.phase === Phase.FAILED).length > 0 && (
-          <div className="mt-6 bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200 rounded-2xl p-6 shadow-lg">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white">
+          <div className="mt-6 rounded-panel border border-red-200 bg-red-50 p-5 shadow-panel sm:p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500 text-white">
                 {icons.x}
               </div>
               <h2 className="text-lg font-bold text-red-900">
@@ -1284,16 +1362,16 @@ export default function ExperimentDetailScreen({
             </div>
             <div className="space-y-3">
               {detail.runs.filter(r => r.phase === Phase.FAILED).map(run => (
-                <div key={run.run_id} className="bg-white border-l-4 border-red-400 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center gap-3 mb-2">
+                <div key={run.run_id} className="rounded-lg border border-l-4 border-red-200 border-l-red-400 bg-paper p-4 shadow-sm">
+                  <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                     <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-mono font-bold rounded">
                       {run.run_id.slice(0, 8)}
                     </span>
-                    <span className="text-sm text-slate-700 font-medium">
+                    <span className="break-words text-sm font-medium text-ink">
                       {run.embedding_model} · {run.chunking_method} · {run.chunk_size}/{run.overlap}/{run.padding ?? 0}
                     </span>
                     {run.elapsed_ms > 0 && (
-                      <span className="ml-auto text-xs text-slate-500 flex items-center gap-1">
+                      <span className="flex items-center gap-1 text-xs text-muted sm:ml-auto">
                         {icons.clock}
                         {(run.elapsed_ms / 1000).toFixed(1)}s
                       </span>
@@ -1312,10 +1390,10 @@ export default function ExperimentDetailScreen({
 
         {/* Terminal outcome summary */}
         {isTerminal && detail.status === 'complete' && (
-          <div className="mt-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-6 shadow-lg">
-            <div className="flex items-center justify-between">
+          <div className="mt-6 rounded-panel border border-emerald-300 bg-emerald-50 p-5 shadow-panel sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
                   {icons.check}
                 </div>
                 <div>
@@ -1329,10 +1407,11 @@ export default function ExperimentDetailScreen({
               </div>
               {onExplore && (
                 <button
+                  type="button"
                   onClick={onExplore}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold rounded-xl shadow-md transition-all transform hover:scale-105 flex items-center gap-2"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-accent px-5 text-sm font-semibold text-white shadow-sm hover:bg-accent-strong"
                 >
-                  🔍 Explore Results
+                  {icons.search} Explore results
                 </button>
               )}
             </div>
@@ -1340,8 +1419,8 @@ export default function ExperimentDetailScreen({
         )}
 
         {isTerminal && detail.status === 'partial' && (
-          <div className="mt-6 bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-2xl p-6 shadow-lg">
-            <div className="flex items-center justify-between gap-4">
+          <div className="mt-6 rounded-panel border border-amber-300 bg-amber-50 p-5 shadow-panel sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center text-white">
                   {icons.x}
@@ -1361,10 +1440,11 @@ export default function ExperimentDetailScreen({
               </div>
               {onExplore && runSummary.complete > 0 && (
                 <button
+                  type="button"
                   onClick={onExplore}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold rounded-xl shadow-md transition-all transform hover:scale-105 shrink-0"
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-accent px-5 text-sm font-semibold text-white shadow-sm hover:bg-accent-strong"
                 >
-                  🔍 Explore Results
+                  {icons.search} Explore completed-run results
                 </button>
               )}
             </div>
@@ -1372,7 +1452,7 @@ export default function ExperimentDetailScreen({
         )}
 
         {isTerminal && detail.status === 'cancelled' && (
-          <div className="mt-6 bg-gradient-to-br from-slate-50 to-slate-100 border-2 border-slate-300 rounded-2xl p-6 shadow-lg">
+          <div className="mt-6 rounded-panel border border-slate-300 bg-slate-50 p-5 shadow-panel sm:p-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-slate-500 flex items-center justify-center text-white">
                 {icons.x}
@@ -1388,7 +1468,7 @@ export default function ExperimentDetailScreen({
         )}
 
         {isPaused && (
-          <div className="mt-6 bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-violet-300 rounded-2xl p-6 shadow-lg">
+          <div className="mt-6 rounded-panel border border-violet-300 bg-violet-50 p-5 shadow-panel sm:p-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-violet-500 flex items-center justify-center text-white">
                 {icons.clock}
@@ -1407,8 +1487,19 @@ export default function ExperimentDetailScreen({
           </div>
         )}
 
+        <section className="mt-8 border-t border-line pt-6" aria-labelledby="experiment-storage-context-title">
+          <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Operational context</p>
+          <h2 id="experiment-storage-context-title" className="mt-1 font-display text-xl font-semibold text-ink">Stored-result footprint</h2>
+          <p className="mb-4 mt-1 text-sm text-muted">Storage metrics remain available after the run outcome, without competing with the primary decision path.</p>
+          <ExperimentVectorDbStatsCard
+            experimentId={experimentId}
+            stats={dbStats ?? undefined}
+            loading={dbStatsLoading && !dbStats}
+          />
+        </section>
+
         {isRunning && (
-          <div className="mt-4 text-center text-xs text-slate-500">
+          <div className="mt-4 text-center text-xs text-muted">
             Polling every {DETAIL_POLL_MS / 1000}s <span className="animate-pulse">●</span>
           </div>
         )}

@@ -307,8 +307,8 @@ rag-params-finder delete <experiment-id> --force
 ```
 
 **Dashboard**:
-- **Experiments list**: Click the trash icon in the Actions column
-- **Experiment detail**: Click the trash icon in the top-right header
+- **Experiments list**: Select one or more experiment cards, then click **Delete N** in the selection bar
+- **Experiment detail**: Click **Delete** in the experiment overview
 
 Both methods:
 - Show a confirmation modal with experiment details

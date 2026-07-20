@@ -76,7 +76,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 
 | Screen | Description |
 |:---:|:---|
-| ![Experiments list](docs/images/01-experiments-list.png) | All submitted sweeps with status badges and run counts |
+| ![Experiments list](docs/images/01-experiments-list.png) | Result-led experiment cards with lifecycle state, sweep outcome, and an explicit next action |
 
 ### Atlas Local + local embedding models (`example-mongodb-local.yaml`)
 
@@ -84,7 +84,7 @@ Runs entirely offline — no cloud account, no API key. Uses `all-MiniLM-L6-v2` 
 
 | Screen | Description |
 |:---:|:---|
-| ![Experiment detail — local](docs/images/example-mongodb-local/02-experiment-detail.png) | **Experiment detail** — metric cards, live phase indicator dots, runs table |
+| ![Experiment detail — local](docs/images/example-mongodb-local/02-experiment-detail.png) | **Experiment detail** — lifecycle summary, next step, configuration, and run results |
 | ![Search Explorer — local](docs/images/example-mongodb-local/03-search-explorer.png) | **Search Explorer** — best-parameters card, ranked configs with score bars |
 
 ### Atlas Local + SIE embedding models (`example-mongodb-sie.yaml`)
@@ -93,7 +93,7 @@ Uses [SIE](docs/user-guide/sie-setup.md) open-source embeddings — BGE-M3 and S
 
 | Screen | Description |
 |:---:|:---|
-| ![Experiment detail — SIE](docs/images/example-mongodb-sie/02-experiment-detail.png) | **Experiment detail** — SIE sweep with BGE-M3 / Stella-v5 embeddings |
+| ![Experiment detail — SIE](docs/images/example-mongodb-sie/02-experiment-detail.png) | **Experiment detail** — SIE lifecycle summary with BGE-M3 / Stella-v5 run results |
 | ![Search Explorer — SIE](docs/images/example-mongodb-sie/03-search-explorer.png) | **Search Explorer** — SIE sweep ranked configs |
 
 ---
@@ -141,6 +141,7 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 - **Experiment management**: Pause/resume long sweeps, cancel running experiments, delete with cascade cleanup, boot orphan reconciliation
 - **Search index preflight**: Validates required Atlas Search indexes and cluster quota before sweeps start; rejects with HTTP 422 when indexes are missing or quota exhausted
 - **Atlas index CLI**: `indexes list` and `indexes reset` for M0 quota troubleshooting
+- **Result-led dashboard**: Experiment cards lead with lifecycle and sweep outcome; detail connects identity and configuration to run results and the next valid action
 - **Vector DB stats**: Cluster and per-experiment chunk/storage estimates; optional Atlas quota bar with tier, provider, and region when Admin API credentials are configured
 - **Progress feedback**: Byte-level network loading, circular progress with elapsed time and ETA, background polling with "Syncing..." badges
 - **Scoped logging**: Server and dashboard use `[rag-params-finder] [Scope] operation — details` format; set `LOG_LEVEL=DEBUG` for verbose server output

@@ -115,6 +115,9 @@ jobs:
       - name: Lint (eslint)
         run: npm run lint
 
+      - name: Component tests (Vitest)
+        run: npm run test
+
       - name: Type check (tsc)
         run: npm run typecheck
 

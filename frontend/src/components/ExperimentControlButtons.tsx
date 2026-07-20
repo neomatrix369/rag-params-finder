@@ -27,6 +27,30 @@ function stopRowNavigation(event: MouseEvent<HTMLDivElement>) {
   event.stopPropagation();
 }
 
+function PauseIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M5.75 3.5A1.25 1.25 0 0 0 4.5 4.75v10.5a1.25 1.25 0 1 0 2.5 0V4.75A1.25 1.25 0 0 0 5.75 3.5Zm8.5 0A1.25 1.25 0 0 0 13 4.75v10.5a1.25 1.25 0 1 0 2.5 0V4.75a1.25 1.25 0 0 0-1.25-1.25Z" />
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <rect x="4" y="4" width="12" height="12" rx="2" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M5.5 4.8a1.4 1.4 0 0 1 2.1-1.2l7.1 4.7a2 2 0 0 1 0 3.4l-7.1 4.7a1.4 1.4 0 0 1-2.1-1.2V4.8Z" />
+    </svg>
+  );
+}
+
 export default function ExperimentControlButtons({
   experimentId,
   status,
@@ -46,19 +70,19 @@ export default function ExperimentControlButtons({
     return null;
   }
 
-  const pad = size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-4 py-2 text-sm';
+  const pad = size === 'sm' ? 'min-h-11 px-3 text-xs' : 'min-h-11 px-4 text-sm';
   const pauseClass =
     tone === 'dark'
-      ? 'border border-violet-400/50 bg-violet-500/20 text-violet-100 hover:bg-violet-500/30'
-      : 'border border-violet-300 bg-violet-50 text-violet-800 hover:bg-violet-100';
+      ? 'border border-amber-200/40 bg-amber-200/10 text-amber-50 hover:bg-amber-200/20'
+      : 'border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100';
   const resumeClass =
     tone === 'dark'
-      ? 'bg-emerald-600 text-white hover:bg-emerald-500'
-      : 'bg-emerald-600 text-white hover:bg-emerald-700';
+      ? 'bg-accent text-white hover:bg-emerald-500'
+      : 'bg-accent text-white hover:bg-accent-strong';
   const cancelClass =
     tone === 'dark'
-      ? 'bg-red-600/90 text-white hover:bg-red-500'
-      : 'bg-red-600 text-white hover:bg-red-700';
+      ? 'border border-red-300/40 bg-red-500/20 text-red-50 hover:bg-red-500/30'
+      : 'border border-red-300 bg-red-50 text-red-800 hover:bg-red-100';
 
   async function runAction(
     action: () => Promise<unknown>,
@@ -120,17 +144,19 @@ export default function ExperimentControlButtons({
             type="button"
             onClick={handlePause}
             disabled={disabled}
-            className={`rounded-lg font-semibold shadow-sm transition-colors disabled:opacity-50 ${pad} ${pauseClass}`}
+            className={`inline-flex items-center gap-2 rounded-lg font-semibold shadow-sm transition-colors disabled:opacity-50 ${pad} ${pauseClass}`}
           >
-            {pausing ? 'Pausing…' : '⏸ Pause'}
+            <PauseIcon />
+            {pausing ? 'Pausing…' : 'Pause'}
           </button>
           <button
             type="button"
             onClick={handleCancel}
             disabled={disabled}
-            className={`rounded-lg font-semibold shadow-sm transition-colors disabled:opacity-50 ${pad} ${cancelClass}`}
+            className={`inline-flex items-center gap-2 rounded-lg font-semibold shadow-sm transition-colors disabled:opacity-50 ${pad} ${cancelClass}`}
           >
-            {cancelling ? 'Cancelling…' : '⏹ Cancel'}
+            <StopIcon />
+            {cancelling ? 'Cancelling…' : 'Cancel'}
           </button>
         </>
       )}
@@ -139,9 +165,10 @@ export default function ExperimentControlButtons({
           type="button"
           onClick={handleResume}
           disabled={disabled}
-          className={`rounded-lg font-semibold shadow-sm transition-colors disabled:opacity-50 ${pad} ${resumeClass}`}
+          className={`inline-flex items-center gap-2 rounded-lg font-semibold shadow-sm transition-colors disabled:opacity-50 ${pad} ${resumeClass}`}
         >
-          {resuming ? 'Resuming…' : '▶ Resume'}
+          <PlayIcon />
+          {resuming ? 'Resuming…' : 'Resume'}
         </button>
       )}
     </div>

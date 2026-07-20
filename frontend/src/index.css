@@ -2,13 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+  --color-frame: #0b1f2a;
+  --color-frame-muted: #132f3c;
+  --color-canvas: #f4f1e9;
+  --color-paper: #fffdf8;
+  --color-ink: #172b36;
+  --color-muted: #586a72;
+  --color-line: #d9d4c8;
+  --color-accent: #087f73;
+  --color-accent-strong: #05665d;
+  --color-accent-soft: #d8eee9;
+  --color-cobalt: #285ea8;
+  --font-display: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  --font-body: 'Avenir Next', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+}
+
+html {
+  min-width: 320px;
+  background: var(--color-frame);
+}
+
 body {
   margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-width: 320px;
+  background: var(--color-frame);
+  color: var(--color-ink);
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: 'Monaco', 'Courier New', monospace;
+  font-family: var(--font-mono);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.app-canvas {
+  background-color: var(--color-canvas);
+  background-image:
+    linear-gradient(rgb(23 43 54 / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(23 43 54 / 0.025) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
