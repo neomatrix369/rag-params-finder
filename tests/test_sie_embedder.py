@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import threading
+import time
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -91,6 +93,50 @@ class TestSIEEmbedderDenseEmbedding:
         assert len(result) == total
         assert mock_client.encode.call_count == expected_batches
 
+    def test_embed_documents_respects_sie_in_flight_limit(self):
+        """
+        Given multiple concurrent encode calls and SIE in-flight limit = 1
+        When embed_documents_sie is called across many threads
+        Then active encode calls never exceed the configured cap.
+        """
+        from server.core import sie_embedder
+
+        active = 0
+        peak = 0
+        lock = threading.Lock()
+        started = threading.Event()
+
+        def _encode_side_effect(*_args: object, **_kwargs: object) -> list[dict]:
+            nonlocal active, peak
+            with lock:
+                active += 1
+                peak = max(peak, active)
+                if active == 1:
+                    started.set()
+            time.sleep(0.05)
+            with lock:
+                active -= 1
+            return [{"dense": np.zeros(1024, dtype=np.float32)}]
+
+        def _run_worker(text: str) -> None:
+            with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
+                mock_client_cls.return_value.encode.side_effect = _encode_side_effect
+                from server.core.sie_embedder import embed_documents_sie
+
+                embed_documents_sie([text], "bge-m3")
+
+        with patch("server.core.sie_embedder._SIE_MAX_IN_FLIGHT_REQUESTS", 1):
+            threads = [threading.Thread(target=_run_worker, args=(f"text {i}",)) for i in range(3)]
+            with patch.object(sie_embedder, "_SIE_ENCODE_SEMAPHORE", threading.Semaphore(1)):
+                for t in threads:
+                    t.start()
+                started.wait(timeout=1.0)
+                for t in threads:
+                    t.join(timeout=1.0)
+                    assert not t.is_alive()
+
+        assert peak <= 1
+
     def test_get_client_passes_endpoint_and_api_key(self):
         """
         Given SIE_ENDPOINT and SIE_API_KEY are configured
@@ -126,6 +172,46 @@ class TestSIEEmbedderFallback:
         Given SIEClient cannot connect to http://localhost:8720
         When embed_documents_sie is called
         Then a SIEUnavailableError is raised with message containing "SIE unreachable".
+        """
+        with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
+            mock_client_cls.return_value.encode.side_effect = Exception("Connection refused")
+
+            from server.core.sie_embedder import embed_documents_sie
+
+            with pytest.raises(SIEUnavailableError, match="SIE unreachable"):
+                embed_documents_sie(["test"], "bge-m3")
+
+    def test_embed_documents_retries_on_503_like_errors(self, monkeypatch: pytest.MonkeyPatch):
+        """
+        Given SIE encode returns transient 503 errors
+        When embed_documents_sie is called
+        Then requests are retried and eventually succeed.
+        """
+        attempts = 0
+
+        def _encode_side_effect(*_args: object, **_kwargs: object) -> list[dict]:
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1:
+                raise Exception("503 Service Unavailable")
+            return [{"dense": np.zeros(1024, dtype=np.float32)}]
+
+        monkeypatch.setattr("server.core.sie_embedder._SIE_INITIAL_RETRY_DELAY_S", 0.0)
+        with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
+            mock_client_cls.return_value.encode.side_effect = _encode_side_effect
+
+            from server.core.sie_embedder import embed_documents_sie
+
+            result = embed_documents_sie(["test"], "bge-m3")
+
+        assert len(result) == 1
+        assert attempts == 2
+
+    def test_embed_documents_does_not_retry_non_retryable_errors(self):
+        """
+        Given SIE encode raises a non-retryable error
+        When embed_documents_sie is called
+        Then the call fails without retrying.
         """
         with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
             mock_client_cls.return_value.encode.side_effect = Exception("Connection refused")

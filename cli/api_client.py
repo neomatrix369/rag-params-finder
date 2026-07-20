@@ -1,3 +1,4 @@
+import os
 from typing import Any, cast
 from urllib.parse import urlparse
 
@@ -8,7 +9,7 @@ from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-_DEFAULT_TIMEOUT_S = 10.0  # HTTP client timeout for all server API calls
+_DEFAULT_TIMEOUT_S = float(os.getenv("RAG_PARAMS_FINDER_CLIENT_TIMEOUT_S", "120"))
 
 
 def get_server_url() -> str:

@@ -1,0 +1,76 @@
+# MongoDB Atlas — Voyage AI models (requires VOYAGE_API_KEY in .env)
+#
+# Default sweep (1 embedding model enabled below):
+#   1 embedding model × 5 chunking methods × 2 chunk sizes × 1 overlap × 4 retrievers
+#   = 40 runs (each retriever creates a separate run)
+#
+# Uncomment additional models for a full sweep (12 models × 4 retrievers → 480 runs). See comments per model.
+#
+# Embedding (1024-dim, vector_index_1024): voyage-4-* · domain · context · voyage-3.*
+# Chunking:   fixed · recursive · token · sentence · semantic
+# Retrievers: hybrid · dense · sparse · reranker (swept individually — one retriever per run)
+#
+# Atlas prerequisites (M0 — create before running sweep):
+#   - chunks collection in rag_params_finder database
+#   - vector_index_1024 + text_search_index
+# Voyage prerequisites:
+#   - VOYAGE_API_KEY + Tier 1 billing (≥$5 credits) in .env
+#   See docs/user-guide/mongodb-setup.md#before-you-run-a-sweep
+
+experiment_name: example-mongodb-voyage-parallel
+
+data_paths:
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+
+queries_file: ./configs/questions.example.json
+
+database_provider: mongodb
+
+embedding:
+  provider: voyage
+  models:
+    # Voyage 4 series
+    # - voyage-4-large       # 1024-dim, flagship quality
+    # - voyage-4             # 1024-dim, general-purpose balanced
+    # - voyage-4-lite        # 1024-dim, fastest and cheapest (Voyage 4)
+    # Domain-specific
+    # - voyage-code-3        # 1024-dim, optimised for code retrieval
+    # - voyage-finance-2     # 1024-dim, finance domain
+    # - voyage-law-2         # 1024-dim, legal domain
+    # - voyage-context-3     # 1024-dim, optimised for long contexts (contextualized API)
+    # Voyage 3 series (legacy API)
+    # - voyage-3-large       # 1024-dim, highest quality (legacy)
+    # - voyage-3.5           # 1024-dim, balanced quality
+    # - voyage-3             # 1024-dim, general-purpose (legacy)
+    # - voyage-multilingual-2 # 1024-dim, multilingual retrieval (legacy)
+    # Using Voyage 3.5 Lite 5 for now as it is the fastest and cheapest model that is still supported by Voyage AI.
+    # This will reduce load on storage when we run the full sweep upto 30 combinations
+    - voyage-3.5-lite      # 1024-dim, fastest and cheapest
+
+chunking:
+  methods:
+    - fixed       # character-window slicing
+    - recursive   # LangChain recursive splitter (splits on \n\n → \n → space)
+    - token       # LangChain TokenTextSplitter (cl100k_base, sizes in tokens)
+    - sentence    # NLTK sentence grouping with character budget
+    - semantic    # sentence-transformers cosine similarity grouping
+  params:
+    chunk_sizes: [256, 512]   # narrower than local to control API cost
+    overlaps: [50]
+
+# NEW: Unified retriever configuration
+retrieval:
+  top_k_initial: 20  # Candidates from traditional retrieval
+  top_k_final: 5     # Final results after reranking
+  retrievers:
+    # Each entry is one sweep dimension — one retriever per run (never combined).
+    - type: hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
+    - type: dense    # Atlas $vectorSearch (cosine similarity)
+    - type: sparse   # Atlas $search BM25 full-text  ← requires text_search_index
+    - type: reranker
+      provider: voyage
+      model: rerank-2.5-lite
+
+execution:
+  parallelism: 4
+  on_error: continue

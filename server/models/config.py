@@ -167,8 +167,8 @@ class RetrievalConfig(BaseModel):
 
 
 class ExecutionConfig(BaseModel):
-    parallelism: int = Field(default=1)
-    on_error: str = Field(default="continue")
+    parallelism: int = Field(default=1, ge=1, le=16)
+    on_error: Literal["continue", "stop"] = Field(default="continue")
 
 
 class ExperimentConfig(BaseModel):

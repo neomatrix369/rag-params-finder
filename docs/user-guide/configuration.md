@@ -66,14 +66,17 @@ retrieval:
     #   model: rerank-2.5-lite
 
 execution:
-  parallelism: 1                     # use 1 until Slice 16; see "### Parallelism" below
+  parallelism: 1                     # 1 runs sequentially (safe default); increase for local-provider throughput demos
   on_error: continue                 # "continue" (partial results) or "stop" (halt experiment)
 ```
 
 ### Parallelism (`execution.parallelism`)
 
-- **Current behavior**: The value is stored on each experiment *(and visible in the dashboard)* but **`server/core/orchestrator.py` always runs sweep runs sequentially** — values greater than `1` have **no throughput effect** until implemented.
-- **Planned work**: **[Slice 16 — Parallel Sweep Runs](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md)** specifies bounded concurrent execution of `_run_single`, cancellation + `on_error` semantics across workers, Atlas/Voyage rate-limit considerations, and an optional Celery-style queue path for larger deployments.
+- **Behavior today**: `execution.parallelism` is applied as in-process concurrency in the sweep runner with a hard cap of `16`.
+- **Parallelism bounds**: must be `>= 1` and `<= 16` in config validation (`server/models/config.py`).
+- **Local-provider guidance**: parallel runs are supported and intended for local `sentence-transformers` sweeps.
+- **Voyage / remote providers**: larger parallelism can hit external RPM/TPM quotas; for that path, use cautious values and dedicated throttling (not part of this slice).
+- **Slice 16 implemented**: **[Slice 16 — Parallel Sweep Runs](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md)** adds bounded concurrent `_run_single` scheduling with current `on_error` and cancellation semantics; optional queue-based rollout remains out of scope.
 
 ---
 
