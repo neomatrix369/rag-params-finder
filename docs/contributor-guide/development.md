@@ -281,7 +281,7 @@ rag-params-finder/
 │   ├── user-guide/      # End-user documentation
 │   ├── contributor-guide/ # This directory
 │   ├── adr/             # Architecture Decision Records
-│   ├── slices/          # Slice specs + PROGRESS.md (status, roadmap)
+│   ├── plan/slices/     # Slice specs + PROGRESS.md (status, roadmap)
 │   ├── _internal/       # Gap tracker, audits, Graphiti exports
 │   └── README.md        # Documentation index (doc map)
 └── .github/workflows/   # CI (see § CI — repo-lint, backend, frontend, secrets)

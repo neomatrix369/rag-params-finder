@@ -137,6 +137,9 @@ Scenario: example-mongodb-sie.yaml loads and expands sweep for SIE provider
 ### After-Checks [GATE — next slice is BLOCKED until all pass]
 
 - [ ] All GWT scenarios covered by passing named tests
+- [ ] Specification coverage: every GWT clause has at least one test (BDD/GWT-first); essential error and timeout paths covered
+- [ ] Branch coverage: target 100% where practical; document any exclusions
+- [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors
 - [ ] No skipped tests in scope
 - [ ] Stub scan: no `TODO`, `FIXME`, `NotImplemented`, bare `pass` in new files
 - [ ] Full test suite green, ≥ 80% coverage on scoped modules

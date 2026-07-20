@@ -60,6 +60,9 @@ Scenario: Dense sweep end-to-end
 - [ ] Unit tests prove `embedding_model` filter on every dense path (PRD AC)
 - [ ] Real dense sweep smoke on local Postgres
 - [ ] Mongo dense path unchanged
+- [ ] Specification coverage: every GWT clause has at least one test (BDD/GWT-first); essential error and timeout paths covered
+- [ ] Branch coverage: target 100% where practical; document any exclusions
+- [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors
 - [ ] Coverage + quality gates
 - [ ] Doc audit: PRD §Documentation matrix rows for slice **34** (`architecture.md` Postgres dense)
 - [ ] `docs/plan/slices/PROGRESS.md` updated

@@ -70,3 +70,18 @@ Scenario: Planner slice list remains stable
 - `docs/plan/slices/PROGRESS.md`
 - `docs/plan/TRAIL.md`
 - `docs/plan/DECISIONS.md`
+
+## Before-Checks [GATE]
+
+- [ ] Slice is planning-only and does not require runtime code changes
+- [ ] `TRAIL.md` row for this slice exists with status `📋 PLANNED`
+- [ ] `slices/PROGRESS.md` contains a `Quick Status` row for this slice with `📋 PLANNED`
+
+## After-Checks [GATE]
+
+- [ ] Specification coverage: every GWT clause has at least one test (BDD/GWT-first); essential error and timeout paths covered
+- [ ] Branch coverage: target 100% where practical; document any exclusions
+- [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors
+- [ ] Coverage + quality gates
+- [ ] `TRAIL.md` and `slices/PROGRESS.md` entries remain synchronized and still show this slice as planned
+- [ ] `DECISIONS.md` records at least one boundary decision row
