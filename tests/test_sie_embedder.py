@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import threading
 import time
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -206,6 +207,42 @@ class TestSIEEmbedderFallback:
 
         assert len(result) == 1
         assert attempts == 2
+
+    def test_embed_documents_retries_on_429_with_retry_after_header(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        """
+        Given SIE encode returns 429 with Retry-After
+        When embed_documents_sie is called
+        Then it retries after the hinted delay and eventually succeeds.
+        """
+        attempts = 0
+        sleep_calls: list[float] = []
+
+        def _encode_side_effect(*_args: object, **_kwargs: object) -> list[dict]:
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1:
+                exc = Exception("429 Too Many Requests")
+                exc.response = SimpleNamespace(headers={"Retry-After": "0.25"})
+                raise exc
+            return [{"dense": np.zeros(1024, dtype=np.float32)}]
+
+        monkeypatch.setattr("server.core.sie_embedder._SIE_INITIAL_RETRY_DELAY_S", 0.0)
+        monkeypatch.setattr(
+            "server.core.sie_embedder.time.sleep",
+            lambda delay: sleep_calls.append(delay),
+        )
+        with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
+            mock_client_cls.return_value.encode.side_effect = _encode_side_effect
+
+            from server.core.sie_embedder import embed_documents_sie
+
+            result = embed_documents_sie(["test"], "bge-m3")
+
+        assert len(result) == 1
+        assert attempts == 2
+        assert sleep_calls == [0.25]
 
     def test_embed_documents_does_not_retry_non_retryable_errors(self):
         """

@@ -724,7 +724,7 @@ def test_run_single_happy_path_executes_pipeline(
         Query(text="What is retrieval?", persona_id="persona", focus=None)
     ]
     mock_get_embedder.return_value = (
-        lambda chunks, _model, cancel_check=None: [[0.1], [0.2]],
+        lambda chunks, _model, cancel_check=None, **_kwargs: [[0.1], [0.2]],
         lambda text, model: [0.1, 0.2],
     )
     mock_search_traditional.return_value = (
@@ -785,7 +785,7 @@ def test_run_single_reranker_path_executes_pipeline(
     mock_chunk_text.return_value = ["chunk-one"]
     mock_load_queries.return_value = [Query(text="How?", persona_id="persona", focus=None)]
     mock_get_embedder.return_value = (
-        lambda chunks, _model, cancel_check=None: [[0.1]],
+        lambda chunks, _model, cancel_check=None, **_kwargs: [[0.1]],
         lambda text, model: [0.1, 0.2],
     )
     mock_search_reranker.return_value = []
@@ -832,7 +832,7 @@ def test_run_single_failure_updates_failed_phase(
     mock_chunk_text.return_value = ["chunk-one"]
     mock_load_queries.return_value = [Query(text="How?", persona_id="persona", focus=None)]
     mock_get_embedder.return_value = (
-        lambda chunks, _model, cancel_check=None: [[0.1]],
+        lambda chunks, _model, cancel_check=None, **_kwargs: [[0.1]],
         lambda text, model: [0.1, 0.2],
     )
     mock_search_traditional.side_effect = RuntimeError("index failure")
@@ -899,7 +899,10 @@ def test_run_single_records_empty_parse_and_chunk(
     ):
         with patch(
             "server.core.orchestrator.get_embedder",
-            return_value=(lambda chunks, m, cancel_check=None: [], lambda text, model: []),
+            return_value=(
+                lambda chunks, m, cancel_check=None, **_kwargs: [],
+                lambda text, model: [],
+            ),
         ):
             with patch(
                 "server.core.orchestrator._search_reranker_retriever"
@@ -939,7 +942,10 @@ def test_run_single_interrupted_state_updates(
     mock_load_queries.return_value = [Query(text="q", persona_id="p", focus=None)]
     with patch(
         "server.core.orchestrator.get_embedder",
-        return_value=(lambda chunks, m, cancel_check=None: [[0.1]], lambda text, model: [0.1]),
+        return_value=(
+            lambda chunks, m, cancel_check=None, **_kwargs: [[0.1]],
+            lambda text, model: [0.1],
+        ),
     ):
         with patch("server.core.orchestrator._search_traditional_retriever", return_value=([], [])):
             with pytest.raises(ExperimentCancelledError):

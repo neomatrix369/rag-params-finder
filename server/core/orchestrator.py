@@ -340,7 +340,15 @@ def _run_sweep_inner(
         run_id = str(uuid.uuid4())
         run_ids.append(run_id)
         logger.info("run submitted — experiment %s, run_id=%s", experiment_id, run_id)
-        futures[executor.submit(_run_single, experiment_id, run_id, params)] = (run_id, params)
+        futures[
+            executor.submit(
+                _run_single,
+                experiment_id,
+                run_id,
+                params,
+                config.execution.parallelism,
+            )
+        ] = (run_id, params)
         return True
 
     with ThreadPoolExecutor(
@@ -492,7 +500,12 @@ def _compute_final_status(
     return ExperimentStatus.PARTIAL, failed
 
 
-def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
+def _run_single(
+    experiment_id: str,
+    run_id: str,
+    params: RunParams,
+    embedding_parallelism: int = 1,
+) -> None:
     """Execute one run of the pipeline for a single parameter combination."""
     retriever_summary = ", ".join(
         r.type.value
@@ -567,10 +580,14 @@ def _run_single(experiment_id: str, run_id: str, params: RunParams) -> None:
         def cancel_check() -> None:
             check_control(experiment_id)
 
+        embed_kwargs: dict[str, object] = {"cancel_check": cancel_check}
+        if params.embedding_provider == "local":
+            embed_kwargs["parallelism"] = embedding_parallelism
+
         embeddings = embed_docs_fn(
             chunks,
             params.embedding_model,
-            cancel_check=cancel_check,
+            **embed_kwargs,
         )
         logger.info("embed OK — run %s, %s embeddings", run_id, len(embeddings))
 

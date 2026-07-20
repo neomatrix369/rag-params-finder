@@ -147,16 +147,16 @@ See [`development.md`](../contributor-guide/development.md) § Git hooks.
 ## Addendum — 16B Embedding Concurrency Fix (In Place)
 
 **Parent slice:** [SLICE-16-PARALLEL-SWEEP-RUNS.md](./SLICE-16-PARALLEL-SWEEP-RUNS.md)
-**Status:** 📋 PLANNED
+**Status:** ✅ COMPLETE
 **MoSCoW:** Must *(parallelism as shipped delivers no throughput gain on the primary supported path — local embeddings — and silently fails on the SIE path under load)*
 **Target time:** 1–1.5 h
 **Scope note:** This addendum documents a post-completion gap found via implementation review and is in-place corrective work; no dual implementation paths.
 
 ### Before-Checks [GATE]
 
-- [ ] `./scripts/quality-gates.sh --quick` green on `main`
-- [ ] Branch `slice/16b-embedding-concurrency-fix` from latest `main`
-- [ ] Characterization: capture wall-clock for identical local-provider sweep at `parallelism: 1` vs `parallelism: 4` on current `main` (confirms the regression before touching code)
+- [x] `./scripts/quality-gates.sh --quick` green on `main`
+- [x] Branch `slice/16b-embedding-concurrency-fix` from latest `main`
+- [x] Characterization: capture wall-clock for identical local-provider sweep at `parallelism: 1` vs `parallelism: 4` on current `main` (confirms the regression before touching code)
 
 ### Goal
 
@@ -172,14 +172,14 @@ Slice 16's own acceptance criteria require retry/backoff for transient failures.
 
 ### Acceptance Criteria *(implementation exit)*
 
-- [ ] `local_embedder.py`: thread budget is set explicitly and scoped to configured `parallelism`, not left to PyTorch default.
-- [ ] `local_embedder.py`: no behavior change when `parallelism: 1` (regression-safe).
-- [ ] `sie_embedder.py`: retry classification includes `429`, `rate limit`, and `too many requests`.
-- [ ] `sie_embedder.py`: retry honors `Retry-After` when available; otherwise uses existing exponential backoff schedule.
-- [ ] Correction is applied in-place in `local_embedder.py` and `sie_embedder.py` with no alternate branch/module kept alive.
-- [ ] `docs/user-guide/configuration.md` parallelism guidance adds local-provider CPU/thread-budget caveat explicitly.
-- [ ] Regression test for local path caps threads under `parallelism > 1`.
-- [ ] Regression test for SIE path retries on mocked `429` / rate-limit error instead of immediate failure.
+- [x] `local_embedder.py`: thread budget is set explicitly and scoped to configured `parallelism`, not left to PyTorch default.
+- [x] `local_embedder.py`: no behavior change when `parallelism: 1` (regression-safe).
+- [x] `sie_embedder.py`: retry classification includes `429`, `rate limit`, and `too many requests`.
+- [x] `sie_embedder.py`: retry honors `Retry-After` when available; otherwise uses existing exponential backoff schedule.
+- [x] Correction is applied in-place in `local_embedder.py` and `sie_embedder.py` with no alternate branch/module kept alive.
+- [x] `docs/user-guide/configuration.md` parallelism guidance adds local-provider CPU/thread-budget caveat explicitly.
+- [x] Regression test for local path caps threads under `parallelism > 1`.
+- [x] Regression test for SIE path retries on mocked `429` / rate-limit error instead of immediate failure.
 
 ### Corrected Implementation
 
@@ -217,8 +217,8 @@ Slice 16's own acceptance criteria require retry/backoff for transient failures.
 
 ### After-Checks
 
-- [ ] `./scripts/quality-gates.sh --quick` pass
-- [ ] `pytest -q tests/test_slice16_parallel_sweep.py tests/test_sie_guard.py`
+- [x] `./scripts/quality-gates.sh --quick` pass
+- [x] `pytest -q tests/test_slice16_parallel_sweep.py tests/test_sie_guard.py`
 - [ ] Manual: local sweep `parallelism: 4` shows real speedup over `parallelism: 1`
 - [ ] Manual: SIE sweep under simulated rate-limiting completes with retries
 
