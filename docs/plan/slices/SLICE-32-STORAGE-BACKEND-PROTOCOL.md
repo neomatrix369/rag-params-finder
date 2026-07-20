@@ -94,6 +94,7 @@ Scenario: Retrieval flows through RetrieverBackend
 - [ ] Grep confirms no `from server.db.atlas` in orchestrator/experiments/startup_reconciliation
 - [ ] Specification coverage: every GWT clause ≥1 test; essential error paths covered
 - [ ] Branch coverage: 100% target on new modules; exclusions documented
+- [ ] Mutation testing: run for new port/protocol modules (or document explicit feature-complete waiver)
 - [ ] `./scripts/quality-gates.sh` passes
 - [ ] Doc audit: PRD §Documentation matrix rows for slice **32** (architecture, extending, CLAUDE Key Files)
 - [ ] `docs/plan/slices/PROGRESS.md` updated (status + decision log if applicable)

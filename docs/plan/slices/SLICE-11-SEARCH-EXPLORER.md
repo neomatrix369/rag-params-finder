@@ -58,6 +58,7 @@ Add visualization and query-filter controls to `SearchExplorerScreen` without ne
 - [ ] `docs/user-guide/dashboard-guide.md` updated (visualization + filter controls)
 - [ ] Specification coverage: every GWT clause has ≥1 test where applicable (frontend: component/integration)
 - [ ] Branch coverage: 100% target on new TS modules; exclusions documented if any
+- [ ] Mutation testing: run for new/changed frontend modules (or document explicit feature-complete waiver)
 
 ## Files (expected)
 
