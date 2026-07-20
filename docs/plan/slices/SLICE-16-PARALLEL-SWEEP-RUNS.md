@@ -40,9 +40,11 @@ Large Cartesian products (`models × chunking × sizes × overlaps × retrieval`
 - [ ] Behavior with `parallelism: 1` matches existing sequential semantics *(characterization / regression checks)*.
 - [ ] **`on_error: continue`**: failures in parallel runs behave like today — count failures and continue scheduling until the sweep completes or cancelled.
 - [ ] **`on_error: stop`**: first failing run triggers stop — no new `_run_single` starts; in-flight siblings may finish or abort *(document chosen policy in PROGRESS Decision Log)*.
+- [ ] **SIE parallelism safeguard**: hardcode an in-process cap on concurrent SIE encode requests plus retry/backoff for transient 503-style failures.
 - [ ] **Cancellation**: user cancel stops new work and terminates the sweep with `CANCELLED` as reliably as today *(define whether in-flight runs are waited out or signaled)*.
 - [ ] **`ExecutionConfig.parallelism`** validated: `>= 1` and upper guard *(hardcoded max 16)* to avoid accidental fork bombs.
 - [ ] **`docs/user-guide/configuration.md`** updated: remove “stored but ignored”; document limits and caveats for Voyage vs local providers.
+- [ ] `ExperimentDetailScreen` elapsed/ETA subtitle reflects sweep parallelism impact through observed run throughput (`completed / elapsed`) and not a fixed per-run constant; add regression test coverage.
 
 ---
 
@@ -72,6 +74,7 @@ Recommendation: prototype **Approach A** inside `orchestrator` first *(same Mong
 | Decision | Record when |
 |---|---|
 | Approach A vs B | **A only** (Bounded in-process `ThreadPoolExecutor`) implemented for this slice; B explicitly out of scope today |
+| SIE saturation handling | **Hardcoded in-process permit cap** + exponential backoff retries on transient 503-style SIE failures, no cross-process limiter |
 | `on_error: stop` vs in-flight runs | `on_error: stop` means stop scheduling new `_run_single` runs after first failure; in-flight runs are allowed to finish |
 | Voyage limiting: centralized vs per-run | Skipped for this demo slice because runs are local sentence-transformers only |
 
@@ -96,11 +99,16 @@ Recommendation: prototype **Approach A** inside `orchestrator` first *(same Mong
 
 ## After-Checks
 
-- [ ] `./scripts/quality-gates.sh` pass
-- [ ] Specification coverage: every GWT clause has ≥1 test; concurrency and cancellation paths covered (90–100% of clauses)
-- [ ] Branch coverage: 100% target; exclusions documented (test-writing-craft-quality.mdc §12)
-- [ ] Mutation testing: survival budget met if slice is feature-complete (§23)
-- [ ] Manual: submit config with `parallelism: 2` → confirm runs execute concurrently in server logs
+- [ ] `./scripts/quality-gates.sh --quick` pass
+- [ ] `pytest -q tests/test_slice16_parallel_sweep.py` for bounded concurrency + on_error/cancel semantics, model bounds, and CLI timeout override checks
+- [ ] `pytest -q tests/test_config_examples.py tests/test_sweep_endpoint.py` for experiment payload compatibility after executor changes
+- [ ] Manual: submit identical local sweep with `parallelism: 1`, then `parallelism: 4`, capture elapsed/ETA difference from dashboard cards
+- [ ] Manual: verify dashboard `12 of 120` elapsed/ETA cards converge faster with parallel sweeps as long as completed count grows faster
+- [ ] Manual: exercise parallel local sweeps and confirm no sustained 503 errors in SIE logs when encode cap is in effect
+- [ ] Manual: submit config with `parallelism: 2` and confirm scheduling concurrency in logs (no single-run lock step between submissions)
+- [ ] Manual: `curl http://127.0.0.1:8001/health` and `curl http://127.0.0.1:8001/experiments` before each benchmark run
+- [ ] Branch coverage target reviewed for touched modules `server/core/orchestrator.py` and `server/models/config.py` (`coverage report` + acceptable exclusions logged in PR notes)
+- [ ] Frontend test: `frontend/src/components/ExperimentDetailScreen.test.tsx` includes elapsed/ETA throughput coverage for completion-rate behavior.
 
 ---
 

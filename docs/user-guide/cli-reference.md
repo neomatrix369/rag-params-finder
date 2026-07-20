@@ -192,6 +192,20 @@ There is no `list` or `status` Typer command. Use:
 
 The server exposes a REST API at `http://localhost:8001`. Full interactive docs at `http://localhost:8001/docs`.
 
+> Operational note
+> `/healthz` and `/health` are process/dependency liveness checks, not transaction-readiness checks. They can be green while specific data-plane calls still fail. Use a real endpoint check (`GET /experiments`) to confirm data-path readiness.
+
+### Operational checks (named flags)
+
+- `HEALTH_LIVENESS_LOCAL`: confirms process and dependency ping endpoints.
+  - `curl -sS http://127.0.0.1:8001/health | jq`
+  - Expected: 200 with `{"status": "...", "mongodb": "ok", "sie": ...}`
+- `READINESS_DATA_PLANE`: confirms the data plane is usable.
+  - `curl -sS http://127.0.0.1:8001/experiments`
+  - Expected: controlled empty list (`[]`) or actual experiment payload, and a meaningful error on malformed usage.
+- `RECOVERY_INTENT_EXPLICIT`: records that any reset/recovery action is operator-authorized and non-accidental.
+  - Before running destructive local data reset, perform an explicit run-level confirmation and note in run notes/log.
+
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/healthz` | Liveness + Atlas ping — `{"ok": true, "mongodb": "ok"}` when reachable; HTTP 503 if `mongodb` is `error` |

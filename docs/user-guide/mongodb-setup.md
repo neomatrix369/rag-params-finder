@@ -173,6 +173,17 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 Open `http://localhost:5374` to watch progress.
 
+### Operational checks (required)
+
+Use these separate flags as a runbook for local service validation:
+
+- `HEALTH_LIVENESS_LOCAL` (start-up level):
+  `curl -sS http://127.0.0.1:8001/health`
+- `READINESS_DATA_PLANE` (pre-sweep readiness):
+  `curl -sS http://127.0.0.1:8001/experiments`
+
+`/health` can return success while `/experiments` still fails; run both before judging the local stack operational.
+
 ### Native dev (MongoDB in Docker, server/frontend on host)
 
 ```bash
@@ -232,6 +243,8 @@ The only thing that changes between backends is how you start the stack. No code
 To switch back to cloud: restore `MONGODB_URI` in `.env` to the `mongodb+srv://...` string and run `./start-services.sh` (no `--local`).
 
 Reset all local data: `docker compose --profile local-atlas down -v`
+
+`RECOVERY_INTENT_EXPLICIT` requirement: only run `./start-services.sh mongodb reset` after a deliberate operator-confirmation step that acknowledges local data will be removed.
 
 ---
 

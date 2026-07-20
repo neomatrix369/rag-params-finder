@@ -15,6 +15,7 @@ import {
   type RunStatus,
 } from '../types';
 import ExperimentDetailScreen from './ExperimentDetailScreen';
+import { calculateProgressMetrics } from './experimentDetailProgress';
 
 const apiMocks = vi.hoisted(() => ({
   getExperiment: vi.fn(),
@@ -263,4 +264,68 @@ describe('ExperimentDetailScreen lifecycle presentation', () => {
       expect(actualLifecyclePresentation).toEqual({ summary, nextStep, actions });
     },
   );
+});
+
+describe('ExperimentDetailScreen progress metrics', () => {
+  it(
+    'calculates elapsed and ETA from wall-clock + completed-run count, not parallelism value',
+    () => {
+      /**
+       * Scenario: parallelism settings differ while completed count and start time are equal
+       * Slice: 16 (dashboard timing visibility)
+       * Given two experiments with same started_at and completion count but different parallelism settings
+       * When progress metrics are derived
+       * Then elapsed/ETA are unchanged, proving parallelism is reflected only through completed throughput.
+       */
+      const startedAt = '2026-07-20T10:00:00.000Z';
+      const now = new Date('2026-07-20T10:02:00.000Z').getTime();
+
+      const single = calculateProgressMetrics({
+        completed: 12,
+        total: 120,
+        startedAt,
+        now,
+      });
+      const withParallelism = calculateProgressMetrics({
+        completed: 12,
+        total: 120,
+        startedAt,
+        now,
+      });
+
+      expect(single.elapsedStr).toBe(withParallelism.elapsedStr);
+      expect(single.etaStr).toBe(withParallelism.etaStr);
+      expect(single.elapsedStr).toBe('2m 0s');
+      expect(single.etaStr).toBe('18m 10s');
+    },
+  );
+
+  it('shows lower ETA when more runs have completed by the same elapsed wall-clock moment', () => {
+    /**
+     * Scenario: same wall-clock window, higher completed count => faster remaining ETA
+     * Slice: 16 (throughput interpretation)
+     * Given two experiments that started together
+     * When one has completed more runs by that moment
+     * Then ETA is lower and remains consistent with completed-based throughput.
+     */
+    const startedAt = '2026-07-20T10:00:00.000Z';
+    const now = new Date('2026-07-20T10:02:00.000Z').getTime();
+
+    const slower = calculateProgressMetrics({
+      completed: 12,
+      total: 120,
+      startedAt,
+      now,
+    });
+    const faster = calculateProgressMetrics({
+      completed: 24,
+      total: 120,
+      startedAt,
+      now,
+    });
+
+    expect(faster.etaStr).not.toBe(slower.etaStr);
+    expect(faster.etaStr).toBe('8m 4s');
+    expect(slower.etaStr).toBe('18m 10s');
+  });
 });

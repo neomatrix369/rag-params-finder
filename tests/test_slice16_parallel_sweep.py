@@ -7,6 +7,7 @@ Scope: Validate bounded concurrency, failure policy, and cancellation semantics.
 
 from __future__ import annotations
 
+import importlib
 import threading
 import time
 from types import SimpleNamespace
@@ -15,6 +16,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import ValidationError
 
+import cli.api_client
 from server.core.experiment_control import ExperimentCancelledError
 from server.core.orchestrator import _run_sweep_inner
 from server.models.config import (
@@ -263,3 +265,29 @@ def test_parallelism_bounds_are_enforced_in_model() -> None:
         _slice_config(parallelism=0)
     with pytest.raises(ValidationError):
         _slice_config(parallelism=17)
+
+
+def test_cli_default_submit_timeout_is_120_seconds(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Scenario: default submit timeout is stable
+
+    Given no client timeout env var is set
+    When the CLI API client module loads
+    Then `_DEFAULT_TIMEOUT_S` defaults to 120 seconds.
+    """
+    monkeypatch.delenv("RAG_PARAMS_FINDER_CLIENT_TIMEOUT_S", raising=False)
+    importlib.reload(cli.api_client)
+    assert cli.api_client._DEFAULT_TIMEOUT_S == 120.0
+
+
+def test_cli_timeout_override_via_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Scenario: timeout override is respected
+
+    Given `RAG_PARAMS_FINDER_CLIENT_TIMEOUT_S` is set
+    When the CLI API client module loads
+    Then `_DEFAULT_TIMEOUT_S` reflects the override value.
+    """
+    monkeypatch.setenv("RAG_PARAMS_FINDER_CLIENT_TIMEOUT_S", "7")
+    importlib.reload(cli.api_client)
+    assert cli.api_client._DEFAULT_TIMEOUT_S == 7.0

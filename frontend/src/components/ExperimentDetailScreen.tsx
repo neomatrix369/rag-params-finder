@@ -42,6 +42,10 @@ import {
   isTerminalExperimentStatus,
   summarizeExperimentRuns,
 } from '../utils/experimentStatus';
+import {
+  calculateProgressMetrics,
+  formatTimeWithUnits,
+} from './experimentDetailProgress';
 
 let detailFeedSeq = 0;
 
@@ -286,21 +290,6 @@ function formatDuration(startedAt?: string, completedAt?: string | null): string
   return formatTimeWithUnits(totalSeconds);
 }
 
-function formatTimeWithUnits(totalSeconds: number): string {
-  if (totalSeconds < 60) {
-    return `${totalSeconds.toFixed(0)}s`;
-  }
-
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = Math.floor(totalSeconds % 60);
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m ${seconds}s`;
-  }
-  return `${minutes}m ${seconds}s`;
-}
-
 function ProgressSubtitle({
   completed,
   total,
@@ -310,30 +299,12 @@ function ProgressSubtitle({
   total: number;
   startedAt?: string;
 }) {
-  const now = new Date().getTime();
-  const start = startedAt ? new Date(startedAt).getTime() : null;
-
-  let elapsedStr = '—';
-  let etaStr = '—';
-
-  if (start && completed > 0) {
-    const elapsedMs = now - start;
-    const elapsedSecs = elapsedMs / 1000;
-
-    // Format elapsed time
-    elapsedStr = formatTimeWithUnits(elapsedSecs);
-
-    // Calculate ETA
-    const avgTimePerRun = elapsedMs / completed;
-    const remainingRuns = total - completed;
-    const rawEtaMs = avgTimePerRun * remainingRuns;
-
-    // Add 1% margin
-    const etaMs = rawEtaMs * 1.01;
-    const etaSecs = etaMs / 1000;
-
-    etaStr = formatTimeWithUnits(etaSecs);
-  }
+  const { elapsedStr, etaStr } = calculateProgressMetrics({
+    completed,
+    total,
+    startedAt,
+    now: new Date().getTime(),
+  });
 
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm">
