@@ -39,5 +39,3 @@ execution:
   parallelism: 1
   on_error: continue
   search_strategy: bayesian
-  bayesian:
-    n_trials: 12
