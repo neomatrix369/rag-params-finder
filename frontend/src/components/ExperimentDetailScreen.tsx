@@ -965,23 +965,26 @@ export default function ExperimentDetailScreen({
       return `Paused after ${runSummary.complete} of ${runSummary.expected} runs completed; resume to run the remaining parameter combinations.`;
     }
     if (detail.status === 'complete') {
+      const reasonSuffix = detail.completion_reason && detail.completion_reason !== 'all_planned_trials_completed'
+        ? ` (${completionReasonLabel(detail.completion_reason)})`
+        : '';
       if (isBayesianIncomplete) {
-        const reasonSuffix = detail.completion_reason && detail.completion_reason !== 'all_planned_trials_completed'
-          ? ` (${completionReasonLabel(detail.completion_reason)})`
-          : '';
         return `Planned ${bayesianPlannedTrials} Bayesian combinations. `
           + `${bayesianAttemptedTrials} attempted: ${bayesianCompletedCount} complete, ${runSummary.interrupted} interrupted, `
           + `${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started${reasonSuffix}.`;
       }
-      return `All ${runSummary.expected} configured runs completed${detail.completion_reason && detail.completion_reason !== 'all_planned_trials_completed' ? ` (${completionReasonLabel(detail.completion_reason)})` : ''}; stored results are ready to inspect.`;
+      return `All ${runSummary.expected} configured runs completed${reasonSuffix}; stored results are ready to inspect.`;
     }
+    const partialReasonSuffix = detail.completion_reason
+      ? ` (${completionReasonLabel(detail.completion_reason)})`
+      : '';
     if (detail.status === 'partial') {
       if (isBayesianStrategy) {
         return `Planned ${bayesianPlannedTrials} Bayesian combinations. `
           + `${bayesianAttemptedTrials} attempted: ${runSummary.complete} complete, ${runSummary.failed} failed, `
-          + `${runSummary.interrupted} interrupted, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started.`;
+          + `${runSummary.interrupted} interrupted, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started${partialReasonSuffix}.`;
       }
-      return `${runSummary.complete} of ${runSummary.expected} runs completed${detail.completion_reason ? ` (${completionReasonLabel(detail.completion_reason)})` : ''}; treat rankings from completed runs as preliminary results.`;
+      return `${runSummary.complete} of ${runSummary.expected} runs completed${partialReasonSuffix}; treat rankings from completed runs as preliminary results.`;
     }
     if (detail.status === 'cancelled') {
       return `Collection stopped after ${runSummary.complete} of ${runSummary.expected} runs completed.`;

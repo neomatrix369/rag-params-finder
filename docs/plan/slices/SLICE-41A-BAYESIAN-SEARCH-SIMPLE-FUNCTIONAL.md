@@ -97,6 +97,9 @@ CLI prints a comparison summary at completion.
 - Completion status behavior is explicit:
   - `failed_count > 0` can still finalize `partial`.
   - `failed_count == 0` with shortfall now still finalizes as `complete` and records shortfall in `bayesian_summary.discarded_trials`.
+- Stale running normalization now includes explicit terminal reasons:
+  - `completed_with_sampling_shortfall` when only a subset of planned Bayesian trials complete without failures/interruption.
+  - `interrupted_before_completion`, `partial_failures`, `all_trials_failed`, or `incomplete_before_completion` as applicable.
 - UI contract now renders completion reason and Bayesian summary in both list and detail views for terminal and shortfall states.
 - Manual verification command used during this follow-up:
   - `curl -sS http://localhost:8001/experiments/6f5904f0-d775-40e7-b4be-010724278b6e | jq '{status, failed_count, completed_at, bayesian_summary, runs_count, run_count}'`

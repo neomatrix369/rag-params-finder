@@ -170,18 +170,32 @@ def _normalize_stale_running_status(experiment: dict) -> dict:
     expected = int(experiment.get("run_count") or 0)
     complete = sum(1 for run in runs if run.get("phase") == Phase.COMPLETE.value)
     failed = sum(1 for run in runs if run.get("phase") == Phase.FAILED.value)
+    interrupted = sum(1 for run in runs if run.get("phase") == Phase.INTERRUPTED.value)
 
     if complete == expected and failed == 0:
         resolved_status = ExperimentStatus.COMPLETE
+        completion_reason = "all_planned_trials_completed"
+    elif failed == 0 and interrupted == 0 and complete < expected and complete > 0:
+        resolved_status = ExperimentStatus.COMPLETE
+        completion_reason = "completed_with_sampling_shortfall"
     elif failed == expected or (failed > 0 and complete == 0 and failed == len(runs)):
         resolved_status = ExperimentStatus.FAILED
+        completion_reason = "all_trials_failed"
+    elif failed == 0 and interrupted > 0 and complete > 0:
+        resolved_status = ExperimentStatus.PARTIAL
+        completion_reason = "interrupted_before_completion"
+    elif failed > 0:
+        resolved_status = ExperimentStatus.PARTIAL
+        completion_reason = "partial_failures"
     else:
         resolved_status = ExperimentStatus.PARTIAL
+        completion_reason = "incomplete_before_completion"
 
     now = datetime.now(UTC)
     resolved = {
         "status": resolved_status,
         "failed_count": failed,
+        "completion_reason": completion_reason,
         "completed_at": now,
     }
     get_collection(EXPERIMENTS_COLLECTION).update_one({"_id": experiment_id}, {"$set": resolved})

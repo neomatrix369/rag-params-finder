@@ -202,17 +202,21 @@ function experimentOutcomeLabel(experiment: Experiment): string {
   const plannedTrials = bayesianSummary?.planned_trials;
   const attemptedTrials = bayesianSummary?.attempted_trials;
   const discardedTrials = bayesianSummary?.discarded_trials;
+  const notStartedTrials = bayesianSummary?.not_started;
+  const reasonSuffix = experiment.completion_reason
+    ? ` · ${completionReasonLabel(experiment.completion_reason)}`
+    : '';
   const hasBayesianIncomplete =
     isBayesianStrategy && plannedTrials != null && attemptedTrials != null && attemptedTrials < plannedTrials;
   if (experiment.status === 'running') return `${configuredRuns} · sweep in progress`;
   if (experiment.status === 'paused') return `${configuredRuns} · waiting to resume`;
   if (experiment.status === 'complete') {
     if (hasBayesianIncomplete) {
-      const notStarted = Math.max(0, plannedTrials - attemptedTrials - (discardedTrials ?? 0));
+      const notStarted = Math.max(
+        0,
+        (notStartedTrials ?? plannedTrials ?? 0) - (attemptedTrials ?? 0) - (discardedTrials ?? 0),
+      );
       const notStartedSuffix = notStarted > 0 ? ` · ${notStarted} not started` : '';
-      const reasonSuffix = experiment.completion_reason
-        ? ` · ${completionReasonLabel(experiment.completion_reason)}`
-        : '';
       return `${configuredRuns} · Bayesian: ${attemptedTrials} attempted · ${discardedTrials ?? 0} discarded`
         + notStartedSuffix
         + reasonSuffix;
@@ -226,11 +230,13 @@ function experimentOutcomeLabel(experiment: Experiment): string {
     const discarded = bayesianSummary?.discarded_trials ?? 0;
     const attempted = bayesianSummary?.attempted_trials;
     if (attempted == null) {
-      return `${configuredRuns} · Bayesian sampling incomplete`;
+      return `${configuredRuns} · Bayesian sampling incomplete${reasonSuffix}`;
     }
-    return `${configuredRuns} · Bayesian: ${attempted} attempted · ${discarded} discarded`;
+    const notStarted = Math.max(0, (notStartedTrials ?? plannedTrials ?? 0) - attempted - discarded);
+    const notStartedSuffix = notStarted > 0 ? ` · ${notStarted} not started` : '';
+    return `${configuredRuns} · Bayesian: ${attempted} attempted · ${discarded} discarded${notStartedSuffix}${reasonSuffix}`;
   }
-  if (experiment.status === 'partial') return `${configuredRuns} · incomplete outcome`;
+  if (experiment.status === 'partial') return `${configuredRuns} · incomplete outcome${reasonSuffix}`;
   if (experiment.status === 'cancelled') return `${configuredRuns} · collection stopped`;
   if (experiment.failed_count) return `${configuredRuns} · ${experiment.failed_count} failed`;
   return `${configuredRuns} · sweep failed`;
