@@ -62,7 +62,14 @@ Add `execution.search_strategy: bayesian` as an opt-in sweep mode that only tune
 - [ ] Completion prints Bayesian comparison summary with best config/score and grid-equivalent efficiency.
 - [ ] `optuna>=3.0` is added to dependency set without additional infra requirements.
 - [ ] Usage docs include: minimal config diff required to activate Bayesian mode and an end-to-end "expected run" sample.
-- [ ] `configs/example-bayesian.yaml` is added and documented as the canonical activation example.
+- [ ] `configs/example-mongodb-unified-retrievers-bayesian.yaml` and
+  `configs/example-mongodb-local-bayesian.yaml` are added and documented as activation examples.
+  - Unified variant derives from `example-mongodb-unified-retrievers.yaml` and uses
+    `experiment_name: example-mongodb-unified-retrievers-bayesian`.
+  - Local variant derives from `example-mongodb-local.yaml` and uses
+    `experiment_name: example-mongodb-local-bayesian`.
+  - Both files add `execution.search_strategy: bayesian` and `execution.bayesian.n_trials`,
+    while constraining the Bayesian search axes as required.
 - [ ] A dashboard- and API-level no-regression rule is captured: old fields in `run_status` and experiment documents remain backward compatible.
 - [ ] `_planned_run_count(config)` value is documented and surfaced in planned-count UX same as existing run display behavior.
 
@@ -105,7 +112,13 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
 - Add `_run_bayesian_inner`, `_bayesian_trial_to_run_params`, `_compute_trial_score`, `_finalise_bayesian_experiment`.
 - Add `_planned_run_count(config)` in API layer and use for planned-count display.
 - Add `grid_equivalent_count` and `bayesian_summary` persistence on experiment docs.
-- Add `configs/example-bayesian.yaml` with single fixed axes and sweep lists for Bayesian dimensions.
+- Add `configs/example-mongodb-unified-retrievers-bayesian.yaml` and
+  `configs/example-mongodb-local-bayesian.yaml`, each with a non-Bayesian base config plus
+  Bayesian strategy options.
+  - Unified variant derives from `example-mongodb-unified-retrievers.yaml` and uses
+    `experiment_name: example-mongodb-unified-retrievers-bayesian`.
+  - Local variant derives from `example-mongodb-local.yaml` and uses
+    `experiment_name: example-mongodb-local-bayesian`.
 - No dashboard code changes.
 
 ## Files to update
@@ -113,7 +126,8 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
 - `server/models/config.py`
 - `server/core/orchestrator.py`
 - `server/api/experiments.py`
-- `configs/example-bayesian.yaml`
+- `configs/example-mongodb-unified-retrievers-bayesian.yaml`
+- `configs/example-mongodb-local-bayesian.yaml`
 - `docs/plan/slices/SLICE-41A-BAYESIAN-SEARCH-SIMPLE-FUNCTIONAL.md` (new)
 - `pyproject.toml`
 
@@ -136,7 +150,8 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
   - [ ] [GREEN] Implement persistence and summary output.
 - [GATE] Layer-06 Regression and Documentation
   - [ ] [RED] Confirm existing `expand_sweep`/grid tests remain unchanged and `results_analyzer` path remains compatible.
-  - [ ] [GREEN] Add/confirm docs gates: `docs/plan/TRAIL.md`, `docs/plan/slices/PROGRESS.md`, `DECISIONS.md`, and `configs/example-bayesian.yaml` references.
+- [ ] [GREEN] Add/confirm docs gates: `docs/plan/TRAIL.md`, `docs/plan/slices/PROGRESS.md`, `DECISIONS.md`, and both
+  `configs/example-mongodb-unified-retrievers-bayesian.yaml` and `configs/example-mongodb-local-bayesian.yaml` references.
 - [GATE] Layer-07 Delivery Completion
   - [ ] [RED] Run one end-to-end happy-path bayesian scenario: planned-count, n_trials runs, resume-disabled, and completion summary all pass.
   - [ ] [GREEN] Verify no regressions on existing slice-critical paths (`grid` default path and `expand_sweep` semantics).

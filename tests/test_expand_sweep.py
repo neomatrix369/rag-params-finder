@@ -1,5 +1,8 @@
 """Tests for sweep expansion — one retriever per run."""
 
+import pytest
+from pydantic import ValidationError
+
 from server.models.config import (
     ChunkingConfig,
     ChunkParams,
@@ -100,3 +103,77 @@ def test_old_config_format_migrates_to_separate_sweep_entries() -> None:
         RetrieverType.RERANKER,
     ]
     assert all(len(run.retrievers) == 1 for run in runs)
+
+
+def test_bayesian_requires_fixed_embedding_model() -> None:
+    with pytest.raises(ValidationError):
+        ExperimentConfig(
+            experiment_name="invalid-bayes-embedding",
+            data_paths=["./input_data/pdfs/sample.pdf"],
+            queries_file="./configs/questions.example.json",
+            embedding=EmbeddingConfig(
+                provider="local", models=["all-MiniLM-L6-v2", "all-MiniLM-L6-v2"]
+            ),
+            chunking=ChunkingConfig(
+                methods=[ChunkingMethod.RECURSIVE],
+                params=ChunkParams(chunk_sizes=[128, 256], overlaps=[50]),
+            ),
+            retrieval=RetrievalConfig(retrievers=[RetrieverConfig(type=RetrieverType.DENSE)]),
+            execution=ExecutionConfig(search_strategy="bayesian"),
+        )
+
+
+@pytest.mark.parametrize(
+    "invalid_field",
+    ["chunking_methods", "retrievers"],
+)
+def test_bayesian_requires_single_fixed_nonchunk_axes(invalid_field: str) -> None:
+    kwargs = {
+        "experiment_name": "invalid-bayes-" + invalid_field,
+        "data_paths": ["./input_data/pdfs/sample.pdf"],
+        "queries_file": "./configs/questions.example.json",
+        "embedding": EmbeddingConfig(provider="local", models=["all-MiniLM-L6-v2"]),
+        "chunking": ChunkingConfig(
+            methods=[ChunkingMethod.RECURSIVE],
+            params=ChunkParams(chunk_sizes=[128, 256], overlaps=[50]),
+        ),
+        "retrieval": RetrievalConfig(retrievers=[RetrieverConfig(type=RetrieverType.DENSE)]),
+        "execution": ExecutionConfig(search_strategy="bayesian"),
+    }
+
+    if invalid_field == "chunking_methods":
+        kwargs["chunking"] = ChunkingConfig(
+            methods=[ChunkingMethod.RECURSIVE, ChunkingMethod.FIXED],
+            params=ChunkParams(chunk_sizes=[128, 256], overlaps=[50]),
+        )
+    if invalid_field == "retrievers":
+        kwargs["retrieval"] = RetrievalConfig(
+            retrievers=[
+                RetrieverConfig(type=RetrieverType.DENSE),
+                RetrieverConfig(type=RetrieverType.SPARSE),
+            ]
+        )
+
+    with pytest.raises(ValidationError):
+        ExperimentConfig(**kwargs)
+
+
+def test_bayesian_accepts_fixed_axes_with_chunking_ranges() -> None:
+    config = ExperimentConfig(
+        experiment_name="valid-bayes",
+        data_paths=["./input_data/pdfs/sample.pdf"],
+        queries_file="./configs/questions.example.json",
+        embedding=EmbeddingConfig(provider="local", models=["all-MiniLM-L6-v2"]),
+        chunking=ChunkingConfig(
+            methods=[ChunkingMethod.RECURSIVE],
+            params=ChunkParams(chunk_sizes=[128, 256], overlaps=[0, 50]),
+        ),
+        retrieval=RetrievalConfig(retrievers=[RetrieverConfig(type=RetrieverType.DENSE)]),
+        execution=ExecutionConfig(
+            search_strategy="bayesian",
+            bayesian=ExecutionConfig.BayesianConfig(n_trials=12),
+        ),
+    )
+
+    assert len(config.chunking.params.chunk_sizes) == 2
+    assert len(config.chunking.params.overlaps) == 2

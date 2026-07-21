@@ -1,6 +1,6 @@
 {
   "slice": "41A",
-  "gate_status": "PLANNED",
+  "gate_status": "IN_PROGRESS",
   "inferred": false,
   "note": "Slice aligned with enhanced-flow-planner checks: quality-lens table completed, explicit evidence pointer added, and execution backlog separated from planning scope. Final 10/10 decision recorded in DECISIONS row 68."
 }

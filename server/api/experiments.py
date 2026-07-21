@@ -36,6 +36,12 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
+def _planned_run_count(config: ExperimentConfig) -> int:
+    if config.execution.search_strategy == "bayesian":
+        return config.execution.bayesian.n_trials
+    return len(expand_sweep(config))
+
+
 async def _run_heavy_read[R](fn: Callable[[], R]) -> R:
     """Run expensive read-only Mongo aggregations off the default API thread pool."""
     loop = asyncio.get_running_loop()
@@ -56,7 +62,7 @@ async def create_experiment(config: ExperimentConfig):
     experiment_id = str(uuid.uuid4())
     timestamp_suffix = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     stamped_name = f"{config.experiment_name}_{timestamp_suffix}"
-    runs = expand_sweep(config)
+    runs = _planned_run_count(config)
 
     metadata = collect_experiment_metadata()
     now = datetime.now(UTC)
@@ -81,7 +87,8 @@ async def create_experiment(config: ExperimentConfig):
         "started_at": None,  # Set when first run actually begins
         "completed_at": None,
         "status": ExperimentStatus.RUNNING,
-        "run_count": len(runs),
+        "run_count": runs,
+        "grid_equivalent_count": len(expand_sweep(config)),
         **metadata,
         "data_paths": config.data_paths,
         "queries_file": config.queries_file,
@@ -104,15 +111,21 @@ async def create_experiment(config: ExperimentConfig):
     }
     await asyncio.to_thread(mongo_insert_experiment_doc, experiment_doc)
 
-    logger.info("experiment created — %s (%s), %s run(s)", stamped_name, experiment_id, len(runs))
+    logger.info(
+        "experiment created — %s (%s), %s planned run(s), %s run(s) per trial strategy",
+        stamped_name,
+        experiment_id,
+        runs,
+        len(expand_sweep(config)),
+    )
     schedule_sweep(run_sweep, experiment_id, config)
 
     return {
         "status": "submitted",
         "experiment_id": experiment_id,
         "experiment_name": stamped_name,
-        "run_count": len(runs),
-        "message": f"Experiment queued — {len(runs)} run(s) will execute",
+        "run_count": runs,
+        "message": f"Experiment queued — {runs} run(s) will execute",
     }
 
 
@@ -310,15 +323,20 @@ async def resume_experiment(experiment_id: str):
         raise HTTPException(status_code=400, detail="Experiment config is missing")
 
     config = ExperimentConfig.model_validate(config_payload)
+    if config.execution.search_strategy == "bayesian":
+        raise HTTPException(
+            status_code=409,
+            detail="Resume is not supported for bayesian search strategy",
+        )
     await asyncio.to_thread(mongo_mark_experiment_running, experiment_id)
     schedule_sweep(resume_sweep, experiment_id, config)
 
-    runs = expand_sweep(config)
-    logger.info("resume OK — %s scheduled, %s run(s) in sweep", experiment_id, len(runs))
+    runs = _planned_run_count(config)
+    logger.info("resume OK — %s scheduled, %s run(s) in sweep", experiment_id, runs)
     return {
         "status": "resume_requested",
         "experiment_id": experiment_id,
-        "run_count": len(runs),
+        "run_count": runs,
         "message": "Experiment resumed — remaining parameter combinations will execute",
     }
 

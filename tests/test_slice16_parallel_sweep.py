@@ -21,6 +21,7 @@ from server.core.experiment_control import ExperimentCancelledError, ExperimentP
 from server.core.orchestrator import (
     _completed_param_signatures,
     _compute_final_status,
+    _finalise_bayesian_experiment,
     _log_failed_run_summary,
     _primary_retriever,
     _run_doc_signature,
@@ -55,6 +56,12 @@ from server.models.enums import (
     RetrieverType,
 )
 from server.models.results import Chunk, SearchResult
+
+
+def _mock_collection() -> MagicMock:
+    return MagicMock(
+        update_one=MagicMock(),
+    )
 
 
 def _run_param() -> RunParams:
@@ -450,6 +457,106 @@ class TestSlice16ParallelSweep:
 
         # Then
         mock_run_sweep_inner.assert_called_once_with("exp-resume", config, completed_signatures)
+
+    @patch("server.core.orchestrator._run_bayesian_inner")
+    @patch("server.core.orchestrator._run_sweep_inner")
+    def test_run_sweep_dispatches_bayesian_and_grid_paths(
+        self,
+        mock_run_sweep_inner: MagicMock,
+        mock_run_bayesian_inner: MagicMock,
+    ) -> None:
+        """
+        Scenario: run_sweep dispatches by execution.search_strategy.
+
+        Given one grid and one bayesian configuration
+        When run_sweep executes
+        Then each execution path calls its own inner function.
+        """
+        config_bayesian = _slice_config(parallelism=1)
+        config_bayesian.execution.search_strategy = "bayesian"
+        config_grid = _slice_config(parallelism=1)
+
+        mock_run_bayesian_inner.return_value = {
+            "experiment_id": "exp-bayes",
+            "run_ids": ["r-1"],
+            "status": ExperimentStatus.COMPLETE,
+        }
+        mock_run_sweep_inner.return_value = {
+            "experiment_id": "exp-grid",
+            "run_ids": ["r-2"],
+            "status": ExperimentStatus.COMPLETE,
+        }
+
+        run_sweep("exp-bayes", config_bayesian)
+        run_sweep("exp-grid", config_grid)
+
+        mock_run_bayesian_inner.assert_called_once_with("exp-bayes", config_bayesian, set())
+        mock_run_sweep_inner.assert_called_once_with("exp-grid", config_grid, set())
+
+
+@patch("server.core.orchestrator._count_failed_runs", return_value=0)
+@patch("server.core.orchestrator._log_bayesian_summary")
+@patch("server.core.orchestrator.get_collection")
+def test_finalise_bayesian_experiment_persists_summary(
+    mock_get_collection: MagicMock,
+    mock_log_summary: MagicMock,
+    mock_count_failed_runs: MagicMock,
+) -> None:
+    """
+    Scenario: _finalise_bayesian_experiment stores Bayesian metadata in experiment docs
+
+    Given bayesian completion with successful and failed runs
+    When finalization runs
+    Then run_count, grid_equivalent_count, and bayesian_summary are persisted.
+    """
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = 4
+    config.chunking.params.chunk_sizes = [128, 256, 512]
+    config.chunking.params.overlaps = [0, 50]
+
+    collection = _mock_collection()
+    mock_get_collection.return_value = collection
+
+    best_trial = {
+        "query_avg_score": 0.82,
+        "chunk_size": 256,
+        "overlap": 50,
+        "embedding_model": "all-MiniLM-L6-v2",
+        "retrieval_method": "dense",
+        "retrieval_type": "dense",
+    }
+
+    final_status, failed_count = _finalise_bayesian_experiment(
+        experiment_id="exp-bayesian",
+        config=config,
+        planned_trials=4,
+        cancelled=False,
+        paused=False,
+        run_ids=["run-1", "run-2", "run-3", "run-4"],
+        best_trial=best_trial,
+        infrastructure_error=None,
+    )
+
+    assert final_status == ExperimentStatus.PARTIAL
+    assert failed_count == 0
+    # _count_failed_runs is only used for cancelled/paused paths, not this branch.
+    mock_count_failed_runs.assert_not_called()
+
+    # Validate experiment document persisted fields
+    update_call = collection.update_one.call_args.args[1]["$set"]
+    assert update_call["status"] == ExperimentStatus.PARTIAL
+    assert update_call["run_count"] == 4
+    assert update_call["failed_count"] == 0
+    assert update_call["grid_equivalent_count"] == 6
+
+    bayesian_summary = update_call["bayesian_summary"]
+    assert bayesian_summary["best_query_avg_score"] == 0.82
+    assert bayesian_summary["best_chunk_size"] == 256
+    assert bayesian_summary["best_overlap"] == 50
+    assert bayesian_summary["grid_equivalent_count"] == 6
+    assert bayesian_summary["planned_trials"] == 4
+    mock_log_summary.assert_called_once()
 
 
 @patch("server.core.orchestrator.get_collection")

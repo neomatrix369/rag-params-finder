@@ -1,0 +1,43 @@
+# Bayesian conversion of a non-Bayesian local example
+#
+# Source example: example-mongodb-local.yaml
+#
+# Bayesian behavior:
+# - 1 embedding model × 1 chunking method × 1 padding × 1 retriever
+# - chunk_sizes and overlaps explored via Optuna TPE
+# - total runtime runs = execution.bayesian.n_trials
+
+experiment_name: example-mongodb-local-bayesian
+
+data_paths:
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+
+queries_file: ./configs/questions.example.json
+
+database_provider: mongodb
+
+embedding:
+  provider: local
+  models:
+    - all-MiniLM-L6-v2
+
+chunking:
+  methods:
+    - recursive
+  params:
+    chunk_sizes: [256, 512, 1024]
+    overlaps: [50, 100]
+    paddings: [0]
+
+retrieval:
+  top_k_initial: 20
+  top_k_final: 5
+  retrievers:
+    - type: dense
+
+execution:
+  parallelism: 1
+  on_error: continue
+  search_strategy: bayesian
+  bayesian:
+    n_trials: 12

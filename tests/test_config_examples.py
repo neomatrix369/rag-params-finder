@@ -63,6 +63,8 @@ class TestExampleMongoDbSieConfig:
         "configs/example-mongodb-voyage.yaml",
         "configs/example-mongodb-unified-retrievers.yaml",
         "configs/example-mongodb-sie.yaml",
+        "configs/example-mongodb-unified-retrievers-bayesian.yaml",
+        "configs/example-mongodb-local-bayesian.yaml",
     ],
 )
 def test_given_example_yaml_when_load_and_validate_then_no_errors(config_rel_path: str) -> None:
