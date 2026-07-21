@@ -118,6 +118,9 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
 - [GATE] Layer-06 Regression and Documentation
   - [ ] [RED] Confirm existing `expand_sweep`/grid tests remain unchanged and `results_analyzer` path remains compatible.
   - [ ] [GREEN] Add/confirm docs gates: `docs/plan/TRAIL.md`, `docs/plan/slices/PROGRESS.md`, `DECISIONS.md`, and `configs/example-bayesian.yaml` references.
+- [GATE] Layer-07 Delivery Completion
+  - [ ] [RED] Run one end-to-end happy-path bayesian scenario: planned-count, n_trials runs, resume-disabled, and completion summary all pass.
+  - [ ] [GREEN] Verify no regressions on existing slice-critical paths (`grid` default path and `expand_sweep` semantics).
 
 ## Handoff & Boundary Tests (explicit checklist)
 
