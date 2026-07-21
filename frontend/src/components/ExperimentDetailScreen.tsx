@@ -125,6 +125,7 @@ interface ExperimentDetail {
   experiment_name: string;
   status: ExperimentStatus;
   created_at?: string;
+  completed_at?: string | null;
   run_count?: number;
   grid_equivalent_count?: number;
   failed_count?: number;
@@ -140,7 +141,6 @@ interface ExperimentDetail {
   };
   runs?: RunStatus[];
   started_at?: string;
-  completed_at?: string | null;
   git_commit?: string;
   git_branch?: string;
   git_dirty?: boolean;
@@ -574,9 +574,9 @@ export default function ExperimentDetailScreen({
   }, []);
 
   const startDetailPollIfRunning = useCallback(
-    (status: ExperimentStatus | undefined) => {
+    (status: ExperimentStatus | undefined, completedAt?: string | null) => {
       stopDetailPoll();
-      if (!isRunningExperimentStatus(status)) return;
+      if (!isRunningExperimentStatus(status, completedAt)) return;
 
       devInfo('ExperimentDetailScreen', `detail poll started — ${experimentId.slice(0, 8)}… every ${DETAIL_POLL_MS}ms`);
 
@@ -594,7 +594,9 @@ export default function ExperimentDetailScreen({
             `detail poll OK — ${experimentId.slice(0, 8)}… status=${next.status}`,
             pollDevLogAtRef.current,
           );
-          if (isTerminalExperimentStatus(next.status)) {
+          if (
+            isTerminalExperimentStatus(next.status, next.completed_at)
+          ) {
             stopDetailPoll();
           }
         } catch (pollErr) {
@@ -663,6 +665,7 @@ export default function ExperimentDetailScreen({
       stopDetailPoll();
 
       let loadedStatus: ExperimentStatus | undefined;
+      let loadedCompletedAt: string | null | undefined;
 
       try {
         const loaded = hasSeed
@@ -671,6 +674,7 @@ export default function ExperimentDetailScreen({
         stall.stop();
         if (!aliveRef.current) return;
         loadedStatus = loaded.status;
+        loadedCompletedAt = loaded.completed_at;
         setDetail(loaded as unknown as ExperimentDetail);
         const runs = (loaded as { runs?: unknown[] }).runs;
         const runRows = Array.isArray(runs) ? runs.length : 0;
@@ -681,7 +685,7 @@ export default function ExperimentDetailScreen({
         setLoadFeed((f) =>
           appendDetailFeed(
             f,
-            isRunningExperimentStatus(loaded.status)
+            isRunningExperimentStatus(loaded.status, loadedCompletedAt)
               ? 'Run rows loaded — live polling while experiment is running.'
               : 'Run rows loaded.',
             'default',
@@ -700,7 +704,7 @@ export default function ExperimentDetailScreen({
         stall.stop();
         if (aliveRef.current) {
           setHydrating(false);
-          startDetailPollIfRunning(loadedStatus);
+          startDetailPollIfRunning(loadedStatus, loadedCompletedAt);
         }
       }
     }
@@ -718,8 +722,9 @@ export default function ExperimentDetailScreen({
   const refreshDetailAfterControl = useCallback(async () => {
     const refreshed = await getExperiment(experimentId);
     setDetail(refreshed as unknown as ExperimentDetail);
-    if (isRunningExperimentStatus(refreshed.status)) {
-      startDetailPollIfRunning(refreshed.status);
+    const refreshedCompletedAt = refreshed.completed_at;
+    if (isRunningExperimentStatus(refreshed.status, refreshedCompletedAt)) {
+      startDetailPollIfRunning(refreshed.status, refreshedCompletedAt);
     } else {
       stopDetailPoll();
     }
@@ -743,10 +748,9 @@ export default function ExperimentDetailScreen({
     }
   }
 
-  const TERMINAL_STATUSES: ExperimentStatus[] = ['complete', 'failed', 'partial', 'cancelled'];
-  const isTerminal = detail && TERMINAL_STATUSES.includes(detail.status);
-  const isRunning = isRunningExperimentStatus(detail?.status);
-  const isPaused = isPausedExperimentStatus(detail?.status);
+  const isTerminal = detail && isTerminalExperimentStatus(detail.status, detail.completed_at);
+  const isRunning = isRunningExperimentStatus(detail?.status, detail?.completed_at);
+  const isPaused = isPausedExperimentStatus(detail?.status, detail?.completed_at);
   const canExplore = Boolean(onExplore && (isTerminal || isRunning || isPaused));
   const canDelete = isTerminal || isPaused;
 

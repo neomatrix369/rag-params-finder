@@ -282,6 +282,10 @@ def run(
         logger.error("run command failed — config file: %s", e)
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1)
+    except RuntimeError as e:
+        logger.error("run command failed — submit: %s", e)
+        console.print(f"[red]Failed to submit experiment: {e}[/red]")
+        raise typer.Exit(1)
     except Exception as e:
         logger.error("run command failed — submit: %s", e, exc_info=True)
         console.print(f"[red]Failed to submit experiment: {e}[/red]")

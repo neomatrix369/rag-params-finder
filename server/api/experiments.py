@@ -25,8 +25,9 @@ from server.core.orchestrator import resume_sweep, run_sweep
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
 from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
+from server.db.atlas import EXPERIMENTS_COLLECTION, RUN_STATUS_COLLECTION, get_collection
 from server.models.config import ExperimentConfig, expand_sweep
-from server.models.enums import ExperimentStatus, RetrieverType
+from server.models.enums import ExperimentStatus, Phase, RetrieverType
 from server.utils.log_throttle import info_throttled
 from server.utils.logger import get_logger
 from server.utils.metadata import collect_experiment_metadata
@@ -34,6 +35,13 @@ from server.utils.metadata import collect_experiment_metadata
 logger = get_logger(__name__)
 
 router = APIRouter()
+_TERMINAL_PHASES = frozenset(
+    {
+        Phase.COMPLETE.value,
+        Phase.FAILED.value,
+        Phase.INTERRUPTED.value,
+    }
+)
 
 
 def _planned_run_count(config: ExperimentConfig) -> int:
@@ -59,6 +67,49 @@ def _resolve_bayesian_n_trials(config: ExperimentConfig) -> int:
         )
         return grid_equivalent
     return configured
+
+
+def _normalize_stale_running_status(experiment: dict) -> dict:
+    """If status is still RUNNING but no active sweep exists, reconcile from run status."""
+    if experiment.get("status") != ExperimentStatus.RUNNING:
+        return experiment
+
+    experiment_id = experiment.get("experiment_id") or experiment.get("_id")
+    if not experiment_id or is_sweep_in_flight(experiment_id):
+        return experiment
+
+    runs = list(
+        get_collection(RUN_STATUS_COLLECTION).find(
+            {"experiment_id": experiment_id},
+            {"_id": 0},
+        )
+    )
+    if not runs:
+        return experiment
+
+    if any(run.get("phase") not in _TERMINAL_PHASES for run in runs):
+        return experiment
+
+    expected = int(experiment.get("run_count") or 0)
+    complete = sum(1 for run in runs if run.get("phase") == Phase.COMPLETE.value)
+    failed = sum(1 for run in runs if run.get("phase") == Phase.FAILED.value)
+
+    if complete == expected and failed == 0:
+        resolved_status = ExperimentStatus.COMPLETE
+    elif failed == expected or (failed > 0 and complete == 0 and failed == len(runs)):
+        resolved_status = ExperimentStatus.FAILED
+    else:
+        resolved_status = ExperimentStatus.PARTIAL
+
+    now = datetime.now(UTC)
+    resolved = {
+        "status": resolved_status,
+        "failed_count": failed,
+        "completed_at": now,
+    }
+    get_collection(EXPERIMENTS_COLLECTION).update_one({"_id": experiment_id}, {"$set": resolved})
+    experiment.update(resolved)
+    return experiment
 
 
 async def _run_heavy_read[R](fn: Callable[[], R]) -> R:
@@ -153,6 +204,8 @@ async def list_experiments():
     """List all experiments."""
     logger.debug("list OK — GET /experiments")
     experiments = await asyncio.to_thread(mongo_list_all_experiment_docs)
+    for experiment in experiments:
+        await asyncio.to_thread(_normalize_stale_running_status, experiment)
     logger.debug("list OK — %s experiment(s)", len(experiments))
     return {"experiments": experiments}
 
@@ -181,6 +234,7 @@ async def get_experiment(experiment_id: str):
         raise HTTPException(status_code=404, detail="Experiment not found")
 
     runs = experiment["runs"]
+    _normalize_stale_running_status(experiment)
     logger.debug(
         "detail OK — %s status=%s, %s run row(s)",
         experiment_id,

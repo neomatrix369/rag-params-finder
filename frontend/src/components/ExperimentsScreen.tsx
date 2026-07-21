@@ -617,8 +617,8 @@ export default function ExperimentsScreen({
               <div className="space-y-3">
                 {paginatedExperiments.map((exp) => {
                   const isSelected = selectedExperiments.has(exp.experiment_id);
-                  const isRunning = isRunningExperimentStatus(exp.status);
-                  const isPaused = isPausedExperimentStatus(exp.status);
+                  const isRunning = isRunningExperimentStatus(exp.status, exp.completed_at);
+                  const isPaused = isPausedExperimentStatus(exp.status, exp.completed_at);
                   const isCollapsed = collapsedExperiments.has(exp.experiment_id);
                   const dbStats = statsByExperimentId.get(exp.experiment_id);
                   const showRowControls = isRunning || isPaused;
