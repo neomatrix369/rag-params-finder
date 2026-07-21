@@ -186,6 +186,8 @@ Contributions welcome — please open an issue first to discuss the change.
 
 Optional **AI-assisted development** (Cursor / Claude Code with the `code-review-graph` knowledge graph) is documented in the development guide — it helps navigate this repo faster; it is not part of the RAG sweep runtime.
 
+See [How Codex and GPT-5.6 Were Used](docs/codex-and-gpt5-development.md) for the development history and model usage summary.
+
 Priority areas: test suite with mock MongoDB fixtures, Search Explorer dashboard enhancements, SSE live updates.
 
 **Agent entry points:** [AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md)
