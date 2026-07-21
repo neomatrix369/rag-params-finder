@@ -54,6 +54,35 @@ function appendDetailFeed(prev: FeedEntry[], text: string, variant: FeedEntry['v
   return [...prev, { id: `${Date.now()}-${detailFeedSeq}`, text, variant }];
 }
 
+const COMPLETION_REASONS = {
+  all_planned_trials_completed: 'all planned trials completed',
+  completed_with_sampling_shortfall: 'completed with sampling shortfall',
+  interrupted_before_completion: 'interrupted before completion',
+  cancelled_by_user: 'cancelled by user',
+  paused_by_user: 'paused by user',
+  all_trials_failed: 'all trials failed',
+  partial_failures: 'partial with failures',
+  partial_with_failures: 'partial with failures',
+  partial_outcomes: 'partial outcomes',
+  mixed_outcomes: 'mixed outcomes',
+  mixed_failures: 'mixed failures',
+  infrastructure_error: 'infrastructure error',
+  paused_or_interrupted_before_completion: 'interrupted before completion',
+  incomplete_before_completion: 'incomplete before completion',
+  incomplete_with_zero_runs: 'incomplete before completion',
+  incomplete_without_runs: 'incomplete before completion',
+  reconciled_from_orphaned_run: 'reconciled from orphaned run',
+  resolved_stale_running: 'reconciled from stale running state',
+  cancelled_before_attempt: 'cancelled before attempts',
+  completed_with_shortfall: 'completed with sampling shortfall',
+  incomplete_by_partial_outcomes: 'incomplete outcome',
+} as const;
+
+function completionReasonLabel(reason?: string | null): string {
+  if (!reason) return 'completion state recorded';
+  return COMPLETION_REASONS[reason as keyof typeof COMPLETION_REASONS] ?? reason.replace(/_/g, ' ');
+}
+
 // Icon components (minimal SVG)
 const icons = {
   clock: (
@@ -129,6 +158,7 @@ interface ExperimentDetail {
   run_count?: number;
   grid_equivalent_count?: number;
   failed_count?: number;
+  completion_reason?: string;
   bayesian_summary?: {
     best_query_avg_score?: number;
     best_chunk_size?: number;
@@ -247,6 +277,7 @@ function Pagination({
 function PhaseIndicator({ current }: { current: Phase }) {
   const currentIdx = PHASE_ORDER.indexOf(current);
   const isFailed = current === Phase.FAILED || current === Phase.INTERRUPTED;
+  const safeCurrent = typeof current === 'string' ? current : 'unknown';
 
   return (
     <div className="relative group flex gap-1 items-center">
@@ -266,7 +297,7 @@ function PhaseIndicator({ current }: { current: Phase }) {
           />
         );
       })}
-      <span className="ml-2 text-xs text-slate-500">{current}</span>
+      <span className="ml-2 text-xs text-slate-500">{safeCurrent}</span>
 
       {/* Tooltip on hover */}
       <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 pointer-events-none">
@@ -914,6 +945,17 @@ export default function ExperimentDetailScreen({
   const bayesianNotStartedCount = isBayesianStrategy
     ? Math.max(0, bayesianPlannedTrials - bayesianAttemptedTrials - bayesianDiscardedCount)
     : runSummary.neverStarted;
+  const isBayesianIncomplete = isBayesianStrategy
+    && bayesianAttemptedTrials < bayesianPlannedTrials;
+  const hasShortfallCompletionReason = detail.completion_reason
+    ? ['completed_with_sampling_shortfall', 'completed_with_shortfall'].includes(detail.completion_reason)
+    : false;
+  const bayesianCompletedCount = isBayesianStrategy
+    ? hasShortfallCompletionReason
+      ? bayesianAttemptedTrials
+      : Math.max(0, bayesianAttemptedTrials - runSummary.failed - runSummary.interrupted - runSummary.inProgress)
+    : runSummary.complete;
+  const isCompleteWithBayesianShortfall = detail.status === 'complete' && isBayesianIncomplete;
   const sweepSummary = (() => {
     if (detail.status === 'running') {
       return `${runSummary.complete} of ${runSummary.expected} runs are complete; stored results can grow as the sweep continues.`;
@@ -922,7 +964,15 @@ export default function ExperimentDetailScreen({
       return `Paused after ${runSummary.complete} of ${runSummary.expected} runs completed; resume to run the remaining parameter combinations.`;
     }
     if (detail.status === 'complete') {
-      return `All ${runSummary.expected} configured runs completed; stored results are ready to inspect.`;
+      if (isBayesianIncomplete) {
+        const reasonSuffix = detail.completion_reason && detail.completion_reason !== 'all_planned_trials_completed'
+          ? ` (${completionReasonLabel(detail.completion_reason)})`
+          : '';
+        return `Planned ${bayesianPlannedTrials} Bayesian combinations. `
+          + `${bayesianAttemptedTrials} attempted: ${bayesianCompletedCount} complete, ${runSummary.interrupted} interrupted, `
+          + `${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started${reasonSuffix}.`;
+      }
+      return `All ${runSummary.expected} configured runs completed${detail.completion_reason && detail.completion_reason !== 'all_planned_trials_completed' ? ` (${completionReasonLabel(detail.completion_reason)})` : ''}; stored results are ready to inspect.`;
     }
     if (detail.status === 'partial') {
       if (isBayesianStrategy) {
@@ -930,7 +980,7 @@ export default function ExperimentDetailScreen({
           + `${bayesianAttemptedTrials} attempted: ${runSummary.complete} complete, ${runSummary.failed} failed, `
           + `${runSummary.interrupted} interrupted, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started.`;
       }
-      return `${runSummary.complete} of ${runSummary.expected} runs completed; treat rankings from completed runs as preliminary results.`;
+      return `${runSummary.complete} of ${runSummary.expected} runs completed${detail.completion_reason ? ` (${completionReasonLabel(detail.completion_reason)})` : ''}; treat rankings from completed runs as preliminary results.`;
     }
     if (detail.status === 'cancelled') {
       return `Collection stopped after ${runSummary.complete} of ${runSummary.expected} runs completed.`;
@@ -1138,6 +1188,10 @@ export default function ExperimentDetailScreen({
                   <MetadataItem
                     label="Completed"
                     value={detail.completed_at ? new Date(detail.completed_at).toLocaleString() : undefined}
+                  />
+                  <MetadataItem
+                    label="Completion Reason"
+                    value={detail.completion_reason ? completionReasonLabel(detail.completion_reason) : undefined}
                   />
                   <MetadataItem label="App Version" value={detail.app_version} />
                   <MetadataItem label="Python" value={detail.python_version} />
@@ -1505,18 +1559,26 @@ export default function ExperimentDetailScreen({
 
         {/* Terminal outcome summary */}
         {isTerminal && detail.status === 'complete' && (
-          <div className="mt-6 rounded-panel border border-emerald-300 bg-emerald-50 p-5 shadow-panel sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
-                  {icons.check}
-                </div>
+        <div
+          className={isCompleteWithBayesianShortfall
+            ? 'mt-6 rounded-panel border border-amber-300 bg-amber-50 p-5 shadow-panel sm:p-6'
+            : 'mt-6 rounded-panel border border-emerald-300 bg-emerald-50 p-5 shadow-panel sm:p-6'}
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                {icons.check}
+              </div>
                 <div>
                   <h3 className="text-lg font-bold text-green-900">
-                    All Runs Completed Successfully!
+                    {isCompleteWithBayesianShortfall
+                      ? 'Bayesian Sampling Completed with Partial Coverage'
+                      : 'All Runs Completed Successfully!'}
                   </h3>
-                  <p className="text-sm text-green-700 mt-1">
-                    {runSummary.complete} of {runSummary.expected} run(s) finished without errors
+                <p className="text-sm text-green-700 mt-1">
+                    {isCompleteWithBayesianShortfall
+                      ? `Attempted ${bayesianAttemptedTrials} of ${bayesianPlannedTrials} combinations; ${bayesianCompletedCount} completed successfully with no failures${detail.completion_reason && detail.completion_reason !== 'all_planned_trials_completed' ? ` (${completionReasonLabel(detail.completion_reason)})` : ''}.`
+                      : `${runSummary.complete} of ${runSummary.expected} run(s) finished without errors`}
                   </p>
                 </div>
               </div>

@@ -161,14 +161,67 @@ function resolveSearchStrategy(experiment: Experiment): 'grid' | 'bayesian' {
   return 'grid';
 }
 
+const COMPLETION_REASONS: Record<string, string> = {
+  all_planned_trials_completed: 'all planned trials completed',
+  completed_with_sampling_shortfall: 'completed with sampling shortfall',
+  all_trials_failed: 'all trials failed',
+  partial_failures: 'partial with failures',
+  interrupted_before_completion: 'interrupted before completion',
+  cancelled_by_user: 'cancelled by user',
+  paused_by_user: 'paused by user',
+  incomplete_before_completion: 'incomplete before completion',
+  incomplete_with_zero_runs: 'incomplete before completion',
+  incomplete_without_runs: 'incomplete before completion',
+  reconciled_from_orphaned_run: 'reconciled from orphaned run',
+  partial_with_failures: 'partial with failures',
+  partial_outcomes: 'partial outcomes',
+  mixed_outcomes: 'mixed outcomes',
+  mixed_failures: 'mixed failures',
+  infrastructure_error: 'infrastructure error',
+  paused_or_interrupted_before_completion: 'interrupted before completion',
+  completed_with_shortfall: 'completed with sampling shortfall',
+  resolved_stale_running: 'reconciled from stale running state',
+  incomplete_by_partial_outcomes: 'incomplete outcome',
+  cancelled_before_attempt: 'cancelled before attempts',
+};
+
+function completionReasonLabel(reason?: string | null): string {
+  if (!reason) return 'completion state recorded';
+  if (Object.prototype.hasOwnProperty.call(COMPLETION_REASONS, reason)) {
+    return COMPLETION_REASONS[reason as keyof typeof COMPLETION_REASONS];
+  }
+  return reason.replace(/_/g, ' ');
+}
+
 function experimentOutcomeLabel(experiment: Experiment): string {
   const bayesianSummary = experiment.bayesian_summary;
   const configuredRuns = experiment.run_count == null
     ? 'Run count pending'
     : `${experiment.run_count} run${experiment.run_count === 1 ? '' : 's'} configured`;
+  const isBayesianStrategy = resolveSearchStrategy(experiment) === 'bayesian';
+  const plannedTrials = bayesianSummary?.planned_trials;
+  const attemptedTrials = bayesianSummary?.attempted_trials;
+  const discardedTrials = bayesianSummary?.discarded_trials;
+  const hasBayesianIncomplete =
+    isBayesianStrategy && plannedTrials != null && attemptedTrials != null && attemptedTrials < plannedTrials;
   if (experiment.status === 'running') return `${configuredRuns} · sweep in progress`;
   if (experiment.status === 'paused') return `${configuredRuns} · waiting to resume`;
-  if (experiment.status === 'complete') return `${configuredRuns} · sweep complete`;
+  if (experiment.status === 'complete') {
+    if (hasBayesianIncomplete) {
+      const notStarted = Math.max(0, plannedTrials - attemptedTrials - (discardedTrials ?? 0));
+      const notStartedSuffix = notStarted > 0 ? ` · ${notStarted} not started` : '';
+      const reasonSuffix = experiment.completion_reason
+        ? ` · ${completionReasonLabel(experiment.completion_reason)}`
+        : '';
+      return `${configuredRuns} · Bayesian: ${attemptedTrials} attempted · ${discardedTrials ?? 0} discarded`
+        + notStartedSuffix
+        + reasonSuffix;
+    }
+    if (experiment.completion_reason && experiment.completion_reason !== 'all_planned_trials_completed') {
+      return `${configuredRuns} · sweep complete · ${completionReasonLabel(experiment.completion_reason)}`;
+    }
+    return `${configuredRuns} · sweep complete`;
+  }
   if (experiment.status === 'partial' && resolveSearchStrategy(experiment) === 'bayesian') {
     const discarded = bayesianSummary?.discarded_trials ?? 0;
     const attempted = bayesianSummary?.attempted_trials;

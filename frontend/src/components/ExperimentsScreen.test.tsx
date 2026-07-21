@@ -21,7 +21,11 @@ vi.mock('../services/apiClient', async () => {
   return { ...actual, ...apiMocks };
 });
 
-function experiment(status: Experiment['status'], failedCount = 0): Experiment {
+function experiment(
+  status: Experiment['status'],
+  failedCount = 0,
+  overrides: Partial<Experiment> = {},
+): Experiment {
   return {
     experiment_id: `experiment-${status}`,
     experiment_name: `${status} sweep`,
@@ -30,6 +34,7 @@ function experiment(status: Experiment['status'], failedCount = 0): Experiment {
     status,
     run_count: 3,
     failed_count: failedCount,
+    ...overrides,
   };
 }
 
@@ -40,6 +45,18 @@ const lifecycleExperiments = [
   experiment('partial'),
   experiment('failed', 2),
   experiment('cancelled'),
+  experiment('complete', 0, {
+    experiment_id: 'experiment-bayesian-shortfall',
+    experiment_name: 'bayesian shortfall',
+    config: { execution: { search_strategy: 'bayesian' } },
+    run_count: 100,
+    completion_reason: 'completed_with_sampling_shortfall',
+    bayesian_summary: {
+      planned_trials: 100,
+      attempted_trials: 79,
+      discarded_trials: 21,
+    },
+  }),
 ];
 
 function renderedRowPresentation(experimentName: string) {
@@ -98,6 +115,13 @@ describe('ExperimentsScreen lifecycle presentation', () => {
         resume: false,
         view: true,
       },
+      bayesian_shortfall: {
+        outcome: '100 runs configured · Bayesian: 79 attempted · 21 discarded · completed with sampling shortfall',
+        pause: false,
+        cancel: false,
+        resume: false,
+        view: true,
+      },
       partial: {
         outcome: '3 runs configured · incomplete outcome',
         pause: false,
@@ -136,6 +160,7 @@ describe('ExperimentsScreen lifecycle presentation', () => {
       running: renderedRowPresentation('running sweep'),
       paused: renderedRowPresentation('paused sweep'),
       complete: renderedRowPresentation('complete sweep'),
+      bayesian_shortfall: renderedRowPresentation('bayesian shortfall'),
       partial: renderedRowPresentation('partial sweep'),
       failed: renderedRowPresentation('failed sweep'),
       cancelled: renderedRowPresentation('cancelled sweep'),

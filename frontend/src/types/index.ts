@@ -87,6 +87,7 @@ export interface Experiment {
   run_count?: number;
   grid_equivalent_count?: number;
   failed_count?: number;
+  completion_reason?: string;
   bayesian_summary?: {
     best_query_avg_score?: number;
     best_chunk_size?: number;

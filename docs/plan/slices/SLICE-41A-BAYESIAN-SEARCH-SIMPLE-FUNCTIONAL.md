@@ -102,6 +102,10 @@ CLI prints a comparison summary at completion.
 - [ ] Mid-sweep pause and cancel preserve current semantics (`pause` or `stop` takes effect at the next trial boundary; `_run_single()` completes or interrupts as today).
 - [ ] `POST /experiments/{id}/resume` returns HTTP 409 for Bayesian experiments.
 - [ ] Completion prints Bayesian comparison summary with best config/score and grid-equivalent efficiency.
+- [x] Bayesian experiments with `attempted_trials < n_trials` but `failed_count == 0` are finalized as `complete` (not `partial`) and expose `bayesian_summary.discarded_trials` so the shortfall is explicit.
+  - Covered by:
+    - `uv run pytest tests/test_slice16_parallel_sweep.py -k "finalise_bayesian_experiment_promotes_no_failure_partial_to_complete"`
+    - `frontend/src/components/ExperimentDetailScreen.test.tsx` scenario “Bayesian shortfall still reaches terminal COMPLETE status”
 - [ ] Dashboard and list/detail output adapt cleanly to both strategies:
   - Bayesian experiments show `search_strategy`, `grid_equivalent_count`, and `bayesian_summary` in context.
   - Non-Bayesian experiments preserve current output fields and layout (no Bayesian-only cards/metrics).
@@ -122,7 +126,12 @@ CLI prints a comparison summary at completion.
 - [ ] `execution.bayesian.n_trials` can be omitted and resolves to grid-equivalent default at runtime.
 - [ ] Failed trial outcomes are passed to Optuna as `TrialState.FAIL` with `NaN` to preserve resume/continuation behavior and diagnostics.
 - [ ] Duplicate trial candidates do not create extra `run_status` rows and are surfaced only via Optuna prune semantics.
-- [ ] Dashboard and API payload expose `bayesian_summary.discarded_trials` (if present) and render partial Bayesian outcomes as “graceful stop” with discard/stop explanation.
+- [x] Dashboard and API payload expose `bayesian_summary.discarded_trials` (if present) and render partial Bayesian outcomes as “graceful stop” with discard/stop explanation.
+  - UI contract checks:
+    - `cd frontend && npm run -s test -- ExperimentDetailScreen.test.tsx ExperimentsScreen.test.tsx`
+- [x] Terminal completion reason is explicitly carried across backend and frontend surfaces.
+  - Backend writes `completion_reason` values into experiment docs (including `completed_with_sampling_shortfall` and related terminal labels).
+  - `ExperimentDetailScreen` and `ExperimentsScreen` render completion reason labels in outcome copy so “attempted/discarded/not-started” state is not misread.
 - [ ] Follow-up scope: exposing full sampler proposal history (proposed vs executed vs discarded) is explicitly deferred and is not required for Slice 41A acceptance; if implemented, it must be shown only for Bayesian experiments and never for non-Bayesian runs.
 
 ## Behavioral scenarios (GWT)
@@ -142,6 +151,15 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
   When config is parsed
   Then validation fails early
   And the user is told to configure fixed single values on all non-Bayesian axes
+
+Scenario: Bayesian run ends without failures despite incomplete attempts
+  Given an experiment config sets execution.search_strategy to bayesian
+  And n_trials is 12
+  And only 3 unique `(chunk_size, overlap)` candidates are possible after dedupe/discard rules
+  When 12 attempts are planned and executed until sweep constraints exhaust
+  Then the experiment status is marked `complete`
+  And `failed_count` remains 0
+  And `bayesian_summary.discarded_trials` captures the non-executed candidates
 ```
 
 ## Before-Checks [GATE]
@@ -178,9 +196,15 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
 - `server/models/config.py`
 - `server/core/orchestrator.py`
 - `server/api/experiments.py`
+- `server/core/startup_reconciliation.py`
 - `configs/example-mongodb-unified-retrievers-bayesian.yaml`
 - `configs/example-mongodb-local-bayesian.yaml`
 - `frontend/src/**/*` (strategy-aware display updates)
+- `frontend/src/types/index.ts`
+- `frontend/src/components/ExperimentDetailScreen.tsx`
+- `frontend/src/components/ExperimentsScreen.tsx`
+- `frontend/src/components/ExperimentDetailScreen.test.tsx`
+- `frontend/src/components/ExperimentsScreen.test.tsx`
 - `docs/plan/slices/SLICE-41A-BAYESIAN-SEARCH-SIMPLE-FUNCTIONAL.md` (new)
 - `pyproject.toml`
 
@@ -240,6 +264,10 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
   - Track `visited: set[(chunk_size, overlap)]`.
   - If duplicate suggested, call `study.tell(trial, values=None, state=TrialState.PRUNED)` and continue.
   - Duplicates do not increment `trials_completed` and do not create additional `run_status` entries.
+- Completion semantics:
+  - If `failed_count > 0`, final status can remain `partial`.
+  - If `failed_count == 0`, final status is `complete` even when some planned `(chunk_size, overlap)` combinations were not executed.
+  - `bayesian_summary.discarded_trials` must record those non-executed combinations for post-run audit.
 
 ## Handoff & Boundary Tests (explicit checklist)
 
@@ -248,6 +276,7 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
 - [GATE] Per-trial handoff: `_run_bayesian_inner` to `_run_single` argument/state contract identical to grid path.
 - [GATE] Pause/stop: interrupt still observed before next trial setup; `_run_single` completion/interruption semantics unchanged.
 - [GATE] Resume boundary: `POST /experiments/{id}/resume` returns 409 with bayesian-specific rationale.
+- [GATE] Completion reason boundary: terminal `completion_reason` is assigned consistently and mapped to UI labels in both list and detail views.
 
 ## Config/Behavior Reference (PCTO source excerpt)
 

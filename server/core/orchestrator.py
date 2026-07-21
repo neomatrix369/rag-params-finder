@@ -426,16 +426,30 @@ def _finalise_bayesian_experiment(
     if cancelled:
         final_status = ExperimentStatus.CANCELLED
         failed_count = _count_failed_runs(experiment_id)
+        completion_reason = "cancelled_by_user"
     elif paused:
         final_status = ExperimentStatus.PAUSED
         failed_count = _count_failed_runs(experiment_id)
+        completion_reason = "paused_by_user"
     elif run_ids:
         final_status, failed_count = _compute_final_status(experiment_id, planned_trials)
+        if final_status == ExperimentStatus.PARTIAL and failed_count == 0:
+            final_status = ExperimentStatus.COMPLETE
+        if final_status == ExperimentStatus.COMPLETE and attempted_trials < planned_trials:
+            completion_reason = "completed_with_sampling_shortfall"
+        elif final_status == ExperimentStatus.COMPLETE:
+            completion_reason = "all_planned_trials_completed"
+        elif final_status == ExperimentStatus.FAILED and failed_count == planned_trials:
+            completion_reason = "all_trials_failed"
+        elif final_status == ExperimentStatus.FAILED:
+            completion_reason = "partial_failures"
         if failed_count == planned_trials and final_status != ExperimentStatus.FAILED:
             final_status = ExperimentStatus.FAILED
+            completion_reason = "all_trials_failed"
     else:
         final_status = ExperimentStatus.CANCELLED
         failed_count = 0
+        completion_reason = "cancelled_before_attempt"
 
     experiment_update: dict = {
         "status": final_status,
@@ -443,6 +457,7 @@ def _finalise_bayesian_experiment(
         "failed_count": failed_count,
         "completed_at": datetime.now(UTC),
         "grid_equivalent_count": _grid_equivalent_count(config),
+        "completion_reason": completion_reason,
     }
 
     bayesian_summary: dict[str, object] = {
@@ -473,6 +488,7 @@ def _finalise_bayesian_experiment(
         if final_status not in {ExperimentStatus.CANCELLED, ExperimentStatus.PAUSED}:
             final_status = ExperimentStatus.FAILED
             experiment_update["status"] = final_status
+            experiment_update["completion_reason"] = "infrastructure_error"
 
     get_collection(EXPERIMENTS_COLLECTION).update_one(
         {"_id": experiment_id},
@@ -509,6 +525,7 @@ def _fail_experiment_preflight(
                 "status": ExperimentStatus.FAILED,
                 "run_count": runs,
                 "failed_count": 0,
+                "completion_reason": "infrastructure_error",
                 "completed_at": completed_at,
                 "error_message": error_message,
             }
@@ -809,17 +826,41 @@ def _run_sweep_inner(
     if cancelled:
         final_status = ExperimentStatus.CANCELLED
         failed_count = _count_failed_runs(experiment_id)
+        completion_reason = "cancelled_by_user"
     elif paused:
         final_status = ExperimentStatus.PAUSED
         failed_count = _count_failed_runs(experiment_id)
+        completion_reason = "paused_by_user"
     else:
         final_status, failed_count = _compute_final_status(experiment_id, len(all_runs))
+        run_summaries = list(
+            get_collection(RUN_STATUS_COLLECTION).find(
+                {"experiment_id": experiment_id},
+                {"_id": 0, "phase": 1},
+            )
+        )
+        complete = sum(1 for run in run_summaries if run.get("phase") == Phase.COMPLETE.value)
+        interrupted = sum(1 for run in run_summaries if run.get("phase") == Phase.INTERRUPTED.value)
+
+        if final_status == ExperimentStatus.COMPLETE:
+            completion_reason = "all_planned_trials_completed"
+        elif final_status == ExperimentStatus.FAILED and failed_count == 0 and complete == 0:
+            completion_reason = "interrupted_before_completion"
+        elif final_status == ExperimentStatus.PARTIAL and failed_count == 0 and interrupted > 0:
+            completion_reason = "paused_or_interrupted_before_completion"
+        elif final_status == ExperimentStatus.PARTIAL and failed_count > 0:
+            completion_reason = "mixed_outcomes"
+        elif final_status == ExperimentStatus.FAILED and failed_count == len(all_runs):
+            completion_reason = "all_trials_failed"
+        else:
+            completion_reason = "partial_outcomes"
 
     completed_at = datetime.now(UTC)
     experiment_update: dict = {
         "status": final_status,
         "run_count": len(all_runs),
         "failed_count": failed_count,
+        "completion_reason": completion_reason,
         "completed_at": completed_at,
     }
     if infrastructure_error:
@@ -827,6 +868,7 @@ def _run_sweep_inner(
         if final_status not in {ExperimentStatus.CANCELLED, ExperimentStatus.PAUSED}:
             final_status = ExperimentStatus.FAILED
             experiment_update["status"] = final_status
+            experiment_update["completion_reason"] = "infrastructure_error"
 
     get_collection(EXPERIMENTS_COLLECTION).update_one(
         {"_id": experiment_id},

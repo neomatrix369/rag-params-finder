@@ -505,7 +505,7 @@ def test_finalise_bayesian_experiment_persists_summary(
     """
     Scenario: _finalise_bayesian_experiment stores Bayesian metadata in experiment docs
 
-    Given bayesian completion with successful and failed runs
+    Given bayesian completion with successful runs only
     When finalization runs
     Then run_count, grid_equivalent_count, and bayesian_summary are persisted.
     """
@@ -540,14 +540,14 @@ def test_finalise_bayesian_experiment_persists_summary(
         infrastructure_error=None,
     )
 
-    assert final_status == ExperimentStatus.PARTIAL
+    assert final_status == ExperimentStatus.COMPLETE
     assert failed_count == 0
     # _count_failed_runs is only used for cancelled/paused paths, not this branch.
     mock_count_failed_runs.assert_not_called()
 
     # Validate experiment document persisted fields
     update_call = collection.update_one.call_args.args[1]["$set"]
-    assert update_call["status"] == ExperimentStatus.PARTIAL
+    assert update_call["status"] == ExperimentStatus.COMPLETE
     assert update_call["run_count"] == 4
     assert update_call["failed_count"] == 0
     assert update_call["grid_equivalent_count"] == 6
@@ -561,6 +561,57 @@ def test_finalise_bayesian_experiment_persists_summary(
     assert bayesian_summary["attempted_trials"] == 4
     assert bayesian_summary["discarded_trials"] == 0
     mock_log_summary.assert_called_once()
+
+
+@patch("server.core.orchestrator._log_bayesian_summary")
+@patch("server.core.orchestrator.get_collection")
+def test_finalise_bayesian_experiment_promotes_no_failure_partial_to_complete(
+    mock_get_collection: MagicMock,
+    mock_log_summary: MagicMock,
+) -> None:
+    """
+    Scenario: _finalise_bayesian_experiment treats a partial Bayesian run with no
+    failures as complete
+
+    Given attempted Bayesian trials are fewer than planned and none failed
+    When finalization runs
+    Then status is complete and the summary preserves the discarded/not-started split
+    in summary metadata.
+    """
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = 5
+    config.chunking.params.chunk_sizes = [128, 256, 512]
+    config.chunking.params.overlaps = [0, 50]
+
+    collection = _mock_collection()
+    mock_get_collection.return_value = collection
+
+    final_status, failed_count = _finalise_bayesian_experiment(
+        experiment_id="exp-bayesian-promoted",
+        config=config,
+        planned_trials=5,
+        cancelled=False,
+        paused=False,
+        run_ids=["run-1", "run-2", "run-3"],
+        attempted_trials=3,
+        discarded_trials=2,
+        best_trial=None,
+        infrastructure_error=None,
+    )
+
+    assert final_status == ExperimentStatus.COMPLETE
+    assert failed_count == 0
+
+    update_call = collection.update_one.call_args.args[1]["$set"]
+    assert update_call["status"] == ExperimentStatus.COMPLETE
+    assert update_call["run_count"] == 5
+    assert update_call["failed_count"] == 0
+    assert update_call["grid_equivalent_count"] == 6
+    assert update_call["bayesian_summary"]["attempted_trials"] == 3
+    assert update_call["bayesian_summary"]["discarded_trials"] == 2
+    assert update_call["bayesian_summary"]["planned_trials"] == 5
+    mock_log_summary.assert_not_called()
 
 
 @patch("server.core.orchestrator.get_collection")
