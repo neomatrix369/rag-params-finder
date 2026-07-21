@@ -38,8 +38,27 @@ router = APIRouter()
 
 def _planned_run_count(config: ExperimentConfig) -> int:
     if config.execution.search_strategy == "bayesian":
-        return config.execution.bayesian.n_trials
+        return _resolve_bayesian_n_trials(config)
     return len(expand_sweep(config))
+
+
+def _resolve_bayesian_n_trials(config: ExperimentConfig) -> int:
+    grid_equivalent = len(config.chunking.params.chunk_sizes) * len(config.chunking.params.overlaps)
+    configured = config.execution.bayesian.n_trials
+    if configured is None:
+        logger.info(
+            "bayesian n_trials not set; defaulting to grid-equivalent %s",
+            grid_equivalent,
+        )
+        return grid_equivalent
+    if configured > grid_equivalent:
+        logger.warning(
+            "requested bayesian n_trials=%s exceeds grid-equivalent=%s, capping at grid-equivalent",
+            configured,
+            grid_equivalent,
+        )
+        return grid_equivalent
+    return configured
 
 
 async def _run_heavy_read[R](fn: Callable[[], R]) -> R:
@@ -326,7 +345,7 @@ async def resume_experiment(experiment_id: str):
     if config.execution.search_strategy == "bayesian":
         raise HTTPException(
             status_code=409,
-            detail="Resume is not supported for bayesian search strategy",
+            detail=("Bayesian experiments cannot be resumed (study state is in-memory only)"),
         )
     await asyncio.to_thread(mongo_mark_experiment_running, experiment_id)
     schedule_sweep(resume_sweep, experiment_id, config)

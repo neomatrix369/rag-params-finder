@@ -126,7 +126,18 @@ interface ExperimentDetail {
   status: ExperimentStatus;
   created_at?: string;
   run_count?: number;
+  grid_equivalent_count?: number;
   failed_count?: number;
+  bayesian_summary?: {
+    best_query_avg_score?: number;
+    best_chunk_size?: number;
+    best_overlap?: number;
+    best_embedding_model?: string;
+    best_retrieval_method?: string;
+    best_retriever_type?: string;
+    grid_equivalent_count?: number;
+    planned_trials?: number;
+  };
   runs?: RunStatus[];
   started_at?: string;
   completed_at?: string | null;
@@ -150,6 +161,9 @@ interface ExperimentDetail {
     };
     retrieval?: {
       retrieval_provider?: string;
+    };
+    execution?: {
+      search_strategy?: 'grid' | 'bayesian';
     };
   };
 }
@@ -1070,10 +1084,26 @@ export default function ExperimentDetailScreen({
                 }
               >
                 <div className="space-y-3">
+                  <MetadataItem
+                    label="Search Strategy"
+                    value={detail.config?.execution?.search_strategy ?? 'grid'}
+                  />
                   <MetadataItem label="Rerank Model" value={detail.retrieval_model ?? 'none'} />
                   <MetadataItem label="Top-K Initial" value={detail.top_k_initial} />
                   <MetadataItem label="Top-K Final" value={detail.top_k_final} />
                   <MetadataItem label="Parallelism" value={detail.parallelism} />
+                  {detail.config?.execution?.search_strategy === 'bayesian' ? (
+                    <>
+                      <MetadataItem
+                        label="Planned Bayesian Trials"
+                        value={detail.run_count}
+                      />
+                      <MetadataItem
+                        label="Grid-Equivalent Count"
+                        value={detail.grid_equivalent_count}
+                      />
+                    </>
+                  ) : null}
                   <MetadataItem label="On Error" value={detail.on_error} />
                   <MetadataItem label="Queries" value={detail.queries_file} />
                 </div>
@@ -1126,6 +1156,12 @@ export default function ExperimentDetailScreen({
                 <DimensionBadge label="Chunking" values={detail.sweep_summary.chunking_methods} />
                 <DimensionBadge label="Chunk Sizes" values={detail.sweep_summary.chunk_sizes} />
                 <DimensionBadge label="Overlaps" values={detail.sweep_summary.overlaps} />
+                {detail.config?.execution?.search_strategy === 'bayesian' && (
+                  <DimensionBadge
+                    label="Bayesian Strategy"
+                    values={['chunk_size × overlap']}
+                  />
+                )}
                 {detail.sweep_summary.paddings && detail.sweep_summary.paddings.length > 0 && (
                   <DimensionBadge label="Paddings" values={detail.sweep_summary.paddings} />
                 )}
@@ -1143,6 +1179,30 @@ export default function ExperimentDetailScreen({
                 )}
               </div>
             </CollapsibleCard>
+
+            {detail.config?.execution?.search_strategy === 'bayesian' && detail.bayesian_summary && (
+              <CollapsibleCard
+                title="Bayesian Summary"
+                icon={icons.grid}
+                storageKey={`detail-bayesian-summary-${experimentId}`}
+                headerExtra={
+                  <span className="text-sm font-semibold text-accent-strong">
+                    {detail.run_count}/{detail.grid_equivalent_count ?? '—'} trials
+                  </span>
+                }
+                className="mt-3"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <MetadataItem label="Best Query Avg Score" value={detail.bayesian_summary.best_query_avg_score} />
+                  <MetadataItem label="Best Chunk Size" value={detail.bayesian_summary.best_chunk_size} />
+                  <MetadataItem label="Best Overlap" value={detail.bayesian_summary.best_overlap} />
+                  <MetadataItem
+                    label="Best Embedding"
+                    value={detail.bayesian_summary.best_embedding_model}
+                  />
+                </div>
+              </CollapsibleCard>
+            )}
           </div>
         )}
 

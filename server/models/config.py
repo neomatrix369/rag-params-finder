@@ -168,7 +168,7 @@ class RetrievalConfig(BaseModel):
 
 class ExecutionConfig(BaseModel):
     class BayesianConfig(BaseModel):
-        n_trials: int = Field(default=12, ge=1)
+        n_trials: int | None = Field(default=None, ge=1)
 
     parallelism: int = Field(default=1, ge=1, le=16)
     on_error: Literal["continue", "stop"] = Field(default="continue")

@@ -251,7 +251,9 @@ def _run_bayesian_inner(
 
     expanded = list(expand_sweep(config))
     template = expanded[0]
-    planned_runs = config.execution.bayesian.n_trials
+    planned_runs = _resolve_bayesian_n_trials(config)
+    max_optuna_calls = planned_runs * 3
+    visited: set[tuple[int, int]] = set()
     if config.execution.parallelism > 1:
         logger.warning(
             "Bayesian mode ignores parallelism > 1 in trial objective loop; "
@@ -269,31 +271,28 @@ def _run_bayesian_inner(
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler())
     best_trial: dict | None = None
 
-    def _try_run_trial(trial: "optuna.trial.Trial") -> float:
+    def _try_run_trial(
+        trial: "optuna.trial.Trial",
+        params: RunParams,
+    ) -> float | None:
         nonlocal cancelled
         nonlocal paused
         nonlocal stop_after_failure
         nonlocal infrastructure_error
 
         if stop_after_failure:
-            return 0.0
+            return None
 
         try:
             check_control(experiment_id)
         except ExperimentCancelledError:
             cancelled = True
             stop_after_failure = True
-            return 0.0
+            return None
         except ExperimentPausedError:
             paused = True
             stop_after_failure = True
-            return 0.0
-
-        params = _bayesian_trial_to_run_params(
-            config,
-            template,
-            trial,
-        )
+            return None
 
         if not run_ids:
             get_collection(EXPERIMENTS_COLLECTION).update_one(
@@ -314,25 +313,45 @@ def _run_bayesian_inner(
         except ExperimentCancelledError:
             cancelled = True
             stop_after_failure = True
-            raise
+            return None
         except ExperimentPausedError:
             paused = True
             stop_after_failure = True
-            raise
+            return None
         except SIEUnavailableError as exc:
             infrastructure_error = str(exc)
             stop_after_failure = True
-            raise
+            return None
         except Exception:
             if config.execution.on_error == "stop":
                 stop_after_failure = True
-            raise
+            return None
 
     try:
-        for _ in range(planned_runs):
+        for _ in range(max_optuna_calls):
+            if len(visited) >= _grid_equivalent_count(config):
+                break
+            if len(run_ids) >= planned_runs:
+                break
+
             trial = study.ask()
             try:
-                score = _try_run_trial(trial)
+                params = _bayesian_trial_to_run_params(
+                    config,
+                    template,
+                    trial,
+                )
+                candidate = (params.chunk_size, params.overlap)
+                if candidate in visited:
+                    study.tell(
+                        trial,
+                        values=None,
+                        state=optuna.trial.TrialState.PRUNED,
+                    )
+                    continue
+
+                visited.add(candidate)
+                score = _try_run_trial(trial, params)
             except Exception:
                 if cancelled or paused:
                     logger.info(
@@ -341,13 +360,19 @@ def _run_bayesian_inner(
                     )
                     break
                 if stop_after_failure:
-                    score = 0.0
-                    study.tell(trial, score)
+                    study.tell(trial, float("nan"), state=optuna.trial.TrialState.FAIL)
                     break
-                score = 0.0
-            study.tell(trial, score)
-            if len(study.trials) >= planned_runs:
-                break
+
+                study.tell(trial, float("nan"), state=optuna.trial.TrialState.FAIL)
+                if config.execution.on_error == "stop":
+                    stop_after_failure = True
+                continue
+
+            if score is None:
+                study.tell(trial, float("nan"), state=optuna.trial.TrialState.FAIL)
+            else:
+                study.tell(trial, score)
+
             if stop_after_failure:
                 break
 
@@ -455,7 +480,7 @@ def _fail_experiment_preflight(
 ) -> dict:
     """Mark experiment failed before any run starts due to search-index preflight."""
     runs = (
-        config.execution.bayesian.n_trials
+        _resolve_bayesian_n_trials(config)
         if config.execution.search_strategy == "bayesian"
         else len(expand_sweep(config))
     )
@@ -571,6 +596,25 @@ def _run_best_trial_payload(experiment_id: str) -> dict | None:
     if not best:
         return None
     return best
+
+
+def _resolve_bayesian_n_trials(config: ExperimentConfig) -> int:
+    grid_equivalent = _grid_equivalent_count(config)
+    configured = config.execution.bayesian.n_trials
+    if configured is None:
+        logger.info(
+            "bayesian n_trials not set; defaulting to grid-equivalent %s",
+            grid_equivalent,
+        )
+        return grid_equivalent
+    if configured > grid_equivalent:
+        logger.warning(
+            "requested bayesian n_trials=%s exceeds grid-equivalent=%s, capping",
+            configured,
+            grid_equivalent,
+        )
+        return grid_equivalent
+    return configured
 
 
 def _log_bayesian_summary(

@@ -51,7 +51,7 @@ def test_create_experiment_reports_bayesian_n_trials_as_run_count() -> None:
 
     Given a valid bayesian configuration with chunk_size × overlap search space
     When create request is submitted
-    Then run_count reflects execution.bayesian.n_trials.
+    Then run_count reflects the capped bayesian run count.
     """
     with (
         patch("server.api.experiments.validate_experiment_search_indexes"),
@@ -64,7 +64,7 @@ def test_create_experiment_reports_bayesian_n_trials_as_run_count() -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert body["run_count"] == 12
+    assert body["run_count"] == 6
 
 
 def test_resume_bayesian_experiment_returns_409() -> None:

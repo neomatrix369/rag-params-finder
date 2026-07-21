@@ -101,7 +101,12 @@ Bayesian mode tunes **only** chunk-size and overlap while keeping all other axes
 - `chunking.params.paddings` must contain one value
 - `retrieval.retrievers` must contain one retriever entry
 
-Expected run count is `execution.bayesian.n_trials`. UI and API planned counts also show the **equivalent grid size** via experiment field `grid_equivalent_count` = `len(chunk_sizes) × len(overlaps)`.
+Expected run count is:
+- `execution.bayesian.n_trials` when it is set
+- otherwise, the grid-equivalent default `len(chunk_sizes) × len(overlaps)` when omitted
+
+If `n_trials` is higher than the grid-equivalent count, runtime caps it to the grid size.
+UI and API planned counts also expose `grid_equivalent_count` for Bayesian runs.
 
 Example canonical configs:
 
