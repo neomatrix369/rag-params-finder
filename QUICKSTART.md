@@ -39,7 +39,37 @@ CLI on the host always uses `SERVER_URL=http://localhost:8001` (default in `.env
 
 Pick **one** path. MongoDB must be reachable before the server health check passes (Docker waits for the server; the dashboard waits on the server).
 
-### Path A — Manual (two terminals, any MongoDB backend)
+### Path A — Docker + zero cloud (recommended offline)
+
+No Atlas account. MongoDB Atlas Local runs in Docker; indexes are auto-created on boot (~30–60 s first time).
+
+```bash
+./start-services.sh --local      # MongoDB + server + dashboard
+```
+
+For host CLI sweeps after Path A, use the local URI (also printed by the script):
+
+```bash
+export MONGODB_URI="mongodb://localhost:27017/rag_params_finder?directConnection=true"
+```
+
+Do **not** run `./start-services.sh` (without `--local`) while `.env` points at `localhost:27017` — the server container cannot reach the host’s `localhost`.
+
+If MongoDB stays unhealthy (`keyfile` / `Unable to acquire security key`), reset stale volumes once after upgrading:
+
+```bash
+./start-services.sh mongodb reset && ./start-services.sh --local
+```
+
+### Path B — Docker + Atlas cloud (one command)
+
+Requires a real `mongodb+srv://…` URI in `.env` (not the placeholder).
+
+```bash
+./start-services.sh              # server :8001 + dashboard :5374
+```
+
+### Path C — Manual (two terminals, any MongoDB backend)
 
 Set `MONGODB_URI` in `.env` first ([mongodb-setup.md](docs/user-guide/mongodb-setup.md)).
 
@@ -54,36 +84,6 @@ cd frontend && npm run dev                      # Terminal 2 (optional)
 ```
 
 **Atlas cloud:** create search indexes in the Atlas UI first (M0), then start uvicorn + frontend as above with `mongodb+srv://…` in `.env`.
-
-### Path B — Docker + Atlas cloud (one command)
-
-Requires a real `mongodb+srv://…` URI in `.env` (not the placeholder).
-
-```bash
-./start-services.sh              # server :8001 + dashboard :5374
-```
-
-### Path C — Docker + zero cloud (recommended offline)
-
-No Atlas account. MongoDB Atlas Local runs in Docker; indexes are auto-created on boot (~30–60 s first time).
-
-```bash
-./start-services.sh --local      # MongoDB + server + dashboard
-```
-
-For host CLI sweeps after Path C, use the local URI (also printed by the script):
-
-```bash
-export MONGODB_URI="mongodb://localhost:27017/rag_params_finder?directConnection=true"
-```
-
-Do **not** run `./start-services.sh` (without `--local`) while `.env` points at `localhost:27017` — the server container cannot reach the host’s `localhost`.
-
-If MongoDB stays unhealthy (`keyfile` / `Unable to acquire security key`), reset stale volumes once after upgrading:
-
-```bash
-./start-services.sh mongodb reset && ./start-services.sh --local
-```
 
 ---
 
