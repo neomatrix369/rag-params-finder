@@ -1,5 +1,7 @@
 # Dashboard — production build + vite preview (browser calls host-published API)
 FROM node:22-alpine AS build
+ARG GIT_COMMIT=unknown
+LABEL org.opencontainers.image.revision="${GIT_COMMIT}"
 
 WORKDIR /app
 
@@ -14,6 +16,8 @@ ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
 FROM node:22-alpine
+ARG GIT_COMMIT=unknown
+LABEL org.opencontainers.image.revision="${GIT_COMMIT}"
 
 WORKDIR /app
 

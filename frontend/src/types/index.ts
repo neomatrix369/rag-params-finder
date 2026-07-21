@@ -85,7 +85,26 @@ export interface Experiment {
   completed_at?: string | null;
   status: ExperimentStatus;
   run_count?: number;
+  grid_equivalent_count?: number;
   failed_count?: number;
+  completion_reason?: string;
+  bayesian_summary?: {
+    best_query_avg_score?: number;
+    best_chunk_size?: number;
+    best_overlap?: number;
+    best_embedding_model?: string;
+    best_retrieval_method?: string;
+    best_retriever_type?: string;
+    grid_equivalent_count?: number;
+    planned_trials?: number;
+    attempted_trials?: number;
+    discarded_trials?: number;
+    not_started?: number;
+    termination_reason?: string;
+  };
+  execution?: {
+    search_strategy?: 'grid' | 'bayesian';
+  };
   error?: string;
   git_commit?: string;
   git_branch?: string;

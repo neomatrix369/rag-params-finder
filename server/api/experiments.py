@@ -2,6 +2,7 @@ import asyncio
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import SupportsInt, cast
 
 from fastapi import APIRouter, HTTPException
 
@@ -25,8 +26,9 @@ from server.core.orchestrator import resume_sweep, run_sweep
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
 from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
+from server.db.atlas import EXPERIMENTS_COLLECTION, RUN_STATUS_COLLECTION, get_collection
 from server.models.config import ExperimentConfig, expand_sweep
-from server.models.enums import ExperimentStatus, RetrieverType
+from server.models.enums import ExperimentStatus, Phase, RetrieverType
 from server.utils.log_throttle import info_throttled
 from server.utils.logger import get_logger
 from server.utils.metadata import collect_experiment_metadata
@@ -34,6 +36,172 @@ from server.utils.metadata import collect_experiment_metadata
 logger = get_logger(__name__)
 
 router = APIRouter()
+_TERMINAL_PHASES = frozenset(
+    {
+        Phase.COMPLETE.value,
+        Phase.FAILED.value,
+        Phase.INTERRUPTED.value,
+    }
+)
+
+
+def _planned_run_count(config: ExperimentConfig) -> int:
+    if config.execution.search_strategy == "bayesian":
+        return _resolve_bayesian_n_trials(config)
+    return len(expand_sweep(config))
+
+
+def _resolve_bayesian_n_trials(config: ExperimentConfig) -> int:
+    grid_equivalent = len(config.chunking.params.chunk_sizes) * len(config.chunking.params.overlaps)
+    configured = config.execution.bayesian.n_trials
+    if configured is None:
+        logger.info(
+            "bayesian n_trials not set; defaulting to grid-equivalent %s",
+            grid_equivalent,
+        )
+        return grid_equivalent
+    if configured > grid_equivalent:
+        logger.warning(
+            "requested bayesian n_trials=%s exceeds grid-equivalent=%s, capping at grid-equivalent",
+            configured,
+            grid_equivalent,
+        )
+        return grid_equivalent
+    return configured
+
+
+def _to_non_negative_int(value: object) -> int | None:
+    try:
+        as_int = int(cast(SupportsInt, value))
+    except (TypeError, ValueError):
+        return None
+    return max(0, int(as_int))
+
+
+def _is_bayesian_experiment(experiment: dict) -> bool:
+    config = experiment.get("config")
+    if not isinstance(config, dict):
+        return False
+    execution = config.get("execution")
+    if not isinstance(execution, dict):
+        return False
+    return execution.get("search_strategy") == "bayesian"
+
+
+def _ensure_bayesian_summary(
+    experiment: dict,
+    runs: list[dict] | None = None,
+) -> None:
+    if not _is_bayesian_experiment(experiment):
+        return
+
+    planned_trials = _to_non_negative_int(experiment.get("run_count"))
+    if planned_trials is None:
+        return
+
+    existing_summary = experiment.get("bayesian_summary")
+    if not isinstance(existing_summary, dict):
+        existing_summary = {}
+
+    planned_trials = int(planned_trials)
+    attempted_trials = existing_summary.get("attempted_trials")
+    if isinstance(attempted_trials, int):
+        attempted_trials = _to_non_negative_int(attempted_trials) or 0
+    elif isinstance(runs, list):
+        attempted_trials = len(runs)
+    else:
+        attempted_trials = 0
+
+    if "discarded_trials" in existing_summary:
+        discarded_trials = _to_non_negative_int(existing_summary["discarded_trials"]) or 0
+    else:
+        discarded_trials = existing_summary.get("discarded_trials", 0)
+        discarded_trials = _to_non_negative_int(discarded_trials) or 0
+
+    not_started = max(
+        0,
+        planned_trials - attempted_trials - discarded_trials,
+    )
+
+    existing_summary.update(
+        {
+            "planned_trials": planned_trials,
+            "attempted_trials": attempted_trials,
+            "discarded_trials": discarded_trials,
+            "grid_equivalent_count": _to_non_negative_int(
+                existing_summary.get("grid_equivalent_count")
+            )
+            or _to_non_negative_int(experiment.get("grid_equivalent_count"))
+            or planned_trials,
+            "not_started": not_started,
+        }
+    )
+    experiment["bayesian_summary"] = existing_summary
+
+
+def _normalize_stale_running_status(experiment: dict) -> dict:
+    """If status is still RUNNING but no active sweep exists, reconcile from run status."""
+    runs = experiment.get("runs")
+    if not isinstance(runs, list):
+        runs = []
+    if experiment.get("status") != ExperimentStatus.RUNNING:
+        _ensure_bayesian_summary(experiment, runs=runs)
+        return experiment
+
+    experiment_id = experiment.get("experiment_id") or experiment.get("_id")
+    if not experiment_id or is_sweep_in_flight(experiment_id):
+        return experiment
+
+    runs = list(runs)
+    if not runs:
+        runs = list(
+            get_collection(RUN_STATUS_COLLECTION).find(
+                {"experiment_id": experiment_id},
+                {"_id": 0},
+            )
+        )
+    _ensure_bayesian_summary(experiment, runs=runs)
+    if not runs:
+        return experiment
+
+    if any(run.get("phase") not in _TERMINAL_PHASES for run in runs):
+        return experiment
+
+    expected = int(experiment.get("run_count") or 0)
+    complete = sum(1 for run in runs if run.get("phase") == Phase.COMPLETE.value)
+    failed = sum(1 for run in runs if run.get("phase") == Phase.FAILED.value)
+    interrupted = sum(1 for run in runs if run.get("phase") == Phase.INTERRUPTED.value)
+
+    if complete == expected and failed == 0:
+        resolved_status = ExperimentStatus.COMPLETE
+        completion_reason = "all_planned_trials_completed"
+    elif failed == 0 and interrupted == 0 and complete < expected and complete > 0:
+        resolved_status = ExperimentStatus.COMPLETE
+        completion_reason = "completed_with_sampling_shortfall"
+    elif failed == expected or (failed > 0 and complete == 0 and failed == len(runs)):
+        resolved_status = ExperimentStatus.FAILED
+        completion_reason = "all_trials_failed"
+    elif failed == 0 and interrupted > 0 and complete > 0:
+        resolved_status = ExperimentStatus.PARTIAL
+        completion_reason = "interrupted_before_completion"
+    elif failed > 0:
+        resolved_status = ExperimentStatus.PARTIAL
+        completion_reason = "partial_failures"
+    else:
+        resolved_status = ExperimentStatus.PARTIAL
+        completion_reason = "incomplete_before_completion"
+
+    now = datetime.now(UTC)
+    resolved = {
+        "status": resolved_status,
+        "failed_count": failed,
+        "completion_reason": completion_reason,
+        "completed_at": now,
+    }
+    get_collection(EXPERIMENTS_COLLECTION).update_one({"_id": experiment_id}, {"$set": resolved})
+    experiment.update(resolved)
+    _ensure_bayesian_summary(experiment, runs=runs)
+    return experiment
 
 
 async def _run_heavy_read[R](fn: Callable[[], R]) -> R:
@@ -56,7 +224,7 @@ async def create_experiment(config: ExperimentConfig):
     experiment_id = str(uuid.uuid4())
     timestamp_suffix = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     stamped_name = f"{config.experiment_name}_{timestamp_suffix}"
-    runs = expand_sweep(config)
+    runs = _planned_run_count(config)
 
     metadata = collect_experiment_metadata()
     now = datetime.now(UTC)
@@ -81,7 +249,8 @@ async def create_experiment(config: ExperimentConfig):
         "started_at": None,  # Set when first run actually begins
         "completed_at": None,
         "status": ExperimentStatus.RUNNING,
-        "run_count": len(runs),
+        "run_count": runs,
+        "grid_equivalent_count": len(expand_sweep(config)),
         **metadata,
         "data_paths": config.data_paths,
         "queries_file": config.queries_file,
@@ -104,15 +273,21 @@ async def create_experiment(config: ExperimentConfig):
     }
     await asyncio.to_thread(mongo_insert_experiment_doc, experiment_doc)
 
-    logger.info("experiment created — %s (%s), %s run(s)", stamped_name, experiment_id, len(runs))
+    logger.info(
+        "experiment created — %s (%s), %s planned run(s), %s run(s) per trial strategy",
+        stamped_name,
+        experiment_id,
+        runs,
+        len(expand_sweep(config)),
+    )
     schedule_sweep(run_sweep, experiment_id, config)
 
     return {
         "status": "submitted",
         "experiment_id": experiment_id,
         "experiment_name": stamped_name,
-        "run_count": len(runs),
-        "message": f"Experiment queued — {len(runs)} run(s) will execute",
+        "run_count": runs,
+        "message": f"Experiment queued — {runs} run(s) will execute",
     }
 
 
@@ -121,6 +296,8 @@ async def list_experiments():
     """List all experiments."""
     logger.debug("list OK — GET /experiments")
     experiments = await asyncio.to_thread(mongo_list_all_experiment_docs)
+    for experiment in experiments:
+        await asyncio.to_thread(_normalize_stale_running_status, experiment)
     logger.debug("list OK — %s experiment(s)", len(experiments))
     return {"experiments": experiments}
 
@@ -149,6 +326,7 @@ async def get_experiment(experiment_id: str):
         raise HTTPException(status_code=404, detail="Experiment not found")
 
     runs = experiment["runs"]
+    _normalize_stale_running_status(experiment)
     logger.debug(
         "detail OK — %s status=%s, %s run row(s)",
         experiment_id,
@@ -310,15 +488,20 @@ async def resume_experiment(experiment_id: str):
         raise HTTPException(status_code=400, detail="Experiment config is missing")
 
     config = ExperimentConfig.model_validate(config_payload)
+    if config.execution.search_strategy == "bayesian":
+        raise HTTPException(
+            status_code=409,
+            detail=("Bayesian experiments cannot be resumed (study state is in-memory only)"),
+        )
     await asyncio.to_thread(mongo_mark_experiment_running, experiment_id)
     schedule_sweep(resume_sweep, experiment_id, config)
 
-    runs = expand_sweep(config)
-    logger.info("resume OK — %s scheduled, %s run(s) in sweep", experiment_id, len(runs))
+    runs = _planned_run_count(config)
+    logger.info("resume OK — %s scheduled, %s run(s) in sweep", experiment_id, runs)
     return {
         "status": "resume_requested",
         "experiment_id": experiment_id,
-        "run_count": len(runs),
+        "run_count": runs,
         "message": "Experiment resumed — remaining parameter combinations will execute",
     }
 

@@ -74,7 +74,34 @@ def _reconcile_one(
     runs = list(run_coll.find({"experiment_id": experiment_id}))
     status, failed_count = _derive_experiment_status(experiment, runs)
     complete_count = sum(1 for run in runs if run.get("phase") == Phase.COMPLETE.value)
+    interrupted_count = sum(1 for run in runs if run.get("phase") == Phase.INTERRUPTED.value)
     expected = int(experiment.get("run_count") or 0)
+    attempted = len(runs)
+
+    if status == ExperimentStatus.COMPLETE:
+        if complete_count < expected:
+            completion_reason = "completed_with_sampling_shortfall"
+        else:
+            completion_reason = "all_planned_trials_completed"
+    elif status == ExperimentStatus.FAILED:
+        completion_reason = "all_trials_failed" if failed_count == expected else "mixed_failures"
+    elif status == ExperimentStatus.PARTIAL:
+        if failed_count == 0 and interrupted_count > 0:
+            completion_reason = "interrupted_before_completion"
+        elif failed_count > 0:
+            completion_reason = "mixed_failures"
+        else:
+            completion_reason = "incomplete_before_completion"
+    elif status == ExperimentStatus.CANCELLED:
+        completion_reason = "cancelled_by_user"
+    elif status == ExperimentStatus.PAUSED:
+        completion_reason = "paused_by_user"
+    else:
+        completion_reason = (
+            "reconciled_from_orphaned_run"
+            if attempted > 0 or expected > 0
+            else "incomplete_before_completion"
+        )
 
     exp_coll.update_one(
         {"_id": experiment_id},
@@ -82,6 +109,7 @@ def _reconcile_one(
             "$set": {
                 "status": status,
                 "failed_count": failed_count,
+                "completion_reason": completion_reason,
                 "completed_at": now,
             }
         },

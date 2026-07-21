@@ -28,16 +28,34 @@ export function summarizeExperimentRuns(
   return { expected, started, complete, failed, interrupted, neverStarted, inProgress };
 }
 
-export function isTerminalExperimentStatus(status: ExperimentStatus | undefined): boolean {
+function isCompletedByTimestamp(
+  completedAt: string | null | undefined,
+): boolean {
+  return Boolean(completedAt);
+}
+
+export function isTerminalExperimentStatus(
+  status: ExperimentStatus | undefined,
+  completedAt?: string | null,
+): boolean {
+  if (isCompletedByTimestamp(completedAt)) return true;
   if (!status) return false;
   return TERMINAL_STATUSES.includes(status);
 }
 
-export function isRunningExperimentStatus(status: ExperimentStatus | undefined): boolean {
+export function isRunningExperimentStatus(
+  status: ExperimentStatus | undefined,
+  completedAt?: string | null,
+): boolean {
+  if (isCompletedByTimestamp(completedAt)) return false;
   return status === 'running';
 }
 
-export function isPausedExperimentStatus(status: ExperimentStatus | undefined): boolean {
+export function isPausedExperimentStatus(
+  status: ExperimentStatus | undefined,
+  completedAt?: string | null,
+): boolean {
+  if (isCompletedByTimestamp(completedAt)) return false;
   return status === 'paused';
 }
 

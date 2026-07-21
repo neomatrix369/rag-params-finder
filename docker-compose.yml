@@ -9,6 +9,8 @@ services:
     build:
       context: .
       dockerfile: docker/server.Dockerfile
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     image: ${SERVER_IMAGE_NAME:-rag-params-finder-server}
     container_name: ${SERVER_CONTAINER_NAME:-rag-params-finder-server}
     ports:
@@ -51,6 +53,7 @@ services:
       dockerfile: docker/frontend.Dockerfile
       args:
         VITE_API_URL: http://localhost:8001
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     image: ${FRONTEND_IMAGE_NAME:-rag-params-finder-frontend}
     container_name: ${FRONTEND_CONTAINER_NAME:-rag-params-finder-frontend}
     ports:

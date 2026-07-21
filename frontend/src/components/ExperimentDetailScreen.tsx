@@ -54,6 +54,35 @@ function appendDetailFeed(prev: FeedEntry[], text: string, variant: FeedEntry['v
   return [...prev, { id: `${Date.now()}-${detailFeedSeq}`, text, variant }];
 }
 
+const COMPLETION_REASONS = {
+  all_planned_trials_completed: 'all planned trials completed',
+  completed_with_sampling_shortfall: 'completed with sampling shortfall',
+  interrupted_before_completion: 'interrupted before completion',
+  cancelled_by_user: 'cancelled by user',
+  paused_by_user: 'paused by user',
+  all_trials_failed: 'all trials failed',
+  partial_failures: 'partial with failures',
+  partial_with_failures: 'partial with failures',
+  partial_outcomes: 'partial outcomes',
+  mixed_outcomes: 'mixed outcomes',
+  mixed_failures: 'mixed failures',
+  infrastructure_error: 'infrastructure error',
+  paused_or_interrupted_before_completion: 'interrupted before completion',
+  incomplete_before_completion: 'incomplete before completion',
+  incomplete_with_zero_runs: 'incomplete before completion',
+  incomplete_without_runs: 'incomplete before completion',
+  reconciled_from_orphaned_run: 'reconciled from orphaned run',
+  resolved_stale_running: 'reconciled from stale running state',
+  cancelled_before_attempt: 'cancelled before attempts',
+  completed_with_shortfall: 'completed with sampling shortfall',
+  incomplete_by_partial_outcomes: 'incomplete outcome',
+} as const;
+
+function completionReasonLabel(reason?: string | null): string {
+  if (!reason) return 'completion state recorded';
+  return COMPLETION_REASONS[reason as keyof typeof COMPLETION_REASONS] ?? reason.replace(/_/g, ' ');
+}
+
 // Icon components (minimal SVG)
 const icons = {
   clock: (
@@ -125,11 +154,27 @@ interface ExperimentDetail {
   experiment_name: string;
   status: ExperimentStatus;
   created_at?: string;
+  completed_at?: string | null;
   run_count?: number;
+  grid_equivalent_count?: number;
   failed_count?: number;
+  completion_reason?: string;
+  bayesian_summary?: {
+    best_query_avg_score?: number;
+    best_chunk_size?: number;
+    best_overlap?: number;
+    best_embedding_model?: string;
+    best_retrieval_method?: string;
+    best_retriever_type?: string;
+    grid_equivalent_count?: number;
+    planned_trials?: number;
+    attempted_trials?: number;
+    discarded_trials?: number;
+    not_started?: number;
+    termination_reason?: string;
+  };
   runs?: RunStatus[];
   started_at?: string;
-  completed_at?: string | null;
   git_commit?: string;
   git_branch?: string;
   git_dirty?: boolean;
@@ -150,6 +195,9 @@ interface ExperimentDetail {
     };
     retrieval?: {
       retrieval_provider?: string;
+    };
+    execution?: {
+      search_strategy?: 'grid' | 'bayesian';
     };
   };
 }
@@ -230,6 +278,7 @@ function Pagination({
 function PhaseIndicator({ current }: { current: Phase }) {
   const currentIdx = PHASE_ORDER.indexOf(current);
   const isFailed = current === Phase.FAILED || current === Phase.INTERRUPTED;
+  const safeCurrent = typeof current === 'string' ? current : 'unknown';
 
   return (
     <div className="relative group flex gap-1 items-center">
@@ -249,7 +298,7 @@ function PhaseIndicator({ current }: { current: Phase }) {
           />
         );
       })}
-      <span className="ml-2 text-xs text-slate-500">{current}</span>
+      <span className="ml-2 text-xs text-slate-500">{safeCurrent}</span>
 
       {/* Tooltip on hover */}
       <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 pointer-events-none">
@@ -288,6 +337,31 @@ function formatDuration(startedAt?: string, completedAt?: string | null): string
   if (ms < 1000) return `${ms}ms`;
   const totalSeconds = ms / 1000;
   return formatTimeWithUnits(totalSeconds);
+}
+
+function parseSafeTimestamp(value: string | undefined): number | null {
+  if (!value) return null;
+  const parsed = new Date(value).getTime();
+  if (Number.isNaN(parsed)) return null;
+  return parsed;
+}
+
+function formatDurationFromRuns(runs: RunStatus[] = [], startedAt?: string, completedAt?: string | null): string {
+  const runStartedAt = Math.min(
+    ...runs.map((run) => parseSafeTimestamp(run.created_at)).filter((value): value is number => value !== null),
+  );
+  const runCompletedAt = Math.max(
+    ...runs.map((run) => parseSafeTimestamp(run.updated_at)).filter((value): value is number => value !== null),
+  );
+
+  const allRunsHaveTimestamps =
+    Number.isFinite(runStartedAt) && Number.isFinite(runCompletedAt) && runCompletedAt >= runStartedAt;
+
+  if (allRunsHaveTimestamps) {
+    return formatDuration(new Date(runStartedAt).toISOString(), new Date(runCompletedAt).toISOString());
+  }
+
+  return formatDuration(startedAt, completedAt);
 }
 
 function ProgressSubtitle({
@@ -560,9 +634,9 @@ export default function ExperimentDetailScreen({
   }, []);
 
   const startDetailPollIfRunning = useCallback(
-    (status: ExperimentStatus | undefined) => {
+    (status: ExperimentStatus | undefined, completedAt?: string | null) => {
       stopDetailPoll();
-      if (!isRunningExperimentStatus(status)) return;
+      if (!isRunningExperimentStatus(status, completedAt)) return;
 
       devInfo('ExperimentDetailScreen', `detail poll started — ${experimentId.slice(0, 8)}… every ${DETAIL_POLL_MS}ms`);
 
@@ -580,7 +654,9 @@ export default function ExperimentDetailScreen({
             `detail poll OK — ${experimentId.slice(0, 8)}… status=${next.status}`,
             pollDevLogAtRef.current,
           );
-          if (isTerminalExperimentStatus(next.status)) {
+          if (
+            isTerminalExperimentStatus(next.status, next.completed_at)
+          ) {
             stopDetailPoll();
           }
         } catch (pollErr) {
@@ -649,6 +725,7 @@ export default function ExperimentDetailScreen({
       stopDetailPoll();
 
       let loadedStatus: ExperimentStatus | undefined;
+      let loadedCompletedAt: string | null | undefined;
 
       try {
         const loaded = hasSeed
@@ -657,6 +734,7 @@ export default function ExperimentDetailScreen({
         stall.stop();
         if (!aliveRef.current) return;
         loadedStatus = loaded.status;
+        loadedCompletedAt = loaded.completed_at;
         setDetail(loaded as unknown as ExperimentDetail);
         const runs = (loaded as { runs?: unknown[] }).runs;
         const runRows = Array.isArray(runs) ? runs.length : 0;
@@ -667,7 +745,7 @@ export default function ExperimentDetailScreen({
         setLoadFeed((f) =>
           appendDetailFeed(
             f,
-            isRunningExperimentStatus(loaded.status)
+            isRunningExperimentStatus(loaded.status, loadedCompletedAt)
               ? 'Run rows loaded — live polling while experiment is running.'
               : 'Run rows loaded.',
             'default',
@@ -686,7 +764,7 @@ export default function ExperimentDetailScreen({
         stall.stop();
         if (aliveRef.current) {
           setHydrating(false);
-          startDetailPollIfRunning(loadedStatus);
+          startDetailPollIfRunning(loadedStatus, loadedCompletedAt);
         }
       }
     }
@@ -704,8 +782,9 @@ export default function ExperimentDetailScreen({
   const refreshDetailAfterControl = useCallback(async () => {
     const refreshed = await getExperiment(experimentId);
     setDetail(refreshed as unknown as ExperimentDetail);
-    if (isRunningExperimentStatus(refreshed.status)) {
-      startDetailPollIfRunning(refreshed.status);
+    const refreshedCompletedAt = refreshed.completed_at;
+    if (isRunningExperimentStatus(refreshed.status, refreshedCompletedAt)) {
+      startDetailPollIfRunning(refreshed.status, refreshedCompletedAt);
     } else {
       stopDetailPoll();
     }
@@ -729,10 +808,9 @@ export default function ExperimentDetailScreen({
     }
   }
 
-  const TERMINAL_STATUSES: ExperimentStatus[] = ['complete', 'failed', 'partial', 'cancelled'];
-  const isTerminal = detail && TERMINAL_STATUSES.includes(detail.status);
-  const isRunning = isRunningExperimentStatus(detail?.status);
-  const isPaused = isPausedExperimentStatus(detail?.status);
+  const isTerminal = detail && isTerminalExperimentStatus(detail.status, detail.completed_at);
+  const isRunning = isRunningExperimentStatus(detail?.status, detail?.completed_at);
+  const isPaused = isPausedExperimentStatus(detail?.status, detail?.completed_at);
   const canExplore = Boolean(onExplore && (isTerminal || isRunning || isPaused));
   const canDelete = isTerminal || isPaused;
 
@@ -850,6 +928,35 @@ export default function ExperimentDetailScreen({
   }
 
   const runSummary = summarizeExperimentRuns(detail.runs, detail.run_count);
+  const isBayesianStrategy = detail.config?.execution?.search_strategy === 'bayesian';
+  const bayesianSummary = detail.bayesian_summary;
+  const bayesianPlannedTrials = isBayesianStrategy && typeof bayesianSummary?.planned_trials === 'number'
+    ? bayesianSummary.planned_trials
+    : runSummary.expected;
+  const bayesianAttemptedTrials = isBayesianStrategy
+    ? Math.max(
+        0,
+        bayesianSummary?.attempted_trials
+          ?? (runSummary.complete + runSummary.failed + runSummary.interrupted + runSummary.inProgress),
+      )
+    : 0;
+  const bayesianDiscardedCount = isBayesianStrategy
+    ? Math.max(0, bayesianSummary?.discarded_trials ?? 0)
+    : 0;
+  const bayesianNotStartedCount = isBayesianStrategy
+    ? Math.max(0, bayesianPlannedTrials - bayesianAttemptedTrials - bayesianDiscardedCount)
+    : runSummary.neverStarted;
+  const isBayesianIncomplete = isBayesianStrategy
+    && bayesianAttemptedTrials < bayesianPlannedTrials;
+  const hasShortfallCompletionReason = detail.completion_reason
+    ? ['completed_with_sampling_shortfall', 'completed_with_shortfall'].includes(detail.completion_reason)
+    : false;
+  const bayesianCompletedCount = isBayesianStrategy
+    ? hasShortfallCompletionReason
+      ? bayesianAttemptedTrials
+      : Math.max(0, bayesianAttemptedTrials - runSummary.failed - runSummary.interrupted - runSummary.inProgress)
+    : runSummary.complete;
+  const isCompleteWithBayesianShortfall = detail.status === 'complete' && isBayesianIncomplete;
   const sweepSummary = (() => {
     if (detail.status === 'running') {
       return `${runSummary.complete} of ${runSummary.expected} runs are complete; stored results can grow as the sweep continues.`;
@@ -858,10 +965,26 @@ export default function ExperimentDetailScreen({
       return `Paused after ${runSummary.complete} of ${runSummary.expected} runs completed; resume to run the remaining parameter combinations.`;
     }
     if (detail.status === 'complete') {
-      return `All ${runSummary.expected} configured runs completed; stored results are ready to inspect.`;
+      const reasonSuffix = detail.completion_reason && detail.completion_reason !== 'all_planned_trials_completed'
+        ? ` (${completionReasonLabel(detail.completion_reason)})`
+        : '';
+      if (isBayesianIncomplete) {
+        return `Planned ${bayesianPlannedTrials} Bayesian combinations. `
+          + `${bayesianAttemptedTrials} attempted: ${bayesianCompletedCount} complete, ${runSummary.interrupted} interrupted, `
+          + `${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started${reasonSuffix}.`;
+      }
+      return `All ${runSummary.expected} configured runs completed${reasonSuffix}; stored results are ready to inspect.`;
     }
+    const partialReasonSuffix = detail.completion_reason
+      ? ` (${completionReasonLabel(detail.completion_reason)})`
+      : '';
     if (detail.status === 'partial') {
-      return `${runSummary.complete} of ${runSummary.expected} runs completed; treat rankings from completed runs as preliminary results.`;
+      if (isBayesianStrategy) {
+        return `Planned ${bayesianPlannedTrials} Bayesian combinations. `
+          + `${bayesianAttemptedTrials} attempted: ${runSummary.complete} complete, ${runSummary.failed} failed, `
+          + `${runSummary.interrupted} interrupted, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started${partialReasonSuffix}.`;
+      }
+      return `${runSummary.complete} of ${runSummary.expected} runs completed${partialReasonSuffix}; treat rankings from completed runs as preliminary results.`;
     }
     if (detail.status === 'cancelled') {
       return `Collection stopped after ${runSummary.complete} of ${runSummary.expected} runs completed.`;
@@ -968,7 +1091,11 @@ export default function ExperimentDetailScreen({
             </div>
             <div className="rounded-xl border border-line bg-paper p-3">
               <p className="text-xs font-bold uppercase tracking-wider text-muted">Run set</p>
-              <p className="mt-1 text-sm font-semibold text-ink">{runSummary.complete} complete · {runSummary.expected} configured</p>
+              <p className="mt-1 text-sm font-semibold text-ink">
+                {isBayesianStrategy
+                  ? `${bayesianAttemptedTrials} attempted · ${bayesianPlannedTrials} planned`
+                  : `${runSummary.complete} complete · ${runSummary.expected} configured`}
+              </p>
             </div>
             <div className="rounded-xl border border-line bg-paper p-3">
               <p className="text-xs font-bold uppercase tracking-wider text-muted">Next step</p>
@@ -981,14 +1108,33 @@ export default function ExperimentDetailScreen({
             <StatCard compact label="Successful" value={runSummary.complete} icon={icons.check} color="green" />
             <StatCard compact label="Failed" value={runSummary.failed} icon={icons.x} color="red" />
             <StatCard compact label="Interrupted" value={runSummary.interrupted} icon={icons.x} color="amber" />
-            <StatCard compact label="Not Started" value={runSummary.neverStarted} icon={icons.grid} color="slate" />
+            <StatCard
+              compact
+              label={isBayesianStrategy ? 'Not Started' : 'Not Started'}
+              value={isBayesianStrategy ? bayesianNotStartedCount : runSummary.neverStarted}
+              icon={icons.grid}
+              color="slate"
+            />
+            {isBayesianStrategy && (
+              <StatCard
+                compact
+                label="Discarded by Sampler"
+                value={bayesianDiscardedCount}
+                icon={icons.x}
+                color="slate"
+              />
+            )}
             {runSummary.inProgress > 0 && (
               <StatCard compact label="In Progress" value={runSummary.inProgress} icon={icons.play} color="purple" />
             )}
             <StatCard
               compact
               label="Duration"
-              value={isRunning || isPaused ? '—' : formatDuration(detail.started_at, detail.completed_at)}
+              value={
+                isRunning || isPaused
+                  ? '—'
+                  : formatDurationFromRuns(detail.runs ?? [], detail.started_at, detail.completed_at)
+              }
               icon={icons.clock}
               color="purple"
             />
@@ -1047,6 +1193,10 @@ export default function ExperimentDetailScreen({
                     label="Completed"
                     value={detail.completed_at ? new Date(detail.completed_at).toLocaleString() : undefined}
                   />
+                  <MetadataItem
+                    label="Completion Reason"
+                    value={detail.completion_reason ? completionReasonLabel(detail.completion_reason) : undefined}
+                  />
                   <MetadataItem label="App Version" value={detail.app_version} />
                   <MetadataItem label="Python" value={detail.python_version} />
                 </div>
@@ -1070,10 +1220,26 @@ export default function ExperimentDetailScreen({
                 }
               >
                 <div className="space-y-3">
+                  <MetadataItem
+                    label="Search Strategy"
+                    value={detail.config?.execution?.search_strategy ?? 'grid'}
+                  />
                   <MetadataItem label="Rerank Model" value={detail.retrieval_model ?? 'none'} />
                   <MetadataItem label="Top-K Initial" value={detail.top_k_initial} />
                   <MetadataItem label="Top-K Final" value={detail.top_k_final} />
                   <MetadataItem label="Parallelism" value={detail.parallelism} />
+                  {detail.config?.execution?.search_strategy === 'bayesian' ? (
+                    <>
+                      <MetadataItem
+                        label="Planned Bayesian Trials"
+                        value={detail.run_count}
+                      />
+                      <MetadataItem
+                        label="Grid-Equivalent Count"
+                        value={detail.grid_equivalent_count}
+                      />
+                    </>
+                  ) : null}
                   <MetadataItem label="On Error" value={detail.on_error} />
                   <MetadataItem label="Queries" value={detail.queries_file} />
                 </div>
@@ -1126,6 +1292,12 @@ export default function ExperimentDetailScreen({
                 <DimensionBadge label="Chunking" values={detail.sweep_summary.chunking_methods} />
                 <DimensionBadge label="Chunk Sizes" values={detail.sweep_summary.chunk_sizes} />
                 <DimensionBadge label="Overlaps" values={detail.sweep_summary.overlaps} />
+                {detail.config?.execution?.search_strategy === 'bayesian' && (
+                  <DimensionBadge
+                    label="Bayesian Strategy"
+                    values={['chunk_size × overlap']}
+                  />
+                )}
                 {detail.sweep_summary.paddings && detail.sweep_summary.paddings.length > 0 && (
                   <DimensionBadge label="Paddings" values={detail.sweep_summary.paddings} />
                 )}
@@ -1143,6 +1315,36 @@ export default function ExperimentDetailScreen({
                 )}
               </div>
             </CollapsibleCard>
+
+            {detail.config?.execution?.search_strategy === 'bayesian' && detail.bayesian_summary && (
+              <CollapsibleCard
+                title="Bayesian Summary"
+                icon={icons.grid}
+                storageKey={`detail-bayesian-summary-${experimentId}`}
+                headerExtra={
+                  <span className="text-sm font-semibold text-accent-strong">
+                    {detail.run_count}/{detail.grid_equivalent_count ?? '—'} trials
+                  </span>
+                }
+                className="mt-3"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <MetadataItem label="Best Query Avg Score" value={detail.bayesian_summary.best_query_avg_score} />
+                  <MetadataItem label="Best Chunk Size" value={detail.bayesian_summary.best_chunk_size} />
+                  <MetadataItem label="Best Overlap" value={detail.bayesian_summary.best_overlap} />
+                  <MetadataItem
+                    label="Best Embedding"
+                    value={detail.bayesian_summary.best_embedding_model}
+                  />
+                  <MetadataItem label="Attempts" value={detail.bayesian_summary.attempted_trials} />
+                  <MetadataItem label="Discarded by Sampler" value={detail.bayesian_summary.discarded_trials} />
+                  <MetadataItem
+                    label="Sampler Notes"
+                    value={detail.bayesian_summary.termination_reason || 'none'}
+                  />
+                </div>
+              </CollapsibleCard>
+            )}
           </div>
         )}
 
@@ -1361,18 +1563,26 @@ export default function ExperimentDetailScreen({
 
         {/* Terminal outcome summary */}
         {isTerminal && detail.status === 'complete' && (
-          <div className="mt-6 rounded-panel border border-emerald-300 bg-emerald-50 p-5 shadow-panel sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
-                  {icons.check}
-                </div>
+        <div
+          className={isCompleteWithBayesianShortfall
+            ? 'mt-6 rounded-panel border border-amber-300 bg-amber-50 p-5 shadow-panel sm:p-6'
+            : 'mt-6 rounded-panel border border-emerald-300 bg-emerald-50 p-5 shadow-panel sm:p-6'}
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                {icons.check}
+              </div>
                 <div>
                   <h3 className="text-lg font-bold text-green-900">
-                    All Runs Completed Successfully!
+                    {isCompleteWithBayesianShortfall
+                      ? 'Bayesian Sampling Completed with Partial Coverage'
+                      : 'All Runs Completed Successfully!'}
                   </h3>
-                  <p className="text-sm text-green-700 mt-1">
-                    {runSummary.complete} of {runSummary.expected} run(s) finished without errors
+                <p className="text-sm text-green-700 mt-1">
+                    {isCompleteWithBayesianShortfall
+                      ? `Attempted ${bayesianAttemptedTrials} of ${bayesianPlannedTrials} combinations; ${bayesianCompletedCount} completed successfully with no failures${detail.completion_reason && detail.completion_reason !== 'all_planned_trials_completed' ? ` (${completionReasonLabel(detail.completion_reason)})` : ''}.`
+                      : `${runSummary.complete} of ${runSummary.expected} run(s) finished without errors`}
                   </p>
                 </div>
               </div>
@@ -1399,13 +1609,26 @@ export default function ExperimentDetailScreen({
                 <div>
                   <h3 className="text-lg font-bold text-amber-900">Sweep Incomplete</h3>
                   <p className="text-sm text-amber-800 mt-1">
-                    {runSummary.complete} of {runSummary.expected} run(s) completed successfully.
+                    {isBayesianStrategy
+                      ? `Bayesian partial: ${bayesianAttemptedTrials} of ${bayesianPlannedTrials} attempted and started, `
+                        + `${runSummary.complete} completed successfully, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started.`
+                      : `${runSummary.complete} of ${runSummary.expected} run(s) completed successfully.`}
                     {runSummary.interrupted > 0 && ` ${runSummary.interrupted} interrupted.`}
                     {runSummary.failed > 0 && ` ${runSummary.failed} failed.`}
-                    {runSummary.neverStarted > 0 && ` ${runSummary.neverStarted} never started.`}
+                    {runSummary.neverStarted > 0 && ` ${runSummary.neverStarted} not started.`}
+                    {isBayesianStrategy && bayesianDiscardedCount > 0 && (
+                      <span>
+                        {' '}
+                        {detail.bayesian_summary?.termination_reason === 'sampler_candidate_exhaustion'
+                          ? `${bayesianDiscardedCount} were discarded by Bayesian sampler pruning.`
+                          : `${bayesianDiscardedCount} discarded while exploring candidate trials.`}
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-amber-700 mt-2">
-                    The experiment stopped before every parameter combination ran — often after a server restart or cancellation mid-sweep.
+                    {isBayesianStrategy
+                      ? `Bayesian sweep configured ${bayesianPlannedTrials} candidate combinations: ${bayesianAttemptedTrials} attempted, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started.`
+                      : 'The experiment stopped before every parameter combination ran — often after a server restart or cancellation mid-sweep.'}
                   </p>
                 </div>
               </div>

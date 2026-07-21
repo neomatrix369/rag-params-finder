@@ -68,6 +68,9 @@ retrieval:
 execution:
   parallelism: 1                     # 1 runs sequentially (safe default); increase for local-provider throughput demos
   on_error: continue                 # "continue" (partial results) or "stop" (halt experiment)
+  search_strategy: grid              # "grid" (default cartesian) or "bayesian"
+  bayesian:
+    n_trials: 12                     # ignored unless search_strategy: bayesian
 ```
 
 ### Parallelism (`execution.parallelism`)
@@ -79,6 +82,36 @@ execution:
 - **Voyage / remote providers**: larger parallelism can hit external RPM/TPM quotas; for that path, use cautious values and dedicated throttling (not part of this slice).
 - **SIE**: transient retry protection is in-process in this demo path (e.g., `503`, `429`, and `rate-limit` style failures), with `Retry-After` honored where available. SIE requests remain capped in-process to avoid runaway fan-out.
 - **Slice 16 implemented**: **[Slice 16 — Parallel Sweep Runs](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md)** adds bounded concurrent `_run_single` scheduling with current `on_error` and cancellation semantics; optional queue-based rollout remains out of scope.
+
+### Bayesian sweep strategy (`execution.search_strategy`)
+
+Set `search_strategy: bayesian` to use Optuna TPE for chunk tuning:
+
+```yaml
+execution:
+  search_strategy: bayesian
+  bayesian:
+    n_trials: 12
+```
+
+Bayesian mode tunes **only** chunk-size and overlap while keeping all other axes fixed and still runs the same `_run_single()` pipeline for each trial:
+
+- `embedding.models` must contain exactly one model
+- `chunking.methods` must contain exactly one method
+- `chunking.params.paddings` must contain one value
+- `retrieval.retrievers` must contain one retriever entry
+
+Expected run count is:
+- `execution.bayesian.n_trials` when it is set
+- otherwise, the grid-equivalent default `len(chunk_sizes) × len(overlaps)` when omitted
+
+If `n_trials` is higher than the grid-equivalent count, runtime caps it to the grid size.
+UI and API planned counts also expose `grid_equivalent_count` for Bayesian runs.
+
+Example canonical configs:
+
+- [example-mongodb-unified-retrievers-bayesian.yaml](../../configs/example-mongodb-unified-retrievers-bayesian.yaml) (opt-in, Bayesian search over chunking only)
+- [example-mongodb-local-bayesian.yaml](../../configs/example-mongodb-local-bayesian.yaml) (opt-in, Bayesian search over chunking only)
 
 ### Example config files
 

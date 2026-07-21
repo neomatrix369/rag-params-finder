@@ -2,6 +2,7 @@ import time
 import uuid
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from datetime import UTC, datetime
+from typing import Any, cast
 
 from server.core.aim_logger import AimLogger
 from server.core.chunkers import chunk_text
@@ -217,6 +218,8 @@ def _execute_sweep(
     """Declared sync; scheduled on the dedicated sweep executor (see executors.py)."""
     register_sweep_control(experiment_id)
     try:
+        if config.execution.search_strategy == "bayesian":
+            return _run_bayesian_inner(experiment_id, config, skip_signatures)
         return _run_sweep_inner(experiment_id, config, skip_signatures)
     except SearchIndexMismatchError as exc:
         return _fail_experiment_preflight(experiment_id, config, str(exc))
@@ -226,21 +229,307 @@ def _execute_sweep(
         unregister_sweep_control(experiment_id)
 
 
+def _run_bayesian_inner(
+    experiment_id: str,
+    config: ExperimentConfig,
+    skip_signatures: set[ParamSignature],
+) -> dict:
+    del skip_signatures
+
+    try:
+        check_control(experiment_id)
+    except ExperimentCancelledError:
+        logger.info("sweep skipped — experiment %s cancel signalled before start", experiment_id)
+        return {
+            "experiment_id": experiment_id,
+            "run_ids": [],
+            "status": ExperimentStatus.CANCELLED,
+        }
+
+    validate_experiment_search_indexes(config)
+    validate_sie_readiness(config)
+
+    expanded = list(expand_sweep(config))
+    template = expanded[0]
+    planned_runs = _resolve_bayesian_n_trials(config)
+    max_optuna_calls = planned_runs * 3
+    visited: set[tuple[int, int]] = set()
+    if config.execution.parallelism > 1:
+        logger.warning(
+            "Bayesian mode ignores parallelism > 1 in trial objective loop; "
+            "using sequential execution"
+        )
+
+    run_ids: list[str] = []
+    cancelled = False
+    paused = False
+    stop_after_failure = False
+    infrastructure_error: str | None = None
+
+    import optuna
+
+    study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler())
+    best_trial: dict | None = None
+
+    def _try_run_trial(
+        trial: "optuna.trial.Trial",
+        params: RunParams,
+    ) -> float | None:
+        nonlocal cancelled
+        nonlocal paused
+        nonlocal stop_after_failure
+        nonlocal infrastructure_error
+
+        if stop_after_failure:
+            return None
+
+        try:
+            check_control(experiment_id)
+        except ExperimentCancelledError:
+            cancelled = True
+            stop_after_failure = True
+            return None
+        except ExperimentPausedError:
+            paused = True
+            stop_after_failure = True
+            return None
+
+        if not run_ids:
+            get_collection(EXPERIMENTS_COLLECTION).update_one(
+                {"_id": experiment_id},
+                {"$set": {"started_at": datetime.now(UTC)}},
+            )
+
+        run_id = str(uuid.uuid4())
+        run_ids.append(run_id)
+        try:
+            _run_single(
+                experiment_id,
+                run_id,
+                params,
+                config.execution.parallelism,
+            )
+            return _compute_trial_score(experiment_id, run_id)
+        except ExperimentCancelledError:
+            cancelled = True
+            stop_after_failure = True
+            return None
+        except ExperimentPausedError:
+            paused = True
+            stop_after_failure = True
+            return None
+        except SIEUnavailableError as exc:
+            infrastructure_error = str(exc)
+            stop_after_failure = True
+            return None
+        except Exception:
+            if config.execution.on_error == "stop":
+                stop_after_failure = True
+            return None
+
+    try:
+        for _ in range(max_optuna_calls):
+            if len(visited) >= _grid_equivalent_count(config):
+                break
+            if len(run_ids) >= planned_runs:
+                break
+
+            trial = study.ask()
+            try:
+                params = _bayesian_trial_to_run_params(
+                    config,
+                    template,
+                    trial,
+                )
+                candidate = (params.chunk_size, params.overlap)
+                if candidate in visited:
+                    study.tell(
+                        trial,
+                        values=None,
+                        state=optuna.trial.TrialState.PRUNED,
+                    )
+                    continue
+
+                visited.add(candidate)
+                score = _try_run_trial(trial, params)
+            except Exception:
+                if cancelled or paused:
+                    logger.info(
+                        "bayesian stopped before completing planned trials — %s",
+                        experiment_id,
+                    )
+                    break
+                if stop_after_failure:
+                    study.tell(trial, float("nan"), state=optuna.trial.TrialState.FAIL)
+                    break
+
+                study.tell(trial, float("nan"), state=optuna.trial.TrialState.FAIL)
+                if config.execution.on_error == "stop":
+                    stop_after_failure = True
+                continue
+
+            if score is None:
+                study.tell(trial, float("nan"), state=optuna.trial.TrialState.FAIL)
+            else:
+                study.tell(trial, score)
+
+            if stop_after_failure:
+                break
+
+            try:
+                check_control(experiment_id)
+            except ExperimentCancelledError:
+                cancelled = True
+                break
+            except ExperimentPausedError:
+                paused = True
+                break
+
+    finally:
+        if run_ids:
+            best_trial = _run_best_trial_payload(experiment_id)
+        attempted_trials = len(run_ids)
+        discarded_trials = max(0, planned_runs - attempted_trials)
+
+        final_status, failed_count = _finalise_bayesian_experiment(
+            experiment_id,
+            config,
+            planned_runs,
+            cancelled,
+            paused,
+            run_ids,
+            attempted_trials,
+            discarded_trials,
+            best_trial,
+            infrastructure_error,
+        )
+
+    return {
+        "experiment_id": experiment_id,
+        "run_ids": run_ids,
+        "status": final_status,
+    }
+
+
+def _finalise_bayesian_experiment(
+    experiment_id: str,
+    config: ExperimentConfig,
+    planned_trials: int,
+    cancelled: bool,
+    paused: bool,
+    run_ids: list[str],
+    attempted_trials: int,
+    discarded_trials: int,
+    best_trial: dict | None,
+    infrastructure_error: str | None,
+) -> tuple[ExperimentStatus, int]:
+    if cancelled:
+        final_status = ExperimentStatus.CANCELLED
+        failed_count = _count_failed_runs(experiment_id)
+        completion_reason = "cancelled_by_user"
+    elif paused:
+        final_status = ExperimentStatus.PAUSED
+        failed_count = _count_failed_runs(experiment_id)
+        completion_reason = "paused_by_user"
+    elif run_ids:
+        final_status, failed_count = _compute_final_status(experiment_id, planned_trials)
+        if final_status == ExperimentStatus.PARTIAL and failed_count == 0:
+            final_status = ExperimentStatus.COMPLETE
+        if final_status == ExperimentStatus.COMPLETE and attempted_trials < planned_trials:
+            completion_reason = "completed_with_sampling_shortfall"
+        elif final_status == ExperimentStatus.COMPLETE:
+            completion_reason = "all_planned_trials_completed"
+        elif final_status == ExperimentStatus.FAILED and failed_count == planned_trials:
+            completion_reason = "all_trials_failed"
+        elif final_status == ExperimentStatus.FAILED:
+            completion_reason = "partial_failures"
+        if failed_count == planned_trials and final_status != ExperimentStatus.FAILED:
+            final_status = ExperimentStatus.FAILED
+            completion_reason = "all_trials_failed"
+    else:
+        final_status = ExperimentStatus.CANCELLED
+        failed_count = 0
+        completion_reason = "cancelled_before_attempt"
+
+    experiment_update: dict = {
+        "status": final_status,
+        "run_count": planned_trials,
+        "failed_count": failed_count,
+        "completed_at": datetime.now(UTC),
+        "grid_equivalent_count": _grid_equivalent_count(config),
+        "completion_reason": completion_reason,
+    }
+
+    bayesian_summary: dict[str, object] = {
+        "grid_equivalent_count": _grid_equivalent_count(config),
+        "planned_trials": planned_trials,
+        "attempted_trials": attempted_trials,
+        "discarded_trials": discarded_trials,
+        "not_started": max(
+            0,
+            planned_trials - attempted_trials - discarded_trials,
+        ),
+    }
+    if discarded_trials > 0 and final_status == ExperimentStatus.PARTIAL:
+        bayesian_summary["termination_reason"] = "sampler_candidate_exhaustion"
+
+    if best_trial is not None:
+        bayesian_summary.update(
+            {
+                "best_query_avg_score": best_trial.get("query_avg_score"),
+                "best_chunk_size": best_trial.get("chunk_size"),
+                "best_overlap": best_trial.get("overlap"),
+                "best_embedding_model": best_trial.get("embedding_model"),
+                "best_retrieval_method": best_trial.get("retrieval_method"),
+                "best_retriever_type": best_trial.get("retrieval_method"),
+            }
+        )
+
+    experiment_update["bayesian_summary"] = bayesian_summary
+
+    if infrastructure_error:
+        experiment_update["error_message"] = infrastructure_error
+        if final_status not in {ExperimentStatus.CANCELLED, ExperimentStatus.PAUSED}:
+            final_status = ExperimentStatus.FAILED
+            experiment_update["status"] = final_status
+            experiment_update["completion_reason"] = "infrastructure_error"
+
+    get_collection(EXPERIMENTS_COLLECTION).update_one(
+        {"_id": experiment_id},
+        {"$set": experiment_update},
+    )
+    _log_failed_run_summary(experiment_id, failed_count)
+    if best_trial is not None:
+        _log_bayesian_summary(
+            experiment_id,
+            best_trial,
+            planned_trials,
+            _grid_equivalent_count(config),
+        )
+
+    return final_status, failed_count
+
+
 def _fail_experiment_preflight(
     experiment_id: str,
     config: ExperimentConfig,
     error_message: str,
 ) -> dict:
     """Mark experiment failed before any run starts due to search-index preflight."""
-    runs = expand_sweep(config)
+    runs = (
+        _resolve_bayesian_n_trials(config)
+        if config.execution.search_strategy == "bayesian"
+        else len(expand_sweep(config))
+    )
     completed_at = datetime.now(UTC)
     get_collection(EXPERIMENTS_COLLECTION).update_one(
         {"_id": experiment_id},
         {
             "$set": {
                 "status": ExperimentStatus.FAILED,
-                "run_count": len(runs),
+                "run_count": runs,
                 "failed_count": 0,
+                "completion_reason": "infrastructure_error",
                 "completed_at": completed_at,
                 "error_message": error_message,
             }
@@ -257,6 +546,136 @@ def _fail_experiment_preflight(
         "status": ExperimentStatus.FAILED,
         "error_message": error_message,
     }
+
+
+def _grid_equivalent_count(config: ExperimentConfig) -> int:
+    return len(config.chunking.params.chunk_sizes) * len(config.chunking.params.overlaps)
+
+
+def _bayesian_trial_to_run_params(
+    config: ExperimentConfig,
+    template_run: RunParams,
+    trial,
+) -> RunParams:
+    chunk_sizes = config.chunking.params.chunk_sizes
+    overlaps = config.chunking.params.overlaps
+    chunk_size = trial.suggest_categorical("chunk_size", chunk_sizes)
+    overlap = trial.suggest_categorical("overlap", overlaps)
+    return RunParams(
+        **template_run.model_dump(exclude={"chunk_size", "overlap"}),
+        chunk_size=int(chunk_size),
+        overlap=int(overlap),
+    )
+
+
+def _compute_trial_score(experiment_id: str, run_id: str) -> float:
+    results = list(
+        get_collection(RESULTS_COLLECTION).find(
+            {"run_id": run_id, "experiment_id": experiment_id},
+            {"query_text": 1, "results": 1},
+        )
+    )
+    if not results:
+        return 0.0
+
+    query_scores: dict[str, list[float]] = {}
+    for result in results:
+        query_text = str(result.get("query_text", ""))
+        for scored in result.get("results", []):
+            score = scored.get("rerank_score")
+            if score is None:
+                score = scored.get("dense_score", 0.0)
+            query_scores.setdefault(query_text, []).append(float(score))
+
+    if not query_scores:
+        return 0.0
+
+    query_avgs = [sum(values) / len(values) for values in query_scores.values() if values]
+    if not query_avgs:
+        return 0.0
+    return sum(query_avgs) / len(query_avgs)
+
+
+def _run_best_trial_payload(experiment_id: str) -> dict | None:
+    from server.core.results_analyzer import analyze_results
+
+    query_results = list(
+        get_collection(RESULTS_COLLECTION).find(
+            {"experiment_id": experiment_id},
+            {"run_id": 1, "query_text": 1, "results": 1},
+        )
+    )
+    if not query_results:
+        return None
+
+    run_statuses = list(
+        get_collection(RUN_STATUS_COLLECTION).find(
+            {"experiment_id": experiment_id},
+            {
+                "database_provider": 1,
+                "embedding_provider": 1,
+                "embedding_model": 1,
+                "chunking_method": 1,
+                "chunk_size": 1,
+                "overlap": 1,
+                "padding": 1,
+                "retrieval_method": 1,
+                "retrieval_provider": 1,
+                "retrieval_model": 1,
+                "retrievers": 1,
+            },
+        )
+    )
+
+    best_result = analyze_results(query_results, run_statuses).get("best_params")
+    if not isinstance(best_result, dict):
+        return None
+    best: dict[Any, Any] = cast(dict[Any, Any], best_result)
+    if not best:
+        return None
+    return best
+
+
+def _resolve_bayesian_n_trials(config: ExperimentConfig) -> int:
+    grid_equivalent = _grid_equivalent_count(config)
+    configured = config.execution.bayesian.n_trials
+    if configured is None:
+        logger.info(
+            "bayesian n_trials not set; defaulting to grid-equivalent %s",
+            grid_equivalent,
+        )
+        return grid_equivalent
+    if configured > grid_equivalent:
+        logger.warning(
+            "requested bayesian n_trials=%s exceeds grid-equivalent=%s, capping",
+            configured,
+            grid_equivalent,
+        )
+        return grid_equivalent
+    return configured
+
+
+def _log_bayesian_summary(
+    experiment_id: str,
+    best_trial: dict,
+    planned_trials: int,
+    grid_equivalent_count: int,
+) -> None:
+    best_score = best_trial.get("query_avg_score")
+    best_signature = (
+        best_trial.get("chunk_size"),
+        best_trial.get("overlap"),
+        best_trial.get("embedding_model"),
+        best_trial.get("retrieval_method"),
+    )
+    logger.info(
+        "bayesian complete — experiment=%s best=%s score=%s grid_equivalent_efficiency=%s/%s",
+        experiment_id,
+        best_signature,
+        best_score,
+        planned_trials,
+        grid_equivalent_count,
+    )
 
 
 def _run_sweep_inner(
@@ -411,17 +830,41 @@ def _run_sweep_inner(
     if cancelled:
         final_status = ExperimentStatus.CANCELLED
         failed_count = _count_failed_runs(experiment_id)
+        completion_reason = "cancelled_by_user"
     elif paused:
         final_status = ExperimentStatus.PAUSED
         failed_count = _count_failed_runs(experiment_id)
+        completion_reason = "paused_by_user"
     else:
         final_status, failed_count = _compute_final_status(experiment_id, len(all_runs))
+        run_summaries = list(
+            get_collection(RUN_STATUS_COLLECTION).find(
+                {"experiment_id": experiment_id},
+                {"_id": 0, "phase": 1},
+            )
+        )
+        complete = sum(1 for run in run_summaries if run.get("phase") == Phase.COMPLETE.value)
+        interrupted = sum(1 for run in run_summaries if run.get("phase") == Phase.INTERRUPTED.value)
+
+        if final_status == ExperimentStatus.COMPLETE:
+            completion_reason = "all_planned_trials_completed"
+        elif final_status == ExperimentStatus.FAILED and failed_count == 0 and complete == 0:
+            completion_reason = "interrupted_before_completion"
+        elif final_status == ExperimentStatus.PARTIAL and failed_count == 0 and interrupted > 0:
+            completion_reason = "paused_or_interrupted_before_completion"
+        elif final_status == ExperimentStatus.PARTIAL and failed_count > 0:
+            completion_reason = "mixed_outcomes"
+        elif final_status == ExperimentStatus.FAILED and failed_count == len(all_runs):
+            completion_reason = "all_trials_failed"
+        else:
+            completion_reason = "partial_outcomes"
 
     completed_at = datetime.now(UTC)
     experiment_update: dict = {
         "status": final_status,
         "run_count": len(all_runs),
         "failed_count": failed_count,
+        "completion_reason": completion_reason,
         "completed_at": completed_at,
     }
     if infrastructure_error:
@@ -429,6 +872,7 @@ def _run_sweep_inner(
         if final_status not in {ExperimentStatus.CANCELLED, ExperimentStatus.PAUSED}:
             final_status = ExperimentStatus.FAILED
             experiment_update["status"] = final_status
+            experiment_update["completion_reason"] = "infrastructure_error"
 
     get_collection(EXPERIMENTS_COLLECTION).update_one(
         {"_id": experiment_id},

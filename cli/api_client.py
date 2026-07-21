@@ -29,6 +29,21 @@ def _response_detail(response: httpx.Response) -> str:
             detail = body.get("detail")
             if isinstance(detail, str):
                 return detail
+            if isinstance(detail, list):
+                lines = []
+                for item in detail:
+                    if not isinstance(item, dict):
+                        lines.append(str(item))
+                        continue
+                    loc = item.get("loc")
+                    msg = item.get("msg")
+                    if loc is not None and msg is not None:
+                        loc_text = "/".join(str(x) for x in loc)
+                        lines.append(f"{loc_text}: {msg}")
+                    elif msg is not None:
+                        lines.append(str(msg))
+                if lines:
+                    return "\n".join(lines)
             error = body.get("error")
             if isinstance(error, str):
                 return error
@@ -74,8 +89,9 @@ def _request(method: str, url: str, **kwargs: Any) -> httpx.Response:
 def _ensure_ok(response: httpx.Response, *, method: str, url: str) -> None:
     if response.is_success:
         return
+    detail = _response_detail(response)
     _log_http_error(method, url, response)
-    response.raise_for_status()
+    raise RuntimeError(f"{_http_label(method, url)} failed ({response.status_code}): {detail}")
 
 
 def submit_experiment(config: dict[str, Any]) -> dict[str, Any]:

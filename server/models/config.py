@@ -167,8 +167,13 @@ class RetrievalConfig(BaseModel):
 
 
 class ExecutionConfig(BaseModel):
+    class BayesianConfig(BaseModel):
+        n_trials: int | None = Field(default=None, ge=1)
+
     parallelism: int = Field(default=1, ge=1, le=16)
     on_error: Literal["continue", "stop"] = Field(default="continue")
+    search_strategy: Literal["grid", "bayesian"] = Field(default="grid")
+    bayesian: BayesianConfig = Field(default_factory=BayesianConfig)
 
 
 class ExperimentConfig(BaseModel):
@@ -180,6 +185,36 @@ class ExperimentConfig(BaseModel):
     chunking: ChunkingConfig
     retrieval: RetrievalConfig
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig)
+
+    @model_validator(mode="after")
+    def validate_bayesian_only_tunes_chunking(self) -> "ExperimentConfig":
+        if self.execution.search_strategy != "bayesian":
+            return self
+
+        if len(self.embedding.models) != 1:
+            raise ValueError(
+                "Bayesian search requires one embedding model; "
+                "set search_strategy=grid for multi-value embedding.models"
+            )
+        if len(self.chunking.methods) != 1:
+            raise ValueError(
+                "Bayesian search requires one chunking method; "
+                "set search_strategy=grid for multi-value chunking.methods"
+            )
+        if len(self.chunking.params.paddings) != 1:
+            raise ValueError(
+                "Bayesian search requires one chunking.params.paddings value; "
+                "tune only chunk_size and overlap"
+            )
+
+        retrievers = self.retrieval.retrievers
+        if len(retrievers) != 1:
+            raise ValueError(
+                "Bayesian search requires one retrieval.retrievers value; "
+                "set search_strategy=grid for multi-value retrievers"
+            )
+
+        return self
 
 
 class RunParams(BaseModel):

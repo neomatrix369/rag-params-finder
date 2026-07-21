@@ -71,3 +71,4 @@
 | 66 | 2026-07-20 | health-check | Gate status migration | Normalized SLICE-22 / SLICE-23 from PENDING to PLANNED | AUTO-FIXED |
 | 67 | 2026-07-21 | planning | Added Slice 41A: Bayesian Search: Simple Functional | Added `SLICE-41A-BAYESIAN-SEARCH-SIMPLE-FUNCTIONAL.md` and synchronized `TRAIL.md` + `docs/plan/slices/PROGRESS.md` as planned | Auto-corrected |
 | 68 | 2026-07-21 | quality-lens | 10/10 checks passed | confirmed | Added 10-item Planning Quality Lens table to `SLICE-41A`, added `docs/plan/gate-evidence/slice-41A.json`, and tagged execution backlog split (`plan` vs `/nw-execute`). |
+| 69 | 2026-07-21 | 41A execution | Start Bayesian execution implementation | Added config schema split, Bayesian execution branch, API planned-count/resume guard, and docs/example updates; backend behavior now has dedicated bayesian path | in progress |

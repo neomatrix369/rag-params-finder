@@ -68,9 +68,13 @@ function run(experimentId: string, index: number, phase: Phase): RunStatus {
   };
 }
 
-function detailFixture(status: ExperimentStatus, phases: Phase[]): DetailFixture {
+function detailFixture(
+  status: ExperimentStatus,
+  phases: Phase[],
+  overrides: Partial<DetailFixture> = {},
+): DetailFixture {
   const experimentId = `detail-${status}`;
-  return {
+  const base: DetailFixture = {
     experiment_id: experimentId,
     experiment_name: `${status} detail sweep`,
     config: {},
@@ -79,6 +83,7 @@ function detailFixture(status: ExperimentStatus, phases: Phase[]): DetailFixture
     run_count: 3,
     runs: phases.map((phase, index) => run(experimentId, index, phase)),
   };
+  return { ...base, ...overrides };
 }
 
 function dbStats(fixture: DetailFixture): ExperimentDbStatsSummary {
@@ -262,6 +267,55 @@ describe('ExperimentDetailScreen lifecycle presentation', () => {
         actions: renderedActionVisibility(),
       };
       expect(actualLifecyclePresentation).toEqual({ summary, nextStep, actions });
+    },
+  );
+
+  it(
+    'reports attempted and discarded counts correctly when Bayesian sweep is complete but short of planned trials without failures',
+    async () => {
+      /**
+       * Scenario: Bayesian shortfall still reaches terminal COMPLETE status
+       * Slice: 41A — Bayesian Search: Simple Functional.
+       * Given a completed Bayesian experiment with no failed runs and planned/attempted/discarded mismatch.
+       * When the detail summary renders.
+       * Then lifecycle copy uses attempted/discarded/not-started labels aligned with those event counts.
+       */
+      const fixture = detailFixture('complete', Array.from({ length: 79 }, () => Phase.COMPLETE), {
+        experiment_id: 'bayesian-shortfall-detail',
+        experiment_name: 'bayesian shortfall detail sweep',
+        config: { execution: { search_strategy: 'bayesian' } },
+        run_count: 100,
+        completion_reason: 'completed_with_sampling_shortfall',
+        bayesian_summary: {
+          planned_trials: 100,
+          attempted_trials: 79,
+          discarded_trials: 21,
+        },
+      });
+      apiMocks.getExperiment.mockImplementation(async (experimentId: string) => {
+        if (experimentId !== 'bayesian-shortfall-detail') throw new Error(`Unknown fixture: ${experimentId}`);
+        return fixture;
+      });
+
+      render(
+        <ExperimentDetailScreen
+          experimentId={fixture.experiment_id}
+          initialExperiment={fixture}
+          initialDbStats={dbStats(fixture)}
+          onBack={vi.fn()}
+          onExplore={vi.fn()}
+        />,
+      );
+      await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
+
+      expect(screen.getByText(
+        'Planned 100 Bayesian combinations. 79 attempted: 79 complete, 0 interrupted, 21 discarded by sampler, 0 not started (completed with sampling shortfall).',
+      )).toBeTruthy();
+      expect(screen.getByText(/21 discarded by sampler/)).toBeTruthy();
+      expect(
+        screen.getByText(/Attempted 79 of 100 combinations; 79 completed successfully with no failures \(completed with sampling shortfall\)\./),
+      ).toBeTruthy();
+      expect(screen.getByText(/(?:0 interrupted|0 failed)/)).toBeTruthy();
     },
   );
 });
