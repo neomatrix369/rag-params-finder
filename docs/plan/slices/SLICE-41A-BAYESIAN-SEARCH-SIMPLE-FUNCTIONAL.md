@@ -30,6 +30,25 @@ Add `execution.search_strategy: bayesian` as an opt-in sweep mode that only tune
   - config schema/docs reference update showing `search_strategy` + `bayesian.n_trials`.
   - changelog or slice trail note for activation/behavior changes.
 
+## Planning Quality Lens [GATE]
+
+| # | Principle | Status | Rationale |
+|---|---|---|---|
+| 1 | Simple Design: Fewest Elements | ✅ | Scoped to one user-visible behavior change: Bayesian opt-in for chunk parameters. |
+| 2 | YAGNI | ✅ | No general optimization framework; only Bayesian TPE for one existing sweep axis set. |
+| 3 | SLAP | ✅ | Single abstraction level: planning behavior + seam checks, with execution details deferred. |
+| 4 | Walking Skeleton | ✅ | Can be delivered as a thin slice by planning + validation + API/summary behavior checks. |
+| 5 | Composability | ✅ | Depends only on completed Slice 16 and existing run pipeline. |
+| 6 | Rule of 3 | ✅ | No new abstraction introduced; reuses existing `expand_sweep`/`_run_single` model. |
+| 7 | Specification-First | ✅ | GWT scenarios are present before execution-task details. |
+| 8 | API First | ✅ | API-level behavior (`resume`/planned-count/plumbing) is called out in gates before impl details. |
+| 9 | Overengineering Flag | ✅ | Requirement is explicit and bounded to Sweep strategy opt-in; no plugin/framework expansion. |
+| 10 | Artifact Path Harmonization | ✅ | Slice paths and status are aligned in TRAIL + PROGRESS + DECISIONS. |
+
+## Gate Evidence
+
+- `docs/plan/gate-evidence/slice-41A.json`
+
 ## Acceptance criteria
 
 - [ ] `ExperimentConfig` with `search_strategy: grid` or omitted `search_strategy` behaves exactly as today and existing tests pass unchanged.
@@ -78,7 +97,7 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
 - [ ] [GATE: GREEN] Implement only enough logic to make that layer pass.
 - [ ] [GATE: REFACTOR] Optional cleanup only after GREEN remains stable.
 
-## Implementation details
+## Implementation backlog (for /nw-execute)
 
 - Add `BayesianConfig` under `ExecutionConfig` with `n_trials: int = 12`.
 - Add `search_strategy` and `bayesian` to `ExperimentConfig.execution`.
