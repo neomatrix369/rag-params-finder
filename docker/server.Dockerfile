@@ -1,5 +1,8 @@
 # FastAPI server — Python 3.12 + uv (matches contributor docs)
 FROM python:3.12-slim
+ARG GIT_COMMIT=unknown
+
+LABEL org.opencontainers.image.revision="${GIT_COMMIT}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
