@@ -8,7 +8,7 @@
 
 **Depends on**: 16
 
-**Target time**: ~4.5 h
+**Target time**: ~2.5 h
 
 ## Problem
 
@@ -17,6 +17,44 @@ Grid sweep is currently the only strategy for `_run_sweep_inner` experiments, bu
 ## Goal
 
 Add `execution.search_strategy: bayesian` as an opt-in sweep mode that only tunes `chunk_size` and `overlap` via Optuna TPE, while running each trial through the existing `_run_single()` pipeline unchanged.
+
+## PCTO-41A — Bayesian Search: Simple Functional
+
+> Slice 41A · Could · ~2.5 h (revised from 4.5 h for first execution layer) · rag-params-finder
+> Status: READY TO SPEC — all blocking questions resolved below
+> Depends on: Slice 16 ✅ COMPLETE
+
+## What This Delivers
+
+`execution.search_strategy: bayesian` as an opt-in alternative to grid search.
+Bayesian sweeps `chunk_size` and `overlap` only, using Optuna TPE.
+Every trial runs through the existing `_run_single()` pipeline unchanged.
+CLI prints a comparison summary at completion.
+
+## Non-Negotiable Constraints
+
+1. Grid search is untouched. `expand_sweep()` and the grid path in `_run_sweep_inner` are not modified.
+2. `search_strategy` defaults to `grid`. All existing configs and tests pass without change.
+3. `git clone && pip install` is sufficient. No external accounts, no Docker additions.
+
+## Resolved Questions (all 14 blockers closed)
+
+| # | Question | Decision |
+|---|---|---|
+| C1 | Step 0 prerequisite (per-trial objective) | `query_avg_score` already exists in `results_analyzer.py`. No prerequisite needed. |
+| C2 | Trial objective field | Use per-query average score aggregation (`query_avg_score` path) per trial. |
+| C3 | `retrieval_method` language stale? | Constraint remains `len(config.retrieval.retrievers) == 1`. |
+| C4 | `BayesianConfig` nesting | Under `ExecutionConfig` as `execution.bayesian.n_trials`. |
+| B1 | `padding` in v1 search space | Fixed to `0` in Bayesian runs. |
+| B2 | `run_count` meaning | `run_count = n_trials`. Add `grid_equivalent_count` on experiment doc. |
+| B3 | `BayesianConfig` location | `ExecutionConfig` under `execution.bayesian`. |
+| B4 | `resume_experiment` behavior | HTTP 409 with reason: `"Bayesian experiments cannot be resumed (study state is in-memory only)"`. |
+| B5 | `parallelism > 1` | Warn only; recommend `1` in example configs. |
+| B6 | Failed trial score to Optuna | Use `study.tell(trial, float("nan"), state=TrialState.FAIL)` for failed trials. |
+| D1 | Acceptance criteria and tests | Defined in this slice. |
+| D2 | `n_trials` default value | Omit `execution.bayesian` or set `n_trials` to null: default at runtime to grid-equivalent count. If set, use explicit budget; if above grid-equivalent, cap at grid-equivalent with a warning. |
+| D4 | `optuna` version pin | `optuna>=3.0` in `pyproject.toml`. |
+| D5 | CLI summary format | See acceptance/output section below and persist summary in `bayesian_summary`. |
 
 ## Plan Review Feedback (to apply before implementation)
 
@@ -29,6 +67,8 @@ Add `execution.search_strategy: bayesian` as an opt-in sweep mode that only tune
   - usage and examples for enabling bayesian mode in user-facing docs.
   - config schema/docs reference update showing `search_strategy` + `bayesian.n_trials`.
   - changelog or slice trail note for activation/behavior changes.
+- Add dashboard handoff behavior so Bayesian and grid experiments are visually distinguishable in list/detail output.
+- Prefer minimal UI adaptation: strategy badge + conditional summary cards to avoid duplicating existing grid views.
 
 ## Planning Quality Lens [GATE]
 
@@ -57,9 +97,16 @@ Add `execution.search_strategy: bayesian` as an opt-in sweep mode that only tune
 - [ ] Submitting a Bayesian experiment creates exactly `n_trials` run entries in `run_status`.
 - [ ] `experiment_doc.run_count == config.execution.bayesian.n_trials`.
 - [ ] `experiment_doc.grid_equivalent_count == len(chunk_sizes) × len(overlaps)`.
+- [ ] Duplicate `(chunk_size, overlap)` suggestions are de-duplicated and marked as `TrialState.PRUNED` (or equivalent) without advancing trial-completion counters.
 - [ ] Mid-sweep pause and cancel preserve current semantics (`pause` or `stop` takes effect at the next trial boundary; `_run_single()` completes or interrupts as today).
 - [ ] `POST /experiments/{id}/resume` returns HTTP 409 for Bayesian experiments.
 - [ ] Completion prints Bayesian comparison summary with best config/score and grid-equivalent efficiency.
+- [ ] Dashboard and list/detail output adapt cleanly to both strategies:
+  - Bayesian experiments show `search_strategy`, `grid_equivalent_count`, and `bayesian_summary` in context.
+  - Non-Bayesian experiments preserve current output fields and layout (no Bayesian-only cards/metrics).
+- [ ] Dashboard and API output shape remain backward compatible:
+  - New fields are additive (`bayesian_summary`, `grid_equivalent_count`) when strategy is bayesian.
+  - Non-bayesian outputs remain unchanged and do not require dashboard special-casing beyond hiding bayesian blocks.
 - [ ] `optuna>=3.0` is added to dependency set without additional infra requirements.
 - [ ] Usage docs include: minimal config diff required to activate Bayesian mode and an end-to-end "expected run" sample.
 - [ ] `configs/example-mongodb-unified-retrievers-bayesian.yaml` and
@@ -70,8 +117,10 @@ Add `execution.search_strategy: bayesian` as an opt-in sweep mode that only tune
     `experiment_name: example-mongodb-local-bayesian`.
   - Both files add `execution.search_strategy: bayesian` and `execution.bayesian.n_trials`,
     while constraining the Bayesian search axes as required.
-- [ ] A dashboard- and API-level no-regression rule is captured: old fields in `run_status` and experiment documents remain backward compatible.
 - [ ] `_planned_run_count(config)` value is documented and surfaced in planned-count UX same as existing run display behavior.
+- [ ] `execution.bayesian.n_trials` can be omitted and resolves to grid-equivalent default at runtime.
+- [ ] Failed trial outcomes are passed to Optuna as `TrialState.FAIL` with `NaN` to preserve resume/continuation behavior and diagnostics.
+- [ ] Duplicate trial candidates do not create extra `run_status` rows and are surfaced only via Optuna prune semantics.
 
 ## Behavioral scenarios (GWT)
 
@@ -106,7 +155,7 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
 
 ## Implementation backlog (for /nw-execute)
 
-- Add `BayesianConfig` under `ExecutionConfig` with `n_trials: int = 12`.
+- Add `BayesianConfig` under `ExecutionConfig` with `n_trials: int | None = None`.
 - Add `search_strategy` and `bayesian` to `ExperimentConfig.execution`.
 - Add cross-field validation enforcing single fixed axes for Bayesian runs.
 - Add `_run_bayesian_inner`, `_bayesian_trial_to_run_params`, `_compute_trial_score`, `_finalise_bayesian_experiment`.
@@ -119,7 +168,7 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
     `experiment_name: example-mongodb-unified-retrievers-bayesian`.
   - Local variant derives from `example-mongodb-local.yaml` and uses
     `experiment_name: example-mongodb-local-bayesian`.
-- No dashboard code changes.
+- Add dashboard UI updates for strategy-aware rendering in experiment summary views and run detail tables.
 
 ## Files to update
 
@@ -128,6 +177,7 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
 - `server/api/experiments.py`
 - `configs/example-mongodb-unified-retrievers-bayesian.yaml`
 - `configs/example-mongodb-local-bayesian.yaml`
+- `frontend/src/**/*` (strategy-aware display updates)
 - `docs/plan/slices/SLICE-41A-BAYESIAN-SEARCH-SIMPLE-FUNCTIONAL.md` (new)
 - `pyproject.toml`
 
@@ -155,6 +205,38 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
 - [GATE] Layer-07 Delivery Completion
   - [ ] [RED] Run one end-to-end happy-path bayesian scenario: planned-count, n_trials runs, resume-disabled, and completion summary all pass.
   - [ ] [GREEN] Verify no regressions on existing slice-critical paths (`grid` default path and `expand_sweep` semantics).
+  - [ ] [RED] Add dashboard contract tests showing both bayesian and non-Bayesian output rendering behavior.
+  - [ ] [GATE] Specification coverage: every GWT clause has at least one test; all essential success and failure clauses covered.
+  - [ ] [GATE] Branch coverage: 100% branch target on touched functions; accepted exclusions are documented.
+  - [ ] [GATE] Mutation testing: apply mutation checks when feature-complete; no high-severity survivals.
+
+## Dashboard Adaptation Contract (authoritative)
+
+- `frontend` list/detail output must include strategy label:
+  - `search_strategy: bayesian` for Bayesian runs.
+  - `search_strategy: grid` (or omitted) for existing behavior.
+- Bayesian run rows show a dedicated summary region with:
+  - best candidate
+  - trials run / `grid_equivalent_count`
+  - best-first coverage mode and source trial summary
+- Non-Bayesian runs keep existing summary ordering and fields.
+- API fields consumed by dashboard must keep existing JSON keys stable when non-bayesian.
+
+## Runtime Loop Design (authoritative)
+
+- `_resolve_n_trials(config: ExperimentConfig) -> int`:
+  - `grid_equivalent = _compute_grid_equivalent(config)`
+  - If `config.execution.bayesian.n_trials is None`: return `grid_equivalent`.
+  - If `n_trials > grid_equivalent`: log warning and cap to `grid_equivalent`.
+  - Else return provided `n_trials`.
+- Bayesian loop stopping conditions are conjunctive:
+  - `trials_completed < n_trials`
+  - `len(visited) < grid_equivalent`
+  - `optuna_calls < max_optuna_calls` where `max_optuna_calls = n_trials * 3`.
+- Duplicate suggestions handling:
+  - Track `visited: set[(chunk_size, overlap)]`.
+  - If duplicate suggested, call `study.tell(trial, values=None, state=TrialState.PRUNED)` and continue.
+  - Duplicates do not increment `trials_completed` and do not create additional `run_status` entries.
 
 ## Handoff & Boundary Tests (explicit checklist)
 
@@ -163,3 +245,18 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
 - [GATE] Per-trial handoff: `_run_bayesian_inner` to `_run_single` argument/state contract identical to grid path.
 - [GATE] Pause/stop: interrupt still observed before next trial setup; `_run_single` completion/interruption semantics unchanged.
 - [GATE] Resume boundary: `POST /experiments/{id}/resume` returns 409 with bayesian-specific rationale.
+
+## Config/Behavior Reference (PCTO source excerpt)
+
+- `ExecutionConfig` additions:
+  - `search_strategy: Literal["grid", "bayesian"] = "grid"`
+  - `bayesian: BayesianConfig` with `n_trials: int | None = None` (runtime default to grid-equivalent)
+- Bayesian path contract:
+  - `_execute_sweep()` dispatches by `search_strategy`.
+  - Bayesian mode uses deduplicated trial suggestion on (`chunk_size`, `overlap`) only.
+  - Duplicate suggestions must transition to `TrialState.PRUNED` and should not count toward `n_trials`.
+  - `_run_single()` is called using the existing arguments/state contract from grid path.
+- CLI completion output includes:
+  - Best config and score
+  - Trials run vs. unique combinations
+  - Grid-equivalent count and coverage mode (full or capped)
