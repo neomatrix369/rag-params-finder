@@ -7,6 +7,13 @@ on:
     branches: [main]
   schedule:
     - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      run_full_dependency_audit:
+        description: "Run the full dependency audit job (previously schedule-only)"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   changes:
@@ -216,7 +223,7 @@ jobs:
   nightly-dependency-audit:
     name: Nightly dependency audit (full lockfile sweep)
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'schedule' }}
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.run_full_dependency_audit == 'true' }}
     steps:
       - uses: actions/checkout@v7
         with:
