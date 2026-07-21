@@ -4,9 +4,103 @@
 
 ---
 
-## Install
+## Choose your path
 
-**Prerequisites:** Python 3.12+, Node.js 22+, MongoDB ([Atlas cloud or local Docker](docs/user-guide/mongodb-setup.md#choose-your-mongodb-backend)). [Voyage AI](docs/user-guide/mongodb-setup.md#voyage-ai-required-for-voyage-sweep) is optional for local-embedding sweeps.
+### Visitor / judge
+
+Use this path to see the project working with the least setup.
+
+**Prerequisites:**
+
+- Git
+- Docker Desktop installed and running
+
+No Atlas account, Voyage AI key, Node.js installation, or local MongoDB
+installation is required for this path.
+
+```bash
+git clone https://github.com/neomatrix369/rag-params-finder.git
+cd rag-params-finder
+./start-services.sh --local
+```
+
+Then open `http://localhost:5374`. The Docker stack starts MongoDB Atlas
+Local, the API server, and the dashboard.
+
+<details>
+<summary>User running experiments</summary>
+
+**Prerequisites:**
+
+- Git
+- Python 3.12+
+- `uv`
+- MongoDB Atlas Cloud or MongoDB Atlas Local through Docker
+- `MONGODB_URI` when using the host CLI
+- Voyage AI credentials only for Voyage configurations
+- Node.js 22+ and npm only when running the dashboard on the host
+
+See [Getting Started](docs/user-guide/getting-started.md) for the detailed
+experiment setup and [MongoDB Setup](docs/user-guide/mongodb-setup.md) for the
+selected database path.
+
+</details>
+
+<details>
+<summary>Researcher comparing configurations</summary>
+
+**Prerequisites:**
+
+- Everything required to run experiments
+- Example data and question files
+- The dashboard is recommended for comparing results
+- A local or hosted embedding provider, depending on the experiment
+
+See the [Configuration Reference](docs/user-guide/configuration.md) for sweep
+dimensions, parallelism, and Bayesian search.
+
+</details>
+
+<details>
+<summary>Developer extending or debugging the project</summary>
+
+**Prerequisites:**
+
+- Git
+- Python 3.12+
+- `uv`
+- Node.js 22+ and npm
+- Docker Desktop
+
+Install development dependencies with:
+
+```bash
+uv pip install -e ".[dev]"
+cd frontend && npm install
+```
+
+See the [Development Guide](docs/contributor-guide/development.md) for quality
+gates, Docker workflows, and the development loop.
+
+</details>
+
+<details>
+<summary>Operator or troubleshooter</summary>
+
+Requirements depend on the deployed setup:
+
+- Docker for Docker-managed services
+- Atlas credentials and `MONGODB_URI` for MongoDB Atlas Cloud
+- Development dependencies are not required unless changing code
+
+See the [Troubleshooting Guide](docs/user-guide/troubleshooting.md) for health
+checks, logs, indexes, storage, and recovery procedures.
+
+</details>
+
+---
+
+## Install
 
 ```bash
 git clone https://github.com/neomatrix369/rag-params-finder.git
