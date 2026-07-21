@@ -62,7 +62,7 @@ Recommendation: prototype **Approach A** inside `orchestrator` first *(same Mong
 ### Re-apply planning note (threading + rate-limit strategy review)
 
 - **Threading model re-evaluated**: thread-based bounded scheduling via `ThreadPoolExecutor` + bounded futures was re-affirmed over process-based pools. The thread model keeps existing in-process cancellation/error semantics and minimal scheduler state for run-phase accounting; process pools would add pickling and lifecycle coupling without material throughput benefit for local sentence-transformers sweeps.
-- **Rate-limit protection re-evaluated**: shared provider limiter designs were reviewed, but this demo session intentionally defers cross-experiment/cluster-scoped rate limiting as out-of-scope. SIE protection remains **hardcoded in-process encoding permit cap + transient-503 retry/backoff**, because this slice is scoped to local provider runs and avoids extra infra coupling.
+- **Rate-limit protection re-evaluated**: shared provider limiter designs were reviewed, but this demo session intentionally defers cross-experiment/cluster-scoped rate limiting as out-of-scope. SIE protection remains **hardcoded in-process encoding permit cap + transient retry/backoff for 503/429/rate-limit failures**, with `Retry-After` honored when present.
 
 ---
 
@@ -83,7 +83,7 @@ Recommendation: prototype **Approach A** inside `orchestrator` first *(same Mong
 | Approach A vs B | **A only** (`ThreadPoolExecutor` + bounded in-process scheduler) implemented for this slice; B explicitly out of scope today |
 | SIE saturation handling | **Hardcoded in-process permit cap** + exponential backoff retries on transient 503-style SIE failures, no cross-process limiter |
 | `on_error: stop` vs in-flight runs | `on_error: stop` means stop scheduling new `_run_single` runs after first failure; in-flight runs are allowed to finish |
-| Voyage limiting: centralized vs per-run | Skipped for this demo slice because runs are local sentence-transformers only |
+| Voyage limiting: centralized vs per-run | Skipped for this slice; shared limiter designs are deferred in favor of in-process provider caps + retry safety (with 503/429 handling) |
 
 ---
 
