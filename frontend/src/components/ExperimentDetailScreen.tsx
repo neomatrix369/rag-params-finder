@@ -304,6 +304,31 @@ function formatDuration(startedAt?: string, completedAt?: string | null): string
   return formatTimeWithUnits(totalSeconds);
 }
 
+function parseSafeTimestamp(value: string | undefined): number | null {
+  if (!value) return null;
+  const parsed = new Date(value).getTime();
+  if (Number.isNaN(parsed)) return null;
+  return parsed;
+}
+
+function formatDurationFromRuns(runs: RunStatus[] = [], startedAt?: string, completedAt?: string | null): string {
+  const runStartedAt = Math.min(
+    ...runs.map((run) => parseSafeTimestamp(run.created_at)).filter((value): value is number => value !== null),
+  );
+  const runCompletedAt = Math.max(
+    ...runs.map((run) => parseSafeTimestamp(run.updated_at)).filter((value): value is number => value !== null),
+  );
+
+  const allRunsHaveTimestamps =
+    Number.isFinite(runStartedAt) && Number.isFinite(runCompletedAt) && runCompletedAt >= runStartedAt;
+
+  if (allRunsHaveTimestamps) {
+    return formatDuration(new Date(runStartedAt).toISOString(), new Date(runCompletedAt).toISOString());
+  }
+
+  return formatDuration(startedAt, completedAt);
+}
+
 function ProgressSubtitle({
   completed,
   total,
@@ -1006,7 +1031,11 @@ export default function ExperimentDetailScreen({
             <StatCard
               compact
               label="Duration"
-              value={isRunning || isPaused ? '—' : formatDuration(detail.started_at, detail.completed_at)}
+              value={
+                isRunning || isPaused
+                  ? '—'
+                  : formatDurationFromRuns(detail.runs ?? [], detail.started_at, detail.completed_at)
+              }
               icon={icons.clock}
               color="purple"
             />
