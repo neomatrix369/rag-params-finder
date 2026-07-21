@@ -188,6 +188,8 @@ If MongoDB stays unhealthy (`keyfile` / `Unable to acquire security key`), reset
 ./start-services.sh mongodb reset && ./start-services.sh --local
 ```
 
+<details><summary>Other paths</summary>
+
 ### Path B — Docker + Atlas cloud (one command)
 
 Copy `.env.example` to `.env`, then set a real `mongodb+srv://…` value for `MONGODB_URI` (not the placeholder).
@@ -213,6 +215,7 @@ cd frontend && npm run dev                      # Terminal 2 (optional)
 **Atlas cloud:** create search indexes in the Atlas UI first (M0), then start uvicorn + frontend as above with `mongodb+srv://…` in `.env`.
 
 ---
+</details>
 
 ## Verify the stack
 
@@ -236,7 +239,7 @@ rag-params-finder run --config configs/example-mongodb-local-bayesian.yaml
 # 100 runs using the Bayesian optimizer
 
 rag-params-finder run --config configs/example-mongodb-sie-parallel.yaml
-# 120 runs of configs/example-mongodb-local.yaml using the Grid Search run in parallelisation
+# 120 runs of configs/example-mongodb-local.yaml using the Grid Search run using parallelisation
 
 rag-params-finder run --config configs/example-mongodb-local.yaml   # 120 runs, no API key
 
@@ -245,7 +248,7 @@ rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 40 runs, V
 # rag-params-finder run --config configs/example-mongodb-sie.yaml   # SIE — see sie-setup.md
 ```
 
-Open `http://localhost:5374` to watch progress and explore results.
+Open `http://localhost:5374` to watch progress and explore results. See [docs/images](https://github.com/neomatrix369/rag-params-finder#-screenshots).
 
 ---
 
