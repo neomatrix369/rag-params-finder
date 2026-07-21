@@ -113,7 +113,8 @@ See the [Troubleshooting Guide](docs/user-guide/troubleshooting.md) for health c
 
 ---
 
-## Install
+<details>
+<summary>Install</summary>
 
 ```bash
 git clone https://github.com/neomatrix369/rag-params-finder.git
@@ -137,6 +138,7 @@ Keep credentials in `.env`; never put them in committed YAML configs.
 
 > **Naming note:** `example-mongodb-local.yaml` uses **local embedding models**(sentence-transformers), not local MongoDB. Any example config works with either MongoDB backend — only `MONGODB_URI` (or `./start-services.sh --local`) picks the database.
 
+</details>
 ---
 
 ## Local stack at a glance
@@ -233,7 +235,7 @@ Complete the checklist for your config in [mongodb-setup → Before you run a sw
 rag-params-finder run --config configs/example-mongodb-local-bayesian.yaml
 # 100 runs using the Bayesian optimizer
 rag-params-finder run --config configs/example-mongodb-sie-parallel.yaml
-# 120 runs of configs/example-mongodb-local.yaml  using the Grid Search
+# 120 runs of configs/example-mongodb-local.yaml using the Grid Search run in parallelisation
 rag-params-finder run --config configs/example-mongodb-local.yaml   # 120 runs, no API key
 rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 40 runs, Voyage + Tier 1
 # rag-params-finder run --config configs/example-mongodb-sie.yaml   # SIE — see sie-setup.md
