@@ -138,15 +138,15 @@ Keep credentials in `.env`; never put them in committed YAML configs.
 
 > **Naming note:** `example-mongodb-local.yaml` uses **local embedding models**(sentence-transformers), not local MongoDB. Any example config works with either MongoDB backend — only `MONGODB_URI` (or `./start-services.sh --local`) picks the database.
 
-</details>
 ---
+</details>
 
 ## Local stack at a glance
 
 | Service | URL / port | Required? | Started by |
 |---------|------------|-----------|------------|
-| FastAPI server | `http://localhost:8001` | Yes | `uvicorn` or `./start-services.sh` |
-| Dashboard | `http://localhost:5374` | Recommended | `npm run dev` or `./start-services.sh` |
+| FastAPI server | `http://localhost:8001` | Yes | `./start-services.sh --local` or `./start-services.sh` or `uvicorn` |
+| Dashboard | `http://localhost:5374` | Recommended | `./start-services.sh --local` or `./start-services.sh` or `npm run dev` |
 | MongoDB | `localhost:27017` (local) or Atlas cloud | Yes | `./start-services.sh --local`, `./start-services.sh mongodb start`, or Atlas |
 | SIE gateway | `http://localhost:8720` | SIE sweeps only | Manual — **not** in `start-services.sh`; see [sie-setup.md](docs/user-guide/sie-setup.md) |
 
@@ -234,9 +234,13 @@ Complete the checklist for your config in [mongodb-setup → Before you run a sw
 ```bash
 rag-params-finder run --config configs/example-mongodb-local-bayesian.yaml
 # 100 runs using the Bayesian optimizer
+
 rag-params-finder run --config configs/example-mongodb-sie-parallel.yaml
 # 120 runs of configs/example-mongodb-local.yaml using the Grid Search run in parallelisation
+
 rag-params-finder run --config configs/example-mongodb-local.yaml   # 120 runs, no API key
+
+
 rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 40 runs, Voyage + Tier 1
 # rag-params-finder run --config configs/example-mongodb-sie.yaml   # SIE — see sie-setup.md
 ```
