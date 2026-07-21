@@ -74,7 +74,8 @@ execution:
 
 - **Behavior today**: `execution.parallelism` is applied as in-process concurrency in the sweep runner with a hard cap of `16`.
 - **Parallelism bounds**: must be `>= 1` and `<= 16` in config validation (`server/models/config.py`).
-- **Local-provider guidance**: parallel runs are supported and intended for local `sentence-transformers` sweeps.
+- **Local-provider guidance**: local `sentence-transformers` runs are CPU-bound; when `parallelism > 1`, in-process worker threads should each use a reduced thread budget so they don’t each consume all CPU cores.
+- **Local runtime note**: set `parallelism` based on available cores and desired utilization (for example, with 8 cores and `parallelism=4`, each local embedding worker runs with ~2 intra-op threads).
 - **Voyage / remote providers**: larger parallelism can hit external RPM/TPM quotas; for that path, use cautious values and dedicated throttling (not part of this slice).
 - **Slice 16 implemented**: **[Slice 16 — Parallel Sweep Runs](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md)** adds bounded concurrent `_run_single` scheduling with current `on_error` and cancellation semantics; optional queue-based rollout remains out of scope.
 

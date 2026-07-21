@@ -14,6 +14,7 @@ embedder_factory.py can wire them without any class hierarchy.
 
 from __future__ import annotations
 
+import re
 import threading
 import time
 from collections.abc import Callable
@@ -68,7 +69,37 @@ def _resolve_sie_model_name(model_id: str) -> str:
 
 def _is_retryable_sie_error(exc: Exception) -> bool:
     message = str(exc).lower()
-    return "503" in message or "unavailable" in message or "service unavailable" in message
+    return (
+        "429" in message
+        or "rate limit" in message
+        or "too many requests" in message
+        or "503" in message
+        or "unavailable" in message
+        or "service unavailable" in message
+    )
+
+
+def _extract_retry_after_seconds(exc: Exception) -> float | None:
+    response = getattr(exc, "response", None)
+    if response is not None:
+        headers = getattr(response, "headers", None)
+        if headers is not None:
+            raw = headers.get("Retry-After") or headers.get("retry-after")
+            if raw:
+                try:
+                    value = float(raw)
+                    return max(0.0, value)
+                except ValueError:
+                    pass
+
+    match = re.search(r"retry[- ]?after\s*[:=]\s*([0-9]+\.?[0-9]*)", str(exc).lower())
+    if match:
+        try:
+            return float(match.group(1))
+        except ValueError:
+            return None
+
+    return None
 
 
 def _encode_with_retries(
@@ -84,15 +115,17 @@ def _encode_with_retries(
         except Exception as exc:
             if not _is_retryable_sie_error(exc) or attempt == _SIE_ENCODE_MAX_RETRIES:
                 raise
+            retry_delay = _extract_retry_after_seconds(exc) or delay
             logger.warning(
                 "SIE encode retrying — attempt=%d/%d delay=%.2fs error=%s",
                 attempt,
                 _SIE_ENCODE_MAX_RETRIES,
-                delay,
+                retry_delay,
                 exc,
             )
-            time.sleep(delay)
-            delay *= 2
+            time.sleep(retry_delay)
+            if retry_delay == delay:
+                delay *= 2
     raise RuntimeError("SIE encode retries exhausted.")
 
 
