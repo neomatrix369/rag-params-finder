@@ -138,6 +138,9 @@ interface ExperimentDetail {
     best_retriever_type?: string;
     grid_equivalent_count?: number;
     planned_trials?: number;
+    attempted_trials?: number;
+    discarded_trials?: number;
+    termination_reason?: string;
   };
   runs?: RunStatus[];
   started_at?: string;
@@ -893,6 +896,24 @@ export default function ExperimentDetailScreen({
   }
 
   const runSummary = summarizeExperimentRuns(detail.runs, detail.run_count);
+  const isBayesianStrategy = detail.config?.execution?.search_strategy === 'bayesian';
+  const bayesianSummary = detail.bayesian_summary;
+  const bayesianPlannedTrials = isBayesianStrategy && typeof bayesianSummary?.planned_trials === 'number'
+    ? bayesianSummary.planned_trials
+    : runSummary.expected;
+  const bayesianAttemptedTrials = isBayesianStrategy
+    ? Math.max(
+        0,
+        bayesianSummary?.attempted_trials
+          ?? (runSummary.complete + runSummary.failed + runSummary.interrupted + runSummary.inProgress),
+      )
+    : 0;
+  const bayesianDiscardedCount = isBayesianStrategy
+    ? Math.max(0, bayesianSummary?.discarded_trials ?? 0)
+    : 0;
+  const bayesianNotStartedCount = isBayesianStrategy
+    ? Math.max(0, bayesianPlannedTrials - bayesianAttemptedTrials - bayesianDiscardedCount)
+    : runSummary.neverStarted;
   const sweepSummary = (() => {
     if (detail.status === 'running') {
       return `${runSummary.complete} of ${runSummary.expected} runs are complete; stored results can grow as the sweep continues.`;
@@ -904,6 +925,11 @@ export default function ExperimentDetailScreen({
       return `All ${runSummary.expected} configured runs completed; stored results are ready to inspect.`;
     }
     if (detail.status === 'partial') {
+      if (isBayesianStrategy) {
+        return `Planned ${bayesianPlannedTrials} Bayesian combinations. `
+          + `${bayesianAttemptedTrials} attempted: ${runSummary.complete} complete, ${runSummary.failed} failed, `
+          + `${runSummary.interrupted} interrupted, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started.`;
+      }
       return `${runSummary.complete} of ${runSummary.expected} runs completed; treat rankings from completed runs as preliminary results.`;
     }
     if (detail.status === 'cancelled') {
@@ -1011,7 +1037,11 @@ export default function ExperimentDetailScreen({
             </div>
             <div className="rounded-xl border border-line bg-paper p-3">
               <p className="text-xs font-bold uppercase tracking-wider text-muted">Run set</p>
-              <p className="mt-1 text-sm font-semibold text-ink">{runSummary.complete} complete · {runSummary.expected} configured</p>
+              <p className="mt-1 text-sm font-semibold text-ink">
+                {isBayesianStrategy
+                  ? `${bayesianAttemptedTrials} attempted · ${bayesianPlannedTrials} planned`
+                  : `${runSummary.complete} complete · ${runSummary.expected} configured`}
+              </p>
             </div>
             <div className="rounded-xl border border-line bg-paper p-3">
               <p className="text-xs font-bold uppercase tracking-wider text-muted">Next step</p>
@@ -1024,7 +1054,22 @@ export default function ExperimentDetailScreen({
             <StatCard compact label="Successful" value={runSummary.complete} icon={icons.check} color="green" />
             <StatCard compact label="Failed" value={runSummary.failed} icon={icons.x} color="red" />
             <StatCard compact label="Interrupted" value={runSummary.interrupted} icon={icons.x} color="amber" />
-            <StatCard compact label="Not Started" value={runSummary.neverStarted} icon={icons.grid} color="slate" />
+            <StatCard
+              compact
+              label={isBayesianStrategy ? 'Not Started' : 'Not Started'}
+              value={isBayesianStrategy ? bayesianNotStartedCount : runSummary.neverStarted}
+              icon={icons.grid}
+              color="slate"
+            />
+            {isBayesianStrategy && (
+              <StatCard
+                compact
+                label="Discarded by Sampler"
+                value={bayesianDiscardedCount}
+                icon={icons.x}
+                color="slate"
+              />
+            )}
             {runSummary.inProgress > 0 && (
               <StatCard compact label="In Progress" value={runSummary.inProgress} icon={icons.play} color="purple" />
             )}
@@ -1232,6 +1277,12 @@ export default function ExperimentDetailScreen({
                   <MetadataItem
                     label="Best Embedding"
                     value={detail.bayesian_summary.best_embedding_model}
+                  />
+                  <MetadataItem label="Attempts" value={detail.bayesian_summary.attempted_trials} />
+                  <MetadataItem label="Discarded by Sampler" value={detail.bayesian_summary.discarded_trials} />
+                  <MetadataItem
+                    label="Sampler Notes"
+                    value={detail.bayesian_summary.termination_reason || 'none'}
                   />
                 </div>
               </CollapsibleCard>
@@ -1492,13 +1543,26 @@ export default function ExperimentDetailScreen({
                 <div>
                   <h3 className="text-lg font-bold text-amber-900">Sweep Incomplete</h3>
                   <p className="text-sm text-amber-800 mt-1">
-                    {runSummary.complete} of {runSummary.expected} run(s) completed successfully.
+                    {isBayesianStrategy
+                      ? `Bayesian partial: ${bayesianAttemptedTrials} of ${bayesianPlannedTrials} attempted and started, `
+                        + `${runSummary.complete} completed successfully, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started.`
+                      : `${runSummary.complete} of ${runSummary.expected} run(s) completed successfully.`}
                     {runSummary.interrupted > 0 && ` ${runSummary.interrupted} interrupted.`}
                     {runSummary.failed > 0 && ` ${runSummary.failed} failed.`}
-                    {runSummary.neverStarted > 0 && ` ${runSummary.neverStarted} never started.`}
+                    {runSummary.neverStarted > 0 && ` ${runSummary.neverStarted} not started.`}
+                    {isBayesianStrategy && bayesianDiscardedCount > 0 && (
+                      <span>
+                        {' '}
+                        {detail.bayesian_summary?.termination_reason === 'sampler_candidate_exhaustion'
+                          ? `${bayesianDiscardedCount} were discarded by Bayesian sampler pruning.`
+                          : `${bayesianDiscardedCount} discarded while exploring candidate trials.`}
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-amber-700 mt-2">
-                    The experiment stopped before every parameter combination ran — often after a server restart or cancellation mid-sweep.
+                    {isBayesianStrategy
+                      ? `Bayesian sweep configured ${bayesianPlannedTrials} candidate combinations: ${bayesianAttemptedTrials} attempted, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started.`
+                      : 'The experiment stopped before every parameter combination ran — often after a server restart or cancellation mid-sweep.'}
                   </p>
                 </div>
               </div>

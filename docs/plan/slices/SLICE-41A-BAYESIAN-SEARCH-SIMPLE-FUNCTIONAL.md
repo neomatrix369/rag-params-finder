@@ -69,7 +69,7 @@ CLI prints a comparison summary at completion.
   - changelog or slice trail note for activation/behavior changes.
 - Add dashboard handoff behavior so Bayesian and grid experiments are visually distinguishable in list/detail output.
 - Prefer minimal UI adaptation: strategy badge + conditional summary cards to avoid duplicating existing grid views.
-- Explicitly defer: “considered vs executed vs discarded” indicator (sampler proposal history) is out of scope for Slice 41A, and if implemented later, it must only apply to Bayesian experiments.
+- Follow-up scope (Bayesian only): show explicit sampler discard state (`discarded_trials`) in API/UI so partial sweeps separate discarded candidates from interrupted/failed outcomes.
 
 ## Planning Quality Lens [GATE]
 
@@ -122,7 +122,8 @@ CLI prints a comparison summary at completion.
 - [ ] `execution.bayesian.n_trials` can be omitted and resolves to grid-equivalent default at runtime.
 - [ ] Failed trial outcomes are passed to Optuna as `TrialState.FAIL` with `NaN` to preserve resume/continuation behavior and diagnostics.
 - [ ] Duplicate trial candidates do not create extra `run_status` rows and are surfaced only via Optuna prune semantics.
-- [ ] Follow-up scope: exposing “considered vs executed vs discarded” counts (sampler proposal history) is explicitly deferred and is not required for Slice 41A acceptance; if implemented, it must be shown only for Bayesian experiments and never for non-Bayesian runs.
+- [ ] Dashboard and API payload expose `bayesian_summary.discarded_trials` (if present) and render partial Bayesian outcomes as “graceful stop” with discard/stop explanation.
+- [ ] Follow-up scope: exposing full sampler proposal history (proposed vs executed vs discarded) is explicitly deferred and is not required for Slice 41A acceptance; if implemented, it must be shown only for Bayesian experiments and never for non-Bayesian runs.
 
 ## Behavioral scenarios (GWT)
 

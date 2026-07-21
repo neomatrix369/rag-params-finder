@@ -96,6 +96,9 @@ export interface Experiment {
     best_retriever_type?: string;
     grid_equivalent_count?: number;
     planned_trials?: number;
+    attempted_trials?: number;
+    discarded_trials?: number;
+    termination_reason?: string;
   };
   execution?: {
     search_strategy?: 'grid' | 'bayesian';

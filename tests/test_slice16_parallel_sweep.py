@@ -534,6 +534,8 @@ def test_finalise_bayesian_experiment_persists_summary(
         cancelled=False,
         paused=False,
         run_ids=["run-1", "run-2", "run-3", "run-4"],
+        attempted_trials=4,
+        discarded_trials=0,
         best_trial=best_trial,
         infrastructure_error=None,
     )
@@ -556,6 +558,8 @@ def test_finalise_bayesian_experiment_persists_summary(
     assert bayesian_summary["best_overlap"] == 50
     assert bayesian_summary["grid_equivalent_count"] == 6
     assert bayesian_summary["planned_trials"] == 4
+    assert bayesian_summary["attempted_trials"] == 4
+    assert bayesian_summary["discarded_trials"] == 0
     mock_log_summary.assert_called_once()
 
 

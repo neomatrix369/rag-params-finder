@@ -248,6 +248,7 @@ and does not fit into the model's context window of 32000 tokens.
 1. Restart the server once — reconciliation runs at startup (check logs for `Reconciled N orphaned experiment(s)`)
 2. On the detail screen, verify outcome metrics: **Successful + Failed + Interrupted + Not Started = Total**
 3. To finish remaining parameter combos: **`rag-params-finder resume <experiment-id>`** if status is `paused`, or pause a running sweep first then resume later. Alternatively submit a trimmed YAML for missing combos, or wait for Slice 10 `recover` (retry failed/interrupted runs in-place)
+4. For Bayesian experiments, if the experiment is `partial`, this can be a graceful sampler stop when duplicate or low-value candidates are pruned before execution. The detail page may show `discarded_trials`; compare with `attempted_trials` and `planned_trials` in `bayesian_summary` to confirm intent.
 
 **Prevention during long sweeps**:
 

@@ -149,13 +149,34 @@ function statusEdgeClass(status: Experiment['status']): string {
   return 'border-l-slate-400';
 }
 
+function resolveSearchStrategy(experiment: Experiment): 'grid' | 'bayesian' {
+  const configExecution = (experiment.config as { execution?: Record<string, unknown> } | undefined)?.execution;
+  if (!configExecution || typeof configExecution !== 'object') {
+    return 'grid';
+  }
+  const searchStrategy = configExecution['search_strategy'];
+  if (searchStrategy === 'bayesian' || searchStrategy === 'grid') {
+    return searchStrategy;
+  }
+  return 'grid';
+}
+
 function experimentOutcomeLabel(experiment: Experiment): string {
+  const bayesianSummary = experiment.bayesian_summary;
   const configuredRuns = experiment.run_count == null
     ? 'Run count pending'
     : `${experiment.run_count} run${experiment.run_count === 1 ? '' : 's'} configured`;
   if (experiment.status === 'running') return `${configuredRuns} · sweep in progress`;
   if (experiment.status === 'paused') return `${configuredRuns} · waiting to resume`;
   if (experiment.status === 'complete') return `${configuredRuns} · sweep complete`;
+  if (experiment.status === 'partial' && resolveSearchStrategy(experiment) === 'bayesian') {
+    const discarded = bayesianSummary?.discarded_trials ?? 0;
+    const attempted = bayesianSummary?.attempted_trials;
+    if (attempted == null) {
+      return `${configuredRuns} · Bayesian sampling incomplete`;
+    }
+    return `${configuredRuns} · Bayesian: ${attempted} attempted · ${discarded} discarded`;
+  }
   if (experiment.status === 'partial') return `${configuredRuns} · incomplete outcome`;
   if (experiment.status === 'cancelled') return `${configuredRuns} · collection stopped`;
   if (experiment.failed_count) return `${configuredRuns} · ${experiment.failed_count} failed`;

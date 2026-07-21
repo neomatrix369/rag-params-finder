@@ -388,6 +388,8 @@ def _run_bayesian_inner(
     finally:
         if run_ids:
             best_trial = _run_best_trial_payload(experiment_id)
+        attempted_trials = len(run_ids)
+        discarded_trials = max(0, planned_runs - attempted_trials)
 
         final_status, failed_count = _finalise_bayesian_experiment(
             experiment_id,
@@ -396,6 +398,8 @@ def _run_bayesian_inner(
             cancelled,
             paused,
             run_ids,
+            attempted_trials,
+            discarded_trials,
             best_trial,
             infrastructure_error,
         )
@@ -414,6 +418,8 @@ def _finalise_bayesian_experiment(
     cancelled: bool,
     paused: bool,
     run_ids: list[str],
+    attempted_trials: int,
+    discarded_trials: int,
     best_trial: dict | None,
     infrastructure_error: str | None,
 ) -> tuple[ExperimentStatus, int]:
@@ -439,17 +445,28 @@ def _finalise_bayesian_experiment(
         "grid_equivalent_count": _grid_equivalent_count(config),
     }
 
+    bayesian_summary: dict[str, object] = {
+        "grid_equivalent_count": _grid_equivalent_count(config),
+        "planned_trials": planned_trials,
+        "attempted_trials": attempted_trials,
+        "discarded_trials": discarded_trials,
+    }
+    if discarded_trials > 0 and final_status == ExperimentStatus.PARTIAL:
+        bayesian_summary["termination_reason"] = "sampler_candidate_exhaustion"
+
     if best_trial is not None:
-        experiment_update["bayesian_summary"] = {
-            "best_query_avg_score": best_trial.get("query_avg_score"),
-            "best_chunk_size": best_trial.get("chunk_size"),
-            "best_overlap": best_trial.get("overlap"),
-            "best_embedding_model": best_trial.get("embedding_model"),
-            "best_retrieval_method": best_trial.get("retrieval_method"),
-            "best_retriever_type": best_trial.get("retrieval_method"),
-            "grid_equivalent_count": _grid_equivalent_count(config),
-            "planned_trials": planned_trials,
-        }
+        bayesian_summary.update(
+            {
+                "best_query_avg_score": best_trial.get("query_avg_score"),
+                "best_chunk_size": best_trial.get("chunk_size"),
+                "best_overlap": best_trial.get("overlap"),
+                "best_embedding_model": best_trial.get("embedding_model"),
+                "best_retrieval_method": best_trial.get("retrieval_method"),
+                "best_retriever_type": best_trial.get("retrieval_method"),
+            }
+        )
+
+    experiment_update["bayesian_summary"] = bayesian_summary
 
     if infrastructure_error:
         experiment_update["error_message"] = infrastructure_error

@@ -45,7 +45,7 @@ case "$choice" in
     ;;
   3)
     if [[ "${NONINTERACTIVE:-}" != "1" ]]; then
-      echo "Type DELETE HF CACHE to remove HuggingFace model cache volume (Atlas data unaffected):"
+      echo "Type DELETE HF CACHE to remove HuggingFace model cache volume (cloud Atlas data unaffected)."
       read -r confirm
       if [[ "$confirm" == "DELETE HF CACHE" ]]; then
         "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]}" down -v

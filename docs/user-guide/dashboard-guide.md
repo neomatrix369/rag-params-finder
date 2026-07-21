@@ -52,6 +52,7 @@ The landing screen presents all submitted experiments as result-led cards, newes
 | `running` | Blue | One or more runs still active |
 | `paused` | Violet | Sweep paused — completed runs kept; resume to continue remaining combos |
 | `partial` | Yellow | Sweep stopped early — some runs complete, some failed/interrupted, and/or some parameter combos never started |
+| `partial` *(Bayesian)* | Yellow | Sweep stopped early after sampler pruning or interruption — some candidates were **discarded** before execution |
 | `failed` | Red | All runs failed, **or** experiment rejected at search-index preflight (no runs started) |
 | `cancelled` | Gray | Experiment was cancelled |
 
@@ -92,7 +93,7 @@ Pause, resume, and cancel controls appear **only in the overview header** — no
 | Status | Banner |
 |---|---|
 | `complete` | Green — all planned runs succeeded |
-| `partial` | Amber — “Sweep Incomplete” with breakdown (e.g. 41/90 complete, 48 never started) |
+| `partial` | Amber — “Sweep Incomplete” with breakdown (e.g. 41/90 complete, 48 never started; 12 discarded if Bayesian) |
 | `paused` | Violet — “Experiment Paused” banner with run count; resume via header controls |
 | `cancelled` | Gray — runs completed before cancellation |
 | Failed runs | Red panel listing `error_message` per run |
