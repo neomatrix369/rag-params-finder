@@ -465,6 +465,10 @@ def _finalise_bayesian_experiment(
         "planned_trials": planned_trials,
         "attempted_trials": attempted_trials,
         "discarded_trials": discarded_trials,
+        "not_started": max(
+            0,
+            planned_trials - attempted_trials - discarded_trials,
+        ),
     }
     if discarded_trials > 0 and final_status == ExperimentStatus.PARTIAL:
         bayesian_summary["termination_reason"] = "sampler_candidate_exhaustion"

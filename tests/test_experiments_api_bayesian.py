@@ -91,3 +91,86 @@ def test_resume_bayesian_experiment_returns_409() -> None:
 
     assert response.status_code == 409
     assert response.json()["detail"]
+
+
+def test_detail_bayesian_experiment_populates_progress_summary_when_missing() -> None:
+    """
+    Scenario: GET /experiments/{id} exposes Bayesian summary even before finalization.
+
+    Given a running Bayesian experiment without persisted summary metadata
+    And run rows exist for partial progress
+    When detail is requested
+    Then response includes a normalized `bayesian_summary` with attempts and not-started.
+    """
+    experiment_doc = {
+        "_id": "exp-bayesian-summary",
+        "experiment_id": "exp-bayesian-summary",
+        "status": "running",
+        "run_count": 100,
+        "grid_equivalent_count": 100,
+        "config": {
+            "execution": {"search_strategy": "bayesian"},
+        },
+        "runs": [
+            {"phase": "complete", "run_id": "run-1"},
+            {"phase": "complete", "run_id": "run-2"},
+            {"phase": "querying", "run_id": "run-3"},
+        ],
+        "completed_at": None,
+    }
+
+    with (
+        patch(
+            "server.api.experiments.mongo_find_experiment_with_runs",
+            return_value=experiment_doc,
+        ),
+    ):
+        client = _make_experiments_client()
+        response = client.get("/experiments/exp-bayesian-summary")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "running"
+    bayesian_summary = body["bayesian_summary"]
+    assert bayesian_summary["planned_trials"] == 100
+    assert bayesian_summary["attempted_trials"] == 3
+    assert bayesian_summary["discarded_trials"] == 0
+    assert bayesian_summary["not_started"] == 97
+
+
+def test_detail_partial_bayesian_experiment_populates_summary_from_runs() -> None:
+    """
+    Scenario: GET /experiments/{id} includes Bayesian summary for partial runs.
+
+    Given a partially completed Bayesian experiment
+    And the document has no stored bayesian_summary
+    When the detail endpoint is queried
+    Then summary is derived from the observed run rows.
+    """
+    experiment_doc = {
+        "_id": "exp-bayesian-partial",
+        "experiment_id": "exp-bayesian-partial",
+        "status": "partial",
+        "run_count": 100,
+        "config": {"execution": {"search_strategy": "bayesian"}},
+        "runs": [{"phase": "complete", "run_id": "run-1"}] * 79,
+        "completed_at": "2026-07-21T15:34:04.225000+00:00",
+    }
+
+    with (
+        patch(
+            "server.api.experiments.mongo_find_experiment_with_runs",
+            return_value=experiment_doc,
+        ),
+    ):
+        client = _make_experiments_client()
+        response = client.get("/experiments/exp-bayesian-partial")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "partial"
+    bayesian_summary = body["bayesian_summary"]
+    assert bayesian_summary["planned_trials"] == 100
+    assert bayesian_summary["attempted_trials"] == 79
+    assert bayesian_summary["discarded_trials"] == 0
+    assert bayesian_summary["not_started"] == 21

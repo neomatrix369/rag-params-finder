@@ -2,6 +2,7 @@ import asyncio
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import SupportsInt, cast
 
 from fastapi import APIRouter, HTTPException
 
@@ -69,21 +70,97 @@ def _resolve_bayesian_n_trials(config: ExperimentConfig) -> int:
     return configured
 
 
+def _to_non_negative_int(value: object) -> int | None:
+    try:
+        as_int = int(cast(SupportsInt, value))
+    except (TypeError, ValueError):
+        return None
+    return max(0, int(as_int))
+
+
+def _is_bayesian_experiment(experiment: dict) -> bool:
+    config = experiment.get("config")
+    if not isinstance(config, dict):
+        return False
+    execution = config.get("execution")
+    if not isinstance(execution, dict):
+        return False
+    return execution.get("search_strategy") == "bayesian"
+
+
+def _ensure_bayesian_summary(
+    experiment: dict,
+    runs: list[dict] | None = None,
+) -> None:
+    if not _is_bayesian_experiment(experiment):
+        return
+
+    planned_trials = _to_non_negative_int(experiment.get("run_count"))
+    if planned_trials is None:
+        return
+
+    existing_summary = experiment.get("bayesian_summary")
+    if not isinstance(existing_summary, dict):
+        existing_summary = {}
+
+    planned_trials = int(planned_trials)
+    attempted_trials = existing_summary.get("attempted_trials")
+    if isinstance(attempted_trials, int):
+        attempted_trials = _to_non_negative_int(attempted_trials) or 0
+    elif isinstance(runs, list):
+        attempted_trials = len(runs)
+    else:
+        attempted_trials = 0
+
+    if "discarded_trials" in existing_summary:
+        discarded_trials = _to_non_negative_int(existing_summary["discarded_trials"]) or 0
+    else:
+        discarded_trials = existing_summary.get("discarded_trials", 0)
+        discarded_trials = _to_non_negative_int(discarded_trials) or 0
+
+    not_started = max(
+        0,
+        planned_trials - attempted_trials - discarded_trials,
+    )
+
+    existing_summary.update(
+        {
+            "planned_trials": planned_trials,
+            "attempted_trials": attempted_trials,
+            "discarded_trials": discarded_trials,
+            "grid_equivalent_count": _to_non_negative_int(
+                existing_summary.get("grid_equivalent_count")
+            )
+            or _to_non_negative_int(experiment.get("grid_equivalent_count"))
+            or planned_trials,
+            "not_started": not_started,
+        }
+    )
+    experiment["bayesian_summary"] = existing_summary
+
+
 def _normalize_stale_running_status(experiment: dict) -> dict:
     """If status is still RUNNING but no active sweep exists, reconcile from run status."""
+    runs = experiment.get("runs")
+    if not isinstance(runs, list):
+        runs = []
     if experiment.get("status") != ExperimentStatus.RUNNING:
+        _ensure_bayesian_summary(experiment, runs=runs)
         return experiment
 
     experiment_id = experiment.get("experiment_id") or experiment.get("_id")
     if not experiment_id or is_sweep_in_flight(experiment_id):
         return experiment
 
-    runs = list(
-        get_collection(RUN_STATUS_COLLECTION).find(
-            {"experiment_id": experiment_id},
-            {"_id": 0},
+    runs = list(runs)
+    if not runs:
+        runs = list(
+            get_collection(RUN_STATUS_COLLECTION).find(
+                {"experiment_id": experiment_id},
+                {"_id": 0},
+            )
         )
-    )
+    _ensure_bayesian_summary(experiment, runs=runs)
     if not runs:
         return experiment
 
@@ -109,6 +186,7 @@ def _normalize_stale_running_status(experiment: dict) -> dict:
     }
     get_collection(EXPERIMENTS_COLLECTION).update_one({"_id": experiment_id}, {"$set": resolved})
     experiment.update(resolved)
+    _ensure_bayesian_summary(experiment, runs=runs)
     return experiment
 
 

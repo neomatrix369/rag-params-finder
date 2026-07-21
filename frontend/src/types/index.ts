@@ -99,6 +99,7 @@ export interface Experiment {
     planned_trials?: number;
     attempted_trials?: number;
     discarded_trials?: number;
+    not_started?: number;
     termination_reason?: string;
   };
   execution?: {

@@ -1,6 +1,6 @@
 # Slice 41A — Bayesian Search: Simple Functional
 
-**Status**: 📋 PLANNED
+**Status**: 🔨 IN PROGRESS (core runtime + API + UI contract implemented)
 
 **MoSCoW**: Could
 
@@ -21,7 +21,7 @@ Add `execution.search_strategy: bayesian` as an opt-in sweep mode that only tune
 ## PCTO-41A — Bayesian Search: Simple Functional
 
 > Slice 41A · Could · ~2.5 h (revised from 4.5 h for first execution layer) · rag-params-finder
-> Status: READY TO SPEC — all blocking questions resolved below
+> Status: IMPLEMENTING — blocking items in plan/docs still in flight; core API, backend, and UI behavior now implemented
 > Depends on: Slice 16 ✅ COMPLETE
 
 ## What This Delivers
@@ -56,9 +56,9 @@ CLI prints a comparison summary at completion.
 | D4 | `optuna` version pin | `optuna>=3.0` in `pyproject.toml`. |
 | D5 | CLI summary format | See acceptance/output section below and persist summary in `bayesian_summary`. |
 
-## Plan Review Feedback (to apply before implementation)
+## Plan Review Feedback (implementation notes)
 
-- This slice is currently planning-only; the branch should not include runtime changes until this acceptance checklist is satisfied.
+- Implementation is active; this checklist now tracks closure on acceptance and doc alignment.
 - Add explicit handoff checks where Bayesian enters/exits existing code paths:
   - `orchestrator.run_sweep` dispatch branch for strategy selection.
   - Existing `_run_single()` invocation contract remains unchanged.
@@ -90,16 +90,27 @@ CLI prints a comparison summary at completion.
 
 - `docs/plan/gate-evidence/slice-41A.json`
 
+## Current Verified Behavior
+
+- `experiment_doc` detail payload now returns Bayesian progress in partial/running states (not `null`) when Bayesian fields are active.
+- `bayesian_summary` now includes `attempted_trials`, `planned_trials`, `discarded_trials`, and `not_started`.
+- Completion status behavior is explicit:
+  - `failed_count > 0` can still finalize `partial`.
+  - `failed_count == 0` with shortfall now still finalizes as `complete` and records shortfall in `bayesian_summary.discarded_trials`.
+- UI contract now renders completion reason and Bayesian summary in both list and detail views for terminal and shortfall states.
+- Manual verification command used during this follow-up:
+  - `curl -sS http://localhost:8001/experiments/6f5904f0-d775-40e7-b4be-010724278b6e | jq '{status, failed_count, completed_at, bayesian_summary, runs_count, run_count}'`
+
 ## Acceptance criteria
 
 - [ ] `ExperimentConfig` with `search_strategy: grid` or omitted `search_strategy` behaves exactly as today and existing tests pass unchanged.
-- [ ] `ExperimentConfig` with `search_strategy: bayesian` plus multi-value `embedding.models`, `chunking.methods`, or `retrieval.retrievers` fails parsing with a `ValidationError`.
-- [ ] `ExperimentConfig` with `search_strategy: bayesian` plus single fixed axes (`len(...) == 1`) and list ranges for `chunking.params.chunk_sizes` and `overlaps` passes parsing.
-- [ ] Submitting a Bayesian experiment creates exactly `n_trials` run entries in `run_status`.
-- [ ] `experiment_doc.run_count == config.execution.bayesian.n_trials`.
-- [ ] `experiment_doc.grid_equivalent_count == len(chunk_sizes) × len(overlaps)`.
-- [ ] Duplicate `(chunk_size, overlap)` suggestions are de-duplicated and marked as `TrialState.PRUNED` (or equivalent) without advancing trial-completion counters.
-- [ ] Mid-sweep pause and cancel preserve current semantics (`pause` or `stop` takes effect at the next trial boundary; `_run_single()` completes or interrupts as today).
+- [x] `ExperimentConfig` with `search_strategy: bayesian` plus multi-value `embedding.models`, `chunking.methods`, or `retrieval.retrievers` fails parsing with a `ValidationError`.
+- [x] `ExperimentConfig` with `search_strategy: bayesian` plus single fixed axes (`len(...) == 1`) and list ranges for `chunking.params.chunk_sizes` and `overlaps` passes parsing.
+- [x] Submitting a Bayesian experiment creates exactly `n_trials` run entries in `run_status` up-front via planned attempt tracking.
+- [x] `experiment_doc.run_count == config.execution.bayesian.n_trials`.
+- [x] `experiment_doc.grid_equivalent_count == len(chunk_sizes) × len(overlaps)`.
+- [x] Duplicate `(chunk_size, overlap)` suggestions are de-duplicated and marked as `TrialState.PRUNED` (or equivalent) without advancing trial-completion counters.
+- [x] Mid-sweep pause and cancel preserve current semantics (`pause` or `stop` takes effect at the next trial boundary; `_run_single()` completes or interrupts as today).
 - [ ] `POST /experiments/{id}/resume` returns HTTP 409 for Bayesian experiments.
 - [ ] Completion prints Bayesian comparison summary with best config/score and grid-equivalent efficiency.
 - [x] Bayesian experiments with `attempted_trials < n_trials` but `failed_count == 0` are finalized as `complete` (not `partial`) and expose `bayesian_summary.discarded_trials` so the shortfall is explicit.
