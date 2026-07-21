@@ -8,7 +8,7 @@
 
 **Depends on**: 16
 
-**Target time**: ~2.5 h
+**Target time**: ~4.5 h
 
 ## Problem
 
@@ -17,6 +17,18 @@ Grid sweep is currently the only strategy for `_run_sweep_inner` experiments, bu
 ## Goal
 
 Add `execution.search_strategy: bayesian` as an opt-in sweep mode that only tunes `chunk_size` and `overlap` via Optuna TPE, while running each trial through the existing `_run_single()` pipeline unchanged.
+
+## Plan Review Feedback (to apply before implementation)
+
+- This slice is currently planning-only; the branch should not include runtime changes until this acceptance checklist is satisfied.
+- Add explicit handoff checks where Bayesian enters/exits existing code paths:
+  - `orchestrator.run_sweep` dispatch branch for strategy selection.
+  - Existing `_run_single()` invocation contract remains unchanged.
+  - API endpoints for pause/resume/stop continue to use existing state transitions and run loop checks.
+- Treat doc deliverables as mandatory deliverables, not optional:
+  - usage and examples for enabling bayesian mode in user-facing docs.
+  - config schema/docs reference update showing `search_strategy` + `bayesian.n_trials`.
+  - changelog or slice trail note for activation/behavior changes.
 
 ## Acceptance criteria
 
@@ -30,6 +42,10 @@ Add `execution.search_strategy: bayesian` as an opt-in sweep mode that only tune
 - [ ] `POST /experiments/{id}/resume` returns HTTP 409 for Bayesian experiments.
 - [ ] Completion prints Bayesian comparison summary with best config/score and grid-equivalent efficiency.
 - [ ] `optuna>=3.0` is added to dependency set without additional infra requirements.
+- [ ] Usage docs include: minimal config diff required to activate Bayesian mode and an end-to-end "expected run" sample.
+- [ ] `configs/example-bayesian.yaml` is added and documented as the canonical activation example.
+- [ ] A dashboard- and API-level no-regression rule is captured: old fields in `run_status` and experiment documents remain backward compatible.
+- [ ] `_planned_run_count(config)` value is documented and surfaced in planned-count UX same as existing run display behavior.
 
 ## Behavioral scenarios (GWT)
 
@@ -56,6 +72,12 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
 - [ ] Existing sweep path (`expand_sweep()` and grid run) remains untouched and covered by unchanged tests.
 - [ ] `Optuna >= 3.0` can be installed in the environment with `pip install`.
 
+## TDD Execution Protocol [GATE]
+
+- [ ] [GATE: RED] Write/update tests for current layer first and confirm they fail on current code.
+- [ ] [GATE: GREEN] Implement only enough logic to make that layer pass.
+- [ ] [GATE: REFACTOR] Optional cleanup only after GREEN remains stable.
+
 ## Implementation details
 
 - Add `BayesianConfig` under `ExecutionConfig` with `n_trials: int = 12`.
@@ -78,8 +100,29 @@ Scenario: Bayesian mode blocks invalid multi-axis optimization
 
 ## After-Checks [GATE]
 
-- [ ] Specification coverage: all GWT clauses covered by tests (BDD/GWT-first) and edge clauses (parallelism > 1 warning, NaN fail trials, resume 409).
-- [ ] Branch coverage target for touched functions is 100% where practical; exclusions documented.
-- [ ] Test coverage checks pass for the existing slice and new/adjusted tests.
-- [ ] `docs/plan/TRAIL.md` and `docs/plan/slices/PROGRESS.md` contain this slice as `📋 PLANNED`.
-- [ ] `DECISIONS.md` includes planning and dependency entry for Slice 41A.
+- [GATE] Layer-01 Config Validation
+  - [ ] [RED] Add/verify tests for `ExperimentConfig` validation: multi-axis Bayesian rejects; fixed-axis + sweep lists pass.
+  - [ ] [GREEN] Implement validation under this gate.
+- [GATE] Layer-02 Dispatch Handoff
+  - [ ] [RED] Add tests for `search_strategy` dispatch and grid default path.
+  - [ ] [GREEN] Implement `run_sweep` strategy branch only.
+- [GATE] Layer-03 Trial Handoff
+  - [ ] [RED] Add tests ensuring `_run_bayesian_inner` calls `_run_single` with same contract as existing grid trials.
+  - [ ] [GREEN] Implement and preserve exact per-trial `_run_single` handoff.
+- [GATE] Layer-04 API and Pause/Stop Boundary
+  - [ ] [RED] Add API tests for planned count display and `resume -> 409` for bayesian.
+  - [ ] [GREEN] Implement planning count + endpoint boundary behavior; preserve existing pause/stop semantics.
+- [GATE] Layer-05 Persistence & Completion Summary
+  - [ ] [RED] Add tests for `run_count`, `grid_equivalent_count`, and bayesian summary payload in experiment doc.
+  - [ ] [GREEN] Implement persistence and summary output.
+- [GATE] Layer-06 Regression and Documentation
+  - [ ] [RED] Confirm existing `expand_sweep`/grid tests remain unchanged and `results_analyzer` path remains compatible.
+  - [ ] [GREEN] Add/confirm docs gates: `docs/plan/TRAIL.md`, `docs/plan/slices/PROGRESS.md`, `DECISIONS.md`, and `configs/example-bayesian.yaml` references.
+
+## Handoff & Boundary Tests (explicit checklist)
+
+- [GATE] Cross-field validation: multi-axis bayesian must fail early with clear message.
+- [GATE] Sweep dispatch: bayesian path only when `execution.search_strategy == "bayesian"`, default/grid unchanged.
+- [GATE] Per-trial handoff: `_run_bayesian_inner` to `_run_single` argument/state contract identical to grid path.
+- [GATE] Pause/stop: interrupt still observed before next trial setup; `_run_single` completion/interruption semantics unchanged.
+- [GATE] Resume boundary: `POST /experiments/{id}/resume` returns 409 with bayesian-specific rationale.
