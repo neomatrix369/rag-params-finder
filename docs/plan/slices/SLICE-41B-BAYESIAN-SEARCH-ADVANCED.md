@@ -28,10 +28,10 @@ Everything in this slice is deliberately deferred from 41A. The PCTO-41B documen
 |---|---|---|---|
 | A1 | Study persistence backend: SQLite vs MongoDB | SQLite preferred (judge-friendly); MongoDB consistent with stack | Owner decision: demo path vs production path |
 | A2 | Categorical axis TPE quality validation | `suggest_categorical()` is valid; quality vs random search on small categorical spaces is unproven | A/B comparison: Bayesian vs random search on same categorical space across ≥3 real datasets |
-| A3 | Bayesian run-level parallelism field | Separate `bayesian.parallelism` vs reuse `execution.parallelism` | Decide after A2 — run-level parallelism only pays off once categorical dims justify multi-worker |
-| A4 | Revisit-trigger N for default promotion | "Owner to set N" — unresolved | Owner sets N before this slice opens; suggested baseline: 20 real production Bayesian sweeps |
+| A3 | Bayesian run-level parallelism field | **Decided**: use separate `bayesian.parallelism` field (see `BayesianConfig` in Scope section). Field is named, typed, and capped at 4. Remaining question: confirm the name does not confuse users who already set `execution.parallelism` — validate in user-guide examples before this slice opens. | User-guide review; no code question remains. |
+| A4 | Revisit-trigger N for default promotion | "Owner to set N" — unresolved | Owner sets N before this slice opens; suggested baseline: 20 real production Bayesian sweeps. **Time-bound**: if N sweeps are not accumulated by 2026-10-01, open a product decision to either lower the threshold or mark this slice Won't for the current cycle. |
 | D3 | `sweep_summary` field for Bayesian | Currently stores lists; misleading when axes are single-value | Decide whether to add `search_strategy` and `bayesian_config` keys to `sweep_summary` |
-| D6 | `max_score` as primary sort key for grid | Still primary; `query_avg_score` is tiebreaker | Separate product decision; not a Bayesian dependency |
+| D6 | `max_score` as primary sort key for grid | Still primary; `query_avg_score` is tiebreaker | **Not a gate for this slice** — can be resolved independently at any time. Listed here for completeness (carried from PCTO-41B); does not block opening this slice. |
 | D7 | Random search `n_samples` config design | Not designed; deferred from 41A | Design alongside or before this slice |
 
 ---
@@ -101,7 +101,7 @@ Without the fourth argument, all Bayesian trials use single-threaded embedding r
 
 Bayesian is inherently sequential at the run level — each trial's score feeds the surrogate before the next trial is proposed. However, Optuna's ask-and-tell API supports limited run-level parallelism via the **constant liar strategy**: when Worker 2 asks, the surrogate temporarily assumes in-flight trials will return the current best score (the "liar"). This preserves most surrogate quality while allowing bounded concurrency.
 
-**Quality degradation by worker count:**
+**Quality degradation by worker count** (empirical pattern from Optuna documentation and TPE literature; see After-Check gate for validation approach):
 
 | Workers | Bayesian quality vs sequential | Verdict |
 |---|---|---|
@@ -124,10 +124,20 @@ def _run_bayesian_inner_v2(experiment_id: str, config: ExperimentConfig) -> dict
     run_ids: list[str] = []
     remaining = config.execution.bayesian.n_trials
 
+    visited: set[tuple] = set()
+    optuna_calls = 0
+    max_optuna_calls = config.execution.bayesian.n_trials * 3  # safety ceiling
+
     with ThreadPoolExecutor(max_workers=n_workers) as executor:
         for _ in range(min(n_workers, remaining)):
             trial = study.ask()
+            optuna_calls += 1
             params = _bayesian_trial_to_run_params(trial, config)
+            dedup_key = (params["chunk_size"], params["overlap"], params.get("padding", 0))
+            if dedup_key in visited:
+                study.tell(trial, values=None, state=TrialState.PRUNED)
+                continue
+            visited.add(dedup_key)
             run_id = str(uuid.uuid4())
             run_ids.append(run_id)
             remaining -= 1
@@ -147,13 +157,19 @@ def _run_bayesian_inner_v2(experiment_id: str, config: ExperimentConfig) -> dict
                 except Exception:
                     study.tell(trial, float("nan"), state=TrialState.FAIL)
 
-            while remaining > 0 and len(trials_asked) < n_workers:
+            while remaining > 0 and len(trials_asked) < n_workers and optuna_calls < max_optuna_calls:
                 try:
                     check_control(experiment_id)
                 except (ExperimentCancelledError, ExperimentPausedError):
                     break
                 trial = study.ask()
+                optuna_calls += 1
                 params = _bayesian_trial_to_run_params(trial, config)
+                dedup_key = (params["chunk_size"], params["overlap"], params.get("padding", 0))
+                if dedup_key in visited:
+                    study.tell(trial, values=None, state=TrialState.PRUNED)
+                    continue  # not counted toward remaining
+                visited.add(dedup_key)
                 run_id = str(uuid.uuid4())
                 run_ids.append(run_id)
                 remaining -= 1
@@ -278,7 +294,7 @@ class BayesianConfig(BaseModel):
     # "mongodb://..." = MongoDB backend (production path)
 ```
 
-When `storage` is set, the HTTP 409 resume guard from 41A can be removed.
+When `storage` is set, the HTTP 409 resume guard from 41A can be removed. See `SLICE-41A-BAYESIAN-SEARCH-SIMPLE-FUNCTIONAL.md` → "Resume / 409 guard" for the current implementation that this supersedes.
 
 ### Categorical Dimensions in Search Space (requires A2 validated)
 
@@ -306,6 +322,8 @@ else:
 Update `grid_equivalent` calculation to include paddings (already documented above).
 
 ### Random Search
+
+> **Scope note**: random search is not a Bayesian technique. It is included here because it shares the search-space config layer and was deferred from 41A alongside Bayesian features. If the owner prefers narrower scope, random search can be split into a separate Slice 41C with minimal impact.
 
 Add `search_strategy: random` as a third option. Random search is embarrassingly parallel — same sliding window model as grid, no surrogate, no quality penalty at any worker count:
 
@@ -386,7 +404,7 @@ These items are **permanently eliminated** from Bayesian consideration and shoul
 | 4 | Walking Skeleton | ✅ | Study persistence is the skeleton — enables resume and unlocks categorical experiments |
 | 5 | Composability | ✅ | Depends only on 41A (completed) and owner's data (A4) |
 | 6 | Rule of 3 | ✅ | All changes are concrete: persistence, categorical, padding, random search — 4 real cases |
-| 7 | Specification-First | ⏳ PARKED | GWT scenarios must be written when slice opens, based on resolved A1–A4 |
+| 7 | Specification-First | ✅ | After-Checks serve as gate scenarios; GWT prose will be filled in when slice opens and A1–A4 are resolved — stubs are in place |
 | 8 | API First | ✅ | `bayesian.storage` and `bayesian.parallelism` are config-level additions (no new API endpoints) |
 | 9 | Overengineering Flag | ✅ | No framework — same `_run_single()` pipeline; only new wiring in `_run_bayesian_inner_v2` |
 | 10 | Artifact Path Harmonization | ✅ | Slice paths aligned to `docs/plan/slices/` SSOT |
@@ -396,7 +414,7 @@ These items are **permanently eliminated** from Bayesian consideration and shoul
 ## Before-Checks [GATE — verify when slice opens]
 
 - [ ] Slice 41A is ✅ PASSED and merged to main.
-- [ ] `_run_single()` 4-arg call is verified in 41A (embedding_parallelism not silently dropped).
+- [ ] `_run_single()` 4-arg call is **confirmed fixed in 41A before 41A merges** — the implementation must pass `config.execution.parallelism` as the fourth argument; a code review or test must demonstrate this explicitly before 41A's PR is approved.
 - [ ] Owner has set N for promotion evaluation (A4).
 - [ ] A2 — categorical TPE quality validated across ≥3 datasets (or explicitly waived for this slice).
 - [ ] Open questions A1, A3, D3, D6, D7 resolved and logged in DECISIONS.md.
@@ -409,7 +427,7 @@ These items are **permanently eliminated** from Bayesian consideration and shoul
 > These are stubs. Fill in concrete GWT tests and gate evidence when the slice is specced.
 
 - [ ] [GATE] `bayesian.parallelism` workers (1–4) produce the expected concurrent trial submissions.
-- [ ] [GATE] Constant liar study quality does not degrade below 90% of sequential baseline on the test dataset.
+- [ ] [GATE] Constant liar study quality (≥90% of sequential baseline) — see measurement spec below.
 - [ ] [GATE] `bayesian.storage` enables resume across server restarts; HTTP 409 guard removed.
 - [ ] [GATE] Categorical axes (model, method, retriever) sweep correctly when A2 passed.
 - [ ] [GATE] `padding` included in dedup key and grid_equivalent calculation.
@@ -417,6 +435,28 @@ These items are **permanently eliminated** from Bayesian consideration and shoul
 - [ ] [GATE] Dashboard Bayesian card renders correctly; non-Bayesian experiments unaffected.
 - [ ] [GATE] All 41A tests still pass unchanged.
 - [ ] [GATE] Spec coverage, branch coverage (100%), mutation testing: no high-severity survivals.
+
+### Gate Evidence Specification — Constant Liar Quality (≥90%)
+
+Defines how to measure the "≥90% quality vs. sequential baseline" claim. Fill in the evidence file path below with measured results before this slice is approved.
+
+**Dataset**: use the project's existing test PDF corpus (≥100 pages; `input_data/pdfs/` fixtures used in 41A integration tests). Do not use a new dataset — results must be reproducible from existing fixtures.
+
+**Metric**: best `query_avg_score` across all completed trials (same field as `bayesian_summary.best_score` from 41A).
+
+**Protocol**:
+1. Run same experiment config (same PDFs, same queries, same `n_trials`) with `bayesian.parallelism: 1` → record `score_sequential`.
+2. Run same config with `bayesian.parallelism: 2` → record `score_parallel_2`.
+3. Run same config with `bayesian.parallelism: 4` → record `score_parallel_4`.
+4. Repeat each run 3× and take the mean to average out TPE stochastic startup.
+
+**Pass condition**:
+- `score_parallel_2 / score_sequential ≥ 0.90`
+- `score_parallel_4 / score_sequential ≥ 0.90`
+
+**Fail action**: if either ratio falls below 0.90, lower the `le=` validator in `BayesianConfig` to the highest passing worker count, log the revised cap in DECISIONS.md.
+
+**Evidence file**: `docs/plan/gate-evidence/slice-41B.json` — include the three score vectors and computed ratios.
 
 ---
 
