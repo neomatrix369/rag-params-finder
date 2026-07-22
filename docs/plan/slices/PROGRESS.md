@@ -1,6 +1,6 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-21 (Slice 41A follow-up sync)
+**Last Updated**: 2026-07-22 (Slice 41B PARKED — added to plan)
 **Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** 🔨 In progress (Bayesian API/detail summary normalization) | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
@@ -58,6 +58,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 39 — Demo-ready dashboard polish | ✅ COMPLETE | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, network, and component verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
 | 40 — Documentation Plan/Slices SSOT alignment | 📋 PLANNED | ~1 h | Clarify `docs/plan` vs `docs/plan/slices` roles; keep `docs/plan/slices/PROGRESS.md` as the status SSOT |
 | 41A — Bayesian Search: Simple Functional | 🔨 IN PROGRESS | ~2.5 h | Bayesian summary no longer null on partial/running detail states; `not_started` now tracked in progress summary |
+| 41B — Bayesian Search: Advanced | 📦 PARKED | ~4–6 h | Depends on 41A + production sweep data; covers parallelism (constant liar, ≤4 workers), categorical axes (model/method/retriever), study persistence, random search strategy, and dashboard Bayesian card — [`SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`](SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
 
@@ -94,6 +95,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 39 | Should | ✅ COMPLETE | — | Demo-ready list/detail journey; lifecycle component coverage and clean implementation history verified |
 | 40 | Should | 📋 PLANNED | — | Clarify `docs/plan` vs `docs/plan/slices` roles; status SSOT remains here |
 | 41A | Could | 🔨 IN PROGRESS | 16 | Bayesian shortfall tracking and partial-state summary normalization now active; docs and final test closure next |
+| 41B | Could | 📦 PARKED | 41A + owner data | Parallelism, categorical axes, study persistence, random search — open after 41A ships and production evidence exists; spec: [`SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`](SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) |
 
 **Execution order**: 21 → 25 → 25B → 29 → 39 (done) → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
 
@@ -103,6 +105,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 
 | Date | Item | Outcome |
 |------|------|---------|
+| 2026-07-22 | Slice 41B planning | Added PARKED slice for Bayesian advanced features (constant liar parallelism, categorical axes, study persistence, random search); TRAIL + PROGRESS + DECISIONS aligned; full architecture record preserved in slice spec |
 | 2026-07-21 | Slice 41A implementation follow-up | Added Bayes summary normalization behavior in API/detail responses for partial and running states; documented `not_started` and `discarded_trials` contract alignment; docs now aligned with tested behavior |
 | 2026-07-20 | Slice 40 merged into Slice 20 | CI/CD trigger topology hardening (tooling split, path filters, lockfile-aware audits) consolidated into Slice 20 as Round 2 follow-up and tracked as part of complete Slice 20 |
 | 2026-07-19 | Slice 39 review revisions | Added 7 lifecycle component scenarios, wired them into local/CI gates, and removed unrelated MongoDB work from the implementation branch |
@@ -854,6 +857,7 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-07-22 | main | /enhanced-flow-planner | Slice 41B plan addition | COMPLETE | Added PARKED Slice 41B (Bayesian Advanced); created SLICE-41B spec; updated TRAIL/PROGRESS/DECISIONS; sync-docs + clean-commit + PR follow |
 | 2026-07-21 | main | /sync-docs | Slice 16 completion sync | COMPLETE | Fixed Quick Status inconsistency (`PLANNED` → `✅ COMPLETE`) for Slice 16; confirmed spec + addendum complete; manual demo blockers unchanged and documented |
 | 2026-07-20 | main | /enhanced-flow-planner | Slice 39 | COMPLETE | Continuation check reviewed pending/planned slices; no migration needed this pass beyond confirming Slice 39's status alignment |
 | 2026-07-20 | main | /sync-docs | 39 plan sync | COMPLETE | Added Skill Execution Log entries for this sync/session and confirmed `TRAIL.md` and `PROGRESS.md` now align on Slice 39 completion state |
