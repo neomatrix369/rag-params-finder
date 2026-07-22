@@ -99,6 +99,12 @@ Follows the pattern of Slice 14 (introduced the Docker stack) and Slice 20/40 (C
 **When** a second CI run triggers on the same branch with no dependency changes,
 **Then** the `docker-build` job completes measurably faster than the first run (cache hit visible in BuildKit output).
 
+### Should-10: nginx SPA fallback serves index.html for unknown routes
+
+**Given** the nginx:alpine frontend container is running on port 5374,
+**When** `curl -s -o /dev/null -w "%{http_code}" http://localhost:5374/nonexistent-route` is executed,
+**Then** the response code is 200 and the response body contains `<div id="root">` (index.html content, not a 404 page).
+
 ---
 
 ## Files to Create / Modify
@@ -106,8 +112,8 @@ Follows the pattern of Slice 14 (introduced the Docker stack) and Slice 20/40 (C
 | File | Change | Priority |
 |------|--------|----------|
 | `docker/server.Dockerfile` | Rewrite: multi-stage `deps` + `runtime`; cache mounts | **Must** |
-| `docker/frontend.Dockerfile` | Add `--mount=type=cache` on `npm ci`; replace runtime with `nginx:alpine` | **Must/Should** |
-| `docker/frontend.dev.Dockerfile` | Add `--mount=type=cache` on `npm ci` | **Must** |
+| `docker/frontend.Dockerfile` | Add `RUN mkdir -p /root/.npm` before `npm ci`; add `--mount=type=cache,target=/root/.npm` on `npm ci`; replace runtime with `nginx:alpine` | **Must/Should** |
+| `docker/frontend.dev.Dockerfile` | Add `RUN mkdir -p /root/.npm` before `npm ci`; add `--mount=type=cache,target=/root/.npm` on `npm ci` | **Must** |
 | `docker/frontend.nginx.conf` | NEW — nginx config: listen 5374, SPA fallback (`try_files $uri /index.html`) | **Should** |
 | `.github/workflows/ci.yml` | Add `docker` filter to paths-filter job; add `docker-build` job (non-blocking) | **Should** |
 | `scripts/docker-build-context.sh` | Optional: trim source list after native cache absorbs fine-grained work | **Could** |
@@ -120,7 +126,7 @@ Follows the pattern of Slice 14 (introduced the Docker stack) and Slice 20/40 (C
 - [ ] `./start-services.sh && ./scripts/health-check.sh` passes — baseline before changes
 - [ ] `./scripts/quality-gates.sh` passes (zero regressions baseline)
 - [ ] `docker buildx version` ≥ 0.10 (BuildKit cache mounts require Buildx; already default on Docker Desktop)
-- [ ] **Spike**: run `uv sync --frozen --no-install-project` (or `uv pip install --no-deps -e .`) against the actual `pyproject.toml`/`uv.lock` in the `deps` stage to confirm correct dep resolution without project source files present — finalise Dockerfile syntax after spike passes
+- [ ] **Spike**: run `uv sync --frozen --no-install-project` in a throwaway container with only `pyproject.toml` + `uv.lock` present (no source files). Confirm exit 0 and all deps resolve before finalising deps-stage Dockerfile syntax. (`uv pip install --no-deps -e .` is an editable-install variant and will fail without project source — use `uv sync` only.)
 - [ ] Read `SLICE-14-DOCKER-COMPOSE.md` acceptance criteria — ensure none are broken by the Dockerfile changes
 
 ---
@@ -132,7 +138,7 @@ This slice has no pytest-testable units (pure Dockerfile/CI YAML changes). Verif
 1. **Red**: Note current `docker build` output (no CACHED for torch after source change — reproduce the problem once to confirm).
 2. **Green**: Apply Must changes; verify GWT Must-1, Must-2, Must-3 with actual `docker build` output showing CACHED layers.
 3. **Should**: Apply Should changes; verify GWT Should-4 through Should-9.
-4. **Regress**: Run `./scripts/quality-gates.sh`; run `./start-services.sh && ./scripts/health-check.sh`.
+4. **Regress**: Run `./scripts/quality-gates.sh`; run `./start-services.sh && ./scripts/health-check.sh`. Verify all SLICE-14 acceptance criteria pass (see `docs/plan/slices/SLICE-14-DOCKER-COMPOSE.md`).
 
 ---
 
@@ -142,11 +148,12 @@ This slice has no pytest-testable units (pure Dockerfile/CI YAML changes). Verif
 - [ ] **GWT Must-2**: Build after `README.md` change → torch layer shows `CACHED`
 - [ ] **GWT Must-3**: Build after `frontend/src/App.tsx` change → `npm ci` shows `CACHED`
 - [ ] **GWT Should-4**: `docker run --rm <server-image> which gcc` exits non-zero
-- [ ] **GWT Should-5**: Frontend runtime image has no `node_modules`; `docker images` shows size reduction
-- [ ] **GWT Should-6**: `./start-services.sh && ./scripts/health-check.sh` pass; all SLICE-14 ACs unmodified
+- [ ] **GWT Should-5**: Frontend runtime image has no `node_modules`; `docker images` shows size reduction (target: nginx:alpine image <100MB vs. ~300MB+ node:22-alpine + node_modules)
+- [ ] **GWT Should-6**: `./start-services.sh && ./scripts/health-check.sh` pass; all SLICE-14 ACs unmodified (see `docs/plan/slices/SLICE-14-DOCKER-COMPOSE.md`)
 - [ ] **GWT Should-7**: Docs-only PR → `docker-build` job absent from CI run
 - [ ] **GWT Should-8**: Docker-touching PR → `docker-build` job passes
 - [ ] **GWT Should-9**: Second CI run on same branch → measurably faster (GHA cache hit logged)
+- [ ] **GWT Should-10**: `curl http://localhost:5374/nonexistent-route` → HTTP 200 + `<div id="root">` in body (nginx SPA fallback working)
 - [ ] `./scripts/quality-gates.sh` passes (no regressions)
 - [ ] `docker compose config` validates (no broken references in compose files after Dockerfile restructure)
 - [ ] Specification coverage: every GWT clause above has ≥1 verification step documented
@@ -161,6 +168,7 @@ This slice has no pytest-testable units (pure Dockerfile/CI YAML changes). Verif
 | `docs/contributor-guide/architecture.md` | No change (Docker internals not covered there) |
 | `CLAUDE.md` Docker section | No change (start-services.sh commands unchanged) |
 | `CHANGELOG.md` | Add entry under `## [Unreleased]` when slice ships |
+| `docs/plan/slices/PROGRESS.md` Decision Log | After 5 consecutive successful `docker-build` CI runs, remove `continue-on-error: true` from the CI job and log the promotion decision here. |
 
 ---
 
@@ -168,7 +176,7 @@ This slice has no pytest-testable units (pure Dockerfile/CI YAML changes). Verif
 
 | Risk | Mitigation |
 |------|------------|
-| `uv` editable install (`-e .`) may not carry over cleanly to a copy-based runtime stage | Before-Check spike verifies `uv sync --frozen --no-install-project` or equivalent; runtime stage uses `COPY --from=deps /opt/venv` + plain `PYTHONPATH` if editable semantics not needed in prod |
+| `uv` editable install (`-e .`) may not carry over cleanly to a copy-based runtime stage | Before-Check spike verifies `uv sync --frozen --no-install-project`; runtime stage uses `COPY --from=deps /opt/venv` + `ENV PYTHONPATH=/opt/venv/lib/python3.12/site-packages` (no editable semantics needed in prod) |
 | BuildKit cache mounts require Buildx | Already default for Docker Desktop / modern Docker Engine; `setup-buildx-action` added in CI job |
 | nginx:alpine swap changes prod frontend runtime | Dev overlay (`frontend.dev.Dockerfile`) is unaffected; prod is static-asset serving only, behaviour identical |
 | CI job adds runner minutes | Path-scoped — only runs on Docker-relevant changes; non-blocking at first landing |
