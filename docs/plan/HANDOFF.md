@@ -9,7 +9,7 @@ Slice 41A (Bayesian Search: Simple Functional) is 🔨 IN PROGRESS. Slice 41B (B
 - Slice 41B — Bayesian Search: Advanced — 📦 PARKED
   - Full PCTO-41B spec captured in `docs/plan/slices/SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`
   - TRAIL.md, PROGRESS.md, DECISIONS.md (#70) updated
-  - Open questions A1–A4, D3, D6, D7 documented; owner must resolve before slice opens
+  - Open questions A1, A2, A4, D3, D7 documented; A3 is decided; D6 is not a gate — owner must resolve remaining questions before slice opens
 
 ## What's Next
 - Slice 41A — finish remaining ACs and run quality gates before marking ✅ PASSED
@@ -19,9 +19,12 @@ Slice 41A (Bayesian Search: Simple Functional) is 🔨 IN PROGRESS. Slice 41B (B
 - 41B open questions (must resolve before slice opens):
   - A1: SQLite vs MongoDB for study persistence backend
   - A2: Categorical axis TPE quality validation across ≥3 real datasets
-  - A3: Separate `bayesian.parallelism` vs reuse `execution.parallelism`
-  - A4: Owner-set N for default promotion evaluation (suggested baseline: 20 sweeps)
-- 41A known gap: verify `_run_single()` is called with 4 args (embedding_parallelism) before 41A merges
+  - ~~A3~~: **Decided** — `bayesian.parallelism` is a separate field, capped at 4. Only user-guide naming validation remains. Not a gate.
+  - A4: Owner-set N for default promotion evaluation (suggested baseline: 20 sweeps). **Time-bound**: if N not reached by 2026-10-01, force product decision.
+  - D3: `sweep_summary` field for Bayesian — whether to add `search_strategy` and `bayesian_config` keys
+  - D6: `max_score` sort key — **not a gate for 41B**; independent product decision; can resolve anytime
+  - D7: Random search `n_samples` config design
+- 41A known gap: `_run_single()` 4-arg call **must be confirmed fixed in 41A before 41A merges** — a code review or test must demonstrate `config.execution.parallelism` is passed as the fourth argument explicitly
 
 ## Context for Next Session
 - Gate evidence file: `docs/plan/gate-evidence/slice-41A.json` — planning readiness only; update to PASSED after all ACs verified
