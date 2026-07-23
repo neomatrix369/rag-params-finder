@@ -68,11 +68,11 @@ _BAYESIAN_DATA: dict = {
 class TestPrintSummaryBayesianSection:
     """_print_summary renders Bayesian section only for bayesian strategy.
 
-    Five tests cover five distinct rendered scenarios of the Bayesian output:
+    Seven tests cover seven distinct rendered scenarios of the Bayesian output:
     (1) grid strategy — no Bayesian section at all,
     (2) Bayesian strategy+counts line,
     (3) best-config line with formatted score,
-    (4) Trial History table with per-state Rich markup applied,
+    (4) Trial History table with per-state Rich markup applied (parametrized across 4 states),
     (5) Trial History section absent when trial_log is missing.
     Each scenario has a different conditional branch in _print_summary.
     """
@@ -164,8 +164,6 @@ class TestPrintSummaryBayesianSection:
         Then the output includes the Bayesian section but not Trial History.
         """
         ### Given
-        import copy
-
         data = copy.deepcopy(_BAYESIAN_DATA)
         del data["bayesian_summary"]["trial_log"]
 

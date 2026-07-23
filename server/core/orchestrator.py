@@ -57,6 +57,25 @@ _TRADITIONAL_RETRIEVER_TYPES = {
 _RERANKER_RETRIEVER_TYPES = {RetrieverType.RERANKER, RetrieverType.CROSS_ENCODER}
 
 
+def _make_trial_log_entry(params: RunParams, state: str, score: float | None) -> dict[str, object]:
+    """Create a trial log entry from run params and outcome.
+
+    Args:
+        params: The RunParams for this trial.
+        state: Trial state ("completed", "pruned", "failed", "interrupted").
+        score: Trial score, or None if not applicable.
+
+    Returns:
+        A dict with chunk_size, overlap, state, and score keys.
+    """
+    return {
+        "chunk_size": params.chunk_size,
+        "overlap": params.overlap,
+        "state": state,
+        "score": score,
+    }
+
+
 def _primary_retriever(params: RunParams) -> RetrieverConfig:
     if not params.retrievers:
         raise ValueError(f"Run {params} has no retriever configured")
@@ -349,14 +368,7 @@ def _run_bayesian_inner(
                         values=None,
                         state=optuna.trial.TrialState.PRUNED,
                     )
-                    trial_log.append(
-                        {
-                            "chunk_size": params.chunk_size,
-                            "overlap": params.overlap,
-                            "state": "pruned",
-                            "score": None,
-                        }
-                    )
+                    trial_log.append(_make_trial_log_entry(params, "pruned", None))
                     continue
 
                 visited.add(candidate)
@@ -379,24 +391,11 @@ def _run_bayesian_inner(
 
             if score is None:
                 study.tell(trial, float("nan"), state=optuna.trial.TrialState.FAIL)
-                trial_log.append(
-                    {
-                        "chunk_size": params.chunk_size,
-                        "overlap": params.overlap,
-                        "state": "interrupted" if (cancelled or paused) else "failed",
-                        "score": None,
-                    }
-                )
+                state = "interrupted" if (cancelled or paused) else "failed"
+                trial_log.append(_make_trial_log_entry(params, state, None))
             else:
                 study.tell(trial, score)
-                trial_log.append(
-                    {
-                        "chunk_size": params.chunk_size,
-                        "overlap": params.overlap,
-                        "state": "completed",
-                        "score": score,
-                    }
-                )
+                trial_log.append(_make_trial_log_entry(params, "completed", score))
 
             if stop_after_failure:
                 break
