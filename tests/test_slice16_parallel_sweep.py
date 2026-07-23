@@ -2279,8 +2279,8 @@ class TestFinaliseByesianExperimentAllTrialsFailedPromotion:
         ### Given
         mock_collection.return_value = _mock_collection()
         update_calls: list[dict] = []
-        mock_collection.return_value.update_one.side_effect = (
-            lambda f, u, **kw: update_calls.append(u["$set"])
+        mock_collection.return_value.update_one.side_effect = lambda f, u, **kw: (
+            update_calls.append(u["$set"])
         )
 
         ### When
