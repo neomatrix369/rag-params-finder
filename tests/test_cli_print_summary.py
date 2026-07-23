@@ -173,3 +173,69 @@ class TestPrintSummaryBayesianSection:
         ### Then
         assert "Bayesian Search" in output
         assert "Trial History" not in output
+
+    # -- AT-15 ----------------------------------------------------------------
+
+    def test_bayesian_experiment_zero_discarded_omits_discarded_line(self) -> None:
+        """
+        Scenario: Zero discarded trials — no "Discarded" line in CLI output.
+
+        Given a Bayesian experiment where discarded_trials is 0
+        When _print_summary is called
+        Then the output contains the Bayesian section but no "Discarded" line.
+        """
+        ### Given
+        data = copy.deepcopy(_BAYESIAN_DATA)
+        data["bayesian_summary"]["discarded_trials"] = 0
+
+        ### When
+        output = _capture_print_summary(data)
+
+        ### Then
+        assert "Bayesian Search" in output
+        assert "Discarded" not in output
+
+    # -- AT-16 ----------------------------------------------------------------
+
+    def test_bayesian_experiment_no_best_score_omits_best_line(self) -> None:
+        """
+        Scenario: No best_query_avg_score — no "Best:" line in CLI output.
+
+        Given a Bayesian experiment where bayesian_summary has no best_query_avg_score
+        When _print_summary is called
+        Then the output contains the Bayesian section but no "Best:" line.
+        """
+        ### Given
+        data = copy.deepcopy(_BAYESIAN_DATA)
+        data["bayesian_summary"].pop("best_query_avg_score", None)
+
+        ### When
+        output = _capture_print_summary(data)
+
+        ### Then
+        assert "Bayesian Search" in output
+        assert "Best:" not in output
+
+    # -- AT-17 ----------------------------------------------------------------
+
+    def test_trial_log_unknown_state_renders_without_markup_tag(self) -> None:
+        """
+        Scenario: Unknown trial state falls back to unstyled text — no markup tag.
+
+        Given a Bayesian experiment with a trial_log entry in an unrecognised state
+        When _print_summary is called
+        Then the state text appears in output but is not prefixed by any Rich markup tag.
+        """
+        ### Given
+        data = copy.deepcopy(_BAYESIAN_DATA)
+        data["bayesian_summary"]["trial_log"] = [
+            {"chunk_size": 256, "overlap": 0, "state": "waiting", "score": None}
+        ]
+
+        ### When
+        output = _capture_print_summary(data)
+
+        ### Then
+        assert "waiting" in output
+        for tag in ("[green]", "[red]", "[dim]", "[yellow]"):
+            assert f"{tag}waiting" not in output

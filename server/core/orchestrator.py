@@ -469,6 +469,8 @@ def _finalise_bayesian_experiment(
             completion_reason = "all_trials_failed"
         elif final_status == ExperimentStatus.FAILED:
             completion_reason = "partial_failures"
+        else:
+            completion_reason = "partial_completion"
         if failed_count == planned_trials and final_status != ExperimentStatus.FAILED:
             final_status = ExperimentStatus.FAILED
             completion_reason = "all_trials_failed"
