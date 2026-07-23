@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Bayesian sweep strategy** (Slice 41A) — `execution.search_strategy: bayesian` activates Optuna TPE to tune `chunk_size` and `overlap` automatically; CLI prints a Trial History table with per-trial chunk/overlap/state/score; `bayesian_summary.trial_log` returned by the experiments API; `configs/example-mongodb-local-bayesian.yaml` and `configs/example-mongodb-unified-retrievers-bayesian.yaml` provided as activation examples.
 - **Frontend lifecycle component verification** — 7 Vitest + React Testing Library scenarios cover all six experiment lifecycle narratives and their state-specific actions; the tier runs in frontend verification and CI
 - **Padding sweep dimension** (PR #48, closes #45) — `paddings` in `ChunkParams`; post-chunk merge-forward via `_apply_padding` in `chunk_text`
 - **Slice 21 — SIE Skateboard** — SIE (Superlinked Inference Engine) as a third embedding provider; `embedder_factory.py` single dispatch point for voyage/local/sie; `sie_embedder.py` (BGE-M3, Stella-v5, SPLADE-v3 via remote gateway `SIE_ENDPOINT` + `SIE_API_KEY` or optional self-hosted Docker on `:8720`); `sie_guard.py` preflight before SIE sweeps; `aim_logger.py` Aim experiment run logging (no-op on failure); `POST /api/v1/sweep` Tier 1 ranked sweep endpoint (caller supplies `corpus` list; falls back to topic string); `GET /health` extended with `sie`, `version` fields; `configs/example-mongodb-sie.yaml`; 58 tests

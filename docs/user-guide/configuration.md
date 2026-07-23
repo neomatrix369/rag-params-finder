@@ -108,6 +108,8 @@ Expected run count is:
 If `n_trials` is higher than the grid-equivalent count, runtime caps it to the grid size.
 UI and API planned counts also expose `grid_equivalent_count` for Bayesian runs.
 
+On completion, `bayesian_summary` in the experiment document includes `trial_log` — a per-trial record of `{chunk_size, overlap, state, score}` for every trial Optuna proposed. The CLI prints this as a coloured Trial History table; the API exposes it at `GET /experiments/{id}`.
+
 Example canonical configs:
 
 - [example-mongodb-unified-retrievers-bayesian.yaml](../../configs/example-mongodb-unified-retrievers-bayesian.yaml) (opt-in, Bayesian search over chunking only)
