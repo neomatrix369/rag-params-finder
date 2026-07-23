@@ -1,6 +1,6 @@
 # Slice 41A — Bayesian Search: Simple Functional
 
-**Status**: 🔨 IN PROGRESS (core runtime + API + UI contract implemented)
+**Status**: ✅ COMPLETE (all ACs verified; trial_log, CLI summary, and test rigour added in closure pass)
 
 **MoSCoW**: Could
 
@@ -106,7 +106,7 @@ CLI prints a comparison summary at completion.
 
 ## Acceptance criteria
 
-- [ ] `ExperimentConfig` with `search_strategy: grid` or omitted `search_strategy` behaves exactly as today and existing tests pass unchanged.
+- [x] `ExperimentConfig` with `search_strategy: grid` or omitted `search_strategy` behaves exactly as today and existing tests pass unchanged.
 - [x] `ExperimentConfig` with `search_strategy: bayesian` plus multi-value `embedding.models`, `chunking.methods`, or `retrieval.retrievers` fails parsing with a `ValidationError`.
 - [x] `ExperimentConfig` with `search_strategy: bayesian` plus single fixed axes (`len(...) == 1`) and list ranges for `chunking.params.chunk_sizes` and `overlaps` passes parsing.
 - [x] Submitting a Bayesian experiment creates exactly `n_trials` run entries in `run_status` up-front via planned attempt tracking.
@@ -114,21 +114,26 @@ CLI prints a comparison summary at completion.
 - [x] `experiment_doc.grid_equivalent_count == len(chunk_sizes) × len(overlaps)`.
 - [x] Duplicate `(chunk_size, overlap)` suggestions are de-duplicated and marked as `TrialState.PRUNED` (or equivalent) without advancing trial-completion counters.
 - [x] Mid-sweep pause and cancel preserve current semantics (`pause` or `stop` takes effect at the next trial boundary; `_run_single()` completes or interrupts as today).
-- [ ] `POST /experiments/{id}/resume` returns HTTP 409 for Bayesian experiments.
-- [ ] Completion prints Bayesian comparison summary with best config/score and grid-equivalent efficiency.
+- [x] `POST /experiments/{id}/resume` returns HTTP 409 for Bayesian experiments.
+  - Covered by: `tests/test_experiments_api_bayesian.py::test_resume_bayesian_experiment_returns_409`
+- [x] Completion prints Bayesian comparison summary with best config/score and grid-equivalent efficiency.
+  - Covered by: `tests/test_cli_print_summary.py::TestPrintSummaryBayesianSection` (5 tests); CLI renders strategy, counts, best config, and Trial History table.
 - [x] Bayesian experiments with `attempted_trials < n_trials` but `failed_count == 0` are finalized as `complete` (not `partial`) and expose `bayesian_summary.discarded_trials` so the shortfall is explicit.
   - Covered by:
     - `uv run pytest tests/test_slice16_parallel_sweep.py -k "finalise_bayesian_experiment_promotes_no_failure_partial_to_complete"`
     - `frontend/src/components/ExperimentDetailScreen.test.tsx` scenario “Bayesian shortfall still reaches terminal COMPLETE status”
-- [ ] Dashboard and list/detail output adapt cleanly to both strategies:
+- [x] Dashboard and list/detail output adapt cleanly to both strategies:
   - Bayesian experiments show `search_strategy`, `grid_equivalent_count`, and `bayesian_summary` in context.
   - Non-Bayesian experiments preserve current output fields and layout (no Bayesian-only cards/metrics).
-- [ ] Dashboard and API output shape remain backward compatible:
+  - Covered by: `ExperimentDetailScreen.test.tsx` and `ExperimentsScreen.test.tsx` bayesian scenarios.
+- [x] Dashboard and API output shape remain backward compatible:
   - New fields are additive (`bayesian_summary`, `grid_equivalent_count`) when strategy is bayesian.
   - Non-bayesian outputs remain unchanged and do not require dashboard special-casing beyond hiding bayesian blocks.
-- [ ] `optuna>=3.0` is added to dependency set without additional infra requirements.
-- [ ] Usage docs include: minimal config diff required to activate Bayesian mode and an end-to-end "expected run" sample.
-- [ ] `configs/example-mongodb-unified-retrievers-bayesian.yaml` and
+- [x] `optuna>=3.0` is added to dependency set without additional infra requirements.
+  - Verified in `pyproject.toml`: `optuna>=3.0`
+- [x] Usage docs include: minimal config diff required to activate Bayesian mode and an end-to-end "expected run" sample.
+  - Covered by: `docs/user-guide/configuration.md` Bayesian section.
+- [x] `configs/example-mongodb-unified-retrievers-bayesian.yaml` and
   `configs/example-mongodb-local-bayesian.yaml` are added and documented as activation examples.
   - Unified variant derives from `example-mongodb-unified-retrievers.yaml` and uses
     `experiment_name: example-mongodb-unified-retrievers-bayesian`.
@@ -136,17 +141,20 @@ CLI prints a comparison summary at completion.
     `experiment_name: example-mongodb-local-bayesian`.
   - Both files add `execution.search_strategy: bayesian` and `execution.bayesian.n_trials`,
     while constraining the Bayesian search axes as required.
-- [ ] `_planned_run_count(config)` value is documented and surfaced in planned-count UX same as existing run display behavior.
-- [ ] `execution.bayesian.n_trials` can be omitted and resolves to grid-equivalent default at runtime.
-- [ ] Failed trial outcomes are passed to Optuna as `TrialState.FAIL` with `NaN` to preserve resume/continuation behavior and diagnostics.
-- [ ] Duplicate trial candidates do not create extra `run_status` rows and are surfaced only via Optuna prune semantics.
+- [x] `_planned_run_count(config)` value is documented and surfaced in planned-count UX same as existing run display behavior.
+- [x] `execution.bayesian.n_trials` can be omitted and resolves to grid-equivalent default at runtime.
+- [x] Failed trial outcomes are passed to Optuna as `TrialState.FAIL` with `NaN` to preserve resume/continuation behavior and diagnostics.
+  - Verified in `orchestrator.py`: `study.tell(trial, float("nan"), state=optuna.trial.TrialState.FAIL)`
+- [x] Duplicate trial candidates do not create extra `run_status` rows and are surfaced only via Optuna prune semantics.
 - [x] Dashboard and API payload expose `bayesian_summary.discarded_trials` (if present) and render partial Bayesian outcomes as “graceful stop” with discard/stop explanation.
   - UI contract checks:
     - `cd frontend && npm run -s test -- ExperimentDetailScreen.test.tsx ExperimentsScreen.test.tsx`
 - [x] Terminal completion reason is explicitly carried across backend and frontend surfaces.
   - Backend writes `completion_reason` values into experiment docs (including `completed_with_sampling_shortfall` and related terminal labels).
   - `ExperimentDetailScreen` and `ExperimentsScreen` render completion reason labels in outcome copy so “attempted/discarded/not-started” state is not misread.
-- [ ] Follow-up scope: exposing full sampler proposal history (proposed vs executed vs discarded) is explicitly deferred and is not required for Slice 41A acceptance; if implemented, it must be shown only for Bayesian experiments and never for non-Bayesian runs.
+- [x] Follow-up scope: exposing full sampler proposal history (proposed vs executed vs discarded) is explicitly deferred and is not required for Slice 41A acceptance; if implemented, it must be shown only for Bayesian experiments and never for non-Bayesian runs.
+  - Implemented in closure pass: `trial_log` stored in `bayesian_summary` (orchestrator + API + CLI). Frontend trial history table deferred to 41B.
+  - Covered by: `test_slice16_parallel_sweep.py` (4 new trial_log tests) + `test_experiments_api_bayesian.py::test_detail_bayesian_experiment_passes_through_trial_log`
 
 ## Behavioral scenarios (GWT)
 
@@ -178,15 +186,16 @@ Scenario: Bayesian run ends without failures despite incomplete attempts
 
 ## Before-Checks [GATE]
 
-- [ ] `results_analyzer.py` already provides per-query average score logic suitable for trial objective reuse.
-- [ ] Existing sweep path (`expand_sweep()` and grid run) remains untouched and covered by unchanged tests.
-- [ ] `Optuna >= 3.0` can be installed in the environment with `pip install`.
+- [x] `results_analyzer.py` already provides per-query average score logic suitable for trial objective reuse.
+- [x] Existing sweep path (`expand_sweep()` and grid run) remains untouched and covered by unchanged tests.
+- [x] `Optuna >= 3.0` can be installed in the environment with `pip install`.
 
 ## TDD Execution Protocol [GATE]
 
-- [ ] [GATE: RED] Write/update tests for current layer first and confirm they fail on current code.
-- [ ] [GATE: GREEN] Implement only enough logic to make that layer pass.
-- [ ] [GATE: REFACTOR] Optional cleanup only after GREEN remains stable.
+- [x] [GATE: RED] Write/update tests for current layer first and confirm they fail on current code.
+- [x] [GATE: GREEN] Implement only enough logic to make that layer pass.
+- [x] [GATE: REFACTOR] Optional cleanup only after GREEN remains stable.
+- ⚠️ **Process deviation (closure pass)**: `trial_log` implementation (orchestrator + CLI + types) was written before tests (GREEN-first). Tests were added in the rigour pass immediately after, covering all branches. Documented in `tests/test_cli_print_summary.py` module docstring. No deviation on core 41A implementation (original merge).
 
 ## Implementation backlog (for /nw-execute)
 

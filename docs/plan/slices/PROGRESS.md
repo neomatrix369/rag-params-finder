@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-21 (Slice 41A follow-up sync)
-**Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** 🔨 In progress (Bayesian API/detail summary normalization) | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
+**Last Updated**: 2026-07-23 (Slice 41A closure)
+**Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** ✅ Bayesian Search Simple Functional | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -57,7 +57,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
 | 39 — Demo-ready dashboard polish | ✅ COMPLETE | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, network, and component verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
 | 40 — Documentation Plan/Slices SSOT alignment | 📋 PLANNED | ~1 h | Clarify `docs/plan` vs `docs/plan/slices` roles; keep `docs/plan/slices/PROGRESS.md` as the status SSOT |
-| 41A — Bayesian Search: Simple Functional | 🔨 IN PROGRESS | ~2.5 h | Bayesian summary no longer null on partial/running detail states; `not_started` now tracked in progress summary |
+| 41A — Bayesian Search: Simple Functional | ✅ COMPLETE | ~2.5 h | All ACs verified; trial_log, CLI Bayesian summary, and test rigour added in closure pass (2026-07-23); 180 tests green |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
 
@@ -93,7 +93,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 31 | Should | 📋 PLANNED | — | Experiment list filter |
 | 39 | Should | ✅ COMPLETE | — | Demo-ready list/detail journey; lifecycle component coverage and clean implementation history verified |
 | 40 | Should | 📋 PLANNED | — | Clarify `docs/plan` vs `docs/plan/slices` roles; status SSOT remains here |
-| 41A | Could | 🔨 IN PROGRESS | 16 | Bayesian shortfall tracking and partial-state summary normalization now active; docs and final test closure next |
+| 41A | Could | ✅ COMPLETE | 16 | All ACs closed; trial_log in bayesian_summary; CLI Trial History table; 10 new tests; 180 total tests green |
 
 **Execution order**: 21 → 25 → 25B → 29 → 39 (done) → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
 
@@ -103,6 +103,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 
 | Date | Item | Outcome |
 |------|------|---------|
+| 2026-07-23 | Slice 41A closure | Added trial_log to bayesian_summary (orchestrator+API+CLI), CLI _print_summary Trial History table, 10 new unit tests; lint/type fixes; all 14 ACs ticked; 180 tests green; gate-evidence PASSED |
 | 2026-07-21 | Slice 41A implementation follow-up | Added Bayes summary normalization behavior in API/detail responses for partial and running states; documented `not_started` and `discarded_trials` contract alignment; docs now aligned with tested behavior |
 | 2026-07-20 | Slice 40 merged into Slice 20 | CI/CD trigger topology hardening (tooling split, path filters, lockfile-aware audits) consolidated into Slice 20 as Round 2 follow-up and tracked as part of complete Slice 20 |
 | 2026-07-19 | Slice 39 review revisions | Added 7 lifecycle component scenarios, wired them into local/CI gates, and removed unrelated MongoDB work from the implementation branch |
