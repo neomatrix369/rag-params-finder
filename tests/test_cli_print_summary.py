@@ -9,9 +9,11 @@ Coverage is equivalent but the ATDD RED phase was skipped for this closure pass.
 
 from __future__ import annotations
 
+import copy
 from io import StringIO
 from unittest.mock import patch
 
+import pytest
 from rich.console import Console
 
 
@@ -93,13 +95,16 @@ class TestPrintSummaryBayesianSection:
         assert "Bayesian Search" not in output
         assert "Trial History" not in output
 
-    def test_bayesian_experiment_shows_strategy_and_counts(self) -> None:
+    def test_bayesian_experiment_shows_full_summary(self) -> None:
         """
-        Scenario: Bayesian experiment output shows strategy header with trial counts.
+        Scenario: Bayesian experiment output renders strategy header, trial counts,
+        best config with formatted score, and Trial History table.
 
-        Given a completed Bayesian experiment with bayesian_summary
+        Given a completed Bayesian experiment with bayesian_summary and trial_log
         When _print_summary is called
-        Then the output includes the Bayesian strategy section with trial and grid counts.
+        Then the output includes the strategy section, counts, best config line,
+        and the Trial History section header.
+        State-specific markup coverage is in test_trial_log_entry_gets_correct_state_markup.
         """
         ### Given
         data = {**_BAYESIAN_DATA}
@@ -107,54 +112,48 @@ class TestPrintSummaryBayesianSection:
         ### When
         output = _capture_print_summary(data)
 
-        ### Then
+        ### Then — strategy header and counts
         assert "Bayesian Search" in output
         assert "4/4" in output  # attempted/planned
         assert "6" in output  # grid_equivalent_count
-
-    def test_bayesian_experiment_shows_best_config(self) -> None:
-        """
-        Scenario: Bayesian summary includes best config and score.
-
-        Given a completed Bayesian experiment with best_query_avg_score and best_chunk_size
-        When _print_summary is called
-        Then the output displays chunk_size, overlap, and score for the best trial.
-        """
-        ### Given
-        data = {**_BAYESIAN_DATA}
-
-        ### When
-        output = _capture_print_summary(data)
-
-        ### Then
+        ### Then — best config line
         assert "chunk_size=512" in output
         assert "overlap=50" in output
-        assert "0.8470" in output
+        assert "0.8470" in output  # best_query_avg_score formatted to .4f
+        ### Then — Trial History section present
+        assert "Trial History" in output
 
-    def test_bayesian_experiment_shows_trial_history(self) -> None:
+    @pytest.mark.parametrize(
+        "state,expected_tag",
+        [
+            ("completed", "[green]"),
+            ("pruned", "[dim]"),
+            ("failed", "[red]"),
+            ("interrupted", "[yellow]"),
+        ],
+    )
+    def test_trial_log_entry_gets_correct_state_markup(self, state: str, expected_tag: str) -> None:
         """
-        Scenario: trial_log entries are rendered in Trial History table with state markup.
+        Scenario: each trial state is wrapped in its corresponding Rich markup tag.
 
-        Given a Bayesian experiment with a trial_log containing completed, pruned,
-        and failed entries
+        Given a Bayesian experiment with a single trial_log entry in <state>
         When _print_summary is called
-        Then the output includes Trial History with all states wrapped in their
-        expected Rich markup tags (markup=False console preserves tags literally).
+        Then the output contains <expected_tag><state> as a literal tagged string
+        (markup=False console emits tags literally — removing the style mapping
+        entry in production would drop the tag and fail this assertion).
         """
         ### Given
-        data = {**_BAYESIAN_DATA}
+        data = copy.deepcopy(_BAYESIAN_DATA)
+        score = 0.72 if state == "completed" else None
+        data["bayesian_summary"]["trial_log"] = [
+            {"chunk_size": 256, "overlap": 0, "state": state, "score": score}
+        ]
 
         ### When
         output = _capture_print_summary(data)
 
         ### Then
-        assert "Trial History" in output
-        # Verify Rich markup is applied, not just that the state text is present.
-        # markup=False console emits tags literally: removing the style mapping
-        # in production code would drop the tag and fail these assertions.
-        assert "[green]completed" in output
-        assert "[dim]pruned" in output
-        assert "[red]failed" in output
+        assert f"{expected_tag}{state}" in output
 
     def test_bayesian_experiment_no_trial_log_skips_history_section(self) -> None:
         """
