@@ -25,6 +25,7 @@ from server.core.orchestrator import (
     _log_bayesian_summary,
     _log_failed_run_summary,
     _primary_retriever,
+    _run_best_trial_payload,
     _run_doc_signature,
     _run_single,
     _run_sweep_inner,
@@ -1482,3 +1483,66 @@ def test_log_bayesian_summary_without_trial_log_skips_state_logging() -> None:
 
     assert mock_logger.info.call_count == 1
     assert mock_logger.debug.call_count == 0
+
+
+@patch("server.core.orchestrator.get_collection")
+def test_run_best_trial_payload_includes_run_id_in_projection(
+    mock_get_collection: MagicMock,
+) -> None:
+    """
+    Scenario: _run_best_trial_payload projection includes run_id.
+
+    Given completed query results and run_status docs with run_id
+    When _run_best_trial_payload is called
+    Then analyze_results receives run_statuses with run_id and does not raise KeyError.
+
+    Regression: run_id was omitted from the MongoDB projection causing
+    analyze_results to crash with KeyError when computing the best trial.
+    """
+    ### Given
+    query_results = [
+        {
+            "run_id": "run-1",
+            "query_text": "What is a Pell Grant?",
+            "results": [{"dense_score": 0.82, "rerank_score": None, "rank": 1}],
+        }
+    ]
+    run_statuses = [
+        {
+            "run_id": "run-1",
+            "database_provider": "mongodb",
+            "embedding_provider": "local",
+            "embedding_model": "all-MiniLM-L6-v2",
+            "chunking_method": "recursive",
+            "chunk_size": 512,
+            "overlap": 50,
+            "padding": 0,
+            "retrieval_method": "dense",
+            "retrieval_provider": None,
+            "retrieval_model": None,
+            "retrievers": [{"type": "dense"}],
+        }
+    ]
+
+    results_col = MagicMock()
+    results_col.find.return_value = query_results
+    run_status_col = MagicMock()
+    run_status_col.find.return_value = run_statuses
+
+    def _collection_selector(name: str) -> MagicMock:
+        return results_col if name == "results" else run_status_col
+
+    mock_get_collection.side_effect = _collection_selector
+
+    ### When — must not raise KeyError
+    result = _run_best_trial_payload("exp-regression")
+
+    ### Then
+    # Projection call on run_status_col must include run_id
+    run_status_find_call = run_status_col.find.call_args
+    projection = run_status_find_call.args[1] if run_status_find_call.args else {}
+    assert "run_id" in projection, "run_id must be in the MongoDB projection"
+    # Function returns best config derived from the single run
+    assert result is not None
+    assert result.get("chunk_size") == 512
+    assert result.get("overlap") == 50

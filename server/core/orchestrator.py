@@ -643,6 +643,7 @@ def _run_best_trial_payload(experiment_id: str) -> dict | None:
         get_collection(RUN_STATUS_COLLECTION).find(
             {"experiment_id": experiment_id},
             {
+                "run_id": 1,
                 "database_provider": 1,
                 "embedding_provider": 1,
                 "embedding_model": 1,
