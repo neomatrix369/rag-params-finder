@@ -101,6 +101,12 @@ export interface Experiment {
     discarded_trials?: number;
     not_started?: number;
     termination_reason?: string;
+    trial_log?: Array<{
+      chunk_size: number;
+      overlap: number;
+      state: 'completed' | 'failed' | 'pruned' | 'interrupted';
+      score: number | null;
+    }>;
   };
   execution?: {
     search_strategy?: 'grid' | 'bayesian';

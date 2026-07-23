@@ -43,10 +43,10 @@ ranked_configs.sort(key=lambda c: c["max_score"], reverse=True)
 # AFTER (4-level tiebreaker)
 ranked_configs.sort(
     key=lambda c: (
-        -c["max_score"],      # 1. Higher is better (negate for DESC)
-        -c["avg_score"],      # 2. Consistency across queries
-        c["chunk_size"],      # 3. Smaller = faster processing (ASC)
-        c["overlap"],         # 4. Smaller = less storage (ASC)
+        -c["max_score"],  # 1. Higher is better (negate for DESC)
+        -c["avg_score"],  # 2. Consistency across queries
+        c["chunk_size"],  # 3. Smaller = faster processing (ASC)
+        c["overlap"],  # 4. Smaller = less storage (ASC)
     )
 )
 ```

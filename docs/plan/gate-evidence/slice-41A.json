@@ -1,6 +1,7 @@
 {
   "slice": "41A",
-  "gate_status": "IN_PROGRESS",
+  "gate_status": "PASSED",
   "inferred": false,
-  "note": "Slice aligned with enhanced-flow-planner checks: quality-lens table completed, explicit evidence pointer added, and execution backlog separated from planning scope. Final 10/10 decision recorded in DECISIONS row 68."
+  "passed_at": "2026-07-23",
+  "note": "All 14 ACs verified. Core implementation merged via PR #98. Closure pass (2026-07-23) added: trial_log to bayesian_summary (orchestrator+API+CLI), CLI _print_summary Bayesian section with Trial History table, 10 new unit tests (5 CLI + 4 orchestrator + 1 API), lint/type fixes, quality gates green (180 tests, 86.4% coverage). Process deviation on trial_log: tests written post-implementation; documented in test_cli_print_summary.py."
 }

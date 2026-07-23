@@ -239,7 +239,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 **Backend** (2026-05-27):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 116 tests, coverage on scoped modules (80% threshold)
+- `pytest` → 217 tests, coverage on scoped modules (80% threshold)
 
 **Frontend** (2026-07-19):
 - `npm run lint` → 0 errors (eslint + security plugin)

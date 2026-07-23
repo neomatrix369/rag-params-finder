@@ -19,11 +19,16 @@ from pydantic import ValidationError
 import cli.api_client
 from server.core.experiment_control import ExperimentCancelledError, ExperimentPausedError
 from server.core.orchestrator import (
+    _bayesian_trial_to_run_params,
     _completed_param_signatures,
     _compute_final_status,
     _finalise_bayesian_experiment,
+    _log_bayesian_summary,
     _log_failed_run_summary,
+    _make_trial_log_entry,
     _primary_retriever,
+    _resolve_bayesian_n_trials,
+    _run_best_trial_payload,
     _run_doc_signature,
     _run_single,
     _run_sweep_inner,
@@ -1279,3 +1284,1021 @@ def test_cli_timeout_override_via_env_var(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setenv("RAG_PARAMS_FINDER_CLIENT_TIMEOUT_S", "7")
     importlib.reload(cli.api_client)
     assert cli.api_client._DEFAULT_TIMEOUT_S == 7.0
+
+
+# ---------------------------------------------------------------------------
+# trial_log coverage — _finalise_bayesian_experiment and _log_bayesian_summary
+# ---------------------------------------------------------------------------
+
+_TRIAL_LOG_FIXTURE: list[dict[str, object]] = [
+    {"chunk_size": 256, "overlap": 0, "state": "completed", "score": 0.72},
+    {"chunk_size": 512, "overlap": 50, "state": "completed", "score": 0.85},
+    {"chunk_size": 256, "overlap": 0, "state": "pruned", "score": None},
+    {"chunk_size": 768, "overlap": 100, "state": "failed", "score": None},
+]
+
+
+@patch("server.core.orchestrator._log_bayesian_summary")
+@patch("server.core.orchestrator._count_failed_runs", return_value=0)
+@patch("server.core.orchestrator._compute_final_status")
+@patch("server.core.orchestrator.get_collection")
+def test_finalise_bayesian_experiment_stores_trial_log_in_bayesian_summary(
+    mock_get_collection: MagicMock,
+    mock_compute_status: MagicMock,
+    mock_count_failed: MagicMock,
+    mock_log_summary: MagicMock,
+) -> None:
+    """
+    Scenario: _finalise_bayesian_experiment persists trial_log inside bayesian_summary.
+
+    Given a completed Bayesian experiment with a non-empty trial_log
+    When finalization runs
+    Then bayesian_summary in the MongoDB update contains the full trial_log list.
+    """
+    ### Given
+    mock_compute_status.return_value = (ExperimentStatus.COMPLETE, 0)
+    collection = _mock_collection()
+    mock_get_collection.return_value = collection
+
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = 4
+    config.chunking.params.chunk_sizes = [256, 512, 768]
+    config.chunking.params.overlaps = [0, 50, 100]
+
+    best_trial: dict[str, object] = {
+        "query_avg_score": 0.85,
+        "chunk_size": 512,
+        "overlap": 50,
+        "embedding_model": "all-MiniLM-L6-v2",
+        "retrieval_method": "dense",
+    }
+
+    ### When
+    final_status, _ = _finalise_bayesian_experiment(
+        experiment_id="exp-trial-log",
+        config=config,
+        planned_trials=4,
+        cancelled=False,
+        paused=False,
+        run_ids=["run-1", "run-2"],
+        attempted_trials=4,
+        discarded_trials=1,
+        best_trial=best_trial,
+        infrastructure_error=None,
+        trial_log=_TRIAL_LOG_FIXTURE,
+    )
+
+    ### Then
+    assert final_status == ExperimentStatus.COMPLETE
+    update_call = collection.update_one.call_args.args[1]["$set"]
+    stored_log = update_call["bayesian_summary"]["trial_log"]
+    assert len(stored_log) == 4
+    completed = [e for e in stored_log if e["state"] == "completed"]
+    pruned = [e for e in stored_log if e["state"] == "pruned"]
+    failed_entries = [e for e in stored_log if e["state"] == "failed"]
+    assert len(completed) == 2
+    assert len(pruned) == 1
+    assert len(failed_entries) == 1
+    assert all(isinstance(e["score"], float) for e in completed)
+    assert pruned[0]["score"] is None
+
+
+@patch("server.core.orchestrator._log_bayesian_summary")
+@patch("server.core.orchestrator._count_failed_runs", return_value=0)
+@patch("server.core.orchestrator._compute_final_status")
+@patch("server.core.orchestrator.get_collection")
+def test_finalise_bayesian_experiment_omits_trial_log_when_empty(
+    mock_get_collection: MagicMock,
+    mock_compute_status: MagicMock,
+    mock_count_failed: MagicMock,
+    mock_log_summary: MagicMock,
+) -> None:
+    """
+    Scenario: _finalise_bayesian_experiment does not store trial_log when empty.
+
+    Given a Bayesian experiment finalized with no trial_log entries
+    When finalization runs
+    Then bayesian_summary does not contain the trial_log key.
+    """
+    ### Given
+    mock_compute_status.return_value = (ExperimentStatus.COMPLETE, 0)
+    collection = _mock_collection()
+    mock_get_collection.return_value = collection
+
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = 2
+    config.chunking.params.chunk_sizes = [256, 512]
+    config.chunking.params.overlaps = [0]
+
+    ### When
+    _finalise_bayesian_experiment(
+        experiment_id="exp-empty-log",
+        config=config,
+        planned_trials=2,
+        cancelled=False,
+        paused=False,
+        run_ids=["run-1", "run-2"],
+        attempted_trials=2,
+        discarded_trials=0,
+        best_trial=None,
+        infrastructure_error=None,
+        trial_log=[],
+    )
+
+    ### Then
+    update_call = collection.update_one.call_args.args[1]["$set"]
+    assert "trial_log" not in update_call["bayesian_summary"]
+
+
+def test_log_bayesian_summary_with_trial_log_logs_state_counts() -> None:
+    """
+    Scenario: _log_bayesian_summary emits state-count INFO and per-entry DEBUG logs.
+
+    Given a trial_log with mixed states (completed, pruned, failed)
+    When _log_bayesian_summary is called
+    Then an INFO log with state counts is emitted and DEBUG logs for each trial entry.
+    """
+    ### Given
+    best_trial: dict[str, object] = {
+        "query_avg_score": 0.85,
+        "chunk_size": 512,
+        "overlap": 50,
+        "embedding_model": "all-MiniLM-L6-v2",
+        "retrieval_method": "dense",
+    }
+
+    ### When / Then — no exception raised and all paths execute
+    with patch("server.core.orchestrator.logger") as mock_logger:
+        _log_bayesian_summary(
+            experiment_id="exp-log-test",
+            best_trial=best_trial,
+            planned_trials=4,
+            grid_equivalent_count=6,
+            trial_log=_TRIAL_LOG_FIXTURE,
+        )
+
+    info_calls = [call for call in mock_logger.info.call_args_list]
+    debug_calls = [call for call in mock_logger.debug.call_args_list]
+
+    # Two INFO calls: the completion summary + the state counts
+    assert len(info_calls) == 2
+    # State count call includes the by_state dict
+    state_count_call = info_calls[1]
+    assert "states" in state_count_call.args[0]
+    assert state_count_call.args[2] == len(_TRIAL_LOG_FIXTURE)  # entries= param
+
+    # One DEBUG call per trial entry
+    assert len(debug_calls) == len(_TRIAL_LOG_FIXTURE)
+    # Verify score formatting: completed entries show numeric, others show "—"
+    completed_debug = debug_calls[0]  # First entry is completed with score=0.72
+    assert "0.7200" in completed_debug.args[-1]
+    pruned_debug = debug_calls[2]  # Third entry is pruned with score=None
+    assert pruned_debug.args[-1] == "—"
+
+
+def test_log_bayesian_summary_without_trial_log_skips_state_logging() -> None:
+    """
+    Scenario: _log_bayesian_summary with no trial_log emits only the completion INFO.
+
+    Given no trial_log passed to _log_bayesian_summary
+    When called
+    Then only one INFO log is emitted (no state-count or debug entries).
+    """
+    ### Given
+    best_trial: dict[str, object] = {
+        "query_avg_score": 0.72,
+        "chunk_size": 256,
+        "overlap": 0,
+        "embedding_model": "all-MiniLM-L6-v2",
+        "retrieval_method": "dense",
+    }
+
+    ### When / Then
+    with patch("server.core.orchestrator.logger") as mock_logger:
+        _log_bayesian_summary(
+            experiment_id="exp-no-log",
+            best_trial=best_trial,
+            planned_trials=2,
+            grid_equivalent_count=4,
+        )
+
+    assert mock_logger.info.call_count == 1
+    assert mock_logger.debug.call_count == 0
+
+
+@patch("server.core.orchestrator.get_collection")
+def test_run_best_trial_payload_includes_run_id_in_projection(
+    mock_get_collection: MagicMock,
+) -> None:
+    """
+    Scenario: _run_best_trial_payload projection includes run_id.
+
+    Given completed query results and run_status docs with run_id
+    When _run_best_trial_payload is called
+    Then analyze_results receives run_statuses with run_id and does not raise KeyError.
+
+    Regression: run_id was omitted from the MongoDB projection causing
+    analyze_results to crash with KeyError when computing the best trial.
+    """
+    ### Given
+    query_results = [
+        {
+            "run_id": "run-1",
+            "query_text": "What is a Pell Grant?",
+            "results": [{"dense_score": 0.82, "rerank_score": None, "rank": 1}],
+        }
+    ]
+    run_statuses = [
+        {
+            "run_id": "run-1",
+            "database_provider": "mongodb",
+            "embedding_provider": "local",
+            "embedding_model": "all-MiniLM-L6-v2",
+            "chunking_method": "recursive",
+            "chunk_size": 512,
+            "overlap": 50,
+            "padding": 0,
+            "retrieval_method": "dense",
+            "retrieval_provider": None,
+            "retrieval_model": None,
+            "retrievers": [{"type": "dense"}],
+        }
+    ]
+
+    results_col = MagicMock()
+    results_col.find.return_value = query_results
+    run_status_col = MagicMock()
+    run_status_col.find.return_value = run_statuses
+
+    def _collection_selector(name: str) -> MagicMock:
+        return results_col if name == "results" else run_status_col
+
+    mock_get_collection.side_effect = _collection_selector
+
+    ### When — must not raise KeyError
+    result = _run_best_trial_payload("exp-regression")
+
+    ### Then
+    # Projection call on run_status_col must include run_id
+    run_status_find_call = run_status_col.find.call_args
+    projection = run_status_find_call.args[1] if run_status_find_call.args else {}
+    assert "run_id" in projection, "run_id must be in the MongoDB projection"
+    # Function returns best config derived from the single run
+    assert result is not None
+    assert result.get("chunk_size") == 512
+    assert result.get("overlap") == 50
+
+
+# ---------------------------------------------------------------------------
+# AT-01 / AT-02 — termination paths: cancelled and paused
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "flag,expected_status,expected_reason",
+    [
+        ("cancelled", ExperimentStatus.CANCELLED, "cancelled_by_user"),
+        ("paused", ExperimentStatus.PAUSED, "paused_by_user"),
+    ],
+)
+@patch("server.core.orchestrator._count_failed_runs", return_value=2)
+@patch("server.core.orchestrator._log_bayesian_summary")
+@patch("server.core.orchestrator.get_collection")
+def test_finalise_bayesian_experiment_early_stop_paths(
+    mock_get_collection: MagicMock,
+    mock_log_summary: MagicMock,
+    mock_count_failed_runs: MagicMock,
+    flag: str,
+    expected_status: ExperimentStatus,
+    expected_reason: str,
+) -> None:
+    """
+    Scenario: Bayesian sweep stopped by user action finalises with correct terminal status.
+
+    Given a Bayesian experiment that was cancelled or paused by the user
+    When _finalise_bayesian_experiment is called with the matching flag True
+    Then the experiment document status equals the expected terminal status,
+    the completion_reason matches the user-action label,
+    and _count_failed_runs is called to record actual failure count.
+    """
+    ### Given
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = 4
+    config.chunking.params.chunk_sizes = [128, 256]
+    config.chunking.params.overlaps = [0, 50]
+
+    collection = _mock_collection()
+    mock_get_collection.return_value = collection
+
+    ### When
+    final_status, failed_count = _finalise_bayesian_experiment(
+        experiment_id="exp-stop",
+        config=config,
+        planned_trials=4,
+        cancelled=(flag == "cancelled"),
+        paused=(flag == "paused"),
+        run_ids=["run-1", "run-2"],
+        attempted_trials=2,
+        discarded_trials=0,
+        best_trial=None,
+        infrastructure_error=None,
+    )
+
+    ### Then
+    assert final_status == expected_status
+    assert failed_count == 2
+    update = collection.update_one.call_args.args[1]["$set"]
+    assert update["status"] == expected_status
+    assert update["completion_reason"] == expected_reason
+    mock_count_failed_runs.assert_called_once_with("exp-stop")
+
+
+# ---------------------------------------------------------------------------
+# AT-03 — all Bayesian trials fail
+# ---------------------------------------------------------------------------
+
+
+@patch("server.core.orchestrator._count_failed_runs", return_value=3)
+@patch("server.core.orchestrator._compute_final_status")
+@patch("server.core.orchestrator._log_bayesian_summary")
+@patch("server.core.orchestrator.get_collection")
+def test_finalise_bayesian_experiment_all_trials_failed(
+    mock_get_collection: MagicMock,
+    mock_log_summary: MagicMock,
+    mock_compute_final_status: MagicMock,
+    mock_count_failed_runs: MagicMock,
+) -> None:
+    """
+    Scenario: Every Bayesian trial fails — experiment marked FAILED with all_trials_failed.
+
+    Given a Bayesian sweep where all 3 planned trials failed
+    When _finalise_bayesian_experiment evaluates the terminal state
+    Then status is FAILED and completion_reason is 'all_trials_failed'.
+    """
+    ### Given
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = 3
+    config.chunking.params.chunk_sizes = [128, 256, 512]
+    config.chunking.params.overlaps = [0, 50]
+
+    collection = _mock_collection()
+    mock_get_collection.return_value = collection
+    mock_compute_final_status.return_value = (ExperimentStatus.FAILED, 3)
+
+    ### When
+    final_status, _ = _finalise_bayesian_experiment(
+        experiment_id="exp-all-fail",
+        config=config,
+        planned_trials=3,
+        cancelled=False,
+        paused=False,
+        run_ids=["run-1", "run-2", "run-3"],
+        attempted_trials=3,
+        discarded_trials=0,
+        best_trial=None,
+        infrastructure_error=None,
+    )
+
+    ### Then
+    assert final_status == ExperimentStatus.FAILED
+    update = collection.update_one.call_args.args[1]["$set"]
+    assert update["completion_reason"] == "all_trials_failed"
+
+
+# ---------------------------------------------------------------------------
+# AT-04 — partial Bayesian trial failures
+# ---------------------------------------------------------------------------
+
+
+@patch("server.core.orchestrator._count_failed_runs", return_value=1)
+@patch("server.core.orchestrator._compute_final_status")
+@patch("server.core.orchestrator._log_bayesian_summary")
+@patch("server.core.orchestrator.get_collection")
+def test_finalise_bayesian_experiment_partial_failures(
+    mock_get_collection: MagicMock,
+    mock_log_summary: MagicMock,
+    mock_compute_final_status: MagicMock,
+    mock_count_failed_runs: MagicMock,
+) -> None:
+    """
+    Scenario: Some but not all Bayesian trials fail — FAILED with partial_failures reason.
+
+    Given a Bayesian sweep where 1 of 3 trials failed
+    When _finalise_bayesian_experiment evaluates the terminal state
+    Then status is FAILED and completion_reason is 'partial_failures'.
+    """
+    ### Given
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = 3
+    config.chunking.params.chunk_sizes = [128, 256, 512]
+    config.chunking.params.overlaps = [0, 50]
+
+    collection = _mock_collection()
+    mock_get_collection.return_value = collection
+    mock_compute_final_status.return_value = (ExperimentStatus.FAILED, 1)
+
+    ### When
+    final_status, _ = _finalise_bayesian_experiment(
+        experiment_id="exp-partial-fail",
+        config=config,
+        planned_trials=3,
+        cancelled=False,
+        paused=False,
+        run_ids=["run-1", "run-2", "run-3"],
+        attempted_trials=3,
+        discarded_trials=0,
+        best_trial=None,
+        infrastructure_error=None,
+    )
+
+    ### Then
+    assert final_status == ExperimentStatus.FAILED
+    update = collection.update_one.call_args.args[1]["$set"]
+    assert update["completion_reason"] == "partial_failures"
+
+
+# ---------------------------------------------------------------------------
+# AT-05 — no runs attempted before cancel
+# ---------------------------------------------------------------------------
+
+
+@patch("server.core.orchestrator._log_bayesian_summary")
+@patch("server.core.orchestrator.get_collection")
+def test_finalise_bayesian_experiment_no_runs_attempted(
+    mock_get_collection: MagicMock,
+    mock_log_summary: MagicMock,
+) -> None:
+    """
+    Scenario: Bayesian sweep cancelled before any trial started.
+
+    Given a Bayesian sweep that produced no run_ids
+    When _finalise_bayesian_experiment runs
+    Then status is CANCELLED and completion_reason is 'cancelled_before_attempt'.
+    """
+    ### Given
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = 4
+    config.chunking.params.chunk_sizes = [128, 256]
+    config.chunking.params.overlaps = [0, 50]
+
+    collection = _mock_collection()
+    mock_get_collection.return_value = collection
+
+    ### When
+    final_status, failed_count = _finalise_bayesian_experiment(
+        experiment_id="exp-no-runs",
+        config=config,
+        planned_trials=4,
+        cancelled=False,
+        paused=False,
+        run_ids=[],
+        attempted_trials=0,
+        discarded_trials=0,
+        best_trial=None,
+        infrastructure_error=None,
+    )
+
+    ### Then
+    assert final_status == ExperimentStatus.CANCELLED
+    assert failed_count == 0
+    update = collection.update_one.call_args.args[1]["$set"]
+    assert update["completion_reason"] == "cancelled_before_attempt"
+
+
+# ---------------------------------------------------------------------------
+# AT-06 — infrastructure error overrides COMPLETE
+# ---------------------------------------------------------------------------
+
+
+@patch("server.core.orchestrator._count_failed_runs", return_value=0)
+@patch("server.core.orchestrator._compute_final_status")
+@patch("server.core.orchestrator._log_bayesian_summary")
+@patch("server.core.orchestrator.get_collection")
+def test_finalise_bayesian_experiment_infrastructure_error_forces_failed(
+    mock_get_collection: MagicMock,
+    mock_log_summary: MagicMock,
+    mock_compute_final_status: MagicMock,
+    mock_count_failed_runs: MagicMock,
+) -> None:
+    """
+    Scenario: Infrastructure error overrides an otherwise COMPLETE status.
+
+    Given a Bayesian sweep where runs completed but an infrastructure error occurred
+    When _finalise_bayesian_experiment runs
+    Then status is FAILED, completion_reason is 'infrastructure_error',
+    and error_message is stored on the experiment document.
+    """
+    ### Given
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = 2
+    config.chunking.params.chunk_sizes = [128, 256]
+    config.chunking.params.overlaps = [0, 50]
+
+    collection = _mock_collection()
+    mock_get_collection.return_value = collection
+    mock_compute_final_status.return_value = (ExperimentStatus.COMPLETE, 0)
+
+    ### When
+    final_status, _ = _finalise_bayesian_experiment(
+        experiment_id="exp-infra-err",
+        config=config,
+        planned_trials=2,
+        cancelled=False,
+        paused=False,
+        run_ids=["run-1", "run-2"],
+        attempted_trials=2,
+        discarded_trials=0,
+        best_trial=None,
+        infrastructure_error="Atlas Search index not ready after 30 retries",
+    )
+
+    ### Then
+    assert final_status == ExperimentStatus.FAILED
+    update = collection.update_one.call_args.args[1]["$set"]
+    assert update["status"] == ExperimentStatus.FAILED
+    assert update["completion_reason"] == "infrastructure_error"
+    assert "Atlas Search index not ready" in update["error_message"]
+
+
+# ---------------------------------------------------------------------------
+# AT-07 — infrastructure error does NOT override CANCELLED
+# ---------------------------------------------------------------------------
+
+
+@patch("server.core.orchestrator._count_failed_runs", return_value=1)
+@patch("server.core.orchestrator._log_bayesian_summary")
+@patch("server.core.orchestrator.get_collection")
+def test_finalise_bayesian_experiment_infrastructure_error_does_not_override_cancelled(
+    mock_get_collection: MagicMock,
+    mock_log_summary: MagicMock,
+    mock_count_failed_runs: MagicMock,
+) -> None:
+    """
+    Scenario: Infrastructure error does not override CANCELLED — user intent wins.
+
+    Given a Bayesian sweep that was cancelled AND had an infrastructure error
+    When _finalise_bayesian_experiment runs
+    Then status remains CANCELLED, not FAILED.
+    """
+    ### Given
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = 2
+    config.chunking.params.chunk_sizes = [128, 256]
+    config.chunking.params.overlaps = [0, 50]
+
+    collection = _mock_collection()
+    mock_get_collection.return_value = collection
+
+    ### When
+    final_status, _ = _finalise_bayesian_experiment(
+        experiment_id="exp-cancel-infra",
+        config=config,
+        planned_trials=2,
+        cancelled=True,
+        paused=False,
+        run_ids=["run-1"],
+        attempted_trials=1,
+        discarded_trials=0,
+        best_trial=None,
+        infrastructure_error="embedding service timeout",
+    )
+
+    ### Then
+    assert final_status == ExperimentStatus.CANCELLED
+    update = collection.update_one.call_args.args[1]["$set"]
+    assert update["status"] == ExperimentStatus.CANCELLED
+
+
+# ---------------------------------------------------------------------------
+# AT-08 — sampler candidate exhaustion sets termination_reason
+# ---------------------------------------------------------------------------
+
+
+@patch("server.core.orchestrator._count_failed_runs", return_value=0)
+@patch("server.core.orchestrator._compute_final_status")
+@patch("server.core.orchestrator._log_bayesian_summary")
+@patch("server.core.orchestrator.get_collection")
+def test_finalise_bayesian_experiment_sampler_exhaustion_sets_termination_reason(
+    mock_get_collection: MagicMock,
+    mock_log_summary: MagicMock,
+    mock_compute_final_status: MagicMock,
+    mock_count_failed_runs: MagicMock,
+) -> None:
+    """
+    Scenario: Sampler exhausts unique candidates — termination_reason stored in summary.
+
+    Given a Bayesian sweep where Optuna discarded trials and status is PARTIAL
+    When _finalise_bayesian_experiment runs
+    Then bayesian_summary contains termination_reason='sampler_candidate_exhaustion'.
+    """
+    ### Given
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = 6
+    config.chunking.params.chunk_sizes = [128, 256]
+    config.chunking.params.overlaps = [0, 50]
+
+    collection = _mock_collection()
+    mock_get_collection.return_value = collection
+    # failed_count=1 keeps PARTIAL (the code promotes PARTIAL+0-failures to COMPLETE)
+    mock_compute_final_status.return_value = (ExperimentStatus.PARTIAL, 1)
+
+    ### When
+    _finalise_bayesian_experiment(
+        experiment_id="exp-sampler-exhaust",
+        config=config,
+        planned_trials=6,
+        cancelled=False,
+        paused=False,
+        run_ids=["run-1", "run-2", "run-3", "run-4"],
+        attempted_trials=4,
+        discarded_trials=2,
+        best_trial=None,
+        infrastructure_error=None,
+    )
+
+    ### Then
+    update = collection.update_one.call_args.args[1]["$set"]
+    assert update["bayesian_summary"].get("termination_reason") == "sampler_candidate_exhaustion"
+
+
+# ---------------------------------------------------------------------------
+# AT-09 / AT-10 / AT-11 — _run_best_trial_payload degenerate inputs
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "description,query_results,best_params_value",
+    [
+        ("no query results in DB", [], None),
+        (
+            "analysis returns non-dict",
+            [{"run_id": "r1", "query_text": "q", "results": []}],
+            "not-a-dict",
+        ),
+        (
+            "analysis returns empty dict",
+            [{"run_id": "r1", "query_text": "q", "results": []}],
+            {},
+        ),
+    ],
+)
+@patch("server.core.results_analyzer.analyze_results")
+@patch("server.core.orchestrator.get_collection")
+def test_run_best_trial_payload_returns_none_on_degenerate_inputs(
+    mock_get_collection: MagicMock,
+    mock_analyze: MagicMock,
+    description: str,
+    query_results: list,
+    best_params_value: object,
+) -> None:
+    """
+    Scenario: _run_best_trial_payload returns None gracefully when scoring cannot proceed.
+
+    Given <description>
+    When _run_best_trial_payload is called
+    Then None is returned without raising.
+    """
+    ### Given
+    results_col = MagicMock()
+    results_col.find.return_value = query_results
+    run_status_col = MagicMock()
+    run_status_col.find.return_value = []
+
+    def _selector(name: str) -> MagicMock:
+        return results_col if name == "results" else run_status_col
+
+    mock_get_collection.side_effect = _selector
+    mock_analyze.return_value = {"best_params": best_params_value}
+
+    ### When
+    result = _run_best_trial_payload("exp-degenerate")
+
+    ### Then
+    assert result is None, f"expected None for: {description}"
+
+
+# ---------------------------------------------------------------------------
+# AT-12 / AT-13 / AT-14 — _resolve_bayesian_n_trials budget negotiation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "n_trials_cfg,chunk_sizes,overlaps,expected",
+    [
+        (None, [128, 256, 512], [0, 50], 6),  # AT-12: None → grid-equivalent (3×2=6)
+        (10, [128, 256, 512], [0, 50], 6),  # AT-13: exceeds grid → capped at 6
+        (4, [128, 256, 512], [0, 50], 4),  # AT-14: within grid → used as configured
+    ],
+)
+def test_resolve_bayesian_n_trials(
+    n_trials_cfg: int | None,
+    chunk_sizes: list[int],
+    overlaps: list[int],
+    expected: int,
+) -> None:
+    """
+    Scenario: _resolve_bayesian_n_trials negotiates trial budget against grid-equivalent.
+
+    Given n_trials configured as <n_trials_cfg> and chunk_sizes × overlaps grid
+    When _resolve_bayesian_n_trials is called
+    Then the returned count equals <expected>.
+    """
+    ### Given
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = n_trials_cfg
+    config.chunking.params.chunk_sizes = chunk_sizes
+    config.chunking.params.overlaps = overlaps
+
+    ### When
+    result = _resolve_bayesian_n_trials(config)
+
+    ### Then
+    assert result == expected
+
+
+# ---------------------------------------------------------------------------
+# Orchestrator coverage — easy-win unit tests for uncovered lines
+# ---------------------------------------------------------------------------
+
+
+class TestMakeTrialLogEntry:
+    """_make_trial_log_entry is a pure dict constructor — one unit test per outcome shape.
+
+    Exercises line 71 (the return statement), which was unreachable because every
+    call site is deep inside the Bayesian trial loop (integration-only).
+    """
+
+    def test_returns_dict_with_all_fields_for_completed_trial(self) -> None:
+        """
+        Scenario: completed trial produces a dict with chunk_size, overlap, state, score.
+
+        Given a RunParams for a completed trial and a score
+        When _make_trial_log_entry is called
+        Then the returned dict contains the expected field values.
+        """
+        ### Given
+        params = _run_param()
+        params.chunk_size = 256
+        params.overlap = 32
+
+        ### When
+        entry = _make_trial_log_entry(params, state="completed", score=0.85)
+
+        ### Then
+        assert entry == {"chunk_size": 256, "overlap": 32, "state": "completed", "score": 0.85}
+
+    def test_returns_none_score_for_pruned_trial(self) -> None:
+        """
+        Scenario: pruned trial has no score — score field is None.
+
+        Given a RunParams and a None score
+        When _make_trial_log_entry is called with state 'pruned'
+        Then the returned dict has score=None.
+        """
+        ### Given
+        params = _run_param()
+
+        ### When
+        entry = _make_trial_log_entry(params, state="pruned", score=None)
+
+        ### Then
+        assert entry["score"] is None
+        assert entry["state"] == "pruned"
+
+
+class TestExecuteSweepErrorHandlers:
+    """_execute_sweep catches SearchIndexMismatchError and SIEUnavailableError.
+
+    Exercises lines 245-246 (the two except-return branches). These paths are
+    triggered when validate_experiment_search_indexes or validate_sie_readiness
+    raise inside _run_sweep_inner / _run_bayesian_inner.
+    """
+
+    def _grid_config(self) -> ExperimentConfig:
+        return _slice_config(parallelism=1)
+
+    @patch("server.core.orchestrator.unregister_sweep_control")
+    @patch("server.core.orchestrator.register_sweep_control")
+    @patch("server.core.orchestrator._fail_experiment_preflight", return_value={"status": "failed"})
+    @patch(
+        "server.core.orchestrator._run_sweep_inner",
+        side_effect=SearchIndexMismatchError("index missing"),
+    )
+    def test_search_index_mismatch_error_returns_preflight_failure(
+        self, mock_inner, mock_fail, mock_reg, mock_unreg
+    ) -> None:
+        """
+        Scenario: inner sweep raises SearchIndexMismatchError — preflight failure returned.
+
+        Given _run_sweep_inner raises SearchIndexMismatchError
+        When run_sweep is called
+        Then _fail_experiment_preflight is called and its result returned.
+        """
+        ### Given
+        config = self._grid_config()
+
+        ### When
+        result = run_sweep("exp-idx", config)
+
+        ### Then
+        mock_fail.assert_called_once_with("exp-idx", config, "index missing")
+        assert result == {"status": "failed"}
+        mock_unreg.assert_called_once_with("exp-idx")
+
+    @patch("server.core.orchestrator.unregister_sweep_control")
+    @patch("server.core.orchestrator.register_sweep_control")
+    @patch("server.core.orchestrator._fail_experiment_preflight", return_value={"status": "failed"})
+    @patch("server.core.orchestrator._run_sweep_inner", side_effect=SIEUnavailableError("SIE down"))
+    def test_sie_unavailable_error_returns_preflight_failure(
+        self, mock_inner, mock_fail, mock_reg, mock_unreg
+    ) -> None:
+        """
+        Scenario: inner sweep raises SIEUnavailableError — preflight failure returned.
+
+        Given _run_sweep_inner raises SIEUnavailableError
+        When run_sweep is called
+        Then _fail_experiment_preflight is called with the SIE error message.
+        """
+        ### Given
+        config = self._grid_config()
+
+        ### When
+        result = run_sweep("exp-sie", config)
+
+        ### Then
+        mock_fail.assert_called_once_with("exp-sie", config, "SIE down")
+        assert result == {"status": "failed"}
+
+
+class TestBayesianTrialToRunParams:
+    """_bayesian_trial_to_run_params extracts chunk_size and overlap from an Optuna trial.
+
+    Exercises lines 592-596 (the suggest_categorical calls and RunParams construction).
+    The trial argument is an Optuna Trial; mocked here to avoid a live Optuna study.
+    """
+
+    def test_extracts_chunk_size_and_overlap_from_trial_suggestions(self) -> None:
+        """
+        Scenario: trial suggestions are wired into RunParams.
+
+        Given a config with chunk_sizes=[128, 256] and overlaps=[0, 50], and an Optuna
+        trial mock that suggests 256 and 50
+        When _bayesian_trial_to_run_params is called
+        Then the returned RunParams has chunk_size=256 and overlap=50.
+        """
+        ### Given
+        config = _slice_config(parallelism=1)
+        config.chunking.params.chunk_sizes = [128, 256]
+        config.chunking.params.overlaps = [0, 50]
+
+        template = _run_param()
+
+        trial_mock = MagicMock()
+        trial_mock.suggest_categorical.side_effect = lambda name, choices: (
+            256 if name == "chunk_size" else 50
+        )
+
+        ### When
+        result = _bayesian_trial_to_run_params(config, template, trial_mock)
+
+        ### Then
+        assert result.chunk_size == 256
+        assert result.overlap == 50
+        trial_mock.suggest_categorical.assert_any_call("chunk_size", [128, 256])
+        trial_mock.suggest_categorical.assert_any_call("overlap", [0, 50])
+
+
+class TestRunSweepInnerEarlyCancel:
+    """_run_sweep_inner returns CANCELLED immediately if already cancelled in DB.
+
+    Exercises lines 743-744 (logger.info + return dict when already cancelled).
+    """
+
+    @patch("server.core.orchestrator.validate_sie_readiness")
+    @patch("server.core.orchestrator.validate_experiment_search_indexes")
+    @patch("server.core.orchestrator._experiment_cancelled_in_db", return_value=True)
+    def test_returns_cancelled_without_running_any_runs(
+        self, mock_cancelled, mock_idx, mock_sie
+    ) -> None:
+        """
+        Scenario: experiment was cancelled before sweep started.
+
+        Given _experiment_cancelled_in_db returns True
+        When _run_sweep_inner is called
+        Then it returns immediately with status CANCELLED and empty run_ids,
+        without validating indexes or launching any runs.
+        """
+        ### Given
+        config = _slice_config(parallelism=1)
+
+        ### When
+        result = _run_sweep_inner("exp-cancelled", config, skip_signatures=set())
+
+        ### Then
+        assert result["status"] == ExperimentStatus.CANCELLED
+        assert result["run_ids"] == []
+        assert result["experiment_id"] == "exp-cancelled"
+        mock_idx.assert_not_called()
+        mock_sie.assert_not_called()
+
+
+class TestLogFailedRunSummaryTruncation:
+    """_log_failed_run_summary truncates to 10 entries and appends a '+N more' suffix.
+
+    Exercises line 976 (the `+N more` suffix appended when failed_count > 10).
+    """
+
+    @patch("server.core.orchestrator.get_collection")
+    def test_appends_more_suffix_when_failures_exceed_ten(self, mock_get_col) -> None:
+        """
+        Scenario: 12 failed runs — summary shows 10 entries then '+2 more'.
+
+        Given a cursor returning 12 run_status docs and failed_count=12
+        When _log_failed_run_summary is called
+        Then the warning log includes '+2 more'.
+        """
+        ### Given
+        docs = [
+            {
+                "run_id": f"run-{i:04d}",
+                "embedding_model": "all-MiniLM-L6-v2",
+                "chunking_method": "recursive",
+                "chunk_size": 512,
+                "error_message": None,
+            }
+            for i in range(12)
+        ]
+        mock_get_col.return_value.find.return_value = iter(docs)
+
+        ### When
+        with patch("server.core.orchestrator.logger") as mock_log:
+            _log_failed_run_summary("exp-many-fail", failed_count=12)
+
+        ### Then
+        warning_call = mock_log.warning.call_args
+        log_message = warning_call[0][0] % warning_call[0][1:]
+        assert "+2 more" in log_message
+
+
+class TestFinaliseByesianExperimentAllTrialsFailedPromotion:
+    """Lines 475-476: PARTIAL→FAILED promotion when failed_count == planned_trials.
+
+    This defensive branch fires when _compute_final_status returns (PARTIAL, N)
+    with N == planned_trials — a corner case that cannot occur in normal flow but
+    is guarded explicitly. AT-08 covers the else-branch at 472-473; this test
+    covers the subsequent promotion at 475-476.
+    """
+
+    @patch("server.core.orchestrator.get_collection")
+    @patch("server.core.orchestrator._log_bayesian_summary")
+    @patch("server.core.orchestrator._count_failed_runs", return_value=0)
+    @patch(
+        "server.core.orchestrator._compute_final_status",
+        return_value=(ExperimentStatus.PARTIAL, 3),  # failed_count == planned_trials
+    )
+    def test_partial_with_all_trials_failed_is_promoted_to_failed(
+        self, mock_compute, mock_count, mock_log, mock_collection
+    ) -> None:
+        """
+        Scenario: _compute_final_status returns PARTIAL but failed_count equals planned_trials.
+
+        Given mock returns (PARTIAL, 3) and planned_trials=3
+        When _finalise_bayesian_experiment is called
+        Then the persisted status is FAILED and completion_reason is 'all_trials_failed'.
+        """
+        ### Given
+        mock_collection.return_value = _mock_collection()
+        update_calls: list[dict] = []
+        mock_collection.return_value.update_one.side_effect = lambda f, u, **kw: (
+            update_calls.append(u["$set"])
+        )
+
+        ### When
+        _finalise_bayesian_experiment(
+            experiment_id="exp-promote",
+            config=_slice_config(parallelism=1),
+            planned_trials=3,
+            attempted_trials=3,
+            discarded_trials=0,
+            run_ids=["r1", "r2", "r3"],
+            best_trial=None,
+            infrastructure_error=None,
+            cancelled=False,
+            paused=False,
+        )
+
+        ### Then
+        assert len(update_calls) == 1
+        update = update_calls[0]
+        assert update["status"] == ExperimentStatus.FAILED.value
+        assert update["completion_reason"] == "all_trials_failed"

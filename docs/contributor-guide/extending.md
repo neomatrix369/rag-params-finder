@@ -86,7 +86,7 @@ In `server/models/enums.py`, add to `ChunkingMethod`:
 class ChunkingMethod(str, Enum):
     recursive = "recursive"
     fixed = "fixed"
-    my_method = "my_method"   # add here
+    my_method = "my_method"  # add here
     ...
 ```
 
@@ -125,7 +125,7 @@ class RetrievalMethod(str, Enum):
     dense = "dense"
     sparse = "sparse"
     hybrid = "hybrid"
-    my_method = "my_method"   # add here
+    my_method = "my_method"  # add here
 ```
 
 ### 3. Wire the dispatcher
@@ -151,8 +151,7 @@ Add to an existing router in `server/api/` (e.g., `experiments.py`) or create a 
 
 ```python
 @router.get("/experiments/{experiment_id}/my-endpoint")
-async def my_endpoint(experiment_id: str, db=Depends(get_db)):
-    ...
+async def my_endpoint(experiment_id: str, db=Depends(get_db)): ...
 ```
 
 ### 2. Register the router
@@ -161,6 +160,7 @@ If creating a new router file, register it in `server/main.py`:
 
 ```python
 from server.api import my_router
+
 app.include_router(my_router)
 ```
 
