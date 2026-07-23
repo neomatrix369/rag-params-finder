@@ -207,6 +207,54 @@ def _print_summary(data: dict) -> None:
             f"overlaps {sweep.get('overlaps', [])}"
         )
 
+    search_strategy = (data.get("config") or {}).get("execution", {}).get("search_strategy", "grid")
+    bayesian_summary = data.get("bayesian_summary") if search_strategy == "bayesian" else None
+    if bayesian_summary:
+        lines.append("")
+        lines.append("[bold]Bayesian Search[/bold]")
+        planned = bayesian_summary.get("planned_trials", "?")
+        attempted = bayesian_summary.get("attempted_trials", "?")
+        grid_eq = bayesian_summary.get("grid_equivalent_count") or data.get(
+            "grid_equivalent_count", "?"
+        )
+        discarded = bayesian_summary.get("discarded_trials", 0)
+        lines.append("  Strategy:  bayesian (TPE)")
+        lines.append(f"  Trials:    {attempted}/{planned} attempted  ·  {grid_eq} grid-equivalent")
+        if discarded:
+            lines.append(f"  Discarded: {discarded} (sampler exhausted unique candidates)")
+        best_score = bayesian_summary.get("best_query_avg_score")
+        best_chunk = bayesian_summary.get("best_chunk_size")
+        best_overlap = bayesian_summary.get("best_overlap")
+        if best_score is not None:
+            lines.append(
+                f"  Best:      chunk_size={best_chunk}  overlap={best_overlap}"
+                f"  score={best_score:.4f}"
+            )
+        trial_log = bayesian_summary.get("trial_log", [])
+        if trial_log:
+            lines.append("")
+            lines.append("[bold]Trial History[/bold]")
+            header = f"  {'#':>3}  {'chunk':>5}  {'ovlp':>4}  {'state':<11}  {'score':>7}"
+            lines.append(f"[dim]{header}[/dim]")
+            for i, entry in enumerate(trial_log, start=1):
+                score_val = entry.get("score")
+                score_str = f"{score_val:.4f}" if isinstance(score_val, float) else "      —"
+                state = str(entry.get("state", "?"))
+                state_style = {
+                    "completed": "green",
+                    "failed": "red",
+                    "pruned": "dim",
+                    "interrupted": "yellow",
+                }.get(state, "")
+                if state_style:
+                    state_fmt = f"[{state_style}]{state:<11}[/{state_style}]"
+                else:
+                    state_fmt = f"{state:<11}"
+                lines.append(
+                    f"  {i:>3}  {entry.get('chunk_size', '?'):>5}  "
+                    f"{entry.get('overlap', '?'):>4}  {state_fmt}  {score_str:>7}"
+                )
+
     if failed:
         lines.append("")
         lines.append("[red bold]Failures:[/red bold]")

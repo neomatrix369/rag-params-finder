@@ -261,6 +261,7 @@ def _run_bayesian_inner(
         )
 
     run_ids: list[str] = []
+    trial_log: list[dict[str, object]] = []
     cancelled = False
     paused = False
     stop_after_failure = False
@@ -348,6 +349,14 @@ def _run_bayesian_inner(
                         values=None,
                         state=optuna.trial.TrialState.PRUNED,
                     )
+                    trial_log.append(
+                        {
+                            "chunk_size": params.chunk_size,
+                            "overlap": params.overlap,
+                            "state": "pruned",
+                            "score": None,
+                        }
+                    )
                     continue
 
                 visited.add(candidate)
@@ -370,8 +379,24 @@ def _run_bayesian_inner(
 
             if score is None:
                 study.tell(trial, float("nan"), state=optuna.trial.TrialState.FAIL)
+                trial_log.append(
+                    {
+                        "chunk_size": params.chunk_size,
+                        "overlap": params.overlap,
+                        "state": "interrupted" if (cancelled or paused) else "failed",
+                        "score": None,
+                    }
+                )
             else:
                 study.tell(trial, score)
+                trial_log.append(
+                    {
+                        "chunk_size": params.chunk_size,
+                        "overlap": params.overlap,
+                        "state": "completed",
+                        "score": score,
+                    }
+                )
 
             if stop_after_failure:
                 break
@@ -402,6 +427,7 @@ def _run_bayesian_inner(
             discarded_trials,
             best_trial,
             infrastructure_error,
+            trial_log,
         )
 
     return {
@@ -422,6 +448,7 @@ def _finalise_bayesian_experiment(
     discarded_trials: int,
     best_trial: dict | None,
     infrastructure_error: str | None,
+    trial_log: list[dict[str, object]] | None = None,
 ) -> tuple[ExperimentStatus, int]:
     if cancelled:
         final_status = ExperimentStatus.CANCELLED
@@ -473,6 +500,9 @@ def _finalise_bayesian_experiment(
     if discarded_trials > 0 and final_status == ExperimentStatus.PARTIAL:
         bayesian_summary["termination_reason"] = "sampler_candidate_exhaustion"
 
+    if trial_log:
+        bayesian_summary["trial_log"] = trial_log
+
     if best_trial is not None:
         bayesian_summary.update(
             {
@@ -505,6 +535,7 @@ def _finalise_bayesian_experiment(
             best_trial,
             planned_trials,
             _grid_equivalent_count(config),
+            trial_log,
         )
 
     return final_status, failed_count
@@ -660,6 +691,7 @@ def _log_bayesian_summary(
     best_trial: dict,
     planned_trials: int,
     grid_equivalent_count: int,
+    trial_log: list[dict[str, object]] | None = None,
 ) -> None:
     best_score = best_trial.get("query_avg_score")
     best_signature = (
@@ -669,13 +701,35 @@ def _log_bayesian_summary(
         best_trial.get("retrieval_method"),
     )
     logger.info(
-        "bayesian complete — experiment=%s best=%s score=%s grid_equivalent_efficiency=%s/%s",
+        "bayesian complete — experiment=%s best=%s score=%s trials=%s/%s",
         experiment_id,
         best_signature,
         best_score,
         planned_trials,
         grid_equivalent_count,
     )
+    if trial_log:
+        by_state: dict[str, int] = {}
+        for entry in trial_log:
+            state = str(entry.get("state", "unknown"))
+            by_state[state] = by_state.get(state, 0) + 1
+        logger.info(
+            "bayesian trial log — experiment=%s entries=%s states=%s",
+            experiment_id,
+            len(trial_log),
+            by_state,
+        )
+        for i, entry in enumerate(trial_log, start=1):
+            score = entry.get("score")
+            score_str = f"{score:.4f}" if isinstance(score, float) else "—"
+            logger.debug(
+                "  trial %02d  chunk_size=%-4s overlap=%-3s state=%-11s score=%s",
+                i,
+                entry.get("chunk_size"),
+                entry.get("overlap"),
+                entry.get("state"),
+                score_str,
+            )
 
 
 def _run_sweep_inner(

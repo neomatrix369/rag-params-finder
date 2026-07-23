@@ -22,6 +22,7 @@ from server.core.orchestrator import (
     _completed_param_signatures,
     _compute_final_status,
     _finalise_bayesian_experiment,
+    _log_bayesian_summary,
     _log_failed_run_summary,
     _primary_retriever,
     _run_doc_signature,
@@ -1279,3 +1280,205 @@ def test_cli_timeout_override_via_env_var(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setenv("RAG_PARAMS_FINDER_CLIENT_TIMEOUT_S", "7")
     importlib.reload(cli.api_client)
     assert cli.api_client._DEFAULT_TIMEOUT_S == 7.0
+
+
+# ---------------------------------------------------------------------------
+# trial_log coverage — _finalise_bayesian_experiment and _log_bayesian_summary
+# ---------------------------------------------------------------------------
+
+_TRIAL_LOG_FIXTURE: list[dict[str, object]] = [
+    {"chunk_size": 256, "overlap": 0, "state": "completed", "score": 0.72},
+    {"chunk_size": 512, "overlap": 50, "state": "completed", "score": 0.85},
+    {"chunk_size": 256, "overlap": 0, "state": "pruned", "score": None},
+    {"chunk_size": 768, "overlap": 100, "state": "failed", "score": None},
+]
+
+
+@patch("server.core.orchestrator._log_bayesian_summary")
+@patch("server.core.orchestrator._count_failed_runs", return_value=0)
+@patch("server.core.orchestrator._compute_final_status")
+@patch("server.core.orchestrator.get_collection")
+def test_finalise_bayesian_experiment_stores_trial_log_in_bayesian_summary(
+    mock_get_collection: MagicMock,
+    mock_compute_status: MagicMock,
+    mock_count_failed: MagicMock,
+    mock_log_summary: MagicMock,
+) -> None:
+    """
+    Scenario: _finalise_bayesian_experiment persists trial_log inside bayesian_summary.
+
+    Given a completed Bayesian experiment with a non-empty trial_log
+    When finalization runs
+    Then bayesian_summary in the MongoDB update contains the full trial_log list.
+    """
+    ### Given
+    mock_compute_status.return_value = (ExperimentStatus.COMPLETE, 0)
+    collection = _mock_collection()
+    mock_get_collection.return_value = collection
+
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = 4
+    config.chunking.params.chunk_sizes = [256, 512, 768]
+    config.chunking.params.overlaps = [0, 50, 100]
+
+    best_trial: dict[str, object] = {
+        "query_avg_score": 0.85,
+        "chunk_size": 512,
+        "overlap": 50,
+        "embedding_model": "all-MiniLM-L6-v2",
+        "retrieval_method": "dense",
+    }
+
+    ### When
+    final_status, _ = _finalise_bayesian_experiment(
+        experiment_id="exp-trial-log",
+        config=config,
+        planned_trials=4,
+        cancelled=False,
+        paused=False,
+        run_ids=["run-1", "run-2"],
+        attempted_trials=4,
+        discarded_trials=1,
+        best_trial=best_trial,
+        infrastructure_error=None,
+        trial_log=_TRIAL_LOG_FIXTURE,
+    )
+
+    ### Then
+    assert final_status == ExperimentStatus.COMPLETE
+    update_call = collection.update_one.call_args.args[1]["$set"]
+    stored_log = update_call["bayesian_summary"]["trial_log"]
+    assert len(stored_log) == 4
+    completed = [e for e in stored_log if e["state"] == "completed"]
+    pruned = [e for e in stored_log if e["state"] == "pruned"]
+    failed_entries = [e for e in stored_log if e["state"] == "failed"]
+    assert len(completed) == 2
+    assert len(pruned) == 1
+    assert len(failed_entries) == 1
+    assert all(isinstance(e["score"], float) for e in completed)
+    assert pruned[0]["score"] is None
+
+
+@patch("server.core.orchestrator._log_bayesian_summary")
+@patch("server.core.orchestrator._count_failed_runs", return_value=0)
+@patch("server.core.orchestrator._compute_final_status")
+@patch("server.core.orchestrator.get_collection")
+def test_finalise_bayesian_experiment_omits_trial_log_when_empty(
+    mock_get_collection: MagicMock,
+    mock_compute_status: MagicMock,
+    mock_count_failed: MagicMock,
+    mock_log_summary: MagicMock,
+) -> None:
+    """
+    Scenario: _finalise_bayesian_experiment does not store trial_log when empty.
+
+    Given a Bayesian experiment finalized with no trial_log entries
+    When finalization runs
+    Then bayesian_summary does not contain the trial_log key.
+    """
+    ### Given
+    mock_compute_status.return_value = (ExperimentStatus.COMPLETE, 0)
+    collection = _mock_collection()
+    mock_get_collection.return_value = collection
+
+    config = _slice_config(parallelism=1)
+    config.execution.search_strategy = "bayesian"
+    config.execution.bayesian.n_trials = 2
+    config.chunking.params.chunk_sizes = [256, 512]
+    config.chunking.params.overlaps = [0]
+
+    ### When
+    _finalise_bayesian_experiment(
+        experiment_id="exp-empty-log",
+        config=config,
+        planned_trials=2,
+        cancelled=False,
+        paused=False,
+        run_ids=["run-1", "run-2"],
+        attempted_trials=2,
+        discarded_trials=0,
+        best_trial=None,
+        infrastructure_error=None,
+        trial_log=[],
+    )
+
+    ### Then
+    update_call = collection.update_one.call_args.args[1]["$set"]
+    assert "trial_log" not in update_call["bayesian_summary"]
+
+
+def test_log_bayesian_summary_with_trial_log_logs_state_counts() -> None:
+    """
+    Scenario: _log_bayesian_summary emits state-count INFO and per-entry DEBUG logs.
+
+    Given a trial_log with mixed states (completed, pruned, failed)
+    When _log_bayesian_summary is called
+    Then an INFO log with state counts is emitted and DEBUG logs for each trial entry.
+    """
+    ### Given
+    best_trial: dict[str, object] = {
+        "query_avg_score": 0.85,
+        "chunk_size": 512,
+        "overlap": 50,
+        "embedding_model": "all-MiniLM-L6-v2",
+        "retrieval_method": "dense",
+    }
+
+    ### When / Then — no exception raised and all paths execute
+    with patch("server.core.orchestrator.logger") as mock_logger:
+        _log_bayesian_summary(
+            experiment_id="exp-log-test",
+            best_trial=best_trial,
+            planned_trials=4,
+            grid_equivalent_count=6,
+            trial_log=_TRIAL_LOG_FIXTURE,
+        )
+
+    info_calls = [call for call in mock_logger.info.call_args_list]
+    debug_calls = [call for call in mock_logger.debug.call_args_list]
+
+    # Two INFO calls: the completion summary + the state counts
+    assert len(info_calls) == 2
+    # State count call includes the by_state dict
+    state_count_call = info_calls[1]
+    assert "states" in state_count_call.args[0]
+    assert state_count_call.args[2] == len(_TRIAL_LOG_FIXTURE)  # entries= param
+
+    # One DEBUG call per trial entry
+    assert len(debug_calls) == len(_TRIAL_LOG_FIXTURE)
+    # Verify score formatting: completed entries show numeric, others show "—"
+    completed_debug = debug_calls[0]  # First entry is completed with score=0.72
+    assert "0.7200" in completed_debug.args[-1]
+    pruned_debug = debug_calls[2]  # Third entry is pruned with score=None
+    assert pruned_debug.args[-1] == "—"
+
+
+def test_log_bayesian_summary_without_trial_log_skips_state_logging() -> None:
+    """
+    Scenario: _log_bayesian_summary with no trial_log emits only the completion INFO.
+
+    Given no trial_log passed to _log_bayesian_summary
+    When called
+    Then only one INFO log is emitted (no state-count or debug entries).
+    """
+    ### Given
+    best_trial: dict[str, object] = {
+        "query_avg_score": 0.72,
+        "chunk_size": 256,
+        "overlap": 0,
+        "embedding_model": "all-MiniLM-L6-v2",
+        "retrieval_method": "dense",
+    }
+
+    ### When / Then
+    with patch("server.core.orchestrator.logger") as mock_logger:
+        _log_bayesian_summary(
+            experiment_id="exp-no-log",
+            best_trial=best_trial,
+            planned_trials=2,
+            grid_equivalent_count=4,
+        )
+
+    assert mock_logger.info.call_count == 1
+    assert mock_logger.debug.call_count == 0
