@@ -241,12 +241,12 @@ Scenario: Bayesian run ends without failures despite incomplete attempts
   - Covered by: orchestrator integration tests in `test_slice16_parallel_sweep.py`
 - [x] **Layer-04 API and Pause/Stop Boundary** — Planned count display; `resume → 409` for Bayesian.
   - Covered by: `test_experiments_api_bayesian.py::test_resume_bayesian_experiment_returns_409`
-- [x] **Layer-05 Persistence & Completion Summary** — `run_count`, `grid_equivalent_count`, `bayesian_summary` with `trial_log` in experiment doc; `_run_best_trial_payload` projection includes `run_id` (bug fix 2026-07-23, commit `861eaba`).
-  - Covered by: `test_slice16_parallel_sweep.py` (4 `trial_log` tests + 1 projection regression test); `test_experiments_api_bayesian.py::test_detail_bayesian_experiment_passes_through_trial_log`
+- [x] **Layer-05 Persistence & Completion Summary** — `run_count`, `grid_equivalent_count`, `bayesian_summary` with `trial_log` in experiment doc; `_run_best_trial_payload` projection includes `run_id` (bug fix 2026-07-23, commit `861eaba`); `_finalise_bayesian_experiment` PARTIAL+failures `completion_reason` unbound fixed (bug fix 2026-07-23, commit `ce714b0`; uncovered by AT-08).
+  - Covered by: `test_slice16_parallel_sweep.py` (4 `trial_log` tests + 1 projection regression test + AT-08 sampler exhaustion); `test_experiments_api_bayesian.py::test_detail_bayesian_experiment_passes_through_trial_log`
 - [x] **Layer-06 Regression and Documentation** — `expand_sweep`/grid tests unchanged; `results_analyzer` path compatible; docs updated (`TRAIL.md`, `PROGRESS.md`, `configuration.md`, CHANGELOG, gate evidence).
   - Configs: `configs/example-mongodb-unified-retrievers-bayesian.yaml` and `configs/example-mongodb-local-bayesian.yaml` present.
 - [x] **Layer-07 Delivery Completion** — End-to-end happy-path smoke test passed 2026-07-23: 3-trial Bayesian sweep on Atlas Local, all trials completed, `trial_log` populated, `best_query_avg_score` non-null, CLI Trial History table rendered.
-  - Quality gates: 181 tests pass, 86.4% coverage, ruff 0 errors, mypy 0 errors, frontend build clean.
+  - Quality gates: 200 tests pass (↑ from 181; 17 ATs added by /nw-distill coverage pass 2026-07-23), ruff 0 errors, mypy 0 errors, frontend build clean.
   - Dashboard contract tests: `ExperimentDetailScreen.test.tsx` and `ExperimentsScreen.test.tsx` Bayesian lifecycle scenarios.
   - Specification coverage: all 14 ACs covered; GWT clauses have test coverage.
   - Mutation testing: deferred (not blocking for Could-priority slice).
