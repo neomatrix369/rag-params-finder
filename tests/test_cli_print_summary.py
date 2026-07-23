@@ -16,7 +16,13 @@ from rich.console import Console
 
 
 def _capture_print_summary(data: dict) -> str:
-    """Run _print_summary and return the rendered text output."""
+    """Run _print_summary and return the rendered text output.
+
+    markup=False on the Console causes Rich markup tags to appear literally in
+    the output (e.g. '[green]completed[/green]' not ANSI codes), enabling
+    assertions on both text content and styling.  The patch() context manager
+    restores cli.main.console on exit, so tests are serially isolated.
+    """
     from cli.main import _print_summary
 
     buf = StringIO()
@@ -58,7 +64,16 @@ _BAYESIAN_DATA: dict = {
 
 
 class TestPrintSummaryBayesianSection:
-    """_print_summary renders Bayesian section only for bayesian strategy."""
+    """_print_summary renders Bayesian section only for bayesian strategy.
+
+    Five tests cover five distinct rendered scenarios of the Bayesian output:
+    (1) grid strategy — no Bayesian section at all,
+    (2) Bayesian strategy+counts line,
+    (3) best-config line with formatted score,
+    (4) Trial History table with per-state Rich markup applied,
+    (5) Trial History section absent when trial_log is missing.
+    Each scenario has a different conditional branch in _print_summary.
+    """
 
     def test_grid_experiment_has_no_bayesian_section(self) -> None:
         """
@@ -118,12 +133,13 @@ class TestPrintSummaryBayesianSection:
 
     def test_bayesian_experiment_shows_trial_history(self) -> None:
         """
-        Scenario: trial_log entries are rendered in Trial History table.
+        Scenario: trial_log entries are rendered in Trial History table with state markup.
 
         Given a Bayesian experiment with a trial_log containing completed, pruned,
         and failed entries
         When _print_summary is called
-        Then the output includes Trial History with all states represented.
+        Then the output includes Trial History with all states wrapped in their
+        expected Rich markup tags (markup=False console preserves tags literally).
         """
         ### Given
         data = {**_BAYESIAN_DATA}
@@ -133,9 +149,12 @@ class TestPrintSummaryBayesianSection:
 
         ### Then
         assert "Trial History" in output
-        assert "completed" in output
-        assert "pruned" in output
-        assert "failed" in output
+        # Verify Rich markup is applied, not just that the state text is present.
+        # markup=False console emits tags literally: removing the style mapping
+        # in production code would drop the tag and fail these assertions.
+        assert "[green]completed" in output
+        assert "[dim]pruned" in output
+        assert "[red]failed" in output
 
     def test_bayesian_experiment_no_trial_log_skips_history_section(self) -> None:
         """
