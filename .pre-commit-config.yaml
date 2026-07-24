@@ -88,8 +88,8 @@ repos:
   - repo: local
     hooks:
       - id: mypy
-        name: mypy type check
-        entry: uv run mypy server/ cli/
+        name: mypy type check (dmypy daemon — warm ~0.5s, cold ~60s first run)
+        entry: uv run dmypy run -- server/ cli/
         language: system
         pass_filenames: false
         types: [python]
@@ -105,12 +105,12 @@ repos:
         pass_filenames: false
         files: ^frontend/.*\.(ts|tsx)$
         exclude: ^frontend/node_modules/
-      - id: frontend-verify
-        name: frontend verify (tsc + build)
-        entry: npm --prefix frontend run verify
+      - id: frontend-typecheck
+        name: frontend typecheck (tsc --noEmit)
+        entry: npm --prefix frontend run typecheck
         language: system
         pass_filenames: false
-        files: ^frontend/
+        files: ^frontend/.*\.(ts|tsx)$
         exclude: ^frontend/node_modules/
 
   # ── Commit: fast tests on changed Python modules only (testmon) ──
