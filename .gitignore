@@ -85,4 +85,6 @@ docs/ideate-prompts/
 .gate-cache/
 .testmondata*
 .dmypy.json
+.test-results/
+.reports/
 .playwright-mcp/
