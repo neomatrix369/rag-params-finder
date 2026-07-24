@@ -2,7 +2,7 @@ name: Nightly
 
 on:
   schedule:
-    - cron: '0 2 * * 1'  # 02:00 UTC every Monday
+    - cron: '0 2 * * *'  # 02:00 UTC every night
   workflow_dispatch:
 
 jobs:
