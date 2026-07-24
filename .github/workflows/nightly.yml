@@ -1,0 +1,185 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 02:00 UTC every night
+  workflow_dispatch:
+
+jobs:
+  # ── T4: Mutation testing — Python (mutmut) ────────────────────────────────────
+  mutation-tests-python:
+    name: Mutation testing — Python (mutmut)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - run: uv pip install --system -e ".[dev]" mutmut
+      - name: Run mutation tests
+        run: |
+          mutmut run --paths-to-mutate server/ cli/ || true
+          mutmut results || true
+          mutmut junitxml > mutation-results-python.xml || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-python-${{ github.run_number }}
+          path: mutation-results-python.xml
+          retention-days: 30
+
+  # ── T4: Mutation testing — Node/TS (Stryker) ──────────────────────────────────
+  mutation-tests-node:
+    name: Mutation testing — Node (Stryker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm install --save-dev @stryker-mutator/core @stryker-mutator/vitest-runner
+      - name: Run Stryker mutation tests
+        run: npx stryker run || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-node-${{ github.run_number }}
+          path: frontend/reports/mutation/
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ── T4: TruffleHog full git-history scan ─────────────────────────────────────
+  trufflehog-full:
+    name: TruffleHog (full git history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: trufflesecurity/trufflehog@v3
+        with:
+          path: ./
+          base: ""
+          extra_args: --only-verified
+
+  # ── T4: SBOM — CycloneDX artifact (whole repo) ───────────────────────────────
+  sbom:
+    name: SBOM (CycloneDX)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anchore/sbom-action@v0.17.0
+        with:
+          format: cyclonedx-json
+          output-file: sbom.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sbom-${{ github.run_number }}
+          path: sbom.json
+          retention-days: 90
+      - name: License compliance (trivy) — block on HIGH/CRITICAL
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          scan-type: fs
+          exit-code: "1"
+          format: table
+          scanners: license
+          severity: HIGH,CRITICAL
+
+  # ── T4: Meterian — SCA + license compliance (API-key-gated) ──────────────────
+  meterian:
+    name: Meterian SCA + license
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Run Meterian
+        uses: MeterianHQ/meterian-github-action@v1
+        env:
+          METERIAN_API_TOKEN: ${{ secrets.METERIAN_API_TOKEN }}
+        with:
+          meterian-args: --min-security=95 --min-licensing=95
+
+  # ── T4: Container image scan (only when server Dockerfile is present) ───────────
+  container-scan:
+    name: Container scan (Trivy image)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for Dockerfile
+        id: check
+        run: echo "exists=$(test -f docker/server.Dockerfile && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Build image
+        if: steps.check.outputs.exists == 'true'
+        run: docker build -f docker/server.Dockerfile -t scan-target:${{ github.sha }} .
+      - name: Scan image
+        if: steps.check.outputs.exists == 'true'
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: scan-target:${{ github.sha }}
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+          format: table
+
+  # ── T4: Chalk — software provenance + build attestation ─────────────────────
+  chalk:
+    name: Chalk (provenance + attestation)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # required for Sigstore keyless signing
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Set up Chalk
+        uses: crashappsec/setup-chalk-action@v0.0.3
+      - name: Chalk mark source artifacts
+        run: |
+          chalk insert server/ cli/ scripts/
+      - name: Chalk wrap Docker build (server image)
+        if: hashFiles('docker/server.Dockerfile') != ''
+        run: |
+          chalk docker build -f docker/server.Dockerfile -t chalk-attested-server:${{ github.sha }} .
+      - name: Upload Chalk report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chalk-report-${{ github.run_number }}
+          path: ~/.local/chalk/chalk.log
+          retention-days: 90
+          if-no-files-found: warn
+
+  # ── T4: DAST — OWASP ZAP baseline (uncomment when Docker service is present) ──
+  # dast:
+  #   name: DAST — OWASP ZAP baseline
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Start service
+  #       run: docker compose up -d && sleep 10
+  #     - name: ZAP baseline scan
+  #       uses: zaproxy/action-baseline@v0.12.0
+  #       with:
+  #         target: 'http://localhost:8001'
+  #         rules_file_name: '.zap/rules.tsv'
+  #         cmd_options: '-I'
+  #     - name: Stop service
+  #       if: always()
+  #       run: docker compose down

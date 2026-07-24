@@ -88,7 +88,7 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md). T
 
 Run all gates before committing. All must pass with zero regressions.
 
-**CI jobs** (`.github/workflows/ci.yml`): `repo-lint` → `backend` → `frontend` → `secrets` (four parallel jobs).
+**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit` (five jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM/CycloneDX, Meterian, container scan, Chalk provenance — every night 02:00 UTC).
 
 | Layer | Tools |
 |-------|--------|
@@ -102,7 +102,7 @@ Run all gates before committing. All must pass with zero regressions.
 ```bash
 ./scripts/quality-gates.sh              # full CI mirror (default)
 ./scripts/quality-gates.sh --quick      # fast local subset (pytest no coverage, no scoped SCA/audit)
-./scripts/pre-push-gates.sh             # full local gates on push (quality-gates.sh default mode)
+./scripts/pre-push-gates.sh             # push-specific gates only (pytest+cov, vite build, vitest, audits)
 ./scripts/quality-gates.sh --full       # CI mirror + local gitleaks + pre-commit all-files
 ```
 
@@ -199,14 +199,14 @@ bash scripts/install-git-hooks.sh
 
 | Hook | When | What runs |
 |------|------|-----------|
-| **pre-commit** | `git commit` | Essential checks on **staged** files (see list below) |
-| **pre-push** | `git push` | Full local gate run: `./scripts/pre-push-gates.sh` (`quality-gates.sh` default mode) |
+| **pre-commit** | `git commit` | Static checks on **staged** files — no duplication with push (see list below) |
+| **pre-push** | `git push` | Push-specific only: `./scripts/pre-push-gates.sh` (checks that commit cannot provide) |
 
-**Pre-commit** (staged files): hygiene, gitleaks, shellcheck, actionlint, markdownlint, bandit, ruff + format, mypy, frontend eslint + verify when `frontend/` is touched.
+**Pre-commit** (staged files): hygiene hooks, gitleaks, shellcheck, actionlint (~620 ms via managed binary), markdownlint, bandit, ruff + format, **dmypy** daemon (~0.5 s warm, ~60 s first run), frontend eslint + **tsc --noEmit** when `frontend/` is touched, testmon fast-tests on changed Python modules.
 
-**Pre-push** (whole repo, check-only): repo lint, ruff check + format check, mypy, bandit, coverage+**pytest**, frontend eslint + component tests + tsc + build, pip-audit (lockfile-changed), npm audit (lockfile-changed), gitleaks.
+**Pre-push** (push-specific — zero overlap with commit): full **pytest + coverage** (80% gate, runs only when `server/`, `cli/`, `tests/`, `pyproject.toml`, or `uv.lock` changed — mirrors `ci.yml` `backend` path filter), **vite build**, vitest component tests (frontend-changed only), pip-audit (lockfile-changed), npm audit (lockfile-changed).
 
-**Not on push**: `./scripts/quality-gates.sh --full` adds a repo-wide pre-commit all-files sweep; coverage and scoped SCA remain part of default pre-push mode.
+**Not on push**: `./scripts/quality-gates.sh --full` adds a repo-wide pre-commit all-files sweep and deeper security scans; routine push uses only push-specific gates.
 
 Emergency bypass (use sparingly): `git push --no-verify`
 
@@ -228,9 +228,9 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 
 | Trigger | What runs |
 |---------|-----------|
-| `git commit` | **pre-commit** — staged files (hygiene, secrets, repo lint, ruff, mypy, bandit, frontend when touched) |
-| `git push` | **pre-push** — `./scripts/pre-push-gates.sh` (repo lint, lint/type-check, coverage, frontend tests/typecheck/build, lockfile-scoped SCA, gitleaks) |
-| PR or push to `main` | **GitHub Actions** — full CI (four jobs; includes pytest, coverage, pip-audit, npm audit, build) |
+| `git commit` | **pre-commit** — hygiene, gitleaks, repo lint, ruff, dmypy, bandit, eslint, tsc --noEmit, testmon fast-tests (changed modules) |
+| `git push` | **pre-push** — pytest+coverage (backend-changed only), vite build, vitest, pip-audit, npm audit (zero overlap with commit) |
+| PR or push to `main` | **GitHub Actions** — CI (repo-lint, backend, frontend, secrets, dependency-audit jobs) + nightly 02:00 UTC (mutmut, Stryker, TruffleHog, SBOM/CycloneDX, Meterian, container scan, Chalk) |
 | Manual | `./scripts/quality-gates.sh` — full local mirror of CI before opening a PR |
 
 ---
@@ -325,14 +325,20 @@ Record every non-obvious choice in `docs/plan/slices/PROGRESS.md` → Decision L
 
 ## 🔄 CI
 
-GitHub Actions runs on every push and PR to `main` (four jobs — see `.github/workflows/ci.yml`):
+GitHub Actions has two workflows (see `.github/workflows/`):
+
+**ci.yml** — runs on every push and PR to `main` (path-filtered, five jobs):
 
 | Job | Steps |
 |-----|--------|
 | **Repo lint** | `pre-commit run shellcheck` → `actionlint` → `markdownlint` (all files) |
-| **Backend (Python)** | `ruff check` → `ruff format --check` → `mypy` → `bandit -ll` → `pytest` + 80% scoped coverage → `scripts/pip-audit.sh` |
-| **Frontend (Node.js)** | `npm run lint` → `npm run typecheck` → `npm run build` → `npm audit --audit-level=high` (Node from repo-root `.nvmrc`) |
-| **Secrets** | `gitleaks-action` with `.gitleaks.toml` |
+| **Backend (Python)** | `ruff check` → `ruff format --check` → `mypy` → `bandit -ll` → `pytest` + 80% scoped coverage |
+| **Frontend (Node.js)** | `npm run lint` → `npm run typecheck` → `npm run build` → `npm run test` |
+| **Secrets** | `gitleaks` diff-only scan |
+| **Dependency audit** | `pip-audit` (backend) + `npm audit` (frontend); lockfile-gated |
+
+**nightly.yml** — every night 02:00 UTC (T4 deep checks):
+`mutmut` (Python mutation) · `Stryker` (Node mutation) · `TruffleHog` (full git history) · `anchore/sbom-action` (CycloneDX SBOM) · Trivy license compliance · Meterian SCA · container scan (Dockerfile-gated)
 
 Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabot.yml`).
 

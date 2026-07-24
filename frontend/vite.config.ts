@@ -9,6 +9,12 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    reporters: ['default', ['junit', { outputFile: '../.test-results/frontend-junit.xml' }]],
+    coverage: {
+      provider: 'v8',
+      reportsDirectory: '../.reports/coverage/frontend',
+      reporter: ['text', 'json', 'html'],
+    },
   },
   server: {
     port: 5374,
