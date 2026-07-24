@@ -5,7 +5,8 @@
 ![ruff](https://img.shields.io/badge/ruff-linter-D7FF64?logoColor=black)
 ![mypy](https://img.shields.io/badge/mypy-type_checker-2A6DB2?logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
-![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI-2088FF?logo=githubactions&logoColor=white)
+[![CI](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/ci.yml)
+[![Nightly](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/nightly.yml?branch=main&label=Nightly&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/nightly.yml)
 
 Dev environment setup, quality gates, testing strategy, and the slice workflow for contributors.
 
