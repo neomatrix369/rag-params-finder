@@ -1,3 +1,5 @@
+name: Code Review Graph
+
 on:
   pull_request:
 

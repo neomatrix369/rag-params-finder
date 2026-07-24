@@ -21,16 +21,25 @@ TO_REF="${PRE_COMMIT_TO_REF:-HEAD}"
 
 changed_since_last_push() {
   if [[ -n "$FROM_REF" && "$FROM_REF" != "0000000000000000000000000000000000000000" ]]; then
-    git diff --name-only "$FROM_REF" "$TO_REF" 2>/dev/null
+    git diff --name-only "$FROM_REF" "$TO_REF" 2>/dev/null || echo ""
   else
-    git diff --name-only HEAD~1 HEAD 2>/dev/null || true
+    git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only --cached 2>/dev/null || echo ""
   fi
 }
 
 CHANGED=$(changed_since_last_push)
-FRONTEND_CHANGED=$(echo "$CHANGED" | grep -c "^frontend/" 2>/dev/null || true)
-BACKEND_LOCK_CHANGED=$(echo "$CHANGED" | grep -cE "^(uv\.lock|pyproject\.toml)$" 2>/dev/null || true)
-FRONTEND_LOCK_CHANGED=$(echo "$CHANGED" | grep -cE "^frontend/package(-lock)?\.json$" 2>/dev/null || true)
+
+# Conservative fallback: if change detection fails, run all checks
+if [[ -z "$CHANGED" ]]; then
+  echo "⚠️  Warning: could not detect changed files — running all checks (conservative fallback)."
+  FRONTEND_CHANGED=1
+  BACKEND_LOCK_CHANGED=1
+  FRONTEND_LOCK_CHANGED=1
+else
+  FRONTEND_CHANGED=$(echo "$CHANGED" | grep -c "^frontend/" 2>/dev/null || true)
+  BACKEND_LOCK_CHANGED=$(echo "$CHANGED" | grep -cE "^(uv\.lock|pyproject\.toml)$" 2>/dev/null || true)
+  FRONTEND_LOCK_CHANGED=$(echo "$CHANGED" | grep -cE "^frontend/package(-lock)?\.json$" 2>/dev/null || true)
+fi
 
 echo "=== Pre-push gates (push-specific checks) ==="
 
