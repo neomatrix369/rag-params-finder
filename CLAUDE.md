@@ -230,8 +230,8 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 **Unified script:** `./scripts/quality-gates.sh` (mirrors CI — 11 steps including repo lint)
 
 **Git hooks** (after `bash scripts/install-git-hooks.sh`):
-- **commit** → pre-commit (staged-file lint)
-- **push** → full local gates (`./scripts/pre-push-gates.sh` — lint + type checks, coverage, frontend tests/typecheck/build, scoped SCA, gitleaks)
+- **commit** → pre-commit (hygiene, gitleaks, repo lint, ruff, dmypy, bandit, eslint, tsc --noEmit, testmon fast-tests on changed modules)
+- **push** → push-specific only (`./scripts/pre-push-gates.sh` — full pytest+coverage, vite build, vitest, pip-audit, npm audit; no duplicate of commit checks)
 
 **Repo lint** (2026-05-27):
 - `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
