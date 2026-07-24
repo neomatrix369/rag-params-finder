@@ -5,10 +5,12 @@
 #   shell/action/markdown lint, eslint, tsc+build, fast tests (testmon).
 #
 # This script adds what commits cannot provide:
-#   - Full test suite + coverage (commit runs testmon subset; push confirms all pass)
-#   - pip-audit (only when Python lockfiles changed)
-#   - vitest frontend component tests (only when frontend/ files changed)
-#   - npm audit (only when frontend lockfiles changed)
+#   - Full test suite + coverage (only when server/|cli/|tests/|pyproject.toml|uv.lock changed)
+#   - pip-audit (only when uv.lock or pyproject.toml changed)
+#   - vitest + vite build (only when frontend/ files changed)
+#   - npm audit (only when frontend/package*.json changed)
+#
+# Path sets mirror ci.yml dorny/paths-filter definitions (backend / deps / frontend).
 set -e
 set -o pipefail
 
@@ -32,12 +34,15 @@ CHANGED=$(changed_since_last_push)
 # Conservative fallback: if change detection fails, run all checks
 if [[ -z "$CHANGED" ]]; then
   echo "⚠️  Warning: could not detect changed files — running all checks (conservative fallback)."
-  FRONTEND_CHANGED=1
+  BACKEND_CHANGED=1
   BACKEND_LOCK_CHANGED=1
+  FRONTEND_CHANGED=1
   FRONTEND_LOCK_CHANGED=1
 else
-  FRONTEND_CHANGED=$(echo "$CHANGED" | grep -c "^frontend/" 2>/dev/null || true)
+  # Mirror ci.yml dorny/paths-filter path sets exactly
+  BACKEND_CHANGED=$(echo "$CHANGED" | grep -cE "^(server/|cli/|tests/|pyproject\.toml|uv\.lock)" 2>/dev/null || true)
   BACKEND_LOCK_CHANGED=$(echo "$CHANGED" | grep -cE "^(uv\.lock|pyproject\.toml)$" 2>/dev/null || true)
+  FRONTEND_CHANGED=$(echo "$CHANGED" | grep -c "^frontend/" 2>/dev/null || true)
   FRONTEND_LOCK_CHANGED=$(echo "$CHANGED" | grep -cE "^frontend/package(-lock)?\.json$" 2>/dev/null || true)
 fi
 
@@ -45,13 +50,17 @@ echo "=== Pre-push gates (push-specific checks) ==="
 
 echo ""
 echo "1/3 Full test suite + coverage..."
-uv run pytest --tb=short -q \
-  --cov=server.core.search_index_plan \
-  --cov=server.core.search_index_guard \
-  --cov=server.core.results_analyzer \
-  --cov=server.models.config \
-  --cov-report=term-missing \
-  --cov-fail-under=80
+if [[ "$BACKEND_CHANGED" -gt 0 ]]; then
+  uv run pytest --tb=short -q \
+    --cov=server.core.search_index_plan \
+    --cov=server.core.search_index_guard \
+    --cov=server.core.results_analyzer \
+    --cov=server.models.config \
+    --cov-report=term-missing \
+    --cov-fail-under=80
+else
+  echo "   Skipped (no backend changes in this push)"
+fi
 
 echo ""
 echo "2/3 Python dependency audit (pip-audit)..."
