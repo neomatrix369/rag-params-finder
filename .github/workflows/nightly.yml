@@ -1,0 +1,137 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'  # 02:00 UTC every Monday
+  workflow_dispatch:
+
+jobs:
+  # ── T4: Mutation testing — Python (mutmut) ────────────────────────────────────
+  mutation-tests-python:
+    name: Mutation testing — Python (mutmut)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - run: uv pip install --system -e ".[dev]" mutmut
+      - name: Run mutation tests
+        run: |
+          mutmut run --paths-to-mutate server/ cli/ || true
+          mutmut results
+          mutmut junitxml > mutation-results-python.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-python-${{ github.run_number }}
+          path: mutation-results-python.xml
+          retention-days: 30
+
+  # ── T4: Mutation testing — Node/TS (Stryker) ──────────────────────────────────
+  mutation-tests-node:
+    name: Mutation testing — Node (Stryker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm install --save-dev @stryker-mutator/core @stryker-mutator/jest-runner
+      - name: Run Stryker mutation tests
+        run: npx stryker run || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-node-${{ github.run_number }}
+          path: frontend/reports/mutation/
+          retention-days: 30
+
+  # ── T4: TruffleHog full git-history scan ─────────────────────────────────────
+  trufflehog-full:
+    name: TruffleHog (full git history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ""
+          extra_args: --only-verified
+
+  # ── T4: SBOM + license compliance (whole repo) ───────────────────────────────
+  sbom:
+    name: SBOM + license compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anchore/sbom-action@v0
+        with:
+          format: cyclonedx-json
+          output-file: sbom.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ github.run_number }}
+          path: sbom.json
+          retention-days: 90
+      - name: License compliance (trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          exit-code: "0"
+          format: table
+          scanners: license
+          severity: HIGH,CRITICAL
+
+  # ── T4: Container image scan (only when Dockerfile is present) ────────────────
+  container-scan:
+    name: Container scan (Trivy image)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for Dockerfile
+        id: check
+        run: echo "exists=$(test -f Dockerfile && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Build image
+        if: steps.check.outputs.exists == 'true'
+        run: docker build -t scan-target:${{ github.sha }} .
+      - name: Scan image
+        if: steps.check.outputs.exists == 'true'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: scan-target:${{ github.sha }}
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+          format: table
+
+  # ── T4: DAST — OWASP ZAP baseline (uncomment when Docker service is present) ──
+  # dast:
+  #   name: DAST — OWASP ZAP baseline
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Start service
+  #       run: docker compose up -d && sleep 10
+  #     - name: ZAP baseline scan
+  #       uses: zaproxy/action-baseline@v0.12.0
+  #       with:
+  #         target: 'http://localhost:8001'
+  #         rules_file_name: '.zap/rules.tsv'
+  #         cmd_options: '-I'
+  #     - name: Stop service
+  #       if: always()
+  #       run: docker compose down

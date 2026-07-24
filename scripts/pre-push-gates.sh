@@ -6,4 +6,4 @@ set -e
 set -o pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-exec bash "$ROOT/scripts/quality-gates.sh"
+exec bash "$ROOT/scripts/quality-gates.sh" --full
