@@ -68,6 +68,7 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 | Dense/sparse/hybrid retrieval (Tier 1) on Mongo | ✅ | Atlas vector + FTS |
 | Orchestrator pipeline | ✅ | Provider dispatch via factory |
 | Docker Compose stack | ✅ | Prod + dev HMR; Postgres profile in 37 |
+| Docker build layering + CI validation | 📋 Slice 42 | Single-stage server image; wrong COPY order (PyTorch cache busted on source changes); no BuildKit cache mounts; frontend ships node_modules + vite preview; no CI Docker build job — tracked in SLICE-42-DOCKER-BUILD-OPTIMISATION.md |
 | CI / quality gates | ✅ | `./scripts/quality-gates.sh` |
 | Chunkers | ✅ | PRs #47/#48 |
 

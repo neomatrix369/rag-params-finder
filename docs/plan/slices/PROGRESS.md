@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-24 (nw-review fixes: action pinning, Stryker runner, pre-push fallback; frontend JUnit/coverage; Chalk job; artifact archiving audit; cron fix; BACKEND_CHANGED)
-**Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** ✅ Bayesian Search Simple Functional | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
+**Last Updated**: 2026-07-24 (nw-review fixes: action pinning, Stryker runner, pre-push fallback; frontend JUnit/coverage; Chalk job; artifact archiving audit; cron fix; BACKEND_CHANGED; Slice 42 added)
+**Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** ✅ Bayesian Search Simple Functional · **42** 📋 Docker Build Optimisation (independent, can run any time) | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -58,6 +58,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 39 — Demo-ready dashboard polish | ✅ COMPLETE | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, network, and component verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
 | 40 — Documentation Plan/Slices SSOT alignment | 📋 PLANNED | ~1 h | Clarify `docs/plan` vs `docs/plan/slices` roles; keep `docs/plan/slices/PROGRESS.md` as the status SSOT |
 | 41A — Bayesian Search: Simple Functional | ✅ COMPLETE | ~2.5 h | All ACs verified; trial_log, CLI Bayesian summary, and test rigour added in closure pass (2026-07-23); 217 tests green |
+| 42 — Docker Build Optimisation | 📋 PLANNED | ~2–3 h | Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime; CI docker-build job (non-blocking, path-scoped) |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
 
@@ -94,6 +95,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 39 | Should | ✅ COMPLETE | — | Demo-ready list/detail journey; lifecycle component coverage and clean implementation history verified |
 | 40 | Should | 📋 PLANNED | — | Clarify `docs/plan` vs `docs/plan/slices` roles; status SSOT remains here |
 | 41A | Could | ✅ COMPLETE | 16 | All ACs closed; trial_log in bayesian_summary; CLI Trial History table; 10 new tests + parametrize refactor (13 total); 183 total tests green |
+| 42 | Should | 📋 PLANNED | none | Docker Build Optimisation — independent, can run any time |
 
 **Execution order**: 21 → 25 → 25B → 29 → 39 (done) → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
 
@@ -894,6 +896,9 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 | 2026-07-24 | chore/project-hygiene | nw-agent-builder-reviewer | PR #103 scripts + workflows | APPROVED with P2 fix | P2 (fixed): Trivy SBOM `exit-code: 0→1`; P3 (noted): comment clarity in `pre-push-gates.sh`; idempotency and safety verified clean |
 | 2026-07-24 | chore/project-hygiene | gate-timing-analysis | commit/push/CI durations | COMPLETE | Timing table: commit ~25s, push ~30–43s, CI backend ~112s. Three opts applied (dmypy, tsc split, actionlint already wired). All gate placements justified. |
 | 2026-07-24 | chore/project-hygiene | /project-hygiene | hygiene audit | APPLIED | nightly.yml, code-review-graph.yml, .prettierignore, .testmondata*, idempotent hooks, pytest-testmon; PR #103 opened |
+| 2026-07-24 | docs/plan-slice-42-docker-build | /sync-docs | nightly.yml action version fixes | APPLIED | Fixed 3 broken GitHub Actions refs causing nightly CI failures. `trivy-action@0.29.0→@v0.35.0` (×2): missing `v` prefix + security-critical upgrade (tags v0.0.1–v0.34.2 compromised in supply chain attack March 2026, v0.35.0 confirmed safe). `trufflehog@v3→@v3.95.9`: pinned floating major tag that stopped resolving. `meterian-github-action@v1→@v1.0.17`: same. No docs or user-guide changes needed (CI internals). |
+| 2026-07-22 | docs/plan-slice-42-docker-build | /nw-review + /sync-docs | Slice 42 spec review | APPLIED | Ran nw-agent-builder-reviewer + nw-platform-architect-reviewer (via /nw-review). Both returned NEEDS_REVISION. Applied 3 blocking fixes: B1 spike command narrowed to uv sync --frozen only; B2 GWT Should-10 added (nginx SPA fallback curl test); B3 mkdir -p /root/.npm added to frontend Dockerfiles. Plus 4 non-blocking refinements (SLICE-14 cross-ref, PYTHONPATH location, continue-on-error removal criteria, image size threshold). Committed to docs/plan-slice-42-docker-build. |
+| 2026-07-22 | main | /enhanced-flow-planner + /sync-docs | Slice 42 planning | COMPLETE | Plan health: 0 gaps. Added Slice 42 (Docker Build Optimisation): SLICE-42 spec, TRAIL.md row, PROGRESS.md rows, DECISIONS.md #70, GAP_ANALYSIS.md gap row, HANDOFF.md. User confirmed nginx:alpine for frontend runtime. |
 | 2026-07-24 | chore/project-hygiene | /sync-docs | nightly.yml action version fixes | APPLIED | Fixed 3 broken GitHub Actions refs causing nightly CI failures. `trivy-action@0.29.0→@v0.35.0` (×2): missing `v` prefix + security-critical upgrade (tags v0.0.1–v0.34.2 compromised in supply chain attack March 2026, v0.35.0 confirmed safe). `trufflehog@v3→@v3.95.9`: pinned floating major tag that stopped resolving. `meterian-github-action@v1→@v1.0.17`: same. No docs or user-guide changes needed (CI internals). |
 | 2026-07-21 | main | /sync-docs | Slice 16 completion sync | COMPLETE | Fixed Quick Status inconsistency (`PLANNED` → `✅ COMPLETE`) for Slice 16; confirmed spec + addendum complete; manual demo blockers unchanged and documented |
 | 2026-07-20 | main | /enhanced-flow-planner | Slice 39 | COMPLETE | Continuation check reviewed pending/planned slices; no migration needed this pass beyond confirming Slice 39's status alignment |
