@@ -5,10 +5,8 @@ FROM python:${PYTHON_VERSION}-slim AS deps
 
 WORKDIR /app
 
-# Install system build dependencies (only needed for compilation)
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
+# Install system build dependencies (only needed for compilation, not in runtime stage)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -20,11 +18,10 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # This layer is cached as long as dependencies don't change
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies into /opt/venv
-# The cache mount ensures pip packages are cached between builds
-# Using uv sync --frozen --no-install-project means:
-# - --frozen: exact versions from uv.lock
-# - --no-install-project: don't install the package itself yet (we'll do that in runtime stage with full source)
+# Install all deps from lock file (cached unless pyproject.toml/uv.lock changes).
+# On aarch64 (Apple Silicon / ARM CI), torch from PyPI is already CPU-only (~82 MB).
+# On x86_64 production hosts, torch from PyPI ships with CUDA; a future slice can
+# add the pytorch-cpu index override via [tool.uv.sources] once x86_64 CI is needed.
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     uv sync --frozen --no-install-project --python ${PYTHON_VERSION} --python-preference=only-system
 
@@ -35,6 +32,10 @@ ARG GIT_COMMIT=unknown
 LABEL org.opencontainers.image.revision="${GIT_COMMIT}"
 
 WORKDIR /app
+
+# curl needed for HEALTHCHECK only (not for build toolchain)
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy the virtual environment from deps stage
 # This brings in all installed packages without the build tools
