@@ -116,7 +116,7 @@ jobs:
         with:
           meterian-args: --min-security=95 --min-licensing=95
 
-  # ── T4: Container image scan (only when Dockerfile is present) ────────────────
+  # ── T4: Container image scan (only when server Dockerfile is present) ───────────
   container-scan:
     name: Container scan (Trivy image)
     runs-on: ubuntu-latest
@@ -124,10 +124,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check for Dockerfile
         id: check
-        run: echo "exists=$(test -f Dockerfile && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        run: echo "exists=$(test -f docker/server.Dockerfile && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - name: Build image
         if: steps.check.outputs.exists == 'true'
-        run: docker build -t scan-target:${{ github.sha }} .
+        run: docker build -f docker/server.Dockerfile -t scan-target:${{ github.sha }} .
       - name: Scan image
         if: steps.check.outputs.exists == 'true'
         uses: aquasecurity/trivy-action@0.29.0
@@ -146,11 +146,17 @@ jobs:
       id-token: write   # required for Sigstore keyless signing
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Set up Chalk
         uses: crashappsec/setup-chalk-action@v0.0.3
       - name: Chalk mark source artifacts
         run: |
           chalk insert server/ cli/ scripts/
+      - name: Chalk wrap Docker build (server image)
+        if: hashFiles('docker/server.Dockerfile') != ''
+        run: |
+          chalk docker build -f docker/server.Dockerfile -t chalk-attested-server:${{ github.sha }} .
       - name: Upload Chalk report
         if: always()
         uses: actions/upload-artifact@v4
