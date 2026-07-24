@@ -88,7 +88,7 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md). T
 
 Run all gates before committing. All must pass with zero regressions.
 
-**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit` (five jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM, Meterian — weekly Monday).
+**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit` (five jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM, Meterian — every night 02:00 UTC).
 
 | Layer | Tools |
 |-------|--------|
@@ -230,7 +230,7 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 |---------|-----------|
 | `git commit` | **pre-commit** — hygiene, gitleaks, repo lint, ruff, dmypy, bandit, eslint, tsc --noEmit, testmon fast-tests (changed modules) |
 | `git push` | **pre-push** — pytest+coverage (full), vite build, vitest, pip-audit, npm audit (zero overlap with commit) |
-| PR or push to `main` | **GitHub Actions** — CI (repo-lint, backend, frontend, secrets, dependency-audit jobs) + weekly nightly (mutmut, Stryker, TruffleHog, SBOM, Meterian) |
+| PR or push to `main` | **GitHub Actions** — CI (repo-lint, backend, frontend, secrets, dependency-audit jobs) + nightly 02:00 UTC (mutmut, Stryker, TruffleHog, SBOM, Meterian) |
 | Manual | `./scripts/quality-gates.sh` — full local mirror of CI before opening a PR |
 
 ---
@@ -337,7 +337,7 @@ GitHub Actions has two workflows (see `.github/workflows/`):
 | **Secrets** | `gitleaks` diff-only scan |
 | **Dependency audit** | `pip-audit` (backend) + `npm audit` (frontend); lockfile-gated |
 
-**nightly.yml** — weekly Monday 02:00 UTC (T4 deep checks):
+**nightly.yml** — every night 02:00 UTC (T4 deep checks):
 `mutmut` (Python mutation) · `Stryker` (Node mutation) · `TruffleHog` (full git history) · `anchore/sbom-action` (CycloneDX SBOM) · Trivy license compliance · Meterian SCA · container scan (Dockerfile-gated)
 
 Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabot.yml`).
