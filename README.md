@@ -10,7 +10,8 @@
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 
-[![CI](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/ci.yml)
+[![Nightly](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/nightly.yml?branch=main&label=Nightly&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/nightly.yml)
 [![Release](https://img.shields.io/github/v/release/neomatrix369/rag-params-finder?label=Release&logo=github)](https://github.com/neomatrix369/rag-params-finder/releases)
 [![License: MIT](https://img.shields.io/github/license/neomatrix369/rag-params-finder)](https://github.com/neomatrix369/rag-params-finder/blob/main/LICENSE)
 [![Last Commit](https://img.shields.io/github/last-commit/neomatrix369/rag-params-finder)](https://github.com/neomatrix369/rag-params-finder/commits/main)
