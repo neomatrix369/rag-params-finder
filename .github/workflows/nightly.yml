@@ -73,9 +73,9 @@ jobs:
           base: ""
           extra_args: --only-verified
 
-  # ── T4: SBOM + license compliance (whole repo) ───────────────────────────────
+  # ── T4: SBOM — CycloneDX artifact (whole repo) ───────────────────────────────
   sbom:
-    name: SBOM + license compliance
+    name: SBOM (CycloneDX)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,14 +88,31 @@ jobs:
           name: sbom-${{ github.run_number }}
           path: sbom.json
           retention-days: 90
-      - name: License compliance (trivy)
+      - name: License compliance (trivy) — block on HIGH/CRITICAL
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
-          exit-code: "0"
+          exit-code: "1"
           format: table
           scanners: license
           severity: HIGH,CRITICAL
+
+  # ── T4: Meterian — SCA + license compliance (API-key-gated) ──────────────────
+  meterian:
+    name: Meterian SCA + license
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Run Meterian
+        uses: MeterianHQ/meterian-github-action@v1
+        env:
+          METERIAN_API_TOKEN: ${{ secrets.METERIAN_API_TOKEN }}
+        with:
+          meterian-args: --min-security=95 --min-licensing=95
 
   # ── T4: Container image scan (only when Dockerfile is present) ────────────────
   container-scan:

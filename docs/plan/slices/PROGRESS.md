@@ -1,6 +1,6 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-23 (Slice 41A closure)
+**Last Updated**: 2026-07-24 (project-hygiene chore + idempotent hooks)
 **Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** ✅ Bayesian Search Simple Functional | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
@@ -103,6 +103,9 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 
 | Date | Item | Outcome |
 |------|------|---------|
+| 2026-07-24 | Idempotent hooks (chore/project-hygiene) | Replaced push-gate full `quality-gates.sh --full` with `pre-push-gates.sh` (push-specific only: full pytest+coverage, pip-audit, vitest, npm audit); added `pytest-testmon` at commit stage — runs only tests for changed modules (~1.7s warm vs 30s full); eliminated commit/push duplication; PR #103 |
+| 2026-07-24 | Project hygiene chore (chore/project-hygiene) | Added `.github/workflows/nightly.yml` (T4: mutmut, Stryker, TruffleHog full-history, SBOM+Trivy, container scan); `.github/workflows/code-review-graph.yml`; `.prettierignore`; `.testmondata*` glob in `.gitignore` (covers SQLite WAL files); PR #103 |
+| 2026-07-24 | ruff markdown format fix | CI ruff (newer) formats Python blocks in `.md` files by default; local ruff 0.15.12 requires `--preview`; manually aligned `docs/_internal/TIEBREAKER-EXPLANATION-FEATURE.md` and `docs/contributor-guide/extending.md` to match expected output; merged PR #102 |
 | 2026-07-23 | Slice 41A closure | Added trial_log to bayesian_summary (orchestrator+API+CLI), CLI _print_summary Trial History table, 10 new unit tests + parametrize refactor (13 total); lint/type fixes; all 14 ACs ticked; 183 tests green; gate-evidence PASSED |
 | 2026-07-23 | Slice 41A AT coverage | /nw-distill → 17 ATs (AT-01–17) written across test_slice16_parallel_sweep.py and test_cli_print_summary.py; AT-08 uncovered production bug (UnboundLocalError in _finalise_bayesian_experiment PARTIAL+failures path); fixed with else: completion_reason = "partial_completion"; 200 tests green |
 | 2026-07-23 | Coverage gap remediation | search_index_guard 49%→100% (9 tests: collect_search_index_snapshot + validate sub-paths); orchestrator 70%→72% (8 tests: pure functions, error handlers, early-cancel, truncation, defensive promotion); gap was masked by aggregate 80% gate; 217 tests green |
@@ -735,6 +738,8 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-27 | 20 | Repo lint in CI + pre-commit | shellcheck (`scripts/*.sh`), actionlint, markdownlint; `scripts/repo-lint.sh`; pragmatic `.markdownlint.json`; CI `repo-lint` job (4 jobs total) |
 | 2026-05-28 | — | Docs navigation (playgroup-style) | Root `QUICKSTART.md`; `docs/README.md` index; `PROGRESS.md` lives under `docs/plan/slices/` beside slice specs |
 | 2026-05-28 | 20 | Pre-push = fast gates (`--quick`) | `git push` → `pre-push-gates.sh` (repo lint, ruff, mypy, bandit, pytest, frontend verify, gitleaks); commit hook stays staged pre-commit only |
+| 2026-07-24 | chore | Idempotent hooks: testmon at commit, push-only coverage | Pre-push was calling `quality-gates.sh --full` — duplicated everything from commit stage; replaced with `pre-push-gates.sh` (push-specific: full pytest+cov, pip-audit, vitest, npm audit); added `pytest-testmon` to commit hook so only changed-module tests run (~1.7s warm); supersedes 2026-05-28 pre-push decision |
+| 2026-07-24 | chore | T4 tier: nightly.yml (mutmut, Stryker, TruffleHog-full, SBOM, container scan) | Deep checks too slow for CI (~15–60 min); scheduled weekly (Monday 02:00 UTC); container-scan skips if no Dockerfile (step-output guard, not job-level hashFiles — actionlint requirement) |
 | 2026-06-27 | 21 | embedder_factory.py as single dispatch point | Factory pattern over Protocol/ABC (Decision #10); orchestrator never does provider if/elif; each provider module exports embed_docs_fn + embed_query_fn |
 | 2026-06-27 | 21 | SIEClient per call (no module-level cache) | Module-level client cache caused test state leakage between test runs; per-call instantiation ensures isolation |
 | 2026-06-27 | 21 | Minimal FastAPI app in sweep tests | Importing server.main chains into voyageai → torch → OpenMP abort in sandbox; sweep router mounted standalone avoids the crash |
