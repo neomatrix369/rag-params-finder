@@ -84,4 +84,5 @@ CLAUDE.local.md
 docs/ideate-prompts/
 .gate-cache/
 .testmondata*
+.dmypy.json
 .playwright-mcp/
