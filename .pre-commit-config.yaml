@@ -113,26 +113,28 @@ repos:
         files: ^frontend/
         exclude: ^frontend/node_modules/
 
-  # ── Commit: fast tests (fail-fast, no coverage overhead) ────────
-  # Catches obvious regressions in <30s before the commit is recorded.
-  # Coverage enforcement lives in the pre-push stage below.
+  # ── Commit: fast tests on changed Python modules only (testmon) ──
+  # Skips when no Python files are staged. Uses pytest-testmon to run only
+  # tests related to changed source files. First run builds the coverage map
+  # (all tests); subsequent runs are incremental (<5s for small changes).
+  # Full test suite + coverage enforced at push stage.
   - repo: local
     hooks:
       - id: fast-tests
-        name: fast unit tests (fail-fast)
-        entry: uv run pytest -x -q --tb=short --no-header
+        name: fast unit tests (changed modules, testmon)
+        entry: uv run pytest --testmon -x -q --tb=short --no-header
         language: system
         pass_filenames: false
-        always_run: true
+        types: [python]
         stages: [pre-commit]
 
-  # ── Pre-push: full CI gates ───────────────────────────────────────
-  # Runs the complete quality-gates suite (tests + coverage + pip-audit).
-  # --quick is NOT used: every push must pass all gates.
+  # ── Pre-push: push-specific checks only (no duplicates from commit) ─
+  # Commit stage already ran: ruff, mypy, bandit, eslint, tsc+build, testmon.
+  # Push adds: full test suite + coverage, pip-audit, vitest, npm audit.
   - repo: local
     hooks:
       - id: pre-push-gates
-        name: pre-push gates (full test suite, coverage, secrets)
+        name: pre-push gates (coverage + audits + vitest)
         entry: bash scripts/pre-push-gates.sh
         language: system
         pass_filenames: false

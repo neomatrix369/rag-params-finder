@@ -83,4 +83,5 @@ CLAUDE.local.md
 .mcp.json
 docs/ideate-prompts/
 .gate-cache/
+.testmondata*
 .playwright-mcp/

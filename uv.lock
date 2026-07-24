@@ -1707,6 +1707,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-testmon"
+version = "2.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "coverage", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or sys_platform == 'linux'" },
+    { name = "pytest", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or sys_platform == 'linux'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4d/1d/3e4230cc67cd6205bbe03c3527500c0ccaf7f0c78b436537eac71590ee4a/pytest_testmon-2.2.0.tar.gz", hash = "sha256:01f488e955ed0e0049777bee598bf1f647dd524e06f544c31a24e68f8d775a51", size = 23108, upload-time = "2025-12-01T07:30:24.76Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/61/55/ebb3c2f59fb089f08d00f764830d35780fc4e4c41dffcadafa3264682b65/pytest_testmon-2.2.0-py3-none-any.whl", hash = "sha256:2604ca44a54d61a2e830d9ce828b41a837075e4ebc1f81b148add8e90d34815b", size = 25199, upload-time = "2025-12-01T07:30:23.623Z" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -1814,6 +1827,7 @@ dev = [
     { name = "pytest", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or sys_platform == 'linux'" },
     { name = "pytest-asyncio", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or sys_platform == 'linux'" },
     { name = "pytest-cov", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or sys_platform == 'linux'" },
+    { name = "pytest-testmon", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or sys_platform == 'linux'" },
     { name = "radon", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or sys_platform == 'linux'" },
     { name = "ruff", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or sys_platform == 'linux'" },
     { name = "types-pyyaml", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or sys_platform == 'linux'" },
@@ -1844,6 +1858,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
+    { name = "pytest-testmon", marker = "extra == 'dev'", specifier = ">=2.1.0" },
     { name = "pyyaml", specifier = ">=6.0.1" },
     { name = "radon", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "rich", specifier = ">=13.7.0" },
