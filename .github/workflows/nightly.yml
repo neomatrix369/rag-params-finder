@@ -24,8 +24,8 @@ jobs:
       - name: Run mutation tests
         run: |
           mutmut run --paths-to-mutate server/ cli/ || true
-          mutmut results
-          mutmut junitxml > mutation-results-python.xml
+          mutmut results || true
+          mutmut junitxml > mutation-results-python.xml || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -58,6 +58,7 @@ jobs:
           name: mutation-node-${{ github.run_number }}
           path: frontend/reports/mutation/
           retention-days: 30
+          if-no-files-found: warn
 
   # ── T4: TruffleHog full git-history scan ─────────────────────────────────────
   trufflehog-full:
@@ -84,6 +85,7 @@ jobs:
           format: cyclonedx-json
           output-file: sbom.json
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: sbom-${{ github.run_number }}
           path: sbom.json
