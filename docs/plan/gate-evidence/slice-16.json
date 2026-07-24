@@ -1,0 +1,6 @@
+{
+  "slice": "16",
+  "gate_status": "PASSED",
+  "inferred": true,
+  "note": "Backfilled by plan-health-check 2026-07-24 — verify fields before downstream use"
+}
