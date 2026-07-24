@@ -136,6 +136,8 @@ jobs:
           exit-code: "1"
           severity: HIGH,CRITICAL
           format: table
+          ignore-unfixed: true     # suppress OS CVEs with no distro patch yet (e.g. linux-libc-dev, perl toolchain from build-essential)
+          trivyignores: .trivyignore  # Python CVEs blocked by transitive dep constraints — see .trivyignore for rationale
 
   # ── T4: Chalk — software provenance + build attestation ─────────────────────
   chalk:
