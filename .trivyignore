@@ -1,0 +1,40 @@
+# .trivyignore — Security CVE suppressions
+#
+# Policy: every entry MUST document (1) the vulnerability, (2) why we cannot take the fix NOW,
+# (3) what compensating control is in place, and (4) what unblocks the fix.
+#
+# Review cadence: revisit each entry when its blocking dependency constraint is lifted.
+# Owner: project maintainer. Reference: docs/plan/TRAIL.md § Deferred Work.
+
+# ── Python transitive dependencies ─────────────────────────────────────────────────────────────
+#
+# GHSA-f4xh-w4cj-qxq8 (langsmith arbitrary server-side file read)
+#   Package    : langsmith < 0.8.18 (transitive via langchain)
+#   Fix        : langsmith >= 0.8.18
+#   Why blocked: langsmith 0.8.18 requires langchain-core >= 1.4.0, which is pre-release only.
+#                Upgrading also forces sie-sdk to newer versions that conflict with the stable
+#                langchain/numpy/websockets constraint chain. Verified: `uv lock --upgrade-package
+#                langsmith` is unsatisfiable.
+#   Compensating control: langsmith is only used as an internal tracing client within langchain;
+#                         the file-read vector requires an attacker-controlled server config, which
+#                         is not reachable from user input in this application.
+#   Unblocked by: langchain 1.x stable + langchain-core 1.4.x stable release reaching PyPI, or
+#                 sie-sdk dropping the websockets<15 + numpy>=2 constraint (tracked in TRAIL.md).
+GHSA-f4xh-w4cj-qxq8
+
+# CVE-2026-4372 (transformers RCE — fix: >= 5.3.0)
+# CVE-2026-5241 (transformers arbitrary code execution — fix: >= 5.5.0)
+#   Package    : transformers < 5.5.0 (transitive via sentence-transformers)
+#   Fix        : transformers >= 5.5.0
+#   Why blocked: sentence-transformers 3.x (pinned < 4.0.0 in pyproject.toml line 23) is not
+#                compatible with transformers 5.x. Forcing transformers >= 5.0.0 would break
+#                CrossEncoder and SentenceTransformer model loading.
+#                The < 4.0.0 pin is deliberate: sentence-transformers 4.x introduces a mypy
+#                CrossEncoder API change that requires a dedicated ML stack migration slice
+#                (see TRAIL.md § Deferred Work: "sentence-transformers v4+").
+#   Compensating control: model IDs are validated against a fixed allowlist in
+#                         server/core/model_registry.py; arbitrary HuggingFace model IDs from
+#                         user input are rejected, narrowing the RCE attack surface significantly.
+#   Unblocked by: dedicated ML stack upgrade slice (sentence-transformers >= 4.0, transformers >= 5.5).
+CVE-2026-4372
+CVE-2026-5241
