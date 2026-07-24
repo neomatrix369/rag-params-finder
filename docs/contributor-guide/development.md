@@ -88,7 +88,7 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md). T
 
 Run all gates before committing. All must pass with zero regressions.
 
-**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit` (five jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM, Meterian — every night 02:00 UTC).
+**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit` (five jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM/CycloneDX, Meterian, container scan, Chalk provenance — every night 02:00 UTC).
 
 | Layer | Tools |
 |-------|--------|
@@ -204,7 +204,7 @@ bash scripts/install-git-hooks.sh
 
 **Pre-commit** (staged files): hygiene hooks, gitleaks, shellcheck, actionlint (~620 ms via managed binary), markdownlint, bandit, ruff + format, **dmypy** daemon (~0.5 s warm, ~60 s first run), frontend eslint + **tsc --noEmit** when `frontend/` is touched, testmon fast-tests on changed Python modules.
 
-**Pre-push** (push-specific — zero overlap with commit): full **pytest + coverage** (80% gate), **vite build**, vitest component tests (frontend-changed only), pip-audit (lockfile-changed), npm audit (lockfile-changed).
+**Pre-push** (push-specific — zero overlap with commit): full **pytest + coverage** (80% gate, runs only when `server/`, `cli/`, `tests/`, `pyproject.toml`, or `uv.lock` changed — mirrors `ci.yml` `backend` path filter), **vite build**, vitest component tests (frontend-changed only), pip-audit (lockfile-changed), npm audit (lockfile-changed).
 
 **Not on push**: `./scripts/quality-gates.sh --full` adds a repo-wide pre-commit all-files sweep and deeper security scans; routine push uses only push-specific gates.
 
@@ -229,8 +229,8 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 | Trigger | What runs |
 |---------|-----------|
 | `git commit` | **pre-commit** — hygiene, gitleaks, repo lint, ruff, dmypy, bandit, eslint, tsc --noEmit, testmon fast-tests (changed modules) |
-| `git push` | **pre-push** — pytest+coverage (full), vite build, vitest, pip-audit, npm audit (zero overlap with commit) |
-| PR or push to `main` | **GitHub Actions** — CI (repo-lint, backend, frontend, secrets, dependency-audit jobs) + nightly 02:00 UTC (mutmut, Stryker, TruffleHog, SBOM, Meterian) |
+| `git push` | **pre-push** — pytest+coverage (backend-changed only), vite build, vitest, pip-audit, npm audit (zero overlap with commit) |
+| PR or push to `main` | **GitHub Actions** — CI (repo-lint, backend, frontend, secrets, dependency-audit jobs) + nightly 02:00 UTC (mutmut, Stryker, TruffleHog, SBOM/CycloneDX, Meterian, container scan, Chalk) |
 | Manual | `./scripts/quality-gates.sh` — full local mirror of CI before opening a PR |
 
 ---
