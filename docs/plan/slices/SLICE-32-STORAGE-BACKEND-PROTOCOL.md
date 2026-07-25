@@ -71,9 +71,9 @@ Scenario: Retrieval flows through RetrieverBackend
 
 ## Before-Checks [GATE]
 
-- [ ] Branch `slice/32-storage-backend-protocol` from latest `main`
-- [ ] `./scripts/quality-gates.sh --quick` green on baseline
-- [ ] Read PRD seam table + Decision #10 (Protocol justified for dual-backend)
+- [x] Branch `slice/32-storage-backend-protocol` from latest `main` (rebased on 512213f, 2026-07-25)
+- [x] `./scripts/quality-gates.sh --quick` green on baseline (2026-07-25)
+- [x] Read PRD seam table + Decision #10 — Protocol justified: dual-backend (Mongo ↔ Postgres swappable) is the explicit exception case Decision #10 acknowledges; factory alone cannot enforce a cross-adapter contract
 
 ---
 
@@ -101,4 +101,4 @@ Scenario: Retrieval flows through RetrieverBackend
 
 ## Gate Status
 
-📋 PLANNED
+🔨 IN PROGRESS (before-checks ✅ 2026-07-25)
