@@ -46,14 +46,18 @@ def _run_bayesian_inner_v2(experiment_id: str, config: ExperimentConfig) -> dict
     with ThreadPoolExecutor(max_workers=n_workers) as executor:
         # seed initial workers
         for _ in range(min(n_workers, remaining)):
-            trial = study.ask(); optuna_calls += 1
+            trial = study.ask()
+            optuna_calls += 1
             params = _bayesian_trial_to_run_params(trial, config)
             key = _dedup_key(params)
             if key in visited:
-                study.tell(trial, values=None, state=TrialState.PRUNED); continue
-            visited.add(key); remaining -= 1
-            future = executor.submit(_run_and_score, experiment_id, run_id, params,
-                                     config.execution.parallelism)
+                study.tell(trial, values=None, state=TrialState.PRUNED)
+                continue
+            visited.add(key)
+            remaining -= 1
+            future = executor.submit(
+                _run_and_score, experiment_id, run_id, params, config.execution.parallelism
+            )
             trials_asked[future] = trial
 
         while trials_asked:
@@ -66,17 +70,22 @@ def _run_bayesian_inner_v2(experiment_id: str, config: ExperimentConfig) -> dict
                     study.tell(trial, float("nan"), state=TrialState.FAIL)
 
             # refill sliding window
-            while (remaining > 0 and len(trials_asked) < n_workers
-                   and optuna_calls < max_optuna_calls):
+            while (
+                remaining > 0 and len(trials_asked) < n_workers and optuna_calls < max_optuna_calls
+            ):
                 check_control(experiment_id)
-                trial = study.ask(); optuna_calls += 1
+                trial = study.ask()
+                optuna_calls += 1
                 params = _bayesian_trial_to_run_params(trial, config)
                 key = _dedup_key(params)
                 if key in visited:
-                    study.tell(trial, values=None, state=TrialState.PRUNED); continue
-                visited.add(key); remaining -= 1
-                future = executor.submit(_run_and_score, experiment_id, run_id, params,
-                                         config.execution.parallelism)
+                    study.tell(trial, values=None, state=TrialState.PRUNED)
+                    continue
+                visited.add(key)
+                remaining -= 1
+                future = executor.submit(
+                    _run_and_score, experiment_id, run_id, params, config.execution.parallelism
+                )
                 trials_asked[future] = trial
 ```
 
@@ -110,6 +119,7 @@ def _compute_grid_equivalent(config: ExperimentConfig) -> int:
         * max(len(config.chunking.params.paddings or [0]), 1)
     )
 
+
 def _resolve_n_trials(config: ExperimentConfig) -> int:
     grid_eq = _compute_grid_equivalent(config)
     n = config.execution.bayesian.n_trials
@@ -119,6 +129,7 @@ def _resolve_n_trials(config: ExperimentConfig) -> int:
         logger.warning("bayesian n_trials=%s exceeds unique space %s — capping", n, grid_eq)
         return grid_eq
     return n
+
 
 def _resolve_n_startup(n_trials: int, config: ExperimentConfig) -> int:
     if config.execution.bayesian.n_startup_trials is not None:
