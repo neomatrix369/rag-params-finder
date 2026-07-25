@@ -176,6 +176,54 @@ jobs:
             --cov-report=term-missing \
             --cov-fail-under=80
 
+  postgres-integration:
+    name: Postgres integration (pgvector)
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.backend == 'true' }}
+
+    # The Postgres adapter's SQL, JSONB mapping, and FK cascade can only be
+    # proven against a real database — mocks would assert our own assumptions.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: rag
+          POSTGRES_PASSWORD: rag
+          POSTGRES_DB: rag_params_finder
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U rag -d rag_params_finder"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies (including dev)
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Postgres StorageBackend integration tests
+        env:
+          RAG_TEST_DATABASE_URL: postgresql://rag:rag@localhost:5433/rag_params_finder
+          # Turns "database unreachable" from a skip into a failure, so a broken
+          # service container cannot masquerade as a passing job.
+          RAG_REQUIRE_POSTGRES: "1"
+        run: pytest tests/test_postgres_store_integration.py --tb=short -q --no-cov -rs
+
   frontend:
     name: Frontend (Node.js)
     runs-on: ubuntu-latest
