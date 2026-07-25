@@ -136,9 +136,13 @@ rag-params-finder/
 │   │   ├── status.py        # RunStatus model
 │   │   └── results.py       # QueryResult, SearchResult, Chunk
 │   └── db/
-│       ├── atlas.py         # MongoDB connection singleton (TLS for cloud URIs only)
-│       ├── mongodb_uri.py   # is_atlas_uri(), parse_atlas_cluster_name() — cloud vs local detection
-│       └── indexes.py       # collection + search index creation; bootstrap_indexes() on local URI
+│       ├── storage.py           # StorageBackend Protocol (CRUD / cascade / reconciliation)
+│       ├── retriever_backend.py # RetrieverBackend Protocol (dense/sparse/hybrid)
+│       ├── mongo_store.py       # Mongo adapters for both ports
+│       ├── store_factory.py     # get_storage_backend() / get_retriever_backend()
+│       ├── atlas.py             # MongoDB connection singleton (TLS for cloud URIs only)
+│       ├── mongodb_uri.py       # is_atlas_uri(), parse_atlas_cluster_name() — cloud vs local detection
+│       └── indexes.py           # collection + search index creation; bootstrap_indexes() on local URI
 ├── cli/
 │   ├── main.py              # Typer app (run, cancel, pause, resume, delete, indexes, version)
 │   ├── indexes_cmd.py       # indexes list | reset subcommands

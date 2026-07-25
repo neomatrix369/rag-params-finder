@@ -88,17 +88,22 @@ Scenario: Retrieval flows through RetrieverBackend
 
 ## After-Checks [GATE]
 
-- [ ] All GWT scenarios have named tests
-- [ ] No API/CLI/dashboard behavior change on Mongo default
-- [ ] `postgres` backend raises clear NotImplemented for storage until Slice 33
-- [ ] Grep confirms no `from server.db.atlas` in orchestrator/experiments/startup_reconciliation
-- [ ] Specification coverage: every GWT clause ≥1 test; essential error paths covered
+- [x] All GWT scenarios have named tests
+- [x] No API/CLI/dashboard behavior change on Mongo default
+- [x] `postgres` backend raises clear NotImplemented for storage until Slice 33
+- [x] Grep confirms no `from server.db.atlas` in orchestrator/experiments/startup_reconciliation (also `runs.py`)
+- [x] Specification coverage: every GWT clause ≥1 test; essential error paths covered
 - [ ] Branch coverage: 100% target on new modules; exclusions documented
 - [ ] Mutation testing: run for new port/protocol modules (or document explicit feature-complete waiver)
 - [ ] `./scripts/quality-gates.sh` passes
-- [ ] Doc audit: PRD §Documentation matrix rows for slice **32** (architecture, extending, CLAUDE Key Files)
-- [ ] `docs/plan/slices/PROGRESS.md` updated (status + decision log if applicable)
+- [x] Doc audit: PRD §Documentation matrix rows for slice **32** (architecture, extending, CLAUDE Key Files)
+- [x] `docs/plan/slices/PROGRESS.md` decision log row added (status stays 🔨 until nw-review + full gates)
+- [x] `./scripts/quality-gates.sh --quick` passed (2026-07-25) — full `./scripts/quality-gates.sh` still required before PR
+- [ ] Branch coverage: 100% target on new modules; exclusions documented
+- [ ] Mutation testing: run for new port/protocol modules (or document explicit feature-complete waiver)
+- [ ] `./scripts/quality-gates.sh` (full) passes
+- [ ] nw-review APPROVED before ✅ COMPLETE
 
 ## Gate Status
 
-🔨 IN PROGRESS (before-checks ✅ 2026-07-25)
+🔨 IN PROGRESS — implementation + GWT tests + call-site wiring + slice-32 docs + quick gates green (2026-07-25); remaining: full quality-gates, coverage/mutation, nw-review, COMPLETE status

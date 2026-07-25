@@ -17,17 +17,10 @@ from server.core.experiment_control import (
 )
 from server.core.query_loader import load_queries
 from server.core.reranker import rerank_results
-from server.core.retriever import search as retriever_search
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
 from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
-from server.db.atlas import (
-    CHUNKS_COLLECTION,
-    EXPERIMENTS_COLLECTION,
-    RESULTS_COLLECTION,
-    RUN_STATUS_COLLECTION,
-    get_collection,
-)
+from server.db.store_factory import get_retriever_backend, get_storage_backend
 from server.models.config import ExperimentConfig, RetrieverConfig, RunParams, expand_sweep
 from server.models.enums import ExperimentStatus, Phase, RetrievalMethod, RetrieverType
 from server.models.results import QueryResult, SearchResult
@@ -97,7 +90,7 @@ def _search_traditional_retriever(
     if needs_embedding and query_embedding is None:
         query_embedding = embed_query_fn(query_text, embedding_model)
 
-    results = retriever_search(
+    results = get_retriever_backend().search(
         method=RetrievalMethod(retriever_cfg.type.value),
         query_text=query_text,
         experiment_id=experiment_id,
@@ -188,29 +181,12 @@ def _run_doc_signature(run: dict) -> ParamSignature:
 
 
 def _completed_param_signatures(experiment_id: str) -> set[ParamSignature]:
-    cursor = get_collection(RUN_STATUS_COLLECTION).find(
-        {"experiment_id": experiment_id, "phase": Phase.COMPLETE.value},
-        {
-            "database_provider": 1,
-            "embedding_provider": 1,
-            "embedding_model": 1,
-            "chunking_method": 1,
-            "chunk_size": 1,
-            "overlap": 1,
-            "retrieval_method": 1,
-            "retrieval_provider": 1,
-            "retrieval_model": 1,
-        },
-    )
-    return {_run_doc_signature(run) for run in cursor}
+    rows = get_storage_backend().find_completed_run_sigs(experiment_id)
+    return {_run_doc_signature(run) for run in rows}
 
 
 def _experiment_cancelled_in_db(experiment_id: str) -> bool:
-    doc = get_collection(EXPERIMENTS_COLLECTION).find_one(
-        {"_id": experiment_id},
-        {"status": 1},
-    )
-    return bool(doc and doc.get("status") == ExperimentStatus.CANCELLED.value)
+    return get_storage_backend().is_experiment_cancelled(experiment_id)
 
 
 def run_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
@@ -315,9 +291,8 @@ def _run_bayesian_inner(
             return None
 
         if not run_ids:
-            get_collection(EXPERIMENTS_COLLECTION).update_one(
-                {"_id": experiment_id},
-                {"$set": {"started_at": datetime.now(UTC)}},
+            get_storage_backend().update_experiment(
+                experiment_id, {"started_at": datetime.now(UTC)}
             )
 
         run_id = str(uuid.uuid4())
@@ -525,10 +500,7 @@ def _finalise_bayesian_experiment(
             experiment_update["status"] = final_status
             experiment_update["completion_reason"] = "infrastructure_error"
 
-    get_collection(EXPERIMENTS_COLLECTION).update_one(
-        {"_id": experiment_id},
-        {"$set": experiment_update},
-    )
+    get_storage_backend().update_experiment(experiment_id, experiment_update)
     _log_failed_run_summary(experiment_id, failed_count)
     if best_trial is not None:
         _log_bayesian_summary(
@@ -553,18 +525,15 @@ def _fail_experiment_preflight(
         if config.execution.search_strategy == "bayesian"
         else len(expand_sweep(config))
     )
-    completed_at = datetime.now(UTC)
-    get_collection(EXPERIMENTS_COLLECTION).update_one(
-        {"_id": experiment_id},
+    get_storage_backend().update_experiment(
+        experiment_id,
         {
-            "$set": {
-                "status": ExperimentStatus.FAILED,
-                "run_count": runs,
-                "failed_count": 0,
-                "completion_reason": "infrastructure_error",
-                "completed_at": completed_at,
-                "error_message": error_message,
-            }
+            "status": ExperimentStatus.FAILED,
+            "run_count": runs,
+            "failed_count": 0,
+            "completion_reason": "infrastructure_error",
+            "completed_at": datetime.now(UTC),
+            "error_message": error_message,
         },
     )
     logger.error(
@@ -601,12 +570,7 @@ def _bayesian_trial_to_run_params(
 
 
 def _compute_trial_score(experiment_id: str, run_id: str) -> float:
-    results = list(
-        get_collection(RESULTS_COLLECTION).find(
-            {"run_id": run_id, "experiment_id": experiment_id},
-            {"query_text": 1, "results": 1},
-        )
-    )
+    results = get_storage_backend().find_results_for_run(experiment_id, run_id)
     if not results:
         return 0.0
 
@@ -631,34 +595,11 @@ def _compute_trial_score(experiment_id: str, run_id: str) -> float:
 def _run_best_trial_payload(experiment_id: str) -> dict | None:
     from server.core.results_analyzer import analyze_results
 
-    query_results = list(
-        get_collection(RESULTS_COLLECTION).find(
-            {"experiment_id": experiment_id},
-            {"run_id": 1, "query_text": 1, "results": 1},
-        )
-    )
+    query_results = get_storage_backend().find_results_for_experiment(experiment_id)
     if not query_results:
         return None
 
-    run_statuses = list(
-        get_collection(RUN_STATUS_COLLECTION).find(
-            {"experiment_id": experiment_id},
-            {
-                "run_id": 1,
-                "database_provider": 1,
-                "embedding_provider": 1,
-                "embedding_model": 1,
-                "chunking_method": 1,
-                "chunk_size": 1,
-                "overlap": 1,
-                "padding": 1,
-                "retrieval_method": 1,
-                "retrieval_provider": 1,
-                "retrieval_model": 1,
-                "retrievers": 1,
-            },
-        )
-    )
+    run_statuses = get_storage_backend().find_run_statuses(experiment_id)
 
     best_result = analyze_results(query_results, run_statuses).get("best_params")
     if not isinstance(best_result, dict):
@@ -806,9 +747,8 @@ def _run_sweep_inner(
             return False
 
         if not first_run_set:
-            get_collection(EXPERIMENTS_COLLECTION).update_one(
-                {"_id": experiment_id},
-                {"$set": {"started_at": datetime.now(UTC)}},
+            get_storage_backend().update_experiment(
+                experiment_id, {"started_at": datetime.now(UTC)}
             )
             first_run_set = True
 
@@ -893,12 +833,7 @@ def _run_sweep_inner(
         completion_reason = "paused_by_user"
     else:
         final_status, failed_count = _compute_final_status(experiment_id, len(all_runs))
-        run_summaries = list(
-            get_collection(RUN_STATUS_COLLECTION).find(
-                {"experiment_id": experiment_id},
-                {"_id": 0, "phase": 1},
-            )
-        )
+        run_summaries = get_storage_backend().find_run_statuses(experiment_id)
         complete = sum(1 for run in run_summaries if run.get("phase") == Phase.COMPLETE.value)
         interrupted = sum(1 for run in run_summaries if run.get("phase") == Phase.INTERRUPTED.value)
 
@@ -930,10 +865,7 @@ def _run_sweep_inner(
             experiment_update["status"] = final_status
             experiment_update["completion_reason"] = "infrastructure_error"
 
-    get_collection(EXPERIMENTS_COLLECTION).update_one(
-        {"_id": experiment_id},
-        {"$set": experiment_update},
-    )
+    get_storage_backend().update_experiment(experiment_id, experiment_update)
     _log_failed_run_summary(experiment_id, failed_count)
     logger.info("sweep finished — experiment %s, status=%s", experiment_id, final_status)
 
@@ -941,28 +873,15 @@ def _run_sweep_inner(
 
 
 def _count_failed_runs(experiment_id: str) -> int:
-    return int(
-        get_collection(RUN_STATUS_COLLECTION).count_documents(
-            {"experiment_id": experiment_id, "phase": Phase.FAILED.value}
-        )
-    )
+    return get_storage_backend().count_runs_by_phase(experiment_id, Phase.FAILED.value)
 
 
 def _log_failed_run_summary(experiment_id: str, failed_count: int) -> None:
     if failed_count <= 0:
         return
-    cursor = get_collection(RUN_STATUS_COLLECTION).find(
-        {"experiment_id": experiment_id, "phase": Phase.FAILED.value},
-        {
-            "run_id": 1,
-            "embedding_model": 1,
-            "chunking_method": 1,
-            "chunk_size": 1,
-            "error_message": 1,
-        },
-    )
+    runs = get_storage_backend().find_runs_by_phase(experiment_id, Phase.FAILED.value, limit=10)
     summaries: list[str] = []
-    for doc in cursor:
+    for doc in runs:
         run_id = str(doc.get("run_id", "?"))
         label = (
             f"{run_id[:8]}… "
@@ -972,8 +891,6 @@ def _log_failed_run_summary(experiment_id: str, failed_count: int) -> None:
         if err:
             label = f"{label}: {str(err)[:80]}"
         summaries.append(label)
-        if len(summaries) >= 10:
-            break
     extra = f" — {'; '.join(summaries)}"
     if failed_count > len(summaries):
         extra += f" (+{failed_count - len(summaries)} more)"
@@ -989,7 +906,7 @@ def _compute_final_status(
     experiment_id: str,
     expected_run_count: int,
 ) -> tuple[ExperimentStatus, int]:
-    runs = list(get_collection(RUN_STATUS_COLLECTION).find({"experiment_id": experiment_id}))
+    runs = get_storage_backend().find_run_statuses(experiment_id)
     complete = sum(1 for run in runs if run.get("phase") == Phase.COMPLETE.value)
     failed = sum(1 for run in runs if run.get("phase") == Phase.FAILED.value)
 
@@ -1039,7 +956,7 @@ def _run_single(
         retrieval_provider=params.retrieval_provider,
         retrieval_model=params.retrieval_model,
     )
-    get_collection(RUN_STATUS_COLLECTION).insert_one(run_status.model_dump())
+    get_storage_backend().insert_run_status(run_status.model_dump())
 
     try:
         check_control(experiment_id)
@@ -1109,7 +1026,7 @@ def _run_single(
             }
             for i, (chunk, emb) in enumerate(zip(chunks, embeddings))
         ]
-        get_collection(CHUNKS_COLLECTION).insert_many(chunk_docs)
+        get_storage_backend().insert_chunks(chunk_docs)
         logger.info("chunks stored — %s documents", len(chunk_docs))
 
         check_control(experiment_id)
@@ -1184,7 +1101,7 @@ def _run_single(
                 results=search_results,
                 top_k=len(search_results),
             )
-            get_collection(RESULTS_COLLECTION).insert_one(query_result.model_dump())
+            get_storage_backend().insert_result(query_result.model_dump())
 
         logger.info("queries complete — run %s, %s queries", run_id, len(queries))
 
@@ -1231,13 +1148,13 @@ def _update_phase(run_id: str, phase: Phase, error_message: str | None = None) -
     elapsed_ms = int((now - _run_start_times[run_id]) * 1000)
     logger.info("phase updated — run %s, %s (%sms)", run_id, phase.value, elapsed_ms)
 
-    update: dict = {
-        "phase": phase.value,
-        "updated_at": datetime.now(UTC),
-        "elapsed_ms": elapsed_ms,
-        "error_message": error_message,
-    }
-    get_collection(RUN_STATUS_COLLECTION).update_one({"run_id": run_id}, {"$set": update})
+    get_storage_backend().update_run_phase(
+        run_id,
+        phase=phase.value,
+        updated_at=datetime.now(UTC),
+        elapsed_ms=elapsed_ms,
+        error_message=error_message,
+    )
 
     if phase in (Phase.COMPLETE, Phase.FAILED, Phase.INTERRUPTED):
         _run_start_times.pop(run_id, None)

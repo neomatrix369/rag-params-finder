@@ -682,6 +682,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-25 | 32 | Keep `atlas.py` as connection singleton; put CRUD/search behind `StorageBackend`/`RetrieverBackend` in `mongo_store.py`; factory selects by `STORAGE_BACKEND` | Dual-backend seam for Postgres (33+) without rewriting call sites; Protocol enforces cross-adapter contract (PRD Decision #10 exception) |
 | 2026-07-25 | 42 | Renamed `docker` path-filter → `docker_files` (only `docker/**` + `docker-compose*.yml`); docker job trigger expressed as `docker_files \|\| backend \|\| frontend` at job `if:` level | Removes 5 redundant path lines (server/**, cli/**, frontend/**, pyproject.toml, uv.lock) that duplicated `backend` and `frontend` filters; `deps` filter left unchanged — its overlap with backend is load-bearing precision (dep-audit should not fire on source-only edits) |
 | 2026-07-25 | 42 | `overrides.brace-expansion=5.0.8` in `package.json` instead of ESLint upgrade | ESLint 8→9/10 requires flat config migration (`.eslintrc.cjs` → `eslint.config.*`); brace-expansion@5 is API-compatible drop-in; npm audit now 0 vulnerabilities without touching ESLint config |
 | 2026-07-25 | 42 | Moved `nightly-dependency-audit` + `nightly-full-secrets-scan` from `ci.yml` → `nightly.yml` | Schedule-only jobs in a PR/push workflow; moving restores clear mental model (ci.yml = PR gates, nightly.yml = deep sweeps); `nightly.yml` already has `workflow_dispatch` for manual runs |

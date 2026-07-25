@@ -91,7 +91,11 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | File | Purpose |
 |---|---|
 | `server/main.py` | FastAPI app entry; lifespan ensures DB indexes + orphan reconciliation |
-| `server/settings.py` | Centralized pydantic-settings config |
+| `server/settings.py` | Centralized pydantic-settings config (`storage_backend`: mongo default; postgres reserved Slice 33+) |
+| `server/db/storage.py` | `StorageBackend` Protocol — experiment/run/chunk/result CRUD + cascade + reconciliation |
+| `server/db/retriever_backend.py` | `RetrieverBackend` Protocol — dense/sparse/hybrid search port |
+| `server/db/mongo_store.py` | Mongo adapters for both ports (Atlas / Atlas Local) |
+| `server/db/store_factory.py` | `get_storage_backend()` / `get_retriever_backend()` from settings |
 | `server/core/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
 | `server/core/search_index_plan.py` | Pure logic: required indexes from config, capacity assessment |
 | `server/core/search_index_guard.py` | Cluster snapshot + ensure_indexes retry; raises on mismatch |
@@ -114,7 +118,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/models/config.py` | Pydantic experiment config + provider validators |
 | `server/models/enums.py` | ChunkingMethod, RetrievalMethod, Phase |
 | `server/api/experiments.py` | Experiments CRUD, results/explore, db-stats, pause, resume, cancel, delete |
-| `server/api/experiments_shared.py` | Shared Mongo helpers (delete cascade, db-stats aggregation) |
+| `server/api/experiments_shared.py` | Thin API helpers — delegates all I/O to `StorageBackend` via store_factory |
 | `server/db/indexes.py` | Collection + search index creation; cluster-wide index listing |
 | `cli/main.py` | Typer app (`run`, `cancel`, `pause`, `resume`, `delete`, `indexes`, `version`) |
 | `cli/indexes_cmd.py` | `indexes list` and `indexes reset` subcommands |
