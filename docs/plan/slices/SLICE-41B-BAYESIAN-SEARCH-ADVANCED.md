@@ -417,7 +417,7 @@ These items are **permanently eliminated** from Bayesian consideration and shoul
 - [ ] `_run_single()` 4-arg call is **confirmed fixed in 41A before 41A merges** — the implementation must pass `config.execution.parallelism` as the fourth argument; a code review or test must demonstrate this explicitly before 41A's PR is approved.
 - [ ] Owner has set N for promotion evaluation (A4).
 - [ ] A2 — categorical TPE quality validated across ≥3 datasets (or explicitly waived for this slice).
-- [ ] Open questions A1, A3, D3, D6, D7 resolved and logged in DECISIONS.md.
+- [ ] Open questions A1, D3, D7 resolved and logged in DECISIONS.md. (A3 already DECIDED — `bayesian.parallelism` separate field capped at 4, see DECISIONS.md #73; D6 is not a gate for this slice.)
 - [ ] `optuna>=3.6` (ask-and-tell API stable) confirmed in environment.
 
 ---
