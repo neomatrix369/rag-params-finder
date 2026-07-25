@@ -216,13 +216,20 @@ jobs:
       - name: Install dependencies (including dev)
         run: uv pip install --system -e ".[dev]"
 
-      - name: Postgres StorageBackend integration tests
+      - name: Postgres StorageBackend and dense retrieval integration tests
         env:
           RAG_TEST_DATABASE_URL: postgresql://rag:rag@localhost:5433/rag_params_finder
           # Turns "database unreachable" from a skip into a failure, so a broken
           # service container cannot masquerade as a passing job.
           RAG_REQUIRE_POSTGRES: "1"
-        run: pytest tests/test_postgres_store_integration.py --tb=short -q --no-cov -rs
+        # Coverage is enforced here rather than in the `backend` job: these tests
+        # skip without a database, so the main job would measure them as 0%.
+        run: |
+          pytest tests/test_postgres_store_integration.py \
+                 tests/test_postgres_dense_retrieval.py \
+                 --tb=short -q -rs \
+                 --cov=server.core.retriever_postgres \
+                 --cov-branch --cov-report=term-missing --cov-fail-under=95
 
   frontend:
     name: Frontend (Node.js)

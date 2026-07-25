@@ -13,9 +13,11 @@ Two targets share this backend:
 TLS is applied automatically for `*.supabase.co` hosts and left off for local
 containers. Set `sslmode` explicitly in the URI to override either default.
 
-> **Scope today:** dense retrieval over `pgvector` arrives in Slice 34, and
-> sparse/hybrid in Slice 35. This slice covers storage — schema, CRUD, cascade
-> delete, and the db-stats screens. Running a full sweep still needs Slice 34.
+> **Scope today:** storage (schema, CRUD, cascade delete, db-stats) and **dense**
+> retrieval are working, so a dense-only sweep runs end to end on Postgres.
+> Sparse and hybrid retrieval arrive in Slice 35 — until then they raise a clear
+> error rather than falling back to dense, which would silently change what a
+> sweep is measuring. Use `STORAGE_BACKEND=mongo` if you need them today.
 
 ---
 
@@ -108,13 +110,43 @@ local 384-dim embeddings and dense retrieval only.
 
 ---
 
+## Dense retrieval
+
+Dense search ranks chunks by cosine similarity using pgvector's `<=>` operator
+against HNSW indexes on `embedding_384` and `embedding_1024`.
+
+Scores are reported on **Atlas's scale**, `(1 + cosine) / 2`, so an identical
+vector scores `1.0` and an orthogonal one `0.5`. pgvector returns a cosine
+*distance* instead, so the query converts it with `1 - distance / 2`. Without
+that conversion the two backends would report different numbers for identical
+retrieval quality, and comparing them would be meaningless.
+
+### Why `hnsw.iterative_scan` is switched on
+
+An HNSW index cannot apply a `WHERE` clause inside itself. The mandatory
+`experiment_id` / `embedding_model` / `run_id` filters therefore run *after* the
+index returns its candidate set, and anything filtered out is lost from the
+top-k. Measured on a 2 472-chunk table with the planner forced onto HNSW, a query
+asking for 20 rows came back with **3**.
+
+Every pooled connection therefore sets `hnsw.iterative_scan = strict_order`
+(pgvector ≥ 0.8), which keeps re-scanning until the limit is satisfied, in exact
+distance order. On an older pgvector the server logs a warning and Postgres falls
+back to an exact non-index scan — slower, but never short.
+
+If you see that warning, upgrade pgvector rather than ignoring it: a truncated
+result set changes the scores a sweep reports without any visible error.
+
+---
+
 ## Tests
 
 The Postgres adapter's integration tests need a live database:
 
 ```bash
 ./start-services.sh --postgres
-uv run pytest tests/test_postgres_store_integration.py -q
+uv run pytest tests/test_postgres_store_integration.py \
+              tests/test_postgres_dense_retrieval.py -q
 ```
 
 Without a reachable database they skip, so the default suite stays green on a

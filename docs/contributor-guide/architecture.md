@@ -123,6 +123,7 @@ rag-params-finder/
 │   │   ├── reranker.py      # Voyage reranking client
 │   │   ├── local_reranker.py  # CrossEncoder reranking (lazy-load, cached)
 │   │   ├── retriever.py     # Atlas Vector Search (dense/sparse/hybrid)
+│   │   ├── retriever_postgres.py # pgvector dense search (sparse/hybrid → Slice 35)
 │   │   ├── results_analyzer.py  # aggregates scores, min-max normalization
 │   │   └── chunkers/
 │   │       ├── recursive.py # LangChain RecursiveCharacterTextSplitter
@@ -143,7 +144,14 @@ rag-params-finder/
 │       ├── store_factory.py     # get_storage_backend() / get_retriever_backend()
 │       ├── atlas.py             # MongoDB connection singleton (TLS for cloud URIs only)
 │       ├── mongodb_uri.py       # is_atlas_uri(), parse_atlas_cluster_name() — cloud vs local detection
-│       └── indexes.py           # collection + search index creation; bootstrap_indexes() on local URI
+│       ├── indexes.py           # collection + search index creation; bootstrap_indexes() on local URI
+│       ├── postgres.py          # pgvector pool + schema bootstrap; hnsw.iterative_scan per connection
+│       ├── postgres_store.py    # Postgres adapters for both ports (CRUD / dense search)
+│       ├── postgres_stats.py    # Stats / explore helpers (delegated by postgres_store)
+│       ├── postgres_docs.py     # document ↔ row mapping; vector column per embedding width
+│       ├── postgres_uri.py      # Supabase vs local detection; TLS defaults
+│       ├── stats_common.py      # backend-agnostic stats maths shared by both adapters
+│       └── schema.sql           # Postgres DDL — tables, FK cascade, HNSW indexes (idempotent)
 ├── cli/
 │   ├── main.py              # Typer app (run, cancel, pause, resume, delete, indexes, version)
 │   ├── indexes_cmd.py       # indexes list | reset subcommands
