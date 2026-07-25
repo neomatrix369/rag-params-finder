@@ -248,6 +248,9 @@ Scenario: 41A gap fix — embedding parallelism propagated
 - [ ] `optuna_calls >= max_optuna_calls` exits loop (safety ceiling test)
 - [ ] `_run_single()` receives 4 args in Bayesian path (grep or test assertion)
 - [ ] All 41A tests still pass unchanged
+- [ ] Specification coverage: every GWT clause ≥1 test; essential error paths covered
+- [ ] Branch coverage: 100% target on new modules; exclusions documented
+- [ ] Mutation testing: run for new port/protocol modules (or document explicit feature-complete waiver)
 - [ ] `./scripts/quality-gates.sh` passes
 - [ ] PROGRESS.md updated (status + decision log entry)
 

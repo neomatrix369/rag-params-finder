@@ -217,6 +217,9 @@ Scenario: Dashboard Bayesian card renders
 - [ ] `search_strategy: random` runs without Optuna import; `n_samples` cap at 500 enforced
 - [ ] Dashboard Bayesian card renders for Bayesian experiments; absent for grid/random
 - [ ] All 41A and 41B tests still pass unchanged
+- [ ] Specification coverage: every GWT clause ≥1 test; essential error paths covered
+- [ ] Branch coverage: 100% target on new modules; exclusions documented
+- [ ] Mutation testing: run for new port/protocol modules (or document explicit feature-complete waiver)
 - [ ] `./scripts/quality-gates.sh` passes
 - [ ] PROGRESS.md updated (status + decision log entry)
 
