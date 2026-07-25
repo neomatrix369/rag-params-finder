@@ -41,7 +41,7 @@ def get_retriever_backend() -> RetrieverBackend:
     """Return the configured RetrieverBackend.
 
     Reads STORAGE_BACKEND from settings (default "mongo").
-    Postgres retrieval arrives in Slice 34.
+    Postgres serves dense retrieval; sparse and hybrid arrive in Slice 35.
     """
     backend = settings.storage_backend.lower()
     if backend == "mongo":
@@ -49,9 +49,9 @@ def get_retriever_backend() -> RetrieverBackend:
 
         return get_mongo_retriever()
     if backend == "postgres":
-        raise NotImplementedError(
-            "Postgres RetrieverBackend is not yet implemented — available in Slice 34+"
-        )
+        from server.db.postgres_store import get_postgres_retriever
+
+        return get_postgres_retriever()
     raise ValueError(
         f"Unknown storage backend {backend!r}. Set STORAGE_BACKEND to 'mongo' or 'postgres'."
     )

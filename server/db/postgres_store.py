@@ -17,6 +17,7 @@ from typing import Any
 from pgvector import Vector
 from psycopg import sql
 
+from server.core import retriever_postgres
 from server.db import postgres_stats
 from server.db.postgres import execute, execute_many, fetch_all, fetch_one, fetch_value
 from server.db.postgres_docs import (
@@ -29,7 +30,8 @@ from server.db.postgres_docs import (
     to_jsonb,
     vector_column_for,
 )
-from server.models.enums import ExperimentStatus
+from server.models.enums import ExperimentStatus, RetrievalMethod
+from server.models.results import SearchResult
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -377,8 +379,33 @@ class PostgresStorageBackend:
         return postgres_stats.get_vector_db_stats_grouped(self.find_all_experiments)
 
 
-# ── Singleton accessor ────────────────────────────────────────────────────────
+class PostgresRetrieverBackend:
+    """RetrieverBackend backed by pgvector (Supabase / local Postgres)."""
+
+    def search(
+        self,
+        method: RetrievalMethod,
+        query_text: str,
+        experiment_id: str,
+        embedding_model: str,
+        run_id: str,
+        top_k: int,
+        query_embedding: list[float] | None,
+    ) -> list[SearchResult]:
+        return retriever_postgres.search(
+            method,
+            query_text,
+            experiment_id,
+            embedding_model,
+            run_id,
+            top_k,
+            query_embedding,
+        )
+
+
+# ── Singleton accessors ───────────────────────────────────────────────────────
 _storage: PostgresStorageBackend | None = None
+_retriever: PostgresRetrieverBackend | None = None
 
 
 def get_postgres_storage() -> PostgresStorageBackend:
@@ -386,3 +413,10 @@ def get_postgres_storage() -> PostgresStorageBackend:
     if _storage is None:
         _storage = PostgresStorageBackend()
     return _storage
+
+
+def get_postgres_retriever() -> PostgresRetrieverBackend:
+    global _retriever
+    if _retriever is None:
+        _retriever = PostgresRetrieverBackend()
+    return _retriever

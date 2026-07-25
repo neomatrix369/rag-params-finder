@@ -7,7 +7,7 @@ singleton and the idempotent DDL apply; all query code lives in
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -72,8 +72,32 @@ def bootstrap_schema(uri: str) -> None:
     logger.info("postgres schema ready — mode=%s", postgres_storage_mode(uri))
 
 
+# An HNSW index cannot filter inside itself, so `experiment_id`/`embedding_model`/
+# `run_id` are applied *after* it returns its ef_search candidate set. When the
+# planner picks that path, a filtered top-k query silently comes back short —
+# measured on this schema: 3 rows for a LIMIT of 20, with 39 discarded by the
+# filter. Truncated result sets would quietly change the scores this tool exists
+# to compare, so recall is not negotiable here.
+#
+# strict_order (pgvector >= 0.8) keeps re-scanning until the limit is satisfied
+# and yields exact distance order. Older servers lack the GUC; they still return
+# exact results via the planner's non-index path, so a warning is enough.
+_HNSW_ITERATIVE_SCAN = "SET hnsw.iterative_scan = strict_order"
+
+
 def _configure_connection(conn: psycopg.Connection) -> None:
     register_vector(conn)
+    try:
+        conn.execute(_HNSW_ITERATIVE_SCAN)
+        conn.commit()
+    except psycopg.Error as exc:
+        conn.rollback()
+        logger.warning(
+            "could not enable hnsw.iterative_scan (%s) — filtered vector search may "
+            "return fewer than top_k rows if the planner chooses the HNSW index; "
+            "upgrade pgvector to 0.8+",
+            exc,
+        )
 
 
 def get_pool() -> ConnectionPool:
@@ -109,23 +133,25 @@ def connection() -> Iterator[psycopg.Connection]:
 
 
 Query = str | psycopg.sql.Composed | psycopg.sql.SQL
+# Positional (%s) or named (%(name)s) parameters — psycopg accepts either.
+Params = Sequence[Any] | Mapping[str, Any]
 
 
-def fetch_all(query: Query, params: Sequence[Any] = ()) -> list[dict]:
+def fetch_all(query: Query, params: Params = ()) -> list[dict]:
     """Run a query and return every row as a dict."""
     with connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         cur.execute(query, params)
         return list(cur.fetchall())
 
 
-def fetch_one(query: Query, params: Sequence[Any] = ()) -> dict | None:
+def fetch_one(query: Query, params: Params = ()) -> dict | None:
     """Run a query and return the first row as a dict, or None."""
     with connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         cur.execute(query, params)
         return cur.fetchone()
 
 
-def fetch_value(query: Query, params: Sequence[Any] = (), default: Any = None) -> Any:
+def fetch_value(query: Query, params: Params = (), default: Any = None) -> Any:
     """Run a query and return the first column of the first row."""
     with connection() as conn, conn.cursor() as cur:
         cur.execute(query, params)
@@ -133,7 +159,7 @@ def fetch_value(query: Query, params: Sequence[Any] = (), default: Any = None) -
         return default if row is None else row[0]
 
 
-def execute(query: Query, params: Sequence[Any] = ()) -> int:
+def execute(query: Query, params: Params = ()) -> int:
     """Run a statement and return the number of affected rows."""
     with connection() as conn, conn.cursor() as cur:
         cur.execute(query, params)

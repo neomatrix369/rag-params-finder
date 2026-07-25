@@ -58,6 +58,18 @@ CREATE INDEX IF NOT EXISTS chunks_experiment_idx ON chunks (experiment_id);
 CREATE INDEX IF NOT EXISTS chunks_run_idx ON chunks (run_id);
 CREATE INDEX IF NOT EXISTS chunks_model_idx ON chunks (experiment_id, embedding_model);
 
+-- HNSW indexes for dense retrieval, one per vector column and partial so each
+-- covers only the rows that use its dimension. cosine ops match Atlas
+-- $vectorSearch's cosine similarity, keeping scores comparable across backends
+-- for the Slice 38 side-by-side quality gate.
+CREATE INDEX IF NOT EXISTS chunks_embedding_384_hnsw
+    ON chunks USING hnsw (embedding_384 vector_cosine_ops)
+    WHERE embedding_384 IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS chunks_embedding_1024_hnsw
+    ON chunks USING hnsw (embedding_1024 vector_cosine_ops)
+    WHERE embedding_1024 IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS results (
     result_id     BIGSERIAL PRIMARY KEY,
     experiment_id TEXT  NOT NULL REFERENCES experiments (experiment_id) ON DELETE CASCADE,
