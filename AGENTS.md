@@ -31,6 +31,7 @@ python scripts/check_integrity.py       # unit tests + import smoke
 # Docker (server + dashboard; CLI on host)
 ./start-services.sh                            # prod profile → :8001, :5374 (Atlas cloud)
 ./start-services.sh --local                    # + MongoDB Atlas Local container
+./start-services.sh --postgres                 # + local pgvector (STORAGE_BACKEND=postgres)
 ./start-services.sh mongodb start|stop|reset|status  # MongoDB container only
 ./scripts/health-check.sh
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
@@ -39,6 +40,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 uvicorn server.main:app --reload --port 8001   # start server (manual)
 rag-params-finder run --config configs/example-mongodb-local.yaml  # submit experiment
 rag-params-finder run --config configs/example-mongodb-sie.yaml    # SIE sweep — see docs/user-guide/sie-setup.md
+rag-params-finder run --config configs/example-postgres-local.yaml # pgvector — see docs/user-guide/postgres-setup.md
 rag-params-finder pause <experiment-id>   # pause after current phase
 rag-params-finder resume <experiment-id>  # continue paused sweep
 rag-params-finder indexes list            # Atlas Search indexes (known vs unknown)

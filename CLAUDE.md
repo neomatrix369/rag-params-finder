@@ -52,6 +52,7 @@ npm run build
 ```bash
 ./start-services.sh                    # server + dashboard (Atlas cloud in .env)
 ./start-services.sh --local            # server + dashboard + MongoDB Atlas Local (no cloud account)
+./start-services.sh --postgres         # server + dashboard + local pgvector (STORAGE_BACKEND=postgres)
 RAG_LOCAL_ATLAS=1 ./start-services.sh  # same as --local via env var
 ./start-services.sh mongodb [start|stop|reset|status]  # manage local Atlas container standalone
 ./scripts/health-check.sh
@@ -60,12 +61,13 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build  # dev
 
 Backend switching — only the start command changes:
 
-| Backend | MONGODB_URI (CLI / host server) |
+| Backend | Connection string (CLI / host server) |
 |---------|--------------------------------|
-| Atlas cloud | `mongodb+srv://...` (from .env) |
-| Atlas Local | `mongodb://localhost:27017/rag_params_finder?directConnection=true` |
+| Atlas cloud | `MONGODB_URI=mongodb+srv://...` (from .env) |
+| Atlas Local | `MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true` |
+| Local pgvector | `STORAGE_BACKEND=postgres` + `DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder` |
 
-Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/SLICE-14-DOCKER-COMPOSE.md` and `docs/user-guide/mongodb-setup.md`.
+Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/SLICE-14-DOCKER-COMPOSE.md`, `docs/user-guide/mongodb-setup.md`, and `docs/user-guide/postgres-setup.md`.
 
 ### CLI
 
@@ -96,6 +98,13 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/db/retriever_backend.py` | `RetrieverBackend` Protocol — dense/sparse/hybrid search port |
 | `server/db/mongo_store.py` | Mongo adapters for both ports (Atlas / Atlas Local) |
 | `server/db/mongo_stats.py` | Stats / explore / vector-db helpers (delegated by `MongoStorageBackend`) |
+| `server/db/stats_common.py` | Backend-agnostic db-stats assembly shared by Mongo and Postgres |
+| `server/db/postgres.py` | Postgres pool, idempotent `schema.sql` bootstrap, query helpers |
+| `server/db/postgres_uri.py` | Supabase vs local-pgvector detection; TLS only for hosted |
+| `server/db/postgres_docs.py` | Document ↔ row mapping (promoted columns + `doc` JSONB) |
+| `server/db/postgres_store.py` | Postgres `StorageBackend` impl (Supabase / local pgvector) |
+| `server/db/postgres_stats.py` | Postgres stats / explore helpers (delegated by `PostgresStorageBackend`) |
+| `server/db/schema.sql` | Postgres DDL — 4 tables, FK cascade, `embedding_384` / `embedding_1024` |
 | `server/db/store_factory.py` | `get_storage_backend()` / `get_retriever_backend()` from settings |
 | `server/core/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
 | `server/core/search_index_plan.py` | Pure logic: required indexes from config, capacity assessment |
@@ -145,6 +154,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/utils/scope_log.py` | Option A scoped log format for server and CLI |
 | `tests/test_search_index_plan.py` | Search index requirement + capacity scenario tests |
 | `tests/test_search_index_guard.py` | Preflight guard tests (mocked I/O) |
+| `tests/test_postgres_store_integration.py` | Postgres CRUD/cascade/stats against live pgvector (skips without a DB) |
 
 ## Provider System
 

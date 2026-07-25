@@ -395,8 +395,19 @@ To **re-run only failed combinations inside an existing experiment** *(same `exp
 Create a `.env` file in the project root to configure server behavior:
 
 ```bash
-# MongoDB Atlas (REQUIRED)
+# Storage backend: "mongo" (default) or "postgres"
+STORAGE_BACKEND=mongo
+
+# MongoDB Atlas (REQUIRED when STORAGE_BACKEND=mongo)
 MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder
+
+# Postgres/pgvector (REQUIRED when STORAGE_BACKEND=postgres)
+# Local container:  ./start-services.sh --postgres
+# DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+# Hosted Supabase (TLS applied automatically for *.supabase.co):
+# DATABASE_URL=postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres
+# POSTGRES_POOL_MAX_SIZE=10
+# POSTGRES_POOL_TIMEOUT_S=30
 
 # Voyage AI (OPTIONAL — only if using Voyage models)
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
