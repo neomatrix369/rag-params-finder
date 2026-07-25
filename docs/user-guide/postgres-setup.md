@@ -159,6 +159,12 @@ green forever.
 
 ## Troubleshooting
 
+**`curl /healthz` returns `"mongodb": "error"` (or Docker marks the server unhealthy)**
+On a Postgres stack the probe must report `"storage_backend": "postgres"` and
+`"postgres": "ok"`. If you still see a Mongo field, the running image is older
+than this behaviour — rebuild with `./start-services.sh --postgres`. Mongo is
+not required when `STORAGE_BACKEND=postgres`.
+
 **`DATABASE_URL not set ... required when STORAGE_BACKEND=postgres`**
 The backend was selected but no connection string was given. Export
 `DATABASE_URL`, or unset `STORAGE_BACKEND` to fall back to Mongo.

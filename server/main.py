@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from server.api import experiments, runs
 from server.api.sweep import router as sweep_router
 from server.core.executors import shutdown_executors
-from server.core.health_check import mongodb_health_status
+from server.core.health_check import storage_health
 from server.core.sie_guard import check_sie_health
 from server.core.startup_reconciliation import reconcile_orphaned_experiments
 from server.db.indexes import bootstrap_indexes
@@ -24,10 +24,21 @@ logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 async def lifespan(app: FastAPI):
     """Ensure indexes exist on startup."""
     logger.info("boot — server starting")
-    try:
-        bootstrap_indexes()
-    except Exception as e:
-        logger.warning("boot — index check failed (starting without indexes): %s", e, exc_info=True)
+    # Atlas search indexes are a Mongo concern. Postgres applies schema.sql
+    # (including HNSW) when its pool opens — reaching for Mongo here would fail
+    # a --postgres stack that has no MONGODB_URI / no Atlas Local container.
+    if settings.storage_backend.lower() == "mongo":
+        try:
+            bootstrap_indexes()
+        except Exception as e:
+            logger.warning(
+                "boot — index check failed (starting without indexes): %s", e, exc_info=True
+            )
+    else:
+        logger.info(
+            "boot — skipping Atlas index bootstrap (storage_backend=%s)",
+            settings.storage_backend,
+        )
     try:
         reconcile_orphaned_experiments()
     except Exception as e:
@@ -85,11 +96,13 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 @app.get("/healthz")
 async def healthz():
-    """Health check — process alive and Atlas reachable when MONGODB_URI is configured."""
-    mongodb = mongodb_health_status()
-    ok = mongodb in ("ok", "skipped")
-    body = {"ok": ok, "mongodb": mongodb}
-    if not ok:
+    """Liveness for the active storage backend (Mongo or Postgres).
+
+    Docker Compose HEALTHCHECK depends on HTTP 200 here. Probing the wrong
+    backend (Mongo while running on pgvector) would mark a working stack unhealthy.
+    """
+    body = storage_health()
+    if not body["ok"]:
         return JSONResponse(status_code=503, content=body)
     return body
 
@@ -105,14 +118,14 @@ def _get_version() -> str:
 
 @app.get("/health")
 async def health():
-    """Health check including SIE reachability."""
-    mongodb = mongodb_health_status()
+    """Health check including SIE reachability and the active storage backend."""
+    storage = storage_health()
     sie = check_sie_health()
     return {
-        "status": "ok",
-        "mongodb": mongodb,
+        "status": "ok" if storage["ok"] else "degraded",
         "sie": sie,
         "version": _get_version(),
+        **storage,
     }
 
 
