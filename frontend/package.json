@@ -44,5 +44,8 @@
   "optionalDependencies": {
     "@rollup/rollup-darwin-arm64": "4.60.4",
     "@rollup/rollup-darwin-x64": "4.60.4"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.8"
   }
 }

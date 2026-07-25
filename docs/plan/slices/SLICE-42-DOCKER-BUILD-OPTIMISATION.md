@@ -1,6 +1,6 @@
 # SLICE 42 — Docker Build Optimisation
 
-**Status**: 📋 PLANNED
+**Status**: ✅ COMPLETE
 **MoSCoW**: Should *(build/CI hygiene — same class as Slice 20/40 toolchain hardening; no user-facing behaviour change)*
 **Branch**: `slice/42-docker-build-optimisation`
 **Target time**: ~2–3 h
@@ -85,7 +85,7 @@ Follows the pattern of Slice 14 (introduced the Docker stack) and Slice 20/40 (C
 
 **Given** a PR that touches only `docs/**` files,
 **When** the CI `Detect changed paths` job runs,
-**Then** the `docker` output is `false` and the `docker-build` job does NOT appear in the run.
+**Then** the `docker_files`, `backend`, and `frontend` outputs are all `false` and the `docker-build` job does NOT appear in the run.
 
 ### Should-8: CI path filter — Docker-touching PR triggers build
 
@@ -186,4 +186,4 @@ This slice has no pytest-testable units (pure Dockerfile/CI YAML changes). Verif
 
 ## Gate Status
 
-📋 PLANNED — not yet branched. Branch when Slice 41A closes or user prioritises this ahead of Supabase migration slices.
+✅ COMPLETE — all Must GWTs VERIFIED locally; Should-8/9 VERIFIED via CI run 30147718492 (all 3 Dockerfile matrix jobs pass); dependency-audit green (postcss + brace-expansion patched); PR #107 open. See `docs/plan/slices/PROGRESS.md` Decision Log for implementation decisions.

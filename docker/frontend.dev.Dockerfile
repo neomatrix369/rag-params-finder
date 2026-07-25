@@ -1,13 +1,21 @@
 # Dashboard — dev server with /api proxy to Compose service "server"
 FROM node:22-alpine
+
 ARG GIT_COMMIT=unknown
+
 LABEL org.opencontainers.image.revision="${GIT_COMMIT}"
 
 WORKDIR /app
 
+# Copy package files for dependency installation
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
 
+# Install dependencies with npm cache mount
+# Cache is preserved between builds — npm ci is fast when no lock changes
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit
+
+# Copy source
 COPY frontend/ .
 
 ENV VITE_DEV_PROXY_TARGET=http://server:8001

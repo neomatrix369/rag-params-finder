@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-24 (nw-review fixes: action pinning, Stryker runner, pre-push fallback; frontend JUnit/coverage; Chalk job; artifact archiving audit; cron fix; BACKEND_CHANGED; Slice 42 added)
-**Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** ✅ Bayesian Search Simple Functional · **42** 📋 Docker Build Optimisation (independent, can run any time) | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
+**Last Updated**: 2026-07-25 (Slice 42 ✅ COMPLETE — multi-stage Docker builds, BuildKit cache mounts, nginx:alpine frontend runtime, path-scoped CI docker-build job)
+**Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** ✅ Bayesian Search Simple Functional · **42** ✅ Docker Build Optimisation | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -58,7 +58,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 39 — Demo-ready dashboard polish | ✅ COMPLETE | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, network, and component verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
 | 40 — Documentation Plan/Slices SSOT alignment | 📋 PLANNED | ~1 h | Clarify `docs/plan` vs `docs/plan/slices` roles; keep `docs/plan/slices/PROGRESS.md` as the status SSOT |
 | 41A — Bayesian Search: Simple Functional | ✅ COMPLETE | ~2.5 h | All ACs verified; trial_log, CLI Bayesian summary, and test rigour added in closure pass (2026-07-23); 217 tests green |
-| 42 — Docker Build Optimisation | 📋 PLANNED | ~2–3 h | Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime; CI docker-build job (non-blocking, path-scoped) |
+| 42 — Docker Build Optimisation | ✅ COMPLETE | ~2–3 h | Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime (62 MB); CI docker-build job (non-blocking, path-scoped) — [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
 
@@ -95,7 +95,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 39 | Should | ✅ COMPLETE | — | Demo-ready list/detail journey; lifecycle component coverage and clean implementation history verified |
 | 40 | Should | 📋 PLANNED | — | Clarify `docs/plan` vs `docs/plan/slices` roles; status SSOT remains here |
 | 41A | Could | ✅ COMPLETE | 16 | All ACs closed; trial_log in bayesian_summary; CLI Trial History table; 10 new tests + parametrize refactor (13 total); 183 total tests green |
-| 42 | Should | 📋 PLANNED | none | Docker Build Optimisation — independent, can run any time |
+| 42 | Should | ✅ COMPLETE | none | Docker Build Optimisation — multi-stage builds, cache mounts, nginx runtime; [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
 
 **Execution order**: 21 → 25 → 25B → 29 → 39 (done) → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
 
@@ -678,6 +678,9 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-25 | 42 | Renamed `docker` path-filter → `docker_files` (only `docker/**` + `docker-compose*.yml`); docker job trigger expressed as `docker_files \|\| backend \|\| frontend` at job `if:` level | Removes 5 redundant path lines (server/**, cli/**, frontend/**, pyproject.toml, uv.lock) that duplicated `backend` and `frontend` filters; `deps` filter left unchanged — its overlap with backend is load-bearing precision (dep-audit should not fire on source-only edits) |
+| 2026-07-25 | 42 | `overrides.brace-expansion=5.0.8` in `package.json` instead of ESLint upgrade | ESLint 8→9/10 requires flat config migration (`.eslintrc.cjs` → `eslint.config.*`); brace-expansion@5 is API-compatible drop-in; npm audit now 0 vulnerabilities without touching ESLint config |
+| 2026-07-25 | 42 | Moved `nightly-dependency-audit` + `nightly-full-secrets-scan` from `ci.yml` → `nightly.yml` | Schedule-only jobs in a PR/push workflow; moving restores clear mental model (ci.yml = PR gates, nightly.yml = deep sweeps); `nightly.yml` already has `workflow_dispatch` for manual runs |
 | 2026-07-09 | 32–38 | nw-review edits applied | Behavioral ACs; equivalence gates; PRD SSOT; experiment_id contract; Supabase naming; Slice 27→36 |
 | 2026-07-18 | 39 | Added demo-ready dashboard polish | User prioritised an impressive list-to-detail presentation; strict ≤2 h visual-only interrupt before resuming Slice 32 |
 | 2026-07-18 | 39 | Adopted results-led decision storytelling | ARC-AGI-3 study informed purpose → results → trace hierarchy only; analytical views stay with Slices 30/11/31 and regression budgets protect behavior |
