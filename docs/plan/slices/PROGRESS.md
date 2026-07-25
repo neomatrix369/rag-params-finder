@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-25 (Slice 42 ✅ COMPLETE — multi-stage Docker builds, BuildKit cache mounts, nginx:alpine frontend runtime, path-scoped CI docker-build job; Slice 41B split into 41B 📋 PLANNED + 41C 📦 PARKED)
-**Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** ✅ Bayesian Search Simple Functional · **42** ✅ Docker Build Optimisation | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **41B** 📋 Bayesian Numeric · **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **41C** 📦 PARKED (Bayesian Extended) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
+**Last Updated**: 2026-07-25 (Slice 32 🔨 IN PROGRESS — Storage Backend Protocol + Mongo adapter; branch slice/32-storage-backend-protocol)
+**Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** ✅ Bayesian Search Simple Functional · **42** ✅ Docker Build Optimisation | Active: **32** 🔨 Storage Protocol → **33–38** Postgres/pgvector cutover · then **41B** 📋 Bayesian Numeric · **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **41C** 📦 PARKED (Bayesian Extended) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -46,7 +46,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 26 — Local MongoDB smooth-path docs | 📦 DEFERRED | ~1 h | Re-scope after Postgres cutover — [`SLICE-26-LOCAL-MONGODB-DOCS.md`](SLICE-26-LOCAL-MONGODB-DOCS.md) |
 | 27 — MongoDB mode indicator | 📦 DEFERRED | ~2 h | Absorbed into Slice 36 (storage mode) — [`SLICE-27-MONGODB-MODE-INDICATOR.md`](SLICE-27-MONGODB-MODE-INDICATOR.md) |
 | 19 — Atlas storage quota guard | 📦 DEFERRED | ~3–5 h | Atlas-specific; Postgres stats in Slice 36 — [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) |
-| 32 — Storage Backend Protocol | 📋 PLANNED | ~3–4 h | **Next** — Storage + Retriever ports; Mongo adapter — [`SLICE-32-STORAGE-BACKEND-PROTOCOL.md`](SLICE-32-STORAGE-BACKEND-PROTOCOL.md) |
+| 32 — Storage Backend Protocol | 🔨 IN PROGRESS | ~3–4 h | Storage + Retriever ports; Mongo adapter — [`SLICE-32-STORAGE-BACKEND-PROTOCOL.md`](SLICE-32-STORAGE-BACKEND-PROTOCOL.md) |
 | 33 — Supabase schema + CRUD | 📋 PLANNED | ~4–6 h | Pool, schema, cascade delete, local pgvector smoke — [`SLICE-33-POSTGRES-SCHEMA-CRUD.md`](SLICE-33-POSTGRES-SCHEMA-CRUD.md) |
 | 34 — Supabase dense retrieval | 📋 PLANNED | ~3–4 h | pgvector HNSW + embedding_model filter — [`SLICE-34-POSTGRES-DENSE-RETRIEVAL.md`](SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) |
 | 35 — Supabase sparse + hybrid | 📋 PLANNED | ~4–5 h | tsvector + RRF + equivalence gate — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
@@ -76,7 +76,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 25 | Should | ✅ COMPLETE | 21 | Atlas Local |
 | 25B | Should | ✅ COMPLETE | 25 | Atlas switching |
 | 29 | Must | ✅ COMPLETE | — | Padding propagation |
-| 32 | Must | 📋 PLANNED | — | **Next** — Storage + Retriever ports; Mongo adapter |
+| 32 | Must | 🔨 IN PROGRESS | — | Storage + Retriever ports; Mongo adapter |
 | 33 | Must | 📋 PLANNED | 32 | Supabase schema + CRUD + local pgvector smoke |
 | 34 | Must | 📋 PLANNED | 33 | Dense pgvector |
 | 35 | Must | 📋 PLANNED | 34 | Sparse + hybrid + equivalence gate |
