@@ -59,7 +59,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 40 — Documentation Plan/Slices SSOT alignment | 📋 PLANNED | ~1 h | Clarify `docs/plan` vs `docs/plan/slices` roles; keep `docs/plan/slices/PROGRESS.md` as the status SSOT |
 | 41A — Bayesian Search: Simple Functional | ✅ COMPLETE | ~2.5 h | All ACs verified; trial_log, CLI Bayesian summary, and test rigour added in closure pass (2026-07-23); 217 tests green |
 | 41B — Bayesian Search: Numeric Improvements | 📋 PLANNED | ~2–3 h | Unlocked: `bayesian.parallelism` (constant liar, ≤4 workers), `padding` as third numeric dimension, `n_trials` formula, 3-condition stopping loop, 41A embedding-parallelism gap fix — [`SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`](SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) |
-| 41C — Bayesian Search: Extended | 📦 PARKED | ~3–4 h | Gated on A1/A2/A4/D3/D7: study persistence (`bayesian.storage`), categorical axes, random search, dashboard Bayesian card, default promotion evaluation — [`SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md`](SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md) |
+| 41C — Bayesian Search: Extended | 📋 PLANNED | ~3–4 h | All questions resolved (A1 SQLite, A2 waived, A4 N=20, D3 sweep_summary keys, D7 RandomConfig); blocked only on 41B ✅: study persistence, categorical axes, random search, dashboard card, default promotion — [`SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md`](SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md) |
 | 42 — Docker Build Optimisation | ✅ COMPLETE | ~2–3 h | Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime (62 MB); CI docker-build job (non-blocking, path-scoped) — [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
