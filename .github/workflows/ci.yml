@@ -8,12 +8,6 @@ on:
   schedule:
     - cron: "0 2 * * *"
   workflow_dispatch:
-    inputs:
-      run_full_dependency_audit:
-        description: "Run the full dependency audit job (previously schedule-only)"
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   changes:
@@ -257,47 +251,6 @@ jobs:
       - name: Frontend security audit
         run: npm --prefix frontend audit --audit-level=high
 
-  nightly-dependency-audit:
-    name: Nightly dependency audit (full lockfile sweep)
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'schedule' || github.event.inputs.run_full_dependency_audit == 'true' }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version-file: ".python-version"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install backend dependencies (dev)
-        run: uv pip install --system -e ".[dev]"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          # Path is relative to repository root (not defaults.run.working-directory).
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Python dependency audit
-        run: bash scripts/pip-audit.sh
-
-      - name: Frontend security audit
-        run: npm --prefix frontend audit --audit-level=high
-
   secrets:
     name: Secrets scan (diff-only)
     runs-on: ubuntu-latest
@@ -356,55 +309,3 @@ jobs:
             -v "${{ github.workspace }}:/workspace" \
             ghcr.io/gitleaks/gitleaks:v8.24.3 \
             detect --source /workspace --config /workspace/.gitleaks.toml --redact
-
-  nightly-full-secrets-scan:
-    name: Nightly full-history secrets scan
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'schedule' }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Restore last-secrets-scan marker
-        id: restore-secrets-marker
-        uses: actions/cache@v6
-        with:
-          path: .github/.cache/last-secrets-scan-sha
-          key: gitleaks-full-scan-marker
-
-      - name: Check if any new commits since last full scan
-        id: secrets-scan-gate
-        run: |
-          LAST_SHA=""
-          if [ -f .github/.cache/last-secrets-scan-sha ]; then
-            LAST_SHA="$(cat .github/.cache/last-secrets-scan-sha)"
-          fi
-          echo "last_scan_sha=${LAST_SHA}" >> "$GITHUB_OUTPUT"
-          if [ -n "$LAST_SHA" ] && [ "$LAST_SHA" = "${{ github.sha }}" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Full-history gitleaks
-        if: steps.secrets-scan-gate.outputs.skip != 'true'
-        run: |
-          docker run --rm \
-            -v "${{ github.workspace }}:/workspace" \
-            ghcr.io/gitleaks/gitleaks:v8.24.3 \
-            detect --source /workspace --config /workspace/.gitleaks.toml \
-              --redact --log-opts "--all"
-
-      - name: Update last-secrets-scan marker
-        if: steps.secrets-scan-gate.outputs.skip != 'true'
-        run: |
-          mkdir -p .github/.cache
-          echo "${{ github.sha }}" > .github/.cache/last-secrets-scan-sha
-
-      - name: Cache last-secrets-scan marker
-        if: steps.secrets-scan-gate.outputs.skip != 'true'
-        uses: actions/cache@v6
-        with:
-          path: .github/.cache/last-secrets-scan-sha
-          key: gitleaks-full-scan-marker

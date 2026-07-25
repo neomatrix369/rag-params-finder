@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with:
           python-version-file: ".python-version"
       - uses: astral-sh/setup-uv@v7
@@ -42,8 +42,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -65,7 +65,7 @@ jobs:
     name: TruffleHog (full git history)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: trufflesecurity/trufflehog@v3.95.9
@@ -79,7 +79,7 @@ jobs:
     name: SBOM (CycloneDX)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: anchore/sbom-action@v0.17.0
         with:
           format: cyclonedx-json
@@ -104,7 +104,7 @@ jobs:
     name: Meterian SCA + license
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -121,7 +121,7 @@ jobs:
     name: Container scan (Trivy image)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check for Dockerfile
         id: check
         run: echo "exists=$(test -f docker/server.Dockerfile && echo true || echo false)" >> "$GITHUB_OUTPUT"
@@ -147,7 +147,7 @@ jobs:
       contents: read
       id-token: write   # required for Sigstore keyless signing
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Set up Chalk
@@ -173,7 +173,7 @@ jobs:
   #   name: DAST — OWASP ZAP baseline
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v4
+  #     - uses: actions/checkout@v7
   #     - name: Start service
   #       run: docker compose up -d && sleep 10
   #     - name: ZAP baseline scan
@@ -185,3 +185,93 @@ jobs:
   #     - name: Stop service
   #       if: always()
   #       run: docker compose down
+
+  # ── Dependency audit (full lockfile sweep) ────────────────────────────────
+  dependency-audit:
+    name: Dependency audit (full lockfile sweep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install backend dependencies (dev)
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Python dependency audit
+        run: bash scripts/pip-audit.sh
+
+      - name: Frontend security audit
+        run: npm --prefix frontend audit --audit-level=high
+
+  # ── Full-history secrets scan (gitleaks) ─────────────────────────────────
+  full-secrets-scan:
+    name: Full-history secrets scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Restore last-secrets-scan marker
+        id: restore-secrets-marker
+        uses: actions/cache@v6
+        with:
+          path: .github/.cache/last-secrets-scan-sha
+          key: gitleaks-full-scan-marker
+
+      - name: Check if any new commits since last full scan
+        id: secrets-scan-gate
+        run: |
+          LAST_SHA=""
+          if [ -f .github/.cache/last-secrets-scan-sha ]; then
+            LAST_SHA="$(cat .github/.cache/last-secrets-scan-sha)"
+          fi
+          echo "last_scan_sha=${LAST_SHA}" >> "$GITHUB_OUTPUT"
+          if [ -n "$LAST_SHA" ] && [ "$LAST_SHA" = "${{ github.sha }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Full-history gitleaks
+        if: steps.secrets-scan-gate.outputs.skip != 'true'
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            ghcr.io/gitleaks/gitleaks:v8.24.3 \
+            detect --source /workspace --config /workspace/.gitleaks.toml \
+              --redact --log-opts "--all"
+
+      - name: Update last-secrets-scan marker
+        if: steps.secrets-scan-gate.outputs.skip != 'true'
+        run: |
+          mkdir -p .github/.cache
+          echo "${{ github.sha }}" > .github/.cache/last-secrets-scan-sha
+
+      - name: Cache last-secrets-scan marker
+        if: steps.secrets-scan-gate.outputs.skip != 'true'
+        uses: actions/cache@v6
+        with:
+          path: .github/.cache/last-secrets-scan-sha
+          key: gitleaks-full-scan-marker
