@@ -50,12 +50,25 @@ def _coll() -> MagicMock:
 
 
 def _patch_collections(mapping: dict[str, MagicMock]) -> Any:
+    """Patch get_collection in mongo_store (CRUD methods that still live there)."""
+
     def _get(name: str) -> MagicMock:
         if name not in mapping:
             mapping[name] = _coll()
         return mapping[name]
 
     return patch("server.db.mongo_store.get_collection", side_effect=_get)
+
+
+def _patch_stats_collections(mapping: dict[str, MagicMock]) -> Any:
+    """Patch get_collection in mongo_stats (stats/explore helpers)."""
+
+    def _get(name: str) -> MagicMock:
+        if name not in mapping:
+            mapping[name] = _coll()
+        return mapping[name]
+
+    return patch("server.db.mongo_stats.get_collection", side_effect=_get)
 
 
 class TestMongoStorageBackendShould:
@@ -115,7 +128,7 @@ class TestMongoStorageBackendShould:
         collections = {"experiments": _coll()}
 
         ### When
-        with _patch_collections(collections):
+        with _patch_stats_collections(collections):
             actual = store.load_explore_source(_EXP_ID)
 
         ### Then
@@ -147,7 +160,7 @@ class TestMongoStorageBackendShould:
         collections["run_status"].find.return_value = runs
 
         ### When
-        with _patch_collections(collections):
+        with _patch_stats_collections(collections):
             actual_exp, actual_results, actual_runs = store.load_explore_source(_EXP_ID)
 
         ### Then
@@ -429,7 +442,7 @@ class TestMongoStorageBackendShould:
         }
 
         ### When
-        with _patch_collections(collections):
+        with _patch_stats_collections(collections):
             actual = store.get_experiment_db_stats(_EXP_ID)
 
         ### Then
@@ -459,7 +472,7 @@ class TestMongoStorageBackendShould:
         ### When / Then
         with (
             patch(
-                "server.db.mongo_store.get_collection",
+                "server.db.mongo_stats.get_collection",
                 side_effect=RuntimeError("db down"),
             ),
             pytest.raises(RuntimeError, match="db down"),
@@ -561,9 +574,10 @@ class TestMongoStorageBackendShould:
         ### When
         with (
             _patch_collections(collections),
-            patch("server.db.mongo_store.get_database", return_value=db),
+            _patch_stats_collections(collections),
+            patch("server.db.mongo_stats.get_database", return_value=db),
             patch(
-                "server.core.atlas_storage.resolve_tier_specs",
+                "server.db.mongo_stats.resolve_tier_specs",
                 return_value=tier,
             ),
             patch(
@@ -651,7 +665,7 @@ class TestMongoStorageBackendShould:
         when = datetime.now(UTC)
 
         ### When
-        with _patch_collections(collections):
+        with _patch_collections(collections), _patch_stats_collections(collections):
             store.insert_experiment({"experiment_id": _EXP_ID})
             store.update_experiment(_EXP_ID, {"status": "running"})
             store.insert_run_status({"run_id": _RUN_ID})

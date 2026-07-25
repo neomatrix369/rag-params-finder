@@ -110,7 +110,7 @@ class TestMongoStoreAdapterShould:
 
         ### When
         with patch(
-            "server.core.retriever.search",
+            "server.db.mongo_store._mongo_search",
             return_value=expected_results,
         ) as mock_search:
             actual = adapter.search(**search_kwargs)

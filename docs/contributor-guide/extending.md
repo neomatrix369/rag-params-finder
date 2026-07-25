@@ -198,7 +198,8 @@ directly.
 ### 1. Implement the adapter
 
 Create `server/db/<backend>_store.py` with classes that structurally satisfy both
-Protocols (see `MongoStorageBackend` / `MongoRetrieverBackend` in `mongo_store.py`).
+Protocols (see `MongoStorageBackend` / `MongoRetrieverBackend` in `mongo_store.py`;
+stats helpers in `mongo_stats.py`).
 
 ### 2. Wire the factory
 

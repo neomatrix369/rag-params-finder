@@ -95,6 +95,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/db/storage.py` | `StorageBackend` Protocol — experiment/run/chunk/result CRUD + cascade + reconciliation |
 | `server/db/retriever_backend.py` | `RetrieverBackend` Protocol — dense/sparse/hybrid search port |
 | `server/db/mongo_store.py` | Mongo adapters for both ports (Atlas / Atlas Local) |
+| `server/db/mongo_stats.py` | Stats / explore / vector-db helpers (delegated by `MongoStorageBackend`) |
 | `server/db/store_factory.py` | `get_storage_backend()` / `get_retriever_backend()` from settings |
 | `server/core/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
 | `server/core/search_index_plan.py` | Pure logic: required indexes from config, capacity assessment |
