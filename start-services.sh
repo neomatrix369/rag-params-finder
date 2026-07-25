@@ -19,6 +19,7 @@ source ./scripts/lib/compose.sh
 
 FORCE_BUILD=0
 LOCAL_ATLAS=0
+LOCAL_POSTGRES=0
 
 usage() {
   cat <<EOF
@@ -29,6 +30,7 @@ Start server + dashboard via Docker Compose (default), or manage MongoDB Atlas L
 
 Stack options:
   --local, -l                  Use MongoDB Atlas Local (no cloud account needed)
+  --postgres, -p               Use local Postgres + pgvector (Supabase stand-in)
   --force-build, --build, -b   Rebuild images even when build context is unchanged
   -h, --help                   Show this help
 
@@ -40,6 +42,7 @@ MongoDB container only (Atlas Local Docker):
 
 Environment:
   RAG_LOCAL_ATLAS=1            Same as --local
+  RAG_LOCAL_POSTGRES=1         Same as --postgres
   RAG_FORCE_BUILD=1            Same as --force-build
   RAG_DEV_STACK=1              Dev overlay (HMR + uvicorn --reload)
   NONINTERACTIVE=1             Fail fast on missing .env / port conflicts
@@ -48,6 +51,8 @@ Backends:
   Cloud (default):  requires MONGODB_URI in .env (mongodb+srv://...)
   Local (--local):  starts mongodb-atlas-local container; no .env MONGODB_URI needed
                     CLI: export MONGODB_URI="$RAG_LOCAL_MONGODB_URI_HOST"
+  Postgres (-p):    starts pgvector container; no MONGODB_URI needed
+                    CLI: export STORAGE_BACKEND=postgres DATABASE_URL="$RAG_LOCAL_DATABASE_URL_HOST"
 EOF
 }
 
@@ -119,6 +124,10 @@ parse_args() {
         LOCAL_ATLAS=1
         shift
         ;;
+      --postgres | -p)
+        LOCAL_POSTGRES=1
+        shift
+        ;;
       --force-build | --build | -b)
         FORCE_BUILD=1
         shift
@@ -139,7 +148,10 @@ parse_args() {
   if [[ "${RAG_LOCAL_ATLAS:-}" == "1" ]]; then
     LOCAL_ATLAS=1
   fi
-  export FORCE_BUILD LOCAL_ATLAS
+  if [[ "${RAG_LOCAL_POSTGRES:-}" == "1" ]]; then
+    LOCAL_POSTGRES=1
+  fi
+  export FORCE_BUILD LOCAL_ATLAS LOCAL_POSTGRES
 }
 
 if [[ "${1:-}" == "mongodb" ]]; then
@@ -173,6 +185,15 @@ else
   compose_clear_local_atlas_env
 fi
 
+if [[ "$LOCAL_POSTGRES" == "1" ]]; then
+  compose_export_local_postgres_env
+  compose_local_postgres_profiles
+  PROFILES+=("${COMPOSE_PROFILES[@]}")
+  echo "Local Postgres enabled (--postgres) — pgvector container, STORAGE_BACKEND=postgres"
+else
+  compose_clear_local_postgres_env
+fi
+
 ensure_env() {
   if [[ ! -f .env ]]; then
     if [[ -f .env.example ]]; then
@@ -195,7 +216,8 @@ ensure_env() {
 
   # Local Atlas: server MONGODB_URI is set via RAG_SERVER_MONGODB_URI env (compose_export_local_atlas_env).
   # Cloud Atlas: .env MONGODB_URI must be a real connection string.
-  if [[ "$LOCAL_ATLAS" == "0" ]]; then
+  # Postgres backend: Mongo is unused, so no MONGODB_URI is required.
+  if [[ "$LOCAL_ATLAS" == "0" && "$LOCAL_POSTGRES" == "0" ]]; then
     if [[ -z "${MONGODB_URI:-}" ]] || [[ "$MONGODB_URI" == *"your_mongodb_atlas_uri_here"* ]]; then
       echo "Set a real MONGODB_URI in .env (Atlas connection string), or use --local for local dev." >&2
       exit 1
@@ -209,15 +231,22 @@ check_ports() {
   #   5374 — frontend (avoids 5173 which is Vite's own default, shared by every Vite project)
   #   8720 — SIE      (avoids 8080 used by Jenkins, Tomcat, Hadoop, Spark, etc.)
   #   27017 — MongoDB (local Atlas only)
+  #   5433  — Postgres (local pgvector only; 5432 left free for a developer's own Postgres)
   local ports=(8001 5374)
   if [[ "$LOCAL_ATLAS" == "1" ]]; then
     ports+=(27017)
+  fi
+  if [[ "$LOCAL_POSTGRES" == "1" ]]; then
+    ports+=(5433)
   fi
   local conflicts=()
   for port in "${ports[@]}"; do
     if lsof -ti:"$port" >/dev/null 2>&1; then
       # Re-use an already-running Atlas Local container (e.g. after mongodb start)
       if [[ "$port" == "27017" ]] && docker inspect --format='{{.State.Status}}' "$RAG_MONGODB_LOCAL_CONTAINER" 2>/dev/null | grep -q running; then
+        continue
+      fi
+      if [[ "$port" == "5433" ]] && docker inspect --format='{{.State.Status}}' "$RAG_POSTGRES_LOCAL_CONTAINER" 2>/dev/null | grep -q running; then
         continue
       fi
       conflicts+=("$port")
@@ -336,6 +365,10 @@ else
   echo "CLI:       rag-params-finder run --config configs/example-mongodb-local.yaml"
   echo ""
   echo "Switch to local Atlas: ./start-services.sh --local  (no cloud account needed)"
+fi
+
+if [[ "$LOCAL_POSTGRES" == "1" ]]; then
+  print_local_postgres_cli_hints
 fi
 
 echo ""
