@@ -63,10 +63,23 @@ from server.models.enums import (
 from server.models.results import Chunk, SearchResult
 
 
-def _mock_collection() -> MagicMock:
-    return MagicMock(
-        update_one=MagicMock(),
-    )
+def _fake_storage_backend() -> MagicMock:
+    """MagicMock standing in for StorageBackend with iterable-safe defaults.
+
+    Orchestrator call sites iterate over several StorageBackend query results
+    (find_run_statuses, find_runs_by_phase, etc.) — a bare MagicMock() is not
+    iterable, so every list-returning method defaults to an empty list here.
+    Tests override individual method return values as needed.
+    """
+    storage = MagicMock()
+    storage.find_run_statuses.return_value = []
+    storage.find_runs_by_phase.return_value = []
+    storage.find_completed_run_sigs.return_value = []
+    storage.find_results_for_experiment.return_value = []
+    storage.find_results_for_run.return_value = []
+    storage.count_runs_by_phase.return_value = 0
+    storage.is_experiment_cancelled.return_value = False
+    return storage
 
 
 def _run_param() -> RunParams:
@@ -104,31 +117,11 @@ def _slice_config(
     )
 
 
-class _FakeCollection:
-    def insert_one(self, *_args, **_kwargs) -> None:
-        pass
-
-    def insert_many(self, *_args, **_kwargs) -> None:
-        pass
-
-    def update_one(self, *_args, **_kwargs) -> None:
-        pass
-
-    def find_one(self, *_args, **_kwargs) -> dict:
-        return {"status": "created"}
-
-    def find(self, *_args, **_kwargs) -> list:
-        return []
-
-    def count_documents(self, *_args, **_kwargs) -> int:
-        return 0
-
-
 class TestSlice16ParallelSweep:
     """Scenario: execute a sweep with bounded in-process concurrency."""
 
     @patch("server.core.orchestrator._compute_final_status")
-    @patch("server.core.orchestrator.get_collection")
+    @patch("server.core.orchestrator.get_storage_backend")
     @patch("server.core.orchestrator.expand_sweep")
     @patch("server.core.orchestrator._run_single")
     @patch("server.core.orchestrator.validate_experiment_search_indexes")
@@ -139,7 +132,7 @@ class TestSlice16ParallelSweep:
         mock_validate_search_indexes: MagicMock,
         mock_run_single: MagicMock,
         mock_expand_sweep: MagicMock,
-        mock_get_collection: MagicMock,
+        mock_get_storage_backend: MagicMock,
         mock_compute_final_status: MagicMock,
     ) -> None:
         """
@@ -153,7 +146,7 @@ class TestSlice16ParallelSweep:
         config = _slice_config(parallelism=4)
         params = [_run_param() for _ in range(8)]
         mock_expand_sweep.return_value = params
-        mock_get_collection.return_value = _FakeCollection()
+        mock_get_storage_backend.return_value = _fake_storage_backend()
         mock_validate_sie_readiness.return_value = None
         mock_validate_search_indexes.return_value = None
         mock_compute_final_status.return_value = (ExperimentStatus.COMPLETE, 0)
@@ -180,7 +173,7 @@ class TestSlice16ParallelSweep:
         assert mock_run_single.call_count == len(params)
 
     @patch("server.core.orchestrator._compute_final_status")
-    @patch("server.core.orchestrator.get_collection")
+    @patch("server.core.orchestrator.get_storage_backend")
     @patch("server.core.orchestrator.expand_sweep")
     @patch("server.core.orchestrator._run_single")
     @patch("server.core.orchestrator.validate_experiment_search_indexes")
@@ -191,7 +184,7 @@ class TestSlice16ParallelSweep:
         mock_validate_search_indexes: MagicMock,
         mock_run_single: MagicMock,
         mock_expand_sweep: MagicMock,
-        mock_get_collection: MagicMock,
+        mock_get_storage_backend: MagicMock,
         mock_compute_final_status: MagicMock,
     ) -> None:
         """
@@ -204,7 +197,7 @@ class TestSlice16ParallelSweep:
         # Given
         config = _slice_config(parallelism=2, on_error="continue")
         mock_expand_sweep.return_value = [_run_param() for _ in range(4)]
-        mock_get_collection.return_value = _FakeCollection()
+        mock_get_storage_backend.return_value = _fake_storage_backend()
         mock_validate_sie_readiness.return_value = None
         mock_validate_search_indexes.return_value = None
         mock_compute_final_status.return_value = (ExperimentStatus.PARTIAL, 1)
@@ -224,7 +217,7 @@ class TestSlice16ParallelSweep:
         assert mock_run_single.call_count == 4
 
     @patch("server.core.orchestrator._compute_final_status")
-    @patch("server.core.orchestrator.get_collection")
+    @patch("server.core.orchestrator.get_storage_backend")
     @patch("server.core.orchestrator.expand_sweep")
     @patch("server.core.orchestrator._run_single")
     @patch("server.core.orchestrator.validate_experiment_search_indexes")
@@ -235,7 +228,7 @@ class TestSlice16ParallelSweep:
         mock_validate_search_indexes: MagicMock,
         mock_run_single: MagicMock,
         mock_expand_sweep: MagicMock,
-        mock_get_collection: MagicMock,
+        mock_get_storage_backend: MagicMock,
         mock_compute_final_status: MagicMock,
     ) -> None:
         """
@@ -248,7 +241,7 @@ class TestSlice16ParallelSweep:
         # Given
         config = _slice_config(parallelism=2, on_error="stop")
         mock_expand_sweep.return_value = [_run_param() for _ in range(4)]
-        mock_get_collection.return_value = _FakeCollection()
+        mock_get_storage_backend.return_value = _fake_storage_backend()
         mock_validate_sie_readiness.return_value = None
         mock_validate_search_indexes.return_value = None
         mock_compute_final_status.return_value = (ExperimentStatus.PARTIAL, 1)
@@ -269,10 +262,10 @@ class TestSlice16ParallelSweep:
 
     @patch("server.core.orchestrator.expand_sweep")
     @patch("server.core.orchestrator.check_control")
-    @patch("server.core.orchestrator.get_collection")
+    @patch("server.core.orchestrator.get_storage_backend")
     def test_cancelled_before_run_start_skips_run_submission(
         self,
-        mock_get_collection: MagicMock,
+        mock_get_storage_backend: MagicMock,
         mock_check_control: MagicMock,
         mock_expand_sweep: MagicMock,
     ) -> None:
@@ -285,7 +278,7 @@ class TestSlice16ParallelSweep:
         """
         # Given
         mock_check_control.side_effect = ExperimentCancelledError("cancel requested")
-        mock_get_collection.return_value = _FakeCollection()
+        mock_get_storage_backend.return_value = _fake_storage_backend()
         config = _slice_config(parallelism=2)
 
         # When
@@ -297,7 +290,7 @@ class TestSlice16ParallelSweep:
 
     @patch("server.core.orchestrator.check_control")
     @patch("server.core.orchestrator._compute_final_status")
-    @patch("server.core.orchestrator.get_collection")
+    @patch("server.core.orchestrator.get_storage_backend")
     @patch("server.core.orchestrator.expand_sweep")
     @patch("server.core.orchestrator._run_single")
     @patch("server.core.orchestrator.validate_experiment_search_indexes")
@@ -308,7 +301,7 @@ class TestSlice16ParallelSweep:
         mock_validate_search_indexes: MagicMock,
         mock_run_single: MagicMock,
         mock_expand_sweep: MagicMock,
-        mock_get_collection: MagicMock,
+        mock_get_storage_backend: MagicMock,
         mock_compute_final_status: MagicMock,
         mock_check_control: MagicMock,
     ) -> None:
@@ -322,7 +315,7 @@ class TestSlice16ParallelSweep:
         # Given
         config = _slice_config(parallelism=2, on_error="continue")
         mock_expand_sweep.return_value = [_run_param() for _ in range(4)]
-        mock_get_collection.return_value = _FakeCollection()
+        mock_get_storage_backend.return_value = _fake_storage_backend()
         mock_validate_sie_readiness.return_value = None
         mock_validate_search_indexes.return_value = None
         mock_compute_final_status.return_value = (ExperimentStatus.CANCELLED, 0)
@@ -346,14 +339,14 @@ class TestSlice16ParallelSweep:
 
     @patch("server.core.orchestrator._run_sweep_inner")
     @patch("server.core.orchestrator.expand_sweep")
-    @patch("server.core.orchestrator.get_collection")
+    @patch("server.core.orchestrator.get_storage_backend")
     @patch("server.core.orchestrator.unregister_sweep_control")
     @patch("server.core.orchestrator.register_sweep_control")
     def test_search_index_preflight_failure_marks_experiment_failed(
         self,
         mock_register_sweep_control: MagicMock,
         mock_unregister_sweep_control: MagicMock,
-        mock_get_collection: MagicMock,
+        mock_get_storage_backend: MagicMock,
         mock_expand_sweep: MagicMock,
         mock_run_sweep_inner: MagicMock,
     ) -> None:
@@ -365,7 +358,7 @@ class TestSlice16ParallelSweep:
         Then preflight status is set, run IDs are empty, and control is unregistered.
         """
         # Given
-        mock_get_collection.return_value = _FakeCollection()
+        mock_get_storage_backend.return_value = _fake_storage_backend()
         mock_expand_sweep.return_value = [_run_param()]
         config = _slice_config(parallelism=1)
         mock_run_sweep_inner.side_effect = SearchIndexMismatchError("index mismatch")
@@ -384,7 +377,7 @@ class TestSlice16ParallelSweep:
     @patch("server.core.orchestrator.expand_sweep")
     @patch("server.core.orchestrator.validate_sie_readiness")
     @patch("server.core.orchestrator.validate_experiment_search_indexes")
-    @patch("server.core.orchestrator.get_collection")
+    @patch("server.core.orchestrator.get_storage_backend")
     @patch("server.core.orchestrator._compute_final_status")
     @patch("server.core.orchestrator._run_single")
     @patch("server.core.orchestrator.check_control")
@@ -393,7 +386,7 @@ class TestSlice16ParallelSweep:
         mock_check_control: MagicMock,
         mock_run_single: MagicMock,
         mock_compute_final_status: MagicMock,
-        mock_get_collection: MagicMock,
+        mock_get_storage_backend: MagicMock,
         mock_validate_search_indexes: MagicMock,
         mock_validate_sie_readiness: MagicMock,
         mock_expand_sweep: MagicMock,
@@ -409,7 +402,7 @@ class TestSlice16ParallelSweep:
         config = _slice_config(parallelism=1)
         mock_expand_sweep.return_value = [_run_param()]
         mock_run_single.side_effect = SIEUnavailableError("SIE backend unavailable")
-        mock_get_collection.return_value = _FakeCollection()
+        mock_get_storage_backend.return_value = _fake_storage_backend()
         mock_validate_sie_readiness.return_value = None
         mock_validate_search_indexes.return_value = None
         mock_compute_final_status.return_value = (ExperimentStatus.COMPLETE, 0)
@@ -501,9 +494,9 @@ class TestSlice16ParallelSweep:
 
 @patch("server.core.orchestrator._count_failed_runs", return_value=0)
 @patch("server.core.orchestrator._log_bayesian_summary")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_finalise_bayesian_experiment_persists_summary(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_log_summary: MagicMock,
     mock_count_failed_runs: MagicMock,
 ) -> None:
@@ -520,8 +513,8 @@ def test_finalise_bayesian_experiment_persists_summary(
     config.chunking.params.chunk_sizes = [128, 256, 512]
     config.chunking.params.overlaps = [0, 50]
 
-    collection = _mock_collection()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
 
     best_trial = {
         "query_avg_score": 0.82,
@@ -551,7 +544,7 @@ def test_finalise_bayesian_experiment_persists_summary(
     mock_count_failed_runs.assert_not_called()
 
     # Validate experiment document persisted fields
-    update_call = collection.update_one.call_args.args[1]["$set"]
+    update_call = storage.update_experiment.call_args.args[1]
     assert update_call["status"] == ExperimentStatus.COMPLETE
     assert update_call["run_count"] == 4
     assert update_call["failed_count"] == 0
@@ -569,9 +562,9 @@ def test_finalise_bayesian_experiment_persists_summary(
 
 
 @patch("server.core.orchestrator._log_bayesian_summary")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_finalise_bayesian_experiment_promotes_no_failure_partial_to_complete(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_log_summary: MagicMock,
 ) -> None:
     """
@@ -589,8 +582,8 @@ def test_finalise_bayesian_experiment_promotes_no_failure_partial_to_complete(
     config.chunking.params.chunk_sizes = [128, 256, 512]
     config.chunking.params.overlaps = [0, 50]
 
-    collection = _mock_collection()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
 
     final_status, failed_count = _finalise_bayesian_experiment(
         experiment_id="exp-bayesian-promoted",
@@ -608,7 +601,7 @@ def test_finalise_bayesian_experiment_promotes_no_failure_partial_to_complete(
     assert final_status == ExperimentStatus.COMPLETE
     assert failed_count == 0
 
-    update_call = collection.update_one.call_args.args[1]["$set"]
+    update_call = storage.update_experiment.call_args.args[1]
     assert update_call["status"] == ExperimentStatus.COMPLETE
     assert update_call["run_count"] == 5
     assert update_call["failed_count"] == 0
@@ -619,8 +612,10 @@ def test_finalise_bayesian_experiment_promotes_no_failure_partial_to_complete(
     mock_log_summary.assert_not_called()
 
 
-@patch("server.core.orchestrator.get_collection")
-def test_compute_final_status_complete_and_partial_states(mock_get_collection: MagicMock) -> None:
+@patch("server.core.orchestrator.get_storage_backend")
+def test_compute_final_status_complete_and_partial_states(
+    mock_get_storage_backend: MagicMock,
+) -> None:
     """
     Scenario: _compute_final_status resolves COMPLETE and PARTIAL
 
@@ -629,7 +624,7 @@ def test_compute_final_status_complete_and_partial_states(mock_get_collection: M
     Then each branch returns the expected status.
     """
     # Given
-    mock_get_collection.return_value.find.return_value = [
+    mock_get_storage_backend.return_value.find_run_statuses.return_value = [
         {"phase": ExperimentStatus.COMPLETE.value},
         {"phase": ExperimentStatus.COMPLETE.value},
     ]
@@ -639,7 +634,7 @@ def test_compute_final_status_complete_and_partial_states(mock_get_collection: M
     assert status == ExperimentStatus.COMPLETE
     assert failed == 0
 
-    mock_get_collection.return_value.find.return_value = [
+    mock_get_storage_backend.return_value.find_run_statuses.return_value = [
         {"phase": ExperimentStatus.COMPLETE.value},
         {"phase": ExperimentStatus.FAILED.value},
         {"phase": Phase.QUERYING.value},
@@ -649,9 +644,9 @@ def test_compute_final_status_complete_and_partial_states(mock_get_collection: M
     assert failed == 1
 
 
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_compute_final_status_failed_when_no_runs_complete(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
 ) -> None:
     """
     Scenario: _compute_final_status resolves FAILED for all-failed runs
@@ -661,7 +656,7 @@ def test_compute_final_status_failed_when_no_runs_complete(
     Then status is FAILED with expected failed count.
     """
     # Given
-    mock_get_collection.return_value.find.return_value = [
+    mock_get_storage_backend.return_value.find_run_statuses.return_value = [
         {"phase": ExperimentStatus.FAILED.value},
         {"phase": ExperimentStatus.FAILED.value},
     ]
@@ -719,7 +714,8 @@ def test_search_traditional_retriever_embeds_when_needed() -> None:
     """
     Scenario: _search_traditional_retriever computes query embedding for dense/hybrid retrieval.
     """
-    with patch("server.core.orchestrator.retriever_search") as mock_retriever_search:
+    with patch("server.core.orchestrator.get_retriever_backend") as mock_get_retriever_backend:
+        mock_retriever_search = mock_get_retriever_backend.return_value.search
         mock_retriever_search.return_value = []
         embed_query_calls = []
 
@@ -814,8 +810,8 @@ def test_completed_param_signatures_extracts_phase_fields() -> None:
         ("mongodb", "local", "all-MiniLM-L6-v2", "recursive", 512, 25, "dense", "local", None)
     }
 
-    with patch("server.core.orchestrator.get_collection") as mock_get_collection:
-        mock_get_collection.return_value.find.return_value = runs
+    with patch("server.core.orchestrator.get_storage_backend") as mock_get_storage_backend:
+        mock_get_storage_backend.return_value.find_completed_run_sigs.return_value = runs
         assert _completed_param_signatures("exp") == expected
 
 
@@ -863,9 +859,9 @@ def test_primary_retriever_with_empty_retrievers_raises() -> None:
 @patch("server.core.orchestrator.chunk_text")
 @patch("server.core.orchestrator.load_all_files")
 @patch("server.core.orchestrator.check_control")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_run_single_happy_path_executes_pipeline(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_check_control: MagicMock,
     mock_load_all_files: MagicMock,
     mock_chunk_text: MagicMock,
@@ -882,8 +878,8 @@ def test_run_single_happy_path_executes_pipeline(
     Then run_status, chunk docs, and query results are persisted.
     """
     # Given
-    collection = MagicMock()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
     mock_check_control.return_value = None
     mock_load_all_files.return_value = "text content"
     mock_chunk_text.return_value = ["chunk-one", "chunk-two"]
@@ -917,9 +913,10 @@ def test_run_single_happy_path_executes_pipeline(
     _run_single("exp-run", "run-1", _run_param())
 
     # Then
-    assert collection.insert_one.call_count >= 2
-    assert collection.insert_many.called
-    assert collection.update_one.call_count >= 3
+    assert storage.insert_run_status.call_count == 1
+    assert storage.insert_result.call_count >= 1
+    assert storage.insert_chunks.called
+    assert storage.update_run_phase.call_count >= 3
     mock_search_traditional.assert_called_once()
     mock_aim_logger.log_run.assert_called_once()
 
@@ -931,9 +928,9 @@ def test_run_single_happy_path_executes_pipeline(
 @patch("server.core.orchestrator.chunk_text")
 @patch("server.core.orchestrator.load_all_files")
 @patch("server.core.orchestrator.check_control")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_run_single_reranker_path_executes_pipeline(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_check_control: MagicMock,
     mock_load_all_files: MagicMock,
     mock_chunk_text: MagicMock,
@@ -945,8 +942,8 @@ def test_run_single_reranker_path_executes_pipeline(
     """
     Scenario: _run_single executes reranker retrieval branch.
     """
-    collection = MagicMock()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
     mock_check_control.return_value = None
     mock_load_all_files.return_value = "text content"
     mock_chunk_text.return_value = ["chunk-one"]
@@ -968,7 +965,8 @@ def test_run_single_reranker_path_executes_pipeline(
 
     _run_single("exp-rerank", "run-rerank", run_param)
 
-    assert collection.insert_one.call_count >= 2
+    assert storage.insert_run_status.call_count == 1
+    assert storage.insert_result.call_count == 1
     mock_search_reranker.assert_called_once()
     mock_aim_logger.log_run.assert_called_once()
 
@@ -978,11 +976,11 @@ def test_run_single_reranker_path_executes_pipeline(
 @patch("server.core.orchestrator.chunk_text")
 @patch("server.core.orchestrator.load_all_files")
 @patch("server.core.orchestrator.check_control")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 @patch("server.core.orchestrator._search_traditional_retriever")
 def test_run_single_failure_updates_failed_phase(
     mock_search_traditional: MagicMock,
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_check_control: MagicMock,
     mock_load_all_files: MagicMock,
     mock_chunk_text: MagicMock,
@@ -992,8 +990,8 @@ def test_run_single_failure_updates_failed_phase(
     """
     Scenario: _run_single failure branch updates FAILED phase.
     """
-    collection = MagicMock()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
     mock_check_control.return_value = None
     mock_load_all_files.return_value = "text content"
     mock_chunk_text.return_value = ["chunk-one"]
@@ -1007,12 +1005,12 @@ def test_run_single_failure_updates_failed_phase(
     with pytest.raises(RuntimeError):
         _run_single("exp-fail", "run-fail", _run_param())
 
-    assert collection.update_one.call_count >= 4
+    assert storage.update_run_phase.call_count >= 4
 
 
 @patch("server.core.orchestrator.check_control")
 @patch("server.core.orchestrator._run_single")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 @patch("server.core.orchestrator.expand_sweep")
 @patch("server.core.orchestrator.validate_experiment_search_indexes")
 @patch("server.core.orchestrator.validate_sie_readiness")
@@ -1022,14 +1020,14 @@ def test_run_sweep_paused_stops_new_scheduling_marking_paused(
     mock_validate_sie_readiness: MagicMock,
     mock_validate_search_indexes: MagicMock,
     mock_expand_sweep: MagicMock,
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_run_single: MagicMock,
     mock_check_control: MagicMock,
 ) -> None:
     """
     Scenario: _run_sweep_inner switches to PAUSED if ExperimentPausedError occurs.
     """
-    mock_get_collection.return_value = _FakeCollection()
+    mock_get_storage_backend.return_value = _fake_storage_backend()
     mock_expand_sweep.return_value = [_run_param() for _ in range(4)]
     mock_validate_sie_readiness.return_value = None
     mock_validate_search_indexes.return_value = None
@@ -1043,17 +1041,17 @@ def test_run_sweep_paused_stops_new_scheduling_marking_paused(
 
 @patch("server.core.orchestrator._update_phase")
 @patch("server.core.orchestrator._search_traditional_retriever")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_run_single_records_empty_parse_and_chunk(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_search_traditional: MagicMock,
     mock_update_phase: MagicMock,
 ) -> None:
     """
     Scenario: _run_single logs and continues when parse/chunking are empty.
     """
-    collection = MagicMock()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
     mock_update_phase.side_effect = lambda run_id, phase, error_message=None: None
     mock_search_traditional.return_value = ([], [])
     with (
@@ -1080,8 +1078,9 @@ def test_run_single_records_empty_parse_and_chunk(
                 orchestrator._run_start_times.clear()
                 _run_single("exp-empty", "run-empty", _run_param())
 
-    assert collection.insert_one.call_count >= 2
-    assert collection.insert_many.called
+    assert storage.insert_run_status.call_count == 1
+    assert storage.insert_result.call_count == 1
+    assert storage.insert_chunks.called
 
 
 @patch("server.core.orchestrator.AimLogger")
@@ -1089,9 +1088,9 @@ def test_run_single_records_empty_parse_and_chunk(
 @patch("server.core.orchestrator.chunk_text")
 @patch("server.core.orchestrator.load_all_files")
 @patch("server.core.orchestrator.check_control")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_run_single_interrupted_state_updates(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_check_control: MagicMock,
     mock_load_all_files: MagicMock,
     mock_chunk_text: MagicMock,
@@ -1101,8 +1100,8 @@ def test_run_single_interrupted_state_updates(
     """
     Scenario: _run_single maps check_control cancellation into INTERRUPTED phase.
     """
-    collection = MagicMock()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
     mock_check_control.side_effect = [None, ExperimentCancelledError("cancelled")]
     mock_load_all_files.return_value = "text content"
     mock_chunk_text.return_value = ["chunk"]
@@ -1118,19 +1117,19 @@ def test_run_single_interrupted_state_updates(
             with pytest.raises(ExperimentCancelledError):
                 _run_single("exp-interrupt", "run-interrupt", _run_param())
 
-    assert collection.update_one.call_count >= 1
+    assert storage.update_run_phase.call_count >= 1
     mock_aim_logger.log_run.assert_not_called()
 
 
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 @patch("server.core.orchestrator.logger")
 def test_log_failed_run_summary_logs_warning(
-    mock_logger: MagicMock, mock_get_collection: MagicMock
+    mock_logger: MagicMock, mock_get_storage_backend: MagicMock
 ) -> None:
     """
     Scenario: _log_failed_run_summary emits a warning containing top failures.
     """
-    mock_get_collection.return_value.find.return_value = [
+    mock_get_storage_backend.return_value.find_runs_by_phase.return_value = [
         {
             "run_id": "run-a",
             "embedding_model": "m1",
@@ -1150,9 +1149,9 @@ def test_log_failed_run_summary_logs_warning(
     mock_logger.warning.assert_called_once()
 
 
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_update_phase_marks_complete_and_cleanses_runtime_state(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
 ) -> None:
     """
     Scenario: _update_phase updates run_status and clears start-time tracking
@@ -1161,12 +1160,12 @@ def test_update_phase_marks_complete_and_cleanses_runtime_state(
     When _update_phase is invoked
     Then update payload includes terminal clean-up metadata.
     """
-    collection = MagicMock()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
     _update_phase("run-terminal", Phase.COMPLETE)
     _update_phase("run-terminal", Phase.FAILED, error_message="bad")
 
-    assert collection.update_one.call_count == 2
+    assert storage.update_run_phase.call_count == 2
 
 
 def test_parallelism_bounds_are_enforced_in_model() -> None:
@@ -1301,9 +1300,9 @@ _TRIAL_LOG_FIXTURE: list[dict[str, object]] = [
 @patch("server.core.orchestrator._log_bayesian_summary")
 @patch("server.core.orchestrator._count_failed_runs", return_value=0)
 @patch("server.core.orchestrator._compute_final_status")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_finalise_bayesian_experiment_stores_trial_log_in_bayesian_summary(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_compute_status: MagicMock,
     mock_count_failed: MagicMock,
     mock_log_summary: MagicMock,
@@ -1317,8 +1316,8 @@ def test_finalise_bayesian_experiment_stores_trial_log_in_bayesian_summary(
     """
     ### Given
     mock_compute_status.return_value = (ExperimentStatus.COMPLETE, 0)
-    collection = _mock_collection()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
 
     config = _slice_config(parallelism=1)
     config.execution.search_strategy = "bayesian"
@@ -1351,7 +1350,7 @@ def test_finalise_bayesian_experiment_stores_trial_log_in_bayesian_summary(
 
     ### Then
     assert final_status == ExperimentStatus.COMPLETE
-    update_call = collection.update_one.call_args.args[1]["$set"]
+    update_call = storage.update_experiment.call_args.args[1]
     stored_log = update_call["bayesian_summary"]["trial_log"]
     assert len(stored_log) == 4
     completed = [e for e in stored_log if e["state"] == "completed"]
@@ -1367,9 +1366,9 @@ def test_finalise_bayesian_experiment_stores_trial_log_in_bayesian_summary(
 @patch("server.core.orchestrator._log_bayesian_summary")
 @patch("server.core.orchestrator._count_failed_runs", return_value=0)
 @patch("server.core.orchestrator._compute_final_status")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_finalise_bayesian_experiment_omits_trial_log_when_empty(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_compute_status: MagicMock,
     mock_count_failed: MagicMock,
     mock_log_summary: MagicMock,
@@ -1383,8 +1382,8 @@ def test_finalise_bayesian_experiment_omits_trial_log_when_empty(
     """
     ### Given
     mock_compute_status.return_value = (ExperimentStatus.COMPLETE, 0)
-    collection = _mock_collection()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
 
     config = _slice_config(parallelism=1)
     config.execution.search_strategy = "bayesian"
@@ -1408,7 +1407,7 @@ def test_finalise_bayesian_experiment_omits_trial_log_when_empty(
     )
 
     ### Then
-    update_call = collection.update_one.call_args.args[1]["$set"]
+    update_call = storage.update_experiment.call_args.args[1]
     assert "trial_log" not in update_call["bayesian_summary"]
 
 
@@ -1488,19 +1487,22 @@ def test_log_bayesian_summary_without_trial_log_skips_state_logging() -> None:
     assert mock_logger.debug.call_count == 0
 
 
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_run_best_trial_payload_includes_run_id_in_projection(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
 ) -> None:
     """
-    Scenario: _run_best_trial_payload projection includes run_id.
+    Scenario: _run_best_trial_payload passes run_id-bearing run_statuses to analyze_results.
 
     Given completed query results and run_status docs with run_id
     When _run_best_trial_payload is called
     Then analyze_results receives run_statuses with run_id and does not raise KeyError.
 
-    Regression: run_id was omitted from the MongoDB projection causing
-    analyze_results to crash with KeyError when computing the best trial.
+    Regression: run_id was previously omitted from the MongoDB projection, causing
+    analyze_results to crash with KeyError when computing the best trial. The
+    projection itself now lives in MongoStorageBackend.find_run_statuses (see
+    tests/test_mongo_store_adapter.py); this test guards the orchestrator-level
+    contract that find_run_statuses' output flows into analyze_results untouched.
     """
     ### Given
     query_results = [
@@ -1527,24 +1529,15 @@ def test_run_best_trial_payload_includes_run_id_in_projection(
         }
     ]
 
-    results_col = MagicMock()
-    results_col.find.return_value = query_results
-    run_status_col = MagicMock()
-    run_status_col.find.return_value = run_statuses
-
-    def _collection_selector(name: str) -> MagicMock:
-        return results_col if name == "results" else run_status_col
-
-    mock_get_collection.side_effect = _collection_selector
+    storage = _fake_storage_backend()
+    storage.find_results_for_experiment.return_value = query_results
+    storage.find_run_statuses.return_value = run_statuses
+    mock_get_storage_backend.return_value = storage
 
     ### When — must not raise KeyError
     result = _run_best_trial_payload("exp-regression")
 
     ### Then
-    # Projection call on run_status_col must include run_id
-    run_status_find_call = run_status_col.find.call_args
-    projection = run_status_find_call.args[1] if run_status_find_call.args else {}
-    assert "run_id" in projection, "run_id must be in the MongoDB projection"
     # Function returns best config derived from the single run
     assert result is not None
     assert result.get("chunk_size") == 512
@@ -1565,9 +1558,9 @@ def test_run_best_trial_payload_includes_run_id_in_projection(
 )
 @patch("server.core.orchestrator._count_failed_runs", return_value=2)
 @patch("server.core.orchestrator._log_bayesian_summary")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_finalise_bayesian_experiment_early_stop_paths(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_log_summary: MagicMock,
     mock_count_failed_runs: MagicMock,
     flag: str,
@@ -1590,8 +1583,8 @@ def test_finalise_bayesian_experiment_early_stop_paths(
     config.chunking.params.chunk_sizes = [128, 256]
     config.chunking.params.overlaps = [0, 50]
 
-    collection = _mock_collection()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
 
     ### When
     final_status, failed_count = _finalise_bayesian_experiment(
@@ -1610,7 +1603,7 @@ def test_finalise_bayesian_experiment_early_stop_paths(
     ### Then
     assert final_status == expected_status
     assert failed_count == 2
-    update = collection.update_one.call_args.args[1]["$set"]
+    update = storage.update_experiment.call_args.args[1]
     assert update["status"] == expected_status
     assert update["completion_reason"] == expected_reason
     mock_count_failed_runs.assert_called_once_with("exp-stop")
@@ -1624,9 +1617,9 @@ def test_finalise_bayesian_experiment_early_stop_paths(
 @patch("server.core.orchestrator._count_failed_runs", return_value=3)
 @patch("server.core.orchestrator._compute_final_status")
 @patch("server.core.orchestrator._log_bayesian_summary")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_finalise_bayesian_experiment_all_trials_failed(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_log_summary: MagicMock,
     mock_compute_final_status: MagicMock,
     mock_count_failed_runs: MagicMock,
@@ -1645,8 +1638,8 @@ def test_finalise_bayesian_experiment_all_trials_failed(
     config.chunking.params.chunk_sizes = [128, 256, 512]
     config.chunking.params.overlaps = [0, 50]
 
-    collection = _mock_collection()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
     mock_compute_final_status.return_value = (ExperimentStatus.FAILED, 3)
 
     ### When
@@ -1665,7 +1658,7 @@ def test_finalise_bayesian_experiment_all_trials_failed(
 
     ### Then
     assert final_status == ExperimentStatus.FAILED
-    update = collection.update_one.call_args.args[1]["$set"]
+    update = storage.update_experiment.call_args.args[1]
     assert update["completion_reason"] == "all_trials_failed"
 
 
@@ -1677,9 +1670,9 @@ def test_finalise_bayesian_experiment_all_trials_failed(
 @patch("server.core.orchestrator._count_failed_runs", return_value=1)
 @patch("server.core.orchestrator._compute_final_status")
 @patch("server.core.orchestrator._log_bayesian_summary")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_finalise_bayesian_experiment_partial_failures(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_log_summary: MagicMock,
     mock_compute_final_status: MagicMock,
     mock_count_failed_runs: MagicMock,
@@ -1698,8 +1691,8 @@ def test_finalise_bayesian_experiment_partial_failures(
     config.chunking.params.chunk_sizes = [128, 256, 512]
     config.chunking.params.overlaps = [0, 50]
 
-    collection = _mock_collection()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
     mock_compute_final_status.return_value = (ExperimentStatus.FAILED, 1)
 
     ### When
@@ -1718,7 +1711,7 @@ def test_finalise_bayesian_experiment_partial_failures(
 
     ### Then
     assert final_status == ExperimentStatus.FAILED
-    update = collection.update_one.call_args.args[1]["$set"]
+    update = storage.update_experiment.call_args.args[1]
     assert update["completion_reason"] == "partial_failures"
 
 
@@ -1728,9 +1721,9 @@ def test_finalise_bayesian_experiment_partial_failures(
 
 
 @patch("server.core.orchestrator._log_bayesian_summary")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_finalise_bayesian_experiment_no_runs_attempted(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_log_summary: MagicMock,
 ) -> None:
     """
@@ -1747,8 +1740,8 @@ def test_finalise_bayesian_experiment_no_runs_attempted(
     config.chunking.params.chunk_sizes = [128, 256]
     config.chunking.params.overlaps = [0, 50]
 
-    collection = _mock_collection()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
 
     ### When
     final_status, failed_count = _finalise_bayesian_experiment(
@@ -1767,7 +1760,7 @@ def test_finalise_bayesian_experiment_no_runs_attempted(
     ### Then
     assert final_status == ExperimentStatus.CANCELLED
     assert failed_count == 0
-    update = collection.update_one.call_args.args[1]["$set"]
+    update = storage.update_experiment.call_args.args[1]
     assert update["completion_reason"] == "cancelled_before_attempt"
 
 
@@ -1779,9 +1772,9 @@ def test_finalise_bayesian_experiment_no_runs_attempted(
 @patch("server.core.orchestrator._count_failed_runs", return_value=0)
 @patch("server.core.orchestrator._compute_final_status")
 @patch("server.core.orchestrator._log_bayesian_summary")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_finalise_bayesian_experiment_infrastructure_error_forces_failed(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_log_summary: MagicMock,
     mock_compute_final_status: MagicMock,
     mock_count_failed_runs: MagicMock,
@@ -1801,8 +1794,8 @@ def test_finalise_bayesian_experiment_infrastructure_error_forces_failed(
     config.chunking.params.chunk_sizes = [128, 256]
     config.chunking.params.overlaps = [0, 50]
 
-    collection = _mock_collection()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
     mock_compute_final_status.return_value = (ExperimentStatus.COMPLETE, 0)
 
     ### When
@@ -1821,7 +1814,7 @@ def test_finalise_bayesian_experiment_infrastructure_error_forces_failed(
 
     ### Then
     assert final_status == ExperimentStatus.FAILED
-    update = collection.update_one.call_args.args[1]["$set"]
+    update = storage.update_experiment.call_args.args[1]
     assert update["status"] == ExperimentStatus.FAILED
     assert update["completion_reason"] == "infrastructure_error"
     assert "Atlas Search index not ready" in update["error_message"]
@@ -1834,9 +1827,9 @@ def test_finalise_bayesian_experiment_infrastructure_error_forces_failed(
 
 @patch("server.core.orchestrator._count_failed_runs", return_value=1)
 @patch("server.core.orchestrator._log_bayesian_summary")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_finalise_bayesian_experiment_infrastructure_error_does_not_override_cancelled(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_log_summary: MagicMock,
     mock_count_failed_runs: MagicMock,
 ) -> None:
@@ -1854,8 +1847,8 @@ def test_finalise_bayesian_experiment_infrastructure_error_does_not_override_can
     config.chunking.params.chunk_sizes = [128, 256]
     config.chunking.params.overlaps = [0, 50]
 
-    collection = _mock_collection()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
 
     ### When
     final_status, _ = _finalise_bayesian_experiment(
@@ -1873,7 +1866,7 @@ def test_finalise_bayesian_experiment_infrastructure_error_does_not_override_can
 
     ### Then
     assert final_status == ExperimentStatus.CANCELLED
-    update = collection.update_one.call_args.args[1]["$set"]
+    update = storage.update_experiment.call_args.args[1]
     assert update["status"] == ExperimentStatus.CANCELLED
 
 
@@ -1885,9 +1878,9 @@ def test_finalise_bayesian_experiment_infrastructure_error_does_not_override_can
 @patch("server.core.orchestrator._count_failed_runs", return_value=0)
 @patch("server.core.orchestrator._compute_final_status")
 @patch("server.core.orchestrator._log_bayesian_summary")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_finalise_bayesian_experiment_sampler_exhaustion_sets_termination_reason(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_log_summary: MagicMock,
     mock_compute_final_status: MagicMock,
     mock_count_failed_runs: MagicMock,
@@ -1906,8 +1899,8 @@ def test_finalise_bayesian_experiment_sampler_exhaustion_sets_termination_reason
     config.chunking.params.chunk_sizes = [128, 256]
     config.chunking.params.overlaps = [0, 50]
 
-    collection = _mock_collection()
-    mock_get_collection.return_value = collection
+    storage = _fake_storage_backend()
+    mock_get_storage_backend.return_value = storage
     # failed_count=1 keeps PARTIAL (the code promotes PARTIAL+0-failures to COMPLETE)
     mock_compute_final_status.return_value = (ExperimentStatus.PARTIAL, 1)
 
@@ -1926,7 +1919,7 @@ def test_finalise_bayesian_experiment_sampler_exhaustion_sets_termination_reason
     )
 
     ### Then
-    update = collection.update_one.call_args.args[1]["$set"]
+    update = storage.update_experiment.call_args.args[1]
     assert update["bayesian_summary"].get("termination_reason") == "sampler_candidate_exhaustion"
 
 
@@ -1952,9 +1945,9 @@ def test_finalise_bayesian_experiment_sampler_exhaustion_sets_termination_reason
     ],
 )
 @patch("server.core.results_analyzer.analyze_results")
-@patch("server.core.orchestrator.get_collection")
+@patch("server.core.orchestrator.get_storage_backend")
 def test_run_best_trial_payload_returns_none_on_degenerate_inputs(
-    mock_get_collection: MagicMock,
+    mock_get_storage_backend: MagicMock,
     mock_analyze: MagicMock,
     description: str,
     query_results: list,
@@ -1968,15 +1961,9 @@ def test_run_best_trial_payload_returns_none_on_degenerate_inputs(
     Then None is returned without raising.
     """
     ### Given
-    results_col = MagicMock()
-    results_col.find.return_value = query_results
-    run_status_col = MagicMock()
-    run_status_col.find.return_value = []
-
-    def _selector(name: str) -> MagicMock:
-        return results_col if name == "results" else run_status_col
-
-    mock_get_collection.side_effect = _selector
+    storage = _fake_storage_backend()
+    storage.find_results_for_experiment.return_value = query_results
+    mock_get_storage_backend.return_value = storage
     mock_analyze.return_value = {"best_params": best_params_value}
 
     ### When
@@ -2218,12 +2205,13 @@ class TestLogFailedRunSummaryTruncation:
     Exercises line 976 (the `+N more` suffix appended when failed_count > 10).
     """
 
-    @patch("server.core.orchestrator.get_collection")
-    def test_appends_more_suffix_when_failures_exceed_ten(self, mock_get_col) -> None:
+    @patch("server.core.orchestrator.get_storage_backend")
+    def test_appends_more_suffix_when_failures_exceed_ten(self, mock_get_storage_backend) -> None:
         """
         Scenario: 12 failed runs — summary shows 10 entries then '+2 more'.
 
-        Given a cursor returning 12 run_status docs and failed_count=12
+        Given find_runs_by_phase already limited to 10 docs (the Mongo adapter applies
+        limit=10 internally) and failed_count=12
         When _log_failed_run_summary is called
         Then the warning log includes '+2 more'.
         """
@@ -2236,9 +2224,9 @@ class TestLogFailedRunSummaryTruncation:
                 "chunk_size": 512,
                 "error_message": None,
             }
-            for i in range(12)
+            for i in range(10)
         ]
-        mock_get_col.return_value.find.return_value = iter(docs)
+        mock_get_storage_backend.return_value.find_runs_by_phase.return_value = iter(docs)
 
         ### When
         with patch("server.core.orchestrator.logger") as mock_log:
@@ -2259,7 +2247,7 @@ class TestFinaliseByesianExperimentAllTrialsFailedPromotion:
     covers the subsequent promotion at 475-476.
     """
 
-    @patch("server.core.orchestrator.get_collection")
+    @patch("server.core.orchestrator.get_storage_backend")
     @patch("server.core.orchestrator._log_bayesian_summary")
     @patch("server.core.orchestrator._count_failed_runs", return_value=0)
     @patch(
@@ -2267,7 +2255,7 @@ class TestFinaliseByesianExperimentAllTrialsFailedPromotion:
         return_value=(ExperimentStatus.PARTIAL, 3),  # failed_count == planned_trials
     )
     def test_partial_with_all_trials_failed_is_promoted_to_failed(
-        self, mock_compute, mock_count, mock_log, mock_collection
+        self, mock_compute, mock_count, mock_log, mock_get_storage_backend
     ) -> None:
         """
         Scenario: _compute_final_status returns PARTIAL but failed_count equals planned_trials.
@@ -2277,10 +2265,11 @@ class TestFinaliseByesianExperimentAllTrialsFailedPromotion:
         Then the persisted status is FAILED and completion_reason is 'all_trials_failed'.
         """
         ### Given
-        mock_collection.return_value = _mock_collection()
+        storage = _fake_storage_backend()
+        mock_get_storage_backend.return_value = storage
         update_calls: list[dict] = []
-        mock_collection.return_value.update_one.side_effect = lambda f, u, **kw: (
-            update_calls.append(u["$set"])
+        storage.update_experiment.side_effect = lambda _experiment_id, update: update_calls.append(
+            update
         )
 
         ### When

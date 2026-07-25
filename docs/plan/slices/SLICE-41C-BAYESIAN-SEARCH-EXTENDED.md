@@ -57,7 +57,7 @@ results should be monitored after real production sweeps.
 For categorical-inclusive search, increase startup formula:
 
 ```python
-n_startup = max(10, n_trials // 3)   # vs max(5, ...) for numeric-only in 41B
+n_startup = max(10, n_trials // 3)  # vs max(5, ...) for numeric-only in 41B
 ```
 
 ### `sweep_summary` field additions

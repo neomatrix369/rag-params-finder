@@ -17,9 +17,13 @@ Dev environment setup, quality gates, testing strategy, and the slice workflow f
 
 ### Backend
 
+Supported platforms for `uv.lock`: **Apple Silicon macOS (`arm64`)** and **Linux**.
+Intel macOS is not in `[tool.uv] environments` (no `torch>=2.6` wheels; NumPy 2 is required by `sie-sdk`).
+
 ```bash
-# Install Python dev dependencies (includes ruff, mypy, pytest, pre-commit)
-uv pip install -e ".[dev]"
+# Prefer an arm64 Python 3.12 interpreter (Rosetta x86_64 venvs fail to sync against the lockfile)
+uv venv --python 3.12
+uv sync --extra dev
 
 # Git hooks: essential checks on commit (staged) and push (whole repo)
 bash scripts/install-git-hooks.sh

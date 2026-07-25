@@ -40,7 +40,7 @@ The `provider` field is the **single source of truth** for routing — the serve
 ## Consequences
 
 - **Two Atlas vector indexes required** for projects using both providers. Each experiment config uses one provider; vectors cannot be mixed.
-- **`numpy<2` pin required**: PyTorch (used by sentence-transformers) was compiled against NumPy 1.x ABI. NumPy 2.x causes `_ARRAY_API not found` crashes.
+- **NumPy / torch pairing** (updated 2026-07-25): `sie-sdk` requires `numpy>=2`. Local embedding uses `torch>=2.6` via `[tool.uv] override-dependencies` so PyTorch’s NumPy bridge works with NumPy 2.x. Older torch 2.2.x + NumPy 2 raised `RuntimeError: Numpy is not available`. Intel macOS (`x86_64` Darwin) is outside the supported `uv` environment set (no torch≥2.6 wheels).
 - **Model download on first use**: Local models are ~23 MB each, cached in `~/.cache/huggingface/hub/`. First run may be slow on cold cache.
 - **`voyage-context-3` uses a different API**: Registered with `contextualized: True` in `model_registry.py`; routed to `contextualized_embed()` with automatic segment splitting for documents exceeding 32K tokens. All other Voyage models use standard `embed()`.
 - **Provider flows end-to-end**: `EmbeddingConfig.provider` → `RunParams.embedding_provider` → `embedder_factory.get_embedder()`. No runtime inference; server restart issues cannot mis-route.
@@ -52,6 +52,8 @@ The `provider` field is the **single source of truth** for routing — the serve
 **2026-06-29**: Added `provider: sie` as a third embedding provider without a new ADR. Dispatch moved to `server/core/embedder_factory.py` (`get_embedder(provider)` returns voyage | local | sie functions). Models: BGE-M3, Stella-v5 (1024-dim dense), SPLADE-v3 (30522-dim sparse) in `server/core/sie_embedder.py`. Preflight: `server/core/sie_guard.py`. Env: `SIE_ENABLED`, `SIE_ENDPOINT`, `SIE_API_KEY`. See [extending.md](../contributor-guide/extending.md) and [sie-setup.md](../user-guide/sie-setup.md).
 
 Reranking providers remain **dual** (`local` | `voyage`) — SIE is embedding-only in Slice 21.
+
+**2026-07-25**: Superseded the Slice 7 `numpy<2` pin. `sie-sdk` needs NumPy 2; Dependabot’s `numpy<3` + locked torch 2.2 broke local embeds. Resolution: `numpy>=2,<3` + `torch>=2.6` override (VERIFIED via local dense smoke on Atlas Local).
 
 ---
 

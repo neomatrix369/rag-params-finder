@@ -184,6 +184,41 @@ export async function fetchMyData(experimentId: string): Promise<MyType> {
 
 ---
 
+## 🗄️ Adding a Storage / Retriever Backend Adapter
+
+Dual-backend ports live under `server/db/`. Orchestrator and API layers call
+`get_storage_backend()` / `get_retriever_backend()` — never `pymongo` or `psycopg`
+directly.
+
+| Port | Module | Owns |
+|---|---|---|
+| `StorageBackend` | `server/db/storage.py` | Experiment/run/chunk/result CRUD, cascade delete, boot reconciliation |
+| `RetrieverBackend` | `server/db/retriever_backend.py` | dense / sparse / hybrid search only |
+
+### 1. Implement the adapter
+
+Create `server/db/<backend>_store.py` with classes that structurally satisfy both
+Protocols (see `MongoStorageBackend` / `MongoRetrieverBackend` in `mongo_store.py`;
+stats helpers in `mongo_stats.py`).
+
+### 2. Wire the factory
+
+In `server/db/store_factory.py`, branch on `settings.storage_backend` and return
+your adapter. Unknown values must raise `ValueError` (no silent fallback).
+
+### 3. Settings
+
+`STORAGE_BACKEND` env var → `settings.storage_backend` (default `"mongo"`).
+Postgres path raises `NotImplementedError` until Slice 33+ / 34+.
+
+### 4. Tests
+
+Add factory routing tests (default / unknown / NotImplemented) and a Protocol
+conformance check for the new adapter. Call-site modules must not import
+`server.db.atlas` or backend drivers directly.
+
+---
+
 ## ⚠️ Common Gotchas
 
 | Gotcha | What to watch for |

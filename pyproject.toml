@@ -21,7 +21,8 @@ dependencies = [
     "rich>=13.7.0",
     "pymongo[srv]>=4.6.1",
     "sentence-transformers>=2.6.0,<4.0.0",
-    "numpy>=1.26,<3",
+    # sie-sdk requires numpy>=2; torch must be NumPy-2-compatible (see override-dependencies).
+    "numpy>=2,<3",
     "sie-sdk>=0.6.0",
     "aim>=3.0",
     "optuna>=3.0",
@@ -49,8 +50,8 @@ dev = [
 rag-params-finder = "cli.main:app"
 
 [tool.uv]
+# Intel macOS dropped: torch>=2.6 (needed for numpy>=2 / sie-sdk) has no x86_64 Darwin wheels.
 environments = [
-    "sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "sys_platform == 'darwin' and platform_machine == 'arm64'",
     "sys_platform == 'linux'",
 ]
@@ -62,6 +63,9 @@ override-dependencies = [
     "aiohttp>=3.14.1",
     "msgpack>=1.2.1",
     "pillow>=12.3.0",
+    # sentence-transformers pulls torch 2.2.x (NumPy 1.x ABI). Force a build that
+    # works with numpy>=2 required by sie-sdk (else: RuntimeError "Numpy is not available").
+    "torch>=2.6.0",
 ]
 
 [build-system]

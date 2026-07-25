@@ -2,7 +2,7 @@ import asyncio
 
 from fastapi import APIRouter, HTTPException
 
-from server.db.atlas import RUN_STATUS_COLLECTION, get_collection
+from server.db.store_factory import get_storage_backend
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 def _mongo_fetch_run(run_id: str):
-    return get_collection(RUN_STATUS_COLLECTION).find_one({"run_id": run_id}, {"_id": 0})
+    return get_storage_backend().find_run_status(run_id)
 
 
 @router.get("/{run_id}/status")

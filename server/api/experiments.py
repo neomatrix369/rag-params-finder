@@ -26,7 +26,7 @@ from server.core.orchestrator import resume_sweep, run_sweep
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
 from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
-from server.db.atlas import EXPERIMENTS_COLLECTION, RUN_STATUS_COLLECTION, get_collection
+from server.db.store_factory import get_storage_backend
 from server.models.config import ExperimentConfig, expand_sweep
 from server.models.enums import ExperimentStatus, Phase, RetrieverType
 from server.utils.log_throttle import info_throttled
@@ -153,13 +153,9 @@ def _normalize_stale_running_status(experiment: dict) -> dict:
         return experiment
 
     runs = list(runs)
+    storage = get_storage_backend()
     if not runs:
-        runs = list(
-            get_collection(RUN_STATUS_COLLECTION).find(
-                {"experiment_id": experiment_id},
-                {"_id": 0},
-            )
-        )
+        runs = storage.find_run_statuses(experiment_id)
     _ensure_bayesian_summary(experiment, runs=runs)
     if not runs:
         return experiment
@@ -198,7 +194,7 @@ def _normalize_stale_running_status(experiment: dict) -> dict:
         "completion_reason": completion_reason,
         "completed_at": now,
     }
-    get_collection(EXPERIMENTS_COLLECTION).update_one({"_id": experiment_id}, {"$set": resolved})
+    storage.update_experiment(experiment_id, resolved)
     experiment.update(resolved)
     _ensure_bayesian_summary(experiment, runs=runs)
     return experiment

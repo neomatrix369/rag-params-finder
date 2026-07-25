@@ -2,9 +2,11 @@
 
 **MoSCoW:** MUST
 **Target time:** ~3–4 h
-**Status:** 📋 PLANNED
+**Status:** 🔨 IN PROGRESS (implementation on branch; craft remediation → [Slice 32C](SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md); verification gates → [Slice 32B](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md))
 **Depends on:** none
+**Unblocks:** Slice 32C (review remediation) → Slice 32B (gate closure) → Slice 33
 **PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
+**PR:** [#110](https://github.com/neomatrix369/rag-params-finder/pull/110)
 
 ---
 
@@ -71,9 +73,9 @@ Scenario: Retrieval flows through RetrieverBackend
 
 ## Before-Checks [GATE]
 
-- [ ] Branch `slice/32-storage-backend-protocol` from latest `main`
-- [ ] `./scripts/quality-gates.sh --quick` green on baseline
-- [ ] Read PRD seam table + Decision #10 (Protocol justified for dual-backend)
+- [x] Branch `slice/32-storage-backend-protocol` from latest `main` (rebased on 512213f, 2026-07-25)
+- [x] `./scripts/quality-gates.sh --quick` green on baseline (2026-07-25)
+- [x] Read PRD seam table + Decision #10 — Protocol justified: dual-backend (Mongo ↔ Postgres swappable) is the explicit exception case Decision #10 acknowledges; factory alone cannot enforce a cross-adapter contract
 
 ---
 
@@ -88,17 +90,23 @@ Scenario: Retrieval flows through RetrieverBackend
 
 ## After-Checks [GATE]
 
-- [ ] All GWT scenarios have named tests
-- [ ] No API/CLI/dashboard behavior change on Mongo default
-- [ ] `postgres` backend raises clear NotImplemented for storage until Slice 33
-- [ ] Grep confirms no `from server.db.atlas` in orchestrator/experiments/startup_reconciliation
-- [ ] Specification coverage: every GWT clause ≥1 test; essential error paths covered
-- [ ] Branch coverage: 100% target on new modules; exclusions documented
-- [ ] Mutation testing: run for new port/protocol modules (or document explicit feature-complete waiver)
-- [ ] `./scripts/quality-gates.sh` passes
-- [ ] Doc audit: PRD §Documentation matrix rows for slice **32** (architecture, extending, CLAUDE Key Files)
-- [ ] `docs/plan/slices/PROGRESS.md` updated (status + decision log if applicable)
+- [x] All GWT scenarios have named tests
+- [x] No API/CLI/dashboard behavior change on Mongo default
+- [x] `postgres` backend raises clear NotImplemented for storage until Slice 33
+- [x] Grep confirms no `from server.db.atlas` in orchestrator/experiments/startup_reconciliation (also `runs.py`)
+- [x] Specification coverage: every GWT clause ≥1 test; essential error paths covered
+- [x] Doc audit: PRD §Documentation matrix rows for slice **32** (architecture, extending, CLAUDE Key Files)
+- [x] `docs/plan/slices/PROGRESS.md` decision log row added
+- [x] `./scripts/quality-gates.sh --quick` passed (2026-07-25)
+
+**Delegated to [Slice 32B](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md)** (do not tick COMPLETE here until 32B passes):
+
+- [ ] Branch coverage: 100% target on new modules; exclusions documented → **32B**
+- [ ] Mutation testing (or explicit waiver) → **32B**
+- [ ] `./scripts/quality-gates.sh` (full) passes → **32B**
+- [ ] `/nw-review` APPROVED → **32B**
+- [ ] Gate-evidence + tracker COMPLETE for Slice 32 → **32B**
 
 ## Gate Status
 
-📋 PLANNED
+🔨 IN PROGRESS — implementation + GWT/acceptance tests + docs + quick gates green (2026-07-25). Remaining verification/governance gates owned by **Slice 32B**.

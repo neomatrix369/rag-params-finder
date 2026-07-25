@@ -682,15 +682,18 @@ only allows your host IP — not the Docker NAT address.
 
 ---
 
-### NumPy 2.x ABI warning with `aim`
+### NumPy / torch mismatch on local embeddings
 
-**Symptom:** Server starts but logs a warning like `_ARRAY_API not found` from torch.
+**Symptom:** Local embedding runs fail with `RuntimeError: Numpy is not available`
+(or torch warns that a module compiled for NumPy 1.x cannot run on NumPy 2.x).
 
-**Cause:** The `aim` experiment logger installs NumPy 2.x; PyTorch was compiled against
-NumPy 1.x. The warning is non-fatal — the server runs correctly — but indicates an ABI mismatch.
+**Cause:** `sie-sdk` requires NumPy 2.x. Older transitive `torch` (2.2.x from
+sentence-transformers) was built against the NumPy 1.x ABI, so `tensor.numpy()` fails.
 
-**Fix:** `pyproject.toml` pins `numpy<2`. If you manually install `aim` outside of `uv`,
-ensure NumPy stays below 2.0.
+**Fix:** Use `uv sync` / rebuild the server image so the lockfile applies
+`numpy>=2,<3` and the `torch>=2.6` override from `pyproject.toml`. Do not pin
+`numpy<2` — that conflicts with `sie-sdk`. Supported platforms for the lockfile:
+Apple Silicon macOS (`arm64`) and Linux (Intel macOS is not in `[tool.uv] environments`).
 
 ---
 

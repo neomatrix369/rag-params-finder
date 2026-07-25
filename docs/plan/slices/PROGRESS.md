@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-25 (Slice 42 ✅ COMPLETE — multi-stage Docker builds, BuildKit cache mounts, nginx:alpine frontend runtime, path-scoped CI docker-build job; Slice 41B split into 41B 📋 PLANNED + 41C 📦 PARKED)
-**Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** ✅ Bayesian Search Simple Functional · **42** ✅ Docker Build Optimisation | Next: **32** 📋 Storage Protocol → **33–38** Postgres/pgvector cutover · then **41B** 📋 Bayesian Numeric · **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **41C** 📦 PARKED (Bayesian Extended) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
+**Last Updated**: 2026-07-25 (Slice 32C 📋 PLANNED — review remediation; Slice 32B 📋 PLANNED — gate closure; Slice 32 🔨 IN PROGRESS on PR #110; Slice 42 ✅ COMPLETE; Slice 41B 📋 PLANNED + 41C 📦 PARKED)
+**Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** ✅ Bayesian Search Simple Functional · **42** ✅ Docker Build Optimisation | Active: **32** 🔨 → **32C** 📋 remediation → **32B** 📋 gates → **33–38** Postgres/pgvector cutover · then **41B** 📋 Bayesian Numeric · **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **41C** 📦 PARKED (Bayesian Extended) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -46,7 +46,9 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 26 — Local MongoDB smooth-path docs | 📦 DEFERRED | ~1 h | Re-scope after Postgres cutover — [`SLICE-26-LOCAL-MONGODB-DOCS.md`](SLICE-26-LOCAL-MONGODB-DOCS.md) |
 | 27 — MongoDB mode indicator | 📦 DEFERRED | ~2 h | Absorbed into Slice 36 (storage mode) — [`SLICE-27-MONGODB-MODE-INDICATOR.md`](SLICE-27-MONGODB-MODE-INDICATOR.md) |
 | 19 — Atlas storage quota guard | 📦 DEFERRED | ~3–5 h | Atlas-specific; Postgres stats in Slice 36 — [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) |
-| 32 — Storage Backend Protocol | 📋 PLANNED | ~3–4 h | **Next** — Storage + Retriever ports; Mongo adapter — [`SLICE-32-STORAGE-BACKEND-PROTOCOL.md`](SLICE-32-STORAGE-BACKEND-PROTOCOL.md) |
+| 32 — Storage Backend Protocol | 🔨 IN PROGRESS | ~3–4 h | Storage + Retriever ports; Mongo adapter — [`SLICE-32-STORAGE-BACKEND-PROTOCOL.md`](SLICE-32-STORAGE-BACKEND-PROTOCOL.md) · [PR #110](https://github.com/neomatrix369/rag-params-finder/pull/110) |
+| 32C — Storage Protocol Review Remediation | 📋 PLANNED | ~2–3 h | Craft split, port schemas, index deferral, checklist hygiene — [`SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md`](SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md) |
+| 32B — Storage Protocol Gate Closure | 📋 PLANNED | ~1–2 h | Coverage, mutation/waiver, full gates, nw-review, COMPLETE — [`SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md`](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) |
 | 33 — Supabase schema + CRUD | 📋 PLANNED | ~4–6 h | Pool, schema, cascade delete, local pgvector smoke — [`SLICE-33-POSTGRES-SCHEMA-CRUD.md`](SLICE-33-POSTGRES-SCHEMA-CRUD.md) |
 | 34 — Supabase dense retrieval | 📋 PLANNED | ~3–4 h | pgvector HNSW + embedding_model filter — [`SLICE-34-POSTGRES-DENSE-RETRIEVAL.md`](SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) |
 | 35 — Supabase sparse + hybrid | 📋 PLANNED | ~4–5 h | tsvector + RRF + equivalence gate — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
@@ -76,8 +78,10 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 25 | Should | ✅ COMPLETE | 21 | Atlas Local |
 | 25B | Should | ✅ COMPLETE | 25 | Atlas switching |
 | 29 | Must | ✅ COMPLETE | — | Padding propagation |
-| 32 | Must | 📋 PLANNED | — | **Next** — Storage + Retriever ports; Mongo adapter |
-| 33 | Must | 📋 PLANNED | 32 | Supabase schema + CRUD + local pgvector smoke |
+| 32 | Must | 🔨 IN PROGRESS | — | Storage + Retriever ports; Mongo adapter |
+| 32C | Must | 📋 PLANNED | 32 | Review remediation — craft/architecture nw-review BLOCKERs |
+| 32B | Must | 📋 PLANNED | 32C | Gate closure — coverage, mutation/waiver, full gates, nw-review |
+| 33 | Must | 📋 PLANNED | 32B | Supabase schema + CRUD + local pgvector smoke |
 | 34 | Must | 📋 PLANNED | 33 | Dense pgvector |
 | 35 | Must | 📋 PLANNED | 34 | Sparse + hybrid + equivalence gate |
 | 36 | Must | 📋 PLANNED | 35 | Preflight + db-stats + storage mode (replaces 27) |
@@ -100,7 +104,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 41B | Could | 📦 PARKED | 41A + owner data | Parallelism, categorical axes, study persistence, random search — open after 41A ships and production evidence exists; spec: [`SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`](SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) |
 | 42 | Should | ✅ COMPLETE | none | Docker Build Optimisation — multi-stage builds, cache mounts, nginx runtime; [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
 
-**Execution order**: 21 → 25 → 25B → 29 → 39 (done) → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
+**Execution order**: 21 → 25 → 25B → 29 → 39 (done) → **32 → 32C → 32B → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
 
 ---
 
@@ -423,7 +427,7 @@ Add local sentence-transformers models (embedding + reranking) as alternatives t
 | `cross-encoder/ms-marco-MiniLM-L-6-v2` for local reranking | ~23MB, MS MARCO trained, good quality |
 | Separate vector indexes per dimension | Atlas requires exact `numDimensions`; `vector_index_1024` (Voyage) + `vector_index_384` (local) |
 | Lazy-load and cache models | First run downloads from HuggingFace; subsequent runs instant |
-| `numpy<2` pinned | torch requires NumPy 1.x ABI; NumPy 2.x causes `_ARRAY_API not found` crashes |
+| `numpy>=2` + `torch>=2.6` override | `sie-sdk` needs NumPy 2; torch 2.2 + NumPy 2 raised `Numpy is not available` |
 
 ---
 
@@ -682,6 +686,11 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-25 | ops | Keep `numpy>=2` (sie-sdk); override `torch>=2.6`; drop Intel-mac from uv environments | `numpy<2` conflicts with sie-sdk; torch 2.2 + numpy 2.5 → `Numpy is not available`; torch≥2.6 has no x86_64 Darwin wheels |
+| 2026-07-25 | 32C | Added Must sub-slice 32C (review remediation); keep 32B gate-only; order **32 → 32C → 32B → 33** | Craft/architecture nw-review BLOCKERs (adapter split, port schemas, index deferral, checklist hygiene) are a separate unit from verification gates; 32B stays medium (~1–2 h) |
+| 2026-07-25 | 32C | Index seam default: defer IndexBackend to Slice 36 (option A); override in 32C Before-Checks if needed | YAGNI — Slice 36 already owns Postgres preflight/stats; avoid speculative Protocol in 32C |
+| 2026-07-25 | 32B | Split remaining Slice 32 After-Checks into Must sub-slice 32B (gate closure); Slice 33 Depends on → 32B | Implementation is on PR #110; coverage/mutation/full-gates/nw-review/tracker close-out are a distinct verifiable unit and must not block reading the Protocol work as “done”; keeps 33 gated on COMPLETE evidence |
+| 2026-07-25 | 32 | Keep `atlas.py` as connection singleton; put CRUD/search behind `StorageBackend`/`RetrieverBackend` in `mongo_store.py`; factory selects by `STORAGE_BACKEND` | Dual-backend seam for Postgres (33+) without rewriting call sites; Protocol enforces cross-adapter contract (PRD Decision #10 exception) |
 | 2026-07-25 | 42 | Renamed `docker` path-filter → `docker_files` (only `docker/**` + `docker-compose*.yml`); docker job trigger expressed as `docker_files \|\| backend \|\| frontend` at job `if:` level | Removes 5 redundant path lines (server/**, cli/**, frontend/**, pyproject.toml, uv.lock) that duplicated `backend` and `frontend` filters; `deps` filter left unchanged — its overlap with backend is load-bearing precision (dep-audit should not fire on source-only edits) |
 | 2026-07-25 | 42 | `overrides.brace-expansion=5.0.8` in `package.json` instead of ESLint upgrade | ESLint 8→9/10 requires flat config migration (`.eslintrc.cjs` → `eslint.config.*`); brace-expansion@5 is API-compatible drop-in; npm audit now 0 vulnerabilities without touching ESLint config |
 | 2026-07-25 | 42 | Moved `nightly-dependency-audit` + `nightly-full-secrets-scan` from `ci.yml` → `nightly.yml` | Schedule-only jobs in a PR/push workflow; moving restores clear mental model (ci.yml = PR gates, nightly.yml = deep sweeps); `nightly.yml` already has `workflow_dispatch` for manual runs |

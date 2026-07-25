@@ -3,7 +3,7 @@
 **MoSCoW:** MUST
 **Target time:** ~4–6 h
 **Status:** 📋 PLANNED
-**Depends on:** 32
+**Depends on:** 32B
 **PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
 > **Naming:** Supabase is hosted Postgres. This slice implements the Postgres/pgvector layer that Supabase runs in production and Docker pgvector runs locally.
@@ -85,7 +85,7 @@ Scenario: External experiment_id preserved
 
 ## Before-Checks [GATE]
 
-- [ ] Slice 32 ✅ PASSED
+- [ ] Slice 32B ✅ PASSED (gate closure for Storage Protocol — coverage, mutation/waiver, full gates, nw-review)
 - [ ] Branch from main
 - [ ] Docker available for local pgvector smoke
 

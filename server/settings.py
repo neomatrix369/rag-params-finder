@@ -80,6 +80,10 @@ class Settings(BaseSettings):
     # MongoDB ping timeout for /healthz (ms). Keep below Docker healthcheck timeout (10s).
     health_check_mongodb_timeout_ms: int = 5000
 
+    # Active storage backend. "mongo" (default) uses MongoDB Atlas / Atlas Local.
+    # "postgres" is reserved for Slice 33+ (Supabase / pgvector).
+    storage_backend: str = "mongo"
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: object) -> list[str]:

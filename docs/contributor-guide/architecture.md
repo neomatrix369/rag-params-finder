@@ -136,9 +136,14 @@ rag-params-finder/
 │   │   ├── status.py        # RunStatus model
 │   │   └── results.py       # QueryResult, SearchResult, Chunk
 │   └── db/
-│       ├── atlas.py         # MongoDB connection singleton (TLS for cloud URIs only)
-│       ├── mongodb_uri.py   # is_atlas_uri(), parse_atlas_cluster_name() — cloud vs local detection
-│       └── indexes.py       # collection + search index creation; bootstrap_indexes() on local URI
+│       ├── storage.py           # StorageBackend Protocol (CRUD / cascade / reconciliation)
+│       ├── retriever_backend.py # RetrieverBackend Protocol (dense/sparse/hybrid)
+│       ├── mongo_store.py       # Mongo adapters for both ports (CRUD / search)
+│       ├── mongo_stats.py       # Stats / explore / vector-db helpers (delegated by mongo_store)
+│       ├── store_factory.py     # get_storage_backend() / get_retriever_backend()
+│       ├── atlas.py             # MongoDB connection singleton (TLS for cloud URIs only)
+│       ├── mongodb_uri.py       # is_atlas_uri(), parse_atlas_cluster_name() — cloud vs local detection
+│       └── indexes.py           # collection + search index creation; bootstrap_indexes() on local URI
 ├── cli/
 │   ├── main.py              # Typer app (run, cancel, pause, resume, delete, indexes, version)
 │   ├── indexes_cmd.py       # indexes list | reset subcommands
@@ -257,7 +262,7 @@ See `docs/adr/` for Architecture Decision Records:
 | Hand-mirrored TypeScript types | No codegen tooling (typeshare/quicktype); 5 types + 3 enums is manageable manually |
 | Separate vector indexes per dimension | Atlas requires exact `numDimensions` — `vector_index_1024` (Voyage) and `vector_index_384` (local) coexist on the same collection |
 | Lazy-load + cache for local models | First run downloads from HuggingFace; subsequent runs instant — avoids blocking server startup |
-| `numpy<2` pinned | torch compiled against NumPy 1.x ABI; NumPy 2.x causes `_ARRAY_API not found` crashes |
+| `numpy>=2` + `torch>=2.6` override | `sie-sdk` requires NumPy 2.x; older torch (2.2.x) was NumPy 1.x ABI and raised `Numpy is not available` |
 | Shared `DashboardShell` + `AppPageChrome` components | Unified header, navigation, and page layout across all screens — consistent UX, easier maintenance |
 | `fetchWithProgress` for streamed downloads | ReadableStream byte-level progress → visible loading bars; better UX than spinner for large payloads |
 | Pagination on all screens | Prevents DOM overload and cognitive fatigue; default 10 items per page (experiments/runs), 5 per page (configs) |
