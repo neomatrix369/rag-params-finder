@@ -85,7 +85,7 @@ Follows the pattern of Slice 14 (introduced the Docker stack) and Slice 20/40 (C
 
 **Given** a PR that touches only `docs/**` files,
 **When** the CI `Detect changed paths` job runs,
-**Then** the `docker` output is `false` and the `docker-build` job does NOT appear in the run.
+**Then** the `docker_files`, `backend`, and `frontend` outputs are all `false` and the `docker-build` job does NOT appear in the run.
 
 ### Should-8: CI path filter — Docker-touching PR triggers build
 

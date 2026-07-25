@@ -90,7 +90,7 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md). T
 
 Run all gates before committing. All must pass with zero regressions.
 
-**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit`, `docker-build` (six jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM/CycloneDX, Meterian, container scan, Chalk provenance, dependency-audit, full-secrets-scan — every night 02:00 UTC, also manually triggerable via `workflow_dispatch`).
+**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit`, `docker-build`, `license-check`, `container-scan` (eight jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM/CycloneDX, Meterian, container scan, Chalk provenance, dependency-audit, full-secrets-scan — every night 02:00 UTC, also manually triggerable via `workflow_dispatch`).
 
 | Layer | Tools |
 |-------|--------|
@@ -329,7 +329,7 @@ Record every non-obvious choice in `docs/plan/slices/PROGRESS.md` → Decision L
 
 GitHub Actions has two workflows (see `.github/workflows/`):
 
-**ci.yml** — runs on every push and PR to `main` (path-filtered, five jobs):
+**ci.yml** — runs on every push and PR to `main` (path-filtered, eight jobs):
 
 | Job | Steps |
 |-----|--------|
@@ -337,7 +337,10 @@ GitHub Actions has two workflows (see `.github/workflows/`):
 | **Backend (Python)** | `ruff check` → `ruff format --check` → `mypy` → `bandit -ll` → `pytest` + 80% scoped coverage |
 | **Frontend (Node.js)** | `npm run lint` → `npm run typecheck` → `npm run build` → `npm run test` |
 | **Secrets** | `gitleaks` diff-only scan |
-| **Dependency audit** | `pip-audit` (backend) + `npm audit` (frontend); lockfile-gated |
+| **Dependency audit** | `pip-audit` (backend) + `npm audit` (frontend); lockfile-gated, PR-only |
+| **Docker build** | Build-only matrix (server + frontend prod + frontend dev Dockerfiles); non-blocking; GHA layer cache |
+| **License check** | Trivy fs scan — blocks on HIGH/CRITICAL licenses; fires on deps changes |
+| **Container scan** | Trivy CVE scan of built server image — HIGH/CRITICAL; non-blocking; fires on Docker/backend/frontend changes |
 
 **nightly.yml** — every night 02:00 UTC (T4 deep checks):
 `mutmut` (Python mutation) · `Stryker` (Node mutation) · `TruffleHog` (full git history) · `anchore/sbom-action` (CycloneDX SBOM) · Trivy license compliance · Meterian SCA · container scan (Dockerfile-gated)
