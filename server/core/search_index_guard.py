@@ -8,6 +8,7 @@ from server.core.search_index_plan import (
     SearchIndexSnapshot,
     assess_search_index_readiness,
     format_mismatch_message,
+    preflight_not_applicable,
     required_search_indexes,
     validate_vector_index_feasibility,
 )
@@ -21,6 +22,7 @@ from server.db.indexes import (
     reconcile_chunks_search_indexes,
 )
 from server.models.config import ExperimentConfig
+from server.settings import settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -65,13 +67,23 @@ def validate_experiment_search_indexes(
     attempt_ensure: bool = True,
     cluster_limit: int = M0_SEARCH_INDEX_LIMIT,
 ) -> SearchIndexAssessment:
-    """Ensure required indexes exist or raise SearchIndexMismatchError.
+    """Ensure required Atlas indexes exist or raise SearchIndexMismatchError.
 
     When ``attempt_ensure`` is true (default), automatically:
     1. Drops failed and surplus known indexes on ``chunks`` to free quota.
     2. Prunes unknown indexes cluster-wide if still blocked.
     3. Creates any missing required indexes.
+
+    Every step here talks to Atlas, so non-Mongo backends short-circuit: they
+    would otherwise open a MongoDB connection the sweep never uses.
     """
+    if settings.storage_backend.lower() != "mongo":
+        logger.info(
+            "search index preflight skipped — backend=%s declares its indexes at schema bootstrap",
+            settings.storage_backend,
+        )
+        return preflight_not_applicable()
+
     required = required_search_indexes(config)
 
     feasibility_error = validate_vector_index_feasibility(required)
