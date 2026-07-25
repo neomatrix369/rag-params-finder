@@ -1,7 +1,7 @@
 """
 Acceptance tests for server.db.mongo_store (MongoStorageBackend port).
 
-Author: swami
+Author: Mani Sarkar
 Created: 2026-07-25
 Scope: ATDD scenarios for experiment CRUD lifecycle, cascade delete, explore
        source, per-experiment db stats, grouped vector-db stats, run interrupt,

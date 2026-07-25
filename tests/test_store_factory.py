@@ -1,7 +1,7 @@
 """
 Tests for server.db.store_factory.
 
-Author: swami
+Author: Mani Sarkar
 Created: 2026-07-25
 Scope: storage_backend routing — mongo default, unknown rejection, postgres NotImplemented
 """

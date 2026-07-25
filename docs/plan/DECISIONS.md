@@ -88,3 +88,4 @@
 | 83 | 2026-07-25 | 32C | Index seam default defer to Slice 36 (option A) | YAGNI; Slice 36 already owns Postgres preflight/stats | Add IndexBackend Protocol in 32C |
 | 84 | 2026-07-25 | health-check | Gap 8: 32C includes Specification coverage; historical stubs skipped | User path: create 32C rather than expand 32B; Gap 8 for COMPLETE stubs remains deferred (#76/#81) | Retrofit all historical stubs |
 | 85 | 2026-07-25 | quality-lens | 32C 9/10 provisional (check 4 N/A) | Slim Must remediation; GWT-first; composable before 32B; no speculative IndexBackend | Pending user confirm on Before-Checks defaults |
+| 86 | 2026-07-25 | deps | Keep `numpy>=2,<3` + `torch>=2.6` override; drop Intel mac from uv environments | `sie-sdk` needs NumPy 2; torch 2.2 + NumPy 2.5 → `Numpy is not available` on local embeds; torch≥2.6 has no x86_64 Darwin wheels | Restore `numpy<2` — conflicts with sie-sdk |

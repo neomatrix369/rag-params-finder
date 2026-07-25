@@ -1,7 +1,7 @@
 """
 Tests for server.db.mongo_store adapter + call-site port usage.
 
-Author: swami
+Author: Mani Sarkar
 Created: 2026-07-25
 Scope: MongoStorageBackend / MongoRetrieverBackend Protocol conformance;
        orchestrator/API modules do not import server.db.atlas directly

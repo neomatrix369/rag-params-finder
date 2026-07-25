@@ -427,7 +427,7 @@ Add local sentence-transformers models (embedding + reranking) as alternatives t
 | `cross-encoder/ms-marco-MiniLM-L-6-v2` for local reranking | ~23MB, MS MARCO trained, good quality |
 | Separate vector indexes per dimension | Atlas requires exact `numDimensions`; `vector_index_1024` (Voyage) + `vector_index_384` (local) |
 | Lazy-load and cache models | First run downloads from HuggingFace; subsequent runs instant |
-| `numpy<2` pinned | torch requires NumPy 1.x ABI; NumPy 2.x causes `_ARRAY_API not found` crashes |
+| `numpy>=2` + `torch>=2.6` override | `sie-sdk` needs NumPy 2; torch 2.2 + NumPy 2 raised `Numpy is not available` |
 
 ---
 
@@ -686,6 +686,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-25 | ops | Keep `numpy>=2` (sie-sdk); override `torch>=2.6`; drop Intel-mac from uv environments | `numpy<2` conflicts with sie-sdk; torch 2.2 + numpy 2.5 → `Numpy is not available`; torch≥2.6 has no x86_64 Darwin wheels |
 | 2026-07-25 | 32C | Added Must sub-slice 32C (review remediation); keep 32B gate-only; order **32 → 32C → 32B → 33** | Craft/architecture nw-review BLOCKERs (adapter split, port schemas, index deferral, checklist hygiene) are a separate unit from verification gates; 32B stays medium (~1–2 h) |
 | 2026-07-25 | 32C | Index seam default: defer IndexBackend to Slice 36 (option A); override in 32C Before-Checks if needed | YAGNI — Slice 36 already owns Postgres preflight/stats; avoid speculative Protocol in 32C |
 | 2026-07-25 | 32B | Split remaining Slice 32 After-Checks into Must sub-slice 32B (gate closure); Slice 33 Depends on → 32B | Implementation is on PR #110; coverage/mutation/full-gates/nw-review/tracker close-out are a distinct verifiable unit and must not block reading the Protocol work as “done”; keeps 33 gated on COMPLETE evidence |
