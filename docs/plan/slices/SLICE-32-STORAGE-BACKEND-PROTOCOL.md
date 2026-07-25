@@ -2,9 +2,11 @@
 
 **MoSCoW:** MUST
 **Target time:** ~3–4 h
-**Status:** 📋 PLANNED
+**Status:** 🔨 IN PROGRESS (implementation on branch; remaining gates → [Slice 32B](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md))
 **Depends on:** none
+**Unblocks:** Slice 32B (gate closure) → Slice 33
 **PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
+**PR:** [#110](https://github.com/neomatrix369/rag-params-finder/pull/110)
 
 ---
 
@@ -93,17 +95,18 @@ Scenario: Retrieval flows through RetrieverBackend
 - [x] `postgres` backend raises clear NotImplemented for storage until Slice 33
 - [x] Grep confirms no `from server.db.atlas` in orchestrator/experiments/startup_reconciliation (also `runs.py`)
 - [x] Specification coverage: every GWT clause ≥1 test; essential error paths covered
-- [ ] Branch coverage: 100% target on new modules; exclusions documented
-- [ ] Mutation testing: run for new port/protocol modules (or document explicit feature-complete waiver)
-- [ ] `./scripts/quality-gates.sh` passes
 - [x] Doc audit: PRD §Documentation matrix rows for slice **32** (architecture, extending, CLAUDE Key Files)
-- [x] `docs/plan/slices/PROGRESS.md` decision log row added (status stays 🔨 until nw-review + full gates)
-- [x] `./scripts/quality-gates.sh --quick` passed (2026-07-25) — full `./scripts/quality-gates.sh` still required before PR
-- [ ] Branch coverage: 100% target on new modules; exclusions documented
-- [ ] Mutation testing: run for new port/protocol modules (or document explicit feature-complete waiver)
-- [ ] `./scripts/quality-gates.sh` (full) passes
-- [ ] nw-review APPROVED before ✅ COMPLETE
+- [x] `docs/plan/slices/PROGRESS.md` decision log row added
+- [x] `./scripts/quality-gates.sh --quick` passed (2026-07-25)
+
+**Delegated to [Slice 32B](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md)** (do not tick COMPLETE here until 32B passes):
+
+- [ ] Branch coverage: 100% target on new modules; exclusions documented → **32B**
+- [ ] Mutation testing (or explicit waiver) → **32B**
+- [ ] `./scripts/quality-gates.sh` (full) passes → **32B**
+- [ ] `/nw-review` APPROVED → **32B**
+- [ ] Gate-evidence + tracker COMPLETE for Slice 32 → **32B**
 
 ## Gate Status
 
-🔨 IN PROGRESS — implementation + GWT tests + call-site wiring + slice-32 docs + quick gates green (2026-07-25); remaining: full quality-gates, coverage/mutation, nw-review, COMPLETE status
+🔨 IN PROGRESS — implementation + GWT/acceptance tests + docs + quick gates green (2026-07-25). Remaining verification/governance gates owned by **Slice 32B**.
