@@ -1,6 +1,6 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-25 (Slice 32 🔨 IN PROGRESS — Storage Backend Protocol + Mongo adapter; branch slice/32-storage-backend-protocol)
+**Last Updated**: 2026-07-25 (Slice 42 ✅ COMPLETE — multi-stage Docker builds, BuildKit cache mounts, nginx:alpine frontend runtime, path-scoped CI docker-build job; Slice 41B split into 41B 📋 PLANNED + 41C 📦 PARKED; Slice 32 🔨 IN PROGRESS — Storage Backend Protocol + Mongo adapter; branch slice/32-storage-backend-protocol)
 **Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** ✅ Bayesian Search Simple Functional · **42** ✅ Docker Build Optimisation | Active: **32** 🔨 Storage Protocol → **33–38** Postgres/pgvector cutover · then **41B** 📋 Bayesian Numeric · **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **41C** 📦 PARKED (Bayesian Extended) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
