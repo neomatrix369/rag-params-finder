@@ -45,9 +45,9 @@ ML_IGNORE=(
   --ignore-vuln GHSA-f4xh-w4cj-qxq8
   --ignore-vuln CVE-2026-48775
   --ignore-vuln CVE-2026-48776
-  --ignore-vuln PYSEC-2026-597   # nltk — semantic/sentence chunkers; no fix in current pin
   --ignore-vuln CVE-2026-4372    # transformers via sentence-transformers — major upgrade deferred
   --ignore-vuln PYSEC-2026-2286  # torch — no patched macOS x86_64 wheel; allowlisted models only
+  --ignore-vuln CVE-2025-32434   # torch 2.2.2 RCE via torch.load — blocked on ST<4 + macOS x86_64 wheel; allowlisted models only
   --ignore-vuln PYSEC-2026-2290  # transformers — unused LightGlue path; ST major upgrade required
 )
 

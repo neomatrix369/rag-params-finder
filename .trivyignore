@@ -38,3 +38,18 @@ GHSA-f4xh-w4cj-qxq8
 #   Unblocked by: dedicated ML stack upgrade slice (sentence-transformers >= 4.0, transformers >= 5.5).
 CVE-2026-4372
 CVE-2026-5241
+
+# CVE-2025-32434 (torch arbitrary code execution via torch.load — fix: >= 2.6.0)
+#   Package    : torch 2.2.2 (transitive via sentence-transformers)
+#   Fix        : torch >= 2.6.0
+#   Why blocked: sentence-transformers 3.x (pinned < 4.0.0 in pyproject.toml) pins torch 2.x;
+#                upgrading torch to 2.6.0 has not been validated against this project's ST 3.x
+#                stack. Additionally, the patched torch wheel is unavailable for macOS x86_64
+#                (tracked separately as PYSEC-2026-2286 in pip-audit.sh), which would break
+#                local development on that platform.
+#   Compensating control: model IDs are validated against a fixed allowlist in
+#                         server/core/model_registry.py; torch.load is not called with
+#                         attacker-controlled model paths — arbitrary HuggingFace model IDs
+#                         from user input are rejected, significantly narrowing the attack surface.
+#   Unblocked by: dedicated ML stack upgrade slice (sentence-transformers >= 4.0, torch >= 2.6.0).
+CVE-2025-32434
