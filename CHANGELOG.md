@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Docker build optimisation** (Slice 42) — multi-stage `server.Dockerfile` (`deps` + runtime stages) so compiler toolchain is absent from the runtime image; `--mount=type=cache` on `uv sync` and `npm ci` so dependency layers survive source-only rebuilds; `nginx:alpine` runtime stage for the frontend (62 MB vs 286 MB; no `node_modules` in production); `docker/frontend.nginx.conf` SPA fallback (`try_files $uri /index.html`); path-scoped `docker-build` CI job (`docker/**`, `server/**`, `cli/**`, `frontend/**`, `pyproject.toml`, `uv.lock`) with `continue-on-error: true` on first landing.
 - **Bayesian sweep strategy** (Slice 41A) — `execution.search_strategy: bayesian` activates Optuna TPE to tune `chunk_size` and `overlap` automatically; CLI prints a Trial History table with per-trial chunk/overlap/state/score; `bayesian_summary.trial_log` returned by the experiments API; `configs/example-mongodb-local-bayesian.yaml` and `configs/example-mongodb-unified-retrievers-bayesian.yaml` provided as activation examples.
 - **Frontend lifecycle component verification** — 7 Vitest + React Testing Library scenarios cover all six experiment lifecycle narratives and their state-specific actions; the tier runs in frontend verification and CI
 - **Padding sweep dimension** (PR #48, closes #45) — `paddings` in `ChunkParams`; post-chunk merge-forward via `_apply_padding` in `chunk_text`
