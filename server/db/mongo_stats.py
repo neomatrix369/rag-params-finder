@@ -1,15 +1,18 @@
 """MongoDB stats and explore helpers extracted from mongo_store.
 
-Pure-logic aggregation functions plus four public query functions that
+Mongo-specific aggregation queries plus four public query functions that
 compose collection reads and statistics assembly.  MongoStorageBackend
 delegates to these; they have no dependency on the class itself.
+
+The backend-agnostic assembly maths lives in ``server.db.stats_common`` and is
+shared with the Postgres adapter.
 """
 
 from collections.abc import Callable
 from typing import Any
 
 from server.core.atlas_storage import resolve_tier_specs
-from server.core.model_registry import EMBEDDING_MODELS, get_dimensions, get_index_name
+from server.core.model_registry import EMBEDDING_MODELS, get_index_name
 from server.db.atlas import (
     CHUNKS_COLLECTION,
     EXPERIMENTS_COLLECTION,
@@ -19,56 +22,23 @@ from server.db.atlas import (
     get_database,
 )
 from server.db.indexes import TEXT_SEARCH_INDEX_NAME
+from server.db.stats_common import (
+    assemble_experiment_db_stats,
+    bytes_to_mb,
+    experiment_summary_row,
+    finalize_groups,
+    merge_group_totals,
+    new_vector_db_group,
+    retrieval_methods_for_experiment,
+    vector_db_group_key,
+)
 from server.settings import settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-# ── Pure helpers ──────────────────────────────────────────────────────────────
-
-
-def _bytes_to_mb(value: float) -> float:
-    return round(value / (1024 * 1024), 2)
-
-
-def _storage_breakdown_mb(
-    total_chunks: int, embedding_models: list[str]
-) -> tuple[float, float, float]:
-    if total_chunks == 0:
-        return 0.0, 0.0, 0.0
-    dims = [get_dimensions(model) for model in embedding_models if model in EMBEDDING_MODELS]
-    if not dims:
-        return 0.0, 0.0, 0.0
-    avg_dim = sum(dims) / len(dims)
-    embedding_bytes = total_chunks * int(avg_dim) * 4
-    metadata_bytes = total_chunks * 500
-    total_bytes = embedding_bytes + metadata_bytes
-    return (
-        _bytes_to_mb(embedding_bytes),
-        _bytes_to_mb(metadata_bytes),
-        _bytes_to_mb(total_bytes),
-    )
-
-
-def _estimate_storage_mb(total_chunks: int, embedding_models: list[str]) -> float:
-    _, _, total_mb = _storage_breakdown_mb(total_chunks, embedding_models)
-    return total_mb
-
-
-def _retrieval_methods_for_experiment(experiment: dict | None) -> list[str]:
-    if not experiment:
-        return []
-    sweep = experiment.get("sweep_summary") or {}
-    methods = sweep.get("retrieval_methods")
-    if isinstance(methods, list):
-        return [str(method) for method in methods]
-    config = experiment.get("config") or {}
-    retrieval = config.get("retrieval") or {}
-    config_methods = retrieval.get("methods")
-    if isinstance(config_methods, list):
-        return [str(method) for method in config_methods]
-    return []
+# ── Mongo-specific helpers ────────────────────────────────────────────────────
 
 
 def _mongodb_cluster_hint() -> str | None:
@@ -86,7 +56,7 @@ def _mongodb_cluster_storage_mb() -> dict[str, float | str | None]:
     data_bytes = float(stats.get("dataSize") or 0)
     index_bytes = float(stats.get("indexSize") or 0)
     total_bytes = float(stats.get("totalSize") or data_bytes + index_bytes)
-    used_mb = _bytes_to_mb(total_bytes)
+    used_mb = bytes_to_mb(total_bytes)
 
     tier_specs = resolve_tier_specs()
     quota_mb: float | None = None
@@ -98,8 +68,8 @@ def _mongodb_cluster_storage_mb() -> dict[str, float | str | None]:
 
     result: dict[str, float | str | None] = {
         "database_used_mb": used_mb,
-        "database_data_mb": _bytes_to_mb(data_bytes),
-        "database_index_mb": _bytes_to_mb(index_bytes),
+        "database_data_mb": bytes_to_mb(data_bytes),
+        "database_index_mb": bytes_to_mb(index_bytes),
         "database_storage_limit_mb": quota_mb if has_quota else None,
         "database_free_mb": round(max(0.0, quota_mb - used_mb), 2)
         if has_quota and quota_mb is not None
@@ -162,6 +132,15 @@ def _run_breakdown_for_experiment(
     return breakdown
 
 
+def _atlas_index_names(experiment: dict | None, embedding_models: list[str]) -> list[str]:
+    """Atlas search indexes an experiment touches — vector plus text when sparse."""
+    index_names = {get_index_name(model) for model in embedding_models if model in EMBEDDING_MODELS}
+    methods = retrieval_methods_for_experiment(experiment)
+    if any(method in {"sparse", "hybrid"} for method in methods):
+        index_names.add(TEXT_SEARCH_INDEX_NAME)
+    return sorted(index_names)
+
+
 def _assemble_experiment_db_stats(
     experiment: dict | None,
     *,
@@ -173,43 +152,21 @@ def _assemble_experiment_db_stats(
     runs_with_data: int,
     run_breakdown: list[dict],
 ) -> dict:
-    embedding_dimensions = sorted(
-        {get_dimensions(model) for model in embedding_models if model in EMBEDDING_MODELS}
-    )
-    unique_documents = len((experiment or {}).get("data_paths") or [])
-    index_names = sorted(
-        {get_index_name(model) for model in embedding_models if model in EMBEDDING_MODELS}
-    )
-    retrieval_methods = _retrieval_methods_for_experiment(experiment)
-    if any(method in {"sparse", "hybrid"} for method in retrieval_methods):
-        index_names.append(TEXT_SEARCH_INDEX_NAME)
-        index_names = sorted(set(index_names))
-
-    avg_chunks_per_run = round(total_chunks / runs_with_data, 1) if runs_with_data else 0.0
-    embedding_mb, metadata_mb, total_mb = _storage_breakdown_mb(total_chunks, embedding_models)
     sweep = (experiment or {}).get("sweep_summary") or {}
-
-    return {
-        "database_provider": str(sweep.get("database_provider") or "mongodb"),
-        "collection_name": CHUNKS_COLLECTION,
-        "cluster_host": _mongodb_cluster_hint(),
-        "total_chunks": total_chunks,
-        "unique_documents": unique_documents,
-        "embedding_models": embedding_models,
-        "embedding_dimensions": embedding_dimensions,
-        "index_names": index_names,
-        "retrieval_methods": retrieval_methods,
-        "chunking_methods": sorted(chunking_breakdown.keys()),
-        "chunking_breakdown": chunking_breakdown,
-        "estimated_storage_mb": total_mb,
-        "estimated_embedding_mb": embedding_mb,
-        "estimated_metadata_mb": metadata_mb,
-        "runs_with_data": runs_with_data,
-        "avg_chunks_per_run": avg_chunks_per_run,
-        "total_results": total_results,
-        "unique_queries": unique_queries,
-        "run_breakdown": run_breakdown,
-    }
+    return assemble_experiment_db_stats(
+        experiment,
+        database_provider=str(sweep.get("database_provider") or "mongodb"),
+        collection_name=CHUNKS_COLLECTION,
+        cluster_host=_mongodb_cluster_hint(),
+        index_names=_atlas_index_names(experiment, embedding_models),
+        total_chunks=total_chunks,
+        embedding_models=embedding_models,
+        chunking_breakdown=chunking_breakdown,
+        total_results=total_results,
+        unique_queries=unique_queries,
+        runs_with_data=runs_with_data,
+        run_breakdown=run_breakdown,
+    )
 
 
 def _bulk_chunk_aggregates() -> dict[str, dict]:
@@ -311,30 +268,6 @@ def _summary_db_stats_for_experiment(
     )
 
 
-def _vector_db_group_key(database_provider: str, cluster_host: str | None) -> str:
-    return f"{database_provider}:{cluster_host or 'unknown'}"
-
-
-def _merge_group_totals(group: dict, stats: dict) -> None:
-    totals = group["totals"]
-    totals["experiment_count"] += 1
-    totals["total_chunks"] += stats["total_chunks"]
-    totals["total_results"] += stats["total_results"]
-    totals["estimated_storage_mb"] = round(
-        totals["estimated_storage_mb"] + stats["estimated_storage_mb"], 2
-    )
-    totals["estimated_embedding_mb"] = round(
-        totals["estimated_embedding_mb"] + stats["estimated_embedding_mb"], 2
-    )
-    totals["estimated_metadata_mb"] = round(
-        totals["estimated_metadata_mb"] + stats["estimated_metadata_mb"], 2
-    )
-    group["index_names"] = sorted(set(group["index_names"]) | set(stats["index_names"]))
-    group["embedding_dimensions"] = sorted(
-        set(group["embedding_dimensions"]) | set(stats["embedding_dimensions"])
-    )
-
-
 # ── Public query functions ────────────────────────────────────────────────────
 
 
@@ -426,53 +359,16 @@ def get_vector_db_stats_grouped(
                 result_by_exp.get(experiment_id),
                 chunking_by_exp.get(experiment_id, {}),
             )
-            group_key = _vector_db_group_key(stats["database_provider"], stats["cluster_host"])
+            group_key = vector_db_group_key(stats["database_provider"], stats["cluster_host"])
 
             if group_key not in groups:
-                groups[group_key] = {
-                    "vector_db_id": group_key,
-                    "database_provider": stats["database_provider"],
-                    "collection_name": stats["collection_name"],
-                    "cluster_host": stats["cluster_host"],
-                    "index_names": [],
-                    "embedding_dimensions": [],
-                    "totals": {
-                        "experiment_count": 0,
-                        "total_chunks": 0,
-                        "total_results": 0,
-                        "estimated_storage_mb": 0.0,
-                        "estimated_embedding_mb": 0.0,
-                        "estimated_metadata_mb": 0.0,
-                    },
-                    "experiments": [],
-                }
+                groups[group_key] = new_vector_db_group(group_key, stats)
 
             group = groups[group_key]
-            _merge_group_totals(group, stats)
+            merge_group_totals(group, stats)
+            group["experiments"].append(experiment_summary_row(experiment, experiment_id, stats))
 
-            created_at = experiment.get("created_at")
-            if created_at is not None and hasattr(created_at, "isoformat"):
-                created_at_str: Any = created_at.isoformat()
-            else:
-                created_at_str = created_at
-            group["experiments"].append(
-                {
-                    "experiment_id": experiment_id,
-                    "experiment_name": experiment.get("experiment_name", ""),
-                    "status": experiment.get("status", ""),
-                    "created_at": created_at_str,
-                    **stats,
-                }
-            )
-
-        grouped = list(groups.values())
-        for group in grouped:
-            group["totals"].update(cluster_storage)
-            group["experiments"].sort(
-                key=lambda row: row.get("created_at") or "",
-                reverse=True,
-            )
-        grouped.sort(key=lambda row: row["totals"]["total_chunks"], reverse=True)
+        grouped = finalize_groups(groups, cluster_storage)
     except Exception:
         logger.error("grouped vector db stats failed — aggregation error", exc_info=True)
         raise

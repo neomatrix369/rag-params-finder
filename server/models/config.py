@@ -8,7 +8,9 @@ from server.core.model_registry import EMBEDDING_MODELS, RERANKER_MODELS
 from server.models.enums import ChunkingMethod, RetrievalMethod, RetrieverType
 
 Provider = Literal["local", "voyage", "sie", "kimchi"]
-DatabaseProvider = Literal["mongodb"]  # Future: "pinecone", "weaviate", "qdrant"
+# "postgres" = local pgvector container, "supabase" = hosted Postgres (Slice 37).
+# Both route to the same adapter; they differ only in how db-stats labels the cluster.
+DatabaseProvider = Literal["mongodb", "postgres", "supabase"]  # Future: pinecone, weaviate, qdrant
 
 
 class ChunkParams(BaseModel):

@@ -108,23 +108,32 @@ class TestStoreFactoryShould:
         ):
             get_retriever_backend()
 
-    def test_given_storage_backend_postgres_when_get_storage_backend_then_raises_not_implemented(
+    def test_given_storage_backend_postgres_when_get_storage_backend_then_returns_pg_adapter(
         self,
     ) -> None:
         """
-        Scenario: Postgres storage raises clear NotImplemented until Slice 33.
-        Slice: slice-32-storage-backend-protocol
+        Scenario: Postgres selects the pgvector StorageBackend adapter.
+        Slice: slice-33-postgres-schema-crud
 
         Given STORAGE_BACKEND="postgres",
         When get_storage_backend() is called,
-        Then NotImplementedError mentions Slice 33+.
+        Then the Postgres StorageBackend adapter is returned.
         """
-        ### Given / When / Then
+        ### Given
+        mock_storage = MagicMock(name="PostgresStorageBackend")
+
+        ### When
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
-            pytest.raises(NotImplementedError, match="Slice 33"),
+            patch(
+                "server.db.postgres_store.get_postgres_storage",
+                return_value=mock_storage,
+            ),
         ):
-            get_storage_backend()
+            actual = get_storage_backend()
+
+        ### Then
+        assert actual is mock_storage, f"Expected postgres storage adapter, got {actual!r}"
 
     def test_given_storage_backend_postgres_when_get_retriever_backend_then_raises_not_implemented(
         self,
