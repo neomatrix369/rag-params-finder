@@ -1,5 +1,5 @@
 # Gap Analysis
-> ~2 min read · **Updated 2026-07-09** after Supabase PRD integration · **Gap bridge 2026-07-09** (planned/deferred spec ↔ TRAIL sync)
+> ~2 min read · **Updated 2026-07-25** after enhanced-flow-planner continuation gap audit · **Gap bridge 2026-07-09** (planned/deferred spec ↔ TRAIL sync)
 
 Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.md) · Migration PRD: [PRD-supabase-pgvector-migration.md](PRD-supabase-pgvector-migration.md)
 
@@ -19,6 +19,10 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 | Migration decision | ADR-003 locked Atlas | Team approved Supabase/pgvector + dual-backend | PRD 2026-07-09 |
 | Slice 11 spec missing | TRAIL linked 404 | `SLICE-11-SEARCH-EXPLORER.md` created; scope bounded vs 28/30 | Gap bridge 2026-07-09 |
 | Plan ↔ spec drift (10, 19, 26, 27) | TRAIL vs spec status mismatch | TRAIL + specs synced; Before-Checks on deferred slices | Gap bridge 2026-07-09 |
+| Bayesian search (simple functional) | Slice 41A — numeric axes, optuna, trial log | Fully implemented + all ACs verified | Slice 41A ✅ 2026-07-23 |
+| Docker build optimisation | Multi-stage builds, cache mounts, nginx runtime, CI job | Fully implemented (server + frontend Dockerfiles) | Slice 42 ✅ 2026-07-25 |
+| Project hygiene + nightly CI | Nightly T4 jobs, idempotent hooks, Chalk attestation, BACKEND_CHANGED | All merged to main (PRs #103–106) | Maintenance batch 2026-07-24 |
+| gate-evidence stubs (historical slices 1–9, 42) | All PASSED slices should have gate-evidence JSON | Stubs created; 42 now has real evidence, 1–9 inferred | plan-health-check AUTO-FIX 2026-07-25 |
 
 ---
 

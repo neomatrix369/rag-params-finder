@@ -47,7 +47,8 @@ Each PCTO / migration slice lives in its own file below. Existing planned slices
 | 39 | [../plan/slices/SLICE-39-DEMO-READY-DASHBOARD-POLISH.md](../plan/slices/SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) | Demo-ready dashboard polish — list-to-detail visual journey | Should | ✅ COMPLETE | none | — | ~3 min | 2026-07-18 |
 | 40 | [../plan/slices/SLICE-40-DOCS-PLAN-SLICES-SSOT.md](../plan/slices/SLICE-40-DOCS-PLAN-SLICES-SSOT.md) | Documentation plan/slices SSOT alignment | Should | 📋 PLANNED | none | — | ~1 h | 2026-07-20 |
 | 41A | [../plan/slices/SLICE-41A-BAYESIAN-SEARCH-SIMPLE-FUNCTIONAL.md](../plan/slices/SLICE-41A-BAYESIAN-SEARCH-SIMPLE-FUNCTIONAL.md) | Bayesian Search: Simple Functional | Could | ✅ COMPLETE | 16 | — | ~2.5 h | 2026-07-23 |
-| 42 | [../plan/slices/SLICE-42-DOCKER-BUILD-OPTIMISATION.md](../plan/slices/SLICE-42-DOCKER-BUILD-OPTIMISATION.md) | Docker Build Optimisation — multi-stage, BuildKit cache mounts, CI job | Should | 📋 PLANNED | none | — | ~2.5 min | 2026-07-22 |
+| 41B | [../plan/slices/SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md](../plan/slices/SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) | Bayesian Search: Advanced (parallelism, categorical axes, persistence, random search) | Could | 📦 PARKED | 41A + owner data | — | ~4–6 h | 2026-07-22 |
+| 42 | [../plan/slices/SLICE-42-DOCKER-BUILD-OPTIMISATION.md](../plan/slices/SLICE-42-DOCKER-BUILD-OPTIMISATION.md) | Docker Build Optimisation — multi-stage, BuildKit cache mounts, CI job | Should | ✅ COMPLETE | none | — | ~2.5 h | 2026-07-25 |
 
 **Execution order**: 21 → 25 → 25B → 29 (done) → **39** *(≤2 h demo interrupt)* → **32 → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10. Slices 40, 41A, and 42 are independent housekeeping/optimisation slices and can run at any time without blocking the Supabase migration sequence.
 *Deferred Mongo QoL: 26, 19 — re-scope after cutover. Slice 27 scope absorbed into 36 as a storage-mode indicator.*

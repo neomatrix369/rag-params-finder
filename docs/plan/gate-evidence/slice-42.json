@@ -1,0 +1,9 @@
+{
+  "slice": 42,
+  "gate_status": "PASSED",
+  "inferred": false,
+  "completed_date": "2026-07-25",
+  "pr": "#107",
+  "branch": "slice/42-docker-build-optimisation",
+  "note": "Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime (~62 MB); CI docker-build job (non-blocking, path-scoped to docker/); security patches (nltk HIGH CVE, brace-expansion DoS, postcss path traversal). All CI green."
+}
