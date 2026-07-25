@@ -90,7 +90,7 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md). T
 
 Run all gates before committing. All must pass with zero regressions.
 
-**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit` (five jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM/CycloneDX, Meterian, container scan, Chalk provenance — every night 02:00 UTC).
+**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit`, `docker-build` (six jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM/CycloneDX, Meterian, container scan, Chalk provenance, dependency-audit, full-secrets-scan — every night 02:00 UTC, also manually triggerable via `workflow_dispatch`).
 
 | Layer | Tools |
 |-------|--------|

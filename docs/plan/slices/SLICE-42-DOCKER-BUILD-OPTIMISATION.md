@@ -1,6 +1,6 @@
 # SLICE 42 — Docker Build Optimisation
 
-**Status**: 📋 PLANNED
+**Status**: ✅ COMPLETE
 **MoSCoW**: Should *(build/CI hygiene — same class as Slice 20/40 toolchain hardening; no user-facing behaviour change)*
 **Branch**: `slice/42-docker-build-optimisation`
 **Target time**: ~2–3 h
@@ -186,4 +186,4 @@ This slice has no pytest-testable units (pure Dockerfile/CI YAML changes). Verif
 
 ## Gate Status
 
-📋 PLANNED — not yet branched. Branch when Slice 41A closes or user prioritises this ahead of Supabase migration slices.
+✅ COMPLETE — all Must GWTs VERIFIED locally; Should-8/9 VERIFIED via CI run 30147718492 (all 3 Dockerfile matrix jobs pass); dependency-audit green (postcss + brace-expansion patched); PR #107 open. See `docs/plan/slices/PROGRESS.md` Decision Log for implementation decisions.

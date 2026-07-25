@@ -678,6 +678,8 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-25 | 42 | `overrides.brace-expansion=5.0.8` in `package.json` instead of ESLint upgrade | ESLint 8→9/10 requires flat config migration (`.eslintrc.cjs` → `eslint.config.*`); brace-expansion@5 is API-compatible drop-in; npm audit now 0 vulnerabilities without touching ESLint config |
+| 2026-07-25 | 42 | Moved `nightly-dependency-audit` + `nightly-full-secrets-scan` from `ci.yml` → `nightly.yml` | Schedule-only jobs in a PR/push workflow; moving restores clear mental model (ci.yml = PR gates, nightly.yml = deep sweeps); `nightly.yml` already has `workflow_dispatch` for manual runs |
 | 2026-07-09 | 32–38 | nw-review edits applied | Behavioral ACs; equivalence gates; PRD SSOT; experiment_id contract; Supabase naming; Slice 27→36 |
 | 2026-07-18 | 39 | Added demo-ready dashboard polish | User prioritised an impressive list-to-detail presentation; strict ≤2 h visual-only interrupt before resuming Slice 32 |
 | 2026-07-18 | 39 | Adopted results-led decision storytelling | ARC-AGI-3 study informed purpose → results → trace hierarchy only; analytical views stay with Slices 30/11/31 and regression budgets protect behavior |
