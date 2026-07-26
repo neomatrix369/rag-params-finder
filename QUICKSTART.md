@@ -235,6 +235,12 @@ export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
 ```
 
+**Hosted Supabase** (same backend, cloud URI): put Session-mode pooler URI in
+`.env` as `DATABASE_URL` or optional `SUPABASE_URI`, then
+`./start-services.sh --postgres-cloud`. URI comes from the project **Connect**
+button (not Project Settings → Database). Details:
+[postgres-setup.md → Path B](docs/user-guide/postgres-setup.md#path-b--hosted-supabase).
+
 Full setup: [postgres-setup.md](docs/user-guide/postgres-setup.md).
 
 ---

@@ -53,7 +53,7 @@ npm run build
 ./start-services.sh                    # server + dashboard (Atlas cloud in .env)
 ./start-services.sh --mongodb-local    # server + dashboard + MongoDB Atlas Local (no cloud account)
 ./start-services.sh --postgres-local   # server + dashboard + local pgvector (STORAGE_BACKEND=postgres)
-./start-services.sh --postgres-cloud   # hosted Supabase (DATABASE_URL; no MONGODB_URI)
+./start-services.sh --postgres-cloud   # hosted Supabase (DATABASE_URL or SUPABASE_URI; no MONGODB_URI)
 RAG_MONGODB_LOCAL=1 ./start-services.sh  # same as --mongodb-local via env var
 ./start-services.sh mongodb [start|stop|reset|status]  # manage local Atlas container standalone
 ./start-services.sh postgres [start|stop|reset|status]  # manage local pgvector container standalone
@@ -68,6 +68,7 @@ Backend switching — only the start command changes:
 | Atlas cloud | `MONGODB_URI=mongodb+srv://...` (from .env) |
 | Atlas Local | `MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true` |
 | Local pgvector | `STORAGE_BACKEND=postgres` + `DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder` |
+| Hosted Supabase | `STORAGE_BACKEND=postgres` + `DATABASE_URL` (or optional `SUPABASE_URI` alias) — Session-mode pooler |
 
 Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/SLICE-14-DOCKER-COMPOSE.md`, `docs/user-guide/mongodb-setup.md`, and `docs/user-guide/postgres-setup.md`.
 

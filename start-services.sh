@@ -37,7 +37,7 @@ Stack options (pick one):
   --mongodb-local              Atlas Local container (no cloud account)
   --mongodb-cloud              Atlas cloud — requires MONGODB_URI
   --postgres-local             Local pgvector — STORAGE_BACKEND=postgres
-  --postgres-cloud             Hosted Supabase — requires DATABASE_URL; no MONGODB_URI
+  --postgres-cloud             Hosted Supabase — requires DATABASE_URL or SUPABASE_URI; no MONGODB_URI
   --local, -l                  Deprecated alias for --mongodb-local
   --postgres, -p               Deprecated alias for --postgres-local
   --force-build, --build, -b   Rebuild images even when build context is unchanged
@@ -62,7 +62,7 @@ Modes (storage_mode = engine × location):
   mongodb-cloud (default bare start): requires MONGODB_URI in .env
   mongodb-local:  Atlas Local container; CLI export MONGODB_URI=$RAG_LOCAL_MONGODB_URI_HOST
   postgres-local: pgvector container; CLI export STORAGE_BACKEND=postgres DATABASE_URL=$RAG_LOCAL_DATABASE_URL_HOST
-  postgres-cloud: hosted Supabase; requires DATABASE_URL; must not require MONGODB_URI
+  postgres-cloud: hosted Supabase; requires DATABASE_URL or SUPABASE_URI; must not require MONGODB_URI
 EOF
 }
 
@@ -269,6 +269,9 @@ ensure_env() {
   set -a
   source .env
   set +a
+
+  # SUPABASE_URI → DATABASE_URL before mode resolve / ensure_env.
+  apply_postgres_uri_aliases
 
   # Bare start: re-resolve from .env STORAGE_BACKEND / DATABASE_URL after load.
   if [[ "${STACK_MODE_FROM_CLI:-0}" != "1" ]]; then

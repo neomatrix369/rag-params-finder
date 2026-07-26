@@ -47,7 +47,7 @@ Slice 36 shipped four-value `storage_mode` (`mongodb|postgres` × `local|cloud`)
 | Paused-project / pooler remediation | Should | Generic health `"error"` only; Path B incomplete | Doc runbook + health/log remediation substring; **unit inject** acceptable — live paused project not required for gate |
 | `prepare_threshold` pool code | Should | HNSW `iterative_scan` already set; Transaction-mode breakage not reproduced | Doc Session-mode runbook first; code change only if breakage is measured |
 | CLI surfaces server 422 (no second validator) | Should | Server owns invariant | Render API 422 detail; do not reimplement against `/healthz` |
-| URI aliases (`SUPABASE_URI` / `POSTGRES_URI`) | Won't | Slice 43 already documents asymmetry | Keep documenting `DATABASE_URL` + `STORAGE_BACKEND=postgres`; no new env aliases this slice |
+| URI aliases (`SUPABASE_URI` / `POSTGRES_URI`) | ~~Won't~~ → **Must (landed)** for `SUPABASE_URI` only | Originally Won't (Slice 43 asymmetry); **SUPERSEDED** by DECISIONS #107 after user request + live hosted smoke | `SUPABASE_URI` optional alias when `DATABASE_URL` unset; still **no** `POSTGRES_URI` |
 | New `configs/mongodb/example-cloud.yaml` | Won't | Voyage / unified twins already cover cloud Mongo | Point switching table at existing `configs/mongodb/example-*.yaml` |
 | `configs/supabase/` peer of `configs/mongodb/` | Could | Product folder vs engine folder | **Keep** folder for Path B this slice; document path ≠ `STORAGE_BACKEND`. Full rename → optional follow-up, not a 37 blocker |
 
@@ -342,7 +342,7 @@ Scenario: Supabase paused / unreachable surfaces clear error
 | Doc-only pooler rows | Session-mode runbook first; `prepare_threshold` code only if breakage measured |
 | CLI duplicates backend validation via a second health call | Server owns the invariant; CLI renders the server's 422 detail (**Should**) |
 | Rename Atlas snapshot helper while touching preflight | Out of scope: correct behavior and docstring already exist; no Slice 37 user outcome |
-| New `SUPABASE_URI` / `POSTGRES_URI` aliases | **Won't** this slice — keep Slice 43 asymmetry docs |
+| New `SUPABASE_URI` / `POSTGRES_URI` aliases | **SUPERSEDED** — `SUPABASE_URI` landed (DECISIONS #107); `POSTGRES_URI` still Won't |
 | New `configs/mongodb/example-cloud.yaml` | **Won't** — use existing mongodb example stems |
 
 ---
@@ -350,7 +350,7 @@ Scenario: Supabase paused / unreachable surfaces clear error
 ## Before-Checks [GATE]
 
 - [x] Slice 36 ✅ PASSED — `gate-evidence/slice-36.json` (2026-07-26); four-value `storage_mode` + Postgres preflight landed
-- [x] Supabase project credentials for cloud smoke **or** documented skip (skip does not block Must COMPLETE when `ensure_env` + docs gates pass) — **SKIPPED** 2026-07-26 (no hosted credentials; Path B docs + `ensure_env` green)
+- [x] Supabase project credentials for cloud smoke **or** documented skip — **LIVE PASSED** 2026-07-26: hosted Supabase experiment `49c23d41-…` complete, `storage_mode=postgres-cloud` (842 chunks stored + 77 dense pgvector queries)
 - [x] Confirm Slice 33 local profile still healthy under current `--postgres` before profile rename — `--postgres-local` `/healthz` ok after profile aliases
 
 ---
@@ -359,7 +359,7 @@ Scenario: Supabase paused / unreachable surfaces clear error
 
 - [x] All four canonical flags documented in `./start-services.sh --help`
 - [x] Switching table in `postgres-setup.md` + `mongodb-setup.md` (two-command recipes; existing example paths only)
-- [x] Hosted Path B docs complete (pooler/pause runbook); live hosted smoke **or** documented skip recorded — skip recorded in `gate-evidence/slice-37.json`
+- [x] Hosted Path B docs complete (pooler/pause runbook); live hosted smoke recorded — **live PASSED** on hosted Supabase (`gate-evidence/slice-37.json`); Connect-button URI steps + `SUPABASE_URI` alias added
 - [x] Config↔server mismatch 422 tested **before** index/SIE preflight; message distinct from catalog 422
 - [x] CLI remediation (**Should**) surfaces server 422 detail
 - [x] `supabase` / `mongo` aliases normalize; no silent cross-backend writes
@@ -398,4 +398,4 @@ Planning verdict after edits: **CONDITIONALLY APPROVED** for execution. Implemen
 
 ## Gate Status
 
-✅ COMPLETE — 2026-07-26. Evidence: `docs/plan/gate-evidence/slice-37.json`. Live `--postgres-local` one-run smoke complete after Docker VM disk prune; hosted `--postgres-cloud` smoke documented skip.
+✅ COMPLETE — 2026-07-26. Evidence: `docs/plan/gate-evidence/slice-37.json`. Live `--postgres-local` one-run smoke complete after Docker VM disk prune; **live hosted `--postgres-cloud` smoke PASSED** on Supabase (exp `49c23d41-…`). `SUPABASE_URI` added as optional `DATABASE_URL` alias; Path B docs updated for the Connect-button URI flow.

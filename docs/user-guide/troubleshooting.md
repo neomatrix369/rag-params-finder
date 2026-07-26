@@ -426,7 +426,8 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md).
 |---|---|---|---|
 | `STORAGE_BACKEND` | No | `mongodb` | Storage adapter: `mongodb` (default; legacy alias `mongo`) or `postgres` (local Docker or Supabase-hosted Postgres) |
 | `MONGODB_URI` | When `STORAGE_BACKEND=mongodb` | — | MongoDB Atlas / Atlas Local connection string |
-| `DATABASE_URL` | When `STORAGE_BACKEND=postgres` | — | Postgres connection string (no `SUPABASE_URI` — Supabase is hosted Postgres) |
+| `DATABASE_URL` | When `STORAGE_BACKEND=postgres` | — | Canonical Postgres connection string (local or Supabase-hosted) |
+| `SUPABASE_URI` | No | — | Optional alias for `DATABASE_URL` (used only when `DATABASE_URL` is unset) |
 | `VOYAGE_API_KEY` | No | — | Voyage AI API key (only if using Voyage models) |
 | `SERVER_URL` | No | `http://localhost:8001` | FastAPI server URL (used by CLI) |
 | `VOYAGE_RPM_LIMIT` | No | `3` | Voyage requests-per-minute limit (throttle guard; free-tier default) |

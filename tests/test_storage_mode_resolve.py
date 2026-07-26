@@ -223,8 +223,55 @@ ensure_stack_mode_env
 
     ### Then
     assert result.returncode == 1
-    assert "DATABASE_URL" in result.stderr
+    assert "DATABASE_URL" in result.stderr or "SUPABASE_URI" in result.stderr
     assert "MONGODB_URI" not in result.stderr
+
+
+def test_ensure_postgres_cloud_accepts_supabase_uri_alias() -> None:
+    """
+    Scenario: SUPABASE_URI satisfies hosted postgres ensure_env when DATABASE_URL unset.
+    Slice: slice-37-postgres-local-cloud-parity
+
+    Given --postgres-cloud with SUPABASE_URI only
+    When ensure_stack_mode_env runs
+    Then it succeeds and DATABASE_URL is exported from the alias.
+    """
+    ### Given
+    script = f"""
+set -euo pipefail
+source '{_LIB}'
+resolve_stack_mode --postgres-cloud
+ensure_stack_mode_env
+printf 'database_url=%s\\n' "$DATABASE_URL"
+"""
+    env = os.environ.copy()
+    for key in (
+        "RAG_MONGODB_LOCAL",
+        "RAG_MONGODB_CLOUD",
+        "RAG_POSTGRES_LOCAL",
+        "RAG_POSTGRES_CLOUD",
+        "RAG_LOCAL_ATLAS",
+        "RAG_LOCAL_POSTGRES",
+        "DATABASE_URL",
+        "MONGODB_URI",
+    ):
+        env.pop(key, None)
+    env["SUPABASE_URI"] = "postgresql://postgres:secret@db.example.supabase.co:5432/postgres"
+
+    ### When
+    result = subprocess.run(
+        ["bash", "-c", script],
+        capture_output=True,
+        text=True,
+        cwd=_REPO,
+        env=env,
+        check=False,
+    )
+
+    ### Then
+    assert result.returncode == 0, result.stderr
+    expected = "database_url=postgresql://postgres:secret@db.example.supabase.co:5432/postgres"
+    assert expected in result.stdout
 
 
 def test_ensure_postgres_local_does_not_require_mongodb_uri() -> None:

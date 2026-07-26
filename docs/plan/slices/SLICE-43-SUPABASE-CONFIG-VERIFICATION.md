@@ -10,6 +10,11 @@
 
 **Planning quality lens (2026-07-26):** 9/10 pass. Fail = check 3 (SLAP) — the frontend-coverage item was a different abstraction level and has been spun out to [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md). Duplications removed (old §6a ↔ §§1–5; old §6b ↔ §7). **MoSCoW note:** the slice priority is *Could* relative to the 36–38 migration track, but §1 (recorded live supabase smoke) is this slice’s definition-of-done, not optional.
 
+> **SUPERSEDED (2026-07-26, Slice 37 / DECISIONS #107):** claims below that there is
+> **no** `SUPABASE_URI` are historical. Current truth: `DATABASE_URL` remains
+> canonical; `SUPABASE_URI` is an optional alias when `DATABASE_URL` is unset.
+> Live hosted Path B smoke is recorded in [`gate-evidence/slice-37.json`](../gate-evidence/slice-37.json).
+
 ---
 
 ## Slice Workflow Bundle

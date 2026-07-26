@@ -17,8 +17,9 @@ backend — Postgres with the `pgvector` extension — instead of MongoDB Atlas.
 | **`configs/supabase/`** | Example YAML **folder name** for Postgres-path configs (mirrors `configs/mongodb/`). Not a second backend and not `STORAGE_BACKEND`. |
 | **`database_provider`** | Engine intent only: `mongodb` \| `postgres`. Deprecated YAML input `supabase` **normalizes to `postgres`** (DeprecationWarning). Location (local vs cloud) comes from the URI → `storage_mode`. |
 
-There is **no** `STORAGE_BACKEND=supabase` and **no** `SUPABASE_URI`. Runtime is always
-`STORAGE_BACKEND=postgres` + `DATABASE_URL`. See [configuration.md → Engine × Location](configuration.md#-environment-variables-env).
+There is **no** `STORAGE_BACKEND=supabase`. Runtime is always
+`STORAGE_BACKEND=postgres` + `DATABASE_URL` (or optional `SUPABASE_URI` alias).
+See [configuration.md → Engine × Location](configuration.md#-environment-variables-env).
 
 > **Scope today:** storage (schema, CRUD, cascade delete, db-stats) and
 > **dense, sparse, and hybrid** retrieval run end to end. Sparse uses
@@ -53,8 +54,9 @@ Same backend (`STORAGE_BACKEND=postgres`). Only where Postgres runs changes:
 | Variable | Role | Local Docker | Hosted Supabase |
 |---|---|---|---|
 | `STORAGE_BACKEND` | **Backend selector** — always `postgres` for both paths | `postgres` | `postgres` |
-| `DATABASE_URL` | Postgres connection string (no `SUPABASE_URI`) | `postgresql://rag:rag@localhost:5433/rag_params_finder` | `postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres` |
-| `sslmode` (in URI) | TLS override | Usually unset (TLS off) | Usually unset (TLS on for `*.supabase.co`) |
+| `DATABASE_URL` | Canonical Postgres connection string | `postgresql://rag:rag@localhost:5433/rag_params_finder` | Session-mode pooler URI (preferred) |
+| `SUPABASE_URI` | Optional alias for `DATABASE_URL` (used only when `DATABASE_URL` is unset) | — | Same URI as `DATABASE_URL` |
+| `sslmode` (in URI) | TLS override | Usually unset (TLS off) | Usually unset (TLS on for hosted hosts) |
 
 Submitting a `configs/supabase/*.yaml` file while the server still has
 `STORAGE_BACKEND=mongodb` (default; legacy alias `mongo`) is rejected with
@@ -66,7 +68,7 @@ Use `./start-services.sh --postgres-local` or `--postgres-cloud`, or submit a
 
 | Concern | Mongo (today) | Postgres path (local **or** Supabase) |
 |---|---|---|
-| Connection string | `MONGODB_URI` | `DATABASE_URL` (no `SUPABASE_URI` / `POSTGRES_URI`) |
+| Connection string | `MONGODB_URI` | `DATABASE_URL` (canonical); optional `SUPABASE_URI` alias — no `POSTGRES_URI` |
 | Backend select | Often implicit (`STORAGE_BACKEND` defaults to `mongodb`) | Explicit: `STORAGE_BACKEND=postgres` (or `--postgres-*` flag) |
 | Config folder / YAML engine | `configs/mongodb/` · `database_provider: mongodb` | `configs/supabase/` · `database_provider: postgres` (`supabase` input → normalize) |
 | Runtime backend token | `mongodb` | `postgres` — Supabase is **not** a separate token |
@@ -157,9 +159,18 @@ Dashboard → **New project** → pick org, name, region, database password →
 
 ### 3. Copy the connection string
 
-**Project Settings → Database → Connection string** → prefer **Session mode**
-(pooler) for a long-lived server process. Replace `[YOUR-PASSWORD]` with the
-database password.
+Supabase no longer puts the URI under **Project Settings → Database** (that
+sidebar item is gone / moved). Use the project header instead:
+
+1. In the project top bar, click **Connect** (next to the project name).
+2. Open the **Direct Connection string** / URI view.
+3. Set **Connection Method** to **Session pooler** (port `5432`) — required for our long-lived FastAPI server. Avoid **Transaction pooler** (port `6543`).
+4. Copy the URI and replace `[YOUR-PASSWORD]` with the database password you set at project creation.
+
+Deep link (replace the project ref):
+`https://supabase.com/dashboard/project/<project-ref>?showConnect=true&method=session`
+
+Your project ref is on **Project Settings → General** (e.g. `wfdtjcbntxssnrullvum`).
 
 → [Connect to your database](https://supabase.com/docs/guides/database/connecting-to-postgres)
 
@@ -167,10 +178,13 @@ database password.
 
 ```bash
 STORAGE_BACKEND=postgres
-DATABASE_URL=postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres
+# Canonical:
+DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+# Or product-named alias (used only when DATABASE_URL is unset):
+# SUPABASE_URI=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
 ```
 
-TLS is applied automatically for `*.supabase.co` hosts. Override with
+TLS is applied automatically for hosted Supabase hosts. Override with
 `?sslmode=require` (or `disable`) in the URI if needed.
 
 No manual index creation — see [Schema](#schema) below.
@@ -181,7 +195,7 @@ No manual index creation — see [Schema](#schema) below.
 ./start-services.sh --postgres-cloud
 ```
 
-`ensure_env` requires `DATABASE_URL` and does **not** require `MONGODB_URI`. Bare
+`ensure_env` requires `DATABASE_URL` or `SUPABASE_URI` and does **not** require `MONGODB_URI`. Bare
 `./start-services.sh` with `.env` `STORAGE_BACKEND=postgres` behaves the same.
 
 ### Pooler / pause troubleshooting

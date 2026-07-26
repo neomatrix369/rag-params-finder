@@ -33,10 +33,23 @@
         "database_provider": "postgres",
         "runs": "1/1 complete"
       },
-      "hosted_postgres_cloud_smoke": "SKIPPED — no Supabase credentials in this environment; Path B ensure_env + Session-mode docs covered; Before-Checks allow documented skip"
+      "hosted_postgres_cloud_smoke": {
+        "status": "PASSED",
+        "verified_at": "2026-07-26",
+        "provider": "Supabase (Session-mode pooler, aws pooler:5432)",
+        "connection_var": "DATABASE_URL (SUPABASE_URI alias also supported)",
+        "healthz": {"ok": true, "storage_backend": "postgres", "storage_mode": "postgres-cloud", "postgres": "ok"},
+        "experiment_id": "49c23d41-c0cf-4bc2-8939-b5797ccb78d9",
+        "run_id": "913d858a-7ac2-4558-a50b-23bb27dc3087",
+        "pipeline": "parse -> 842 chunks -> embed 384-dim -> store 842 docs to hosted pgvector -> 77 dense queries -> complete",
+        "storage_mode": "postgres-cloud",
+        "database_provider": "postgres",
+        "note": "Real hosted Supabase end-to-end: TLS auto, session pooler, HNSW dense query all succeeded"
+      }
     },
-    "quality_gates": "Prior verify-slice unit tier PASS (306 backend / 16 frontend); conflict/--help/profiles green; DiskFull blocked only live matching submit — re-smoke after prune PASSED",
+    "supabase_uri_alias": "SUPABASE_URI added as optional alias for DATABASE_URL (settings model_validator + shell apply_postgres_uri_aliases); DATABASE_URL wins when both set; tests/test_supabase_uri_alias.py + test_storage_mode_resolve.py alias case",
+    "quality_gates": "Prior verify-slice unit tier PASS (306 backend / 16 frontend); conflict/--help/profiles green; DiskFull blocked only live matching submit — re-smoke after prune PASSED; SUPABASE_URI alias suites green (18)",
     "mutation": "waived — same as Slice 36 (DECISIONS #101); shell-heavy start-services paths excluded with note"
   },
-  "decisions": [102, 103, 104]
+  "decisions": [102, 103, 104, 105, 107]
 }

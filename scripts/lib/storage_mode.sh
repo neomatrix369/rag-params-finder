@@ -52,10 +52,20 @@ _stack_mode_apply_token() {
 }
 
 # resolve_stack_mode [--flags...]
+# Map SUPABASE_URI → DATABASE_URL when the canonical var is unset.
+# Idempotent; prefer DATABASE_URL when both are set.
+apply_postgres_uri_aliases() {
+  if [[ -z "${DATABASE_URL:-}" && -n "${SUPABASE_URI:-}" ]]; then
+    export DATABASE_URL="${SUPABASE_URI}"
+  fi
+}
+
 # Also reads RAG_MONGODB_LOCAL / RAG_MONGODB_CLOUD / RAG_POSTGRES_LOCAL / RAG_POSTGRES_CLOUD
 # and legacy RAG_LOCAL_ATLAS / RAG_LOCAL_POSTGRES.
 # Prints nothing on success; sets STACK_* and LOCAL_* globals.
 resolve_stack_mode() {
+  apply_postgres_uri_aliases
+
   STACK_DB_TYPE=""
   STACK_LOCATION=""
   STACK_STORAGE_MODE=""
@@ -211,6 +221,7 @@ resolve_stack_mode() {
 # Mode-aware env requirements. Caller must have sourced .env when present.
 # Returns 0 when required URIs are present; 1 with remediation otherwise.
 ensure_stack_mode_env() {
+  apply_postgres_uri_aliases
   case "${STACK_STORAGE_MODE:-}" in
     mongodb-local)
       return 0
@@ -224,7 +235,7 @@ ensure_stack_mode_env() {
       ;;
     postgres-local | postgres-cloud)
       if [[ -z "${DATABASE_URL:-}" ]] && [[ "${STACK_LOCATION}" == "cloud" ]]; then
-        _stack_mode_error "Set DATABASE_URL in .env for --postgres-cloud (Supabase Session mode URI)."
+        _stack_mode_error "Set DATABASE_URL or SUPABASE_URI in .env for --postgres-cloud (Supabase Session mode URI)."
         return 1
       fi
       # Local compose exports DATABASE_URL for the server; host CLI still prints hints.

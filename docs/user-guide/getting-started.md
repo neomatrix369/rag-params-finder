@@ -89,7 +89,7 @@ DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 SERVER_URL=http://localhost:8001
 ```
 
-There is no `SUPABASE_URI` — see [Postgres Setup](postgres-setup.md#supabase-vs-postgres-read-this-first).
+Optional `SUPABASE_URI` aliases `DATABASE_URL` when the canonical var is unset — see [Postgres Setup](postgres-setup.md#supabase-vs-postgres-read-this-first).
 
 Full variable reference: [Troubleshooting → Environment Variables](troubleshooting.md#-environment-variables-reference). Optional Atlas Admin API keys enable cluster tier + storage quota in the dashboard — see `.env.example`.
 

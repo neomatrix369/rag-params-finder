@@ -28,7 +28,8 @@ Place config files under `configs/mongodb/` or `configs/supabase/` (mirrored ste
 > **Supabase** is a hosted Postgres deployment (cloud URI / `storage_mode=postgres-cloud`), not a second adapter.
 > `configs/supabase/` holds example YAMLs for that path; YAML `database_provider: supabase`
 > normalizes to `postgres`. Dense, sparse, and hybrid (+ rerankers) all run. Sparse uses
-> `tsvector`/`ts_rank`; hybrid uses RRF (`rrf_k=60`). There is no `SUPABASE_URI`.
+> `tsvector`/`ts_rank`; hybrid uses RRF (`rrf_k=60`). Connection URI is `DATABASE_URL`
+> (optional `SUPABASE_URI` alias when `DATABASE_URL` is unset).
 > Engine mismatch vs the running server → HTTP 422 before index preflight
 > ([troubleshooting](troubleshooting.md#-config-engine-mismatch-database_provider--storage_backend)).
 > See [postgres-setup.md](postgres-setup.md) and [Engine × Location](#-environment-variables-env).
@@ -450,11 +451,12 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder
 
 # Postgres/pgvector (REQUIRED when STORAGE_BACKEND=postgres)
 # One backend for local Docker and Supabase-hosted Postgres.
-# Supabase equivalent of MONGODB_URI is DATABASE_URL (no SUPABASE_URI).
+# Canonical URI: DATABASE_URL. Optional alias: SUPABASE_URI (when DATABASE_URL unset).
 # Local container:  ./start-services.sh --postgres-local
 # DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
-# Supabase-hosted (TLS applied automatically for *.supabase.co):
-# DATABASE_URL=postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres
+# Supabase-hosted (TLS applied automatically for hosted hosts):
+# DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+# SUPABASE_URI=...   # same URI; used only if DATABASE_URL is empty
 # POSTGRES_POOL_MAX_SIZE=10
 # POSTGRES_POOL_TIMEOUT_S=30
 # Full checklist: docs/user-guide/postgres-setup.md
