@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-25 (Slice 32C 📋 PLANNED — review remediation; Slice 32B 📋 PLANNED — gate closure; Slice 32 🔨 IN PROGRESS on PR #110; Slice 42 ✅ COMPLETE; Slice 41B 📋 PLANNED + 41C 📦 PARKED)
-**Current**: Slices **14** ✅ Docker · **16** ✅ Parallel sweep · **20** ✅ toolchain · **21** ✅ SIE Skateboard · **24** ✅ Port standardisation · **25** ✅ Atlas Local · **25B** ✅ Atlas Switching · **29** ✅ padding propagation · **39** ✅ dashboard polish · **41A** ✅ Bayesian Search Simple Functional · **42** ✅ Docker Build Optimisation | Active: **32** 🔨 → **32C** 📋 remediation → **32B** 📋 gates → **33–38** Postgres/pgvector cutover · then **41B** 📋 Bayesian Numeric · **22** 📋 SIE Scooter · **28** 📋 results export ([#49](https://github.com/neomatrix369/rag-params-finder/issues/49), @cschanhniem) · **41C** 📦 PARKED (Bayesian Extended) · **26/27/19** 📦 DEFERRED (Mongo QoL) · **30/31/11/23/10** as before
+**Last Updated**: 2026-07-26 (Slice 35 🔨 IN PROGRESS — sparse/hybrid + Supabase-mode copy hygiene via /enhanced-flow-planner Path A)
+**Current**: Active migration: **34** ✅ dense → **35** 🔨 sparse/hybrid + copy scrub → **36–38**. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 gate closure · **33** 🔨. Then **22** · **28** · **41B** · deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -51,7 +51,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 32B — Storage Protocol Gate Closure | 📋 PLANNED | ~1–2 h | Coverage, mutation/waiver, full gates, nw-review, COMPLETE — [`SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md`](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) |
 | 33 — Postgres schema + CRUD | 🔨 IN PROGRESS | ~4–6 h | Pool, schema, cascade, local Path A (`--postgres` → rename in 37), 19 live tests, CI job — hosted DX deferred to 37 — [`SLICE-33-POSTGRES-SCHEMA-CRUD.md`](SLICE-33-POSTGRES-SCHEMA-CRUD.md) |
 | 34 — Postgres dense retrieval | ✅ COMPLETE | ~3–4 h | pgvector dense + embedding_model filter; Atlas-scale scores; HNSW iterative_scan; mode/hosted DX handed to 36–37 — [`SLICE-34-POSTGRES-DENSE-RETRIEVAL.md`](SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) |
-| 35 — Postgres sparse + hybrid | 📋 PLANNED | ~4–5 h | tsvector + RRF + equivalence gate; mode-invariant (`postgres-local` and `postgres-cloud`) — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
+| 35 — Postgres sparse + hybrid | 🔨 IN PROGRESS | ~4–5 h | tsvector + RRF + Supabase-mode copy hygiene; equivalence CONDITIONAL → 38 — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
 | 36 — Preflight + stats + storage_mode | 📋 PLANNED | ~3–4 h | Index introspection, db-stats extend, four-value mode badge — [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md) |
 | 37 — Local/cloud parity + low-friction switch | 📋 PLANNED | ~3–4 h | `--mongodb\|postgres-local\|cloud`, ensure_env, config↔server 422, lifecycle, Path B — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) |
 | 38 — Cutover + ADR-004 | 📋 PLANNED | ~3–4 h | Side-by-side quality, ADR-004, default `postgres-cloud` — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) |
@@ -83,7 +83,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 32B | Must | 📋 PLANNED | 32C | Gate closure — coverage, mutation/waiver, full gates, nw-review |
 | 33 | Must | 🔨 IN PROGRESS | 32B | Supabase schema + CRUD + local pgvector smoke |
 | 34 | Must | ✅ COMPLETE | 33 | Dense pgvector |
-| 35 | Must | 📋 PLANNED | 34 | Sparse + hybrid + equivalence gate |
+| 35 | Must | 🔨 IN PROGRESS | 34 | Sparse + hybrid + copy hygiene |
 | 36 | Must | 📋 PLANNED | 35 | Preflight + db-stats + storage mode (replaces 27) |
 | 37 | Must | 📋 PLANNED | 36 | Supabase local/hosted parity |
 | 38 | Must | 📋 PLANNED | 37 | ADR-004 + quality comparison artifact |

@@ -92,6 +92,7 @@ Scenario: Review unlocks COMPLETE
 
 ## After-Checks [GATE]
 
+- [ ] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first, §2); essential error paths covered (90–100% of clauses)
 - [ ] Branch coverage: 100% target on `server/db/{storage,retriever_backend,store_factory,mongo_store}.py` **or** exclusions documented in gate-evidence + Decision Log
 - [ ] Mutation testing: run for new port/protocol/factory modules **or** explicit waiver in `docs/plan/DECISIONS.md`
 - [ ] `./scripts/quality-gates.sh` (full) passes
