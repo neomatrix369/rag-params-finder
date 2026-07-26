@@ -6,18 +6,22 @@
 
 **ADR-004 Accepted**; local comparison VERIFIED; CI dual-backend ✅; mutation waived (#128). **No default flip** (#130 Won't) — code default stays `mongodb` permanently; backends independently selectable (#129).
 
+**44** 📋 PLANNED — stub migrated to latest plan-generator format + live baseline (DECISIONS #131–#133). Quality-lens provisional 9/10 — awaiting user confirm on adversarial questions.
+
 ## What's Done
 
 - Remediations #114–#119, image pins #120–#121, Postgres ops parity #122, dual health-check #123, sync-docs #124
 - ADR-004 Accepted / ADR-003 Superseded (#127)
 - `slice-38-quality-comparison.md` — both 120-run twins; latency ≤2× PASS; overlap informational (#129)
 - `slice-38.json` — `gate_status: PASSED`; default-flip gate removed (#130)
+- Slice 44 Path B revise: latest stub + measured coverage baseline (`npm run test:coverage` → lines **50.18%**, **16** tests; gates still bare Vitest)
 
 ## What's Next
 
-1. Merge [PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118) when ready
-2. Slice **43** residuals (#125/#126): hosted production-claim matrix, Pro-tier ADR mandate, etc. (`/sync-docs` for #130 permanent default — **APPLIED**)
-3. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 (not a 38 blocker)
+1. Confirm Slice 44 quality-lens (adversarial: Must-only floor vs full Should tests; defer vs execute)
+2. Path A Resume Slice **44** when ready — or continue formal gate-closure debt on tracker rows 32 / 32B / 32C / 33
+3. Merge [PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118) when ready
+4. Slice **43** residuals (#125/#126): hosted production-claim matrix, Pro-tier ADR mandate, etc.
 
 ## Key decisions locked
 
@@ -39,3 +43,6 @@
 | 128 | Backend mutation waived to nightly CI (same pattern as #95/#101) |
 | 129 | Mongo ⟂ Postgres — neither is a fail-safe for the other |
 | 130 | **Won't** — no `STORAGE_BACKEND` default flip; code default stays `mongodb` permanently |
+| 131 | Health Gap 8 SKIPPED for COMPLETE historical stubs |
+| 132 | Path B revise Slice 44 → latest stub + live baseline |
+| 133 | Slice 44 quality-lens provisional 9/10 (pending user confirm) |

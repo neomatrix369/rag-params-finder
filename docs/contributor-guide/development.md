@@ -155,7 +155,7 @@ bash scripts/pip-audit.sh
 **Baseline (as of 2026-07-26)** — unit tier, same ignores as CI `backend`:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (unit ignores + `-m "not integration"`) → **268** tests, scoped coverage ≥80%
+- `pytest` (unit ignores + `-m "not integration"`) → **322** tests, scoped coverage ≥80%
 
 ### Frontend
 
@@ -180,10 +180,11 @@ npm audit --audit-level=high
 
 **Baseline (as of 2026-07-26)**:
 - `npm run lint` → 0 errors
-- `npm run test` → **15** tests across 3 files (Vitest + React Testing Library)
+- `npm run test` → **16** tests across 3 files (Vitest + React Testing Library)
 - `npm run typecheck` → 0 errors
 - `npm run build` → built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
+- Coverage tooling exists (`npm run test:coverage` / `test:ci`, Vitest v8) but is **not** invoked by `quality-gates.sh`, `pre-push-gates.sh`, or CI `verify` yet — planned in [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](../plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md) (**PROPOSED**)
 
 ### Repo lint (shell, workflows, Markdown)
 
