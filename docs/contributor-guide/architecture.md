@@ -335,12 +335,14 @@ See `docs/adr/` for Architecture Decision Records:
 | Mode | Command | Notes |
 |------|---------|-------|
 | Manual (default dev) | `uvicorn` + `npm run dev` | Two terminals; hot reload |
-| Docker (prod profile) | `./start-services.sh` | Server + dashboard containers; Atlas cloud from `.env` |
-| Docker + Atlas Local | `./start-services.sh --mongodb-local` | Adds `mongodb/mongodb-atlas-local:8.0.9` container; auto-provisions search indexes |
+| Docker (prod profile) | `./start-services.sh` | Server + dashboard containers; Atlas cloud from `.env` when `STORAGE_BACKEND=mongodb` |
+| Docker + Atlas Local | `./start-services.sh --mongodb-local` | Adds `mongodb/mongodb-atlas-local:8.3.3` container; auto-provisions search indexes |
 | Docker + local Postgres | `./start-services.sh --postgres-local` | Adds `pgvector/pgvector:0.8.5-pg16` (Supabase stand-in); host port **5433** |
+| Docker + hosted Supabase | `./start-services.sh --postgres-cloud` | No local DB container; requires `DATABASE_URL` or `SUPABASE_URI` |
+| DB container only | `./start-services.sh mongodb\|postgres start\|stop\|reset\|status` | Native server/frontend on host |
 | Docker (dev profile) | `docker compose --profile dev up` | Bind mounts + HMR |
 
-Atlas connection string and API keys live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md) and [MongoDB Setup](../user-guide/mongodb-setup.md).
+Atlas / Postgres connection strings and API keys live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md), [MongoDB Setup](../user-guide/mongodb-setup.md), and [Postgres Setup](../user-guide/postgres-setup.md).
 
 ---
 

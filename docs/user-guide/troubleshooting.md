@@ -484,8 +484,8 @@ Use this section when `STORAGE_BACKEND=postgres` (local `./start-services.sh --p
 **Cause**: Postgres container not running, wrong port, or `STORAGE_BACKEND=postgres` without `DATABASE_URL`.
 
 **Fix**:
-1. Start local pgvector: `./start-services.sh --postgres-local`
-2. Confirm health: `docker ps` shows `rag-params-finder-postgres-local` healthy
+1. Start local pgvector: `./start-services.sh --postgres-local` (or container-only: `./start-services.sh postgres start`)
+2. Confirm health: `./start-services.sh postgres status` (or `./scripts/health-check.sh`)
 3. Host CLI / native server: `export STORAGE_BACKEND=postgres` and `export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder`
 4. Confirm `GET http://localhost:8001/healthz` reports `"storage_backend": "postgres"` and postgres status `ok`
 
@@ -495,7 +495,9 @@ Use this section when `STORAGE_BACKEND=postgres` (local `./start-services.sh --p
 
 **Cause**: The image is plain Postgres without the `vector` extension, or `schema.sql` was applied before the extension install.
 
-**Fix**: Use `pgvector/pgvector:0.8.5-pg16` (compose default). Recreate the volume if needed: stop the stack, remove the `postgres_local_data` volume, then `./start-services.sh --postgres-local` again so `schema.sql` re-runs on first pool open.
+**Fix**: Use `pgvector/pgvector:0.8.5-pg16` (compose default). Recreate the volume:
+`./start-services.sh postgres reset && ./start-services.sh --postgres-local`
+so `schema.sql` re-runs on first pool open.
 
 ### Dimension mismatch (`embedding_384` vs `embedding_1024`)
 

@@ -149,7 +149,7 @@ Keep credentials in `.env`; never put them in committed YAML configs.
 | FastAPI server | `http://localhost:8001` | Yes | `./start-services.sh --mongodb-local` / `--postgres-local` / default / `uvicorn` |
 | Dashboard | `http://localhost:5374` | Recommended | same as server row, or `npm run dev` |
 | MongoDB | `localhost:27017` (local) or Atlas cloud | Mongo path | `./start-services.sh --mongodb-local`, `mongodb start`, or Atlas |
-| Postgres/pgvector | `localhost:5433` | Postgres path | `./start-services.sh --postgres-local` |
+| Postgres/pgvector | `localhost:5433` | Postgres path | `./start-services.sh --postgres-local`, `postgres start`, or hosted URI |
 | SIE gateway | `http://localhost:8720` | SIE sweeps only | Manual — **not** in `start-services.sh`; see [sie-setup.md](docs/user-guide/sie-setup.md) |
 
 CLI on the host always uses `SERVER_URL=http://localhost:8001` (default in `.env`).
@@ -223,7 +223,7 @@ Supabase-hosted; only the URI differs). Dense, sparse, and hybrid run end to end
 Prefer a short first prove (16 runs).
 
 ```bash
-cp .env.example .env   # if needed
+cp .env.example .env   # if needed — no cloud URI required for local pgvector
 ./start-services.sh --postgres-local
 ```
 
@@ -233,6 +233,27 @@ For host CLI after Path D:
 export STORAGE_BACKEND=postgres
 export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
+```
+
+Do **not** run `./start-services.sh` (without `--postgres-local`) while `.env` has
+`STORAGE_BACKEND=postgres` and `DATABASE_URL=…@localhost:5433` — the server
+container cannot reach the host’s `localhost` (use `--postgres-local`, or run the
+server on the host).
+
+If Postgres stays unhealthy or schema bootstrap fails after an image change:
+
+```bash
+./start-services.sh postgres reset && ./start-services.sh --postgres-local
+```
+
+**Postgres in Docker, server on host** (mirror of Path C):
+
+```bash
+./start-services.sh postgres start   # blocks until pgvector is healthy
+# STORAGE_BACKEND=postgres
+# DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+uvicorn server.main:app --reload --port 8001   # Terminal 1
+cd frontend && npm run dev                      # Terminal 2 (optional)
 ```
 
 **Hosted Supabase** (same backend, cloud URI): put Session-mode pooler URI in
@@ -249,12 +270,13 @@ Full setup: [postgres-setup.md](docs/user-guide/postgres-setup.md).
 ## Verify the stack
 
 ```bash
-./scripts/health-check.sh        # server /healthz + MongoDB ping + dashboard
+./scripts/health-check.sh        # /healthz active backend + any local Mongo/Postgres containers + dashboard
 curl -s http://localhost:8001/healthz | python3 -m json.tool
 ```
 
 Expect `"ok": true` plus either `"mongodb": "ok"` (Mongo path) or
 `"storage_backend": "postgres"` / `"postgres": "ok"` (Postgres path).
+When both local DB containers are running, `health-check.sh` also reports each as healthy.
 If the server is unhealthy, see [troubleshooting → Docker](docs/user-guide/troubleshooting.md#docker).
 
 Dev hot reload (Docker): `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build` — details in [development.md → Docker Compose](docs/contributor-guide/development.md#docker-compose).
@@ -263,7 +285,8 @@ Dev hot reload (Docker): `docker compose -f docker-compose.yml -f docker-compose
 
 ## Run a sweep
 
-Complete the checklist for your config in [mongodb-setup → Before you run a sweep](docs/user-guide/mongodb-setup.md#before-you-run-a-sweep).
+Complete the checklist for your config in [mongodb-setup → Before you run a sweep](docs/user-guide/mongodb-setup.md#before-you-run-a-sweep)
+or [postgres-setup](docs/user-guide/postgres-setup.md) for Postgres/Supabase.
 
 ```bash
 rag-params-finder run --config configs/mongodb/example-local-bayesian.yaml
@@ -278,8 +301,9 @@ rag-params-finder run --config configs/mongodb/example-local.yaml   # 120 runs, 
 rag-params-finder run --config configs/mongodb/example-voyage.yaml  # 40 runs, Voyage + Tier 1
 # rag-params-finder run --config configs/mongodb/example-sie.yaml   # SIE — see sie-setup.md
 
-# Postgres/Supabase first prove (Path D — see postgres-setup.md)
-# rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
+# Postgres/Supabase (Path D — see postgres-setup.md)
+rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
+rag-params-finder run --config configs/supabase/example-local.yaml
 ```
 
 Open `http://localhost:5374` to watch progress and explore results. See [docs/images](https://github.com/neomatrix369/rag-params-finder#-screenshots).

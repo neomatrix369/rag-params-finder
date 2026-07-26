@@ -100,12 +100,38 @@ export STORAGE_BACKEND=postgres
 export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 ```
 
+### Native dev (Postgres in Docker, server/frontend on host)
+
+```bash
+# Terminal 1 — Postgres only (blocks until healthy)
+./start-services.sh postgres start
+
+# Terminal 2 — server
+export STORAGE_BACKEND=postgres
+export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+uvicorn server.main:app --reload --port 8001
+
+# Terminal 3 — frontend
+cd frontend && npm run dev
+```
+
+> **Wait for Postgres to be healthy before starting uvicorn.** Prefer
+> `./start-services.sh postgres start` (it waits). If you started the container
+> another way:
+> ```bash
+> until [ "$(docker inspect --format='{{.State.Health.Status}}' \
+>   rag-params-finder-postgres-local 2>/dev/null)" = "healthy" ]; do
+>   echo "waiting for Postgres…"; sleep 5
+> done
+> ```
+
 ### Operational checks (required)
 
 - Liveness: `curl -sS http://127.0.0.1:8001/healthz`
   — expect `"storage_backend": "postgres"`, `"storage_mode": "postgres-local"`, and `"postgres": "ok"`
   (hosted Supabase reports `"storage_mode": "postgres-cloud"`)
 - Readiness: `curl -sS http://127.0.0.1:8001/experiments`
+- Dual-container smoke (optional): `./scripts/health-check.sh` — also probes Atlas Local if that container is present
 
 `/healthz` can return success while `/experiments` still fails; run both before
 judging the stack operational.
@@ -116,11 +142,12 @@ judging the stack operational.
 |--------|---------|
 | Full stack — local Postgres | `./start-services.sh --postgres-local` |
 | Full stack — hosted Supabase | `./start-services.sh --postgres-cloud` (requires `DATABASE_URL`; no `MONGODB_URI`) |
-| Container only | `docker compose --profile postgres-local up -d postgres-local` |
-| Stop Postgres profile | `docker compose --profile postgres-local down` |
-| Lifecycle (container only) | `./start-services.sh postgres [start\|stop\|reset\|status]` |
+| Postgres container only | `./start-services.sh postgres start` |
+| Stop local Postgres | `./start-services.sh postgres stop` |
 | Wipe local data (volume) | `./start-services.sh postgres reset` |
-| Status | `docker ps --filter name=postgres-local` |
+| Status + connection string | `./start-services.sh postgres status` |
+
+Optional raw Compose (same profile): `docker compose --profile postgres-local up -d postgres-local` / `down`. Prefer the `postgres` subcommands above for parity with Mongo.
 
 Deprecated env alias (still works): `RAG_LOCAL_POSTGRES=1` → `--postgres-local`; compose profile `local-postgres` → `postgres-local`. The old `--postgres` / `-p` flags were removed — use `--postgres-local`.
 

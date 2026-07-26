@@ -252,7 +252,7 @@ jobs:
     # docker-compose.yml local-atlas profile. Mocks cannot prove port parity.
     services:
       mongodb:
-        image: mongodb/mongodb-atlas-local:8.0.9
+        image: mongodb/mongodb-atlas-local:8.3.3
         ports:
           - 27017:27017
         options: >-

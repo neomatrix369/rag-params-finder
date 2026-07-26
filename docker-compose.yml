@@ -123,8 +123,9 @@ services:
   # See docs/user-guide/mongodb-setup.md
   mongodb-local:
     profiles: ["mongodb-local", "local-atlas"]
-    # Pin patch (not :latest / :8.0) for reproducible local + CI runs.
-    image: mongodb/mongodb-atlas-local:8.0.9
+    # Pin 8.3.x — volumes from prior :latest often have FCV 8.3; 8.0.x refuses them
+    # (exit 62) and Compose waits forever. Downgrade below volume FCV → mongodb reset.
+    image: mongodb/mongodb-atlas-local:8.3.3
     container_name: ${MONGODB_LOCAL_CONTAINER_NAME:-rag-params-finder-mongodb-local}
     ports:
       - "27017:27017"

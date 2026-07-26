@@ -84,9 +84,9 @@ rag-params-finder pause <experiment-id>
 rag-params-finder resume <experiment-id>
 rag-params-finder delete <experiment-id>           # Delete experiment and all data
 rag-params-finder delete <experiment-id> --force   # Skip confirmation
-rag-params-finder indexes list                     # Atlas Search indexes (known vs unknown)
-rag-params-finder indexes reset                    # Drop unknown indexes + ensure required
-rag-params-finder indexes reset --all              # Drop all chunks indexes + recreate
+rag-params-finder indexes list                     # Atlas known/unknown OR Postgres PRESENT/MISSING
+rag-params-finder indexes reset                    # Atlas only — drop unknown + ensure required
+rag-params-finder indexes reset --all              # Atlas only — rebuild all chunks search indexes
 rag-params-finder version
 ```
 

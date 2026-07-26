@@ -130,25 +130,8 @@ cmd_postgres_start() {
   "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" up -d postgres-local
   echo ""
   echo "Waiting for Postgres to be ready..."
-  local tries=0
-  local health=""
-  while true; do
-    health="$(docker inspect --format='{{.State.Health.Status}}' "$RAG_POSTGRES_LOCAL_CONTAINER" 2>/dev/null || echo "")"
-    if [[ "$health" == "healthy" ]]; then
-      echo ""
-      print_local_postgres_cli_hints
-      return 0
-    fi
-    if [[ "$health" == "unhealthy" || $tries -ge 60 ]]; then
-      echo ""
-      echo "Postgres did not become healthy." >&2
-      echo "  docker logs $RAG_POSTGRES_LOCAL_CONTAINER 2>&1 | tail -20" >&2
-      return 1
-    fi
-    tries=$((tries + 1))
-    printf "."
-    sleep 2
-  done
+  wait_for_postgres_local_healthy
+  print_local_postgres_cli_hints 1
 }
 
 cmd_postgres_stop() {
@@ -173,7 +156,7 @@ cmd_postgres_status() {
   echo "  State:  $state"
   echo "  Health: $health"
   if [[ "$state" == "running" && "$health" == "healthy" ]]; then
-    print_local_postgres_cli_hints
+    print_local_postgres_cli_hints 1
   fi
 }
 
@@ -368,6 +351,11 @@ check_ports() {
       echo "  ./start-services.sh mongodb status" >&2
       echo "  ./start-services.sh mongodb reset   # wipe and recreate local Atlas volumes" >&2
     fi
+    if [[ " ${conflicts[*]} " == *" 5433 "* ]]; then
+      echo "Port 5433 may be held by another Postgres or a stale rag-params-finder container." >&2
+      echo "  ./start-services.sh postgres status" >&2
+      echo "  ./start-services.sh postgres reset   # wipe and recreate local pgvector volume" >&2
+    fi
     echo "Stop processes on those ports or set NONINTERACTIVE=0 for interactive menu." >&2
     exit 1
   fi
@@ -435,6 +423,7 @@ if docker_compose_needs_build "$SCRIPT_DIR"; then
 else
   echo "Starting containers (reusing existing images)..."
 fi
+
 if ! "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${PROFILES[@]}" up "${UP_ARGS[@]}"; then
   print_unhealthy_server_hint
   exit 1
@@ -503,7 +492,11 @@ esac
 echo ""
 echo "SIE (BGE-M3): not started — opt-in only (SIE_ENABLED=false by default)."
 echo "  To enable: docs/user-guide/sie-setup.md"
-echo "  CLI sweep: rag-params-finder run --config configs/mongodb/example-sie.yaml"
+if [[ "${STACK_DB_TYPE:-}" == "postgres" ]]; then
+  echo "  CLI sweep: rag-params-finder run --config configs/supabase/example-sie.yaml"
+else
+  echo "  CLI sweep: rag-params-finder run --config configs/mongodb/example-sie.yaml"
+fi
 echo ""
 echo "Aim UI:      ./scripts/aim-ui.sh  → http://localhost:43800 (experiment runs in ./.aim)"
 echo ""

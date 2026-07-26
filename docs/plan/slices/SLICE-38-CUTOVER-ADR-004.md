@@ -10,6 +10,8 @@
 > **Synced 2026-07-26** (enhanced-flow-planner continuation): foundations from Slices 34–37 + 43 are on `main`; this slice owns comparison artifact, ADR-004, and default flip only — not re-scoping operator DX.
 >
 > **Remediated 2026-07-26** after [nw-platform-architect-reviewer](42fbfa86-9fb2-45a3-a094-6915b2c22e1a) **NEEDS REVISION** — remediations 1–8 applied (DECISIONS #114–#118).
+>
+> **Branch accounting 2026-07-26:** Path A code remediations + local DB image pins landed on `slice/38-cutover-adr-004` (commits `96316bb`, `0f6ba2d` + follow-up pin/FCV recovery). Comparison + ADR-004 + default flip remain open.
 
 ---
 
@@ -17,18 +19,21 @@
 
 - Slice name: `slice-38-cutover-adr-004`
 - Branch: `slice/38-cutover-adr-004`
+- PR: https://github.com/neomatrix369/rag-params-finder/pull/118 (checkpoint — not cutover-complete)
 - Files (expected):
-  - `docs/adr/ADR-004-postgresql-pgvector-vector-store.md` (**create**)
-  - `docs/adr/ADR-003-mongodb-atlas-vector-store.md` — Status → Superseded by ADR-004
-  - `docs/plan/gate-evidence/slice-38-quality-comparison.md` — Mongo vs Postgres rankings + latency
-  - `docs/plan/gate-evidence/slice-38.json` — gate closure stub (job conclusions + run URLs, not the word "green")
-  - **Default flip surfaces (all three — BLOCKER-1):**
-    - `server/settings.py` — `storage_backend` default
-    - `scripts/lib/storage_mode.sh` — bare-start `${STORAGE_BACKEND:-…}` fallback
-    - `docker-compose.yml` — `STORAGE_BACKEND: ${STORAGE_BACKEND:-…}` + comment
-  - `start-services.sh` — Mongo branch of `apply_stack_profiles()` must `export STORAGE_BACKEND=mongodb` symmetrically with Postgres
-  - `.env.example` — comment out placeholder `SUPABASE_URI`; document postgres default; placeholder rejection for Postgres URIs (`<project-ref>`)
-  - Docs: README / getting-started / postgres-setup / mongodb-setup cross-links; `CLAUDE.md` Key Files default note
+  - `docs/adr/ADR-004-postgresql-pgvector-vector-store.md` (**create** — still open)
+  - `docs/adr/ADR-003-mongodb-atlas-vector-store.md` — Status → Superseded by ADR-004 (**open**); pin note already updated for Atlas Local `8.3.3`
+  - `docs/plan/gate-evidence/slice-38-quality-comparison.md` — Mongo vs Postgres rankings + latency (**open**)
+  - `docs/plan/gate-evidence/slice-38.json` — gate closure stub (job conclusions + run URLs, not the word "green") (**open**)
+  - **Default flip surfaces (all three — BLOCKER-1; flip still deferred):**
+    - `server/settings.py` — `storage_backend` default (+ placeholder URI reject — **landed**)
+    - `scripts/lib/storage_mode.sh` — bare-start `${STORAGE_BACKEND:-…}` fallback + `export_storage_backend_for_stack` (**landed**)
+    - `docker-compose.yml` — `STORAGE_BACKEND: ${STORAGE_BACKEND:-…}` + comment; Mongo/Postgres image pins (**landed**)
+  - `start-services.sh` — Mongo branch of `apply_stack_profiles()` exports `STORAGE_BACKEND=mongodb` (**landed**)
+  - `scripts/lib/compose.sh` — FCV / `Wrong mongod version` hint on unhealthy / timeout (**landed**)
+  - `.github/workflows/ci.yml` — Atlas Local + pgvector image pins match compose (**landed**)
+  - `.env.example` — comment out placeholder `SUPABASE_URI`; document postgres default; placeholder rejection for Postgres URIs (`<project-ref>`) (**landed** for reject + comment-out)
+  - Docs: README / getting-started / postgres-setup / mongodb-setup cross-links; `CLAUDE.md` Key Files default note (post-flip `/sync-docs`); mongodb-setup FCV callout (**landed**)
   - Rollback docs: two-command recipes (`--mongodb-*` / `--postgres-*` + matching `configs/{mongodb,supabase}/…`)
   - Optional: remove dead Mongo-only docs paths only after comparison signed off
   - ~~Deprecated `--local` / `--postgres` flag aliases~~ — **DONE in Slice 37** (DECISIONS #108/#109); env `RAG_LOCAL_*` remain until a later cleanup
@@ -38,7 +43,28 @@
 
 ---
 
-## Already landed (do not re-scope)
+## Landed on this branch (accounted — do not re-implement)
+
+| Item | Evidence | Status |
+|---|---|---|
+| Mongo flags force `STORAGE_BACKEND=mongodb` (hostile leftover `.env`) | `export_storage_backend_for_stack`; `compose_export_local_atlas_env`; `apply_stack_profiles` | ✅ `96316bb` |
+| Reject placeholder Postgres URIs (`<project-ref>`, etc.) | `ensure_stack_mode_env` + `Settings.ensure_storage_ready` | ✅ `96316bb` |
+| Comment out `.env.example` `SUPABASE_URI` placeholder | `.env.example` | ✅ `96316bb` |
+| Default remains `mongodb` until comparison gates PASS | settings + shell + compose fallbacks unchanged for cutover | ✅ fail-closed (#119) |
+| Unit coverage for resolver / URI alias | `tests/test_storage_mode_resolve.py`, `tests/test_supabase_uri_alias.py` | ✅ |
+| Pin Atlas Local `mongodb/mongodb-atlas-local:8.3.3` | `docker-compose.yml`, CI `mongo-integration`, ADR-003 / architecture / mongodb-setup / CHANGELOG | ✅ (#120; revised off `8.0.9`) |
+| Pin local pgvector `pgvector/pgvector:0.8.5-pg16` | `docker-compose.yml`, CI | ✅ (#120) |
+| FCV mismatch operator hint | `wait_for_mongodb_local_healthy` in `scripts/lib/compose.sh`; mongodb-setup callout | ✅ |
+| Runtime recovery after FCV churn | `mongodb reset` + `mongodb start` + restart server when ping-healthy but `NotPrimaryOrSecondary` / invalid RS | ✅ verified 2026-07-26 (#121) |
+| Postgres container ops parity (wait helper, reset hints, `:5433` conflict UX) | `wait_for_postgres_local_healthy` + `print_postgres_local_reset_hint`; hints use `postgres reset` | ✅ (#122) |
+| Dual-container `health-check.sh` | Active `/healthz` backend + probe present Atlas Local **and** pgvector containers | ✅ (#123) |
+| Mongo↔Postgres operator doc parity (sync-docs) | QUICKSTART Path D, postgres-setup native-dev/ops table, troubleshooting, local-environment, architecture, CLAUDE indexes, mode-aware SIE footer | ✅ (#124) |
+
+**Not landed (still Must for COMPLETE):** dual-backend comparison artifact · ADR-004 · ADR-003 Superseded · default flip · `slice-38.json` · full `/sync-docs`.
+
+---
+
+## Already landed elsewhere (do not re-scope)
 
 | Foundation | Owner | Live evidence |
 |---|---|---|
@@ -158,6 +184,7 @@ Scenario: Hosted Supabase unreachable mid-comparison
 - Re-doing Slice 37 flag/422/hosted DX work
 - Mandatory removal of env `RAG_LOCAL_*` aliases (Could — later cleanup)
 - Frontend coverage floor (Slice **44**)
+- Changing Atlas Local / pgvector healthchecks to assert writable primary (Could — ping-only remains; document reset path instead — #121)
 
 ---
 
@@ -202,4 +229,17 @@ Scenario: Hosted Supabase unreachable mid-comparison
 
 ## Gate Status
 
-🔨 IN PROGRESS — review remediations 1–5 landed in code; comparison + ADR-004 + default flip still pending
+🔨 IN PROGRESS — **partial**
+
+| Gate area | State |
+|---|---|
+| Review remediations (#114–#119) | ✅ IMPLEMENTED (`96316bb`) |
+| Local DB image pins + FCV recovery docs (#120–#121) | ✅ IMPLEMENTED / VERIFIED (healthy `8.3.3` + writable primary after reset) |
+| Postgres ↔ Mongo container-ops UX parity (#122) | ✅ IMPLEMENTED (shared wait + reset hints + `:5433` conflict) |
+| Dual-container health-check + operator doc parity (#123–#124) | ✅ IMPLEMENTED / sync-docs APPLIED |
+| Dual-backend quality + latency comparison | 📋 open |
+| ADR-004 + ADR-003 Superseded | 📋 open |
+| Default flip to `postgres` | 📋 blocked until comparison PASS (fail-closed) |
+| `slice-38.json` + `/sync-docs` + tracker COMPLETE | 📋 open |
+
+**PR #118** is a checkpoint only — not cutover-complete.

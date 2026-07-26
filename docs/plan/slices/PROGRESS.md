@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-26 (Slice 38 🔨 IN PROGRESS — review remediations landed)
-**Current**: Active migration: **38** 📋 cutover + ADR-004 (next Must). **37** ✅ local/cloud parity. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **36** ✅. **43** ✅. Deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-26 (Slice 38 🔨 IN PROGRESS — remediations + image pins landed; comparison/ADR/flip open)
+**Current**: Active migration: **38** 🔨 cutover + ADR-004 (partial — remediations/pins done). **37** ✅ local/cloud parity. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **36** ✅. **43** ✅. Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -54,7 +54,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 35 — Postgres sparse + hybrid | ✅ COMPLETE | ~4–5 h | tsvector + RRF + Supabase-mode copy hygiene; equivalence CONDITIONAL → 38 — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
 | 36 — Preflight + stats + storage_mode | ✅ COMPLETE | ~3–4 h | Catalog preflight 422 + four-value `storage_mode`; live smoke `postgres-local`; mutation waived #101 — [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md) |
 | 37 — Local/cloud parity + low-friction switch | ✅ COMPLETE | ~3–4 h | Four-flag grid + config↔server 422 + supabase normalize + live `postgres-local`/`postgres-cloud` smoke; `SUPABASE_URI` alias; removed `--local`/`--postgres` flags — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) · [`gate-evidence/slice-37.json`](../gate-evidence/slice-37.json) |
-| 38 — Cutover + ADR-004 | 🔨 IN PROGRESS | ~3–4 h | Side-by-side quality, ADR-004, default `postgres-cloud` — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) |
+| 38 — Cutover + ADR-004 | 🔨 IN PROGRESS | ~3–4 h | Partial: remediations + image pins; open: quality comparison, ADR-004, default flip — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) |
 | 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
 | 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
 | 39 — Demo-ready dashboard polish | ✅ COMPLETE | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, network, and component verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
@@ -690,6 +690,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-26 | 38 | Accounted branch work: remediations (#114–#119) + Atlas Local `8.3.3` / pgvector `0.8.5-pg16` pins (#120) + FCV/invalid-RS recovery (#121); comparison/ADR/flip still open | SLICE-38 “Landed on this branch” table; PR #118 checkpoint only |
 | 2026-07-26 | 38 | Path A Resume — review remediations landed (Mongo export + placeholder reject); default flip deferred until comparison gates | BLOCKER-1/4 from nw-platform-architect-reviewer; fail-closed flip per DECISIONS #114–#119 |
 | 2026-07-26 | 37 | sync-docs (post nw-review): CLAUDE/development shellcheck scope + unit counts 317/16; DECISIONS #109 generic Unknown option retained, #110 start-services shellcheck gate; gate-evidence follow_ups for resolver isolation — evidence **VERIFIED** | Post-review quality-gate + quantitative claims were stale vs measured truth |
 | 2026-07-26 | 37 | sync-docs: remove `--local`/`-l`/`--postgres`/`-p` from current operator/agent surfaces; DECISIONS #108; PRD operator contract + `.env.example` + skip hints use canonical flags only — evidence **IMPLEMENTED** (unit reject) + **VERIFIED** (resolver smoke exit 2) | Short flags now fail as unknown options; leaving them in setup/checklist/test skip copy would mislead |
