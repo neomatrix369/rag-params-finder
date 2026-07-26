@@ -51,14 +51,24 @@ ML_IGNORE=(
   --ignore-vuln PYSEC-2026-2290  # transformers — unused LightGlue path; ST major upgrade required
 )
 
-# Audit the environment that supplied pip-audit. CI installs it into the hosted Python;
-# local development normally resolves it through the project environment via `uv run`.
-if command -v pip-audit >/dev/null 2>&1; then
+# Prefer the project venv whenever it exists. A bare `command -v python` is unsafe
+# under pyenv: with VIRTUAL_ENV set, `pip-audit` may resolve to `.venv/bin/pip-audit`
+# while `python` still resolves to the pyenv shim — auditing the wrong environment
+# and producing a flood of false positives. CI without a local `.venv` falls through
+# to the hosted interpreter that supplied pip-audit.
+if [[ -x "$ROOT/.venv/bin/python" ]]; then
+  AUDIT_PYTHON="$ROOT/.venv/bin/python"
+  if [[ -x "$ROOT/.venv/bin/pip-audit" ]]; then
+    AUDIT_COMMAND=("$ROOT/.venv/bin/pip-audit")
+  else
+    AUDIT_COMMAND=(uv run pip-audit)
+  fi
+elif command -v pip-audit >/dev/null 2>&1; then
   AUDIT_PYTHON="$(command -v python)"
   AUDIT_COMMAND=(pip-audit)
 else
-  AUDIT_PYTHON="$ROOT/.venv/bin/python"
-  AUDIT_COMMAND=(uv run pip-audit)
+  echo "error: project .venv missing and pip-audit not on PATH" >&2
+  exit 1
 fi
 
 PIPAPI_PYTHON_LOCATION="$AUDIT_PYTHON" "${AUDIT_COMMAND[@]}" --skip-editable "${ML_IGNORE[@]}"
