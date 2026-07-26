@@ -238,7 +238,7 @@ The only thing that changes between backends is how you start the stack. No code
 | Wipe local data (volume) | `./start-services.sh mongodb reset` |
 | Status + connection string | `./start-services.sh mongodb status` |
 
-Deprecated aliases (still work): `--local` / `-l` / `RAG_LOCAL_ATLAS=1` → `--mongodb-local`.
+Deprecated env alias (still works): `RAG_LOCAL_ATLAS=1` → `--mongodb-local`. The old `--local` / `-l` flags were removed — use `--mongodb-local`.
 
 To switch back to cloud: restore `MONGODB_URI` in `.env` to the `mongodb+srv://...` string and run `./start-services.sh --mongodb-cloud` (or bare start with `STORAGE_BACKEND=mongodb`).
 

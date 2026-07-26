@@ -38,8 +38,6 @@ Stack options (pick one):
   --mongodb-cloud              Atlas cloud — requires MONGODB_URI
   --postgres-local             Local pgvector — STORAGE_BACKEND=postgres
   --postgres-cloud             Hosted Supabase — requires DATABASE_URL or SUPABASE_URI; no MONGODB_URI
-  --local, -l                  Deprecated alias for --mongodb-local
-  --postgres, -p               Deprecated alias for --postgres-local
   --force-build, --build, -b   Rebuild images even when build context is unchanged
   -h, --help                   Show this help
 
@@ -216,11 +214,7 @@ parse_args() {
   # flag/env selector as CLI-owned so .env STORAGE_BACKEND cannot override it.
   if [[ "${RAG_MONGODB_LOCAL:-}${RAG_MONGODB_CLOUD:-}${RAG_POSTGRES_LOCAL:-}${RAG_POSTGRES_CLOUD:-}${RAG_LOCAL_ATLAS:-}${RAG_LOCAL_POSTGRES:-}" == *"1"* ]] \
     || [[ " $* " == *" --mongodb-"* ]] \
-    || [[ " $* " == *" --postgres-"* ]] \
-    || [[ " $* " == *" --local "* ]] \
-    || [[ " $* " == *" -l "* ]] \
-    || [[ " $* " == *" --postgres "* ]] \
-    || [[ " $* " == *" -p "* ]]; then
+    || [[ " $* " == *" --postgres-"* ]]; then
     STACK_MODE_FROM_CLI=1
   fi
   # Also detect when resolve already left a non-default because of flags:
@@ -228,7 +222,7 @@ parse_args() {
   local arg
   for arg in "$@"; do
     case "$arg" in
-      --mongodb-local | --mongodb-cloud | --postgres-local | --postgres-cloud | --local | -l | --postgres | -p)
+      --mongodb-local | --mongodb-cloud | --postgres-local | --postgres-cloud)
         STACK_MODE_FROM_CLI=1
         ;;
     esac
@@ -420,8 +414,9 @@ print_unhealthy_server_hint() {
 mkdir -p input_data/pdfs configs
 
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  export GIT_COMMIT="$(git rev-parse --short HEAD)"
-  export GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+  GIT_COMMIT="$(git rev-parse --short HEAD)"
+  GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+  export GIT_COMMIT GIT_BRANCH
 fi
 docker_cleanup standard
 check_ports

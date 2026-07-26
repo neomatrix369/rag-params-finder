@@ -6,27 +6,25 @@
 
 ## What's Done (recent)
 
-- `0be2764` — mode resolver / four-flag grid / `ensure_env` by mode
-- `3fc9c98` — operator docs (Engine × Location, four-flag vocabulary)
-- `c966479` — config↔server 422, supabase→postgres normalize, persist `storage_mode`, compose profile aliases
-- `f30c31d` — COMPLETE gate evidence after local `postgres-local` smoke
-- Live local smoke: `1903dc76-…` → `complete` / `storage_mode=postgres-local`
-- Live hosted Supabase smoke: `49c23d41-…` → `complete` / `storage_mode=postgres-cloud` (842 chunks + 77 dense queries)
-- `SUPABASE_URI` optional alias for `DATABASE_URL` (**IMPLEMENTED** + unit-tested; **VERIFIED** via hosted path using `DATABASE_URL`)
+- Four-flag grid + config↔server 422 + supabase normalize + `SUPABASE_URI` + hosted/local Postgres smoke
+- Removed CLI flag aliases `--local`/`-l`/`--postgres`/`-p` → generic `Unknown option` (DECISIONS #108/#109; env `RAG_LOCAL_*` still warn)
+- Review follow-up: `test_storage_mode_resolve.py` → 22 cases (`_clean_env` isolation, `RAG_*` selectors, empty `DATABASE_URL`, hint non-leak)
+- Review follow-up: shellcheck gates root `start-services.sh` (DECISIONS #110); SC2155 cleared
+- Unit tier measured **317** backend / **16** frontend (2026-07-26)
 
 ## What's Next
 
-1. Commit + push staged Slice 37 follow-up (`SUPABASE_URI` + hosted smoke evidence + docs sync) onto PR #117
+1. Commit + push Slice 37 follow-up onto PR #117
 2. Merge #117 when CI/review green
 3. Start **38** → then **22**
 
 ## Blockers / Open Questions
 
-- None for 37. Optional cleanup: delete smoke experiments `1903dc76-…` (local) and `49c23d41-…` (hosted Supabase) when convenient.
+- None for 37. Optional: delete smoke experiments `1903dc76-…` (local) and `49c23d41-…` (hosted).
 
 ## Context for Next Session
 
 - Spec: `docs/plan/slices/SLICE-38-CUTOVER-ADR-004.md`
-- 37 artifacts: `server/core/config_backend_guard.py`, `scripts/lib/storage_mode.sh`, `tests/test_config_backend_guard.py`, `tests/test_supabase_uri_alias.py`
-- Axes: `STORAGE_BACKEND` × `storage_mode`; Atlas/Supabase = cloud shorthand only
-- Canonical URI: `DATABASE_URL`; optional product alias: `SUPABASE_URI` (unused when `DATABASE_URL` set)
+- Canonical start flags only: `--mongodb-local|cloud` / `--postgres-local|cloud`
+- Canonical URI: `DATABASE_URL`; optional alias: `SUPABASE_URI`
+- Shellcheck scope: `start-services.sh` + `scripts/**/*.sh`

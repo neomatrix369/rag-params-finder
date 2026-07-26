@@ -23,7 +23,6 @@ _stack_mode_conflict() {
 
 # Map a single selector token to STACK_DB_TYPE + STACK_LOCATION.
 # Tokens: mongodb-local|mongodb-cloud|postgres-local|postgres-cloud
-#         or legacy: local|postgres|mongodb-local aliases already expanded by caller
 _stack_mode_apply_token() {
   local token="$1"
   case "$token" in
@@ -92,16 +91,6 @@ resolve_stack_mode() {
         ;;
       --postgres-cloud)
         selected+=("postgres-cloud")
-        shift
-        ;;
-      --local | -l)
-        selected+=("mongodb-local")
-        deprecations+=("--local → --mongodb-local")
-        shift
-        ;;
-      --postgres | -p)
-        selected+=("postgres-local")
-        deprecations+=("--postgres → --postgres-local")
         shift
         ;;
       --force-build | --build | -b)

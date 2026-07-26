@@ -160,7 +160,7 @@ Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) and `
 ./start-services.sh --mongodb-local   # Atlas Local in Docker
 ./start-services.sh --postgres-local  # local pgvector (STORAGE_BACKEND=postgres)
 ./start-services.sh --postgres-cloud  # Supabase-hosted (DATABASE_URL; no MONGODB_URI)
-# Deprecated aliases: --local → --mongodb-local ; --postgres → --postgres-local
+# Note: the old --local / --postgres flags were removed — use the canonical flags above
 ```
 
 - Server: `http://localhost:8001` (OpenAPI docs at `/docs`)

@@ -75,8 +75,9 @@ Static checks passed; no observed end-to-end sweep of a **supabase** example aga
 **Refs:** [#111](https://github.com/neomatrix369/rag-params-finder/pull/111) proved dense smoke on local Postgres and config load/expand; it did **not** claim a recorded `configs/supabase/*` CLI sweep as gate evidence for operators. [#112](https://github.com/neomatrix369/rag-params-finder/pull/112) verified sparse/hybrid GWT on pgvector, not a full supabase-stem smoke table.
 
 **Acceptance**
-- [x] Run and record: `./start-services.sh --postgres` then
+- [x] Run and record: `./start-services.sh --postgres-local` then
   `rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml`
+  *(historical note: checklist originally said `--postgres`; that short flag was removed in Slice 37)*
   (16 runs — dense · sparse · hybrid · cross_encoder, local embeddings)
 - [x] Gate evidence note (command, date, experiment id / outcome) under `docs/plan/gate-evidence/` or PROGRESS Decision Log — **VERIFIED** 2026-07-26: [`slice-43.json`](../gate-evidence/slice-43.json), experiment `dd107437-be69-4d62-a549-003b743ed841`, 16/16 complete
 - [ ] Optional stretch: same config (or smoke twin) against hosted Supabase `DATABASE_URL`

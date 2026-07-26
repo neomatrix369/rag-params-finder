@@ -21,7 +21,7 @@ run_precommit_hook() {
 echo "=== Repo lint (shellcheck, actionlint, markdownlint) ==="
 
 echo ""
-echo "Shellcheck (scripts/*.sh)..."
+echo "Shellcheck (start-services.sh + scripts/*.sh)..."
 run_precommit_hook shellcheck
 
 echo ""

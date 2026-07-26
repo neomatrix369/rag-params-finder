@@ -18,7 +18,7 @@
 
 **Optional smoke checks** (backend + data prerequisites):
 
-- **Atlas Local:** [MongoDB Setup → Path B](docs/user-guide/mongodb-setup.md#path-b--atlas-local-docker) — `./start-services.sh --local`, then submit `configs/mongodb/example-local.yaml`
+- **Atlas Local:** [MongoDB Setup → Path B](docs/user-guide/mongodb-setup.md#path-b--atlas-local-docker) — `./start-services.sh --mongodb-local`, then submit `configs/mongodb/example-local.yaml`
 - **SIE sweep:** [SIE Setup → verification](docs/user-guide/sie-setup.md#6-verify-the-sie-sweep) — gateway or Docker warm, then `configs/mongodb/example-sie.yaml`
 
 ## Test Cases

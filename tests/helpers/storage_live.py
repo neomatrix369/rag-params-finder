@@ -59,7 +59,7 @@ def postgres_skip_reason(url: str = TEST_DATABASE_URL) -> str | None:
             "The CI service container is missing or unhealthy.",
             pytrace=False,
         )
-    return f"No Postgres at {url} — run ./start-services.sh --postgres"
+    return f"No Postgres at {url} — run ./start-services.sh --postgres-local"
 
 
 def mongo_skip_reason(uri: str = TEST_MONGODB_URI) -> str | None:
@@ -75,7 +75,7 @@ def mongo_skip_reason(uri: str = TEST_MONGODB_URI) -> str | None:
             "The CI service container is missing or unhealthy.",
             pytrace=False,
         )
-    return f"No MongoDB at {uri} — run ./start-services.sh --local"
+    return f"No MongoDB at {uri} — run ./start-services.sh --mongodb-local"
 
 
 def reset_mongo_client() -> None:

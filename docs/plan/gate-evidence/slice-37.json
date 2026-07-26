@@ -48,8 +48,30 @@
       }
     },
     "supabase_uri_alias": "SUPABASE_URI added as optional alias for DATABASE_URL (settings model_validator + shell apply_postgres_uri_aliases); DATABASE_URL wins when both set; tests/test_supabase_uri_alias.py + test_storage_mode_resolve.py alias case",
-    "quality_gates": "Prior verify-slice unit tier PASS (306 backend / 16 frontend); conflict/--help/profiles green; DiskFull blocked only live matching submit — re-smoke after prune PASSED; SUPABASE_URI alias suites green (18)",
+    "quality_gates": "Unit tier 2026-07-26: 317 backend / 16 frontend; ruff+mypy+shellcheck (incl. start-services.sh) green; test_storage_mode_resolve.py 22 cases incl. env selectors + _clean_env isolation under hostile SUPABASE_URI",
     "mutation": "waived — same as Slice 36 (DECISIONS #101); shell-heavy start-services paths excluded with note"
   },
-  "decisions": [102, 103, 104, 105, 107]
+  "decisions": [102, 103, 104, 105, 107, 108, 109, 110],
+  "follow_ups": {
+    "removed_cli_flag_aliases": {
+      "status": "PASSED",
+      "verified_at": "2026-07-26",
+      "flags": ["--local", "-l", "--postgres", "-p"],
+      "behavior": "generic Unknown option (exit 2) — DECISIONS #109 keeps message without naming replacement",
+      "tests": "tests/test_storage_mode_resolve.py::test_removed_alias_flags_are_rejected",
+      "note": "Env RAG_LOCAL_ATLAS / RAG_LOCAL_POSTGRES still map with deprecation notice"
+    },
+    "shellcheck_start_services": {
+      "status": "PASSED",
+      "verified_at": "2026-07-26",
+      "pre_commit_files": "^(start-services\\.sh|scripts/.*\\.sh)$",
+      "note": "SC2155 GIT_COMMIT/GIT_BRANCH declare-then-export; DECISIONS #110"
+    },
+    "resolver_test_isolation": {
+      "status": "PASSED",
+      "verified_at": "2026-07-26",
+      "tests": "tests/test_storage_mode_resolve.py (22) — _clean_env clears SUPABASE_URI and RAG_* selectors",
+      "note": "Passes under deliberately polluted DATABASE_URL/SUPABASE_URI/RAG_LOCAL_ATLAS env"
+    }
+  }
 }

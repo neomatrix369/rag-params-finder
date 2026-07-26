@@ -18,7 +18,7 @@
   - `docs/plan/gate-evidence/` or `docs/` comparison notes (Mongo vs Postgres rankings)
   - Default `STORAGE_BACKEND` / docs recommend Postgres (Mongo retained for rollback)
   - Optional: remove dead Mongo-only docs paths only after comparison signed off
-  - Optional earliest removal of deprecated `--local` / `--postgres` aliases (or leave for a later cleanup)
+  - ~~Optional earliest removal of deprecated `--local` / `--postgres` flag aliases~~ — **DONE in Slice 37** (2026-07-26); env `RAG_LOCAL_*` aliases remain until a later cleanup
 - Exit criteria: ADR-004 merged; side-by-side comparison documented; default backend Postgres with Mongo still selectable
 - Commit pattern: `docs(slice-38): adr-004 pgvector cutover and quality comparison`
 - **Doc exit:** `/sync-docs` — ADR-004, CHANGELOG, README default backend, mongodb-setup cross-link, architecture dual-backend

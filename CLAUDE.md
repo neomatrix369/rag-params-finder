@@ -265,14 +265,16 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 **Repo lint** (2026-05-27):
 - `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
 
+**Repo lint** shellcheck scope: `start-services.sh` + `scripts/**/*.sh` (pre-commit `files: ^(start-services\.sh|scripts/.*\.sh)$`).
+
 **Backend** (2026-07-26 — unit tier):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **282** tests; scoped coverage ≥80%; no `MONGODB_URI` required
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **317** tests; scoped coverage ≥80%; no `MONGODB_URI` required
 
 **Frontend** (2026-07-26):
 - `npm run lint` → 0 errors (eslint + security plugin)
-- `npm run test` → **15** tests (3 files, Vitest + React Testing Library)
+- `npm run test` → **16** tests (Vitest + React Testing Library)
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities

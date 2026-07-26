@@ -112,13 +112,13 @@ Add a short canonical block near `STORAGE_BACKEND` / `storage_mode`:
   - `docs/user-guide/postgres-setup.md` — Path B + switching table with product-wording map; **no** separate `supabase-setup.md`
   - `docs/user-guide/configuration.md` — dedicated Engine × Location subsection (Must)
   - Doc sweep: `README.md`, `QUICKSTART.md`, `CLAUDE.md`, `AGENTS.md`, `mongodb-setup.md`, `getting-started.md`, `local-environment.md`, `CHANGELOG.md` — apply product-wording map
-- Exit criteria: Two-step switch works for all four modes; conflicting selectors fail before Docker; bare `.env` `STORAGE_BACKEND=postgres` starts without `MONGODB_URI`; lifecycle parity; mismatch 422 before database I/O with remediation distinct from catalog 422; canonical compose profiles match `storage_mode` compounds while aliases remain compatible; operator docs use the product-wording map; Mongo path unchanged under `--mongodb-local` and legacy `--local`
+- Exit criteria: Two-step switch works for all four modes; conflicting selectors fail before Docker; bare `.env` `STORAGE_BACKEND=postgres` starts without `MONGODB_URI`; lifecycle parity; mismatch 422 before database I/O with remediation distinct from catalog 422; canonical compose profiles match `storage_mode` compounds while profile aliases remain compatible; operator docs use the product-wording map; Mongo path under `--mongodb-local` (removed `--local`/`--postgres` flags fail as unknown options)
 - Commit pattern: `feat(slice-37): low-friction db-type local/cloud switching`
 - **Doc exit:** `/sync-docs` — postgres-setup Path B, getting-started switching table, troubleshooting, docs/README, README, development.md
 
 ### Minimal vertical-slice execution order
 
-1. Mode resolution primitive — `(db_type, location)` in `start-services.sh` / `compose.sh`; four flags + env; legacy aliases + notice; `ensure_env` by mode (hosted/local postgres skip `MONGODB_URI`; bare `.env` `STORAGE_BACKEND=postgres` works)
+1. Mode resolution primitive — `(db_type, location)` in `start-services.sh` / `compose.sh`; four flags + env; short CLI aliases **removed** (env `RAG_LOCAL_*` still notice); `ensure_env` by mode (hosted/local postgres skip `MONGODB_URI`; bare `.env` `STORAGE_BACKEND=postgres` works)
 2. Compose profile alias/rename + postgres lifecycle + post-start `storage_mode=` + existing example path
 3. Provider normalize (`supabase`→`postgres`) + `default_database_provider` + `vector_db_group_key` / `vector_db_id`
 4. Config↔server 422 shared remediation helper; wire API **before** index/SIE preflight; persist `storage_mode`; CLI Should
@@ -148,12 +148,14 @@ Make Mongo ↔ Postgres (and local ↔ cloud) switching **smooth and obvious**:
 | `--postgres-local` | `RAG_POSTGRES_LOCAL=1` | pgvector container; `STORAGE_BACKEND=postgres` |
 | `--postgres-cloud` | `RAG_POSTGRES_CLOUD=1` | Hosted Supabase; requires `DATABASE_URL`; **must not require `MONGODB_URI`** |
 
-**Deprecated aliases** (print one-line notice; keep working until Slice 38+ removal):
+**Deprecated selectors** — flag aliases removed (2026-07-26, per operator request); env aliases still map with a one-line notice:
 
-| Alias | Maps to |
-|---|---|
-| `--local`, `-l`, `RAG_LOCAL_ATLAS=1` | `--mongodb-local` |
-| `--postgres`, `-p`, `RAG_LOCAL_POSTGRES=1` | `--postgres-local` |
+| Selector | Status | Maps to |
+|---|---|---|
+| `--local`, `-l` | **Removed** — fails as unknown option | use `--mongodb-local` |
+| `--postgres`, `-p` | **Removed** — fails as unknown option | use `--postgres-local` |
+| `RAG_LOCAL_ATLAS=1` | Deprecated (works + notice) | `--mongodb-local` |
+| `RAG_LOCAL_POSTGRES=1` | Deprecated (works + notice) | `--postgres-local` |
 
 **Bare start today (pre-37):** always assumes mongodb-cloud and demands `MONGODB_URI`.
 **Bare start after 37:** resolve `(db_type, location)` from flags **or** `.env` `STORAGE_BACKEND` + URI before `ensure_env` (`postgres` → needs `DATABASE_URL`; `mongodb`/`mongo` → needs `MONGODB_URI`); default remains `mongodb-cloud` when unset.
@@ -304,11 +306,11 @@ Scenario: Conflicting mode selectors fail before Docker
   Then it exits non-zero before invoking Docker
   And the message names the conflicting selectors
 
-Scenario: Legacy aliases still work
+Scenario: Removed flag aliases are rejected
   When ./start-services.sh --postgres runs
-  Then behaviour matches --postgres-local plus a deprecation notice
+  Then it exits non-zero with an "Unknown option" error (use --postgres-local)
   When ./start-services.sh --local runs
-  Then behaviour matches --mongodb-local plus a deprecation notice
+  Then it exits non-zero with an "Unknown option" error (use --mongodb-local)
 
 Scenario: Post-start hint names matching example config
   When any canonical flag starts the stack successfully
@@ -372,7 +374,7 @@ Scenario: Supabase paused / unreachable surfaces clear error
 - [x] `configuration.md` has a dedicated Engine × Location subsection (not only an env comment)
 - [x] Switching tables + `--help` use product wording; “Atlas” alone never means both cloud and Local without qualifier
 - [x] Boot reconciliation tests for Postgres path (**Should**)
-- [x] Mongo `--mongodb-local` and legacy `--local` both work (regression)
+- [x] Mongo `--mongodb-local` works; removed `--local` flag now fails as an unknown option (2026-07-26 operator request)
 - [x] `ensure_env` never requires `MONGODB_URI` when effective backend is postgres
 - [x] Post-start hint includes matching example config path + printed `storage_mode`
 - [x] Specification coverage: every GWT clause has at least one test or documented manual smoke

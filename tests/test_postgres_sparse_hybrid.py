@@ -8,7 +8,7 @@ Scope: sparse_search — keyword ranking + embedding_model isolation;
        empty embedding_model and missing hybrid embedding guards;
        query-failure logging for sparse and hybrid paths.
 
-Needs a live database — ``./start-services.sh --postgres``. Skips when absent
+Needs a live database — ``./start-services.sh --postgres-local``. Skips when absent
 unless RAG_REQUIRE_POSTGRES=1 (CI).
 """
 
@@ -46,7 +46,7 @@ pytestmark = [
     pytest.mark.integration,
     pytest.mark.skipif(
         (not postgres_reachable()) and os.environ.get("RAG_REQUIRE_POSTGRES") != "1",
-        reason=f"No Postgres at {TEST_DATABASE_URL} — run ./start-services.sh --postgres",
+        reason=f"No Postgres at {TEST_DATABASE_URL} — run ./start-services.sh --postgres-local",
     ),
 ]
 

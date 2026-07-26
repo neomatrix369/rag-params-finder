@@ -98,7 +98,7 @@ Run all gates before committing. All must pass with zero regressions.
 
 | Layer | Tools |
 |-------|--------|
-| Repo | shellcheck (`scripts/*.sh`), actionlint, markdownlint |
+| Repo | shellcheck (`start-services.sh` + `scripts/**/*.sh`), actionlint, markdownlint |
 | Backend | ruff, ruff format, mypy, bandit, pytest + coverage, pip-audit |
 | Frontend | Vitest + React Testing Library, eslint, tsc, build, npm audit |
 | Secrets | gitleaks |
@@ -195,7 +195,7 @@ pre-commit run markdownlint --all-files
 
 | Tool | Scope | Config |
 |------|--------|--------|
-| **Shellcheck** | `scripts/*.sh` | via `shellcheck-py` pre-commit hook |
+| **Shellcheck** | `start-services.sh` + `scripts/**/*.sh` | via `shellcheck-py` pre-commit hook (`-x`) |
 | **Actionlint** | `.github/workflows/*.yml` | — |
 | **Markdownlint** | `*.md` (excludes `.claude/`) | `.markdownlint.json` |
 
@@ -279,7 +279,7 @@ One process-wide Postgres pool (`live_postgres_pool` session fixture) bootstraps
 once — per-test `close_pool()` was removed because re-running DDL deadlocked when
 contract + dense/sparse suites interleaved.
 
-Locally: `./start-services.sh --postgres-local-local` and/or `--mongodb-local`, then run the live paths
+Locally: `./start-services.sh --postgres-local` and/or `--mongodb-local`, then run the live paths
 explicitly (or rely on CI). Without those services, mongo/postgres contract params skip.
 
 **Run Postgres live suites locally** (not part of `./scripts/quality-gates.sh` / the CI

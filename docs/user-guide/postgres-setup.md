@@ -122,7 +122,7 @@ judging the stack operational.
 | Wipe local data (volume) | `./start-services.sh postgres reset` |
 | Status | `docker ps --filter name=postgres-local` |
 
-Deprecated aliases (still work): `--postgres` / `-p` / `RAG_LOCAL_POSTGRES=1` → `--postgres-local`; compose profile `local-postgres` → `postgres-local`.
+Deprecated env alias (still works): `RAG_LOCAL_POSTGRES=1` → `--postgres-local`; compose profile `local-postgres` → `postgres-local`. The old `--postgres` / `-p` flags were removed — use `--postgres-local`.
 
 ### Low-friction switching
 

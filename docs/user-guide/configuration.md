@@ -430,7 +430,7 @@ Two independent axes select storage. Product names are **shorthand for the usual
 Someone says “I’m on Atlas” → ask: **cloud or Local?**
 Someone says “I’m on Supabase” → engine is Postgres cloud; local Postgres is `postgres-local`, not Supabase.
 
-Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud` (aliases `--local` → mongodb-local, `--postgres` → postgres-local).
+Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud`. (The old `--local` / `--postgres` flag aliases were removed.)
 
 Create a `.env` file in the project root to configure server behavior:
 

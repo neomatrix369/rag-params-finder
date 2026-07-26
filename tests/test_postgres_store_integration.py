@@ -8,7 +8,7 @@ Scope: Postgres StorageBackend — CRUD round-trips, JSONB/datetime fidelity,
 
 These tests need a real Postgres with the vector extension; the SQL and the
 document ↔ row mapping are exactly what a mock would hide. Start one with
-``./start-services.sh --postgres`` (or rely on the CI service container). The
+``./start-services.sh --postgres-local`` (or rely on the CI service container). The
 whole module skips when RAG_TEST_DATABASE_URL points nowhere reachable.
 """
 
@@ -40,7 +40,7 @@ pytestmark = [
     pytest.mark.integration,
     pytest.mark.skipif(
         (not postgres_reachable()) and os.environ.get("RAG_REQUIRE_POSTGRES") != "1",
-        reason=f"No Postgres at {TEST_DATABASE_URL} — run ./start-services.sh --postgres",
+        reason=f"No Postgres at {TEST_DATABASE_URL} — run ./start-services.sh --postgres-local",
     ),
 ]
 

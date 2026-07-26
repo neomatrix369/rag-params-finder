@@ -44,7 +44,7 @@
 
 | Area | Status |
 |------|--------|
-| `./start-services.sh --local` / `RAG_LOCAL_ATLAS=1` | ✅ README, QUICKSTART, mongodb-setup Path B, CLAUDE.md, development.md |
+| `./start-services.sh --mongodb-local` / `RAG_MONGODB_LOCAL=1` (env alias `RAG_LOCAL_ATLAS=1` still works) | ✅ README, QUICKSTART, mongodb-setup Path B, CLAUDE.md, development.md |
 | `mongodb start\|stop\|reset\|status` subcommands | ✅ mongodb-setup, scripts/lib/compose.sh referenced in user guides |
 | Local URI auto-provision (`bootstrap_indexes`) | ✅ mongodb-setup, architecture.md, local-environment.md, ADR-003 footnote |
 | Cloud vs local URI detection (`mongodb_uri.py`) | ✅ architecture.md module map |
