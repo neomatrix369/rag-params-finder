@@ -57,6 +57,8 @@ M0 free tier: **3 search indexes cluster-wide** across all databases. The server
 
 Implementation: `server/core/search_index_plan.py` (pure assessment), `server/core/search_index_guard.py` (I/O), `server/db/indexes.py` (list/create).
 
+On `STORAGE_BACKEND=postgres` the same modules verify the `vector` extension and the `chunks_*` HNSW/GIN indexes by catalog introspection instead — `indexes list` prints PRESENT/MISSING and `indexes reset` is refused (Atlas-only). See [Troubleshooting → Postgres index preflight failed](../user-guide/troubleshooting.md#-postgres-index-preflight-failed).
+
 ### Atlas Full Text Search Index (sparse/hybrid retrieval)
 
 Required for `sparse` and `hybrid` retrieval methods. Create once in the Atlas UI:

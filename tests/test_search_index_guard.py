@@ -526,36 +526,102 @@ def test_validate_rejects_splade_before_reconcile() -> None:
 
 
 class TestPreflightBackendScopeShould:
-    """Scenario: Atlas index preflight applies to the Mongo backend only."""
+    """Scenario: Atlas preflight for Mongo; catalog introspection for Postgres."""
 
-    def test_given_postgres_backend_when_validated_then_atlas_is_never_contacted(
+    def test_given_postgres_backend_when_catalog_ok_then_satisfied_without_atlas(
         self,
     ) -> None:
         """
-        Scenario: A Postgres sweep does not open a MongoDB connection to preflight.
-        Slice: slice-34-postgres-dense-retrieval
+        Scenario: Healthy Postgres schema passes preflight without Atlas I/O.
+        Slice: slice-36-postgres-preflight-stats
 
-        Given STORAGE_BACKEND="postgres",
+        Given STORAGE_BACKEND=postgres and vector + HNSW/GIN indexes present,
         When validate_experiment_search_indexes runs,
-        Then it reports satisfied without touching the Atlas cluster — Postgres
-        creates its HNSW indexes in schema.sql, and reaching for Atlas here would
-        fail outright on a deployment with no MONGODB_URI.
+        Then it is satisfied and never contacts Atlas.
         """
         ### Given
         config = _local_sparse_config()
+        required = frozenset(
+            {
+                "chunks_embedding_384_hnsw",
+                "chunks_embedding_1024_hnsw",
+                "chunks_text_search_gin",
+            }
+        )
+        ready = SearchIndexSnapshot(
+            chunks_ready=required,
+            chunks_building=frozenset(),
+            cluster_total=3,
+            cluster_limit=3,
+            unknown_count=0,
+        )
 
         ### When
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
-            patch("server.core.search_index_guard.collect_search_index_snapshot") as snapshot,
+            patch(
+                "server.core.search_index_guard.postgres_vector_extension_present",
+                return_value=True,
+            ),
+            patch(
+                "server.core.search_index_guard.collect_postgres_index_snapshot",
+                return_value=ready,
+            ) as pg_snapshot,
+            patch("server.core.search_index_guard.collect_search_index_snapshot") as atlas,
             patch("server.core.search_index_guard.ensure_required_search_indexes") as ensure,
         ):
             actual = validate_experiment_search_indexes(config)
 
         ### Then
         assert actual.is_satisfied
-        snapshot.assert_not_called()
+        pg_snapshot.assert_called_once()
+        atlas.assert_not_called()
         ensure.assert_not_called()
+
+    def test_given_postgres_backend_when_indexes_missing_then_raises_without_atlas(
+        self,
+    ) -> None:
+        """
+        Scenario: Missing HNSW/GIN on Postgres fails preflight with Postgres remediation.
+        Slice: slice-36-postgres-preflight-stats
+
+        Given STORAGE_BACKEND=postgres and required indexes absent,
+        When validate_experiment_search_indexes runs,
+        Then SearchIndexMismatchError names the missing indexes without Atlas wording.
+        """
+        ### Given
+        config = _local_sparse_config()
+        empty = SearchIndexSnapshot(
+            chunks_ready=frozenset(),
+            chunks_building=frozenset(),
+            cluster_total=0,
+            cluster_limit=3,
+            unknown_count=0,
+        )
+
+        ### When
+        with (
+            patch("server.settings.settings.storage_backend", "postgres"),
+            patch(
+                "server.core.search_index_guard.postgres_vector_extension_present",
+                return_value=True,
+            ),
+            patch(
+                "server.core.search_index_guard.collect_postgres_index_snapshot",
+                return_value=empty,
+            ),
+            patch("server.core.search_index_guard.collect_search_index_snapshot") as atlas,
+            pytest.raises(SearchIndexMismatchError) as exc_info,
+        ):
+            validate_experiment_search_indexes(config)
+
+        ### Then
+        message = str(exc_info.value)
+        assert "chunks_embedding_384_hnsw" in message
+        assert "schema.sql" in message or "schema bootstrap" in message
+        assert "Atlas" not in message
+        assert "slot" not in message.lower()
+        atlas.assert_not_called()
 
     def test_given_mongo_backend_when_validated_then_atlas_is_still_inspected(
         self,

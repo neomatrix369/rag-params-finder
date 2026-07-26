@@ -184,6 +184,10 @@ class TestStorageHealthShould:
                 "server.core.health_check.postgres_health_status", return_value="ok"
             ) as postgres_probe,
             patch("server.core.health_check.mongodb_health_status") as mongo_probe,
+            patch(
+                "server.core.health_check.resolve_storage_mode",
+                return_value="postgres-local",
+            ),
         ):
             mock_settings.storage_backend = "postgres"
             actual = storage_health()
@@ -192,6 +196,7 @@ class TestStorageHealthShould:
         assert actual == {
             "ok": True,
             "storage_backend": "postgres",
+            "storage_mode": "postgres-local",
             "postgres": "ok",
         }
         postgres_probe.assert_called_once()
@@ -212,6 +217,10 @@ class TestStorageHealthShould:
         with (
             patch("server.core.health_check.settings") as mock_settings,
             patch("server.core.health_check.postgres_health_status", return_value="error"),
+            patch(
+                "server.core.health_check.resolve_storage_mode",
+                return_value="postgres-local",
+            ),
         ):
             mock_settings.storage_backend = "postgres"
             actual = storage_health()
@@ -236,6 +245,10 @@ class TestStorageHealthShould:
             patch("server.core.health_check.settings") as mock_settings,
             patch("server.core.health_check.mongodb_health_status", return_value="ok"),
             patch("server.core.health_check.postgres_health_status") as postgres_probe,
+            patch(
+                "server.core.health_check.resolve_storage_mode",
+                return_value="mongodb-cloud",
+            ),
         ):
             mock_settings.storage_backend = "mongodb"
             actual = storage_health()
@@ -244,6 +257,7 @@ class TestStorageHealthShould:
         assert actual == {
             "ok": True,
             "storage_backend": "mongodb",
+            "storage_mode": "mongodb-cloud",
             "mongodb": "ok",
         }
         postgres_probe.assert_not_called()
@@ -261,6 +275,10 @@ class TestStorageHealthShould:
         with (
             patch("server.core.health_check.settings") as mock_settings,
             patch("server.core.health_check.mongodb_health_status", return_value="skipped"),
+            patch(
+                "server.core.health_check.resolve_storage_mode",
+                return_value="mongodb-local",
+            ),
         ):
             mock_settings.storage_backend = "mongodb"
             actual = storage_health()
@@ -268,3 +286,4 @@ class TestStorageHealthShould:
         ### Then
         assert actual["ok"] is True
         assert actual["mongodb"] == "skipped"
+        assert actual["storage_mode"] == "mongodb-local"

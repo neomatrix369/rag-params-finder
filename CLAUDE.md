@@ -101,17 +101,18 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/db/mongo_stats.py` | Stats / explore / vector-db helpers (delegated by `MongoStorageBackend`) |
 | `server/db/stats_common.py` | Backend-agnostic db-stats assembly shared by Mongo and Postgres |
 | `server/db/postgres.py` | Postgres pool, idempotent `schema.sql` bootstrap, query helpers |
-| `server/db/postgres_uri.py` | Supabase vs local-pgvector detection; TLS only for hosted |
+| `server/db/postgres_uri.py` | Supabase vs local-pgvector detection; TLS only for hosted; `postgres_storage_mode()` → `postgres-local` \| `postgres-cloud` |
 | `server/db/postgres_docs.py` | Document ↔ row mapping (promoted columns + `doc` JSONB) |
 | `server/db/postgres_store.py` | Postgres `StorageBackend` impl (Supabase / local pgvector) |
 | `server/db/postgres_stats.py` | Postgres stats / explore helpers (delegated by `PostgresStorageBackend`) |
 | `server/db/schema.sql` | Postgres DDL — 4 tables, FK cascade, `embedding_384` / `embedding_1024` |
 | `server/db/store_factory.py` | `get_storage_backend()` / `get_retriever_backend()` from settings |
 | `server/core/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
-| `server/core/search_index_plan.py` | Pure logic: required indexes from config, capacity assessment |
-| `server/core/search_index_guard.py` | Cluster snapshot + ensure_indexes retry; raises on mismatch |
+| `server/core/search_index_plan.py` | Pure logic: required Atlas indexes from config + capacity assessment; required Postgres catalog objects (`vector` extension, HNSW/GIN names) |
+| `server/core/search_index_guard.py` | Backend-aware preflight — Atlas snapshot + ensure_indexes retry, or Postgres catalog introspection; raises on mismatch (HTTP 422) |
+| `server/core/health_check.py` | `/healthz` storage ping + `resolve_storage_mode()` four-value compound |
 | `server/core/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
-| `server/db/mongodb_uri.py` | Cloud vs local URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`) |
+| `server/db/mongodb_uri.py` | Cloud vs local URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`); `mongodb_storage_mode()` → `mongodb-local` \| `mongodb-cloud` |
 | `server/core/atlas_storage.py` | Atlas Admin API cluster quota + tier specs (`resolve_tier_specs`); shared-tier storage fallbacks |
 | `server/core/model_registry.py` | Embedding + reranking model catalog |
 | `server/core/embedder_factory.py` | Provider dispatch factory; `get_embedder(provider)` returns `(embed_docs_fn, embed_query_fn)` — add new providers here, not in orchestrator |
@@ -133,7 +134,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/api/experiments_shared.py` | Thin API helpers — delegates all I/O to `StorageBackend` via store_factory |
 | `server/db/indexes.py` | Collection + search index creation; cluster-wide index listing |
 | `cli/main.py` | Typer app (`run`, `cancel`, `pause`, `resume`, `delete`, `indexes`, `version`) |
-| `cli/indexes_cmd.py` | `indexes list` and `indexes reset` subcommands |
+| `cli/indexes_cmd.py` | `indexes list` (Atlas or Postgres catalog) and `indexes reset` (Atlas-only) subcommands |
 | `cli/config_loader.py` | YAML parser + model registry validation |
 | `cli/api_client.py` | HTTP client to server (POST /experiments, DELETE, etc.) |
 | `frontend/src/App.tsx` | Root component (screen routing) |
@@ -262,7 +263,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 **Backend** (2026-07-26 — unit tier):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **268** tests; scoped coverage ≥80%; no `MONGODB_URI` required
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **282** tests; scoped coverage ≥80%; no `MONGODB_URI` required
 
 **Frontend** (2026-07-26):
 - `npm run lint` → 0 errors (eslint + security plugin)

@@ -259,7 +259,8 @@ failures when no database URI is configured.
 
 | Module | Focus |
 |--------|--------|
-| `test_search_index_plan.py` / `test_search_index_guard.py` | Atlas index plan + preflight (mocked I/O) |
+| `test_search_index_plan.py` / `test_search_index_guard.py` | Atlas index plan + backend-aware preflight, Mongo and Postgres (mocked I/O) |
+| `test_storage_mode.py` / `test_health_check.py` | Four-value `storage_mode` classification + `/healthz` body |
 | `test_expand_sweep.py` / `test_tiebreaker_ranking.py` | Sweep expansion + ranking |
 | `test_embedder_factory.py` / `test_sie_*` / `test_sweep_endpoint.py` | Provider dispatch, SIE, sweep API |
 | `test_store_factory.py` / `test_mongo_store_acceptance.py` | Factory routing (dummy URI) + mocked Mongo acceptance |

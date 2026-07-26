@@ -12,8 +12,8 @@ import psycopg
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-from server.db.mongodb_uri import mongo_client_kwargs
-from server.db.postgres_uri import postgres_connect_kwargs
+from server.db.mongodb_uri import mongo_client_kwargs, mongodb_storage_mode
+from server.db.postgres_uri import postgres_connect_kwargs, postgres_storage_mode
 from server.settings import normalize_storage_backend, settings
 
 _MONGODB_PLACEHOLDER_MARKERS = (
@@ -25,6 +25,14 @@ _MONGODB_PLACEHOLDER_MARKERS = (
 
 # Keep well under the Docker HEALTHCHECK timeout (10s).
 _POSTGRES_CONNECT_TIMEOUT_S = 5
+
+
+def resolve_storage_mode() -> str:
+    """Return the four-value storage_mode for the active backend + URI."""
+    backend = normalize_storage_backend(settings.storage_backend or "mongodb")
+    if backend == "postgres":
+        return postgres_storage_mode(settings.database_url or "")
+    return mongodb_storage_mode(settings.mongodb_uri or "")
 
 
 def mongodb_health_status() -> str:
@@ -71,14 +79,16 @@ def storage_health() -> dict[str, str | bool]:
     """Probe the configured storage backend and decide whether the process is ready.
 
     Returns a body fragment for ``/healthz`` / ``/health``:
-    ``ok``, ``storage_backend``, and either ``mongodb`` or ``postgres``.
+    ``ok``, ``storage_backend``, ``storage_mode``, and either ``mongodb`` or ``postgres``.
     """
     backend = normalize_storage_backend(settings.storage_backend or "mongodb")
+    mode = resolve_storage_mode()
     if backend == "postgres":
         postgres = postgres_health_status()
         return {
             "ok": postgres == "ok",
             "storage_backend": "postgres",
+            "storage_mode": mode,
             "postgres": postgres,
         }
     if backend == "mongodb":
@@ -86,10 +96,12 @@ def storage_health() -> dict[str, str | bool]:
         return {
             "ok": mongodb in ("ok", "skipped"),
             "storage_backend": "mongodb",
+            "storage_mode": mode,
             "mongodb": mongodb,
         }
     return {
         "ok": False,
         "storage_backend": backend,
+        "storage_mode": mode,
         "error": f"unknown storage backend {backend!r}",
     }

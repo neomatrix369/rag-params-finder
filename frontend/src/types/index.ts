@@ -306,8 +306,10 @@ export interface VectorDbGroupTotals {
   database_free_mb?: number | null;
   /** Cluster tier when reported (e.g. Atlas M0/M10); null for backends without tiers. */
   cluster_tier?: string | null;
-  /** Tier type: 'shared' or 'dedicated' */
+  /** Tier type / storage mode token (e.g. mongodb-cloud, postgres-local). */
   cluster_tier_type?: string | null;
+  /** Four-value storage mode: mongodb|postgres × local|cloud. */
+  storage_mode?: string | null;
   /** Cloud provider: 'AWS', 'GCP', 'AZURE' */
   cluster_provider?: string | null;
   /** Region: 'US_EAST_1', etc. */

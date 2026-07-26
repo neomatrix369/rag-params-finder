@@ -100,7 +100,8 @@ export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 ### Operational checks (required)
 
 - Liveness: `curl -sS http://127.0.0.1:8001/healthz`
-  — expect `"storage_backend": "postgres"` and `"postgres": "ok"`
+  — expect `"storage_backend": "postgres"`, `"storage_mode": "postgres-local"`, and `"postgres": "ok"`
+  (hosted Supabase reports `"storage_mode": "postgres-cloud"`)
 - Readiness: `curl -sS http://127.0.0.1:8001/experiments`
 
 `/healthz` can return success while `/experiments` still fails; run both before
@@ -186,6 +187,28 @@ so tables, foreign keys, and indexes appear on first start.
 retrieval query filters by `embedding_model` so vectors from different models are
 never compared. Keyword sparse/hybrid uses a generated `text_search` tsvector
 column (GIN-indexed). SPLADE embedding storage remains deferred.
+
+### Index preflight
+
+Every experiment submit verifies the catalog before any run starts. If the
+`vector` extension or a required index is missing, submit fails with **HTTP 422**
+naming the missing objects — no partial sweep.
+
+```bash
+rag-params-finder indexes list   # PRESENT / MISSING per object
+```
+
+| Object | Needed for |
+|---|---|
+| `vector` extension | any Postgres sweep |
+| `chunks_embedding_384_hnsw` | local 384-dim models |
+| `chunks_embedding_1024_hnsw` | Voyage / SIE 1024-dim models |
+| `chunks_text_search_gin` | sparse and hybrid retrieval |
+
+Because `schema.sql` creates all of these at pool bootstrap, a 422 here means
+bootstrap did not complete — restart the server to re-apply the DDL. There is no
+Atlas-style quota to free, so `indexes reset` does not apply to this backend. See
+[Troubleshooting → Postgres index preflight failed](troubleshooting.md#-postgres-index-preflight-failed).
 
 ---
 

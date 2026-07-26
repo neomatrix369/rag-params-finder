@@ -1,44 +1,29 @@
-# Handoff — 2026-07-25
+# Handoff — 2026-07-26
 
 ## Where We Are
 
-**41A** ✅ COMPLETE. **42** ✅ COMPLETE (multi-stage Docker builds, BuildKit cache mounts, nginx:alpine, CI docker-build job — merged PR #107). **41B** 📦 PARKED — full spec added capturing parallelism analysis, categorical axes design, study persistence, random search strategy, and dashboard Bayesian card; parked until production sweep evidence exists. Core implementation focus remains the Supabase migration chain (32–38, 📋 PLANNED, next Must block).
+**36** ✅ COMPLETE. Next Must = **37** (local/cloud parity + vocabulary leftovers absorbed from 36 close). Parallel gate track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨.
 
-## What's Done
+## What's Done (recent)
 
-- Slice 42 — Docker Build Optimisation — ✅ COMPLETE (multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime ~62 MB; CI docker-build job non-blocking; merged PR #107)
-- Slice 41A — Bayesian Search: Simple Functional — ✅ COMPLETE (all 14 ACs verified; trial_log, CLI Bayesian summary, 10 new tests; 217 tests green)
-- Slice 41B — Bayesian Search: Advanced — 📦 PARKED
-  - Full spec in `docs/plan/slices/SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`
-  - TRAIL.md, PROGRESS.md, DECISIONS.md (#73, #74) updated
-  - Open questions A1, A2, A4, D3, D7 documented; A3 decided; D6 not a gate — owner must resolve remaining questions before slice opens
-- Slice 39 — Demo-ready dashboard polish — ✅ COMPLETE
+- Slice 36 — Postgres catalog preflight + four-value `storage_mode` — ✅ (`gate-evidence/slice-36.json`)
+- Slice 43 / 35 / 34 — ✅ as before
 
 ## What's Next
 
-- **Slice 32** — Storage Backend Protocol (next Must, blocks 33–38 Supabase chain)
-- **Slice 41B** — stays PARKED; reopen after production Bayesian sweep data exists
+- **Slice 37** — SSOT: [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md)
+  - Core: four-flag `start-services`, hosted `ensure_env`, config↔server 422, Path B docs
+  - **Absorbed from 36 close:** compose `local-postgres` → `postgres-local`; normalize `database_provider` / `default_database_provider` / `vector_db_id` so `supabase` is not a peer backend; docs state engine × location (Atlas/Supabase = cloud shorthand only)
+  - Keep `configs/supabase/` path this slice (document ≠ adapter); full folder rename is optional follow-up, not a 37 blocker
+- Then **38** → **22**
 
 ## Blockers / Open Questions
 
-- 41B open questions (must resolve before slice opens):
-  - A1: SQLite vs MongoDB for study persistence backend
-  - A2: Categorical axis TPE quality validation across ≥3 real datasets
-  - ~~A3~~: **Decided** — `bayesian.parallelism` is a separate field, capped at 4. Not a gate.
-  - A4: Owner-set N for default promotion evaluation (suggested baseline: 20 sweeps). **Time-bound**: if N not reached by 2026-10-01, force product decision.
-  - D3: `sweep_summary` field for Bayesian — whether to add `search_strategy` and `bayesian_config` keys
-  - D6: `max_score` sort key — **not a gate for 41B**; independent product decision; can resolve anytime
-  - D7: Random search `n_samples` config design
+- 32C/32B after-checks still open (do not block 37)
+- Hosted Supabase credentials for Path B smoke (or documented skip)
 
 ## Context for Next Session
 
-- 41B spec is the authoritative architecture record for Bayesian advanced features; do not re-derive from scratch when this slice opens
-- Gate evidence file: `docs/plan/gate-evidence/slice-41A.json` — PASSED
-- Slice 42 `continue-on-error: true` removal criteria: after 5 consecutive CI successes, promote to blocking and log in PROGRESS.md
-
-## Retrospective
-
-Scenario: Brownfield + Growing Requirement (Flow D) continuation | Session: 2026-07-22–25 | Steps: combined
-- Slice 41B spec was provided in full; routing + modification into PARKED slice were the key steps
-- Slice 42 review caught real gaps (nginx SPA fallback, spike ambiguity, npm mount) that would have caused debug time — run `/nw-review` on every slice spec before branching
-- Do differently next session: after review fixes, push PR updates immediately with `/update-pr`
+- Spec: `docs/plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md` (§Absorbed from Slice 36)
+- Prior evidence: `docs/plan/gate-evidence/slice-36.json`
+- Axes: `STORAGE_BACKEND` (engine) × `storage_mode` (location); Atlas/Supabase = cloud shorthand

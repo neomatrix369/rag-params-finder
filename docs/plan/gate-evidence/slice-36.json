@@ -1,0 +1,26 @@
+{
+  "slice": 36,
+  "gate_status": "PASSED",
+  "verified_at": "2026-07-26",
+  "verifier": "verify-slice",
+  "branch": "slice/36-postgres-preflight-stats",
+  "feat_commit": "afc0d66",
+  "evidence": {
+    "acceptance_criteria": "GWT covered by tests/test_storage_mode.py, test_health_check.py, test_search_index_guard.py (Postgres catalog ok/missing), test_indexes_cmd.py, test_search_index_plan.py",
+    "static_integration": "validate_experiment_search_indexes -> postgres branch in search_index_guard; resolve_storage_mode in health_check.storage_health; postgres_stats emits storage_mode + cluster_tier_type; orchestrator + experiments API call preflight",
+    "runtime": {
+      "healthz": {"ok": true, "storage_backend": "postgres", "storage_mode": "postgres-local", "postgres": "ok"},
+      "vector_db_stats_mode_fields": {
+        "cluster_tier_type": "postgres-local",
+        "storage_mode": "postgres-local",
+        "note": "database_provider/vector_db_id may still say supabase (YAML metadata; Slice 37)"
+      },
+      "indexes_list": "vector extension + chunks_embedding_384_hnsw + chunks_embedding_1024_hnsw + chunks_text_search_gin all PRESENT",
+      "dashboard": "http://127.0.0.1:5374/ HTTP 200 after compose rebuild"
+    },
+    "quality_gates": "feat commit pre-push gates passed; scoped unit suites 50 related tests green; unit tier 282 earlier in session",
+    "branch_coverage": "scoped ~86% with exclusions: Atlas I/O branches in search_index_guard, URI edge helpers in mongodb_uri/postgres_uri, postgres_stats via live smoke",
+    "mutation": "waived — no local backend mutation runner; nightly CI carries mutation signal (DECISIONS #101, #95 precedent)"
+  },
+  "decisions": [97, 98, 100, 101]
+}

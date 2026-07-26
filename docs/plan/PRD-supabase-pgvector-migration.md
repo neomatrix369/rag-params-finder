@@ -108,16 +108,16 @@ User guides, dev docs, and agent docs are **gated per slice** — same commit as
 | Doc | Audience | Slice | Action / gate |
 |---|---|---|---|
 | `docs/plan/slices/PROGRESS.md` | Maintainer | **32–38** | Slice status 🔨→✅; decision log row if non-obvious |
-| `CLAUDE.md` Key Files | Agent | **32**, **37**, **38** | Ports (32); flag vocabulary + `STORAGE_BACKEND` / `DATABASE_URL` (37); cutover default (38) |
-| `docs/contributor-guide/architecture.md` | Dev | **32**, **34**, **38** | Storage/Retriever ports (32); Postgres dense retrieval (34); dual-backend diagram (38) |
+| `CLAUDE.md` Key Files | Agent | **32**, **36**, **37**, **38** | Ports (32); backend-aware preflight + `health_check` / mode helpers (36); flag vocabulary + `STORAGE_BACKEND` / `DATABASE_URL` (37); cutover default (38) |
+| `docs/contributor-guide/architecture.md` | Dev | **32**, **34**, **36**, **38** | Storage/Retriever ports (32); Postgres dense retrieval (34); Postgres preflight + `storage_mode` capability rows (36); dual-backend diagram (38) |
 | `docs/contributor-guide/extending.md` | Dev | **32** | How to add a `StorageBackend` / `RetrieverBackend` adapter |
 | `.env.example` | Dev | **33**, **37** | `STORAGE_BACKEND`, `DATABASE_URL` (33); `RAG_{MONGODB,POSTGRES}_{LOCAL,CLOUD}` (37) |
 | `docs/plan/PRD-supabase-pgvector-migration.md` | Plan | **33** | Glossary + env vars aligned with implementation |
 | `docs/user-guide/configuration.md` | User | **33**, **35**, **36** | New env vars (33); sparse/hybrid retrieval notes (35); storage-mode field (36) |
-| `docs/contributor-guide/development.md` | Dev | **37** | `start-services.sh --postgres-local` / `--postgres-cloud`, docker profile, postgres lifecycle |
-| `docs/user-guide/postgres-setup.md` | User | **33**, **37** | Path A local (33); Path B hosted pooler/TLS/pause (37) — SSOT; **do not** create `supabase-setup.md` |
+| `docs/contributor-guide/development.md` | Dev | **36**, **37** | Test-tier rows for preflight + `storage_mode` suites (36); `start-services.sh --postgres-local` / `--postgres-cloud`, docker profile, postgres lifecycle (37) |
+| `docs/user-guide/postgres-setup.md` | User | **33**, **36**, **37** | Path A local (33); index preflight + `storage_mode` in operational checks (36); Path B hosted pooler/TLS/pause (37) — SSOT; **do not** create `supabase-setup.md` |
 | `docs/user-guide/getting-started.md` | User | **37** | Postgres/Supabase path (or branch: “Mongo vs Postgres” with links) |
-| `docs/user-guide/troubleshooting.md` | User | **37** | Supabase connection, pooler, paused project, HNSW/index errors |
+| `docs/user-guide/troubleshooting.md` | User | **36**, **37** | Postgres index preflight 422 + catalog remediation (36); Supabase connection, pooler, paused project (37) |
 | `docs/user-guide/cli-reference.md` | User | **36** | `indexes` CLI behaviour on both backends |
 | `README.md` | User | **37**, **38** | Four-flag switching table; default backend note at cutover (38) |
 | `docs/README.md` | All | **33**, **37** | Persona row + user-guide table entry for `postgres-setup.md` |

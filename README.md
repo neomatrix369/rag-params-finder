@@ -145,8 +145,8 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 - **Cartesian sweep**: one YAML config → N models × M methods × P sizes × Q overlaps runs
 - **Live phase tracking**: QUEUED → PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERANKING → COMPLETE
 - **Experiment management**: Pause/resume long sweeps, cancel running experiments, delete with cascade cleanup, boot orphan reconciliation
-- **Search index preflight**: Validates required Atlas Search indexes and cluster quota before sweeps start; rejects with HTTP 422 when indexes are missing or quota exhausted
-- **Atlas index CLI**: `indexes list` and `indexes reset` for M0 quota troubleshooting
+- **Search index preflight**: Validates required indexes before sweeps start and rejects with HTTP 422 — Atlas Search indexes plus cluster quota on MongoDB, `vector` extension plus HNSW/GIN catalog objects on Postgres
+- **Index CLI**: `indexes list` reports Atlas quota usage or the Postgres catalog depending on the active backend; `indexes reset` is Atlas-only (M0 quota troubleshooting)
 - **Result-led dashboard**: Experiment cards lead with lifecycle and sweep outcome; detail connects identity and configuration to run results and the next valid action
 - **Vector DB stats**: Cluster and per-experiment chunk/storage estimates; optional Atlas quota bar with tier, provider, and region when Admin API credentials are configured
 - **Progress feedback**: Byte-level network loading, circular progress with elapsed time and ETA, background polling with "Syncing..." badges
