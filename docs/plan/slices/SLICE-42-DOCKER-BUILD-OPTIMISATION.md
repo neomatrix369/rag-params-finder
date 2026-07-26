@@ -187,3 +187,5 @@ This slice has no pytest-testable units (pure Dockerfile/CI YAML changes). Verif
 ## Gate Status
 
 ✅ COMPLETE — all Must GWTs VERIFIED locally; Should-8/9 VERIFIED via CI run 30147718492 (all 3 Dockerfile matrix jobs pass); dependency-audit green (postcss + brace-expansion patched); PR #107 open. See `docs/plan/slices/PROGRESS.md` Decision Log for implementation decisions.
+
+Frontend test coverage + coverage-embedded summary (follow-up) → [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md).
