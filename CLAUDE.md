@@ -51,10 +51,12 @@ npm run build
 
 ```bash
 ./start-services.sh                    # server + dashboard (Atlas cloud in .env)
-./start-services.sh --local            # server + dashboard + MongoDB Atlas Local (no cloud account)
-./start-services.sh --postgres         # server + dashboard + local pgvector (STORAGE_BACKEND=postgres)
-RAG_LOCAL_ATLAS=1 ./start-services.sh  # same as --local via env var
+./start-services.sh --mongodb-local    # server + dashboard + MongoDB Atlas Local (no cloud account)
+./start-services.sh --postgres-local   # server + dashboard + local pgvector (STORAGE_BACKEND=postgres)
+./start-services.sh --postgres-cloud   # hosted Supabase (DATABASE_URL; no MONGODB_URI)
+RAG_MONGODB_LOCAL=1 ./start-services.sh  # same as --mongodb-local via env var
 ./start-services.sh mongodb [start|stop|reset|status]  # manage local Atlas container standalone
+./start-services.sh postgres [start|stop|reset|status]  # manage local pgvector container standalone
 ./scripts/health-check.sh
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build  # dev HMR
 ```
@@ -110,7 +112,9 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
 | `server/core/search_index_plan.py` | Pure logic: required Atlas indexes from config + capacity assessment; required Postgres catalog objects (`vector` extension, HNSW/GIN names) |
 | `server/core/search_index_guard.py` | Backend-aware preflight — Atlas snapshot + ensure_indexes retry, or Postgres catalog introspection; raises on mismatch (HTTP 422) |
-| `server/core/health_check.py` | `/healthz` storage ping + `resolve_storage_mode()` four-value compound |
+| `server/core/health_check.py` | `/healthz` storage ping + `resolve_storage_mode()` four-value compound; Postgres error remediation substring |
+| `server/core/config_backend_guard.py` | Config↔server engine mismatch 422 (before index/SIE preflight) |
+| `scripts/lib/storage_mode.sh` | Four-flag `(db_type, location)` resolver for `start-services.sh` |
 | `server/core/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
 | `server/db/mongodb_uri.py` | Cloud vs local URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`); `mongodb_storage_mode()` → `mongodb-local` \| `mongodb-cloud` |
 | `server/core/atlas_storage.py` | Atlas Admin API cluster quota + tier specs (`resolve_tier_specs`); shared-tier storage fallbacks |

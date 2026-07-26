@@ -2,27 +2,27 @@
 
 ## Where We Are
 
-**37** 🔨 IN PROGRESS. Plan synced to main @ `7175bea`; nw-platform review CONDITIONALLY APPROVED for planning after concrete 422 + post-start templates.
+**37** 🔨 IN PROGRESS on `slice/37-postgres-local-cloud-parity`. Must+Should **IMPLEMENTED** (unit); docs synced via `/sync-docs`. Not ✅ COMPLETE until live smoke + gate-evidence.
 
 ## What's Done (recent)
 
-- Slice 36 / 43 / 35 / 34 — ✅
-- Slice 37 plan — foundations table, bare-start Must, Won't URI aliases, distinct 422 types, review remediations
+- Commit `0be2764` — mode resolver / four-flag grid / `ensure_env` by mode
+- Uncommitted — profiles, normalize, 422, persist `storage_mode`, Should polish, **docs sync** (QUICKSTART, postgres/mongodb-setup, configuration, troubleshooting, cli-reference, contributor guides, CHANGELOG, PROGRESS)
 
 ## What's Next
 
-1. Branch `slice/37-postgres-local-cloud-parity`
-2. Execute vertical order in SLICE-37: mode resolver → profiles/lifecycle → provider normalize → config 422 → docs → Should polish
-3. Then **38** → **22**
+1. Commit remaining Slice 37 work
+2. Live verify: `--postgres-local` healthz + optional `--postgres-cloud` skip; write `gate-evidence/slice-37.json`
+3. `/verify-slice` → mark 37 COMPLETE
+4. Then **38** → **22**
 
 ## Blockers / Open Questions
 
-- Hosted Supabase credentials **or** documented skip
-- Confirm `--postgres` Path A healthy before profile rename
-- Quality-lens adversarial confirm still open (9/10 provisional)
+- Hosted Supabase credentials **or** documented skip (docs already allow)
+- Full `./scripts/quality-gates.sh` before COMPLETE
 
 ## Context for Next Session
 
 - Spec: `docs/plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`
-- Evidence: `docs/plan/gate-evidence/slice-36.json`, `slice-43.json`
+- New: `server/core/config_backend_guard.py`, `scripts/lib/storage_mode.sh`, `tests/test_config_backend_guard.py`, `tests/test_startup_reconciliation.py`
 - Axes: `STORAGE_BACKEND` × `storage_mode`; Atlas/Supabase = cloud shorthand only

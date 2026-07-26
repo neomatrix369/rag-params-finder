@@ -6,7 +6,7 @@
 
 **Essential, minimal steps** to run the example sweep commands on **Atlas Cloud** or **Atlas Local (Docker)**. Official vendor docs are linked; details you can skip are marked *optional*.
 
-> **Naming note:** MongoDB examples live under `configs/mongodb/`. `example-local.yaml` means **local embedding models** (sentence-transformers, 384-dim) — not local MongoDB. Any MongoDB example works on Atlas Cloud or Atlas Local; only `MONGODB_URI` (or `./start-services.sh --local`) selects the database. Postgres/pgvector twins (local Docker or Supabase-hosted) live under `configs/supabase/` — same YAML keys, runtime `STORAGE_BACKEND=postgres` — see [Postgres Setup](postgres-setup.md).
+> **Naming note:** MongoDB examples live under `configs/mongodb/`. `example-local.yaml` means **local embedding models** (sentence-transformers, 384-dim) — not local MongoDB. Any MongoDB example works on Atlas Cloud or Atlas Local; only `MONGODB_URI` (or `./start-services.sh --mongodb-local`) selects the database. Postgres/pgvector twins (local Docker or Supabase-hosted) live under `configs/supabase/` — same YAML keys, runtime `STORAGE_BACKEND=postgres` — see [Postgres Setup](postgres-setup.md).
 
 ---
 
@@ -155,7 +155,7 @@ Run the full RAG pipeline — including `$vectorSearch` and `$search` (BM25) —
 ### Quick start (full stack)
 
 ```bash
-./start-services.sh --local
+./start-services.sh --mongodb-local
 ```
 
 - **MongoDB Atlas Local**: `localhost:27017`
@@ -231,18 +231,18 @@ The only thing that changes between backends is how you start the stack. No code
 
 | Action | Command |
 |--------|---------|
-| Full stack — local Atlas | `./start-services.sh --local` |
-| Full stack — Atlas cloud | `./start-services.sh` |
+| Full stack — Atlas Local | `./start-services.sh --mongodb-local` |
+| Full stack — Atlas cloud | `./start-services.sh --mongodb-cloud` (or bare `./start-services.sh` when `.env` is mongodb) |
 | MongoDB container only | `./start-services.sh mongodb start` |
 | Stop local MongoDB | `./start-services.sh mongodb stop` |
 | Wipe local data (volume) | `./start-services.sh mongodb reset` |
 | Status + connection string | `./start-services.sh mongodb status` |
 
-`RAG_LOCAL_ATLAS=1 ./start-services.sh` is the env-var equivalent of `--local` (CI/script-friendly).
+Deprecated aliases (still work): `--local` / `-l` / `RAG_LOCAL_ATLAS=1` → `--mongodb-local`.
 
-To switch back to cloud: restore `MONGODB_URI` in `.env` to the `mongodb+srv://...` string and run `./start-services.sh` (no `--local`).
+To switch back to cloud: restore `MONGODB_URI` in `.env` to the `mongodb+srv://...` string and run `./start-services.sh --mongodb-cloud` (or bare start with `STORAGE_BACKEND=mongodb`).
 
-Reset all local data: `docker compose --profile local-atlas down -v`
+Reset all local data: `docker compose --profile mongodb-local down -v` (alias profile: `local-atlas`).
 
 `RECOVERY_INTENT_EXPLICIT` requirement: only run `./start-services.sh mongodb reset` after a deliberate operator-confirmation step that acknowledges local data will be removed.
 
@@ -262,7 +262,7 @@ rag-params-finder run --config configs/mongodb/example-local.yaml
 |---|---|---|
 | 1 | MongoDB backend ready | [Path A steps 1–5](#path-a--atlas-cloud-m0) or [Path B](#path-b--atlas-local-docker) |
 | 2 | `vector_index_384` + `text_search_index` on `chunks` | Path A [step 6](#6-create-search-indexes-m0--required-before-sweep) — skip on Path B |
-| 3 | Server running | `uvicorn server.main:app --reload --port 8001` or `./start-services.sh [--local]` |
+| 3 | Server running | `uvicorn server.main:app --reload --port 8001` or `./start-services.sh [--mongodb-local]` |
 
 No Voyage account needed.
 
@@ -361,7 +361,7 @@ rag-params-finder run --config configs/mongodb/example-voyage.yaml
 
 Dashboard (optional): `cd frontend && npm run dev` → `http://localhost:5374`
 
-Docker stack (optional): `./start-services.sh` (cloud) or `./start-services.sh --local`
+Docker stack (optional): `./start-services.sh` (cloud) or `./start-services.sh --mongodb-local`
 
 ---
 

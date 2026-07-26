@@ -25,11 +25,13 @@ Place config files under `configs/mongodb/` or `configs/supabase/` (mirrored ste
 | `supabase/example-unified-retrievers.yaml` | Postgres (local or Supabase-hosted) | local (all-MiniLM-L6-v2) | 2 methods | dense · sparse · hybrid · cross-encoder | 16 | No |
 
 > **Postgres note:** One backend — Postgres + pgvector (`STORAGE_BACKEND=postgres`).
-> **Supabase** is a hosted Postgres deployment (cloud URI), not a second adapter.
-> `configs/supabase/` holds example YAMLs for that path; `database_provider: supabase`
-> is a label only. Dense, sparse, and hybrid (+ rerankers) all run. Sparse uses
+> **Supabase** is a hosted Postgres deployment (cloud URI / `storage_mode=postgres-cloud`), not a second adapter.
+> `configs/supabase/` holds example YAMLs for that path; YAML `database_provider: supabase`
+> normalizes to `postgres`. Dense, sparse, and hybrid (+ rerankers) all run. Sparse uses
 > `tsvector`/`ts_rank`; hybrid uses RRF (`rrf_k=60`). There is no `SUPABASE_URI`.
-> See [postgres-setup.md](postgres-setup.md) (Supabase vs Postgres + env table).
+> Engine mismatch vs the running server → HTTP 422 before index preflight
+> ([troubleshooting](troubleshooting.md#-config-engine-mismatch-database_provider--storage_backend)).
+> See [postgres-setup.md](postgres-setup.md) and [Engine × Location](#-environment-variables-env).
 
 Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retriever runs as an independent experiment. Each entry in `retrieval.retrievers` creates a separate run — retrievers are never combined in a single run.
 
@@ -403,16 +405,42 @@ To **re-run only failed combinations inside an existing experiment** *(same `exp
 
 ## ⚙️ Environment Variables (`.env`)
 
+### Engine × Location (canonical axes)
+
+Two independent axes select storage. Product names are **shorthand for the usual cloud host**, not a third axis:
+
+| Axis | Values | Meaning |
+|------|--------|---------|
+| **Engine** (`STORAGE_BACKEND`) | `mongodb` \| `postgres` | Which adapter the server process speaks |
+| **Location** (`storage_mode`) | `{engine}-local` \| `{engine}-cloud` | Where that engine lives |
+
+| `storage_mode` | Product wording |
+|----------------|-----------------|
+| `mongodb-cloud` | **Atlas cloud** |
+| `mongodb-local` | **Atlas Local** |
+| `postgres-cloud` | **Supabase-hosted Postgres** |
+| `postgres-local` | **local pgvector / Postgres** |
+
+- YAML `database_provider` declares **engine intent** only (`mongodb` \| `postgres`). Deprecated input `supabase` normalizes to `postgres` with a warning.
+- `configs/supabase/` is a **compatibility path** for Postgres examples — the folder name is not `STORAGE_BACKEND`.
+- Compose profiles match mode tokens (`mongodb-local`, `postgres-local`); legacy `local-atlas` / `local-postgres` remain aliases.
+- Config↔server **engine** mismatch returns HTTP 422 **before** catalog/index preflight — that 422 text is distinct from missing-extension / missing-index 422s.
+
+Someone says “I’m on Atlas” → ask: **cloud or Local?**
+Someone says “I’m on Supabase” → engine is Postgres cloud; local Postgres is `postgres-local`, not Supabase.
+
+Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud` (aliases `--local` → mongodb-local, `--postgres` → postgres-local).
+
 Create a `.env` file in the project root to configure server behavior:
 
 ```bash
 # Storage backend: "mongodb" (default) or "postgres"
 # Legacy alias: mongo → mongodb
-# YAML database_provider (mongodb|supabase) is metadata — this env selects the adapter.
+# YAML database_provider (mongodb|postgres; supabase→postgres) is engine metadata —
+# this env selects the adapter.
 STORAGE_BACKEND=mongodb
 
-# /healthz and db-stats expose storage_mode (four compounds — matches planned
-# start-services flags in Slice 37; flags themselves land there):
+# /healthz and db-stats expose storage_mode (four compounds — matches start-services flags):
 #   mongodb-local | mongodb-cloud | postgres-local | postgres-cloud
 # Derived from STORAGE_BACKEND + URI host (Atlas *.mongodb.net vs local;
 # Supabase *.supabase.* vs local Docker). Not the same as YAML database_provider.
@@ -423,7 +451,7 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder
 # Postgres/pgvector (REQUIRED when STORAGE_BACKEND=postgres)
 # One backend for local Docker and Supabase-hosted Postgres.
 # Supabase equivalent of MONGODB_URI is DATABASE_URL (no SUPABASE_URI).
-# Local container:  ./start-services.sh --postgres
+# Local container:  ./start-services.sh --postgres-local
 # DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 # Supabase-hosted (TLS applied automatically for *.supabase.co):
 # DATABASE_URL=postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres

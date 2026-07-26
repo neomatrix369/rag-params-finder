@@ -279,14 +279,14 @@ One process-wide Postgres pool (`live_postgres_pool` session fixture) bootstraps
 once — per-test `close_pool()` was removed because re-running DDL deadlocked when
 contract + dense/sparse suites interleaved.
 
-Locally: `./start-services.sh --postgres` and/or `--local`, then run the live paths
+Locally: `./start-services.sh --postgres-local-local` and/or `--mongodb-local`, then run the live paths
 explicitly (or rely on CI). Without those services, mongo/postgres contract params skip.
 
 **Run Postgres live suites locally** (not part of `./scripts/quality-gates.sh` / the CI
 unit job — those ignore live suites):
 
 ```bash
-./start-services.sh --postgres
+./start-services.sh --postgres-local
 RAG_REQUIRE_POSTGRES=1 uv run pytest \
   tests/test_postgres_store_integration.py \
   tests/test_postgres_dense_retrieval.py \

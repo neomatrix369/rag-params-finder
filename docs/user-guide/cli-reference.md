@@ -222,6 +222,8 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 | GET | `/health` | Extended health — storage fields from `/healthz` plus `sie` (`disabled` / `reachable` / `unreachable`) and `version` |
 
 **`storage_mode`** is one of four compounds derived from `STORAGE_BACKEND` plus the connection-string host: `mongodb-local`, `mongodb-cloud`, `postgres-local`, `postgres-cloud`. Atlas cloud is detected via `*.mongodb.net`; hosted Supabase via `*.supabase.*`. It is *not* the YAML `database_provider` field (see [configuration.md](configuration.md)).
+
+**`POST /experiments` engine gate:** if normalized `database_provider` ≠ process `STORAGE_BACKEND`, the API returns **HTTP 422** with a `Config engine mismatch` remediation **before** search-index / SIE preflight. Catalog/index missing-object 422s are a separate message family (see [troubleshooting](troubleshooting.md#-config-engine-mismatch-database_provider--storage_backend)).
 | POST | `/api/v1/sweep` | Tier 1 ranked SIE vs Voyage sweep over caller-supplied corpus *(see [sie-setup.md](sie-setup.md))* |
 | GET | `/api/v1/best-config` | Best config from sweep history *(placeholder — Slice 22)* |
 | POST | `/experiments` | Submit an experiment sweep *(422 if search-index preflight fails)* |

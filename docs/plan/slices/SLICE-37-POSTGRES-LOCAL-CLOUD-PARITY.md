@@ -398,4 +398,4 @@ Planning verdict after edits: **CONDITIONALLY APPROVED** for execution. Implemen
 
 ## Gate Status
 
-🔨 IN PROGRESS — plan synced + review remediations applied; executing on `slice/37-postgres-local-cloud-parity`
+🔨 IN PROGRESS — Must+Should code **IMPLEMENTED** (unit-verified); docs synced (`/sync-docs`); live four-mode smoke + `gate-evidence/slice-37.json` still required before ✅ COMPLETE

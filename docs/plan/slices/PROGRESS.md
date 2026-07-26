@@ -53,7 +53,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 34 — Postgres dense retrieval | ✅ COMPLETE | ~3–4 h | pgvector dense + embedding_model filter; Atlas-scale scores; HNSW iterative_scan; mode/hosted DX handed to 36–37 — [`SLICE-34-POSTGRES-DENSE-RETRIEVAL.md`](SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) |
 | 35 — Postgres sparse + hybrid | ✅ COMPLETE | ~4–5 h | tsvector + RRF + Supabase-mode copy hygiene; equivalence CONDITIONAL → 38 — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
 | 36 — Preflight + stats + storage_mode | ✅ COMPLETE | ~3–4 h | Catalog preflight 422 + four-value `storage_mode`; live smoke `postgres-local`; mutation waived #101 — [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md) |
-| 37 — Local/cloud parity + low-friction switch | 🔨 IN PROGRESS | ~3–4 h | Flags + 422 + Path B + **product-wording map** + `configuration.md` axes; plan synced + platform review remediations — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) |
+| 37 — Local/cloud parity + low-friction switch | 🔨 IN PROGRESS | ~3–4 h | Must path **IMPLEMENTED** (unit-verified); docs synced; live four-mode smoke / gate-evidence still open before COMPLETE — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) |
 | 38 — Cutover + ADR-004 | 📋 PLANNED | ~3–4 h | Side-by-side quality, ADR-004, default `postgres-cloud` — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) |
 | 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
 | 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
@@ -690,6 +690,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-26 | 37 | sync-docs: operator + agent + release surfaces aligned to four-flag vocabulary, supabase→postgres normalize, config↔server 422, Engine × Location — evidence **IMPLEMENTED** (unit); VERIFIED withheld pending live four-mode / gate-evidence | `/sync-docs` after Must+Should code; stale `--local`/`--postgres` / supabase-label claims would mislead operators |
 | 2026-07-26 | 37 | Captured pending vocabulary into SLICE-37: product-wording map (Atlas cloud/Local, Supabase-hosted, local pgvector), `configuration.md` Engine × Location subsection, Should-rename `collect_search_index_snapshot` | Informational Qs from post-36 review must not stay only in chat; operator docs must never treat Atlas as cloud-only without Local qualifier |
 | 2026-07-26 | 37 | Path A Resume — TRAIL/PROGRESS/SLICE-37 → 🔨; platform review CONDITIONALLY APPROVED after 422/post-start templates | User asked start Slice 37 after enhanced-flow-planner + nw review |
 | 2026-07-26 | 37 | Drift sync vs main (36/43): foundations table; bare `.env` STORAGE_BACKEND Must; Won't URI aliases + example-cloud.yaml; Should CLI/pause/boot tests; distinct config 422 vs catalog 422; execution order 1–6 | enhanced-flow-planner continuation before execute; Gate Status no longer “wait for 36 merge” |
