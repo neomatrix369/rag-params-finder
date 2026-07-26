@@ -223,6 +223,11 @@ ensure_stack_mode_env() {
       return 0
       ;;
     postgres-local | postgres-cloud)
+      if _is_postgres_uri_placeholder "${DATABASE_URL:-}"; then
+        _stack_mode_error "Replace the placeholder DATABASE_URL / SUPABASE_URI in .env with a real Postgres URI,"
+        _stack_mode_error "or use --postgres-local (no cloud URI required)."
+        return 1
+      fi
       if [[ -z "${DATABASE_URL:-}" ]] && [[ "${STACK_LOCATION}" == "cloud" ]]; then
         _stack_mode_error "Set DATABASE_URL or SUPABASE_URI in .env for --postgres-cloud (Supabase Session mode URI)."
         return 1
@@ -236,6 +241,31 @@ ensure_stack_mode_env() {
       return 1
       ;;
   esac
+}
+
+# True when URI still holds .env.example angle-bracket placeholders.
+_is_postgres_uri_placeholder() {
+  local uri="${1:-}"
+  [[ -z "$uri" ]] && return 1
+  [[ "$uri" == *"<project-ref>"* || "$uri" == *"<password>"* || "$uri" == *"<region>"* ]]
+}
+
+# Export STORAGE_BACKEND to match STACK_DB_TYPE (symmetric Mongo ↔ Postgres).
+# Call after resolve_stack_mode so --mongodb-* overrides a leftover postgres env.
+export_storage_backend_for_stack() {
+  case "${STACK_DB_TYPE:-}" in
+    mongodb)
+      export STORAGE_BACKEND=mongodb
+      ;;
+    postgres)
+      export STORAGE_BACKEND=postgres
+      ;;
+    *)
+      _stack_mode_error "ERROR: STACK_DB_TYPE unset — call resolve_stack_mode first"
+      return 1
+      ;;
+  esac
+  return 0
 }
 
 example_config_for_stack_mode() {

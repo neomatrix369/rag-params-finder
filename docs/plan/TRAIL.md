@@ -34,7 +34,7 @@ Each PCTO / migration slice lives in its own file below. Existing planned slices
 | 35 | [../plan/slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md](../plan/slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md) | Postgres sparse + hybrid RRF (+ Mongo equivalence gate) | Must | ✅ COMPLETE | 34 | — | ~2 min | 2026-07-26 |
 | 36 | [../plan/slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md](../plan/slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md) | Preflight + db-stats + four-value storage_mode | Must | ✅ COMPLETE | 35 | — | ~2 min | 2026-07-26 |
 | 37 | [../plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md](../plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) | `--<db>-local/cloud` + config gate + product-wording vocabulary | Must | ✅ COMPLETE | 36 | — | ~2 min | 2026-07-26 |
-| 38 | [../plan/slices/SLICE-38-CUTOVER-ADR-004.md](../plan/slices/SLICE-38-CUTOVER-ADR-004.md) | Quality comparison + ADR-004 + default cutover | Must | 📋 PLANNED | 37 | — | ~2 min | 2026-07-26 |
+| 38 | [../plan/slices/SLICE-38-CUTOVER-ADR-004.md](../plan/slices/SLICE-38-CUTOVER-ADR-004.md) | Quality comparison + ADR-004 + default cutover | Must | 🔨 IN PROGRESS | 37 | — | ~2 min | 2026-07-26 |
 | 43 | [../plan/slices/SLICE-43-SUPABASE-CONFIG-VERIFICATION.md](../plan/slices/SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) | Supabase example-config verification + operator QoL | Could | ✅ COMPLETE | 35 (soft: 37) | [#115](https://github.com/neomatrix369/rag-params-finder/pull/115) | ~2 min | 2026-07-26 |
 | 44 | [../plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md](../plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md) | Frontend coverage + gate summary (spun from 43) | Should | 📋 PLANNED | none | — | ~2 min | 2026-07-26 |
 | 28 | [../plan/slices/SLICE-28-RESULTS-EXPORT.md](../plan/slices/SLICE-28-RESULTS-EXPORT.md) | Results export — CSV/JSONL download (issue #49; @cschanhniem) | Must | 📋 PLANNED | none | [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | ~3 min | 2026-07-06 |
@@ -121,3 +121,4 @@ Updated as each slice reaches Gate Status PASSED.
 | 2026-07-09 | nw-documentarist-reviewer (iter 3) | **APPROVED** | Gap-bridge docs; soft-dep 30 note applied; latency handoff in SLICE-11 |
 | 2026-07-26 | nw-platform-architect-reviewer (Slice 37) | **CONDITIONALLY APPROVED** (planning) | Unimplemented Musts reclassified as execution exits; 422 + post-start templates applied |
 | 2026-07-26 | nw-platform-architect-reviewer (Slice 37) | **CONDITIONALLY APPROVED** (planning) | Missing Musts reclassified as execution exits; 422 + post-start templates applied |
+| 2026-07-26 | nw-platform-architect-reviewer (Slice 38) | **NEEDS REVISION** → remediations applied | BLOCKERs: flip surfaces + Mongo export; latency metric; baseline feasibility; SUPABASE_URI placeholder — DECISIONS #114–#118 |

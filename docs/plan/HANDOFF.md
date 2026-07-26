@@ -2,29 +2,33 @@
 
 ## Where We Are
 
-**37** ✅ COMPLETE on `slice/37-postgres-local-cloud-parity`. Evidence: [`gate-evidence/slice-37.json`](gate-evidence/slice-37.json). Next Must = **38** (cutover + ADR-004). PR: [#117](https://github.com/neomatrix369/rag-params-finder/pull/117).
+**38** 🔨 IN PROGRESS on `slice/38-cutover-adr-004`.
 
-## What's Done (recent)
+Review remediations (BLOCKER-1/4) landed in code; **default still `mongodb`** until comparison gates PASS.
 
-- Four-flag grid + config↔server 422 + supabase normalize + `SUPABASE_URI` + hosted/local Postgres smoke
-- Removed CLI flag aliases `--local`/`-l`/`--postgres`/`-p` → generic `Unknown option` (DECISIONS #108/#109; env `RAG_LOCAL_*` still warn)
-- Review follow-up: `test_storage_mode_resolve.py` → 22 cases (`_clean_env` isolation, `RAG_*` selectors, empty `DATABASE_URL`, hint non-leak)
-- Review follow-up: shellcheck gates root `start-services.sh` (DECISIONS #110); SC2155 cleared
-- Unit tier measured **317** backend / **16** frontend (2026-07-26)
+## What's Done (this session)
+
+- Path A Resume after nw-platform-architect-reviewer remediations
+- `export_storage_backend_for_stack` — Mongo flags override leftover `STORAGE_BACKEND=postgres`
+- `compose_export_local_atlas_env` + `apply_stack_profiles` export `STORAGE_BACKEND=mongodb`
+- Reject `<project-ref>` Postgres placeholders in `ensure_stack_mode_env` + `Settings.ensure_storage_ready`
+- Commented out placeholder `SUPABASE_URI` in `.env.example`
+- Tests: 29/29 green (`test_storage_mode_resolve` + `test_supabase_uri_alias`)
 
 ## What's Next
 
-1. Commit + push Slice 37 follow-up onto PR #117
-2. Merge #117 when CI/review green
-3. Start **38** → then **22**
+1. Run Slice 43–shaped dual-backend comparison (384-dim local, mirrored configs)
+2. Write `gate-evidence/slice-38-quality-comparison.md` (QUERYING elapsed_ms median+max ≤2×)
+3. ADR-004 + supersede ADR-003
+4. Flip defaults (settings / storage_mode.sh / compose) **only if** gates PASS
+5. `/sync-docs` + gate-evidence `slice-38.json`
 
-## Blockers / Open Questions
+## Key decisions locked
 
-- None for 37. Optional: delete smoke experiments `1903dc76-…` (local) and `49c23d41-…` (hosted).
-
-## Context for Next Session
-
-- Spec: `docs/plan/slices/SLICE-38-CUTOVER-ADR-004.md`
-- Canonical start flags only: `--mongodb-local|cloud` / `--postgres-local|cloud`
-- Canonical URI: `DATABASE_URL`; optional alias: `SUPABASE_URI`
-- Shellcheck scope: `start-services.sh` + `scripts/**/*.sh`
+| # | Choice |
+|---|---|
+| 114 | Latency = QUERYING `elapsed_ms` median+max ≤2× |
+| 115 | Baseline = Slice 43 mirrored 384-dim local |
+| 116 | Flip surfaces include shell + compose; Mongo exports mongodb |
+| 117 | Placeholder `SUPABASE_URI` commented + rejected |
+| 119 | Remediations land before flip; flip remains fail-closed |

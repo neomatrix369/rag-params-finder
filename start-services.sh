@@ -300,7 +300,14 @@ apply_stack_profiles() {
   elif [[ "$STACK_DB_TYPE" == "postgres" ]]; then
     export STORAGE_BACKEND=postgres
     echo "Hosted Postgres enabled — STORAGE_BACKEND=postgres; requires DATABASE_URL"
+  elif [[ "$STACK_DB_TYPE" == "mongodb" ]]; then
+    # Symmetric with postgres: override leftover STORAGE_BACKEND=postgres on rollback.
+    export STORAGE_BACKEND=mongodb
+    echo "MongoDB enabled — STORAGE_BACKEND=mongodb"
   fi
+
+  # Always re-export from resolved stack so flag mode wins over hostile .env leftovers.
+  export_storage_backend_for_stack
 }
 
 # Validate env before requiring Docker so --postgres-cloud missing DATABASE_URL

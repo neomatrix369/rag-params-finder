@@ -99,6 +99,7 @@ print_local_postgres_cli_hints() {
 compose_export_local_atlas_env() {
   export RAG_SERVER_MONGODB_URI="$RAG_LOCAL_MONGODB_URI_DOCKER"
   export RAG_MONGODB_STORAGE_LIMIT_MB=0
+  export STORAGE_BACKEND=mongodb
 }
 
 compose_clear_local_atlas_env() {

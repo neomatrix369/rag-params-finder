@@ -130,7 +130,7 @@ Deprecated env alias (still works): `RAG_LOCAL_POSTGRES=1` → `--postgres-local
 |-----------|----------------|
 | Mongo local → Postgres local | `./start-services.sh --postgres-local` + `configs/supabase/example-local.yaml` |
 | Mongo cloud → Postgres cloud | put `DATABASE_URL` in `.env`, `./start-services.sh --postgres-cloud` + `configs/supabase/example-*.yaml` |
-| Postgres → Mongo | `--mongodb-local` or `--mongodb-cloud` + matching `configs/mongodb/example-*.yaml` |
+| Postgres → Mongo | `--mongodb-local` or `--mongodb-cloud` + matching `configs/mongodb/example-*.yaml` (forces `STORAGE_BACKEND=mongodb` even if `.env` still has a leftover `STORAGE_BACKEND=postgres`) |
 | Postgres local → Postgres cloud | `--postgres-cloud` (same `database_provider: postgres` YAML OK after normalize) |
 
 YAML `database_provider: supabase` still loads but normalizes to `postgres`. A wrong engine vs the running server returns **HTTP 422** before index preflight (distinct from catalog missing-index 422).
@@ -198,10 +198,16 @@ No manual index creation — see [Schema](#schema) below.
 `ensure_env` requires `DATABASE_URL` or `SUPABASE_URI` and does **not** require `MONGODB_URI`. Bare
 `./start-services.sh` with `.env` `STORAGE_BACKEND=postgres` behaves the same.
 
+An unedited placeholder URI (one still containing `<project-ref>`, `<password>`, or `<region>`) is
+**rejected before startup** — both the start script and the server's `ensure_storage_ready` fail with a
+clear message rather than an opaque connect error. Replace the placeholder with a real Session-mode URI,
+or use `--postgres-local` (no cloud URI required).
+
 ### Pooler / pause troubleshooting
 
 | Symptom | Likely cause | Action |
 |---------|--------------|--------|
+| "placeholder DATABASE_URL / SUPABASE_URI" on start | Copied `.env.example` URI unedited (`<project-ref>`) | Paste a real Session-mode URI, or use `--postgres-local` |
 | Prepared statement errors | Transaction pooler mode | Use **Session mode** URI from the dashboard |
 | Connection timeout on boot | Paused free-tier project | Resume in Supabase UI or upgrade tier; `/healthz` shows `"postgres": "error"` |
 | HNSW query failures | Wrong pooler or missing extension | Session mode + `CREATE EXTENSION vector` in SQL editor |

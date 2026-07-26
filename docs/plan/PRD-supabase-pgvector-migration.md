@@ -16,7 +16,7 @@
 | **Supabase** | Hosted product: managed PostgreSQL + dashboard + Auth. The app connects via a standard Postgres `DATABASE_URL` (pooler or direct). |
 | **Postgres / pgvector** | The database engine and extension the app actually queries. Supabase **is** Postgres under the hood. |
 | **Local pgvector** | Docker `pgvector` image for dev — same SQL/API as Supabase, no Supabase platform features. |
-| **Dual-backend** | `STORAGE_BACKEND=mongo` or `postgres`; Mongo adapter retained through cutover for rollback and A/B comparison. |
+| **Dual-backend** | `STORAGE_BACKEND=mongodb` (legacy alias `mongo`) or `postgres`; Mongo adapter retained through cutover for rollback and A/B comparison. |
 
 ## Goal
 
@@ -151,7 +151,7 @@ Flip documented default to `STORAGE_BACKEND=postgres` only when **all** pass on 
 ### Rollback playbook
 
 - **Trigger:** Any cutover gate fails, or production incident on Postgres path with recovery lead time **> 30 minutes**
-- **Action:** Set `STORAGE_BACKEND=mongo`, restart server, verify smoke sweep on Mongo adapter
+- **Action:** `./start-services.sh --mongodb-local` (or `--mongodb-cloud`) + matching `configs/mongodb/…`, or set `STORAGE_BACKEND=mongodb` + `MONGODB_URI`, restart, verify smoke sweep on Mongo adapter
 - **Docs:** Record incident + rollback in `gate-evidence/slice-38-quality-comparison.md` and ADR-004
 
 ## Acceptance criteria (PRD §9)
@@ -166,7 +166,7 @@ Flip documented default to `STORAGE_BACKEND=postgres` only when **all** pass on 
 - [ ] ADR-004 authored; ADR-003 superseded
 - [ ] Side-by-side comparison documented in `gate-evidence/slice-38-quality-comparison.md` before default flip
 - [ ] Cutover gates (latency, hybrid drift, equivalence) measured and PASS per table above
-- [ ] Rollback playbook smoke-tested (`STORAGE_BACKEND=mongo` recovery)
+- [ ] Rollback playbook smoke-tested (`STORAGE_BACKEND=mongodb` / `--mongodb-*` recovery)
 - [ ] **Switching:** two-command Mongo↔Postgres recipes documented and smoke-tested; config/backend mismatch returns 422 before writes
 - [ ] **CI:** Postgres integration/regression job runs on every PR touching `server/db/*` or storage/retriever paths (mandatory before merging Slices 33–37)
 
@@ -187,7 +187,7 @@ Flip documented default to `STORAGE_BACKEND=postgres` only when **all** pass on 
 | **Before Slice 32 merge** | Cutover gates + rollback playbook documented in PRD (this section) |
 | **Before Slices 33–37 merge** | CI job with Postgres/pgvector service runs storage + CRUD smoke (`STORAGE_BACKEND=postgres`) |
 | **Slice 33** | CI `postgres-integration` job + local pgvector profile (done); no `quality-gates.sh --postgres` flag required |
-| **Slice 38** | Dual-backend regression green on both `mongo` and `postgres` before cutover |
+| **Slice 38** | Dual-backend regression green on both `mongodb` and `postgres` before cutover |
 
 Without Postgres CI from Slice 33 onward, Postgres code paths will bitrot before Slice 38 cutover.
 
