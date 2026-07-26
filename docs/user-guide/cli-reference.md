@@ -122,6 +122,8 @@ rag-params-finder delete abc123-def4-5678-90ab-cdefg1234567 --force
 
 ### `indexes` — Manage Atlas Search indexes
 
+**Mongo-only.** With `STORAGE_BACKEND=postgres` (or any non-mongo backend), these commands exit with a clear “not applicable” message instead of calling Atlas APIs.
+
 Inspect and repair search indexes on the connected cluster. Useful on **M0 free tier** where the 3-index cluster-wide limit is easy to exceed.
 
 #### `indexes list`

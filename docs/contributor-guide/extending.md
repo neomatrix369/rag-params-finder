@@ -114,7 +114,7 @@ export type ChunkingMethod = "recursive" | "fixed" | "my_method" | ...;
 
 ### 1. Implement the retrieval function
 
-In `server/core/retriever.py`, add a new function alongside the existing `dense_search()`, `sparse_search()`, and `hybrid_search()`.
+In `server/core/retriever_mongo.py`, add a new function alongside the existing `dense_search()`, `sparse_search()`, and `hybrid_search()`.
 
 ### 2. Register the enum
 
@@ -130,7 +130,7 @@ class RetrievalMethod(str, Enum):
 
 ### 3. Wire the dispatcher
 
-In `server/core/retriever.py`, add a branch in the `search()` dispatcher:
+In `server/core/retriever_mongo.py`, add a branch in the `search()` dispatcher:
 
 ```python
 if method == RetrievalMethod.my_method:

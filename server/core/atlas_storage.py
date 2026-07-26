@@ -1,4 +1,4 @@
-"""Resolve MongoDB Atlas cluster storage quota for dashboard UI."""
+"""Mongo-only: resolve MongoDB Atlas cluster storage quota for dashboard UI."""
 
 from __future__ import annotations
 

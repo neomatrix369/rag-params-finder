@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-26 (Slice 35 ✅ COMPLETE — Postgres sparse/hybrid + Supabase-mode copy hygiene; verify-slice VERIFIED, quality gates 11/11)
-**Current**: Active migration: **34** ✅ dense → **35** ✅ sparse/hybrid + copy scrub → **36–38**. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 gate closure · **33** 🔨. Then **22** · **28** · **41B** · deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-26 (Mongo/Supabase boundary hygiene + StorageBackend contract suite; Slice 35 ✅; Active: **36–38** · **32**/**33** gate track)
+**Current**: Active migration: **34** ✅ dense → **35** ✅ sparse/hybrid + copy scrub → **boundary hygiene** ✅ → **36–38**. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 gate closure · **33** 🔨. Then **22** · **28** · **41B** · deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -687,6 +687,10 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-26 | hygiene | Boundary hygiene, no folder moves: rename agnostic `mongo_*` API helpers to port verbs; `retriever.py` → `retriever_mongo.py`; Mongo-only docstring markers in place | Ports already load-bearing; physical `server/db/mongo/` split would collide with open 32/33 work; naming was the real leak |
+| 2026-07-26 | hygiene | Shared live `StorageBackend` contract suite (`tests/contract/`) + `tests/conftest.py` skip helpers; CI `mongo-integration` job (Atlas Local) mirrors `postgres-integration` | Mongo acceptance was mocked, Postgres was live-only — nothing asserted both adapters answer the port identically (Slice 38 prerequisite) |
+| 2026-07-26 | hygiene | Documented, not closed: `_id` leak (Postgres synthesises it); `database_provider` YAML is metadata (Slice 37 owns 422 mismatch); configs/mongodb vs supabase near-duplicates (managed by `test_config_examples`); quality-gates omit postgres coverage (32B); ADR-004 missing (38); no supabase screenshots | Confirmed scope — close inside existing slices, not a parallel restructure |
+| 2026-07-26 | hygiene | `ensure_storage_ready()` at lifespan + store_factory; CLI `indexes` exits for non-mongo; `pre-push-gates` still `unset STORAGE_BACKEND` (re-examine later) | Fail boot with one URI message; Atlas CLI must not run against Postgres; unit suite still assumes mongo ambient backend |
 | 2026-07-26 | 33–38 | Operator vocabulary is `--<db-type>-local` / `--<db-type>-cloud` (`mongodb` \| `postgres`); mode values match flags; single `postgres-setup.md` SSOT; Slice 37 owns rename + hosted ensure_env + **low-friction two-command switching** + config↔server 422 gate | Symmetric grid is guessable from either axis; today's two booleans cannot express hosted Postgres; YAML `database_provider` is metadata today and can silently disagree with `STORAGE_BACKEND` — reject mismatch before writes; same postgres YAML works local and cloud |
 | 2026-07-25 | 33 | Hybrid schema: promote queryable fields to columns, keep the rest in a `doc` JSONB column (`experiments`, `run_status`, `results`); `chunks` fully columnar | `StorageBackend` is dict-in/dict-out over documents whose shape is owned by Pydantic models and sweep metadata; JSONB preserves them without a migration per added field, while promoted columns keep filters and sorts indexable. Chunks are columnar because retrieval indexes them directly |
 | 2026-07-25 | 33 | Do not store Mongo's `_id`; synthesise it from the primary key on the two reads that use it (`find_experiment_by_id`, `find_running_experiments`) | `_id` is a Mongo implementation detail, but boot reconciliation reads `doc["_id"]`; deriving it avoids persisting the same value twice and keeps the port contract identical across adapters |

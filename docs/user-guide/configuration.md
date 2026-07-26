@@ -423,7 +423,7 @@ VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # Voyage rate limits — free tier defaults (override for Tier 1 Voyage sweep)
 VOYAGE_RPM_LIMIT=3        # Requests per minute (free tier)
 VOYAGE_TPM_LIMIT=10000    # Tokens per minute (free tier)
-# Tier 1 (example-mongodb-voyage.yaml): VOYAGE_RPM_LIMIT=2000 VOYAGE_TPM_LIMIT=16000000
+# Tier 1 (configs/mongodb/example-voyage.yaml): VOYAGE_RPM_LIMIT=2000 VOYAGE_TPM_LIMIT=16000000
 
 # SIE (OPTIONAL — only if using provider: sie or POST /api/v1/sweep)
 # SIE_ENABLED = on/off (same for remote and local Docker)

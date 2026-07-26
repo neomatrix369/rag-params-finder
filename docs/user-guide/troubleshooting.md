@@ -1,6 +1,7 @@
 # Troubleshooting
 
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
+![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
@@ -143,7 +144,7 @@ Wait ~1–2 minutes. The `text_search_index` and your vector indexes coexist on 
 **Fix**:
 - Each embedding model needs its own Atlas vector index (`vector_index_384` or `vector_index_1024`)
 - Never mix providers within the same experiment config (the system validates this at config load time)
-- The server automatically routes to the correct index via `get_index_name(model)` in `server/core/retriever.py`
+- The server automatically routes to the correct index via `get_index_name(model)` in `server/core/retriever_mongo.py`
 
 ---
 
@@ -412,10 +413,53 @@ Quick reference for the most common SIE problems:
 
 ---
 
+## Postgres / pgvector
+
+Use this section when `STORAGE_BACKEND=postgres` (local `./start-services.sh --postgres` or hosted Supabase). Full setup → [Postgres Setup](postgres-setup.md).
+
+### Connection refused / pool fails on boot
+
+**Symptom**: server logs `DATABASE_URL not set` or `connection refused` on port 5433.
+
+**Cause**: Postgres container not running, wrong port, or `STORAGE_BACKEND=postgres` without `DATABASE_URL`.
+
+**Fix**:
+1. Start local pgvector: `./start-services.sh --postgres`
+2. Confirm health: `docker ps` shows `rag-params-finder-postgres-local` healthy
+3. Host CLI / native server: `export STORAGE_BACKEND=postgres` and `export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder`
+4. Confirm `GET http://localhost:8001/healthz` reports `"storage_backend": "postgres"` and postgres status `ok`
+
+### Missing pgvector extension
+
+**Symptom**: schema bootstrap fails with `type "vector" does not exist` or similar.
+
+**Cause**: The image is plain Postgres without the `vector` extension, or `schema.sql` was applied before the extension install.
+
+**Fix**: Use `pgvector/pgvector:pg16` (compose default). Recreate the volume if needed: stop the stack, remove the `postgres_local_data` volume, then `./start-services.sh --postgres` again so `schema.sql` re-runs on first pool open.
+
+### Dimension mismatch (`embedding_384` vs `embedding_1024`)
+
+**Symptom**: insert/query fails because the embedding width does not match a vector column, or dense search returns empty for the wrong model.
+
+**Cause**: Local models use 384-dim (`embedding_384`); Voyage / SIE dense models use 1024-dim (`embedding_1024`). Mixing widths into one column is rejected.
+
+**Fix**: Keep `embedding.provider` / model consistent with the run. Check `docs/user-guide/postgres-setup.md` for the dual-column layout. Dense retrieval always filters by `embedding_model` so incompatible vectors are not mixed at query time.
+
+### Schema not applied / empty tables
+
+**Symptom**: CRUD fails with `relation "experiments" does not exist`.
+
+**Cause**: Schema is applied when the Postgres pool opens (first storage I/O), not during Mongo-style Atlas index bootstrap. If the server never opened a pool against this database, tables are missing.
+
+**Fix**: Hit any storage endpoint (or submit a sweep) after setting `DATABASE_URL`. Or run the live integration tests: `RAG_REQUIRE_POSTGRES=1 pytest tests/test_postgres_store_integration.py -q`.
+
+---
+
 ## 👉 See Also
 
 - [SIE Provider Setup](sie-setup.md) — remote gateway (preferred) or optional self-hosted Docker
 - [MongoDB Setup](mongodb-setup.md) — Atlas account, Voyage billing, search indexes
+- [Postgres Setup](postgres-setup.md) — local pgvector and hosted Supabase
 - [Getting Started](getting-started.md) — install, configure, first run
 - [Configuration Reference](configuration.md) — fix provider/model mismatch errors
 - [Dashboard Guide](dashboard-guide.md) — understand what the UI is showing

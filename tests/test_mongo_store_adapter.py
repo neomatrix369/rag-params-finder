@@ -93,7 +93,7 @@ class TestMongoStoreAdapterShould:
 
         Given a MongoRetrieverBackend,
         When search() is called for dense retrieval,
-        Then server.core.retriever.search is invoked with the same arguments.
+        Then server.core.retriever_mongo.search is invoked with the same arguments.
         """
         ### Given
         adapter = MongoRetrieverBackend()

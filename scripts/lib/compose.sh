@@ -88,6 +88,7 @@ print_local_postgres_cli_hints() {
   echo "  Connection string (CLI / host server):"
   echo "    export STORAGE_BACKEND=postgres"
   echo "    export DATABASE_URL=\"$RAG_LOCAL_DATABASE_URL_HOST\""
+  echo "    rag-params-finder run --config configs/supabase/example-local.yaml"
   echo ""
   echo "  Reset data:"
   echo "    docker rm -f $RAG_POSTGRES_LOCAL_CONTAINER && docker volume rm $RAG_POSTGRES_LOCAL_VOLUME"

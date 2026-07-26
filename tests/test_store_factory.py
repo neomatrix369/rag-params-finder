@@ -128,6 +128,10 @@ class TestStoreFactoryShould:
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
             patch(
+                "server.settings.settings.database_url",
+                "postgresql://rag:rag@localhost:5433/rag_params_finder",
+            ),
+            patch(
                 "server.db.postgres_store.get_postgres_storage",
                 return_value=mock_storage,
             ),
@@ -154,6 +158,10 @@ class TestStoreFactoryShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
+            patch(
+                "server.settings.settings.database_url",
+                "postgresql://rag:rag@localhost:5433/rag_params_finder",
+            ),
             patch(
                 "server.db.postgres_store.get_postgres_retriever",
                 return_value=mock_retriever,

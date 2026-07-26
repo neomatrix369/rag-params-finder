@@ -77,7 +77,7 @@ class TestPaddingExploreApiSmoke:
         explore_source = (experiment_doc, _padding_query_results(), _padding_run_statuses())
 
         with patch(
-            "server.api.experiments.mongo_load_explore_source",
+            "server.api.experiments.load_explore_source",
             return_value=explore_source,
         ):
             resp = experiments_client.get("/experiments/exp-padding-smoke/explore")
@@ -115,7 +115,7 @@ class TestPaddingExperimentDetailApiSmoke:
         }
 
         with patch(
-            "server.api.experiments.mongo_find_experiment_with_runs",
+            "server.api.experiments.find_experiment_with_runs",
             return_value=experiment,
         ):
             resp = experiments_client.get("/experiments/exp-padding-smoke")

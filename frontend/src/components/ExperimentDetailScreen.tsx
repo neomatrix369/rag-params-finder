@@ -36,6 +36,10 @@ import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchW
 import { devInfo, devInfoThrottled, devWarn } from '../utils/devLog';
 import { toExperimentDbStatsSummary } from '../utils/experimentDbStats';
 import {
+  displayDatabaseProvider,
+  experimentHydratingBlurb,
+} from '../utils/storageLabels';
+import {
   displayRetrievers,
   isPausedExperimentStatus,
   isRunningExperimentStatus,
@@ -868,7 +872,7 @@ export default function ExperimentDetailScreen({
             showDashboardFootnote={false}
           />
         }
-        sidebar={experimentRailBlurb('Hydrating payloads from Mongo + your orchestration backend.')}
+        sidebar={experimentRailBlurb(experimentHydratingBlurb())}
       >
         <div className="flex justify-center pb-8 pt-2">
           <LoadingFeedbackPanel
@@ -1286,7 +1290,7 @@ export default function ExperimentDetailScreen({
               }
             >
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <DimensionBadge label="Database Provider" values={[detail.sweep_summary.database_provider || 'mongodb']} />
+                <DimensionBadge label="Database Provider" values={[displayDatabaseProvider(detail.sweep_summary.database_provider)]} />
                 <DimensionBadge label="Embedding Provider" values={[detail.sweep_summary.embedding_provider || 'local']} />
                 <DimensionBadge label="Embedding Models" values={detail.sweep_summary.models} />
                 <DimensionBadge label="Chunking" values={detail.sweep_summary.chunking_methods} />
@@ -1425,7 +1429,7 @@ export default function ExperimentDetailScreen({
                           </td>
                           <td className="px-4 py-4">
                             <span className="inline-flex items-center rounded-md border border-line bg-canvas px-2.5 py-1 text-xs font-bold uppercase text-ink">
-                              {run.database_provider || 'mongodb'}
+                              {displayDatabaseProvider(run.database_provider)}
                             </span>
                           </td>
                           <td className="px-4 py-4">

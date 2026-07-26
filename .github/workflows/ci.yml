@@ -224,12 +224,62 @@ jobs:
           RAG_REQUIRE_POSTGRES: "1"
         # Coverage is enforced here rather than in the `backend` job: these tests
         # skip without a database, so the main job would measure them as 0%.
+        # Contract suite is parametrized (mongo+postgres); the mongo param skips
+        # here because only Postgres is provisioned.
         run: |
           pytest tests/test_postgres_store_integration.py \
                  tests/test_postgres_dense_retrieval.py \
+                 tests/test_postgres_sparse_hybrid.py \
+                 tests/contract/test_storage_backend_contract.py \
                  --tb=short -q -rs \
                  --cov=server.core.retriever_postgres \
                  --cov-branch --cov-report=term-missing --cov-fail-under=95
+
+  mongo-integration:
+    name: Mongo integration (Atlas Local)
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.backend == 'true' }}
+
+    # Live Mongo StorageBackend contract coverage — Atlas Local image matches
+    # docker-compose.yml local-atlas profile. Mocks cannot prove port parity.
+    services:
+      mongodb:
+        image: mongodb/mongodb-atlas-local:latest
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval \"db.adminCommand('ping').ok\""
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+          --health-start-period 60s
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies (including dev)
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Mongo StorageBackend contract tests
+        env:
+          RAG_TEST_MONGODB_URI: mongodb://localhost:27017/rag_params_finder?directConnection=true
+          RAG_REQUIRE_MONGO: "1"
+          STORAGE_BACKEND: mongo
+        run: |
+          pytest tests/contract/test_storage_backend_contract.py \
+                 --tb=short -q -rs
 
   frontend:
     name: Frontend (Node.js)

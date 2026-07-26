@@ -52,6 +52,8 @@ echo "=== Pre-push gates (push-specific checks) ==="
 # stack is running. That must not leak into the dual-backend unit suite — Atlas
 # preflight tests short-circuit and fail when the ambient backend is not mongo.
 # Integration jobs that need Postgres set STORAGE_BACKEND explicitly themselves.
+# Follow-up (after contract suite lands): re-examine whether this unset is still
+# required, or whether unit tests should pin backend per-module instead.
 unset STORAGE_BACKEND || true
 
 echo ""

@@ -56,7 +56,7 @@ def test_create_experiment_reports_bayesian_n_trials_as_run_count() -> None:
     with (
         patch("server.api.experiments.validate_experiment_search_indexes"),
         patch("server.api.experiments.validate_sie_readiness"),
-        patch("server.api.experiments.mongo_insert_experiment_doc"),
+        patch("server.api.experiments.insert_experiment_doc"),
         patch("server.api.experiments.schedule_sweep"),
     ):
         client = _make_experiments_client()
@@ -82,8 +82,8 @@ def test_resume_bayesian_experiment_returns_409() -> None:
     }
 
     with (
-        patch("server.api.experiments.mongo_find_experiment_by_id", return_value=experiment_doc),
-        patch("server.api.experiments.mongo_mark_experiment_running"),
+        patch("server.api.experiments.find_experiment_by_id", return_value=experiment_doc),
+        patch("server.api.experiments.mark_experiment_running"),
         patch("server.api.experiments.schedule_sweep"),
     ):
         client = _make_experiments_client()
@@ -121,7 +121,7 @@ def test_detail_bayesian_experiment_populates_progress_summary_when_missing() ->
 
     with (
         patch(
-            "server.api.experiments.mongo_find_experiment_with_runs",
+            "server.api.experiments.find_experiment_with_runs",
             return_value=experiment_doc,
         ),
     ):
@@ -179,7 +179,7 @@ def test_detail_bayesian_experiment_passes_through_trial_log() -> None:
 
     with (
         patch(
-            "server.api.experiments.mongo_find_experiment_with_runs",
+            "server.api.experiments.find_experiment_with_runs",
             return_value=experiment_doc,
         ),
     ):
@@ -220,7 +220,7 @@ def test_detail_partial_bayesian_experiment_populates_summary_from_runs() -> Non
 
     with (
         patch(
-            "server.api.experiments.mongo_find_experiment_with_runs",
+            "server.api.experiments.find_experiment_with_runs",
             return_value=experiment_doc,
         ),
     ):

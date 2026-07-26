@@ -122,7 +122,8 @@ rag-params-finder/
 │   │   ├── local_embedder.py  # sentence-transformers embedding (lazy-load, cached)
 │   │   ├── reranker.py      # Voyage reranking client
 │   │   ├── local_reranker.py  # CrossEncoder reranking (lazy-load, cached)
-│   │   ├── retriever.py     # Atlas Vector Search (dense/sparse/hybrid)
+│   │   ├── retriever_mongo.py  # Atlas Vector Search (dense/sparse/hybrid) — Mongo-only
+│   │   ├── retriever_postgres.py  # pgvector dense + tsvector sparse + RRF hybrid
 │   │   ├── retriever_postgres.py # pgvector dense search (sparse/hybrid → Slice 35)
 │   │   ├── results_analyzer.py  # aggregates scores, min-max normalization
 │   │   └── chunkers/

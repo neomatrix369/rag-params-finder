@@ -19,23 +19,21 @@ from __future__ import annotations
 
 import logging
 import math
-import os
 from collections.abc import Iterator
 from unittest.mock import patch
 
 import pytest
 
-psycopg = pytest.importorskip("psycopg")
+pytest.importorskip("psycopg")
 
+import psycopg  # noqa: E402
 from pgvector import Vector  # noqa: E402
 
 from server.core import retriever_postgres  # noqa: E402
 from server.db import postgres  # noqa: E402
 from server.db.postgres_store import PostgresStorageBackend  # noqa: E402
 from server.models.enums import RetrievalMethod  # noqa: E402
-
-_DEFAULT_URL = "postgresql://rag:rag@localhost:5433/rag_params_finder"
-_TEST_DATABASE_URL = os.environ.get("RAG_TEST_DATABASE_URL", _DEFAULT_URL)
+from tests.helpers.storage_live import TEST_DATABASE_URL, postgres_skip_reason  # noqa: E402
 
 _EXP_ID = "exp-pg-dense"
 _RUN_A = "run-model-a"
@@ -46,27 +44,10 @@ _MODEL_A = "all-MiniLM-L6-v2"
 _MODEL_A_TWIN = "bge-small-en-v1.5"
 _MODEL_B = "voyage-3.5-lite"
 
-
-def _database_reachable() -> bool:
-    try:
-        with psycopg.connect(_TEST_DATABASE_URL, connect_timeout=3):
-            return True
-    except Exception:
-        return False
-
-
-def _skip_reason() -> str | None:
-    if _database_reachable():
-        return None
-    if os.environ.get("RAG_REQUIRE_POSTGRES") == "1":
-        pytest.fail(
-            f"RAG_REQUIRE_POSTGRES=1 but no Postgres at {_TEST_DATABASE_URL}.",
-            pytrace=False,
-        )
-    return f"No Postgres at {_TEST_DATABASE_URL} — run ./start-services.sh --postgres"
-
-
-pytestmark = pytest.mark.skipif(_skip_reason() is not None, reason=_skip_reason() or "")
+pytestmark = pytest.mark.skipif(
+    postgres_skip_reason() is not None,
+    reason=postgres_skip_reason() or "",
+)
 
 
 def _unit_vector(dimensions: int, hot_index: int) -> list[float]:
@@ -82,7 +63,7 @@ def store() -> Iterator[PostgresStorageBackend]:
     from server.settings import settings
 
     original_url = settings.database_url
-    settings.database_url = _TEST_DATABASE_URL
+    settings.database_url = TEST_DATABASE_URL
     postgres.close_pool()
 
     backend = PostgresStorageBackend()
