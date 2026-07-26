@@ -1,4 +1,4 @@
-"""Pure logic for Atlas Search index requirements and capacity assessment."""
+"""Mongo-only: pure logic for Atlas Search index requirements and capacity assessment."""
 
 from __future__ import annotations
 

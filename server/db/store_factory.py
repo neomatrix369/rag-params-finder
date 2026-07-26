@@ -21,8 +21,9 @@ def get_storage_backend() -> StorageBackend:
     """Return the configured StorageBackend.
 
     Reads STORAGE_BACKEND from settings (default "mongo").
-    Raises ValueError for unknown backends.
+    Raises ValueError for unknown backends or a missing connection URI.
     """
+    settings.ensure_storage_ready()
     backend = settings.storage_backend.lower()
     if backend == "mongo":
         from server.db.mongo_store import get_mongo_storage
@@ -43,6 +44,7 @@ def get_retriever_backend() -> RetrieverBackend:
     Reads STORAGE_BACKEND from settings (default "mongo").
     Postgres serves dense, sparse, and hybrid retrieval (Slice 35).
     """
+    settings.ensure_storage_ready()
     backend = settings.storage_backend.lower()
     if backend == "mongo":
         from server.db.mongo_store import get_mongo_retriever

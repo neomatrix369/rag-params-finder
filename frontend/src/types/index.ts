@@ -297,14 +297,14 @@ export interface VectorDbGroupTotals {
   estimated_storage_mb: number;
   estimated_embedding_mb: number;
   estimated_metadata_mb: number;
-  /** Actual MongoDB dbStats totalSize (data + indexes). */
+  /** Actual database used size (Mongo dbStats totalSize, or Postgres equivalent). */
   database_used_mb?: number;
   database_data_mb?: number;
   database_index_mb?: number;
-  /** Cluster quota from Atlas Admin API or MONGODB_STORAGE_LIMIT_MB override. */
+  /** Cluster/storage quota (Atlas Admin API, MONGODB_STORAGE_LIMIT_MB, or backend metrics). */
   database_storage_limit_mb?: number | null;
   database_free_mb?: number | null;
-  /** Atlas cluster tier (M0, M2, M5, M10, etc.) */
+  /** Cluster tier when reported (e.g. Atlas M0/M10); null for backends without tiers. */
   cluster_tier?: string | null;
   /** Tier type: 'shared' or 'dedicated' */
   cluster_tier_type?: string | null;

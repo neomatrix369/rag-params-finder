@@ -1,3 +1,5 @@
+"""Mongo-only: Atlas Search / vector index definitions and cluster index management."""
+
 import time
 from typing import TypedDict
 

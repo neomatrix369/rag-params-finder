@@ -14,7 +14,7 @@ export const VECTOR_DB_STATS_POLL_MS = 60_000;
 
 export const DETAIL_POLL_MS = 2000;
 
-/** Search explorer re-fetch while experiment is still running (heavy Mongo aggregate). */
+/** Search explorer re-fetch while experiment is still running (heavy storage aggregate). */
 export const EXPLORE_POLL_MS = 15_000;
 
 /** First “still waiting” warning after slow HTTP (agent-style feedback). */

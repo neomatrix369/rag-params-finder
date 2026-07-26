@@ -19,6 +19,11 @@ import {
 import { createStallWatcher, formatBytes, type FetchProgressUpdate } from '../services/fetchWithProgress';
 import { DetailedResult, ExploreResponse, RankedConfig } from '../types';
 import { devInfo, devInfoThrottled, devWarn } from '../utils/devLog';
+import {
+  displayDatabaseProvider,
+  explorerFetchFeedText,
+  explorerPayloadHint,
+} from '../utils/storageLabels';
 
 let xfSeq = 0;
 
@@ -106,7 +111,7 @@ function BestParamsCard({ config }: { config: RankedConfig }) {
           <div className="flex gap-6">
             <div>
               <div className="text-xs text-slate-400 uppercase tracking-wider">Database</div>
-              <div className="text-sm font-bold uppercase text-indigo-300">{config.database_provider || 'mongodb'}</div>
+              <div className="text-sm font-bold uppercase text-indigo-300">{displayDatabaseProvider(config.database_provider)}</div>
             </div>
             <div>
               <div className="text-xs text-slate-400 uppercase tracking-wider">Embed Provider</div>
@@ -203,7 +208,7 @@ function ConfigCard({ config, badge, annotation }: {
         <div className="flex gap-2">
           <div>
             <span className="text-xs text-slate-400 uppercase tracking-wider">Database</span>
-            <div className="font-bold text-indigo-700 text-xs uppercase">{config.database_provider || 'mongodb'}</div>
+            <div className="font-bold text-indigo-700 text-xs uppercase">{displayDatabaseProvider(config.database_provider)}</div>
           </div>
           <div>
             <span className="text-xs text-slate-400 uppercase tracking-wider">Embed Prov</span>
@@ -562,7 +567,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
               {paginatedConfigs.map((c) => (
                 <tr key={`row-${c.rank}`} className="hover:bg-slate-50">
                   <td className="px-4 py-2.5 text-sm font-bold text-slate-600">#{c.rank}</td>
-                  <td className="px-4 py-2.5 text-xs font-bold text-indigo-700 uppercase">{c.database_provider || 'mongodb'}</td>
+                  <td className="px-4 py-2.5 text-xs font-bold text-indigo-700 uppercase">{displayDatabaseProvider(c.database_provider)}</td>
                   <td className="px-4 py-2.5 text-xs font-bold text-teal-700 uppercase">{c.embedding_provider || 'local'}</td>
                   <td className="px-4 py-2.5 text-sm font-mono text-slate-700">{c.embedding_model}</td>
                   <td className="px-4 py-2.5 text-sm capitalize">{c.chunking_method}</td>
@@ -870,7 +875,7 @@ export default function SearchExplorerScreen({
       setReceivedBytes(null);
       setTotalBytes(null);
       if (switchedExperiment) {
-        setFeed([{ id: 'x0', text: 'Fetching explorer aggregates (Mongo + analyzer)…', variant: 'default' }]);
+        setFeed([{ id: 'x0', text: explorerFetchFeedText(), variant: 'default' }]);
       } else {
         setFeed((f) =>
           xfAppend(
@@ -1050,7 +1055,7 @@ export default function SearchExplorerScreen({
                 subtitle={
                   data
                     ? "Re-fetching explorer data (query filter changed or refresh triggered)."
-                    : "Explorer builds ranked configs plus detailed hits from Mongo — response can be megabytes."
+                    : explorerPayloadHint()
                 }
                 footer="Shows byte progress once headers arrive (Content-Length yields a %) or an indeterminate bar until then."
                 feed={feed}

@@ -293,7 +293,12 @@ print_unhealthy_server_hint() {
   echo "  curl -s http://localhost:8001/healthz"
   echo "  docker logs rag-params-finder-server 2>&1 | tail -30"
   echo ""
-  if [[ "$LOCAL_ATLAS" == "1" ]]; then
+  if [[ "$LOCAL_POSTGRES" == "1" ]]; then
+    echo "Local Postgres / pgvector hints:"
+    echo "  docker logs rag-params-finder-postgres-local 2>&1 | tail -20"
+    echo "  Confirm STORAGE_BACKEND=postgres and DATABASE_URL in the server env"
+    echo "  Docs: docs/user-guide/postgres-setup.md · docs/user-guide/troubleshooting.md"
+  elif [[ "$LOCAL_ATLAS" == "1" ]]; then
     echo "Local Atlas hints:"
     echo "  docker logs rag-params-finder-mongodb-local 2>&1 | tail -20"
     echo "  ./start-services.sh mongodb status"
@@ -360,11 +365,17 @@ if [[ "$LOCAL_ATLAS" == "1" ]]; then
   echo "Switch back to cloud:  ./start-services.sh  (no --local flag)"
   echo "Manage MongoDB only:   ./start-services.sh mongodb [start|stop|reset|status]"
   echo "Reset all data:        docker compose --profile local-atlas down -v"
+elif [[ "$LOCAL_POSTGRES" == "1" ]]; then
+  echo "  Postgres:  localhost:5433  (pgvector — STORAGE_BACKEND=postgres)"
+  echo ""
+  echo "Switch to Mongo Atlas cloud: ./start-services.sh"
+  echo "Switch to Atlas Local:       ./start-services.sh --local"
 else
   echo ""
   echo "CLI:       rag-params-finder run --config configs/mongodb/example-local.yaml"
   echo ""
-  echo "Switch to local Atlas: ./start-services.sh --local  (no cloud account needed)"
+  echo "Switch to local Atlas:    ./start-services.sh --local"
+  echo "Switch to local Postgres: ./start-services.sh --postgres"
 fi
 
 if [[ "$LOCAL_POSTGRES" == "1" ]]; then

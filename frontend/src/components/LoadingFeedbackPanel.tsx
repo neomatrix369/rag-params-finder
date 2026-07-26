@@ -1,4 +1,5 @@
 import { formatBytes } from '../services/fetchWithProgress';
+import { waitingForFirstByteHint } from '../utils/storageLabels';
 
 /** Single line in the faux-agent activity log */
 export type FeedEntry = {
@@ -47,7 +48,7 @@ export default function LoadingFeedbackPanel(props: {
   totalBytes: number | null;
   theme?: Theme;
   /**
-   * When true (default): show animated bar before first byte (covers slow DNS/TLS/Mongo stalls).
+   * When true (default): show animated bar before first byte (covers slow DNS/TLS/storage stalls).
    * Set false on error-only diagnostics where no ongoing transfer exists.
    */
   expectPayloadProgress?: boolean;
@@ -125,8 +126,7 @@ export default function LoadingFeedbackPanel(props: {
           <div
             className={`mt-2 font-mono text-xs leading-snug ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}
           >
-            {downloadSummary ??
-              'Waiting for first byte… (TLS handshake or large JSON can take a few seconds)'}
+            {downloadSummary ?? waitingForFirstByteHint()}
           </div>
         </div>
       )}

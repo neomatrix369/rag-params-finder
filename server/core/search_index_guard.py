@@ -1,4 +1,8 @@
-"""Preflight guard: load cluster state, ensure indexes, validate experiment requirements."""
+"""Mongo-only: preflight guard — load Atlas cluster state, ensure indexes, validate requirements.
+
+When ``STORAGE_BACKEND`` is not mongo, validation short-circuits via
+``preflight_not_applicable`` (Postgres declares indexes at schema bootstrap).
+"""
 
 from __future__ import annotations
 

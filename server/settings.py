@@ -1,4 +1,6 @@
-from pydantic import field_validator
+from __future__ import annotations
+
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from server.utils.logger import get_logger
@@ -105,14 +107,49 @@ class Settings(BaseSettings):
             return parts if parts else list(_DEFAULT_CORS_ORIGINS)
         return list(_DEFAULT_CORS_ORIGINS)
 
+    @model_validator(mode="after")
+    def storage_backend_must_be_known(self) -> Settings:
+        """Reject unknown STORAGE_BACKEND values at construction."""
+        backend = self.storage_backend.lower()
+        if backend not in {"mongo", "postgres"}:
+            raise ValueError(
+                f"Unknown STORAGE_BACKEND={self.storage_backend!r}. "
+                "Set STORAGE_BACKEND to 'mongo' or 'postgres'."
+            )
+        return self
+
+    def ensure_storage_ready(self) -> None:
+        """Raise when the active backend is missing its required connection URI.
+
+        Called from server lifespan and store_factory so misconfiguration fails
+        with one clear message before any driver I/O. Empty URIs remain allowed
+        at Settings construction so unit tests can import the module without a DB.
+        """
+        backend = self.storage_backend.lower()
+        if backend == "mongo" and not self.mongodb_uri.strip():
+            raise ValueError(
+                "STORAGE_BACKEND=mongo requires MONGODB_URI. "
+                "Set it in .env or the environment (Atlas cloud or Atlas Local)."
+            )
+        if backend == "postgres" and not self.database_url.strip():
+            raise ValueError(
+                "STORAGE_BACKEND=postgres requires DATABASE_URL. "
+                "Set it in .env (local pgvector or hosted Supabase)."
+            )
+
 
 settings = Settings()
 
-logger.info("settings loaded — server_url=%s", settings.server_url)
+logger.info(
+    "settings loaded — server_url=%s storage_backend=%s",
+    settings.server_url,
+    settings.storage_backend,
+)
 logger.debug(
-    "settings detail — mongodb_uri=%s voyage_api_key=%s recover_on_boot=%s "
+    "settings detail — mongodb_uri=%s database_url=%s voyage_api_key=%s recover_on_boot=%s "
     "cors_origins=%s cors_allow_localhost_origin_regex=%s",
     "***" if settings.mongodb_uri else "(not set)",
+    "***" if settings.database_url else "(not set)",
     "***" if settings.voyage_api_key else "(not set)",
     settings.recover_on_boot,
     settings.cors_origins,

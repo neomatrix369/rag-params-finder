@@ -125,7 +125,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/api/sweep.py` | `POST /api/v1/sweep` (ranked results, SIE vs voyage baseline) + `GET /api/v1/best-config` |
 | `server/core/reranker.py` | Voyage reranking client |
 | `server/core/local_reranker.py` | CrossEncoder reranking (lazy-load) |
-| `server/core/retriever.py` | Atlas Vector Search (dense/sparse/hybrid) |
+| `server/core/retriever_mongo.py` | Atlas Vector Search (dense/sparse/hybrid) — Mongo-only |
 | `server/core/retriever_postgres.py` | pgvector dense + tsvector sparse + RRF hybrid; Atlas-scale dense scores; mandatory `embedding_model` filter |
 | `server/models/config.py` | Pydantic experiment config + provider validators |
 | `server/models/enums.py` | ChunkingMethod, RetrievalMethod, Phase |
@@ -216,16 +216,22 @@ Record every non-obvious choice in `docs/plan/slices/PROGRESS.md` → Decision L
 
 ### Verify-all commands (run before each commit)
 ```bash
-# One command — mirrors CI (repo lint is step 1)
+# One command — mirrors CI (repo lint is step 1; unit-tier pytest only)
 ./scripts/quality-gates.sh
 
 # Repo lint only (shell + workflows + Markdown)
 bash scripts/repo-lint.sh
 
-# Or individually:
+# Or individually (same unit ignores as quality-gates / CI backend):
 uv run ruff check .
 uv run mypy server/ cli/
-uv run pytest --tb=short -q --cov=server.core.search_index_plan \
+uv run pytest --tb=short -q \
+  --ignore=tests/contract \
+  --ignore=tests/test_postgres_store_integration.py \
+  --ignore=tests/test_postgres_dense_retrieval.py \
+  --ignore=tests/test_postgres_sparse_hybrid.py \
+  -m "not integration" \
+  --cov=server.core.search_index_plan \
   --cov=server.core.search_index_guard --cov=server.core.results_analyzer \
   --cov=server.models.config --cov-fail-under=80
 cd frontend && npm run lint && npm run test && npm run typecheck && npm run build
@@ -253,14 +259,14 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 **Repo lint** (2026-05-27):
 - `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
 
-**Backend** (2026-05-27):
+**Backend** (2026-07-26 — unit tier):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 217 tests, coverage on scoped modules (80% threshold)
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **268** tests; scoped coverage ≥80%; no `MONGODB_URI` required
 
-**Frontend** (2026-07-19):
+**Frontend** (2026-07-26):
 - `npm run lint` → 0 errors (eslint + security plugin)
-- `npm run test` → 7 component scenarios pass (Vitest + React Testing Library)
+- `npm run test` → **15** tests (3 files, Vitest + React Testing Library)
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities

@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from server.core.retriever import (
+from server.core.retriever_mongo import (
     _SPARSE_INDEX_RETRY_ATTEMPTS,
     dense_search,
     hybrid_search,
@@ -29,7 +29,7 @@ def _sparse_hit_doc() -> dict:
 
 @pytest.fixture
 def mock_aggregate() -> MagicMock:
-    with patch("server.core.retriever.get_collection") as get_collection:
+    with patch("server.core.retriever_mongo.get_collection") as get_collection:
         collection = MagicMock()
         collection.aggregate.return_value = []
         get_collection.return_value = collection
@@ -73,7 +73,7 @@ class TestSparseSearchRetry:
     def test_sparse_search_retries_until_hits(self, mock_aggregate: MagicMock) -> None:
         mock_aggregate.side_effect = [[], [_sparse_hit_doc()]]
 
-        with patch("server.core.retriever.time.sleep") as mock_sleep:
+        with patch("server.core.retriever_mongo.time.sleep") as mock_sleep:
             results = sparse_search(
                 query_text="Pell Grant",
                 experiment_id="exp-1",
@@ -92,7 +92,7 @@ class TestSparseSearchRetry:
     ) -> None:
         mock_aggregate.return_value = []
 
-        with patch("server.core.retriever.time.sleep") as mock_sleep:
+        with patch("server.core.retriever_mongo.time.sleep") as mock_sleep:
             results = sparse_search(
                 query_text="Pell Grant",
                 experiment_id="exp-1",
@@ -109,8 +109,8 @@ class TestSparseSearchRetry:
 class TestHybridSearchRunScoped:
     """Hybrid merges dense + sparse; both legs must stay run-scoped."""
 
-    @patch("server.core.retriever.sparse_search")
-    @patch("server.core.retriever.dense_search")
+    @patch("server.core.retriever_mongo.sparse_search")
+    @patch("server.core.retriever_mongo.dense_search")
     def test_hybrid_search_passes_run_id_to_dense_and_sparse(
         self,
         mock_dense: MagicMock,
@@ -133,8 +133,8 @@ class TestHybridSearchRunScoped:
             "Pell Grant", "exp-1", "all-MiniLM-L6-v2", "run-hybrid", 5
         )
 
-    @patch("server.core.retriever.sparse_search")
-    @patch("server.core.retriever.dense_search")
+    @patch("server.core.retriever_mongo.sparse_search")
+    @patch("server.core.retriever_mongo.dense_search")
     def test_hybrid_search_merges_dense_and_sparse_with_rrf(
         self,
         mock_dense: MagicMock,
@@ -202,7 +202,7 @@ class TestHybridSearchRunScoped:
 class TestSearchDispatcher:
     """search() routes all retrieval methods with run_id."""
 
-    @patch("server.core.retriever.dense_search")
+    @patch("server.core.retriever_mongo.dense_search")
     def test_search_dense_passes_run_id(self, mock_dense: MagicMock) -> None:
         mock_dense.return_value = []
 
@@ -218,7 +218,7 @@ class TestSearchDispatcher:
 
         mock_dense.assert_called_once_with([0.5], "exp-1", "all-MiniLM-L6-v2", "run-dense", 10)
 
-    @patch("server.core.retriever.sparse_search")
+    @patch("server.core.retriever_mongo.sparse_search")
     def test_search_sparse_passes_run_id(self, mock_sparse: MagicMock) -> None:
         mock_sparse.return_value = []
 
@@ -233,7 +233,7 @@ class TestSearchDispatcher:
 
         mock_sparse.assert_called_once_with("q", "exp-1", "all-MiniLM-L6-v2", "run-sparse", 10)
 
-    @patch("server.core.retriever.hybrid_search")
+    @patch("server.core.retriever_mongo.hybrid_search")
     def test_search_hybrid_passes_run_id(self, mock_hybrid: MagicMock) -> None:
         mock_hybrid.return_value = []
 

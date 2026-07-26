@@ -25,17 +25,20 @@ from unittest.mock import patch
 
 import pytest
 
-psycopg = pytest.importorskip("psycopg")
+pytest.importorskip("psycopg")
 
+import psycopg  # noqa: E402
 from pgvector import Vector  # noqa: E402
 
 from server.core import retriever_postgres  # noqa: E402
 from server.db import postgres  # noqa: E402
 from server.db.postgres_store import PostgresStorageBackend  # noqa: E402
 from server.models.enums import RetrievalMethod  # noqa: E402
-
-_DEFAULT_URL = "postgresql://rag:rag@localhost:5433/rag_params_finder"
-_TEST_DATABASE_URL = os.environ.get("RAG_TEST_DATABASE_URL", _DEFAULT_URL)
+from tests.helpers.storage_live import (  # noqa: E402
+    TEST_DATABASE_URL,
+    postgres_reachable,
+    postgres_skip_reason,
+)
 
 _EXP_ID = "exp-pg-dense"
 _RUN_A = "run-model-a"
@@ -46,27 +49,15 @@ _MODEL_A = "all-MiniLM-L6-v2"
 _MODEL_A_TWIN = "bge-small-en-v1.5"
 _MODEL_B = "voyage-3.5-lite"
 
-
-def _database_reachable() -> bool:
-    try:
-        with psycopg.connect(_TEST_DATABASE_URL, connect_timeout=3):
-            return True
-    except Exception:
-        return False
-
-
-def _skip_reason() -> str | None:
-    if _database_reachable():
-        return None
-    if os.environ.get("RAG_REQUIRE_POSTGRES") == "1":
-        pytest.fail(
-            f"RAG_REQUIRE_POSTGRES=1 but no Postgres at {_TEST_DATABASE_URL}.",
-            pytrace=False,
-        )
-    return f"No Postgres at {_TEST_DATABASE_URL} — run ./start-services.sh --postgres"
-
-
-pytestmark = pytest.mark.skipif(_skip_reason() is not None, reason=_skip_reason() or "")
+# skipif must not call postgres_skip_reason() — that can pytest.fail at import
+# when RAG_REQUIRE_POSTGRES=1. Fixtures enforce the hard-fail in CI.
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        (not postgres_reachable()) and os.environ.get("RAG_REQUIRE_POSTGRES") != "1",
+        reason=f"No Postgres at {TEST_DATABASE_URL} — run ./start-services.sh --postgres",
+    ),
+]
 
 
 def _unit_vector(dimensions: int, hot_index: int) -> list[float]:
@@ -77,13 +68,15 @@ def _unit_vector(dimensions: int, hot_index: int) -> list[float]:
 
 
 @pytest.fixture
-def store() -> Iterator[PostgresStorageBackend]:
+def store(live_postgres_pool: None) -> Iterator[PostgresStorageBackend]:
     """A backend on the test database, with this module's experiment removed."""
     from server.settings import settings
 
-    original_url = settings.database_url
-    settings.database_url = _TEST_DATABASE_URL
-    postgres.close_pool()
+    reason = postgres_skip_reason()
+    if reason is not None:
+        pytest.skip(reason)
+
+    settings.database_url = TEST_DATABASE_URL
 
     backend = PostgresStorageBackend()
     postgres.execute("DELETE FROM experiments WHERE experiment_id = %s", (_EXP_ID,))
@@ -91,8 +84,6 @@ def store() -> Iterator[PostgresStorageBackend]:
         yield backend
     finally:
         postgres.execute("DELETE FROM experiments WHERE experiment_id = %s", (_EXP_ID,))
-        postgres.close_pool()
-        settings.database_url = original_url
 
 
 def _chunk(chunk_id: str, run_id: str, model: str, embedding: list[float], index: int = 0) -> dict:

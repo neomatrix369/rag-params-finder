@@ -7,18 +7,22 @@ from typing import SupportsInt, cast
 from fastapi import APIRouter, HTTPException
 
 from server.api.experiments_shared import (
-    mongo_delete_experiment_data,
-    mongo_find_experiment_by_id,
-    mongo_find_experiment_with_runs,
-    mongo_get_experiment_db_stats,
-    mongo_get_vector_db_stats_grouped,
-    mongo_insert_experiment_doc,
-    mongo_list_all_experiment_docs,
-    mongo_list_results_for_experiment,
-    mongo_load_explore_source,
-    mongo_mark_experiment_cancelled_now,
-    mongo_mark_experiment_paused_now,
-    mongo_mark_experiment_running,
+    delete_experiment_data,
+    find_experiment_by_id,
+    find_experiment_with_runs,
+    insert_experiment_doc,
+    list_all_experiment_docs,
+    list_results_for_experiment,
+    load_explore_source,
+    mark_experiment_cancelled_now,
+    mark_experiment_paused_now,
+    mark_experiment_running,
+)
+from server.api.experiments_shared import (
+    get_experiment_db_stats as fetch_experiment_db_stats,
+)
+from server.api.experiments_shared import (
+    get_vector_db_stats_grouped as fetch_vector_db_stats_grouped,
 )
 from server.core.executors import HEAVY_READ_EXECUTOR, schedule_sweep
 from server.core.experiment_control import is_sweep_in_flight, request_cancel, request_pause
@@ -150,11 +154,14 @@ def _normalize_stale_running_status(experiment: dict) -> dict:
 
     experiment_id = experiment.get("experiment_id") or experiment.get("_id")
     if not experiment_id or is_sweep_in_flight(experiment_id):
+        # Still expose Bayesian progress while a sweep is in flight; do not touch storage.
+        _ensure_bayesian_summary(experiment, runs=runs)
         return experiment
 
     runs = list(runs)
-    storage = get_storage_backend()
+    storage = None
     if not runs:
+        storage = get_storage_backend()
         runs = storage.find_run_statuses(experiment_id)
     _ensure_bayesian_summary(experiment, runs=runs)
     if not runs:
@@ -194,6 +201,8 @@ def _normalize_stale_running_status(experiment: dict) -> dict:
         "completion_reason": completion_reason,
         "completed_at": now,
     }
+    if storage is None:
+        storage = get_storage_backend()
     storage.update_experiment(experiment_id, resolved)
     experiment.update(resolved)
     _ensure_bayesian_summary(experiment, runs=runs)
@@ -267,7 +276,7 @@ async def create_experiment(config: ExperimentConfig):
             "retrieval_provider": retrieval_provider_for_summary,
         },
     }
-    await asyncio.to_thread(mongo_insert_experiment_doc, experiment_doc)
+    await asyncio.to_thread(insert_experiment_doc, experiment_doc)
 
     logger.info(
         "experiment created — %s (%s), %s planned run(s), %s run(s) per trial strategy",
@@ -291,7 +300,7 @@ async def create_experiment(config: ExperimentConfig):
 async def list_experiments():
     """List all experiments."""
     logger.debug("list OK — GET /experiments")
-    experiments = await asyncio.to_thread(mongo_list_all_experiment_docs)
+    experiments = await asyncio.to_thread(list_all_experiment_docs)
     for experiment in experiments:
         await asyncio.to_thread(_normalize_stale_running_status, experiment)
     logger.debug("list OK — %s experiment(s)", len(experiments))
@@ -302,7 +311,7 @@ async def list_experiments():
 async def get_vector_db_stats_grouped():
     """Vector DB stats for all experiments, grouped by cluster."""
     logger.debug("vector DB stats — GET /experiments/vector-db-stats")
-    payload = await _run_heavy_read(mongo_get_vector_db_stats_grouped)
+    payload = await _run_heavy_read(fetch_vector_db_stats_grouped)
     info_throttled(
         logger,
         "poll:vector-db-stats",
@@ -316,7 +325,7 @@ async def get_vector_db_stats_grouped():
 async def get_experiment(experiment_id: str):
     """Get a single experiment with its run statuses."""
     logger.debug("detail — GET /experiments/%s", experiment_id)
-    experiment = await asyncio.to_thread(mongo_find_experiment_with_runs, experiment_id)
+    experiment = await asyncio.to_thread(find_experiment_with_runs, experiment_id)
     if not experiment:
         logger.warning("detail failed — experiment not found: %s", experiment_id)
         raise HTTPException(status_code=404, detail="Experiment not found")
@@ -336,7 +345,7 @@ async def get_experiment(experiment_id: str):
 async def get_experiment_results(experiment_id: str):
     """Get all query results for an experiment."""
     logger.debug("results — GET /experiments/%s/results", experiment_id)
-    results = await asyncio.to_thread(mongo_list_results_for_experiment, experiment_id)
+    results = await asyncio.to_thread(list_results_for_experiment, experiment_id)
     info_throttled(
         logger,
         f"poll:results:{experiment_id}",
@@ -351,11 +360,11 @@ async def get_experiment_results(experiment_id: str):
 async def get_experiment_db_stats(experiment_id: str):
     """Get vector database statistics for an experiment."""
     logger.debug("db-stats — GET /experiments/%s/db-stats", experiment_id)
-    experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
+    experiment = await asyncio.to_thread(find_experiment_by_id, experiment_id)
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
 
-    stats = await _run_heavy_read(lambda: mongo_get_experiment_db_stats(experiment_id))
+    stats = await _run_heavy_read(lambda: fetch_experiment_db_stats(experiment_id))
     info_throttled(
         logger,
         f"poll:db-stats:{experiment_id}",
@@ -375,7 +384,7 @@ async def explore_experiment(experiment_id: str, query: str | None = None):
     logger.debug("explore — GET /experiments/%s/explore query=%r", experiment_id, query)
 
     experiment_doc, query_results, run_statuses = await _run_heavy_read(
-        lambda: mongo_load_explore_source(experiment_id)
+        lambda: load_explore_source(experiment_id)
     )
     if not experiment_doc:
         raise HTTPException(status_code=404, detail="Experiment not found")
@@ -401,7 +410,7 @@ async def cancel_experiment(experiment_id: str):
     """Cancel a running experiment."""
     logger.info("cancel started — POST /experiments/%s/cancel", experiment_id)
 
-    experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
+    experiment = await asyncio.to_thread(find_experiment_by_id, experiment_id)
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
 
@@ -412,7 +421,7 @@ async def cancel_experiment(experiment_id: str):
         )
 
     signalled = request_cancel(experiment_id)
-    await asyncio.to_thread(mongo_mark_experiment_cancelled_now, experiment_id)
+    await asyncio.to_thread(mark_experiment_cancelled_now, experiment_id)
 
     logger.info("cancel OK — %s in-flight=%s", experiment_id, signalled)
     return {
@@ -431,7 +440,7 @@ async def pause_experiment(experiment_id: str):
     """Pause a running experiment after the current phase completes."""
     logger.info("pause started — POST /experiments/%s/pause", experiment_id)
 
-    experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
+    experiment = await asyncio.to_thread(find_experiment_by_id, experiment_id)
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
 
@@ -444,7 +453,7 @@ async def pause_experiment(experiment_id: str):
     signalled = request_pause(experiment_id)
 
     if not signalled:
-        await asyncio.to_thread(mongo_mark_experiment_paused_now, experiment_id)
+        await asyncio.to_thread(mark_experiment_paused_now, experiment_id)
 
     logger.info("pause OK — %s in-flight=%s", experiment_id, signalled)
     return {
@@ -459,7 +468,7 @@ async def resume_experiment(experiment_id: str):
     """Resume a paused experiment from the next incomplete parameter combination."""
     logger.info("resume started — POST /experiments/%s/resume", experiment_id)
 
-    experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
+    experiment = await asyncio.to_thread(find_experiment_by_id, experiment_id)
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
 
@@ -489,7 +498,7 @@ async def resume_experiment(experiment_id: str):
             status_code=409,
             detail=("Bayesian experiments cannot be resumed (study state is in-memory only)"),
         )
-    await asyncio.to_thread(mongo_mark_experiment_running, experiment_id)
+    await asyncio.to_thread(mark_experiment_running, experiment_id)
     schedule_sweep(resume_sweep, experiment_id, config)
 
     runs = _planned_run_count(config)
@@ -507,7 +516,7 @@ async def delete_experiment(experiment_id: str):
     """Delete an experiment and all its associated data (chunks, results, run statuses)."""
     logger.info("delete started — DELETE /experiments/%s", experiment_id)
 
-    experiment = await asyncio.to_thread(mongo_find_experiment_by_id, experiment_id)
+    experiment = await asyncio.to_thread(find_experiment_by_id, experiment_id)
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
 
@@ -517,7 +526,7 @@ async def delete_experiment(experiment_id: str):
             detail="Cannot delete running experiment. Cancel it first.",
         )
 
-    deleted_counts = await asyncio.to_thread(mongo_delete_experiment_data, experiment_id)
+    deleted_counts = await asyncio.to_thread(delete_experiment_data, experiment_id)
 
     logger.info("delete OK — %s counts=%s", experiment_id, deleted_counts)
     return {

@@ -52,12 +52,20 @@ echo "=== Pre-push gates (push-specific checks) ==="
 # stack is running. That must not leak into the dual-backend unit suite — Atlas
 # preflight tests short-circuit and fail when the ambient backend is not mongo.
 # Integration jobs that need Postgres set STORAGE_BACKEND explicitly themselves.
+# Follow-up (after contract suite lands): re-examine whether this unset is still
+# required, or whether unit tests should pin backend per-module instead.
 unset STORAGE_BACKEND || true
 
 echo ""
 echo "1/3 Full test suite + coverage..."
 if [[ "$BACKEND_CHANGED" -gt 0 ]]; then
+  # Live Mongo/Postgres suites belong in dedicated CI jobs (see ci.yml).
   uv run pytest --tb=short -q \
+    --ignore=tests/contract \
+    --ignore=tests/test_postgres_store_integration.py \
+    --ignore=tests/test_postgres_dense_retrieval.py \
+    --ignore=tests/test_postgres_sparse_hybrid.py \
+    -m "not integration" \
     --cov=server.core.search_index_plan \
     --cov=server.core.search_index_guard \
     --cov=server.core.results_analyzer \

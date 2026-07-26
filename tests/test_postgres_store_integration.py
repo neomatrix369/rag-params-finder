@@ -20,53 +20,33 @@ from datetime import UTC, datetime
 
 import pytest
 
-psycopg = pytest.importorskip("psycopg")
+pytest.importorskip("psycopg")
 
 from server.db import postgres  # noqa: E402
 from server.db.postgres_store import PostgresStorageBackend  # noqa: E402
 from server.models.enums import ExperimentStatus  # noqa: E402
-
-_DEFAULT_URL = "postgresql://rag:rag@localhost:5433/rag_params_finder"
-_TEST_DATABASE_URL = os.environ.get("RAG_TEST_DATABASE_URL", _DEFAULT_URL)
+from tests.helpers.storage_live import (  # noqa: E402
+    TEST_DATABASE_URL,
+    postgres_reachable,
+    postgres_skip_reason,
+)
 
 _EXP_ID = "exp-pg-integration"
 _RUN_ID = "run-pg-integration"
 
-
-def _database_reachable() -> bool:
-    try:
-        with psycopg.connect(_TEST_DATABASE_URL, connect_timeout=3):
-            return True
-    except Exception:
-        return False
-
-
-def _skip_reason() -> str | None:
-    """Why this module cannot run, or None when it can.
-
-    CI sets RAG_REQUIRE_POSTGRES=1 because it provisions a service container: a
-    suite that silently skips there would report green forever. Locally the
-    database is optional, so an unreachable one skips.
-    """
-    if _database_reachable():
-        return None
-    if os.environ.get("RAG_REQUIRE_POSTGRES") == "1":
-        pytest.fail(
-            f"RAG_REQUIRE_POSTGRES=1 but no Postgres at {_TEST_DATABASE_URL}. "
-            "The CI service container is missing or unhealthy.",
-            pytrace=False,
-        )
-    return f"No Postgres at {_TEST_DATABASE_URL} — run ./start-services.sh --postgres"
-
-
-pytestmark = pytest.mark.skipif(
-    _skip_reason() is not None,
-    reason=_skip_reason() or "",
-)
+# skipif must not call postgres_skip_reason() — that can pytest.fail at import
+# when RAG_REQUIRE_POSTGRES=1. Fixtures enforce the hard-fail in CI.
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        (not postgres_reachable()) and os.environ.get("RAG_REQUIRE_POSTGRES") != "1",
+        reason=f"No Postgres at {TEST_DATABASE_URL} — run ./start-services.sh --postgres",
+    ),
+]
 
 
 @pytest.fixture
-def store() -> Iterator[PostgresStorageBackend]:
+def store(live_postgres_pool: None) -> Iterator[PostgresStorageBackend]:
     """A backend bound to the test database, with the fixture's rows removed.
 
     Cleanup runs before and after so a crashed run cannot poison the next one.
@@ -75,9 +55,11 @@ def store() -> Iterator[PostgresStorageBackend]:
     """
     from server.settings import settings
 
-    original_url = settings.database_url
-    settings.database_url = _TEST_DATABASE_URL
-    postgres.close_pool()
+    reason = postgres_skip_reason()
+    if reason is not None:
+        pytest.skip(reason)
+
+    settings.database_url = TEST_DATABASE_URL
 
     backend = PostgresStorageBackend()
     postgres.execute("DELETE FROM experiments WHERE experiment_id = %s", (_EXP_ID,))
@@ -85,8 +67,6 @@ def store() -> Iterator[PostgresStorageBackend]:
         yield backend
     finally:
         postgres.execute("DELETE FROM experiments WHERE experiment_id = %s", (_EXP_ID,))
-        postgres.close_pool()
-        settings.database_url = original_url
 
 
 def _experiment_doc(**overrides: object) -> dict:
@@ -263,13 +243,13 @@ class TestPostgresConnectionShould:
         ### Given
         from server.db.postgres_uri import STORAGE_MODE_LOCAL_POSTGRES, postgres_storage_mode
 
-        assert postgres_storage_mode(_TEST_DATABASE_URL) == STORAGE_MODE_LOCAL_POSTGRES
-        assert "sslmode" not in postgres.postgres_connect_kwargs(_TEST_DATABASE_URL), (
+        assert postgres_storage_mode(TEST_DATABASE_URL) == STORAGE_MODE_LOCAL_POSTGRES
+        assert "sslmode" not in postgres.postgres_connect_kwargs(TEST_DATABASE_URL), (
             "A local container must not have TLS forced on it"
         )
 
         ### When
-        postgres.bootstrap_schema(_TEST_DATABASE_URL)
+        postgres.bootstrap_schema(TEST_DATABASE_URL)
 
         ### Then
         assert (

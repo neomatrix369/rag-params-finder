@@ -38,6 +38,10 @@ class TestStoreFactoryShould:
         with (
             patch("server.settings.settings.storage_backend", "mongo"),
             patch(
+                "server.settings.settings.mongodb_uri",
+                "mongodb://localhost:27017/rag_params_finder?directConnection=true",
+            ),
+            patch(
                 "server.db.mongo_store.get_mongo_storage",
                 return_value=mock_storage,
             ),
@@ -65,6 +69,10 @@ class TestStoreFactoryShould:
         with (
             patch("server.settings.settings.storage_backend", "mongo"),
             patch(
+                "server.settings.settings.mongodb_uri",
+                "mongodb://localhost:27017/rag_params_finder?directConnection=true",
+            ),
+            patch(
                 "server.db.mongo_store.get_mongo_retriever",
                 return_value=mock_retriever,
             ),
@@ -73,6 +81,25 @@ class TestStoreFactoryShould:
 
         ### Then
         assert actual is mock_retriever, f"Expected mongo retriever adapter, got {actual!r}"
+
+    def test_given_mongo_without_uri_when_get_storage_backend_then_raises_value_error(
+        self,
+    ) -> None:
+        """
+        Scenario: Factory fails closed when MONGODB_URI is missing.
+        Slice: slice-32-storage-backend-protocol
+
+        Given STORAGE_BACKEND="mongo" and MONGODB_URI is empty,
+        When get_storage_backend() is called,
+        Then ValueError names the missing URI (matches CI unit tier).
+        """
+        ### Given / When / Then
+        with (
+            patch("server.settings.settings.storage_backend", "mongo"),
+            patch("server.settings.settings.mongodb_uri", ""),
+            pytest.raises(ValueError, match="requires MONGODB_URI"),
+        ):
+            get_storage_backend()
 
     def test_given_storage_backend_redis_when_get_storage_backend_then_raises_value_error(
         self,
@@ -128,6 +155,10 @@ class TestStoreFactoryShould:
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
             patch(
+                "server.settings.settings.database_url",
+                "postgresql://rag:rag@localhost:5433/rag_params_finder",
+            ),
+            patch(
                 "server.db.postgres_store.get_postgres_storage",
                 return_value=mock_storage,
             ),
@@ -154,6 +185,10 @@ class TestStoreFactoryShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
+            patch(
+                "server.settings.settings.database_url",
+                "postgresql://rag:rag@localhost:5433/rag_params_finder",
+            ),
             patch(
                 "server.db.postgres_store.get_postgres_retriever",
                 return_value=mock_retriever,

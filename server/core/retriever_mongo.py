@@ -1,3 +1,9 @@
+"""MongoDB / Atlas-only dense, sparse, and hybrid retrieval.
+
+Mongo-only: uses Atlas ``$vectorSearch`` and Atlas Search (BM25). The Postgres
+counterpart is ``server.core.retriever_postgres``.
+"""
+
 import time
 
 from server.core.model_registry import get_index_name

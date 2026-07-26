@@ -24,6 +24,7 @@ logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 async def lifespan(app: FastAPI):
     """Ensure indexes exist on startup."""
     logger.info("boot — server starting")
+    settings.ensure_storage_ready()
     # Atlas search indexes are a Mongo concern. Postgres applies schema.sql
     # (including HNSW) when its pool opens — reaching for Mongo here would fail
     # a --postgres stack that has no MONGODB_URI / no Atlas Local container.

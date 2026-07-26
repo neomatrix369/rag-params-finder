@@ -295,7 +295,7 @@ def search(
     top_k: int = 20,
     query_embedding: list[float] | None = None,
 ) -> list[SearchResult]:
-    """Dispatcher mirroring ``server.core.retriever.search``."""
+    """Dispatcher mirroring ``server.core.retriever_mongo.search``."""
     if method == RetrievalMethod.DENSE:
         if query_embedding is None:
             raise ValueError("query_embedding is required for dense search")

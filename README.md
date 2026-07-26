@@ -81,7 +81,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 |:---:|:---|
 | ![Experiments list](docs/images/01-experiments-list.png) | Result-led experiment cards with lifecycle state, sweep outcome, and an explicit next action |
 
-### Atlas Local + local embedding models (`example-mongodb-local.yaml`)
+### Atlas Local + local embedding models (`configs/mongodb/example-local.yaml`)
 
 Runs entirely offline — no cloud account, no API key. Uses `all-MiniLM-L6-v2` (384-dim) sentence-transformers via `./start-services.sh --local`.
 
@@ -90,7 +90,7 @@ Runs entirely offline — no cloud account, no API key. Uses `all-MiniLM-L6-v2` 
 | ![Experiment detail — local](docs/images/example-mongodb-local/02-experiment-detail.png) | **Experiment detail** — lifecycle summary, next step, configuration, and run results |
 | ![Search Explorer — local](docs/images/example-mongodb-local/03-search-explorer.png) | **Search Explorer** — best-parameters card, ranked configs with score bars |
 
-### Atlas Local + SIE embedding models (`example-mongodb-sie.yaml`)
+### Atlas Local + SIE embedding models (`configs/mongodb/example-sie.yaml`)
 
 Uses [SIE](docs/user-guide/sie-setup.md) open-source embeddings — BGE-M3 and Stella-v5 (1024-dim dense) via remote gateway or self-hosted Docker.
 

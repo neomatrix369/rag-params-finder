@@ -1,3 +1,5 @@
+"""Mongo-only: pymongo client singleton and collection name constants."""
+
 from pymongo import MongoClient
 from pymongo.database import Database
 
