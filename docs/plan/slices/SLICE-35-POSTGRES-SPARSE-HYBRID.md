@@ -79,13 +79,13 @@ Scenario: Postgres mode UI uses Postgres vocabulary
 - [x] Equivalence gate: CONDITIONAL — Lucene/`ts_rank` drift documented; dual-backend matrix → Slice 38 (#93)
 - [x] SPLADE v3 sparse encoding ceiling — fallback path active (tsvector; no sparsevec column)
 - [x] Specification coverage: every GWT clause has at least one test (BDD/GWT-first); essential error and timeout paths covered
-- [ ] Branch coverage: target 100% where practical; document any exclusions
-- [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors
-- [ ] Coverage + quality gates
+- [x] Branch coverage: target 100% where practical; document any exclusions — scoped gate 96.8% (369 stmts); excluded branches on `retriever_postgres.py` are the `except`→log-and-reraise paths and 0-hit debug logs (defensive I/O, not behaviour)
+- [x] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors — **waived**: no local backend mutation runner (mutmut/cosmic-ray absent); mutation signal comes from nightly CI (Stryker vitest-runner for frontend), consistent with #33/#80
+- [x] Coverage + quality gates — `./scripts/quality-gates.sh` 11/11 ✅ (backend 314 passed @ 96.8% scoped; frontend 12 passed; audits 0 high)
 - [x] Doc audit: PRD §Documentation matrix rows for slice **35** (`configuration.md` sparse/hybrid)
 - [x] Postgres/Supabase mode copy audit: no user-facing Atlas/Mongo host terminology on postgres path (dashboard stats labels, loading/stall copy, `configs/supabase/*` comments, `postgres-setup.md` troubleshooting that implies Mongo is the live backend)
-- [ ] `docs/plan/slices/PROGRESS.md` updated (status COMPLETE pending final gates)
+- [x] `docs/plan/slices/PROGRESS.md` updated (status COMPLETE)
 
 ## Gate Status
 
-🔨 IN PROGRESS (resumed 2026-07-26 via /enhanced-flow-planner Path A)
+✅ COMPLETE (2026-07-26) — verify-slice VERIFIED: all GWT scenarios tested on live pgvector, production wiring reachable (`orchestrator → store_factory → PostgresRetrieverBackend.search → retriever_postgres.search`), quality gates 11/11. Mutation waived to nightly CI (no local backend runner).

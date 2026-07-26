@@ -1,0 +1,16 @@
+{
+  "slice": 35,
+  "gate_status": "PASSED",
+  "verified_at": "2026-07-26",
+  "verifier": "verify-slice",
+  "evidence": {
+    "acceptance_criteria": "all GWT scenarios have tests in tests/test_postgres_sparse_hybrid.py (sparse keyword ranking, embedding_model isolation, hybrid RRF vs pure dense/sparse, empty-model + missing-hybrid-embedding guards, sparse/hybrid dispatcher); Postgres-mode UI vocabulary in frontend/src/utils/storageLabels.test.ts",
+    "static_integration": "orchestrator._search_traditional_retriever -> get_retriever_backend().search -> PostgresRetrieverBackend.search (postgres_store.py:395) -> retriever_postgres.search dispatcher routes SPARSE/HYBRID",
+    "runtime": "live pgvector: 314 backend tests passed (35 in the retriever + factory scope); frontend 12 passed",
+    "quality_gates": "./scripts/quality-gates.sh 11/11 PASSED; backend scoped coverage 96.8% (fail-under 80); frontend + backend audits 0 high",
+    "mutation": "waived — no local backend mutation runner; nightly CI (Stryker vitest-runner) carries frontend mutation signal (DECISIONS #95, precedent #33/#80)",
+    "equivalence": "CONDITIONAL — Lucene vs ts_rank drift documented; full dual-backend matrix deferred to Slice 38 (DECISIONS #93)"
+  },
+  "decisions": [92, 93, 94, 95],
+  "pr": "https://github.com/neomatrix369/rag-params-finder/pull/112"
+}

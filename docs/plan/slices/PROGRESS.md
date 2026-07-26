@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-26 (Slice 35 🔨 IN PROGRESS — sparse/hybrid + Supabase-mode copy hygiene via /enhanced-flow-planner Path A)
-**Current**: Active migration: **34** ✅ dense → **35** 🔨 sparse/hybrid + copy scrub → **36–38**. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 gate closure · **33** 🔨. Then **22** · **28** · **41B** · deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-26 (Slice 35 ✅ COMPLETE — Postgres sparse/hybrid + Supabase-mode copy hygiene; verify-slice VERIFIED, quality gates 11/11)
+**Current**: Active migration: **34** ✅ dense → **35** ✅ sparse/hybrid + copy scrub → **36–38**. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 gate closure · **33** 🔨. Then **22** · **28** · **41B** · deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -51,7 +51,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 32B — Storage Protocol Gate Closure | 📋 PLANNED | ~1–2 h | Coverage, mutation/waiver, full gates, nw-review, COMPLETE — [`SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md`](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) |
 | 33 — Postgres schema + CRUD | 🔨 IN PROGRESS | ~4–6 h | Pool, schema, cascade, local Path A (`--postgres` → rename in 37), 19 live tests, CI job — hosted DX deferred to 37 — [`SLICE-33-POSTGRES-SCHEMA-CRUD.md`](SLICE-33-POSTGRES-SCHEMA-CRUD.md) |
 | 34 — Postgres dense retrieval | ✅ COMPLETE | ~3–4 h | pgvector dense + embedding_model filter; Atlas-scale scores; HNSW iterative_scan; mode/hosted DX handed to 36–37 — [`SLICE-34-POSTGRES-DENSE-RETRIEVAL.md`](SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) |
-| 35 — Postgres sparse + hybrid | 🔨 IN PROGRESS | ~4–5 h | tsvector + RRF + Supabase-mode copy hygiene; equivalence CONDITIONAL → 38 — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
+| 35 — Postgres sparse + hybrid | ✅ COMPLETE | ~4–5 h | tsvector + RRF + Supabase-mode copy hygiene; equivalence CONDITIONAL → 38 — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
 | 36 — Preflight + stats + storage_mode | 📋 PLANNED | ~3–4 h | Index introspection, db-stats extend, four-value mode badge — [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md) |
 | 37 — Local/cloud parity + low-friction switch | 📋 PLANNED | ~3–4 h | `--mongodb\|postgres-local\|cloud`, ensure_env, config↔server 422, lifecycle, Path B — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) |
 | 38 — Cutover + ADR-004 | 📋 PLANNED | ~3–4 h | Side-by-side quality, ADR-004, default `postgres-cloud` — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) |
@@ -83,7 +83,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 32B | Must | 📋 PLANNED | 32C | Gate closure — coverage, mutation/waiver, full gates, nw-review |
 | 33 | Must | 🔨 IN PROGRESS | 32B | Supabase schema + CRUD + local pgvector smoke |
 | 34 | Must | ✅ COMPLETE | 33 | Dense pgvector |
-| 35 | Must | 🔨 IN PROGRESS | 34 | Sparse + hybrid + copy hygiene |
+| 35 | Must | ✅ COMPLETE | 34 | Sparse + hybrid + copy hygiene |
 | 36 | Must | 📋 PLANNED | 35 | Preflight + db-stats + storage mode (replaces 27) |
 | 37 | Must | 📋 PLANNED | 36 | Supabase local/hosted parity |
 | 38 | Must | 📋 PLANNED | 37 | ADR-004 + quality comparison artifact |
@@ -705,6 +705,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-07-25 | ops | Keep `numpy>=2` (sie-sdk); override `torch>=2.6`; drop Intel-mac from uv environments | `numpy<2` conflicts with sie-sdk; torch 2.2 + numpy 2.5 → `Numpy is not available`; torch≥2.6 has no x86_64 Darwin wheels |
 | 2026-07-25 | 32C | Added Must sub-slice 32C (review remediation); keep 32B gate-only; order **32 → 32C → 32B → 33** | Craft/architecture nw-review BLOCKERs (adapter split, port schemas, index deferral, checklist hygiene) are a separate unit from verification gates; 32B stays medium (~1–2 h) |
 | 2026-07-26 | 35 | No sparsevec; tsvector keyword sparse; RRF SQL CTEs rrf_k=60; Supabase-mode Host/Table labels | SPLADE storage deferred; Lucene drift → Slice 38 CONDITIONAL; copy hygiene (#90) |
+| 2026-07-26 | 35 | Slice 35 → ✅ COMPLETE — verify-slice VERIFIED; quality gates 11/11 (backend 314 @ 96.8% scoped, frontend 12, audits 0 high); mutation waived to nightly CI | All GWT scenarios tested on live pgvector; production wiring reachable; no local backend mutation runner (DECISIONS #95) |
 | 2026-07-25 | 32B | Split remaining Slice 32 After-Checks into Must sub-slice 32B (gate closure); Slice 33 Depends on → 32B | Implementation is on PR #110; coverage/mutation/full-gates/nw-review/tracker close-out are a distinct verifiable unit and must not block reading the Protocol work as “done”; keeps 33 gated on COMPLETE evidence |
 | 2026-07-25 | 32 | Keep `atlas.py` as connection singleton; put CRUD/search behind `StorageBackend`/`RetrieverBackend` in `mongo_store.py`; factory selects by `STORAGE_BACKEND` | Dual-backend seam for Postgres (33+) without rewriting call sites; Protocol enforces cross-adapter contract (PRD Decision #10 exception) |
 | 2026-07-25 | 42 | Renamed `docker` path-filter → `docker_files` (only `docker/**` + `docker-compose*.yml`); docker job trigger expressed as `docker_files \|\| backend \|\| frontend` at job `if:` level | Removes 5 redundant path lines (server/**, cli/**, frontend/**, pyproject.toml, uv.lock) that duplicated `backend` and `frontend` filters; `deps` filter left unchanged — its overlap with backend is load-bearing precision (dep-audit should not fire on source-only edits) |
