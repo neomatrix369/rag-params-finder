@@ -28,10 +28,12 @@ Landed on `main` (do **not** re-implement):
 
 | Concern | Owner |
 |---|---|
-| Four-value `storage_mode` on `/healthz`, db-stats, badge; Postgres index preflight 422; indexes CLI on Postgres | **36** |
-| `--mongodb\|postgres-local\|cloud` flags, `ensure_env`, config↔server mismatch 422, hosted smoke Path B | **37** (DECISIONS #87) |
+| Four-value `storage_mode` on `/healthz`, db-stats, badge; Postgres index preflight 422; indexes CLI on Postgres | **36** ✅ |
+| Four-flag parse, `ensure_env`, config↔server 422, compose profile spelling, `database_provider` / `vector_db_id` normalize, Path B docs | **37** (absorbs 36 close leftovers — see SLICE-37 §Absorbed from Slice 36) |
 | Side-by-side quality matrix + ADR-004 | **38** |
 | Operator FAQ + supabase example smoke evidence | **43** ✅ |
+
+**Not owned by 36 (moved to 37 at close):** start-services four-flag grid; compose `local-postgres` rename; YAML/`default_database_provider`/`vector_db_id` `supabase` label cleanup; configs folder rename (deferred as non-blocker).
 
 ---
 

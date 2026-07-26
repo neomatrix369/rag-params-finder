@@ -7,6 +7,30 @@
 **PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md)
 
 > Atlas Local (25/25B) analogue for **operator DX**. Local pgvector compose already shipped in Slice 33 (`--postgres`). This slice owns the symmetric flag vocabulary, hosted Supabase start without Mongo URI, config↔server consistency, lifecycle subcommands, Path B docs, and **least-friction Mongo ↔ Postgres switching**.
+>
+> **Also absorbs leftovers from Slice 36 close (2026-07-26):** vocabulary surfaces that still mix Atlas/Supabase product names with the engine × location axes — see [Absorbed from Slice 36](#absorbed-from-slice-36-close--2026-07-26).
+
+---
+
+## Absorbed from Slice 36 close — 2026-07-26
+
+Slice 36 shipped four-value `storage_mode` (`mongodb|postgres` × `local|cloud`) and Postgres catalog preflight. These items were **explicitly out of scope for 36** (or left unfinished) and are **Must/Should for 37**:
+
+| Item | Why it is not 36 | 37 action |
+|---|---|---|
+| Four-flag `./start-services.sh --{mongodb\|postgres}-{local\|cloud}` + `ensure_env` | Flags print mode tokens; tokens landed first in 36 | Implement parse + hosted path without requiring `MONGODB_URI` |
+| Config ↔ server mismatch **HTTP 422** | Needs flag vocabulary + remediation text | Reject `database_provider` engine ≠ `STORAGE_BACKEND` before persist |
+| Compose profile `local-postgres` vs mode `postgres-local` | Spelling drift; 36 invariant claimed match | Rename/alias profiles to `mongodb-local` / `postgres-local` |
+| `database_provider: supabase` YAML + `settings.default_database_provider()` → `"supabase"` | Label leaks a third “backend”; mode already uses `postgres-cloud` | Normalize `supabase` → `postgres` (+ deprecation warning); stop emitting `supabase` as default provider label |
+| `vector_db_id` like `supabase:postgres-local` | Mixes provider label into stats group key | Group by engine + location (or `storage_mode`) after normalize |
+| `configs/supabase/` peer of `configs/mongodb/` | Product folder vs engine folder | **Keep** folder for Path B examples this slice (PRD: no `supabase-setup.md`); document in switching table that path ≠ `STORAGE_BACKEND`. Full rename → optional follow-up, not a 37 blocker |
+| Canonical engine × location doc blurb | Partially in `configuration.md` / HANDOFF | Expand getting-started + postgres-setup switching table; Atlas/Supabase = cloud shorthand only |
+
+**Canonical axes (do not regress):**
+
+1. Engine — `STORAGE_BACKEND`: `mongodb` \| `postgres`
+2. Location — `storage_mode`: `{engine}-local` \| `{engine}-cloud`
+3. Atlas / Supabase — cloud host shorthand per engine, **not** a peer second axis
 
 ---
 
@@ -18,15 +42,16 @@
   - `start-services.sh` / `scripts/lib/compose.sh` — four-flag parse + `ensure_env` + hints + `postgres` lifecycle
   - `docker-compose.yml` — profiles renamed/aliased to `mongodb-local` / `postgres-local`
   - `server/settings.py` / `store_factory.py` — `STORAGE_BACKEND` accepts `mongodb` (+ legacy `mongo`)
-    - **Partial land 2026-07-26:** canonical default is `mongodb`; `normalize_storage_backend()` aliases `mongo` → `mongodb`. Remaining 37 work: start-services mode grid, URI aliases, config↔server 422.
+    - **Partial land 2026-07-26:** canonical default is `mongodb`; `normalize_storage_backend()` aliases `mongo` → `mongodb`. Remaining 37 work: start-services mode grid, URI aliases, config↔server 422, `default_database_provider()` must not return bare `supabase` as a peer backend label
   - `server/models/config.py` — normalize `database_provider` (`supabase` → `postgres`)
+  - `server/db/postgres_stats.py` / stats grouping — `vector_db_id` / group keys after provider normalize (no `supabase:` prefix once labels are engine-only)
   - `server/api/experiments.py` (or shared helper) — reject config/backend mismatch before persist
   - `cli/api_client.py` / `cli/main.py` — optional preflight against `/healthz` with same remediation text
-  - `configs/supabase/example-local.yaml`, `configs/supabase/example-local.yaml` (+ mongodb cloud example if missing)
+  - `configs/supabase/example-*.yaml` (+ mongodb cloud example if missing) — keep path; examples work under `--postgres-local` and `--postgres-cloud`
   - `server/core/startup_reconciliation.py` — verify Postgres path via StorageBackend + tests
   - `docs/user-guide/postgres-setup.md` — Path B + switching table; **no** separate `supabase-setup.md`
   - Doc sweep: `README.md`, `QUICKSTART.md`, `CLAUDE.md`, `AGENTS.md`, `mongodb-setup.md`, `configuration.md`, `local-environment.md`, `CHANGELOG.md`
-- Exit criteria: Two-step switch works for all four modes; hosted smoke; lifecycle parity; mismatch 422 with remediation; Mongo path unchanged under `--mongodb-local` and legacy `--local`
+- Exit criteria: Two-step switch works for all four modes; hosted smoke; lifecycle parity; mismatch 422 with remediation; compose profile names match `storage_mode` compounds; Mongo path unchanged under `--mongodb-local` and legacy `--local`
 - Commit pattern: `feat(slice-37): low-friction db-type local/cloud switching`
 - **Doc exit:** `/sync-docs` — postgres-setup Path B, getting-started switching table, troubleshooting, docs/README, README, development.md
 
@@ -210,7 +235,7 @@ Scenario: Supabase paused project surfaces clear error
 
 ## Before-Checks [GATE]
 
-- [ ] Slice 36 ✅ PASSED (or mode half already pulled forward — note in Progress)
+- [x] Slice 36 ✅ PASSED — `gate-evidence/slice-36.json` (2026-07-26); four-value `storage_mode` + Postgres preflight landed
 - [ ] Supabase project credentials for cloud smoke (or documented skip)
 - [ ] Confirm Slice 33 local profile still healthy under current `--postgres` before rename
 
@@ -223,13 +248,16 @@ Scenario: Supabase paused project surfaces clear error
 - [ ] Hosted smoke documented in `postgres-setup.md` Path B (not a separate `supabase-setup.md`)
 - [ ] Config mismatch 422 + CLI remediation tested
 - [ ] `supabase` / `mongo` aliases normalize; no silent cross-backend writes
+- [ ] Compose profiles / service names align with `storage_mode` compounds (`postgres-local`, not `local-postgres`)
+- [ ] `default_database_provider()` / stats `vector_db_id` no longer treat `supabase` as a peer backend label (engine = `postgres`; cloud host = Supabase shorthand in docs only)
+- [ ] Docs state engine × location axes; Atlas/Supabase described only as cloud shorthand
 - [ ] Boot reconciliation tests for Postgres path
 - [ ] Mongo `--mongodb-local` and legacy `--local` both work
 - [ ] `ensure_env` never requires `MONGODB_URI` when effective backend is postgres
-- [ ] Post-start hint includes matching example config path
+- [ ] Post-start hint includes matching example config path + printed `storage_mode`
 - [ ] Specification coverage: every GWT clause has at least one test or documented manual smoke
 - [ ] Branch coverage: target 100% where practical; document any exclusions
-- [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors
+- [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors (or DECISIONS waiver)
 - [ ] Coverage + quality gates
 - [ ] Doc audit: PRD §Documentation matrix rows for slice **37** (setup docs; flag + switching table)
 - [ ] `/sync-docs` run — README, docs/README, user-guide, development.md footprint verified
@@ -237,4 +265,4 @@ Scenario: Supabase paused project surfaces clear error
 
 ## Gate Status
 
-📋 PLANNED
+📋 PLANNED — Slice 36 leftovers absorbed 2026-07-26; ready when 36 is merged
