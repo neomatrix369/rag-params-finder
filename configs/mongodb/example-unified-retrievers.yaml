@@ -17,7 +17,7 @@
 #   - vector_index_384  + text_search_index
 #   See docs/user-guide/mongodb-setup.md#before-you-run-a-sweep
 
-experiment_name: example-unified-retrievers
+experiment_name: example-mongodb-unified-retrievers
 
 data_paths:
   - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf

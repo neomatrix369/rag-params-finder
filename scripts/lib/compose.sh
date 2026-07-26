@@ -20,6 +20,16 @@ RAG_MONGODB_LOCAL_VOLUMES=(
 # Back-compat alias (db volume only)
 RAG_MONGODB_LOCAL_VOLUME="$RAG_MONGODB_LOCAL_DB_VOLUME"
 
+# ── Postgres / pgvector (Supabase stand-in) ───────────────────────────────────
+# Host port is 5433 so a developer's own Postgres on 5432 keeps working.
+RAG_POSTGRES_USER="${POSTGRES_USER:-rag}"
+RAG_POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-rag}"
+RAG_POSTGRES_DB="${POSTGRES_DB:-rag_params_finder}"
+RAG_LOCAL_DATABASE_URL_HOST="${RAG_LOCAL_DATABASE_URL_HOST:-postgresql://${RAG_POSTGRES_USER}:${RAG_POSTGRES_PASSWORD}@localhost:5433/${RAG_POSTGRES_DB}}"
+RAG_LOCAL_DATABASE_URL_DOCKER="${RAG_LOCAL_DATABASE_URL_DOCKER:-postgresql://${RAG_POSTGRES_USER}:${RAG_POSTGRES_PASSWORD}@postgres-local:5432/${RAG_POSTGRES_DB}}"
+RAG_POSTGRES_LOCAL_CONTAINER="${POSTGRES_LOCAL_CONTAINER_NAME:-rag-params-finder-postgres-local}"
+RAG_POSTGRES_LOCAL_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_postgres_local_data"
+
 compose_require_docker_daemon() {
   if ! docker info >/dev/null 2>&1; then
     echo "Cannot connect to the Docker daemon. Is Docker Desktop running?" >&2
@@ -54,6 +64,35 @@ compose_local_atlas_profiles() {
   COMPOSE_PROFILES=(--profile local-atlas)
 }
 
+compose_local_postgres_active() {
+  [[ "${RAG_LOCAL_POSTGRES:-}" == "1" || "${LOCAL_POSTGRES:-}" == "1" ]]
+}
+
+compose_local_postgres_profiles() {
+  COMPOSE_PROFILES=(--profile local-postgres)
+}
+
+compose_export_local_postgres_env() {
+  export RAG_SERVER_DATABASE_URL="$RAG_LOCAL_DATABASE_URL_DOCKER"
+  export STORAGE_BACKEND=postgres
+}
+
+compose_clear_local_postgres_env() {
+  unset RAG_SERVER_DATABASE_URL STORAGE_BACKEND
+}
+
+print_local_postgres_cli_hints() {
+  echo ""
+  echo "Local Postgres + pgvector is ready."
+  echo ""
+  echo "  Connection string (CLI / host server):"
+  echo "    export STORAGE_BACKEND=postgres"
+  echo "    export DATABASE_URL=\"$RAG_LOCAL_DATABASE_URL_HOST\""
+  echo ""
+  echo "  Reset data:"
+  echo "    docker rm -f $RAG_POSTGRES_LOCAL_CONTAINER && docker volume rm $RAG_POSTGRES_LOCAL_VOLUME"
+}
+
 compose_export_local_atlas_env() {
   export RAG_SERVER_MONGODB_URI="$RAG_LOCAL_MONGODB_URI_DOCKER"
   export RAG_MONGODB_STORAGE_LIMIT_MB=0
@@ -72,7 +111,7 @@ print_local_atlas_cli_hints() {
   echo "    export MONGODB_URI=\"$RAG_LOCAL_MONGODB_URI_HOST\""
   echo ""
   echo "  Quick sweep:"
-  echo "    MONGODB_URI=\"$RAG_LOCAL_MONGODB_URI_HOST\" rag-params-finder run --config configs/example-mongodb-local.yaml"
+  echo "    MONGODB_URI=\"$RAG_LOCAL_MONGODB_URI_HOST\" rag-params-finder run --config configs/mongodb/example-local.yaml"
   if [[ "$include_full_stack" == "1" ]]; then
     echo ""
     echo "  Full stack with local Atlas:"

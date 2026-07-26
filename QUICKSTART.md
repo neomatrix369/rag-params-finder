@@ -18,6 +18,7 @@
   - [Path A — Docker + zero cloud](#path-a--docker--zero-cloud-recommended-offline)
   - [Path B — Docker + Atlas cloud](#path-b--docker--atlas-cloud-one-command)
   - [Path C — Manual](#path-c--manual-two-terminals-any-mongodb-backend)
+  - [Path D — Docker + Postgres/pgvector](#path-d--docker--postgrespgvector-dense-retrieval)
 - [Verify the stack](#verify-the-stack)
 - [Run a sweep](#run-a-sweep)
 - [Next steps](#next-steps)
@@ -136,7 +137,7 @@ The `.env.example` file contains the available settings and safe placeholders. T
 
 Keep credentials in `.env`; never put them in committed YAML configs.
 
-> **Naming note:** `example-mongodb-local.yaml` uses **local embedding models**(sentence-transformers), not local MongoDB. Any example config works with either MongoDB backend — only `MONGODB_URI` (or `./start-services.sh --local`) picks the database.
+> **Naming note:** `configs/mongodb/example-local.yaml` uses **local embedding models** (sentence-transformers), not local MongoDB. Any MongoDB example works with either Atlas backend — only `MONGODB_URI` (or `./start-services.sh --local`) picks the database. Matching Supabase/pgvector examples live under `configs/supabase/`.
 
 ---
 </details>
@@ -145,9 +146,10 @@ Keep credentials in `.env`; never put them in committed YAML configs.
 
 | Service | URL / port | Required? | Started by |
 |---------|------------|-----------|------------|
-| FastAPI server | `http://localhost:8001` | Yes | `./start-services.sh --local` or `./start-services.sh` or `uvicorn` |
-| Dashboard | `http://localhost:5374` | Recommended | `./start-services.sh --local` or `./start-services.sh` or `npm run dev` |
-| MongoDB | `localhost:27017` (local) or Atlas cloud | Yes | `./start-services.sh --local`, `./start-services.sh mongodb start`, or Atlas |
+| FastAPI server | `http://localhost:8001` | Yes | `./start-services.sh --local` / `--postgres` / default / `uvicorn` |
+| Dashboard | `http://localhost:5374` | Recommended | same as server row, or `npm run dev` |
+| MongoDB | `localhost:27017` (local) or Atlas cloud | Mongo path | `./start-services.sh --local`, `mongodb start`, or Atlas |
+| Postgres/pgvector | `localhost:5433` | Postgres path | `./start-services.sh --postgres` |
 | SIE gateway | `http://localhost:8720` | SIE sweeps only | Manual — **not** in `start-services.sh`; see [sie-setup.md](docs/user-guide/sie-setup.md) |
 
 CLI on the host always uses `SERVER_URL=http://localhost:8001` (default in `.env`).
@@ -214,6 +216,25 @@ cd frontend && npm run dev                      # Terminal 2 (optional)
 
 **Atlas cloud:** create search indexes in the Atlas UI first (M0), then start uvicorn + frontend as above with `mongodb+srv://…` in `.env`.
 
+### Path D — Docker + Postgres/pgvector (dense retrieval)
+
+No Atlas account. Local `pgvector` on host port **5433**; dense sweeps only until Slice 35.
+
+```bash
+cp .env.example .env   # if needed
+./start-services.sh --postgres
+```
+
+For host CLI after Path D:
+
+```bash
+export STORAGE_BACKEND=postgres
+export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+rag-params-finder run --config configs/supabase/example-local.yaml
+```
+
+Full setup: [postgres-setup.md](docs/user-guide/postgres-setup.md).
+
 ---
 </details>
 
@@ -224,7 +245,9 @@ cd frontend && npm run dev                      # Terminal 2 (optional)
 curl -s http://localhost:8001/healthz | python3 -m json.tool
 ```
 
-Expect `"ok": true` and `"mongodb": "ok"`. If the server is unhealthy, see [troubleshooting → Docker](docs/user-guide/troubleshooting.md#docker).
+Expect `"ok": true` plus either `"mongodb": "ok"` (Mongo path) or
+`"storage_backend": "postgres"` / `"postgres": "ok"` (Postgres path).
+If the server is unhealthy, see [troubleshooting → Docker](docs/user-guide/troubleshooting.md#docker).
 
 Dev hot reload (Docker): `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build` — details in [development.md → Docker Compose](docs/contributor-guide/development.md#docker-compose).
 
@@ -235,17 +258,20 @@ Dev hot reload (Docker): `docker compose -f docker-compose.yml -f docker-compose
 Complete the checklist for your config in [mongodb-setup → Before you run a sweep](docs/user-guide/mongodb-setup.md#before-you-run-a-sweep).
 
 ```bash
-rag-params-finder run --config configs/example-mongodb-local-bayesian.yaml
+rag-params-finder run --config configs/mongodb/example-local-bayesian.yaml
 # 100 runs using the Bayesian optimizer
 
-rag-params-finder run --config configs/example-mongodb-sie-parallel.yaml
-# 120 runs of configs/example-mongodb-local.yaml using the Grid Search run using parallelisation
+rag-params-finder run --config configs/mongodb/example-sie-parallel.yaml
+# 120 runs of configs/mongodb/example-local.yaml using the Grid Search run using parallelisation
 
-rag-params-finder run --config configs/example-mongodb-local.yaml   # 120 runs, no API key
+rag-params-finder run --config configs/mongodb/example-local.yaml   # 120 runs, no API key
 
 
-rag-params-finder run --config configs/example-mongodb-voyage.yaml  # 40 runs, Voyage + Tier 1
-# rag-params-finder run --config configs/example-mongodb-sie.yaml   # SIE — see sie-setup.md
+rag-params-finder run --config configs/mongodb/example-voyage.yaml  # 40 runs, Voyage + Tier 1
+# rag-params-finder run --config configs/mongodb/example-sie.yaml   # SIE — see sie-setup.md
+
+# Postgres/Supabase dense sweep (Path D — see postgres-setup.md; sparse/hybrid → Slice 35)
+# rag-params-finder run --config configs/supabase/example-local.yaml
 ```
 
 Open `http://localhost:5374` to watch progress and explore results. See [docs/images](https://github.com/neomatrix369/rag-params-finder#-screenshots).
@@ -256,5 +282,6 @@ Open `http://localhost:5374` to watch progress and explore results. See [docs/im
 
 - **Step-by-step first experiment:** [Getting Started](docs/user-guide/getting-started.md)
 - **MongoDB cloud vs local:** [mongodb-setup.md](docs/user-guide/mongodb-setup.md)
+- **Postgres/pgvector:** [postgres-setup.md](docs/user-guide/postgres-setup.md)
 - **Full documentation map:** [docs/README.md](docs/README.md)
 - **Choose your path (lookup table):** [README → Choose Your Path](README.md#-choose-your-path)

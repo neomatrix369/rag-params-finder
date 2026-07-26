@@ -32,6 +32,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | Doc | What it covers |
 |-----|----------------|
 | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) | MongoDB Atlas cloud or local Docker, Voyage AI, search indexes |
+| [user-guide/postgres-setup.md](./user-guide/postgres-setup.md) | Postgres/pgvector backend — local Docker or hosted Supabase, schema, smoke sweep |
 | [user-guide/getting-started.md](./user-guide/getting-started.md) | Install, configure, first experiment (step-by-step) |
 | [user-guide/sie-setup.md](./user-guide/sie-setup.md) | SIE setup — remote gateway (preferred) or optional self-hosted Docker; warm-up, Aim UI, known issues |
 | [user-guide/configuration.md](./user-guide/configuration.md) | Full YAML config reference, env vars, sweep dimensions |
@@ -84,7 +85,8 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 |------|----------------|
 | Install and run first sweep | [QUICKSTART.md](../QUICKSTART.md) |
 | Atlas vector + text search indexes | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) |
-| Example YAML configs | `configs/example-mongodb-local.yaml`, `configs/example-mongodb-voyage.yaml`, `configs/example-mongodb-sie.yaml` |
+| Example YAML configs | `configs/mongodb/` and `configs/supabase/` (mirrored stems; shared `configs/questions.example.json`) |
+| Run on Postgres/pgvector instead of Atlas | [user-guide/postgres-setup.md](./user-guide/postgres-setup.md) · `./start-services.sh --postgres` |
 | Quality gates before commit | [contributor-guide/development.md](./contributor-guide/development.md) · `./scripts/quality-gates.sh` |
 | Docker server + dashboard | [plan/slices/SLICE-14-DOCKER-COMPOSE.md](./plan/slices/SLICE-14-DOCKER-COMPOSE.md) |
 | SIE (BGE-M3) Docker setup | [user-guide/sie-setup.md](./user-guide/sie-setup.md) |

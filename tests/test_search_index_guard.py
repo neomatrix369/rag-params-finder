@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,6 +21,19 @@ from server.models.config import (
     RetrievalConfig,
 )
 from server.models.enums import ChunkingMethod, RetrievalMethod
+
+
+@pytest.fixture(autouse=True)
+def mongo_backend() -> Iterator[None]:
+    """Pin the Mongo backend for every test in this module.
+
+    validate_experiment_search_indexes short-circuits on non-Mongo backends, so
+    without this pin an ambient STORAGE_BACKEND=postgres in the shell silently
+    turns the Atlas-path tests into no-ops. Tests that exercise the backend gate
+    itself re-patch this value locally.
+    """
+    with patch("server.settings.settings.storage_backend", "mongo"):
+        yield
 
 
 def _local_sparse_config() -> ExperimentConfig:
@@ -509,3 +523,71 @@ def test_validate_rejects_splade_before_reconcile() -> None:
 
     with pytest.raises(SearchIndexMismatchError, match="4096"):
         validate_experiment_search_indexes(config, attempt_ensure=False)
+
+
+class TestPreflightBackendScopeShould:
+    """Scenario: Atlas index preflight applies to the Mongo backend only."""
+
+    def test_given_postgres_backend_when_validated_then_atlas_is_never_contacted(
+        self,
+    ) -> None:
+        """
+        Scenario: A Postgres sweep does not open a MongoDB connection to preflight.
+        Slice: slice-34-postgres-dense-retrieval
+
+        Given STORAGE_BACKEND="postgres",
+        When validate_experiment_search_indexes runs,
+        Then it reports satisfied without touching the Atlas cluster — Postgres
+        creates its HNSW indexes in schema.sql, and reaching for Atlas here would
+        fail outright on a deployment with no MONGODB_URI.
+        """
+        ### Given
+        config = _local_sparse_config()
+
+        ### When
+        with (
+            patch("server.settings.settings.storage_backend", "postgres"),
+            patch("server.core.search_index_guard.collect_search_index_snapshot") as snapshot,
+            patch("server.core.search_index_guard.ensure_required_search_indexes") as ensure,
+        ):
+            actual = validate_experiment_search_indexes(config)
+
+        ### Then
+        assert actual.is_satisfied
+        snapshot.assert_not_called()
+        ensure.assert_not_called()
+
+    def test_given_mongo_backend_when_validated_then_atlas_is_still_inspected(
+        self,
+    ) -> None:
+        """
+        Scenario: The default backend keeps its preflight behaviour.
+        Slice: slice-34-postgres-dense-retrieval
+
+        Given STORAGE_BACKEND="mongo",
+        When validate_experiment_search_indexes runs,
+        Then the cluster snapshot is still collected.
+        """
+        ### Given
+        config = _local_sparse_config()
+        ready = SearchIndexSnapshot(
+            chunks_ready=frozenset({"text_search_index", "vector_index_384"}),
+            chunks_building=frozenset(),
+            cluster_total=2,
+            cluster_limit=3,
+            unknown_count=0,
+        )
+
+        ### When
+        with (
+            patch("server.settings.settings.storage_backend", "mongo"),
+            patch(
+                "server.core.search_index_guard.collect_search_index_snapshot",
+                return_value=ready,
+            ) as snapshot,
+        ):
+            actual = validate_experiment_search_indexes(config)
+
+        ### Then
+        assert actual.is_satisfied
+        snapshot.assert_called()

@@ -86,7 +86,7 @@ flowchart TB
 - [x] `curl -f http://localhost:8001/healthz` returns `{"ok": true, "mongodb": "ok"}`
 - [x] `./scripts/health-check.sh` passes
 - [x] Dashboard at `http://localhost:5374` loads; `GET /experiments` works
-- [x] Host: `rag-params-finder run --config configs/example-mongodb-local.yaml --detach` submits against containerized server
+- [x] Host: `rag-params-finder run --config configs/mongodb/example-local.yaml --detach` submits against containerized server
 - [x] `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d` serves HMR with `/api` proxy
 - [x] `./stop-services.sh` option 1 stops stack without deleting Atlas data
 
@@ -115,7 +115,7 @@ flowchart TB
 cp .env.example .env   # real MONGODB_URI; Atlas indexes per mongodb-setup.md
 ./start-services.sh
 ./scripts/health-check.sh
-rag-params-finder run --config configs/example-mongodb-local.yaml --detach
+rag-params-finder run --config configs/mongodb/example-local.yaml --detach
 # Optional dev profile:
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
 ./stop-services.sh

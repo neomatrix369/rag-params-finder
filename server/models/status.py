@@ -7,7 +7,7 @@ from server.models.config import RetrieverConfig
 from server.models.enums import ChunkingMethod, Phase, RetrievalMethod
 
 Provider = Literal["local", "voyage", "sie", "kimchi"]
-DatabaseProvider = Literal["mongodb"]  # Future: "pinecone", "weaviate", "qdrant"
+DatabaseProvider = Literal["mongodb", "postgres", "supabase"]  # Future: pinecone, weaviate, qdrant
 
 
 class RunStatus(BaseModel):

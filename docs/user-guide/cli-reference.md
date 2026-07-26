@@ -27,19 +27,19 @@ Submits the experiment config to the server, then optionally polls run progress 
 **Examples**:
 ```bash
 # Submit and watch progress in the terminal
-rag-params-finder run --config configs/example-mongodb-local.yaml
+rag-params-finder run --config configs/mongodb/example-local.yaml
 
 # Submit and detach — open http://localhost:5374 to track status
-rag-params-finder run --config configs/example-mongodb-local.yaml --detach
+rag-params-finder run --config configs/mongodb/example-local.yaml --detach
 
 # Submit, print the submission summary, then exit without polling the server
-rag-params-finder run --config configs/example-mongodb-local.yaml --no-watch
+rag-params-finder run --config configs/mongodb/example-local.yaml --no-watch
 
 # Voyage AI experiment (requires VOYAGE_API_KEY in .env)
-rag-params-finder run --config configs/example-mongodb-voyage.yaml
+rag-params-finder run --config configs/mongodb/example-voyage.yaml
 
 # SIE experiment (requires SIE warm for bge-m3/stella-v5/splade-v3 + SIE_ENABLED=true)
-rag-params-finder run --config configs/example-mongodb-sie.yaml
+rag-params-finder run --config configs/mongodb/example-sie.yaml
 ```
 
 When watching, the CLI renders a live Rich table showing each run's current phase:
@@ -208,8 +208,8 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/healthz` | Liveness + Atlas ping — `{"ok": true, "mongodb": "ok"}` when reachable; HTTP 503 if `mongodb` is `error` |
-| GET | `/health` | Extended health — `{ status, mongodb, sie, version }`; `sie` is `disabled`, `reachable`, or `unreachable` |
+| GET | `/healthz` | Liveness for the active storage backend — Mongo: `{"ok": true, "storage_backend": "mongo", "mongodb": "ok"}`; Postgres: `{"ok": true, "storage_backend": "postgres", "postgres": "ok"}`; HTTP 503 when the active backend is unreachable |
+| GET | `/health` | Extended health — storage fields from `/healthz` plus `sie` (`disabled` / `reachable` / `unreachable`) and `version` |
 | POST | `/api/v1/sweep` | Tier 1 ranked SIE vs Voyage sweep over caller-supplied corpus *(see [sie-setup.md](sie-setup.md))* |
 | GET | `/api/v1/best-config` | Best config from sweep history *(placeholder — Slice 22)* |
 | POST | `/experiments` | Submit an experiment sweep *(422 if search-index preflight fails)* |

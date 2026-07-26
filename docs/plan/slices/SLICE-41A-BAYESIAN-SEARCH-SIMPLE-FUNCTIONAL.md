@@ -133,8 +133,8 @@ CLI prints a comparison summary at completion.
   - Verified in `pyproject.toml`: `optuna>=3.0`
 - [x] Usage docs include: minimal config diff required to activate Bayesian mode and an end-to-end "expected run" sample.
   - Covered by: `docs/user-guide/configuration.md` Bayesian section.
-- [x] `configs/example-mongodb-unified-retrievers-bayesian.yaml` and
-  `configs/example-mongodb-local-bayesian.yaml` are added and documented as activation examples.
+- [x] `configs/mongodb/example-unified-retrievers-bayesian.yaml` and
+  `configs/mongodb/example-local-bayesian.yaml` are added and documented as activation examples.
   - Unified variant derives from `example-mongodb-unified-retrievers.yaml` and uses
     `experiment_name: example-mongodb-unified-retrievers-bayesian`.
   - Local variant derives from `example-mongodb-local.yaml` and uses
@@ -205,8 +205,8 @@ Scenario: Bayesian run ends without failures despite incomplete attempts
 - Add `_run_bayesian_inner`, `_bayesian_trial_to_run_params`, `_compute_trial_score`, `_finalise_bayesian_experiment`.
 - Add `_planned_run_count(config)` in API layer and use for planned-count display.
 - Add `grid_equivalent_count` and `bayesian_summary` persistence on experiment docs.
-- Add `configs/example-mongodb-unified-retrievers-bayesian.yaml` and
-  `configs/example-mongodb-local-bayesian.yaml`, each with a non-Bayesian base config plus
+- Add `configs/mongodb/example-unified-retrievers-bayesian.yaml` and
+  `configs/mongodb/example-local-bayesian.yaml`, each with a non-Bayesian base config plus
   Bayesian strategy options.
   - Unified variant derives from `example-mongodb-unified-retrievers.yaml` and uses
     `experiment_name: example-mongodb-unified-retrievers-bayesian`.
@@ -220,8 +220,8 @@ Scenario: Bayesian run ends without failures despite incomplete attempts
 - `server/core/orchestrator.py`
 - `server/api/experiments.py`
 - `server/core/startup_reconciliation.py`
-- `configs/example-mongodb-unified-retrievers-bayesian.yaml`
-- `configs/example-mongodb-local-bayesian.yaml`
+- `configs/mongodb/example-unified-retrievers-bayesian.yaml`
+- `configs/mongodb/example-local-bayesian.yaml`
 - `frontend/src/**/*` (strategy-aware display updates)
 - `frontend/src/types/index.ts`
 - `frontend/src/components/ExperimentDetailScreen.tsx`
@@ -244,7 +244,7 @@ Scenario: Bayesian run ends without failures despite incomplete attempts
 - [x] **Layer-05 Persistence & Completion Summary** — `run_count`, `grid_equivalent_count`, `bayesian_summary` with `trial_log` in experiment doc; `_run_best_trial_payload` projection includes `run_id` (bug fix 2026-07-23, commit `861eaba`); `_finalise_bayesian_experiment` PARTIAL+failures `completion_reason` unbound fixed (bug fix 2026-07-23, commit `ce714b0`; uncovered by AT-08).
   - Covered by: `test_slice16_parallel_sweep.py` (4 `trial_log` tests + 1 projection regression test + AT-08 sampler exhaustion); `test_experiments_api_bayesian.py::test_detail_bayesian_experiment_passes_through_trial_log`
 - [x] **Layer-06 Regression and Documentation** — `expand_sweep`/grid tests unchanged; `results_analyzer` path compatible; docs updated (`TRAIL.md`, `PROGRESS.md`, `configuration.md`, CHANGELOG, gate evidence).
-  - Configs: `configs/example-mongodb-unified-retrievers-bayesian.yaml` and `configs/example-mongodb-local-bayesian.yaml` present.
+  - Configs: `configs/mongodb/example-unified-retrievers-bayesian.yaml` and `configs/mongodb/example-local-bayesian.yaml` present.
 - [x] **Layer-07 Delivery Completion** — End-to-end happy-path smoke test passed 2026-07-23: 3-trial Bayesian sweep on Atlas Local, all trials completed, `trial_log` populated, `best_query_avg_score` non-null, CLI Trial History table rendered.
   - Quality gates: 200 tests pass (↑ from 181; 17 ATs added by /nw-distill coverage pass 2026-07-23), ruff 0 errors, mypy 0 errors, frontend build clean.
   - Dashboard contract tests: `ExperimentDetailScreen.test.tsx` and `ExperimentsScreen.test.tsx` Bayesian lifecycle scenarios.

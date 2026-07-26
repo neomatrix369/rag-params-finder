@@ -240,10 +240,10 @@ returns `"sie":"disabled"` and sweeps default to local `all-MiniLM-L6-v2` instea
 Use the ready-made example config for a full CLI pipeline sweep:
 
 ```bash
-rag-params-finder run --config configs/example-mongodb-sie.yaml
+rag-params-finder run --config configs/mongodb/example-sie.yaml
 ```
 
-See [`configs/example-mongodb-sie.yaml`](../../configs/example-mongodb-sie.yaml) — **80 runs** (bge-m3, stella-v5; all 5 chunking methods; dense/sparse/hybrid/cross-encoder). Prerequisites: reachable SIE gateway (`SIE_ENABLED=true`, `SIE_ENDPOINT`, `SIE_API_KEY` when required) or warm local Docker; `vector_index_1024` + `text_search_index` on Atlas.
+See [`configs/mongodb/example-sie.yaml`](../../configs/mongodb/example-sie.yaml) — **80 runs** (bge-m3, stella-v5; all 5 chunking methods; dense/sparse/hybrid/cross-encoder). Prerequisites: reachable SIE gateway (`SIE_ENABLED=true`, `SIE_ENDPOINT`, `SIE_API_KEY` when required) or warm local Docker; `vector_index_1024` + `text_search_index` on Atlas.
 
 Minimal inline snippet:
 
@@ -775,7 +775,7 @@ python3 -c "import os; print(os.getenv('SIE_ENDPOINT', 'http://localhost:8720'))
 [ ] vector_index_1024 + text_search_index on Atlas chunks collection
 [ ] Server running: uvicorn server.main:app --reload --port 8001
 [ ] GET http://localhost:8001/health shows sie: reachable
-[ ] rag-params-finder run --config configs/example-mongodb-sie.yaml --detach
+[ ] rag-params-finder run --config configs/mongodb/example-sie.yaml --detach
 ```
 
 ### Path B — Self-hosted Docker

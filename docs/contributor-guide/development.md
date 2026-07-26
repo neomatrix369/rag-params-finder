@@ -52,7 +52,7 @@ cd frontend && npm run dev
 
 # Terminal 3: CLI submissions
 source .venv/bin/activate
-rag-params-finder run --config configs/example-mongodb-local.yaml
+rag-params-finder run --config configs/mongodb/example-local.yaml
 ```
 
 ### Docker Compose
@@ -68,7 +68,7 @@ cp .env.example .env
 ./scripts/health-check.sh        # smoke: server, frontend, Atlas via /healthz
 
 # Host CLI (install once: uv pip install -e .)
-rag-params-finder run --config configs/example-mongodb-local.yaml
+rag-params-finder run --config configs/mongodb/example-local.yaml
 
 # Dev overlay: HMR + uvicorn --reload
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build

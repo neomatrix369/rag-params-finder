@@ -32,7 +32,7 @@
 |------|--------|
 | SIE provider (`provider: sie`) | ✅ Documented in `configuration.md`, `sie-setup.md`, `mongodb-setup.md`, `extending.md` |
 | `SIE_ENABLED` / `SIE_ENDPOINT` / `SIE_API_KEY` / `HF_TOKEN` / `AIM_REPO` | ✅ In `.env.example` and `configuration.md` env table |
-| `configs/example-mongodb-sie.yaml` | ✅ Committed; 120 runs; validated by `tests/test_config_examples.py` |
+| `configs/mongodb/example-sie.yaml` | ✅ Committed; 120 runs; validated by `tests/test_config_examples.py` |
 | `GET /health`, `POST /api/v1/sweep`, `GET /api/v1/best-config` | ✅ In `cli-reference.md` API table |
 | Port standardisation (5374, 8720, 43800) | ✅ Aligned across compose, scripts, user guides |
 | CORS env vars | ✅ **RESOLVED** — documented in `configuration.md` |
@@ -135,7 +135,7 @@ All 7 models documented in configuration.md are present in `RERANKER_MODELS`:
 
 ### YAML Configuration Fields (All Match)
 
-**Source**: `server/models/config.py`, `configs/example-mongodb-local.yaml`
+**Source**: `server/models/config.py`, `configs/mongodb/example-local.yaml`
 
 | Field | Documented | Implemented | Example config |
 |-------|------------|-------------|----------------|
@@ -329,7 +329,7 @@ RECOVER_ON_BOOT=false
 
 ## 🧪 Example Config Files vs Documentation
 
-### `configs/example-mongodb-local.yaml`
+### `configs/mongodb/example-local.yaml`
 
 **Verification**: All fields match documented schema in `configuration.md`.
 
@@ -349,7 +349,7 @@ RECOVER_ON_BOOT=false
 - Config header: "120 runs"
 - Formula: 1 model × 5 methods × 3 sizes × 2 overlaps × 4 retrievers = 120 ✅
 
-### `configs/example-mongodb-sie.yaml`
+### `configs/mongodb/example-sie.yaml`
 
 **Verification**: All fields match documented schema in `configuration.md`.
 
@@ -437,7 +437,7 @@ _None open as of 2026-06-29 Slice 21 doc sync._
 - `docs/user-guide/*.md` (5 files)
 - `CLAUDE.md`
 - `.env.example`
-- `configs/example-mongodb-local.yaml`
+- `configs/mongodb/example-local.yaml`
 - `cli/main.py`
 - `cli/indexes_cmd.py`
 - `server/settings.py`

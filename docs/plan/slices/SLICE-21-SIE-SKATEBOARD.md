@@ -19,7 +19,7 @@ Files:
 - tests/test_sie_embedder.py              # GWT tests (mock SIEClient)
 - tests/test_sweep_endpoint.py            # GWT tests for POST /api/v1/sweep
 - tests/test_embedder_factory.py          # factory returns correct fns for voyage/local/sie
-- configs/example-mongodb-sie.yaml        # CLI full-pipeline sweep (provider sie; bge-m3, stella-v5, splade-v3)
+- configs/mongodb/example-sie.yaml        # CLI full-pipeline sweep (provider sie; bge-m3, stella-v5, splade-v3)
 - tests/test_config_examples.py             # validates example YAML loads and expands
 - docs/user-guide/sie-setup.md              # link to config file; models: schema
 
@@ -31,8 +31,8 @@ Exit criteria:
 - [ ] GET /health returns sie status, mongodb status, and version
 - [ ] Aim UI shows a logged run after sweep completes
 - [ ] No prior tests regressed
-- [ ] `configs/example-mongodb-sie.yaml` loads via CLI config loader without validation errors
-- [ ] `rag-params-finder run --config configs/example-mongodb-sie.yaml` documented as full-pipeline SIE path (manual smoke when SIE warm)
+- [ ] `configs/mongodb/example-sie.yaml` loads via CLI config loader without validation errors
+- [ ] `rag-params-finder run --config configs/mongodb/example-sie.yaml` documented as full-pipeline SIE path (manual smoke when SIE warm)
 
 Commit pattern:
 feat(sie): add SIE Skateboard — SIE embeddings, Aim logging, /api/v1/sweep
@@ -91,7 +91,7 @@ Scenario: Aim logging on sweep run completion
   Then an Aim Run exists with params: model_name, model_source ("sie"|"voyage"), retrieval_method, score, latency_ms, topic, experiment_id
 
 Scenario: example-mongodb-sie.yaml loads and expands sweep for SIE provider
-  Given configs/example-mongodb-sie.yaml exists
+  Given configs/mongodb/example-sie.yaml exists
   When load_config() and ExperimentConfig.model_validate() are called
   Then embedding.provider is "sie", models includes bge-m3/stella-v5/splade-v3, and expand_sweep() yields 120 runs
   And required_search_indexes() includes vector_index_1024, vector_index_30522, and text_search_index
@@ -131,7 +131,7 @@ Scenario: example-mongodb-sie.yaml loads and expands sweep for SIE provider
 8. **Update `server/main.py`**: include `sweep_router` at prefix `/api/v1`; extend `/health` to probe `http://localhost:8720/healthz` (SIE) and include version
 9. **Write tests** for all GWT scenarios (mock SIEClient)
 10. **Run `./scripts/quality-gates.sh`** — fix any ruff/mypy/coverage failures
-11. **Add `configs/example-mongodb-sie.yaml`** and cascade doc references (see file list in slice spec)
+11. **Add `configs/mongodb/example-sie.yaml`** and cascade doc references (see file list in slice spec)
 12. **Add `tests/test_config_examples.py`** — config load + index plan assertions (no SIE Docker in CI)
 
 ### After-Checks [GATE — next slice is BLOCKED until all pass]

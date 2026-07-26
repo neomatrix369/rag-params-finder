@@ -81,8 +81,16 @@ class Settings(BaseSettings):
     health_check_mongodb_timeout_ms: int = 5000
 
     # Active storage backend. "mongo" (default) uses MongoDB Atlas / Atlas Local.
-    # "postgres" is reserved for Slice 33+ (Supabase / pgvector).
+    # "postgres" uses Supabase (hosted) or a local pgvector container.
     storage_backend: str = "mongo"
+
+    # Postgres connection string — required when STORAGE_BACKEND=postgres.
+    # Hosted Supabase: Settings → Database → Connection string (Session mode pooler).
+    # Local Docker: postgresql://rag:rag@localhost:5433/rag_params_finder
+    database_url: str = ""
+    postgres_pool_max_size: int = 10
+    # Seconds to wait for a free pooled connection before failing the request.
+    postgres_pool_timeout_s: float = 30.0
 
     @field_validator("cors_origins", mode="before")
     @classmethod

@@ -26,6 +26,8 @@
 
 Parity for `sparse` and `hybrid` retrieval on Postgres using `tsvector`/`ts_rank` and Supabase-documented RRF fusion, extended with mandatory `embedding_model` filtering on the dense CTE.
 
+**Mode invariance:** Sparse and hybrid must work for **both** `postgres-local` and `postgres-cloud` modes (same SQL; URI-driven TLS only via `postgres_connect_kwargs()`). No second implementation path for hosted vs Docker. Switching between those modes remains the Slice 37 two-command recipe; this slice only ensures retrieval parity once the server is on Postgres.
+
 ---
 
 ## Spec (GWT)

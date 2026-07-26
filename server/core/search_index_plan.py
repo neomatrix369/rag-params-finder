@@ -45,6 +45,28 @@ class SearchIndexAssessment:
     failure_reason: str | None
 
 
+def preflight_not_applicable() -> SearchIndexAssessment:
+    """A satisfied assessment for backends with no runtime index negotiation.
+
+    Postgres declares its HNSW indexes in ``schema.sql`` and applies them at pool
+    bootstrap, so there is no cluster quota to free and nothing to wait for. The
+    Atlas notion of index *capacity* has no counterpart there.
+    """
+    empty: frozenset[str] = frozenset()
+    return SearchIndexAssessment(
+        required=empty,
+        present_ready=empty,
+        present_building=empty,
+        missing=empty,
+        cluster_total=0,
+        cluster_limit=0,
+        available_slots=0,
+        unknown_count=0,
+        is_satisfied=True,
+        failure_reason=None,
+    )
+
+
 def validate_vector_index_feasibility(required: frozenset[str]) -> str | None:
     """Return an error message when required vector indexes exceed Atlas limits."""
     oversized: list[str] = []

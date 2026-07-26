@@ -44,17 +44,17 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 22 — SIE Scooter | 📋 PLANNED | ~3 h | SIE reranking + SPLADE sparse + `GET /api/v1/best-config` — Must — **after Slice 38** — spec: [`SLICE-22-SIE-SCOOTER.md`](SLICE-22-SIE-SCOOTER.md) |
 | 23 — SIE Bicycle | 📋 PLANNED | ~3 h | Ollama + Tier 2–3 retrieval + Evidently AI (Could, post-hackathon) — spec: [`SLICE-23-SIE-BICYCLE.md`](SLICE-23-SIE-BICYCLE.md) |
 | 26 — Local MongoDB smooth-path docs | 📦 DEFERRED | ~1 h | Re-scope after Postgres cutover — [`SLICE-26-LOCAL-MONGODB-DOCS.md`](SLICE-26-LOCAL-MONGODB-DOCS.md) |
-| 27 — MongoDB mode indicator | 📦 DEFERRED | ~2 h | Absorbed into Slice 36 (storage mode) — [`SLICE-27-MONGODB-MODE-INDICATOR.md`](SLICE-27-MONGODB-MODE-INDICATOR.md) |
+| 27 — MongoDB mode indicator | 📦 DEFERRED | ~2 h | Absorbed into Slice 36 as four-value `storage_mode` (`mongodb\|postgres` × `local\|cloud`) — [`SLICE-27-MONGODB-MODE-INDICATOR.md`](SLICE-27-MONGODB-MODE-INDICATOR.md) |
 | 19 — Atlas storage quota guard | 📦 DEFERRED | ~3–5 h | Atlas-specific; Postgres stats in Slice 36 — [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) |
 | 32 — Storage Backend Protocol | 🔨 IN PROGRESS | ~3–4 h | Storage + Retriever ports; Mongo adapter — [`SLICE-32-STORAGE-BACKEND-PROTOCOL.md`](SLICE-32-STORAGE-BACKEND-PROTOCOL.md) · [PR #110](https://github.com/neomatrix369/rag-params-finder/pull/110) |
 | 32C — Storage Protocol Review Remediation | 📋 PLANNED | ~2–3 h | Craft split, port schemas, index deferral, checklist hygiene — [`SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md`](SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md) |
 | 32B — Storage Protocol Gate Closure | 📋 PLANNED | ~1–2 h | Coverage, mutation/waiver, full gates, nw-review, COMPLETE — [`SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md`](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) |
-| 33 — Supabase schema + CRUD | 📋 PLANNED | ~4–6 h | Pool, schema, cascade delete, local pgvector smoke — [`SLICE-33-POSTGRES-SCHEMA-CRUD.md`](SLICE-33-POSTGRES-SCHEMA-CRUD.md) |
-| 34 — Supabase dense retrieval | 📋 PLANNED | ~3–4 h | pgvector HNSW + embedding_model filter — [`SLICE-34-POSTGRES-DENSE-RETRIEVAL.md`](SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) |
-| 35 — Supabase sparse + hybrid | 📋 PLANNED | ~4–5 h | tsvector + RRF + equivalence gate — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
-| 36 — Supabase preflight + stats | 📋 PLANNED | ~3–4 h | Index guard, db-stats, storage mode — [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md) |
-| 37 — Supabase local/cloud parity | 📋 PLANNED | ~3–4 h | start-services.sh + supabase-setup.md — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) |
-| 38 — Cutover + ADR-004 | 📋 PLANNED | ~3–4 h | Side-by-side quality, ADR-004, default Postgres — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) |
+| 33 — Postgres schema + CRUD | 🔨 IN PROGRESS | ~4–6 h | Pool, schema, cascade, local Path A (`--postgres` → rename in 37), 19 live tests, CI job — hosted DX deferred to 37 — [`SLICE-33-POSTGRES-SCHEMA-CRUD.md`](SLICE-33-POSTGRES-SCHEMA-CRUD.md) |
+| 34 — Postgres dense retrieval | ✅ COMPLETE | ~3–4 h | pgvector dense + embedding_model filter; Atlas-scale scores; HNSW iterative_scan; mode/hosted DX handed to 36–37 — [`SLICE-34-POSTGRES-DENSE-RETRIEVAL.md`](SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) |
+| 35 — Postgres sparse + hybrid | 📋 PLANNED | ~4–5 h | tsvector + RRF + equivalence gate; mode-invariant (`postgres-local` and `postgres-cloud`) — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
+| 36 — Preflight + stats + storage_mode | 📋 PLANNED | ~3–4 h | Index introspection, db-stats extend, four-value mode badge — [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md) |
+| 37 — Local/cloud parity + low-friction switch | 📋 PLANNED | ~3–4 h | `--mongodb\|postgres-local\|cloud`, ensure_env, config↔server 422, lifecycle, Path B — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) |
+| 38 — Cutover + ADR-004 | 📋 PLANNED | ~3–4 h | Side-by-side quality, ADR-004, default `postgres-cloud` — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) |
 | 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
 | 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
 | 39 — Demo-ready dashboard polish | ✅ COMPLETE | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, network, and component verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
@@ -81,8 +81,8 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 32 | Must | 🔨 IN PROGRESS | — | Storage + Retriever ports; Mongo adapter |
 | 32C | Must | 📋 PLANNED | 32 | Review remediation — craft/architecture nw-review BLOCKERs |
 | 32B | Must | 📋 PLANNED | 32C | Gate closure — coverage, mutation/waiver, full gates, nw-review |
-| 33 | Must | 📋 PLANNED | 32B | Supabase schema + CRUD + local pgvector smoke |
-| 34 | Must | 📋 PLANNED | 33 | Dense pgvector |
+| 33 | Must | 🔨 IN PROGRESS | 32B | Supabase schema + CRUD + local pgvector smoke |
+| 34 | Must | ✅ COMPLETE | 33 | Dense pgvector |
 | 35 | Must | 📋 PLANNED | 34 | Sparse + hybrid + equivalence gate |
 | 36 | Must | 📋 PLANNED | 35 | Preflight + db-stats + storage mode (replaces 27) |
 | 37 | Must | 📋 PLANNED | 36 | Supabase local/hosted parity |
@@ -90,7 +90,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 28 | Must | 📋 PLANNED | — | External — @cschanhniem / #49 |
 | 22 | Must | 📋 PLANNED | 21, 32, 38 (soft) | SIE Scooter — hard dep 32 Protocol; soft 38 cutover |
 | 26 | Should | 📦 DEFERRED | 25B | Mongo docs — re-scope post-cutover |
-| 27 | Should | 📦 DEFERRED | — | Absorbed into Slice 36 storage-mode indicator |
+| 27 | Should | 📦 DEFERRED | — | Absorbed into Slice 36 four-value storage_mode (`mongodb\|postgres` × `local\|cloud`) |
 | 19 | Should | 📦 DEFERRED | — | Atlas quota — Postgres path in 36 |
 | 16 | Should | ✅ COMPLETE | — | Parallel sweep |
 | 11 | Could | 📋 PLANNED | 30 (soft) | Search Explorer — viz + filters; after Slice 30 UX |
@@ -112,6 +112,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 
 | Date | Item | Outcome |
 |------|------|---------|
+| 2026-07-26 | Configs split: `configs/mongodb/` + `configs/supabase/` | Example YAMLs reorganised by backend with mirrored stems; shared `questions.example.json` at `configs/`. Docs/CLI/agent entry points + `test_config_examples.py` updated. Supabase twins use `database_provider: supabase`; sparse/hybrid still Slice 35. |
 | 2026-07-24 | Commit-stage optimisations (chore/project-hygiene) | Three opts applied: (1) dmypy daemon replaces mypy at commit — warm ~0.5s vs 2.2s cold (first run ~60s); (2) `frontend-verify` hook split — `tsc --noEmit` at commit saves ~8s/commit, `vite build` deferred to push; (3) actionlint confirmed already running at ~620ms via pre-commit managed binary — no PATH install needed. `.dmypy.json` added to `.gitignore`. |
 | 2026-07-24 | Chalk provenance job (chore/project-hygiene) | Added 7th nightly job `chalk` using `crashappsec/setup-chalk-action@v0.0.3`; marks `server/`, `cli/`, `scripts/` with embedded chalk marks; `id-token: write` grants Sigstore keyless signing; uploads `chalk.log` artifact (90 days, `if-no-files-found: warn`). Complements CycloneDX SBOM: SBOM answers "what's in the code?"; Chalk answers "is this the exact artifact CI built?". |
 | 2026-07-24 | Nightly artifact archiving audit (chore/project-hygiene) | Audited all 6 nightly jobs for missing `if: always()` on upload steps. Found 4 gaps: `mutmut results`+`junitxml` lines lacked `\|\| true` (fixed), Stryker upload missing `if: always()` + `if-no-files-found: warn` (fixed), SBOM upload missing `if: always()` (fixed). trufflehog/meterian/container-scan produce no local artifacts — no gaps. |
@@ -597,7 +598,7 @@ Fix misleading elapsed/duration times on long Voyage sweeps, surface Atlas clust
 - **EDIT**: `frontend/src/components/ExperimentDetailScreen.tsx` — elapsed + ETA on progress card; duration shows — while running/paused; controls only in header
 - **EDIT**: `frontend/src/components/VectorDbStatsPanel.tsx` — tier, cloud provider, region display
 - **EDIT**: `.env.example` — Tier 1 rate limits as commented block above free-tier defaults
-- **EDIT**: `configs/example-mongodb-voyage.yaml` — default to `voyage-3.5-lite` for storage-friendly sweeps
+- **EDIT**: `configs/mongodb/example-voyage.yaml` — default to `voyage-3.5-lite` for storage-friendly sweeps
 
 ### Key Design Decisions
 | Decision | Why |
@@ -686,6 +687,21 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-26 | 33–38 | Operator vocabulary is `--<db-type>-local` / `--<db-type>-cloud` (`mongodb` \| `postgres`); mode values match flags; single `postgres-setup.md` SSOT; Slice 37 owns rename + hosted ensure_env + **low-friction two-command switching** + config↔server 422 gate | Symmetric grid is guessable from either axis; today's two booleans cannot express hosted Postgres; YAML `database_provider` is metadata today and can silently disagree with `STORAGE_BACKEND` — reject mismatch before writes; same postgres YAML works local and cloud |
+| 2026-07-25 | 33 | Hybrid schema: promote queryable fields to columns, keep the rest in a `doc` JSONB column (`experiments`, `run_status`, `results`); `chunks` fully columnar | `StorageBackend` is dict-in/dict-out over documents whose shape is owned by Pydantic models and sweep metadata; JSONB preserves them without a migration per added field, while promoted columns keep filters and sorts indexable. Chunks are columnar because retrieval indexes them directly |
+| 2026-07-25 | 33 | Do not store Mongo's `_id`; synthesise it from the primary key on the two reads that use it (`find_experiment_by_id`, `find_running_experiments`) | `_id` is a Mongo implementation detail, but boot reconciliation reads `doc["_id"]`; deriving it avoids persisting the same value twice and keeps the port contract identical across adapters |
+| 2026-07-25 | 33 | Postgres finders return whole documents where Mongo applies projections | Verified every call site reads named keys via `.get()`, so a superset is safe; projections are a Mongo bandwidth optimisation, not part of the `StorageBackend` contract |
+| 2026-07-25 | 33 | Extract shared stats maths into `server/db/stats_common.py`; `mongo_stats` and `postgres_stats` supply only backend identity and their own aggregation SQL | Both adapters must produce byte-identical db-stats dict shapes for one dashboard; duplicating the assembly maths would let them drift silently |
+| 2026-07-25 | 33 | Host port **5433** for the local pgvector container, not 5432 | A developer's own Postgres on 5432 keeps working; avoids a port conflict that would look like a broken container |
+| 2026-07-25 | 33 | Integration tests hit a live pgvector and skip when absent; CI sets `RAG_REQUIRE_POSTGRES=1` to turn absence into failure | The SQL, JSONB/datetime fidelity, and FK cascade are exactly what mocks would hide; without the CI flag a broken service container would report green forever |
+| 2026-07-25 | 33 | Widen `DatabaseProvider` to `mongodb \| postgres \| supabase`; both Postgres values route to one adapter | Configs must be able to declare the backend, and db-stats labels the cluster differently for local vs hosted — but the SQL is identical, so a second adapter would be duplication |
+| 2026-07-25 | 33 | No `embedding_sparse` column yet; unsupported widths raise a `ValueError` naming Slice 35 | PRD lists sparse storage as optional in 33 and Slice 35 owns sparse/hybrid; failing loudly beats silently dropping SPLADE vectors (YAGNI without the silent-loss risk) |
+| 2026-07-25 | 34 | Set `hnsw.iterative_scan = strict_order` on every pooled Postgres connection; warn and continue on pgvector < 0.8 | HNSW cannot filter inside the index, so the mandatory `experiment_id`/`embedding_model`/`run_id` filters post-filter its candidate set. Measured with iterative scan off: a `LIMIT 20` query returned **3 rows** (39 removed by filter). Silent truncation would change the scores this tool exists to compare. Two tests pin it; reverting the setting drops recall to 1 of 20 and fails them |
+| 2026-07-25 | 34 | Score dense hits as `1 - cosine_distance / 2` rather than passing pgvector distance through | Atlas `$vectorSearch` reports `(1 + cosine) / 2`; identical retrieval quality must produce identical numbers or the Slice 38 backend comparison is meaningless. Pinned by asserting 1.0 for an identical vector and 0.5 for an orthogonal one |
+| 2026-07-25 | 34 | Atlas search-index preflight short-circuits when `STORAGE_BACKEND != mongo` (`preflight_not_applicable()`) | Every step of the guard talks to Atlas, so a Postgres sweep would open a MongoDB connection it never uses — and fail outright where no `MONGODB_URI` exists. Postgres declares its HNSW indexes in `schema.sql`, so there is no quota to negotiate |
+| 2026-07-25 | 34 | Sparse/hybrid on Postgres raise `NotImplementedError` naming Slice 35 instead of degrading to dense | A sweep that quietly changed retrieval method would invalidate its own comparison; the error names `dense` and `STORAGE_BACKEND=mongo` as working alternatives |
+| 2026-07-25 | 34 | Cross-model isolation test uses a rival model at the *same* 384 width in the *same* run | First version used models of different widths, so the `IS NOT NULL` column guard masked a removed `embedding_model` filter — the mutant survived. Same-width, same-run noise is the only shape that can actually fail |
+| 2026-07-25 | 34 | Keep exact KNN (planner's btree+sort choice); defer `chunks` partitioning by `experiment_id` | Exact is correct and fast at current volumes, and it is what makes the Mongo comparison trustworthy. Partition-per-experiment (filter-free HNSW per partition) is the scale-up path if sweeps outgrow exact search — YAGNI today |
 | 2026-07-25 | ops | Keep `numpy>=2` (sie-sdk); override `torch>=2.6`; drop Intel-mac from uv environments | `numpy<2` conflicts with sie-sdk; torch 2.2 + numpy 2.5 → `Numpy is not available`; torch≥2.6 has no x86_64 Darwin wheels |
 | 2026-07-25 | 32C | Added Must sub-slice 32C (review remediation); keep 32B gate-only; order **32 → 32C → 32B → 33** | Craft/architecture nw-review BLOCKERs (adapter split, port schemas, index deferral, checklist hygiene) are a separate unit from verification gates; 32B stays medium (~1–2 h) |
 | 2026-07-25 | 32C | Index seam default: defer IndexBackend to Slice 36 (option A); override in 32C Before-Checks if needed | YAGNI — Slice 36 already owns Postgres preflight/stats; avoid speculative Protocol in 32C |
@@ -832,7 +848,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | `tests/test_sie_embedder.py` | NEW — 5 GWT tests |
 | `tests/test_embedder_factory.py` | Rewritten — 6 GWT tests (sys.modules mocking) |
 | `tests/test_sweep_endpoint.py` | NEW — 9 GWT tests (minimal FastAPI app) |
-| `configs/example-mongodb-sie.yaml` | NEW — CLI full-pipeline SIE sweep (120 runs, bge-m3/stella-v5/splade-v3) |
+| `configs/mongodb/example-sie.yaml` | NEW — CLI full-pipeline SIE sweep (120 runs, bge-m3/stella-v5/splade-v3) |
 | `tests/test_config_examples.py` | NEW — example YAML load/expand/index-plan validation |
 
 ---
@@ -852,7 +868,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | 13 — Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` | Could | ~15 min |
 | 19 — Storage quota guard | Atlas M0 guard — **📦 DEFERRED**; Postgres stats in Slice 36 | Should | deferred |
 | 26 — Local MongoDB docs | **📦 DEFERRED** — re-scope after Postgres local path (37) | Should | deferred |
-| 27 — MongoDB mode indicator | **📦 DEFERRED** — absorbed into Slice 36 | Should | deferred |
+| 27 — MongoDB mode indicator | **📦 DEFERRED** — absorbed into Slice 36 four-value storage_mode | Should | deferred |
 | ~~14 — Docker Compose~~ | ~~One-command local setup~~ | — | ✅ Delivered in Slice 14 |
 | ~~15 — CI/CD~~ | ~~GitHub Actions~~ | — | ✅ Delivered in Slice 20 |
 | 16 — Parallel sweep (`parallelism` > 1) | Bounded concurrent `_run_single` (+ optional Celery upgrade path); Atlas/Voyage-rate-limit aware | Should | ~2–4 h |

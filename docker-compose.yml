@@ -21,6 +21,11 @@ services:
       # Cloud: MONGODB_URI from .env. Local Atlas: RAG_SERVER_MONGODB_URI set by start-services.sh --local
       MONGODB_URI: ${RAG_SERVER_MONGODB_URI:-${MONGODB_URI}}
       MONGODB_STORAGE_LIMIT_MB: ${RAG_MONGODB_STORAGE_LIMIT_MB:-${MONGODB_STORAGE_LIMIT_MB:-}}
+      # Postgres/pgvector is opt-in — STORAGE_BACKEND stays "mongo" unless set.
+      # Local pgvector: RAG_SERVER_DATABASE_URL set by start-services.sh --postgres
+      # Supabase: DATABASE_URL from .env (Slice 37)
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-mongo}
+      DATABASE_URL: ${RAG_SERVER_DATABASE_URL:-${DATABASE_URL:-}}
       HF_HOME: ${HF_HOME:-/root/.cache/huggingface}
       # SIE is opt-in — remote gateway preferred (SIE_ENDPOINT + SIE_API_KEY in .env).
       # Self-hosted Docker fallback: docs/user-guide/sie-setup.md
@@ -37,6 +42,9 @@ services:
       - hf_cache:/root/.cache/huggingface
     depends_on:
       mongodb-local:
+        condition: service_healthy
+        required: false
+      postgres-local:
         condition: service_healthy
         required: false
     restart: unless-stopped
@@ -131,8 +139,33 @@ services:
       retries: 12
       start_period: 60s
 
+  # Local Postgres + pgvector — opt-in: ./start-services.sh --postgres (or --profile local-postgres)
+  # Stands in for hosted Supabase so the Postgres backend can be developed and
+  # tested without a cloud account. The server applies server/db/schema.sql on boot.
+  # CLI on host: export DATABASE_URL from scripts/lib/compose.sh (RAG_LOCAL_DATABASE_URL_HOST)
+  postgres-local:
+    profiles: ["local-postgres"]
+    image: pgvector/pgvector:pg16
+    container_name: ${POSTGRES_LOCAL_CONTAINER_NAME:-rag-params-finder-postgres-local}
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag}
+      POSTGRES_DB: ${POSTGRES_DB:-rag_params_finder}
+    volumes:
+      - postgres_local_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rag} -d ${POSTGRES_DB:-rag_params_finder}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
 volumes:
   hf_cache:
+  postgres_local_data:
   mongodb_local_data:
   mongodb_local_configdb:
   mongodb_local_mongot:
