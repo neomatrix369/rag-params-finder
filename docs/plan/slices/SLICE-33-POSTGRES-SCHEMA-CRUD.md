@@ -26,7 +26,7 @@
   - `pyproject.toml` — `psycopg[binary]`; keep pymongo
   - `docker-compose.yml` — `postgres-local` service under `local-postgres` profile
   - `start-services.sh` / `scripts/lib/compose.sh` — `--postgres` / `RAG_LOCAL_POSTGRES=1` (canonical rename to `--postgres-local` in Slice 37)
-  - `configs/example-postgres-local.yaml`
+  - `configs/supabase/example-local.yaml`
   - `docs/user-guide/postgres-setup.md` — Path A (local) documented
   - `tests/test_postgres_store_integration.py` — 19 live CRUD/cascade/stats tests
 - Exit criteria: With `STORAGE_BACKEND=postgres`, experiment CRUD + cascade delete + chunk insert work against local pgvector container
@@ -49,7 +49,7 @@ Ship Postgres/pgvector schema and CRUD for experiments, run_status, chunks, and 
 | Local one-command | `./start-services.sh --postgres` (alias; Slice 37 renames to `--postgres-local`) |
 | Cloud / hosted | Out of scope — Slice 37 |
 | Docs | [`postgres-setup.md`](../../user-guide/postgres-setup.md) Path A; Path B expanded in 37 |
-| Example config | `configs/example-postgres-local.yaml` (not `example-supabase-local.yaml`) |
+| Example config | `configs/supabase/example-local.yaml` (not `example-supabase-local.yaml`) |
 
 ---
 

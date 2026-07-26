@@ -64,7 +64,7 @@ On M0 (`TheSandboxCluster`), cluster storage reached **515 MB / 512 MB**. Atlas 
 ### Dashboard & config guardrails
 
 - [ ] Warning banner in **VectorDbStatsPanel** when usage ≥ **80%** of quota (cluster metric when available).
-- [ ] **`configs/example-mongodb-local-smoke.yaml`** — minimal M0 dev sweep (1 chunk method, 1 size, 1 retriever); keep full local example for intentional large sweeps with comment warning.
+- [ ] **`configs/mongodb/example-local-smoke.yaml`** — minimal M0 dev sweep (1 chunk method, 1 size, 1 retriever); keep full local example for intentional large sweeps with comment warning.
 
 ### Docs & tests
 
@@ -116,7 +116,7 @@ DELETE /experiments/{id}?force=true
 | `server/api/experiments_shared.py` | Shared quota error helper; export estimate fn |
 | `server/main.py` | Graceful orphan reconciliation when writes blocked |
 | `frontend/src/components/VectorDbStatsPanel.tsx` | ≥80% warning banner |
-| `configs/example-mongodb-local-smoke.yaml` | **NEW** — M0-friendly dev config |
+| `configs/mongodb/example-local-smoke.yaml` | **NEW** — M0-friendly dev config |
 | `docs/user-guide/troubleshooting.md` | Storage quota section |
 | `tests/test_storage_preflight.py` | **NEW** |
 

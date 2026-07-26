@@ -21,7 +21,7 @@
   - `server/models/config.py` — normalize `database_provider` (`supabase` → `postgres`)
   - `server/api/experiments.py` (or shared helper) — reject config/backend mismatch before persist
   - `cli/api_client.py` / `cli/main.py` — optional preflight against `/healthz` with same remediation text
-  - `configs/example-postgres-local.yaml`, `configs/example-postgres-cloud.yaml` (+ mongodb cloud example if missing)
+  - `configs/supabase/example-local.yaml`, `configs/supabase/example-local.yaml` (+ mongodb cloud example if missing)
   - `server/core/startup_reconciliation.py` — verify Postgres path via StorageBackend + tests
   - `docs/user-guide/postgres-setup.md` — Path B + switching table; **no** separate `supabase-setup.md`
   - Doc sweep: `README.md`, `QUICKSTART.md`, `CLAUDE.md`, `AGENTS.md`, `mongodb-setup.md`, `configuration.md`, `local-environment.md`, `CHANGELOG.md`
@@ -71,14 +71,14 @@ Happy path is always **two commands**:
 
 ```bash
 ./start-services.sh --postgres-local
-rag-params-finder run --config configs/example-postgres-local.yaml
+rag-params-finder run --config configs/supabase/example-local.yaml
 ```
 
 | From → To | Operator steps |
 |---|---|
-| Mongo local → Postgres local | `--postgres-local` + `example-postgres-local.yaml` |
-| Mongo cloud → Postgres cloud (Supabase) | put `DATABASE_URL` in `.env`, `--postgres-cloud` + `example-postgres-cloud.yaml` |
-| Postgres → Mongo | `--mongodb-local` or `--mongodb-cloud` + matching `example-mongodb-*.yaml` |
+| Mongo local → Postgres local | `--postgres-local` + `configs/supabase/example-local.yaml` |
+| Mongo cloud → Postgres cloud (Supabase) | put `DATABASE_URL` in `.env`, `--postgres-cloud` + `configs/supabase/example-*.yaml` |
+| Postgres → Mongo | `--mongodb-local` or `--mongodb-cloud` + matching `configs/mongodb/example-*.yaml` |
 | Postgres local → Postgres cloud | `--postgres-cloud` (same `database_provider: postgres` YAML OK) |
 
 **Must not require:** editing YAML to name `supabase`; hand-setting `STORAGE_BACKEND` when a flag is used; providing `MONGODB_URI` for Postgres modes; reading three different docs to guess the mode string.
@@ -142,7 +142,7 @@ Today `parse_args()` tracks two independent booleans (`LOCAL_ATLAS`, `LOCAL_POST
 Scenario: Two-step switch Mongo → Postgres local
   Given Docker available and a Mongo stack may already be running
   When ./start-services.sh --postgres-local runs
-  And rag-params-finder run --config configs/example-postgres-local.yaml runs
+  And rag-params-finder run --config configs/supabase/example-local.yaml runs
   Then healthz storage_mode is postgres-local
   And the sweep is accepted and stores into Postgres
 
@@ -151,7 +151,7 @@ Scenario: Two-step switch to Postgres cloud (Supabase)
   When ./start-services.sh --postgres-cloud runs
   Then ensure_env does not require MONGODB_URI
   And storage_mode is postgres-cloud
-  And example-postgres-cloud.yaml (or any database_provider: postgres config) is accepted
+  And configs/supabase/example-*.yaml (or any database_provider: postgres/supabase config) is accepted
 
 Scenario: Same postgres YAML works local and cloud
   Given a config with database_provider: postgres
@@ -166,7 +166,7 @@ Scenario: Config/backend mismatch fails fast with remediation
   When POST /experiments (or CLI run) executes
   Then HTTP 422 / non-zero exit before any experiment row is written
   And the message names ./start-services.sh --mongodb-local (or --mongodb-cloud)
-  And suggests configs/example-postgres-*.yaml as the alternate fix
+  And suggests configs/supabase/example-*.yaml as the alternate fix
 
 Scenario: Legacy aliases still work
   When ./start-services.sh --postgres runs
@@ -201,7 +201,7 @@ Scenario: Supabase paused project surfaces clear error
 | Drop / retarget | New ownership |
 |---|---|
 | GWT “`--local-postgres` starts stack” | Already shipped as `--postgres`; rename to `--postgres-local` here |
-| Create `supabase-setup.md` + `example-supabase-local.yaml` | Expand Path B in `postgres-setup.md`; `example-postgres-cloud.yaml` |
+| Create `supabase-setup.md` + `example-supabase-local.yaml` | Expand Path B in `postgres-setup.md`; hosted uses `configs/supabase/example-*.yaml` + `DATABASE_URL` (no separate cloud YAML — 2026-07-26 configs split) |
 | Vague “full start-services” | `ensure_env` on resolved `(db_type, location)`; hints; lifecycle; mismatch gate |
 | Doc-only pooler rows | Code + runbook: Session mode, `prepare_threshold`, paused-project remediation |
 

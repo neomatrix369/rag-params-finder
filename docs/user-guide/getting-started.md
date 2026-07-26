@@ -147,16 +147,16 @@ Complete the checklist for your sweep path in **[MongoDB Setup → Before you ru
 
 ```bash
 # Local sweep — checklist items 1–5 (no Voyage)
-rag-params-finder run --config configs/example-mongodb-local.yaml
+rag-params-finder run --config configs/mongodb/example-local.yaml
 
 # Voyage sweep — checklist items 1–9
-rag-params-finder run --config configs/example-mongodb-voyage.yaml
+rag-params-finder run --config configs/mongodb/example-voyage.yaml
 
 # SIE sweep — SIE_ENABLED=true + SIE_ENDPOINT (+ SIE_API_KEY if remote); see sie-setup.md
-rag-params-finder run --config configs/example-mongodb-sie.yaml
+rag-params-finder run --config configs/mongodb/example-sie.yaml
 
 # Submit and detach (check dashboard for status instead)
-rag-params-finder run --config configs/example-mongodb-local.yaml --detach
+rag-params-finder run --config configs/mongodb/example-local.yaml --detach
 ```
 
 ### ⚡ Enable parallel sweeps (throughput boost)
@@ -168,19 +168,20 @@ execution:
   parallelism: 4  # 1 = sequential (safe default), >1 = concurrent
 ```
 
-- Use `configs/example-mongodb-local-parallel.yaml` for local-provider throughput tuning.
-- Use `configs/example-mongodb-voyage-parallel.yaml` or `configs/example-mongodb-sie-parallel.yaml` for provider-specific parallel demo baselines.
+- Use `configs/mongodb/example-local-parallel.yaml` for local-provider throughput tuning.
+- Use `configs/mongodb/example-voyage-parallel.yaml` or `configs/mongodb/example-sie-parallel.yaml` for provider-specific parallel demo baselines.
 - Keep `1` for deterministic small runs and reserved resource profiles.
+- Postgres/Supabase: same stems under `configs/supabase/` (dense today; sparse/hybrid → Slice 35).
 
 Example configs:
 - Sequential (`parallelism: 1`):
-  - [configs/example-mongodb-local.yaml](../../configs/example-mongodb-local.yaml)
-  - [configs/example-mongodb-voyage.yaml](../../configs/example-mongodb-voyage.yaml)
-  - [configs/example-mongodb-sie.yaml](../../configs/example-mongodb-sie.yaml)
+  - [configs/mongodb/example-local.yaml](../../configs/mongodb/example-local.yaml) · [supabase](../../configs/supabase/example-local.yaml)
+  - [configs/mongodb/example-voyage.yaml](../../configs/mongodb/example-voyage.yaml) · [supabase](../../configs/supabase/example-voyage.yaml)
+  - [configs/mongodb/example-sie.yaml](../../configs/mongodb/example-sie.yaml) · [supabase](../../configs/supabase/example-sie.yaml)
 - Parallel (`parallelism: 4`):
-  - [configs/example-mongodb-local-parallel.yaml](../../configs/example-mongodb-local-parallel.yaml)
-  - [configs/example-mongodb-voyage-parallel.yaml](../../configs/example-mongodb-voyage-parallel.yaml)
-  - [configs/example-mongodb-sie-parallel.yaml](../../configs/example-mongodb-sie-parallel.yaml)
+  - [configs/mongodb/example-local-parallel.yaml](../../configs/mongodb/example-local-parallel.yaml) · [supabase](../../configs/supabase/example-local-parallel.yaml)
+  - [configs/mongodb/example-voyage-parallel.yaml](../../configs/mongodb/example-voyage-parallel.yaml) · [supabase](../../configs/supabase/example-voyage-parallel.yaml)
+  - [configs/mongodb/example-sie-parallel.yaml](../../configs/mongodb/example-sie-parallel.yaml) · [supabase](../../configs/supabase/example-sie-parallel.yaml)
 
 For provider-specific caveats and limits (`1..16`, Voyage/SIE quota behavior, and `on_error` semantics), see [Configuration reference → Parallelism](configuration.md#parallelism-executionparallelism).
 

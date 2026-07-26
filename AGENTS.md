@@ -38,9 +38,9 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 # Backend
 uvicorn server.main:app --reload --port 8001   # start server (manual)
-rag-params-finder run --config configs/example-mongodb-local.yaml  # submit experiment
-rag-params-finder run --config configs/example-mongodb-sie.yaml    # SIE sweep — see docs/user-guide/sie-setup.md
-rag-params-finder run --config configs/example-postgres-local.yaml # pgvector — see docs/user-guide/postgres-setup.md
+rag-params-finder run --config configs/mongodb/example-local.yaml  # submit experiment
+rag-params-finder run --config configs/mongodb/example-sie.yaml    # SIE sweep — see docs/user-guide/sie-setup.md
+rag-params-finder run --config configs/supabase/example-local.yaml # pgvector — see docs/user-guide/postgres-setup.md
 rag-params-finder pause <experiment-id>   # pause after current phase
 rag-params-finder resume <experiment-id>  # continue paused sweep
 rag-params-finder indexes list            # Atlas Search indexes (known vs unknown)

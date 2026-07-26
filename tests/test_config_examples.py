@@ -12,7 +12,7 @@ from server.db.indexes import TEXT_SEARCH_INDEX_NAME
 from server.models.config import ExperimentConfig, expand_sweep
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
-_SIE_CONFIG = _REPO_ROOT / "configs" / "example-mongodb-sie.yaml"
+_SIE_CONFIG = _REPO_ROOT / "configs" / "mongodb" / "example-sie.yaml"
 _SIE_MODELS = frozenset({"bge-m3", "stella-v5"})
 
 
@@ -59,12 +59,24 @@ class TestExampleMongoDbSieConfig:
 @pytest.mark.parametrize(
     "config_rel_path",
     [
-        "configs/example-mongodb-local.yaml",
-        "configs/example-mongodb-voyage.yaml",
-        "configs/example-mongodb-unified-retrievers.yaml",
-        "configs/example-mongodb-sie.yaml",
-        "configs/example-mongodb-unified-retrievers-bayesian.yaml",
-        "configs/example-mongodb-local-bayesian.yaml",
+        "configs/mongodb/example-local.yaml",
+        "configs/mongodb/example-local-parallel.yaml",
+        "configs/mongodb/example-voyage.yaml",
+        "configs/mongodb/example-voyage-parallel.yaml",
+        "configs/mongodb/example-unified-retrievers.yaml",
+        "configs/mongodb/example-sie.yaml",
+        "configs/mongodb/example-sie-parallel.yaml",
+        "configs/mongodb/example-unified-retrievers-bayesian.yaml",
+        "configs/mongodb/example-local-bayesian.yaml",
+        "configs/supabase/example-local.yaml",
+        "configs/supabase/example-local-parallel.yaml",
+        "configs/supabase/example-voyage.yaml",
+        "configs/supabase/example-voyage-parallel.yaml",
+        "configs/supabase/example-unified-retrievers.yaml",
+        "configs/supabase/example-sie.yaml",
+        "configs/supabase/example-sie-parallel.yaml",
+        "configs/supabase/example-unified-retrievers-bayesian.yaml",
+        "configs/supabase/example-local-bayesian.yaml",
     ],
 )
 def test_given_example_yaml_when_load_and_validate_then_no_errors(config_rel_path: str) -> None:

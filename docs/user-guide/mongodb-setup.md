@@ -6,7 +6,7 @@
 
 **Essential, minimal steps** to run the example sweep commands on **Atlas Cloud** or **Atlas Local (Docker)**. Official vendor docs are linked; details you can skip are marked *optional*.
 
-> **Naming note:** `example-mongodb-local.yaml` means **local embedding models** (sentence-transformers, 384-dim) — not local MongoDB. Any example config works on either backend; only `MONGODB_URI` (or `./start-services.sh --local`) selects the database.
+> **Naming note:** MongoDB examples live under `configs/mongodb/`. `example-local.yaml` means **local embedding models** (sentence-transformers, 384-dim) — not local MongoDB. Any MongoDB example works on Atlas Cloud or Atlas Local; only `MONGODB_URI` (or `./start-services.sh --local`) selects the database. Supabase/pgvector twins live under `configs/supabase/`.
 
 ---
 
@@ -83,9 +83,9 @@ Atlas UI → **Browse Collections** → database `rag_params_finder` → **Creat
 
 | Sweep | Vector index name | `numDimensions` |
 |---|---|---|
-| `example-mongodb-local.yaml` | `vector_index_384` | `384` |
-| `example-mongodb-voyage.yaml` | `vector_index_1024` | `1024` |
-| `example-mongodb-sie.yaml` | `vector_index_1024`, `vector_index_30522` | `1024`, `30522` |
+| `mongodb/example-local.yaml` | `vector_index_384` | `384` |
+| `mongodb/example-voyage.yaml` | `vector_index_1024` | `1024` |
+| `mongodb/example-sie.yaml` | `vector_index_1024`, `vector_index_30522` | `1024`, `30522` |
 | Both (same cluster) | create **both** | `384` and `1024` |
 
 **Vector index JSON** (set `numDimensions` and name as above):
@@ -168,7 +168,7 @@ The server connects to `mongodb-local` automatically. All vector and text search
 
 ```bash
 export MONGODB_URI="mongodb://localhost:27017/rag_params_finder?directConnection=true"
-rag-params-finder run --config configs/example-mongodb-local.yaml
+rag-params-finder run --config configs/mongodb/example-local.yaml
 ```
 
 Open `http://localhost:5374` to watch progress.
@@ -252,10 +252,10 @@ Reset all local data: `docker compose --profile local-atlas down -v`
 
 Both example configs use **dense + sparse + hybrid** retrieval — you need **vector + text** search indexes (auto on Path B; manual on Path A M0).
 
-### Local embeddings sweep — `example-mongodb-local.yaml`
+### Local embeddings sweep — `example-local.yaml`
 
 ```bash
-rag-params-finder run --config configs/example-mongodb-local.yaml
+rag-params-finder run --config configs/mongodb/example-local.yaml
 ```
 
 | # | Step | Where |
@@ -266,10 +266,10 @@ rag-params-finder run --config configs/example-mongodb-local.yaml
 
 No Voyage account needed.
 
-### Voyage sweep — `example-mongodb-voyage.yaml`
+### Voyage sweep — `example-voyage.yaml`
 
 ```bash
-rag-params-finder run --config configs/example-mongodb-voyage.yaml
+rag-params-finder run --config configs/mongodb/example-voyage.yaml
 ```
 
 Complete the **local embeddings sweep checklist** above, then add:
@@ -283,10 +283,10 @@ Complete the **local embeddings sweep checklist** above, then add:
 
 You need **both** vector indexes if you run local-embedding and Voyage sweeps on the same cloud cluster.
 
-### SIE sweep — `example-mongodb-sie.yaml`
+### SIE sweep — `example-sie.yaml`
 
 ```bash
-rag-params-finder run --config configs/example-mongodb-sie.yaml
+rag-params-finder run --config configs/mongodb/example-sie.yaml
 ```
 
 Complete the **local embeddings sweep checklist** above, then add:
@@ -309,7 +309,7 @@ No Voyage API key needed.
 
 ## Voyage AI (required for Voyage sweep)
 
-Skip entirely for `example-mongodb-local.yaml`.
+Skip entirely for `configs/mongodb/example-local.yaml`.
 
 ### 1. Create an account
 
@@ -353,10 +353,10 @@ cp .env.example .env          # once — then fill MONGODB_URI (+ Voyage vars if
 uvicorn server.main:app --reload --port 8001
 
 # Local embeddings — 120 runs, no API key (needs vector_index_384 + text_search_index on cloud M0)
-rag-params-finder run --config configs/example-mongodb-local.yaml
+rag-params-finder run --config configs/mongodb/example-local.yaml
 
 # Voyage — 40 runs, requires Voyage steps above
-rag-params-finder run --config configs/example-mongodb-voyage.yaml
+rag-params-finder run --config configs/mongodb/example-voyage.yaml
 ```
 
 Dashboard (optional): `cd frontend && npm run dev` → `http://localhost:5374`

@@ -27,19 +27,19 @@ Submits the experiment config to the server, then optionally polls run progress 
 **Examples**:
 ```bash
 # Submit and watch progress in the terminal
-rag-params-finder run --config configs/example-mongodb-local.yaml
+rag-params-finder run --config configs/mongodb/example-local.yaml
 
 # Submit and detach — open http://localhost:5374 to track status
-rag-params-finder run --config configs/example-mongodb-local.yaml --detach
+rag-params-finder run --config configs/mongodb/example-local.yaml --detach
 
 # Submit, print the submission summary, then exit without polling the server
-rag-params-finder run --config configs/example-mongodb-local.yaml --no-watch
+rag-params-finder run --config configs/mongodb/example-local.yaml --no-watch
 
 # Voyage AI experiment (requires VOYAGE_API_KEY in .env)
-rag-params-finder run --config configs/example-mongodb-voyage.yaml
+rag-params-finder run --config configs/mongodb/example-voyage.yaml
 
 # SIE experiment (requires SIE warm for bge-m3/stella-v5/splade-v3 + SIE_ENABLED=true)
-rag-params-finder run --config configs/example-mongodb-sie.yaml
+rag-params-finder run --config configs/mongodb/example-sie.yaml
 ```
 
 When watching, the CLI renders a live Rich table showing each run's current phase:

@@ -65,7 +65,7 @@ docker logs rag-params-finder-server 2>&1 | grep -E "vector index created|text s
 
 # Run sweep from host
 export MONGODB_URI="mongodb://localhost:27017/rag_params_finder?directConnection=true"
-rag-params-finder run --config configs/example-mongodb-local.yaml --detach
+rag-params-finder run --config configs/mongodb/example-local.yaml --detach
 
 # Quality gates (no regressions)
 ./scripts/quality-gates.sh --quick

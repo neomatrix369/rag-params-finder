@@ -102,11 +102,13 @@ storage lands in Slice 35.
 ./start-services.sh --postgres
 export STORAGE_BACKEND=postgres
 export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
-rag-params-finder run --config configs/example-postgres-local.yaml
+rag-params-finder run --config configs/supabase/example-local.yaml
 ```
 
-`configs/example-postgres-local.yaml` is deliberately small — four runs with
-local 384-dim embeddings and dense retrieval only.
+`configs/supabase/example-local.yaml` mirrors `configs/mongodb/example-local.yaml`
+(same embedding/chunking/retriever grid). Dense (+ cross-encoder) runs end to end
+today; sparse and hybrid raise until Slice 35. Shorter grids:
+`example-unified-retrievers.yaml` and the `*-bayesian.yaml` variants in the same folder.
 
 ---
 

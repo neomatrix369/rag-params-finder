@@ -92,7 +92,7 @@ export MONGODB_URI="mongodb://localhost:27017/rag_params_finder?directConnection
 
 # 2. Run sweep against local Atlas
 export MONGODB_URI="mongodb://localhost:27017/rag_params_finder?directConnection=true"
-rag-params-finder run --config configs/example-mongodb-local.yaml --detach
+rag-params-finder run --config configs/mongodb/example-local.yaml --detach
 
 # 3. Switch back to cloud (no --local)
 docker compose --profile local-atlas down

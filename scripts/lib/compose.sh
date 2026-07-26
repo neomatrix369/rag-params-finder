@@ -111,7 +111,7 @@ print_local_atlas_cli_hints() {
   echo "    export MONGODB_URI=\"$RAG_LOCAL_MONGODB_URI_HOST\""
   echo ""
   echo "  Quick sweep:"
-  echo "    MONGODB_URI=\"$RAG_LOCAL_MONGODB_URI_HOST\" rag-params-finder run --config configs/example-mongodb-local.yaml"
+  echo "    MONGODB_URI=\"$RAG_LOCAL_MONGODB_URI_HOST\" rag-params-finder run --config configs/mongodb/example-local.yaml"
   if [[ "$include_full_stack" == "1" ]]; then
     echo ""
     echo "  Full stack with local Atlas:"

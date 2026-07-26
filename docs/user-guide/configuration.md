@@ -11,14 +11,20 @@ All YAML fields, sweep expansion rules, and queries file format.
 
 ## ⚙️ Experiment Config (YAML)
 
-Place config files in `configs/`. Three ready-to-run configs are provided, one per vector-DB × provider combination:
+Place config files under `configs/mongodb/` or `configs/supabase/` (mirrored stems). Shared queries live at `configs/questions.example.json`.
 
 | Config file | Vector DB | Embedding provider | Chunking | Retrievers | Runs | API key? |
 |---|---|---|---|---|---|---|
-| `example-mongodb-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid · cross-encoder | 120 | No |
-| `example-mongodb-voyage.yaml` | MongoDB Atlas | Voyage AI (voyage-3.5-lite) | all 5 methods | hybrid · dense · sparse · reranker | 40 | Yes |
-| `example-mongodb-sie.yaml` | MongoDB Atlas | SIE (bge-m3, stella-v5) | all 5 methods | dense · sparse · hybrid · cross-encoder | 80 | No (remote SIE gateway or optional Docker) |
-| `example-mongodb-unified-retrievers.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | 2 methods | dense · sparse · hybrid · cross-encoder | 16 | No |
+| `mongodb/example-local.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid · cross-encoder | 120 | No |
+| `mongodb/example-voyage.yaml` | MongoDB Atlas | Voyage AI (voyage-3.5-lite) | all 5 methods | hybrid · dense · sparse · reranker | 40 | Yes |
+| `mongodb/example-sie.yaml` | MongoDB Atlas | SIE (bge-m3, stella-v5) | all 5 methods | dense · sparse · hybrid · cross-encoder | 80 | No (remote SIE gateway or optional Docker) |
+| `mongodb/example-unified-retrievers.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | 2 methods | dense · sparse · hybrid · cross-encoder | 16 | No |
+| `supabase/example-local.yaml` | Supabase / pgvector | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid · cross-encoder | 120 | No |
+| `supabase/example-voyage.yaml` | Supabase / pgvector | Voyage AI (voyage-3.5-lite) | all 5 methods | hybrid · dense · sparse · reranker | 40 | Yes |
+| `supabase/example-sie.yaml` | Supabase / pgvector | SIE (bge-m3, stella-v5) | all 5 methods | dense · sparse · hybrid · cross-encoder | 80 | No (remote SIE gateway or optional Docker) |
+| `supabase/example-unified-retrievers.yaml` | Supabase / pgvector | local (all-MiniLM-L6-v2) | 2 methods | dense · sparse · hybrid · cross-encoder | 16 | No |
+
+> **Postgres note:** dense (+ rerankers) run today on Supabase/pgvector. Sparse and hybrid raise until [Slice 35](../plan/slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md). Use `STORAGE_BACKEND=postgres` + `DATABASE_URL` — see [postgres-setup.md](postgres-setup.md).
 
 Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retriever runs as an independent experiment. Each entry in `retrieval.retrievers` creates a separate run — retrievers are never combined in a single run.
 
@@ -110,21 +116,21 @@ UI and API planned counts also expose `grid_equivalent_count` for Bayesian runs.
 
 On completion, `bayesian_summary` in the experiment document includes `trial_log` — a per-trial record of `{chunk_size, overlap, state, score}` for every trial Optuna proposed. The CLI prints this as a coloured Trial History table; the API exposes it at `GET /experiments/{id}`.
 
-Example canonical configs:
+Example canonical configs (mirrored under `mongodb/` and `supabase/`):
 
-- [example-mongodb-unified-retrievers-bayesian.yaml](../../configs/example-mongodb-unified-retrievers-bayesian.yaml) (opt-in, Bayesian search over chunking only)
-- [example-mongodb-local-bayesian.yaml](../../configs/example-mongodb-local-bayesian.yaml) (opt-in, Bayesian search over chunking only)
+- [mongodb/example-unified-retrievers-bayesian.yaml](../../configs/mongodb/example-unified-retrievers-bayesian.yaml) · [supabase twin](../../configs/supabase/example-unified-retrievers-bayesian.yaml)
+- [mongodb/example-local-bayesian.yaml](../../configs/mongodb/example-local-bayesian.yaml) · [supabase twin](../../configs/supabase/example-local-bayesian.yaml)
 
 ### Example config files
 
-- Sequential example (`parallelism: 1`):
-  - [example-mongodb-local.yaml](../../configs/example-mongodb-local.yaml)
-  - [example-mongodb-voyage.yaml](../../configs/example-mongodb-voyage.yaml)
-  - [example-mongodb-sie.yaml](../../configs/example-mongodb-sie.yaml)
-- Parallel example (`parallelism: 4`):
-  - [example-mongodb-local-parallel.yaml](../../configs/example-mongodb-local-parallel.yaml)
-  - [example-mongodb-voyage-parallel.yaml](../../configs/example-mongodb-voyage-parallel.yaml)
-  - [example-mongodb-sie-parallel.yaml](../../configs/example-mongodb-sie-parallel.yaml)
+- Sequential (`parallelism: 1`):
+  - [mongodb/example-local.yaml](../../configs/mongodb/example-local.yaml) · [supabase](../../configs/supabase/example-local.yaml)
+  - [mongodb/example-voyage.yaml](../../configs/mongodb/example-voyage.yaml) · [supabase](../../configs/supabase/example-voyage.yaml)
+  - [mongodb/example-sie.yaml](../../configs/mongodb/example-sie.yaml) · [supabase](../../configs/supabase/example-sie.yaml)
+- Parallel (`parallelism: 4`):
+  - [mongodb/example-local-parallel.yaml](../../configs/mongodb/example-local-parallel.yaml) · [supabase](../../configs/supabase/example-local-parallel.yaml)
+  - [mongodb/example-voyage-parallel.yaml](../../configs/mongodb/example-voyage-parallel.yaml) · [supabase](../../configs/supabase/example-voyage-parallel.yaml)
+  - [mongodb/example-sie-parallel.yaml](../../configs/mongodb/example-sie-parallel.yaml) · [supabase](../../configs/supabase/example-sie-parallel.yaml)
 
 ---
 
@@ -332,17 +338,17 @@ Each query is executed independently per run. Results are stored with `persona_i
 
 ## 🏠 Quick Start (No API Key)
 
-Use `configs/example-mongodb-local.yaml` — it covers all 5 chunking methods and all traditional retrieval methods (dense, sparse, hybrid) plus local cross-encoder reranking. No Voyage API key needed. **120 runs** — mostly wall-clock time; sparse/hybrid query existing chunk text (BM25/RRF) and do not add embedding storage beyond each run’s chunks. For a shorter sweep, use `example-mongodb-unified-retrievers.yaml` (16 runs).
+Use `configs/mongodb/example-local.yaml` — it covers all 5 chunking methods and all traditional retrieval methods (dense, sparse, hybrid) plus local cross-encoder reranking. No Voyage API key needed. **120 runs** — mostly wall-clock time; sparse/hybrid query existing chunk text (BM25/RRF) and do not add embedding storage beyond each run’s chunks. For a shorter sweep, use `configs/mongodb/example-unified-retrievers.yaml` (16 runs). Supabase/pgvector twin: `configs/supabase/example-local.yaml` (dense works today; sparse/hybrid → Slice 35).
 
 ```bash
-rag-params-finder run --config configs/example-mongodb-local.yaml
+rag-params-finder run --config configs/mongodb/example-local.yaml
 ```
 
 For a targeted subset, copy the file and trim the `methods` or `chunk_sizes` lists before running.
 
 ## SIE Quick Start (Open-Source Embeddings)
 
-Use `configs/example-mongodb-sie.yaml` — same chunking/retriever coverage as the local example, with **2 SIE models** (bge-m3, stella-v5). **80 runs** — SIE encode is slower than Voyage API; use `--detach` and monitor the dashboard.
+Use `configs/mongodb/example-sie.yaml` — same chunking/retriever coverage as the local example, with **2 SIE models** (bge-m3, stella-v5). **80 runs** — SIE encode is slower than Voyage API; use `--detach` and monitor the dashboard.
 
 ### SIE environment variables
 
@@ -356,10 +362,10 @@ Use `configs/example-mongodb-sie.yaml` — same chunking/retriever coverage as t
 
 **Otherwise:** run optional self-hosted Docker, then set `SIE_ENABLED=true` and `SIE_ENDPOINT=http://localhost:8720` — see **[SIE Provider Setup](sie-setup.md)**.
 
-Also requires `vector_index_1024` + `text_search_index` on Atlas. Full checklist: **[MongoDB Setup → SIE sweep](mongodb-setup.md#sie-sweep--example-mongodb-sieyaml)**.
+Also requires `vector_index_1024` + `text_search_index` on Atlas. Full checklist: **[MongoDB Setup → SIE sweep](mongodb-setup.md#sie-sweep--example-sieyaml)**.
 
 ```bash
-rag-params-finder run --config configs/example-mongodb-sie.yaml
+rag-params-finder run --config configs/mongodb/example-sie.yaml
 ```
 
 To **continue an incomplete sweep** without re-submitting YAML, pause and resume the same experiment (CLI or dashboard) — completed parameter combinations are skipped automatically.

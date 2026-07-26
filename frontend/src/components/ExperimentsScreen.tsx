@@ -646,7 +646,7 @@ export default function ExperimentsScreen({
             The server is connected and returned an empty list. Submit the first sweep from the CLI, then return here to follow its lifecycle and inspect its results.
           </p>
           <code className="mx-auto mt-4 block max-w-xl overflow-x-auto rounded-xl border border-line bg-canvas p-3 text-left text-xs text-ink">
-            rag-params-finder run --config configs/example-mongodb-local.yaml
+            rag-params-finder run --config configs/mongodb/example-local.yaml
           </code>
         </div>
       )}

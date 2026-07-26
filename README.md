@@ -20,7 +20,7 @@
 
 > Find your optimal RAG configuration — **before** you build your RAG application.
 
-**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using MongoDB Atlas Vector Search. Supports **Voyage AI** (hosted), **local sentence-transformers** (no API key), and **SIE** open-source embeddings (remote gateway preferred; optional self-hosted Docker).
+**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using **MongoDB Atlas Vector Search** (default) or **Postgres/pgvector** (`STORAGE_BACKEND=postgres`; dense retrieval today, sparse/hybrid in Slice 35). Supports **Voyage AI** (hosted), **local sentence-transformers** (no API key), and **SIE** open-source embeddings (remote gateway preferred; optional self-hosted Docker).
 
 Most RAG projects start with a guess: pick an embedding model, pick a chunking method, a retrieval method (or a re-ranker), realise it's wrong, refactor. That loop is
 slow and expensive.
@@ -60,6 +60,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 | Persona | Start here | What you will do |
 |---------|------------|------------------|
 | **New user — cloud accounts** | [MongoDB Setup](docs/user-guide/mongodb-setup.md) | Atlas + optional Voyage, then [QUICKSTART](QUICKSTART.md) |
+| **New user — Postgres/pgvector** | [Postgres Setup](docs/user-guide/postgres-setup.md) | `./start-services.sh --postgres` + dense-only example config |
 | **New user — first sweep** | [QUICKSTART](QUICKSTART.md) | Install, run server + CLI, open dashboard |
 | **Operator — config & CLI** | [Configuration Reference](docs/user-guide/configuration.md) | YAML sweeps, env vars, `rag-params-finder` commands |
 | **Operator — dashboard** | [Dashboard Guide](docs/user-guide/dashboard-guide.md) | Live phases, Search Explorer, experiment controls |
@@ -111,6 +112,7 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 | I want to… | Start here |
 |---|---|
 | Run entirely offline (no Atlas cloud account) | [MongoDB Setup → Path B](docs/user-guide/mongodb-setup.md#path-b--atlas-local-docker) · `./start-services.sh --local` |
+| Run on Postgres/pgvector instead of Atlas | [Postgres Setup](docs/user-guide/postgres-setup.md) · `./start-services.sh --postgres` |
 | Set up MongoDB Atlas or Voyage AI accounts | [MongoDB Setup](docs/user-guide/mongodb-setup.md) |
 | Run my first experiment | [Getting Started](docs/user-guide/getting-started.md) |
 | Understand all config options | [Configuration Reference](docs/user-guide/configuration.md) |

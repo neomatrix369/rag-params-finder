@@ -112,6 +112,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 
 | Date | Item | Outcome |
 |------|------|---------|
+| 2026-07-26 | Configs split: `configs/mongodb/` + `configs/supabase/` | Example YAMLs reorganised by backend with mirrored stems; shared `questions.example.json` at `configs/`. Docs/CLI/agent entry points + `test_config_examples.py` updated. Supabase twins use `database_provider: supabase`; sparse/hybrid still Slice 35. |
 | 2026-07-24 | Commit-stage optimisations (chore/project-hygiene) | Three opts applied: (1) dmypy daemon replaces mypy at commit — warm ~0.5s vs 2.2s cold (first run ~60s); (2) `frontend-verify` hook split — `tsc --noEmit` at commit saves ~8s/commit, `vite build` deferred to push; (3) actionlint confirmed already running at ~620ms via pre-commit managed binary — no PATH install needed. `.dmypy.json` added to `.gitignore`. |
 | 2026-07-24 | Chalk provenance job (chore/project-hygiene) | Added 7th nightly job `chalk` using `crashappsec/setup-chalk-action@v0.0.3`; marks `server/`, `cli/`, `scripts/` with embedded chalk marks; `id-token: write` grants Sigstore keyless signing; uploads `chalk.log` artifact (90 days, `if-no-files-found: warn`). Complements CycloneDX SBOM: SBOM answers "what's in the code?"; Chalk answers "is this the exact artifact CI built?". |
 | 2026-07-24 | Nightly artifact archiving audit (chore/project-hygiene) | Audited all 6 nightly jobs for missing `if: always()` on upload steps. Found 4 gaps: `mutmut results`+`junitxml` lines lacked `\|\| true` (fixed), Stryker upload missing `if: always()` + `if-no-files-found: warn` (fixed), SBOM upload missing `if: always()` (fixed). trufflehog/meterian/container-scan produce no local artifacts — no gaps. |
@@ -597,7 +598,7 @@ Fix misleading elapsed/duration times on long Voyage sweeps, surface Atlas clust
 - **EDIT**: `frontend/src/components/ExperimentDetailScreen.tsx` — elapsed + ETA on progress card; duration shows — while running/paused; controls only in header
 - **EDIT**: `frontend/src/components/VectorDbStatsPanel.tsx` — tier, cloud provider, region display
 - **EDIT**: `.env.example` — Tier 1 rate limits as commented block above free-tier defaults
-- **EDIT**: `configs/example-mongodb-voyage.yaml` — default to `voyage-3.5-lite` for storage-friendly sweeps
+- **EDIT**: `configs/mongodb/example-voyage.yaml` — default to `voyage-3.5-lite` for storage-friendly sweeps
 
 ### Key Design Decisions
 | Decision | Why |
@@ -847,7 +848,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | `tests/test_sie_embedder.py` | NEW — 5 GWT tests |
 | `tests/test_embedder_factory.py` | Rewritten — 6 GWT tests (sys.modules mocking) |
 | `tests/test_sweep_endpoint.py` | NEW — 9 GWT tests (minimal FastAPI app) |
-| `configs/example-mongodb-sie.yaml` | NEW — CLI full-pipeline SIE sweep (120 runs, bge-m3/stella-v5/splade-v3) |
+| `configs/mongodb/example-sie.yaml` | NEW — CLI full-pipeline SIE sweep (120 runs, bge-m3/stella-v5/splade-v3) |
 | `tests/test_config_examples.py` | NEW — example YAML load/expand/index-plan validation |
 
 ---

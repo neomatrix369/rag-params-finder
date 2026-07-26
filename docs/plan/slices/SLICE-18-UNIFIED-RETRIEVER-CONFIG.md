@@ -148,7 +148,7 @@ retrieval:
 ```bash
 # Old config auto-migrates
 python -c "from server.models.config import ExperimentConfig; import yaml; \
-  cfg = yaml.safe_load(open('configs/example-mongodb-local.yaml')); \
+  cfg = yaml.safe_load(open('configs/mongodb/example-local.yaml')); \
   exp = ExperimentConfig(**cfg); \
   assert exp.retrieval.retrievers, 'Migration failed'"
 
@@ -227,8 +227,8 @@ npm run build
 ### Step 6: Config Examples (30 min)
 
 Update all YAML files:
-- `configs/example-mongodb-local.yaml`
-- `configs/example-mongodb-voyage.yaml`
+- `configs/mongodb/example-local.yaml`
+- `configs/mongodb/example-voyage.yaml`
 - `configs/example-kimchi.yaml`
 
 Keep old format as comments for reference.

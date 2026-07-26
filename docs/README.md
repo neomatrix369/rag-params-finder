@@ -85,7 +85,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 |------|----------------|
 | Install and run first sweep | [QUICKSTART.md](../QUICKSTART.md) |
 | Atlas vector + text search indexes | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) |
-| Example YAML configs | `configs/example-mongodb-local.yaml`, `configs/example-mongodb-voyage.yaml`, `configs/example-mongodb-sie.yaml`, `configs/example-postgres-local.yaml` |
+| Example YAML configs | `configs/mongodb/` and `configs/supabase/` (mirrored stems; shared `configs/questions.example.json`) |
 | Run on Postgres/pgvector instead of Atlas | [user-guide/postgres-setup.md](./user-guide/postgres-setup.md) · `./start-services.sh --postgres` |
 | Quality gates before commit | [contributor-guide/development.md](./contributor-guide/development.md) · `./scripts/quality-gates.sh` |
 | Docker server + dashboard | [plan/slices/SLICE-14-DOCKER-COMPOSE.md](./plan/slices/SLICE-14-DOCKER-COMPOSE.md) |

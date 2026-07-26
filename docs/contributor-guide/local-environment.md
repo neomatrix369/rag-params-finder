@@ -99,7 +99,7 @@ SIE_API_KEY=your_gateway_token                      # omit when gateway has no a
 AIM_REPO=./.aim                                     # optional — Aim UI via ./scripts/aim-ui.sh
 ```
 
-Example sweep: `rag-params-finder run --config configs/example-mongodb-sie.yaml`
+Example sweep: `rag-params-finder run --config configs/mongodb/example-sie.yaml`
 
 ---
 

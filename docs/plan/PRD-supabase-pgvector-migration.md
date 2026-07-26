@@ -89,7 +89,7 @@ Happy path is always two commands — flag then matching example config:
 
 ```bash
 ./start-services.sh --postgres-cloud
-rag-params-finder run --config configs/example-postgres-cloud.yaml
+rag-params-finder run --config configs/supabase/example-local.yaml
 ```
 
 - Flag exports/resolves `STORAGE_BACKEND` + compose profile; prints `storage_mode` + suggested config.
@@ -122,8 +122,8 @@ User guides, dev docs, and agent docs are **gated per slice** — same commit as
 | `README.md` | User | **37**, **38** | Four-flag switching table; default backend note at cutover (38) |
 | `docs/README.md` | All | **33**, **37** | Persona row + user-guide table entry for `postgres-setup.md` |
 | `docs/user-guide/mongodb-setup.md` | User | **37**, **38** | Flag rename to `--mongodb-local` (37); cross-link rollback vs default (38) |
-| `configs/example-postgres-local.yaml` | User | **33** | Example sweep config for local pgvector |
-| `configs/example-postgres-cloud.yaml` | User | **37** | Hosted Supabase example (`database_provider: postgres`; no secrets in YAML) |
+| `configs/supabase/example-local.yaml` | User | **33** | Mirrored local/pgvector example (dense today; sparse/hybrid Slice 35) |
+| `configs/supabase/` (voyage, sie, parallel, bayesian twins) | User | **33+** | Parity set with `configs/mongodb/` stems; hosted Supabase uses same YAMLs + `DATABASE_URL` (Slice **37**) |
 | `docs/adr/ADR-004-postgresql-pgvector-vector-store.md` | All | **38** | **Create** — supersedes ADR-003; cost + monitoring rationale |
 | `docs/adr/ADR-003-mongodb-atlas-vector-store.md` | All | **38** | Status → Superseded by ADR-004 |
 | `docs/plan/gate-evidence/slice-38-quality-comparison.md` | Maintainer | **38** | Cutover quality + latency + rollback evidence |

@@ -72,9 +72,10 @@ Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/SL
 ### CLI
 
 ```bash
-rag-params-finder run --config configs/example-mongodb-local.yaml
-rag-params-finder run --config configs/example-mongodb-local.yaml --detach
-rag-params-finder run --config configs/example-mongodb-sie.yaml   # SIE BGE-M3/Stella/SPLADE — see docs/user-guide/sie-setup.md
+rag-params-finder run --config configs/mongodb/example-local.yaml
+rag-params-finder run --config configs/mongodb/example-local.yaml --detach
+rag-params-finder run --config configs/mongodb/example-sie.yaml   # SIE BGE-M3/Stella/SPLADE — see docs/user-guide/sie-setup.md
+rag-params-finder run --config configs/supabase/example-local.yaml  # pgvector — see docs/user-guide/postgres-setup.md
 rag-params-finder cancel <experiment-id>
 rag-params-finder pause <experiment-id>
 rag-params-finder resume <experiment-id>
