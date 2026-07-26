@@ -2,16 +2,13 @@
 
 **MoSCoW:** MUST
 **Target time:** ~3–4 h
-**Status:** 🔨 IN PROGRESS
+**Status:** ✅ COMPLETE
 **Depends on:** 37
 **Branch:** `slice/38-cutover-adr-004`
-**PRD:** `[docs/plan/PRD-supabase-pgvector-migration.md](../PRD-supabase-pgvector-migration.md)` §6.6, §9
+**PR:** https://github.com/neomatrix369/rag-params-finder/pull/118
+**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md) §6.6, §9
 
-> **Synced 2026-07-26** (enhanced-flow-planner continuation): foundations from Slices 34–37 + 43 are on `main`; this slice owns comparison artifact, ADR-004, and default flip only — not re-scoping operator DX.
->
-> **Remediated 2026-07-26** after [nw-platform-architect-reviewer](42fbfa86-9fb2-45a3-a094-6915b2c22e1a) **NEEDS REVISION** — remediations 1–8 applied (DECISIONS #114–#118).
->
-> **Branch accounting 2026-07-26:** Path A code remediations + local DB image pins landed on `slice/38-cutover-adr-004` (commits `96316bb`, `0f6ba2d` + follow-up pin/FCV recovery). **ADR-004 Accepted** (dual-backend); **local comparison VERIFIED**; optional default flip still open.
+> **Closed 2026-07-26:** ADR-004 Accepted · local comparison VERIFIED · CI dual-backend recorded · **no default flip** (DECISIONS #130 Won't) — code default stays `mongodb`; backends independently selectable (#129).
 
 ---
 
@@ -21,12 +18,12 @@
 
 - Slice name: `slice-38-cutover-adr-004`
 - Branch: `slice/38-cutover-adr-004`
-- PR: [https://github.com/neomatrix369/rag-params-finder/pull/118](https://github.com/neomatrix369/rag-params-finder/pull/118) (checkpoint — not cutover-complete)
+- PR: [https://github.com/neomatrix369/rag-params-finder/pull/118](https://github.com/neomatrix369/rag-params-finder/pull/118) (Slice 38 COMPLETE; default not flipped)
 - Files (expected):
-  - `docs/adr/ADR-004-postgresql-pgvector-vector-store.md` (**Accepted** 2026-07-26 — dual-backend; default flip still deferred)
+  - `docs/adr/ADR-004-postgresql-pgvector-vector-store.md` (**Accepted** 2026-07-26 — dual-backend; no default flip #130)
   - `docs/adr/ADR-003-mongodb-atlas-vector-store.md` — Status → **Superseded** by ADR-004 (Mongo still supported)
   - `docs/plan/gate-evidence/slice-38-quality-comparison.md` — Mongo vs Postgres rankings + latency (**VERIFIED** 2026-07-26)
-  - `docs/plan/gate-evidence/slice-38.json` — gate closure stub (job conclusions + run URLs, not the word "green") (**PARTIAL** — CI + comparison recorded; COMPLETE close-out open)
+  - `docs/plan/gate-evidence/slice-38.json` — gate closure (**PASSED** — CI + comparison; flip gate removed #130)
   - **Default flip surfaces (all three — BLOCKER-1; flip still deferred):**
     - `server/settings.py` — `storage_backend` default (+ placeholder URI reject — **landed**)
     - `scripts/lib/storage_mode.sh` — bare-start `${STORAGE_BACKEND:-…}` fallback + `export_storage_backend_for_stack` (**landed**)
@@ -35,11 +32,11 @@
   - `scripts/lib/compose.sh` — FCV / `Wrong mongod version` hint on unhealthy / timeout (**landed**)
   - `.github/workflows/ci.yml` — Atlas Local + pgvector image pins match compose (**landed**)
   - `.env.example` — comment out placeholder `SUPABASE_URI`; document postgres default; placeholder rejection for Postgres URIs (`<project-ref>`) (**landed** for reject + comment-out)
-  - Docs: README / getting-started / postgres-setup / mongodb-setup cross-links; `CLAUDE.md` Key Files default note (post-flip `/sync-docs`); mongodb-setup FCV callout (**landed**)
+  - Docs: README / getting-started / postgres-setup / mongodb-setup cross-links; `CLAUDE.md` Key Files default note; mongodb-setup FCV callout (**landed**)
   - Rollback docs: two-command recipes (`--mongodb-*` / `--postgres-*` + matching `configs/{mongodb,supabase}/…`)
   - Optional: remove dead Mongo-only docs paths only after comparison signed off
   - ~~Deprecated~~ `--local` ~~/~~ `--postgres` ~~flag aliases~~ — **DONE in Slice 37** (DECISIONS #108/#109); env `RAG_LOCAL_`* remain until a later cleanup
-- Exit criteria: local dual-backend comparison documented; ADR-004 Accepted; backends independently selectable (#129); optional explicit default flip; `slice-38.json`
+- Exit criteria: local dual-backend comparison documented; ADR-004 Accepted; backends independently selectable (#129); no default-flip gate (#130); `slice-38.json` PASSED
 - Commit pattern: `docs(slice-38): adr-004 pgvector cutover and quality comparison`
 - **Doc exit (Must):** CHANGELOG + PROGRESS/TRAIL + ADR files. Operator `/sync-docs` footprint → Slice 43 residuals (#126)
 
@@ -55,7 +52,7 @@
 | Mongo flags force `STORAGE_BACKEND=mongodb` (hostile leftover `.env`)         | `export_storage_backend_for_stack`; `compose_export_local_atlas_env`; `apply_stack_profiles`                                                    | ✅ `96316bb`                   |
 | Reject placeholder Postgres URIs (`<project-ref>`, etc.)                      | `ensure_stack_mode_env` + `Settings.ensure_storage_ready`                                                                                       | ✅ `96316bb`                   |
 | Comment out `.env.example` `SUPABASE_URI` placeholder                         | `.env.example`                                                                                                                                  | ✅ `96316bb`                   |
-| Default remains `mongodb` until an **explicit** flip decision is recorded | settings + shell + compose fallbacks unchanged; backends independently selectable (#129) | ✅ (#119 remediations; #129 clarifies independence) |
+| Code default stays `mongodb` permanently (#130 Won't flip) | settings + shell + compose fallbacks unchanged; backends independently selectable (#129) | ✅ (#119 remediations; #129 independence; #130 Won't) |
 | Unit coverage for resolver / URI alias                                        | `tests/test_storage_mode_resolve.py`, `tests/test_supabase_uri_alias.py`                                                                        | ✅                             |
 | Pin Atlas Local `mongodb/mongodb-atlas-local:8.3.3`                           | `docker-compose.yml`, CI `mongo-integration`, ADR-003 / architecture / mongodb-setup / CHANGELOG                                                | ✅ (#120; revised off `8.0.9`) |
 | Pin local pgvector `pgvector/pgvector:0.8.5-pg16`                             | `docker-compose.yml`, CI                                                                                                                        | ✅ (#120)                      |
@@ -66,7 +63,7 @@
 | Mongo↔Postgres operator doc parity (sync-docs)                                | QUICKSTART Path D, postgres-setup native-dev/ops table, troubleshooting, local-environment, architecture, CLAUDE indexes, mode-aware SIE footer | ✅ (#124)                      |
 
 
-**Not landed (still Must for COMPLETE):** optional explicit default flip · PROGRESS/TRAIL COMPLETE + CHANGELOG close-out. **Landed:** ADR-004 · CI dual-backend (`slice-38.json`) · mutation #128 · local comparison VERIFIED (#129 informational overlap). All non-100%-Yes gates → Slice 43 residuals (#125/#126).
+**Complete (#130 Won't flip):** ADR-004 · CI dual-backend (`slice-38.json`) · mutation #128 · local comparison VERIFIED · tracker/CHANGELOG close-out · code default stays `mongodb` with no flip gate. Non-100%-Yes gates → Slice 43 residuals (#125/#126).
 
 ---
 
@@ -93,13 +90,13 @@
 
 ## Goal
 
-Close the migration: document retrieval-quality comparison (**equivalent quality, not identical scores**), author ADR-004 superseding ADR-003, and keep both adapters as **independent** selectable engines. Changing the **code + documented default** is an optional explicit product decision informed by comparison evidence — not a fail-safe between engines (DECISIONS #129).
+Close the migration: document retrieval-quality comparison (**equivalent quality, not identical scores**), author ADR-004 superseding ADR-003, and keep both adapters as **independent** selectable engines. The **code + documented default** stays `mongodb` permanently (DECISIONS #130 — **Won't** flip). Comparison evidence supports operator A/B choice, not a default cutover (DECISIONS #129).
 
-**Production target mode (aspirational):** `postgres-cloud` remains the recommended **production** default in ADR-004 prose (Pro / non-pausing tier note). **Local comparison** (`mongodb-local` ↔ `postgres-local`, Slice 43 shape) records quality/latency so operators can choose; it does not make one backend a safety net for the other. Hosted quality/latency matrix and production-claim sign-off are parked on **Slice 43** residuals (not a Slice 38 COMPLETE blocker).
+**Production target mode (aspirational):** `postgres-cloud` remains a recommended **hosted Postgres** choice in ADR-004 prose (Pro / non-pausing tier note). **Local comparison** (`mongodb-local` ↔ `postgres-local`, Slice 43 shape) records quality/latency so operators can choose; it does not flip the code default (#130) and does not make one backend a safety net for the other. Hosted quality/latency matrix and production-claim sign-off are parked on **Slice 43** residuals (not a Slice 38 COMPLETE blocker).
 
-**Authoritative comparison baseline (DECISIONS #115):** Slice 43 shape — mirrored stems under `configs/mongodb/` and `configs/supabase/` (e.g. `example-local.yaml`), **384-dim local** embeddings, dense/sparse/hybrid (+ cross_encoder if present). ADR-003 records **no** baseline p99 — both backends are measured **fresh** in this slice. The PRD's illustrative `36×1000×1024` Voyage shape is **not** required for the cutover claim (infeasible at free-tier RPM inside 3–4 h).
+**Authoritative comparison baseline (DECISIONS #115):** Slice 43 shape — mirrored stems under `configs/mongodb/` and `configs/supabase/` (e.g. `example-local.yaml`), **384-dim local** embeddings, dense/sparse/hybrid (+ cross_encoder if present). ADR-003 records **no** baseline p99 — both backends are measured **fresh** in this slice. The PRD's illustrative `36×1000×1024` Voyage shape is **not** required for the dual-backend claim (infeasible at free-tier RPM inside 3–4 h).
 
-**Latency metric (DECISIONS #114):** Use **QUERYING-phase** `elapsed_ms` already recorded on `run_status` (median and max across matched runs). Record Postgres/Mongo median and max ratios as evidence for an optional default flip. Do **not** invent a p99 probe in this slice. Whole-run Aim `latency_ms` may be noted as secondary context only.
+**Latency metric (DECISIONS #114):** Use **QUERYING-phase** `elapsed_ms` already recorded on `run_status` (median and max across matched runs). Record Postgres/Mongo median and max ratios as operator evidence. Do **not** invent a p99 probe in this slice. Whole-run Aim `latency_ms` may be noted as secondary context only.
 
 **Operator vocabulary (from Slice 37 — do not regress):**
 
@@ -141,8 +138,8 @@ Scenario: Latency evidence recorded
   When median and max are compared
   Then the artifact records the raw medians/maxes and Postgres/Mongo ratios
     (no silent proxy substitution)
-  And those ratios inform any optional explicit default flip
-    (backends remain independently selectable — DECISIONS #129)
+  And those ratios are operator evidence only
+    (backends remain independently selectable — DECISIONS #129; no default flip — #130)
 
 Scenario: ADR-004 supersedes ADR-003
   Given ADR-004 is Accepted (context, decision, consequences,
@@ -153,7 +150,7 @@ Scenario: ADR-004 supersedes ADR-003
 
 Scenario: Independent engine switch under hostile leftover .env
   Given .env still contains STORAGE_BACKEND=postgres
-    (leftover postgres + Mongo flags — before or after any default flip)
+    (hostile leftover postgres + Mongo flags)
   When ./start-services.sh --mongodb-local runs
   Then /healthz reports storage_mode=mongodb-local
     (Mongo branch exports STORAGE_BACKEND=mongodb symmetrically —
@@ -168,7 +165,7 @@ Scenario: Dual-backend CI evidence recorded
 Scenario: Comparison run aborts or is partial
   Given a dual-backend comparison that fails mid-flight or covers only one mode
   When the artifact is written
-  Then it states partial scope and must NOT claim PASS or flip the default
+  Then it states partial scope and must NOT claim PASS or change the code default (#130)
 ```
 
 ---
@@ -186,7 +183,8 @@ Scenario: Comparison run aborts or is partial
 - Mandatory removal of env `RAG_LOCAL_*` aliases (Could — later cleanup)
 - Frontend coverage floor (Slice **44**)
 - Changing Atlas Local / pgvector healthchecks to assert writable primary (Could — #121)
-- Everything in Slice **43** §Parked from Slice 38 (hosted production claim, post-flip fresh-clone/default smoke, Pro-tier ADR mandate, sync-docs/doc-matrix, shell coverage, Graphiti, baked-date PRD spelling, tracker one-liners)
+- Everything in Slice **43** §Parked from Slice 38 (hosted production claim, Pro-tier ADR mandate, sync-docs/doc-matrix, shell coverage, Graphiti, baked-date PRD spelling, tracker one-liners)
+- Changing the code/docs default from `mongodb` to `postgres` (DECISIONS #130 Won't)
 
 ---
 
@@ -206,23 +204,23 @@ Must for COMPLETE — only unambiguous cutover outcomes:
 - [x] Comparison artifact `docs/plan/gate-evidence/slice-38-quality-comparison.md` for **local** dual-backend (Slice 43 shape) — **VERIFIED** 2026-07-26:
   - Query set, corpus, configs used, snapshot date
   - Metrics (top-1, top-3, top-5 rank overlap; NDCG optional) — **numeric top-3 present** (overall 45.7%; dense 92.9%)
-  - **Latency:** QUERYING elapsed_ms median/max Mongo vs Postgres — **PASS** (≤2×); informs optional default choice (#129)
+  - **Latency:** QUERYING elapsed_ms median/max Mongo vs Postgres — **PASS** (≤2×); operator evidence only (#129/#130)
   - **Rank overlap:** recorded as **informational** under independent backends (#129) — not a fail-safe tripwire; historical ≥80%/≥50% labels kept as context only
   - Dense/sparse/hybrid results for Mongo and Postgres
   - Mode scope: `mongodb-local` + `postgres-local` only
   - Equivalence reading: comparison complete; mismatch expected across engines (#129)
   - **Secrets redaction:** provider + region-level host + variable *name* only — never full URIs or passwords
-- [x] Cutover decision explicit (**DECISIONS #129**): Mongo and Postgres are **independent** selectable backends — neither is a fail-safe for the other. ADR-004 **Accepted** (dual-backend). Code/docs default remains `mongodb` until an **explicit** flip decision; comparison evidence informs that choice and operator A/B, it does not treat one engine as the other’s safety net. Two-command rollback = switch engines, not automatic failover.
+- [x] Cutover model explicit (**DECISIONS #129** + **#130**): Mongo and Postgres are **independent** selectable backends — neither is a fail-safe for the other. ADR-004 **Accepted** (dual-backend). Code/docs default stays `mongodb` permanently — **no flip gate**. Comparison evidence supports operator A/B only. Two-command rollback = switch engines, not automatic failover.
 - [x] ADR-004 authored + ADR-003 Status → Superseded; Consequences include local quality rationale, cost note (Atlas M0 vs Supabase), 32C port-semantics freeze, rollback >30 min two-command recipe, monitoring via `/healthz` + QUERYING failures — **Accepted 2026-07-26**
 - [x] CI dual-backend evidence: `docs/plan/gate-evidence/slice-38.json` stores each job conclusion + run URL (skipped ≠ green) — run `30218369352` on PR #118; both `mongo-integration` and `postgres-integration` conclusion=`success`
 - [x] Mutation: waive with DECISIONS row (pattern #95/#101) unless non-trivial new Python logic is added — **#128**
-- [x] `docs/plan/slices/PROGRESS.md` + `TRAIL.md` updated; CHANGELOG notes cutover decision — **PARTIAL** (comparison + #129 synced; final COMPLETE row + optional flip still open)
+- [x] `docs/plan/slices/PROGRESS.md` + `TRAIL.md` updated; CHANGELOG notes cutover decision — **COMPLETE** 2026-07-26; default-flip gate **removed** (#130 Won't)
 
 
 
 ## Gate Status
 
-🔨 IN PROGRESS — **partial**
+✅ COMPLETE — no default flip (#130 Won't)
 
 
 | Gate area                                                                          | State                                                                     |
@@ -234,12 +232,12 @@ Must for COMPLETE — only unambiguous cutover outcomes:
 | Before-Checks (prerequisites + hostile rollback)                                   | ✅                                                                         |
 | Local dual-backend quality + latency comparison                                    | ✅ VERIFIED (`slice-38-quality-comparison.md`; latency PASS; overlap informational #129) |
 | ADR-004 + ADR-003 Superseded                                                   | ✅ ADR-004 Accepted; ADR-003 Superseded                                    |
-| Cutover model (independent backends, not fail-safe)                            | ✅ DECISIONS #129 — default stays `mongodb` until explicit flip            |
-| Default flip to `postgres`                                                     | 📋 optional product decision — informed by comparison, not a fail-safe tripwire |
+| Cutover model (independent backends, not fail-safe)                            | ✅ DECISIONS #129                                                          |
+| Default flip to `postgres`                                                     | ✅ WON'T (#130) — gate removed; code default stays `mongodb` permanently   |
 | `slice-38.json` dual-backend CI (skipped ≠ green)                                  | ✅ VERIFIED (run 30218369352; both jobs success)                           |
 | Mutation waive                                                                     | ✅ DECISIONS #128                                                          |
-| `slice-38.json` cutover close-out + tracker/CHANGELOG                              | 📋 open (PARTIAL — comparison done; COMPLETE + optional flip remain)      |
-| Non-100%-Yes gates (hosted claim, post-flip smoke, sync-docs, Pro-tier mandate, …) | → Slice **43** residuals (#125/#126)                                      |
+| `slice-38.json` cutover close-out + tracker/CHANGELOG                              | ✅ COMPLETE                                                                |
+| Non-100%-Yes gates (hosted claim, sync-docs, Pro-tier mandate, …) | → Slice **43** residuals (#125/#126)                                      |
 
 
-**PR #118** is a checkpoint only — not cutover-complete.
+**PR #118** — Slice 38 close-out; no default flip.

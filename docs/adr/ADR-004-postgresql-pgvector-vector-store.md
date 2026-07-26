@@ -15,7 +15,7 @@ ADR-003 chose MongoDB Atlas as the single store for embeddings and experiment do
 2. Continued **MongoDB** support for rollback, A/B comparison, and existing Atlas workflows.
 3. A stable **port boundary** so sweeps, CLI, and the dashboard do not fork by engine.
 
-Slices 32–37 + 43 delivered `StorageBackend` / `RetrieverBackend`, Mongo + Postgres adapters, four-mode `storage_mode`, and operator switching (`--mongodb-*` / `--postgres-*`). Slice 38 records the architectural decision: both engines are **first-class and independent** (DECISIONS #129). The **code default** remains `mongodb` until an **explicit** flip decision; comparison evidence informs that choice — neither engine is a fail-safe for the other.
+Slices 32–37 + 43 delivered `StorageBackend` / `RetrieverBackend`, Mongo + Postgres adapters, four-mode `storage_mode`, and operator switching (`--mongodb-*` / `--postgres-*`). Slice 38 records the architectural decision: both engines are **first-class and independent** (DECISIONS #129). The **code default** stays `mongodb` permanently (DECISIONS #130 — no default flip); operators select Postgres explicitly. Neither engine is a fail-safe for the other.
 
 ---
 
@@ -29,8 +29,8 @@ Support **PostgreSQL + pgvector** (including Supabase-hosted Postgres) as a **fi
 | Connection | Mongo: `MONGODB_URI`. Postgres: canonical `DATABASE_URL`; optional `SUPABASE_URI` alias when unset |
 | Modes | `mongodb-local` \| `mongodb-cloud` \| `postgres-local` \| `postgres-cloud` via `./start-services.sh --{mongodb\|postgres}-{local\|cloud}` |
 | Configs | Mirrored stems under `configs/mongodb/` and `configs/supabase/` (`database_provider` is labeling metadata; engine must match server or HTTP 422) |
-| Default (today) | **`mongodb`** until an explicit product flip (comparison informs; #129) |
-| Production aspiration | Prefer **`postgres-cloud`** (Supabase) for hosted demos once hosted quality evidence exists (Slice 43 residuals); use a **Pro / non-pausing** tier for warm demos — free-tier auto-pause is a known risk |
+| Code default | **`mongodb`** permanently (#130) — Postgres via `STORAGE_BACKEND=postgres` / `--postgres-*` |
+| Hosted Postgres | Prefer **`postgres-cloud`** (Supabase) when the operator chooses hosted Postgres (Slice 43 residuals for quality evidence); use a **Pro / non-pausing** tier for warm demos — free-tier auto-pause is a known risk |
 
 Mongo is **not** deleted. Dual-backend is intentional through cutover and beyond until a later cleanup slice.
 
@@ -59,7 +59,7 @@ Mongo is **not** deleted. Dual-backend is intentional through cutover and beyond
 
 ### Neutral / operational
 
-- **Default remains `mongodb` until an explicit flip**: `server/settings.py`, `scripts/lib/storage_mode.sh`, and `docker-compose.yml` still default to `mongodb`. Local comparison ([`slice-38-quality-comparison.md`](../plan/gate-evidence/slice-38-quality-comparison.md), **VERIFIED** 2026-07-26) records latency (QUERYING `elapsed_ms` ≤2× **PASS**) and top-3 overlap as **evidence** for that optional decision — not a fail-safe tripwire between engines (DECISIONS #129).
+- **Code default is `mongodb` (#130)**: `server/settings.py`, `scripts/lib/storage_mode.sh`, and `docker-compose.yml` default to `mongodb`. There is **no** planned flip of that default. Local comparison ([`slice-38-quality-comparison.md`](../plan/gate-evidence/slice-38-quality-comparison.md), **VERIFIED** 2026-07-26) is operator A/B evidence under independent backends (#129), not a cutover tripwire.
 - **Cost note**: Atlas M0 remains free but storage/CPU constrained; Supabase free tier can pause — plan hosted demos accordingly (Pro-tier detail tracked as Slice 43 residual).
 - **Monitoring**: Prefer `/healthz` (`storage_mode`, backend `ok`) and QUERYING-phase failure counts; remediate Supabase pause via project wake + reconnect.
 - **Engine switch (ops)**: If the Postgres path is unsuitable for an incident (e.g. recovery lead time **> 30 minutes**), operators may switch to Mongo with the two-command recipe; record in gate-evidence / ops notes. This is a deliberate backend change, not automatic fail-over.
@@ -78,7 +78,7 @@ Mongo is **not** deleted. Dual-backend is intentional through cutover and beyond
 - **Keep Mongo-only (ADR-003 forever)**: Rejected — blocks Supabase/pgvector operators and the migration PRD.
 - **Hard cutover delete Mongo**: Rejected for this cycle — need rollback and side-by-side comparison (Won't until a later cleanup slice).
 - **Postgres-only new fork of the product**: Rejected — duplicates CLI/dashboard; ports already isolate engines.
-- **Flip default to `postgres` without an explicit recorded decision**: Rejected — remediations first (#119); backends stay independently selectable (#129). Comparison informs the flip; it does not cast Mongo as Postgres’s fail-safe.
+- **Flip code default to `postgres`**: Rejected permanently (DECISIONS #130 Won't) — dual-backend is operator select via flags/env; default stays `mongodb`.
 
 ---
 

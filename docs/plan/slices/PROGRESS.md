@@ -1,6 +1,6 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-26 (Slice 38 🔨 — ADR-004 ✅ · CI ✅ · mutation #128 ✅ · #129 · local comparison VERIFIED)
+**Last Updated**: 2026-07-26 (Slice 38 ✅ COMPLETE — ADR-004 · comparison · no default flip #130)
 **Current**: Active migration: **38** 🔨 cutover + ADR-004 (partial — remediations/pins/ADR/CI done; Postgres twin comparison running). **37** ✅ local/cloud parity. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **36** ✅. **43** ✅. Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
@@ -54,7 +54,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 35 — Postgres sparse + hybrid | ✅ COMPLETE | ~4–5 h | tsvector + RRF + Supabase-mode copy hygiene; equivalence CONDITIONAL → 38 — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
 | 36 — Preflight + stats + storage_mode | ✅ COMPLETE | ~3–4 h | Catalog preflight 422 + four-value `storage_mode`; live smoke `postgres-local`; mutation waived #101 — [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md) |
 | 37 — Local/cloud parity + low-friction switch | ✅ COMPLETE | ~3–4 h | Four-flag grid + config↔server 422 + supabase normalize + live `postgres-local`/`postgres-cloud` smoke; `SUPABASE_URI` alias; removed `--local`/`--postgres` flags — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) · [`gate-evidence/slice-37.json`](../gate-evidence/slice-37.json) |
-| 38 — Cutover + ADR-004 | 🔨 IN PROGRESS | ~3–4 h | Partial: remediations + pins + **ADR-004 Accepted** + CI + mutation #128 + #129 + **local comparison VERIFIED**; open: optional default flip + COMPLETE tracker/CHANGELOG close-out — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) · [`gate-evidence/slice-38-quality-comparison.md`](../gate-evidence/slice-38-quality-comparison.md) |
+| 38 — Cutover + ADR-004 | ✅ COMPLETE | ~3–4 h | ADR-004 Accepted; local comparison VERIFIED; independent backends #129; **no default flip** (#130 Won't) — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) · [`gate-evidence/slice-38.json`](../gate-evidence/slice-38.json) |
 | 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
 | 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
 | 39 — Demo-ready dashboard polish | ✅ COMPLETE | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, network, and component verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
@@ -88,7 +88,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 35 | Must | ✅ COMPLETE | 34 | Sparse + hybrid + copy hygiene |
 | 36 | Must | ✅ COMPLETE | 35 | Preflight + db-stats + storage mode (replaces 27) |
 | 37 | Must | ✅ COMPLETE | 36 | Supabase local/hosted parity |
-| 38 | Must | 🔨 IN PROGRESS | 37 | ADR-004 + comparison VERIFIED; optional flip + COMPLETE close-out |
+| 38 | Must | ✅ COMPLETE | 37 | ADR-004 + comparison; no default flip (#130) |
 | 28 | Must | 📋 PLANNED | — | External — @cschanhniem / #49 |
 | 22 | Must | 📋 PLANNED | 21, 32, 38 (soft) | SIE Scooter — hard dep 32 Protocol; soft 38 cutover |
 | 26 | Should | 📦 DEFERRED | 25B | Mongo docs — re-scope post-cutover |
@@ -691,12 +691,14 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
 | 2026-07-26 | 38 | ADR-004 Accepted (dual-backend Postgres/Supabase + Mongo); ADR-003 Superseded; default remains mongodb until local comparison — DECISIONS #127 | Flip default without quality gates |
-| 2026-07-26 | 38 | Parked **all** non-100%-Yes Before/After items onto Slice 43 residuals (#126); 38 After-Checks = local comparison + ADR + flip-or-defer + slice-38.json + mutation waive + PROGRESS/TRAIL/CHANGELOG only | Leave nuanced/post-flip/sync-docs items as Slice 38 COMPLETE blockers |
+| 2026-07-26 | 38 | Parked **all** non-100%-Yes Before/After items onto Slice 43 residuals (#126); 38 After-Checks = local comparison + ADR + no-flip (#130) + slice-38.json + mutation waive + PROGRESS/TRAIL/CHANGELOG only | Leave nuanced/sync-docs items as Slice 38 COMPLETE blockers |
 | 2026-07-26 | 38 | Parked unrealistic Before/After gates onto Slice 43 residuals (hosted production-claim matrix, PRD §9/docs audit, 100% shell coverage, Graphiti/date spelling); Slice 38 COMPLETE gates on local dual-backend only — DECISIONS #125 | Keep hosted matrix as Slice 38 COMPLETE blocker |
 | 2026-07-26 | 38 | Accounted branch work: remediations (#114–#119) + Atlas Local `8.3.3` / pgvector `0.8.5-pg16` pins (#120) + FCV/invalid-RS recovery (#121); comparison/ADR/flip still open | SLICE-38 “Landed on this branch” table; PR #118 checkpoint only |
 | 2026-07-26 | 38 | Path A Resume — review remediations landed (Mongo export + placeholder reject); no silent default change without explicit decision | BLOCKER-1/4 from nw-platform-architect-reviewer; #119 remediations; fail-safe reading corrected by #129 |
-| 2026-07-26 | 38 | Local dual-backend comparison VERIFIED — mirrored 120-run grids; QUERYING latency ≤2× PASS; top-3 overlap recorded informational (dense 92.9% / overall 45.7%); mismatch OK under #129 | Treat cross-DB rank mismatch as cutover FAIL / block default solely on overlap |
-| 2026-07-26 | 38 | Mongo ⟂ Postgres are independent backends — neither is a fail-safe for the other; comparison = quality/latency evidence for optional default flip — DECISIONS #129 | Read “fail-closed keep mongodb” as Mongo protecting Postgres |
+| 2026-07-26 | 38 | **Won't** default flip (#130) — code default stays `mongodb` permanently; remove flip gate/residual; dual-backend is operator select only | Keep a deferred/optional default-flip commitment or post-flip smoke residual |
+| 2026-07-26 | 38 | Slice 38 ✅ COMPLETE — ADR-004 + comparison + CI; default stays `mongodb` with no flip (#130) | Keep Slice 38 open waiting on a default flip |
+| 2026-07-26 | 38 | Local dual-backend comparison VERIFIED — mirrored 120-run grids; QUERYING latency ≤2× PASS; top-3 overlap recorded informational (dense 92.9% / overall 45.7%); mismatch OK under #129 | Treat cross-DB rank mismatch as cutover FAIL / require a default flip |
+| 2026-07-26 | 38 | Mongo ⟂ Postgres are independent backends — neither is a fail-safe for the other; comparison = quality/latency evidence for operator A/B — DECISIONS #129 | Read “fail-closed keep mongodb” as Mongo protecting Postgres |
 | 2026-07-26 | 37 | sync-docs (post nw-review): CLAUDE/development shellcheck scope + unit counts 317/16; DECISIONS #109 generic Unknown option retained, #110 start-services shellcheck gate; gate-evidence follow_ups for resolver isolation — evidence **VERIFIED** | Post-review quality-gate + quantitative claims were stale vs measured truth |
 | 2026-07-26 | 37 | sync-docs: remove `--local`/`-l`/`--postgres`/`-p` from current operator/agent surfaces; DECISIONS #108; PRD operator contract + `.env.example` + skip hints use canonical flags only — evidence **IMPLEMENTED** (unit reject) + **VERIFIED** (resolver smoke exit 2) | Short flags now fail as unknown options; leaving them in setup/checklist/test skip copy would mislead |
 | 2026-07-26 | 37 | `SUPABASE_URI` optional alias for `DATABASE_URL` + live hosted Supabase smoke PASSED (`49c23d41-…`, `storage_mode=postgres-cloud`) — DECISIONS #107 | User requested product-named URI + real Path B verification; reverses earlier Won't on URI aliases (still no `POSTGRES_URI`) |

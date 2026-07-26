@@ -54,8 +54,9 @@ cd frontend && npm install && cd ..
 
 ## ⚙️ Configure
 
-Pick **one** storage backend. Mongo is the default; Postgres is the alternative
-(local Docker or Supabase-hosted — same adapter).
+Pick **one** storage backend. Mongo is the permanent code default (`STORAGE_BACKEND=mongodb`);
+Postgres is the alternative (`STORAGE_BACKEND=postgres` or `./start-services.sh --postgres-*` —
+local Docker or Supabase-hosted, same adapter). There is no planned flip of the default.
 
 ### 1. Set environment variables
 

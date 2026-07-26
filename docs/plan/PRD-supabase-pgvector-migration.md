@@ -67,7 +67,7 @@ Replace MongoDB Atlas as the *primary* storage backend with Supabase (PostgreSQL
 | 35 | Sparse (`tsvector`) + hybrid (RRF) + equivalence gate vs Mongo; works for `postgres-local` and `postgres-cloud` |
 | 36 | Index introspection preflight, db-stats extend, `indexes` CLI, four-value `storage_mode` (`mongodb\|postgres` × `local\|cloud`) |
 | 37 | Flag vocabulary, hosted `ensure_env`, **low-friction two-command switching**, config↔server 422 gate, lifecycle, Path B docs |
-| 38 | Side-by-side quality artifact, ADR-004, default-backend cutover (`postgres-cloud` production target) |
+| 38 | Side-by-side quality artifact, ADR-004 dual-backend; code default stays `mongodb` (#130 Won't flip) |
 
 ## Operator contract (Mongo ↔ Postgres mirror)
 
@@ -108,7 +108,7 @@ User guides, dev docs, and agent docs are **gated per slice** — same commit as
 | Doc | Audience | Slice | Action / gate |
 |---|---|---|---|
 | `docs/plan/slices/PROGRESS.md` | Maintainer | **32–38** | Slice status 🔨→✅; decision log row if non-obvious |
-| `CLAUDE.md` Key Files | Agent | **32**, **36**, **37**, **38** | Ports (32); backend-aware preflight + `health_check` / mode helpers (36); flag vocabulary + `STORAGE_BACKEND` / `DATABASE_URL` (37); cutover default (38) |
+| `CLAUDE.md` Key Files | Agent | **32**, **36**, **37**, **38** | Ports (32); backend-aware preflight + `health_check` / mode helpers (36); flag vocabulary + `STORAGE_BACKEND` / `DATABASE_URL` (37); dual-backend + permanent `mongodb` default (#130) (38) |
 | `docs/contributor-guide/architecture.md` | Dev | **32**, **34**, **36**, **38** | Storage/Retriever ports (32); Postgres dense retrieval (34); Postgres preflight + `storage_mode` capability rows (36); dual-backend diagram (38) |
 | `docs/contributor-guide/extending.md` | Dev | **32** | How to add a `StorageBackend` / `RetrieverBackend` adapter |
 | `.env.example` | Dev | **33**, **37** | `STORAGE_BACKEND`, `DATABASE_URL` (33); `RAG_{MONGODB,POSTGRES}_{LOCAL,CLOUD}` (37) |
@@ -132,9 +132,9 @@ User guides, dev docs, and agent docs are **gated per slice** — same commit as
 
 **N/A rule:** If a matrix row does not apply to a slice, note `N/A — <reason>` in the slice After-Checks before marking ✅.
 
-## Cutover decision gates (Slice 38 — required before default flip)
+## Dual-backend comparison gates (Slice 38 — operator evidence; no code-default flip)
 
-Flip documented default to `STORAGE_BACKEND=postgres` only when **all** pass on the same persona query-set and corpus:
+**Won't (#130):** do **not** flip the documented/code default to `STORAGE_BACKEND=postgres`. Default stays `mongodb`; operators select Postgres explicitly. Record comparison on the same persona query-set and corpus:
 
 **Baseline snapshot (record in `gate-evidence/slice-38-quality-comparison.md`):**
 
@@ -164,8 +164,8 @@ Flip documented default to `STORAGE_BACKEND=postgres` only when **all** pass on 
 - [ ] Cascade delete removes all rows for a deleted experiment
 - [ ] Boot reconciliation marks orphaned in-flight runs interrupted/partial
 - [ ] ADR-004 authored; ADR-003 superseded
-- [ ] Side-by-side comparison documented in `gate-evidence/slice-38-quality-comparison.md` before default flip
-- [ ] Cutover gates (latency, hybrid drift, equivalence) measured and PASS per table above
+- [x] Side-by-side comparison documented in `gate-evidence/slice-38-quality-comparison.md` (no default flip — #130)
+- [x] Comparison gates (latency, hybrid drift, equivalence) measured per table above (latency PASS; overlap informational #129)
 - [ ] Rollback playbook smoke-tested (`STORAGE_BACKEND=mongodb` / `--mongodb-*` recovery)
 - [ ] **Switching:** two-command Mongo↔Postgres recipes documented and smoke-tested; config/backend mismatch returns 422 before writes
 - [ ] **CI:** Postgres integration/regression job runs on every PR touching `server/db/*` or storage/retriever paths (mandatory before merging Slices 33–37)

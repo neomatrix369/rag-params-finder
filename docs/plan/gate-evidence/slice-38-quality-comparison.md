@@ -4,8 +4,8 @@
 **Evidence state:** VERIFIED (`mongodb-local` + `postgres-local`)
 **Mode scope:** `mongodb-local` + `postgres-local` **only** (hosted `postgres-cloud` production-claim matrix → Slice 43 residuals)
 **Backend model:** Mongo and Postgres are **independent** engines (DECISIONS **#129**) — cross-DB rank/hit mismatch is expected and **not** a fail-safe or cutover blocker
-**Default:** stays `mongodb` until an **explicit** flip decision; this artifact informs that choice, it does not treat one DB as the other’s safety net
-**Decisions:** #114 (QUERYING `elapsed_ms` ≤2×), #115 (384-dim local baseline), #129 (independent backends), #93 (Lucene vs `ts_rank` drift context)
+**Default:** `mongodb` permanently (DECISIONS **#130** Won't flip); this artifact is operator A/B evidence only — not a cutover tripwire
+**Decisions:** #114 (QUERYING `elapsed_ms` ≤2×), #115 (384-dim local baseline), #129 (independent backends), #130 (no default flip), #93 (Lucene vs `ts_rank` drift context)
 
 ---
 
@@ -155,14 +155,14 @@ Historical thresholds (≥80% PASS / ≥50% CONDITIONAL) remain useful **labels*
 | Sparse | — | **0.7%** | Different sparse engines; do not require match |
 | Overall | ≥80% / ≥50% | **45.7%** | Informational aggregate only |
 
-**Decision:** Comparison artifact **complete** for Slice 38 local evidence. Default remains `STORAGE_BACKEND=mongodb` until an **explicit** flip is recorded — that is a product choice informed by latency PASS + per-method notes, not by forcing Mongo/Postgres stats to align.
+**Decision:** Comparison artifact **complete** for Slice 38 local evidence. Code default stays `STORAGE_BACKEND=mongodb` permanently (#130 Won't). Latency PASS + per-method notes inform operator choice of engine, not a default cutover.
 
 ---
 
 ## Follow-ups (optional)
 
 1. Postgres sparse hit-rate tuning (`tsvector` / tokenization) — product quality on Postgres alone, not cross-DB parity.
-2. Explicit default-flip decision (if/when desired) + finalize `slice-38.json` CI conclusions.
+2. Hosted `postgres-cloud` quality matrix → Slice 43 residuals (not a default flip).
 
 ---
 

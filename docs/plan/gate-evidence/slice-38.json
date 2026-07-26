@@ -1,11 +1,11 @@
 {
   "slice": 38,
-  "gate_status": "PARTIAL",
+  "gate_status": "PASSED",
   "verified_at": "2026-07-26",
   "verifier": "slice-workflow",
   "branch": "slice/38-cutover-adr-004",
   "pr": "https://github.com/neomatrix369/rag-params-finder/pull/118",
-  "note": "Checkpoint stub — local quality comparison VERIFIED; dual-backend Accepted; backends independent (#129). Do not treat PARTIAL as COMPLETE (optional default flip + tracker COMPLETE still open).",
+  "note": "Slice 38 COMPLETE — ADR-004 Accepted; local comparison VERIFIED; CI dual-backend success. Default-flip gate removed (DECISIONS #130 Won't). Code default stays mongodb permanently; backends independently selectable (#129).",
   "evidence": {
     "dual_backend_ci": {
       "rule": "skipped ≠ success; dual-backend green is the union of both jobs — each must conclude success",
@@ -40,7 +40,7 @@
     "adr": {
       "adr_004": "Accepted 2026-07-26 — dual-backend Postgres/pgvector + Mongo",
       "adr_003": "Superseded by ADR-004; Mongo remains a supported independent backend",
-      "default_flip": "optional product decision — remains mongodb until explicit flip; comparison is evidence only (DECISIONS #129)"
+      "default_flip": "WON'T (#130) — gate removed; code default stays mongodb permanently"
     },
     "quality_comparison": {
       "status": "verified",
@@ -60,11 +60,12 @@
       "note": "Cross-DB mismatch expected (independent engines); not a fail-safe tripwire"
     },
     "mutation": "waived — DECISIONS #128 (same pattern as #95/#101; no non-trivial new Python retrieval/storage logic in this close-out)",
-    "cutover_model": "DECISIONS #129 — Mongo and Postgres are independent selectable backends; neither is a fail-safe for the other"
+    "cutover_model": "DECISIONS #129 — Mongo and Postgres are independent selectable backends; neither is a fail-safe for the other",
+    "close_out": "DECISIONS #130 — COMPLETE; default-flip gate removed (Won't)"
   },
-  "decisions": [114, 115, 116, 117, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129],
-  "open_for_complete": [
-    "optional: explicit default flip decision (informed by comparison)",
-    "PROGRESS/TRAIL/CHANGELOG cutover COMPLETE close-out"
+  "decisions": [114, 115, 116, 117, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130],
+  "open_for_complete": [],
+  "wont": [
+    "STORAGE_BACKEND code/docs default flip to postgres — DECISIONS #130"
   ]
 }

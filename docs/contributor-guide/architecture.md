@@ -297,7 +297,7 @@ See `docs/adr/` for Architecture Decision Records:
 - [ADR-001](../adr/ADR-001-two-process-architecture.md): Why CLI + Server (two-process architecture)
 - [ADR-002](../adr/ADR-002-voyage-and-local-providers.md): Why dual embedding/reranking providers
 - [ADR-003](../adr/ADR-003-mongodb-atlas-vector-store.md): MongoDB Atlas as original sole vector store (**Superseded**)
-- [ADR-004](../adr/ADR-004-postgresql-pgvector-vector-store.md): Dual-backend Postgres/pgvector (Supabase) **and** MongoDB
+- [ADR-004](../adr/ADR-004-postgresql-pgvector-vector-store.md): Dual-backend Postgres/pgvector (Supabase) **and** MongoDB — code default stays `mongodb` (DECISIONS #130 Won't flip)
 
 **Key design choices not covered by ADRs**:
 

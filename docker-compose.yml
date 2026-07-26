@@ -21,7 +21,7 @@ services:
       # Cloud: MONGODB_URI from .env. Local Atlas: RAG_SERVER_MONGODB_URI set by start-services.sh --mongodb-local
       MONGODB_URI: ${RAG_SERVER_MONGODB_URI:-${MONGODB_URI}}
       MONGODB_STORAGE_LIMIT_MB: ${RAG_MONGODB_STORAGE_LIMIT_MB:-${MONGODB_STORAGE_LIMIT_MB:-}}
-      # Default remains mongodb until Slice 38 cutover gates PASS (then flip to postgres).
+      # Code default is mongodb permanently (DECISIONS #130 Won't — no flip to postgres).
       # Local pgvector: RAG_SERVER_DATABASE_URL set by start-services.sh --postgres-local
       # Supabase: DATABASE_URL (or SUPABASE_URI alias) from .env (Slice 37)
       # Mongo modes export STORAGE_BACKEND=mongodb so leftover postgres env cannot stick.

@@ -69,7 +69,7 @@ Use `./start-services.sh --postgres-local` or `--postgres-cloud`, or submit a
 | Concern | Mongo (today) | Postgres path (local **or** Supabase) |
 |---|---|---|
 | Connection string | `MONGODB_URI` | `DATABASE_URL` (canonical); optional `SUPABASE_URI` alias — no `POSTGRES_URI` |
-| Backend select | Often implicit (`STORAGE_BACKEND` defaults to `mongodb`) | Explicit: `STORAGE_BACKEND=postgres` (or `--postgres-*` flag) |
+| Backend select | Often implicit (`STORAGE_BACKEND` defaults to `mongodb` permanently — #130) | Explicit: `STORAGE_BACKEND=postgres` (or `--postgres-*` flag) |
 | Config folder / YAML engine | `configs/mongodb/` · `database_provider: mongodb` | `configs/supabase/` · `database_provider: postgres` (`supabase` input → normalize) |
 | Runtime backend token | `mongodb` | `postgres` — Supabase is **not** a separate token |
 | Location identity | `storage_mode=mongodb-local\|cloud` | `storage_mode=postgres-local\|cloud` |

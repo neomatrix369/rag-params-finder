@@ -414,7 +414,7 @@ Two independent axes select storage. Product names are **shorthand for the usual
 
 | Axis | Values | Meaning |
 |------|--------|---------|
-| **Engine** (`STORAGE_BACKEND`) | `mongodb` \| `postgres` | Which adapter the server process speaks |
+| **Engine** (`STORAGE_BACKEND`) | `mongodb` \| `postgres` | Which adapter the server process speaks (`mongodb` is the permanent code default — #130) |
 | **Location** (`storage_mode`) | `{engine}-local` \| `{engine}-cloud` | Where that engine lives |
 
 | `storage_mode` | Product wording |
@@ -437,7 +437,7 @@ Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|clo
 Create a `.env` file in the project root to configure server behavior:
 
 ```bash
-# Storage backend: "mongodb" (default) or "postgres"
+# Storage backend: "mongodb" (permanent default — DECISIONS #130 Won't flip) or "postgres"
 # Legacy alias: mongo → mongodb
 # YAML database_provider (mongodb|postgres; supabase→postgres) is engine metadata —
 # this env selects the adapter.
