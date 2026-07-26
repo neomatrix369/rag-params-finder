@@ -122,3 +122,5 @@ Updated as each slice reaches Gate Status PASSED.
 | 2026-07-26 | nw-platform-architect-reviewer (Slice 37) | **CONDITIONALLY APPROVED** (planning) | Unimplemented Musts reclassified as execution exits; 422 + post-start templates applied |
 | 2026-07-26 | nw-platform-architect-reviewer (Slice 37) | **CONDITIONALLY APPROVED** (planning) | Missing Musts reclassified as execution exits; 422 + post-start templates applied |
 | 2026-07-26 | nw-platform-architect-reviewer (Slice 38) | **NEEDS REVISION** → remediations applied | BLOCKERs: flip surfaces + Mongo export; latency metric; baseline feasibility; SUPABASE_URI placeholder — DECISIONS #114–#118; pins #120–#121 |
+| 2026-07-26 | Slice 38 gate hygiene | All non-100%-Yes gates → Slice 43 residuals | DECISIONS #125/#126 — local comparison only for 38 COMPLETE |
+| 2026-07-26 | Slice 38 progress | ADR-004 Accepted; CI dual-backend VERIFIED; mutation #128; comparison in flight | Default stays mongodb until explicit flip; backends independent (#129) |

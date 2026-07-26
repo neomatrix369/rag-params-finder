@@ -351,10 +351,15 @@ documented first prove (Slice 43 Won’t).
 
 ---
 
-## Dense retrieval (operator note)
+## Retrieval (operator note)
 
-Dense search uses pgvector HNSW on `embedding_384` / `embedding_1024`. Scores are
-reported on Atlas’s scale (`(1 + cosine) / 2`) so backends stay comparable.
+| YAML `type` | Postgres engine |
+|---|---|
+| `dense` | **pgvector** HNSW on `embedding_384` / `embedding_1024` |
+| `sparse` | **Not pgvector** — `tsvector` / `ts_rank` full-text |
+| `hybrid` | RRF of dense (pgvector) + sparse (FTS), `rrf_k=60` |
+
+Dense scores are reported on Atlas’s scale (`(1 + cosine) / 2`) so backends stay comparable.
 
 **HNSW warning:** with filters (`experiment_id` / `embedding_model` / `run_id`),
 HNSW can return fewer than `LIMIT` rows unless `hnsw.iterative_scan = strict_order`

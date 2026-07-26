@@ -285,17 +285,19 @@ Each list entry is one sweep dimension. To compare dense vs sparse vs hybrid, li
 
 **Retriever types**:
 
-| Type | Algorithm | Strengths | Requires provider/model? |
-|---|---|---|---|
-| `dense` | Cosine similarity on embeddings (Atlas Vector Search) | Semantic meaning, handles paraphrasing | No |
-| `sparse` | BM25 full-text search (Atlas Search) | Keyword precision, rare/domain-specific terms | No |
-| `hybrid` | Reciprocal Rank Fusion (RRF) of dense + sparse results | Balanced recall and precision | No |
-| `reranker` | Voyage reranking API | High-quality reranking, API-based | Yes |
-| `cross_encoder` | Local cross-encoder model | Fast reranking, no API key | Yes |
+| Type | Mongo / Atlas | Postgres | Strengths | Requires provider/model? |
+|---|---|---|---|---|
+| `dense` | Atlas Vector Search (cosine) | **pgvector** HNSW cosine on `embedding_384` / `embedding_1024` | Semantic meaning, paraphrasing | No |
+| `sparse` | Atlas Search BM25 | **Not pgvector** — `tsvector` / `ts_rank` FTS | Keyword precision, rare terms | No |
+| `hybrid` | RRF of dense + sparse | RRF of dense (**pgvector**) + sparse (FTS) | Balanced recall and precision | No |
+| `reranker` | Voyage reranking API | Same | High-quality reranking, API-based | Yes |
+| `cross_encoder` | Local cross-encoder | Same (dense candidates then rerank) | Fast reranking, no API key | Yes |
+
+Same YAML `type` values on both backends; only the engine behind them changes. On Postgres, **only `dense` (and the dense half of `hybrid`) use pgvector** — `sparse` is full-text search.
 
 **One retriever per run.** Do not list multiple retrievers expecting them to chain — each entry becomes its own run in the Cartesian sweep.
 
-**Time vs storage:** Adding `sparse` or `hybrid` increases run count and wall-clock time (extra query passes over the same stored chunks). They use the shared `text_search_index` and do not add embedding dimensions. Disk growth on M0 comes mainly from the chunking grid (methods × sizes × overlaps), not from listing more traditional retriever types.
+**Time vs storage:** Adding `sparse` or `hybrid` increases run count and wall-clock time (extra query passes over the same stored chunks). They reuse stored chunk text (Mongo `text_search_index` / Postgres `text_search` GIN) and do not add embedding dimensions. Disk growth on Atlas M0 comes mainly from the chunking grid (methods × sizes × overlaps), not from listing more traditional retriever types.
 
 **Old format** (deprecated, auto-migrated):
 ```yaml

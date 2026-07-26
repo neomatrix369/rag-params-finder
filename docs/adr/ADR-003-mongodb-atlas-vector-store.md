@@ -1,8 +1,10 @@
 # ADR-003: MongoDB Atlas as the Vector Store
 
-**Status**: Accepted
+**Status**: Superseded by [ADR-004](ADR-004-postgresql-pgvector-vector-store.md)
 **Date**: 2026-05-02
 **Slice**: 1 — Skateboard
+
+> **Supersession note (2026-07-26):** MongoDB Atlas / Atlas Local remain a **supported** backend for rollback and A/B. ADR-004 endorses **dual-backend** storage (Postgres/pgvector + Mongo) and retires the “Mongo-only vector store” decision. Operational details below still apply when `STORAGE_BACKEND=mongodb`.
 
 ---
 
