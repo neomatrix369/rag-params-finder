@@ -228,6 +228,9 @@ class TestStorageHealthShould:
         ### Then
         assert actual["ok"] is False
         assert actual["postgres"] == "error"
+        assert "remediation" in actual
+        assert "Session-mode" in str(actual["remediation"])
+        assert "resume" in str(actual["remediation"]).lower()
 
     def test_given_mongo_backend_when_storage_health_then_uses_mongodb_probe(
         self,

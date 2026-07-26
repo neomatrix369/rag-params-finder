@@ -466,7 +466,7 @@ case "$STACK_STORAGE_MODE" in
     echo ""
     echo "  MongoDB:   localhost:27017  (Atlas Local — no cloud quota)"
     echo "Manage MongoDB only:   ./start-services.sh mongodb [start|stop|reset|status]"
-    echo "Reset all data:        docker compose --profile local-atlas down -v"
+    echo "Reset all data:        docker compose --profile mongodb-local down -v"
     ;;
   mongodb-cloud)
     echo "STORAGE_BACKEND=mongodb"

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from server.core.health_check import resolve_storage_mode
 from server.db.postgres import fetch_all, fetch_one
 from server.db.postgres_docs import (
     experiment_row_to_doc,
@@ -23,6 +24,8 @@ from server.db.stats_common import (
     finalize_groups,
     merge_group_totals,
     new_vector_db_group,
+    normalize_stats_database_provider,
+    resolve_experiment_storage_mode,
     vector_db_group_key,
 )
 from server.settings import settings
@@ -124,7 +127,10 @@ def _assemble(
     sweep = (experiment or {}).get("sweep_summary") or {}
     return assemble_experiment_db_stats(
         experiment,
-        database_provider=str(sweep.get("database_provider") or "postgres"),
+        database_provider=normalize_stats_database_provider(
+            sweep.get("database_provider"),
+            fallback="postgres",
+        ),
         collection_name=_CHUNKS_TABLE,
         cluster_host=_cluster_host(),
         index_names=index_names,
@@ -294,7 +300,13 @@ def get_vector_db_stats_grouped(find_all_experiments: Callable[[], list[dict]]) 
                 run_breakdown=[],
                 index_names=index_names,
             )
-            group_key = vector_db_group_key(stats["database_provider"], stats["cluster_host"])
+            group_key = vector_db_group_key(
+                resolve_experiment_storage_mode(
+                    experiment,
+                    fallback_mode=resolve_storage_mode(),
+                ),
+                stats["cluster_host"],
+            )
             if group_key not in groups:
                 groups[group_key] = new_vector_db_group(group_key, stats)
             merge_group_totals(groups[group_key], stats)

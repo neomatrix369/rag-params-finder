@@ -115,12 +115,13 @@ services:
       retries: 3
       start_period: 20s
 
-  # MongoDB Atlas Local — opt-in: ./start-services.sh --local  (or --profile local-atlas)
+  # MongoDB Atlas Local — opt-in: ./start-services.sh --mongodb-local
+  # Canonical profile matches storage_mode; local-atlas is a deprecated alias.
   # Runs a full single-node Atlas replica set locally; supports $vectorSearch and $search.
   # CLI on host: export MONGODB_URI from scripts/lib/compose.sh (RAG_LOCAL_MONGODB_URI_HOST)
   # See docs/user-guide/mongodb-setup.md
   mongodb-local:
-    profiles: ["local-atlas"]
+    profiles: ["mongodb-local", "local-atlas"]
     image: mongodb/mongodb-atlas-local:latest
     container_name: ${MONGODB_LOCAL_CONTAINER_NAME:-rag-params-finder-mongodb-local}
     ports:
@@ -139,12 +140,13 @@ services:
       retries: 12
       start_period: 60s
 
-  # Local Postgres + pgvector — opt-in: ./start-services.sh --postgres (or --profile local-postgres)
+  # Local Postgres + pgvector — opt-in: ./start-services.sh --postgres-local
+  # Canonical profile matches storage_mode; local-postgres is a deprecated alias.
   # Stands in for hosted Supabase so the Postgres backend can be developed and
   # tested without a cloud account. The server applies server/db/schema.sql on boot.
   # CLI on host: export DATABASE_URL from scripts/lib/compose.sh (RAG_LOCAL_DATABASE_URL_HOST)
   postgres-local:
-    profiles: ["local-postgres"]
+    profiles: ["postgres-local", "local-postgres"]
     image: pgvector/pgvector:pg16
     container_name: ${POSTGRES_LOCAL_CONTAINER_NAME:-rag-params-finder-postgres-local}
     ports:

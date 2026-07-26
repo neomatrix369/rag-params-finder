@@ -151,7 +151,7 @@ class TestBackendExampleParity:
         ("config_dir", "expected_provider"),
         [
             pytest.param(_MONGODB_CONFIG_DIR, "mongodb", id="mongodb"),
-            pytest.param(_SUPABASE_CONFIG_DIR, "supabase", id="supabase-hosted-postgres"),
+            pytest.param(_SUPABASE_CONFIG_DIR, "postgres", id="supabase-folder-postgres-engine"),
         ],
     )
     def test_given_backend_examples_when_loaded_then_provider_labels_match_directory(
@@ -160,12 +160,12 @@ class TestBackendExampleParity:
         expected_provider: str,
     ) -> None:
         """
-        Scenario: Each backend example directory uses a consistent deployment label.
-        Slice: 43 — Supabase/Postgres operator parity
+        Scenario: Each backend example directory uses a consistent engine label.
+        Slice: 37 — supabase YAML normalizes to postgres
 
         Given one backend's example directory,
         When every YAML config is loaded,
-        Then each config labels the intended MongoDB or Supabase-hosted Postgres deployment.
+        Then each config labels mongodb or postgres (supabase input → postgres).
         """
         ### Given / When
         actual_providers = _database_providers(config_dir)

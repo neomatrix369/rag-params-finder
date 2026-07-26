@@ -3,7 +3,6 @@ from __future__ import annotations
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from server.db.postgres_uri import is_supabase_uri
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -156,12 +155,11 @@ class Settings(BaseSettings):
         """Label for runs/stats when YAML omits ``database_provider``.
 
         Runtime selection remains ``storage_backend``. This only fills the
-        metadata label used by resume signatures and explorer grouping.
+        engine metadata label (``mongodb`` | ``postgres``) — never a product
+        shorthand like ``supabase`` (Slice 37).
         """
         if normalize_storage_backend(self.storage_backend) != "postgres":
             return "mongodb"
-        if self.database_url.strip() and is_supabase_uri(self.database_url):
-            return "supabase"
         return "postgres"
 
 

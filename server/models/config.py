@@ -2,15 +2,25 @@ import warnings
 from itertools import product
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from server.core.model_registry import EMBEDDING_MODELS, RERANKER_MODELS
 from server.models.enums import ChunkingMethod, RetrievalMethod, RetrieverType
 
 Provider = Literal["local", "voyage", "sie", "kimchi"]
-# "postgres" = local pgvector container, "supabase" = hosted Postgres (Slice 37).
-# Both route to the same adapter; they differ only in how db-stats labels the cluster.
+# ``supabase`` remains a deprecated YAML input alias for Postgres (Slice 37).
+# After validation the field is always ``mongodb`` | ``postgres``.
 DatabaseProvider = Literal["mongodb", "postgres", "supabase"]  # Future: pinecone, weaviate, qdrant
+
+
+def normalize_database_provider(value: str) -> str:
+    """Map deprecated ``supabase`` → ``postgres``; otherwise lower/strip."""
+    provider = value.strip().lower()
+    if provider == "supabase":
+        return "postgres"
+    if provider == "mongo":
+        return "mongodb"
+    return provider
 
 
 class ChunkParams(BaseModel):
@@ -187,6 +197,21 @@ class ExperimentConfig(BaseModel):
     chunking: ChunkingConfig
     retrieval: RetrievalConfig
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig)
+
+    @field_validator("database_provider", mode="before")
+    @classmethod
+    def _normalize_database_provider(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+        normalized = normalize_database_provider(value)
+        if value.strip().lower() == "supabase":
+            warnings.warn(
+                "database_provider: supabase is deprecated; use postgres "
+                "(STORAGE_BACKEND=postgres + DATABASE_URL selects local vs cloud)",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        return normalized
 
     @model_validator(mode="after")
     def validate_bayesian_only_tunes_chunking(self) -> "ExperimentConfig":
