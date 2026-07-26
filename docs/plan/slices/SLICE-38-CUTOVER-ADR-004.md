@@ -4,7 +4,7 @@
 **Target time:** ~3–4 h
 **Status:** 📋 PLANNED
 **Depends on:** 37
-**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md) §6.6, §9
+**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md) §6.6, §9
 
 ---
 
@@ -18,6 +18,7 @@
   - `docs/plan/gate-evidence/` or `docs/` comparison notes (Mongo vs Postgres rankings)
   - Default `STORAGE_BACKEND` / docs recommend Postgres (Mongo retained for rollback)
   - Optional: remove dead Mongo-only docs paths only after comparison signed off
+  - Optional earliest removal of deprecated `--local` / `--postgres` aliases (or leave for a later cleanup)
 - Exit criteria: ADR-004 merged; side-by-side comparison documented; default backend Postgres with Mongo still selectable
 - Commit pattern: `docs(slice-38): adr-004 pgvector cutover and quality comparison`
 - **Doc exit:** `/sync-docs` — ADR-004, CHANGELOG, README default backend, mongodb-setup cross-link, architecture dual-backend
@@ -28,6 +29,12 @@
 
 Close the migration: document retrieval-quality comparison (equivalent quality, not identical scores), author ADR-004 superseding ADR-003, and switch the **documented default** to Postgres while keeping the Mongo adapter for rollback.
 
+**Production target mode:** `postgres-cloud` (hosted Supabase) is the recommended production default. `postgres-local` remains the zero-cloud / CI / laptop path. Comparison artifact runs against both modes or explicitly scopes hosted as the cutover target.
+
+Operator flags after cutover (from Slice 37): `--mongodb-local` \| `--mongodb-cloud` \| `--postgres-local` \| `--postgres-cloud`.
+
+Rollback and A/B must stay **two-command** (flag + matching example config); do not reintroduce hand-edited `STORAGE_BACKEND` as the only documented path.
+
 ---
 
 ## Spec (GWT)
@@ -37,6 +44,7 @@ Scenario: Side-by-side comparison recorded
   Given the same persona question-set and corpus
   When dense/sparse/hybrid run on Mongo and Postgres
   Then a short comparison note exists (rank overlap / qualitative) before default flips
+  And the artifact states whether hosted (postgres-cloud) and/or local (postgres-local) were measured
 
 Scenario: ADR-004 supersedes ADR-003
   Given ADR-004 is authored
@@ -46,7 +54,7 @@ Scenario: ADR-004 supersedes ADR-003
 Scenario: Default backend is Postgres; Mongo still works
   Given fresh .env.example
   When STORAGE_BACKEND defaults (or docs default) to postgres
-  Then Mongo remains selectable via env for rollback
+  Then Mongo remains selectable via env / --mongodb-cloud|--mongodb-local for rollback
 ```
 
 ---
@@ -55,6 +63,7 @@ Scenario: Default backend is Postgres; Mongo still works
 
 - Deleting the Mongo adapter (Won't until a later cleanup slice)
 - Claiming byte-identical scores
+- Mandatory removal of deprecated flag aliases (Could — earliest allowed here; preferred later if churn is high)
 
 ---
 
@@ -78,6 +87,7 @@ Scenario: Default backend is Postgres; Mongo still works
   - **Latency:** Mongo vs Postgres p99 on baseline sweep; PASS if ≤2×
   - **Hybrid drift:** ≤5% top-3 reordering or documented CONDITIONAL
   - Dense/sparse/hybrid results for Mongo and Supabase/Postgres backends
+  - Mode scope: `postgres-cloud` (required) and optionally `postgres-local`
   - Equivalence decision: PASS or CONDITIONAL with trade-offs
 - [ ] Cutover decision explicit: default backend flipped to postgres only if all gates PASS
 - [ ] Rollback criteria documented: revert to mongo if incident recovery >30 min

@@ -51,7 +51,7 @@ Replace MongoDB Atlas as the *primary* storage backend with Supabase (PostgreSQL
 | `server/core/retriever.py` | Dense/sparse/hybrid via Atlas | Postgres impl behind `RetrieverBackend` or store retrieval port |
 | `server/core/search_index_plan.py` | Required indexes from config | Generalize output; backend-specific materialization |
 | `server/core/search_index_guard.py` | Preflight guard | Postgres introspection in Slice 36 |
-| `server/core/atlas_storage.py` | Atlas Admin API quota / dbStats | `postgres_storage.py` via `pg_*` sizes |
+| `server/core/atlas_storage.py` | Atlas Admin API quota / dbStats | Extend `postgres_stats.py` via `pg_*` sizes (Slice 36) |
 | `server/api/experiments_shared.py` | Mongo aggregation helpers | SQL via StorageBackend |
 | `server/core/orchestrator.py` | Pipeline I/O | Call store + retriever ports only |
 | `server/core/startup_reconciliation.py` | Stale `running` on boot | Port queries via StorageBackend |
@@ -62,12 +62,42 @@ Replace MongoDB Atlas as the *primary* storage backend with Supabase (PostgreSQL
 | Slice | Deliverable |
 |---|---|
 | 32 | Storage Protocol + Mongo adapter extract; Retriever port defined |
-| 33 | Supabase/Postgres schema, pool, CRUD, minimal local Docker smoke |
-| 34 | Dense retrieval (pgvector HNSW) + `embedding_model` filter |
-| 35 | Sparse (`tsvector`) + hybrid (RRF) + equivalence gate vs Mongo |
-| 36 | Index preflight, db-stats, `indexes` CLI, storage-mode indicator |
-| 37 | Full local/cloud parity (`start-services.sh`), Supabase pooler/TLS docs |
-| 38 | Side-by-side quality artifact, ADR-004, default-backend cutover |
+| 33 | Postgres schema, pool, CRUD, **local** compose (`--postgres` → later `--postgres-local`); Path A in `postgres-setup.md` |
+| 34 | Dense retrieval (pgvector HNSW) + `embedding_model` filter; backend-aware `/healthz` (`storage_backend` only) |
+| 35 | Sparse (`tsvector`) + hybrid (RRF) + equivalence gate vs Mongo; works for `postgres-local` and `postgres-cloud` |
+| 36 | Index introspection preflight, db-stats extend, `indexes` CLI, four-value `storage_mode` (`mongodb\|postgres` × `local\|cloud`) |
+| 37 | Flag vocabulary, hosted `ensure_env`, **low-friction two-command switching**, config↔server 422 gate, lifecycle, Path B docs |
+| 38 | Side-by-side quality artifact, ADR-004, default-backend cutover (`postgres-cloud` production target) |
+
+## Operator contract (Mongo ↔ Postgres mirror)
+
+| Concern | Mongo | Postgres |
+|---|---|---|
+| Backend switch | `STORAGE_BACKEND=mongodb` (alias: `mongo`) | `STORAGE_BACKEND=postgres` |
+| Local flag | `--mongodb-local` (alias: `--local`) | `--postgres-local` (alias: `--postgres`) |
+| Cloud flag | `--mongodb-cloud` (or bare + `.env`) | `--postgres-cloud` — **must not require `MONGODB_URI`** |
+| Detection | `is_atlas_uri()` | `is_supabase_uri()` |
+| Mode on healthz/stats | `mongodb-local` \| `mongodb-cloud` | `postgres-local` \| `postgres-cloud` |
+| YAML `database_provider` | `mongodb` | `postgres` (`supabase` normalizes to `postgres`) |
+| Config vs server | Must match engine; mismatch → 422 with restart flag | Same |
+| User docs | `mongodb-setup.md` Path A/B | `postgres-setup.md` Path A/B — **no** `supabase-setup.md` |
+| Local lifecycle | `start-services.sh mongodb …` | `start-services.sh postgres …` (Slice 37) |
+
+### Low-friction switching (Must — Slice 37)
+
+Happy path is always two commands — flag then matching example config:
+
+```bash
+./start-services.sh --postgres-cloud
+rag-params-finder run --config configs/example-postgres-cloud.yaml
+```
+
+- Flag exports/resolves `STORAGE_BACKEND` + compose profile; prints `storage_mode` + suggested config.
+- YAML never flips the process backend; it declares engine intent and must match.
+- Same `database_provider: postgres` YAML works for both `postgres-local` and `postgres-cloud`.
+- Wrong pairing fails **before** persistence with remediation naming the flag and example config.
+
+Local compose landed in Slice 33 so dense/sparse work could proceed; Slice 37 owns hosted DX + flag vocabulary + consistency gate that make switching expressible and safe.
 
 ## Documentation matrix
 
@@ -78,26 +108,27 @@ User guides, dev docs, and agent docs are **gated per slice** — same commit as
 | Doc | Audience | Slice | Action / gate |
 |---|---|---|---|
 | `docs/plan/slices/PROGRESS.md` | Maintainer | **32–38** | Slice status 🔨→✅; decision log row if non-obvious |
-| `CLAUDE.md` Key Files | Agent | **32**, **37**, **38** | Ports (32); `STORAGE_BACKEND` + `DATABASE_URL` env table (37); cutover default (38) |
+| `CLAUDE.md` Key Files | Agent | **32**, **37**, **38** | Ports (32); flag vocabulary + `STORAGE_BACKEND` / `DATABASE_URL` (37); cutover default (38) |
 | `docs/contributor-guide/architecture.md` | Dev | **32**, **34**, **38** | Storage/Retriever ports (32); Postgres dense retrieval (34); dual-backend diagram (38) |
 | `docs/contributor-guide/extending.md` | Dev | **32** | How to add a `StorageBackend` / `RetrieverBackend` adapter |
-| `.env.example` | Dev | **33** | `STORAGE_BACKEND`, `DATABASE_URL` documented |
+| `.env.example` | Dev | **33**, **37** | `STORAGE_BACKEND`, `DATABASE_URL` (33); `RAG_{MONGODB,POSTGRES}_{LOCAL,CLOUD}` (37) |
 | `docs/plan/PRD-supabase-pgvector-migration.md` | Plan | **33** | Glossary + env vars aligned with implementation |
 | `docs/user-guide/configuration.md` | User | **33**, **35**, **36** | New env vars (33); sparse/hybrid retrieval notes (35); storage-mode field (36) |
-| `docs/contributor-guide/development.md` | Dev | **37** | `start-services.sh --local-postgres`, docker profile, quality-gates `--postgres` |
-| `docs/user-guide/supabase-setup.md` | User | **37** | **Create** — hosted Supabase (pooler Session mode, TLS, extensions, free-tier pause) + local Docker path |
-| `docs/user-guide/getting-started.md` | User | **37** | Postgres/Supabase path (or branch: “Mongo vs Supabase” with links) |
+| `docs/contributor-guide/development.md` | Dev | **37** | `start-services.sh --postgres-local` / `--postgres-cloud`, docker profile, postgres lifecycle |
+| `docs/user-guide/postgres-setup.md` | User | **33**, **37** | Path A local (33); Path B hosted pooler/TLS/pause (37) — SSOT; **do not** create `supabase-setup.md` |
+| `docs/user-guide/getting-started.md` | User | **37** | Postgres/Supabase path (or branch: “Mongo vs Postgres” with links) |
 | `docs/user-guide/troubleshooting.md` | User | **37** | Supabase connection, pooler, paused project, HNSW/index errors |
 | `docs/user-guide/cli-reference.md` | User | **36** | `indexes` CLI behaviour on both backends |
-| `README.md` | User | **37**, **38** | Backend switching table; default backend note at cutover (38) |
-| `docs/README.md` | All | **37** | Persona row + user-guide table entry for `supabase-setup.md` |
-| `docs/user-guide/mongodb-setup.md` | User | **38** | Cross-link: when to use Mongo (rollback) vs Supabase (default) |
-| `configs/example-supabase-local.yaml` | User | **37** | Example sweep config for local pgvector |
+| `README.md` | User | **37**, **38** | Four-flag switching table; default backend note at cutover (38) |
+| `docs/README.md` | All | **33**, **37** | Persona row + user-guide table entry for `postgres-setup.md` |
+| `docs/user-guide/mongodb-setup.md` | User | **37**, **38** | Flag rename to `--mongodb-local` (37); cross-link rollback vs default (38) |
+| `configs/example-postgres-local.yaml` | User | **33** | Example sweep config for local pgvector |
+| `configs/example-postgres-cloud.yaml` | User | **37** | Hosted Supabase example (`database_provider: postgres`; no secrets in YAML) |
 | `docs/adr/ADR-004-postgresql-pgvector-vector-store.md` | All | **38** | **Create** — supersedes ADR-003; cost + monitoring rationale |
 | `docs/adr/ADR-003-mongodb-atlas-vector-store.md` | All | **38** | Status → Superseded by ADR-004 |
 | `docs/plan/gate-evidence/slice-38-quality-comparison.md` | Maintainer | **38** | Cutover quality + latency + rollback evidence |
-| `CHANGELOG.md` | User | **38** | User-visible: default backend, new env vars, setup path |
-| `QUICKSTART.md` | User | **37** | Optional one-liner or link to `supabase-setup.md` if Postgres is primary DX |
+| `CHANGELOG.md` | User | **37**, **38** | Flag vocabulary (37); default backend (38) |
+| `QUICKSTART.md` | User | **37** | One-liner for `--postgres-local` / link to `postgres-setup.md` |
 
 **N/A rule:** If a matrix row does not apply to a slice, note `N/A — <reason>` in the slice After-Checks before marking ✅.
 
@@ -136,6 +167,7 @@ Flip documented default to `STORAGE_BACKEND=postgres` only when **all** pass on 
 - [ ] Side-by-side comparison documented in `gate-evidence/slice-38-quality-comparison.md` before default flip
 - [ ] Cutover gates (latency, hybrid drift, equivalence) measured and PASS per table above
 - [ ] Rollback playbook smoke-tested (`STORAGE_BACKEND=mongo` recovery)
+- [ ] **Switching:** two-command Mongo↔Postgres recipes documented and smoke-tested; config/backend mismatch returns 422 before writes
 - [ ] **CI:** Postgres integration/regression job runs on every PR touching `server/db/*` or storage/retriever paths (mandatory before merging Slices 33–37)
 
 ## Risks (verify during slices)
@@ -154,7 +186,7 @@ Flip documented default to `STORAGE_BACKEND=postgres` only when **all** pass on 
 |---|---|
 | **Before Slice 32 merge** | Cutover gates + rollback playbook documented in PRD (this section) |
 | **Before Slices 33–37 merge** | CI job with Postgres/pgvector service runs storage + CRUD smoke (`STORAGE_BACKEND=postgres`) |
-| **Slice 33** | Add minimal `docker compose --profile local-postgres` smoke step to CI or `quality-gates.sh --postgres` |
+| **Slice 33** | CI `postgres-integration` job + local pgvector profile (done); no `quality-gates.sh --postgres` flag required |
 | **Slice 38** | Dual-backend regression green on both `mongo` and `postgres` before cutover |
 
 Without Postgres CI from Slice 33 onward, Postgres code paths will bitrot before Slice 38 cutover.

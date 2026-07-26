@@ -1,6 +1,6 @@
 # Slice 27 — MongoDB Mode Indicator (Cloud vs Local)
 
-> **📦 DEFERRED / SUPERSEDED (2026-07-09):** Standalone Mongo cloud vs local indicator is **absorbed into Slice 36** (`storage mode`: `mongo` | `local-postgres` | `supabase`). Keep this spec as historical scope; implement mode visibility in [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md). Re-open 27 only if post-cutover Mongo-only operators need a badge without Postgres modes.
+> **📦 DEFERRED / SUPERSEDED (2026-07-09; taxonomy updated 2026-07-26):** Standalone Mongo cloud vs local indicator is **absorbed into Slice 36** (`storage_mode`: `mongodb-local` \| `mongodb-cloud` \| `postgres-local` \| `postgres-cloud`). Keep this spec as historical scope; implement mode visibility in [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md). Re-open 27 only if post-cutover Mongo-only operators need a badge without Postgres modes.
 
 **Status**: 📦 DEFERRED *(superseded by Slice 36)*
 **Depends on**: 25B
@@ -19,12 +19,19 @@ wrong backend, there is no fast feedback path.
 Every surface a developer touches during a session clearly shows the active backend
 mode — without requiring a completed experiment.
 
+> **Implementation note (2026-07-26):** Slice 36 implements this as a four-value
+> `storage_mode` aligned with `start-services.sh --mongodb-local` /
+> `--mongodb-cloud` / `--postgres-local` / `--postgres-cloud`. The original
+> `get_mongodb_mode() -> "cloud" | "local"` below remains the Mongo half of that
+> taxonomy; do not ship a three-value `mongo | local-postgres | supabase` field.
+
 ## Single Source of Truth
 
 `get_mongodb_mode(uri: str) -> Literal["cloud", "local"]` in
 `server/db/mongodb_uri.py`, wrapping the existing `is_atlas_uri()`. All other changes
 read from this one function. `cluster_name` is derived via the existing
 `parse_atlas_cluster_name()` from the same file.
+*(Slice 36 maps these to `mongodb-cloud` / `mongodb-local` at the healthz/stats boundary.)*
 
 ## Storage Limit — Local Mode
 

@@ -3,8 +3,8 @@
 **MoSCoW:** MUST
 **Target time:** ~3–4 h
 **Status:** ✅ COMPLETE
-**Depends on:** 33
-**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md) §5.1.1, §6.3, §6.5
+**Depends on:** 33 (implementation: schema + store + local profile — not tracker PASSED)
+**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md) §5.1.1, §6.3, §6.5
 
 ---
 
@@ -12,9 +12,13 @@
 
 - Slice name: `slice-34-postgres-dense-retrieval`
 - Branch: `slice/34-postgres-dense-retrieval`
-- Files (expected):
-  - `server/core/retriever.py` or `server/core/retriever_postgres.py` — dense path
-  - HNSW indexes on `embedding_384` / `embedding_1024` (partial where not null)
+- Files (shipped):
+  - `server/core/retriever_postgres.py` — dense path + dispatcher
+  - `server/db/postgres_store.py` — `PostgresRetrieverBackend` delegates to dense search
+  - `server/db/schema.sql` — HNSW indexes on `embedding_384` / `embedding_1024`
+  - `server/db/postgres.py` — `hnsw.iterative_scan = strict_order` on every pooled connection
+  - `server/core/search_index_guard.py` / `search_index_plan.py` — Atlas preflight short-circuit for non-mongo
+  - `server/core/health_check.py` / `server/main.py` — backend-aware `/healthz` (`storage_backend`, not mode)
   - `tests/test_postgres_dense_retrieval.py` — **mandatory `embedding_model` filter tests**
 - Exit criteria: Dense retrieval returns top-K for a real sweep on Postgres; cross-model comparison impossible by query construction
 - Commit pattern: `feat(slice-34): pgvector dense retrieval with embedding_model filter`
@@ -23,7 +27,7 @@
 
 ## Goal
 
-Implement cosine (or IP-matching Atlas) dense search via pgvector HNSW, preserving the critical invariant: **every vector query filters by `embedding_model`**.
+Implement cosine dense search via pgvector HNSW (Atlas-comparable score scale), preserving the critical invariant: **every vector query filters by `embedding_model`**.
 
 ---
 
@@ -45,6 +49,23 @@ Scenario: Dense sweep end-to-end
   When a dense-only sweep completes
   Then results contain ranked chunks with scores
 ```
+
+---
+
+## Out of scope / handed to 36–37
+
+This slice does **not** finish local/cloud DX:
+
+| Concern | Owner |
+|---|---|
+| Four-value `storage_mode` on `/healthz` + db-stats badge (`mongodb-local` \| `mongodb-cloud` \| `postgres-local` \| `postgres-cloud`) | Slice 36 |
+| Honest Postgres index introspection (beyond Atlas short-circuit) | Slice 36 |
+| Hosted `ensure_env` without `MONGODB_URI`; `--postgres-cloud` | Slice 37 |
+| Flag vocabulary + low-friction two-command switching | Slice 37 |
+| Config `database_provider` ↔ server consistency (422 + remediation) | Slice 37 |
+| `postgres start\|stop\|reset\|status` lifecycle | Slice 37 |
+
+`/healthz` today reports `storage_backend` (`mongo` \| `postgres`) only — location mode is Slice 36.
 
 ---
 
@@ -81,7 +102,7 @@ affordable. Not needed now (YAGNI); noted in the roadmap.
 
 ## Before-Checks [GATE]
 
-- [x] Slice 33 ✅ PASSED
+- [x] Slice 33 **implementation** available (schema + store + local profile + CI job) — tracker may still be IN PROGRESS for coverage/mutation/32B
 - [x] HNSW / pgvector extension enabled in local container (pgvector 0.8.5, PG 16.14)
 
 ---
@@ -111,11 +132,11 @@ affordable. Not needed now (YAGNI); noted in the roadmap.
       Nightly `mutmut` runs without a Postgres service, so it cannot cover this
       module; the targeted run above is the evidence
 - [x] Coverage + quality gates — `./scripts/quality-gates.sh` green (11/11); full
-      backend suite 286 → 288 passed, no regressions
+      backend suite green, no regressions
 - [x] Doc audit: `architecture.md` module tree (Postgres db modules + Postgres
       dense retriever), `postgres-setup.md` (dense retrieval, score scale, HNSW
       recall note), `CLAUDE.md` Key Files
-- [x] `docs/plan/slices/PROGRESS.md` updated — status + six decision-log entries
+- [x] `docs/plan/slices/PROGRESS.md` updated — status + decision-log entries
 
 ## Gate Status
 

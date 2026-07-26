@@ -4,9 +4,9 @@
 **Target time:** ~4–6 h
 **Status:** 🔨 IN PROGRESS
 **Depends on:** 32B
-**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
+**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md)
 
-> **Naming:** Supabase is hosted Postgres. This slice implements the Postgres/pgvector layer that Supabase runs in production and Docker pgvector runs locally.
+> **Naming:** Supabase is hosted Postgres. This slice implements the Postgres/pgvector layer that Supabase runs in production and Docker pgvector runs locally (Path A). Hosted Path B operator DX lands in Slice 37.
 
 ---
 
@@ -14,15 +14,21 @@
 
 - Slice name: `slice-33-supabase-schema-crud`
 - Branch: `slice/33-supabase-schema-crud`
-- Files (expected):
+- Files (shipped):
   - `server/db/postgres.py` — connection pool (`psycopg` pool; sync FastAPI alignment)
   - `server/db/postgres_uri.py` — Supabase vs local detection (TLS, pooler host)
+  - `server/db/postgres_docs.py` — document ↔ row mapping + `vector_column_for`
   - `server/db/postgres_store.py` — `StorageBackend` impl
-  - `server/db/schema.sql` or migrations — experiments, run_status, chunks, results
-  - `pyproject.toml` — add `psycopg[binary]`; keep pymongo
-  - `docker-compose.yml` — `pgvector` service under `local-postgres` profile (**minimal smoke** — full `start-services.sh` in 37)
-  - `configs/example-supabase-local.yaml` (or `example-postgres-local.yaml`)
-  - `tests/test_postgres_store_crud.py`
+  - `server/db/postgres_stats.py` — stats / explore helpers (partial; Slice 36 extends)
+  - `server/db/stats_common.py` — backend-agnostic db-stats assembly
+  - `server/db/schema.sql` — experiments, run_status, chunks, results + HNSW indexes
+  - `server/db/store_factory.py` — returns Postgres adapters when `STORAGE_BACKEND=postgres`
+  - `pyproject.toml` — `psycopg[binary]`; keep pymongo
+  - `docker-compose.yml` — `postgres-local` service under `local-postgres` profile
+  - `start-services.sh` / `scripts/lib/compose.sh` — `--postgres` / `RAG_LOCAL_POSTGRES=1` (canonical rename to `--postgres-local` in Slice 37)
+  - `configs/example-postgres-local.yaml`
+  - `docs/user-guide/postgres-setup.md` — Path A (local) documented
+  - `tests/test_postgres_store_integration.py` — 19 live CRUD/cascade/stats tests
 - Exit criteria: With `STORAGE_BACKEND=postgres`, experiment CRUD + cascade delete + chunk insert work against local pgvector container
 - Commit pattern: `feat(slice-33): supabase postgres schema and crud behind storage protocol`
 
@@ -30,7 +36,20 @@
 
 ## Goal
 
-Ship Postgres/pgvector schema and CRUD for experiments, run_status, chunks, and results — including cascade delete — behind the Slice 32 `StorageBackend` port. Retrieval stubs until Slice 34. **Minimal local Docker** in this slice so 34–36 can dev-test without waiting for Slice 37.
+Ship Postgres/pgvector schema and CRUD for experiments, run_status, chunks, and results — including cascade delete — behind the Slice 32 `StorageBackend` port. Retrieval stubs until Slice 34.
+
+**Decision (2026-07-26):** Local compose (`--postgres` → future `--postgres-local`) landed in this slice so 34–36 could proceed without waiting. Hosted cloud operator path (`--postgres-cloud`, `ensure_env` without `MONGODB_URI`, lifecycle subcommands) remains Slice 37. Do not claim hosted Supabase smoke here.
+
+---
+
+## Operator contract (local half only)
+
+| Concern | This slice |
+|---|---|
+| Local one-command | `./start-services.sh --postgres` (alias; Slice 37 renames to `--postgres-local`) |
+| Cloud / hosted | Out of scope — Slice 37 |
+| Docs | [`postgres-setup.md`](../../user-guide/postgres-setup.md) Path A; Path B expanded in 37 |
+| Example config | `configs/example-postgres-local.yaml` (not `example-supabase-local.yaml`) |
 
 ---
 
@@ -70,11 +89,11 @@ Scenario: External experiment_id preserved
 
 ## Design constraints (from PRD)
 
-- Single `chunks` table with `embedding_384`, `embedding_1024`, optional `embedding_sparse` (nullable)
+- Single `chunks` table with `embedding_384`, `embedding_1024`, optional `embedding_sparse` (nullable — deferred to 35)
 - Raw SQL via `psycopg` — no `vecs`
 - Env: `STORAGE_BACKEND=postgres`, `DATABASE_URL=...` (Supabase connection string in cloud)
 - FK `ON DELETE CASCADE` from child tables to experiments
-- **Minimal smoke trade-off:** `docker compose --profile local-postgres` starts pgvector only in Slice 33; full `start-services.sh` integration deferred to Slice 37. Mitigation: Slice 37 Before-Checks gate on 33 profile completeness.
+- Local compose is part of this slice’s delivered surface; hosted `ensure_env` / flag vocabulary / lifecycle parity are Slice 37
 
 ---
 
@@ -103,9 +122,9 @@ Scenario: External experiment_id preserved
       (unsupported dimension, empty chunk batch, empty interrupt list, unknown experiment id)
 - [ ] Branch coverage: target 100% where practical; document any exclusions
 - [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors
-- [x] Mongo backend still green (dual-backend regression) — full suite passes, 264 tests
-- [x] `docker compose --profile local-postgres up` documented for manual smoke —
-      [`docs/user-guide/postgres-setup.md`](../../user-guide/postgres-setup.md)
+- [x] Mongo backend still green (dual-backend regression) — full suite passes
+- [x] Local pgvector profile documented for manual smoke —
+      [`docs/user-guide/postgres-setup.md`](../../user-guide/postgres-setup.md) Path A
 - [x] `.env.example` documents `STORAGE_BACKEND` + `DATABASE_URL`
 - [x] `./scripts/quality-gates.sh` passes
 - [x] Doc audit: `.env.example`, `configuration.md` env vars, new `postgres-setup.md`
@@ -113,12 +132,13 @@ Scenario: External experiment_id preserved
 
 ## Deferred out of this slice
 
-- **Retrieval** — `get_retriever_backend()` still raises for Postgres; dense lands in Slice 34,
-  sparse/hybrid in Slice 35.
+- **Retrieval** — dense lands in Slice 34; sparse/hybrid in Slice 35.
 - **`embedding_sparse` column** — PRD lists it as optional here. `vector_column_for()` raises a
   `ValueError` naming Slice 35 rather than silently dropping SPLADE-width vectors.
-- **Storage quota** — Postgres exposes no quota over SQL, so `database_storage_limit_mb` and
-  `database_free_mb` report `None`; Slice 36 owns the capacity story.
+- **Storage quota / mode badge** — Slice 36 owns capacity story and four-value `storage_mode`.
+- **Hosted Supabase operator path** — Slice 37 (`--postgres-cloud`, `ensure_env`, lifecycle, Path B docs, low-friction switching).
+- **Flag rename + config consistency gate** — `--postgres` → `--postgres-local`; YAML `database_provider` must match active backend (Slice 37).
+- **Four-value `storage_mode`** — Slice 36 (may pull forward with 37 vocabulary pass).
 
 ## Gate Status
 

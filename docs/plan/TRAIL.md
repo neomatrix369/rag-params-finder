@@ -29,12 +29,12 @@ Each PCTO / migration slice lives in its own file below. Existing planned slices
 | 32 | [../plan/slices/SLICE-32-STORAGE-BACKEND-PROTOCOL.md](../plan/slices/SLICE-32-STORAGE-BACKEND-PROTOCOL.md) | Storage Protocol + Mongo adapter (Storage + Retriever ports) | Must | 🔨 IN PROGRESS | none | [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) | ~2 min | 2026-07-25 |
 | 32C | [../plan/slices/SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md](../plan/slices/SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md) | Storage Protocol review remediation — craft split, port schemas, index deferral, checklist hygiene | Must | 📋 PLANNED | 32 | [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) | ~2 min | 2026-07-25 |
 | 32B | [../plan/slices/SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md](../plan/slices/SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) | Storage Protocol gate closure — coverage, mutation/waiver, full gates, nw-review, tracker COMPLETE | Must | 📋 PLANNED | 32C | [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) | ~2 min | 2026-07-25 |
-| 33 | [../plan/slices/SLICE-33-POSTGRES-SCHEMA-CRUD.md](../plan/slices/SLICE-33-POSTGRES-SCHEMA-CRUD.md) | Supabase schema + pool + CRUD (+ minimal local pgvector) | Must | 🔨 IN PROGRESS | 32B | — | ~2 min | 2026-07-25 |
-| 34 | [../plan/slices/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md](../plan/slices/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) | Supabase dense retrieval (pgvector HNSW) | Must | ✅ COMPLETE | 33 | — | ~2 min | 2026-07-25 |
-| 35 | [../plan/slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md](../plan/slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md) | Supabase sparse + hybrid RRF (+ Mongo equivalence gate) | Must | 📋 PLANNED | 34 | — | ~2 min | 2026-07-09 |
-| 36 | [../plan/slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md](../plan/slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md) | Supabase preflight + db-stats + storage mode indicator | Must | 📋 PLANNED | 35 | — | ~2 min | 2026-07-09 |
-| 37 | [../plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md](../plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) | Supabase local + hosted parity + boot reconciliation | Must | 📋 PLANNED | 36 | — | ~2 min | 2026-07-09 |
-| 38 | [../plan/slices/SLICE-38-CUTOVER-ADR-004.md](../plan/slices/SLICE-38-CUTOVER-ADR-004.md) | Quality comparison + ADR-004 + default cutover | Must | 📋 PLANNED | 37 | — | ~2 min | 2026-07-09 |
+| 33 | [../plan/slices/SLICE-33-POSTGRES-SCHEMA-CRUD.md](../plan/slices/SLICE-33-POSTGRES-SCHEMA-CRUD.md) | Postgres schema + pool + CRUD (+ local pgvector Path A) | Must | 🔨 IN PROGRESS | 32B | — | ~2 min | 2026-07-26 |
+| 34 | [../plan/slices/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md](../plan/slices/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) | Postgres dense retrieval (pgvector HNSW) | Must | ✅ COMPLETE | 33 | — | ~2 min | 2026-07-25 |
+| 35 | [../plan/slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md](../plan/slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md) | Postgres sparse + hybrid RRF (+ Mongo equivalence gate) | Must | 📋 PLANNED | 34 | — | ~2 min | 2026-07-26 |
+| 36 | [../plan/slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md](../plan/slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md) | Preflight + db-stats + four-value storage_mode | Must | 📋 PLANNED | 35 | — | ~2 min | 2026-07-26 |
+| 37 | [../plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md](../plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) | `--<db>-local/cloud` + low-friction switch + config gate | Must | 📋 PLANNED | 36 | — | ~2 min | 2026-07-26 |
+| 38 | [../plan/slices/SLICE-38-CUTOVER-ADR-004.md](../plan/slices/SLICE-38-CUTOVER-ADR-004.md) | Quality comparison + ADR-004 + default cutover | Must | 📋 PLANNED | 37 | — | ~2 min | 2026-07-26 |
 | 28 | [../plan/slices/SLICE-28-RESULTS-EXPORT.md](../plan/slices/SLICE-28-RESULTS-EXPORT.md) | Results export — CSV/JSONL download (issue #49; @cschanhniem) | Must | 📋 PLANNED | none | [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | ~3 min | 2026-07-06 |
 | 22 | [../plan/slices/SLICE-22-SIE-SCOOTER.md](../plan/slices/SLICE-22-SIE-SCOOTER.md) | SIE Scooter — reranking + SPLADE v3 sparse + `/api/v1/best-config` | Must | 📋 PLANNED | 21, 32, 38 (soft) | — | ~3 min | 2026-07-09 |
 | 26 | [../plan/slices/SLICE-26-LOCAL-MONGODB-DOCS.md](../plan/slices/SLICE-26-LOCAL-MONGODB-DOCS.md) | Local MongoDB: smooth path docs + script feedback | Should | 📦 DEFERRED | 25B | — | ~1.5 min | 2026-07-09 |
@@ -53,7 +53,7 @@ Each PCTO / migration slice lives in its own file below. Existing planned slices
 | 42 | [../plan/slices/SLICE-42-DOCKER-BUILD-OPTIMISATION.md](../plan/slices/SLICE-42-DOCKER-BUILD-OPTIMISATION.md) | Docker Build Optimisation — multi-stage, BuildKit cache mounts, CI job | Should | ✅ COMPLETE | none | — | ~2.5 h | 2026-07-25 |
 
 **Execution order**: 21 → 25 → 25B → 29 (done) → **39** *(≤2 h demo interrupt)* → **32 → 32C → 32B → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10. Slices 40, 41A, and 42 are independent housekeeping/optimisation slices and can run at any time without blocking the Supabase migration sequence.
-*Deferred Mongo QoL: 26, 19 — re-scope after cutover. Slice 27 scope absorbed into 36 as a storage-mode indicator.*
+*Deferred Mongo QoL: 26, 19 — re-scope after cutover. Slice 27 scope absorbed into 36 as four-value `storage_mode` (`mongodb|postgres` × `local|cloud`).*
 
 **PCTO escape hatch (Slice 22):** If slices 32–36 slip **>2 days** past the PCTO deadline, start Slice 22 on Mongo via StorageBackend Protocol only (hard dep: 32 merged); budget ~30 min to re-port history queries when Slice 38 lands; retest on Supabase backend after 38.
 
@@ -84,7 +84,7 @@ Each PCTO / migration slice lives in its own file below. Existing planned slices
 
 | File | Status | Read time | Last Updated |
 |------|--------|-----------|--------------|
-| PRD-supabase-pgvector-migration.md | added | ~3 min | 2026-07-09 |
+| PRD-supabase-pgvector-migration.md | updated | ~3 min | 2026-07-26 |
 | GAP_ANALYSIS.md | updated | ~2 min | 2026-07-09 |
 | DECISIONS.md | updated | ~2 min | 2026-07-09 |
 | HANDOFF.md | updated | ~2 min | 2026-07-09 |
