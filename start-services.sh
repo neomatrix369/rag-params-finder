@@ -259,8 +259,8 @@ ensure_env() {
     exit 1
   fi
 
-  # shellcheck disable=SC1091
   set -a
+  # shellcheck disable=SC1091  # .env is gitignored; absent in CI sandboxes
   source .env
   set +a
 
