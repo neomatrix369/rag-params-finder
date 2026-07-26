@@ -1,0 +1,18 @@
+{
+  "slice": 43,
+  "gate_status": "PASSED",
+  "verified_at": "2026-07-26",
+  "verifier": "slice-workflow",
+  "evidence": {
+    "preflight": "./scripts/health-check.sh passed; /healthz returned storage_backend=postgres and postgres=ok",
+    "static_config": "uv run pytest tests/test_config_examples.py --tb=short -q: 25 passed",
+    "command": "uv run rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml",
+    "experiment_id": "dd107437-be69-4d62-a549-003b743ed841",
+    "runtime": "experiment complete in 5m43s; 16/16 runs complete; 0 failed; 0 errors",
+    "retrieval_results": "dense, sparse, hybrid, and cross_encoder each ran 4 times and produced 308 result rows; non-empty rows were dense=308, sparse=11, hybrid=308, cross_encoder=308",
+    "backend_boundary": "The CLI process reported its local default settings value as mongodb, while the production server /healthz reported postgres. This confirms runtime backend selection remains server-side and database_provider=supabase is labeling metadata, as documented.",
+    "hosted_supabase": "not run; optional stretch criterion, not required for Slice 43 completion"
+  },
+  "review": "nw-documentarist-reviewer APPROVED on 2026-07-26 with no technical blockers; required tracker housekeeping applied before PASSED",
+  "pr": "https://github.com/neomatrix369/rag-params-finder/pull/114"
+}
