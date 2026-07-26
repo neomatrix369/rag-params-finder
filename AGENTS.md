@@ -44,9 +44,9 @@ rag-params-finder run --config configs/mongodb/example-sie.yaml    # SIE sweep �
 rag-params-finder run --config configs/supabase/example-local.yaml # pgvector — see docs/user-guide/postgres-setup.md
 rag-params-finder pause <experiment-id>   # pause after current phase
 rag-params-finder resume <experiment-id>  # continue paused sweep
-rag-params-finder indexes list            # Atlas Search indexes (known vs unknown)
-rag-params-finder indexes reset           # drop unknown indexes + ensure required
-rag-params-finder indexes reset --all     # drop all chunks search indexes + recreate
+rag-params-finder indexes list            # Atlas: known vs unknown | Postgres: catalog PRESENT vs MISSING
+rag-params-finder indexes reset           # Atlas only — drop unknown indexes + ensure required
+rag-params-finder indexes reset --all     # Atlas only — drop all chunks search indexes + recreate
 ./scripts/aim-ui.sh                       # Aim experiment UI → http://localhost:43800
 uv pip install -e ".[dev]"
 bash scripts/install-git-hooks.sh          # essential checks on commit (staged) and push (all files)

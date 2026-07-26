@@ -87,6 +87,9 @@ Scenario: New tests lift measured coverage above the floor
 - [ ] Baseline logged in `CLAUDE.md` / `development.md` and PROGRESS Decision Log
 - [ ] Frontend baseline in `CLAUDE.md` updated (test count + coverage floor)
 - [ ] No backend / migration-track regression
+- [ ] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first, §2); essential error paths covered (90–100% of clauses)
+- [ ] Branch coverage: 100% target; tool configured with fail_under=100; exclusions documented (§12 — test-writing-craft-quality.mdc)
+- [ ] Mutation testing run if slice is feature-complete: survival budget met (§23)
 
 ## Gate Status
 

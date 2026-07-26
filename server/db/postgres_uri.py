@@ -9,8 +9,12 @@ from __future__ import annotations
 
 from typing import Any
 
-STORAGE_MODE_SUPABASE = "supabase"
-STORAGE_MODE_LOCAL_POSTGRES = "local-postgres"
+STORAGE_MODE_POSTGRES_LOCAL = "postgres-local"
+STORAGE_MODE_POSTGRES_CLOUD = "postgres-cloud"
+
+# Legacy aliases — remove after Slice 37 flag cutover when no callers remain.
+STORAGE_MODE_LOCAL_POSTGRES = STORAGE_MODE_POSTGRES_LOCAL
+STORAGE_MODE_SUPABASE = STORAGE_MODE_POSTGRES_CLOUD
 
 _SUPABASE_HOST_SUFFIXES = (".supabase.co", ".supabase.com", ".supabase.net")
 
@@ -37,11 +41,12 @@ def is_supabase_uri(uri: str) -> bool:
 
 
 def postgres_storage_mode(uri: str) -> str:
-    """Classify the backend as hosted ``supabase`` or ``local-postgres``.
+    """Classify the backend as ``postgres-cloud`` or ``postgres-local``.
 
-    Slice 36 surfaces this value through db-stats and the health endpoint.
+    Values match planned ``./start-services.sh --{storage_mode}`` flag compounds
+    (Slice 36 / 37). Exposed via ``/healthz`` and db-stats ``cluster_tier_type``.
     """
-    return STORAGE_MODE_SUPABASE if is_supabase_uri(uri) else STORAGE_MODE_LOCAL_POSTGRES
+    return STORAGE_MODE_POSTGRES_CLOUD if is_supabase_uri(uri) else STORAGE_MODE_POSTGRES_LOCAL
 
 
 def postgres_connect_kwargs(uri: str, **extra: Any) -> dict[str, Any]:

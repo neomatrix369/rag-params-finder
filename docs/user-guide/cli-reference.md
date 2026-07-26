@@ -50,7 +50,10 @@ abc123-run-0 | all-MiniLM-L6-v2  | recursive | 512  | 50      | EMBEDDING
 abc123-run-1 | all-MiniLM-L6-v2  | recursive | 512  | 0       | CHUNKING
 ```
 
-**Preflight (Mongo only):** submission fails immediately with a clear error if required Atlas Search indexes are missing or the cluster search-index quota is exhausted (HTTP 422). Fix indexes first — see [Troubleshooting → Search index preflight failed](troubleshooting.md#-search-index-preflight-failed). On `STORAGE_BACKEND=postgres`, Atlas index preflight is skipped (schema/indexes come from `schema.sql`) — see [Postgres Setup](postgres-setup.md).
+**Preflight:** submission fails immediately with a clear error if required search indexes are missing (HTTP 422).
+
+- **MongoDB:** Atlas Search indexes / M0 quota — see [Troubleshooting → Search index preflight failed](troubleshooting.md#-search-index-preflight-failed).
+- **Postgres:** catalog check for the `vector` extension plus HNSW/GIN indexes from `schema.sql`. Fix by re-running schema bootstrap (server start), then `rag-params-finder indexes list`. See [Postgres Setup](postgres-setup.md).
 
 ---
 
@@ -120,11 +123,14 @@ rag-params-finder delete abc123-def4-5678-90ab-cdefg1234567 --force
 
 ---
 
-### `indexes` — Manage Atlas Search indexes
+### `indexes` — Manage search indexes
 
-**MongoDB-only.** With `STORAGE_BACKEND=postgres` (or any non-mongodb backend), these commands exit with a clear “not applicable” message instead of calling Atlas APIs.
+Backend-aware:
 
-Inspect and repair search indexes on the connected cluster. Useful on **M0 free tier** where the 3-index cluster-wide limit is easy to exceed.
+| `STORAGE_BACKEND` | `indexes list` | `indexes reset` |
+|---|---|---|
+| `mongodb` | Atlas Search indexes (known vs unknown) | Drop unknown / rebuild chunks indexes |
+| `postgres` | Catalog: `vector` extension + HNSW/GIN present vs missing | Not applicable — restart server / schema bootstrap |
 
 #### `indexes list`
 
@@ -132,7 +138,9 @@ Inspect and repair search indexes on the connected cluster. Useful on **M0 free 
 rag-params-finder indexes list
 ```
 
-Lists all Atlas Search indexes across every database on the cluster. Tags each index **KNOWN** (managed by this project) or **UNKNOWN**. Shows total count vs the M0 limit (3).
+**Mongo:** Lists all Atlas Search indexes across every database on the cluster. Tags each index **KNOWN** (managed by this project) or **UNKNOWN**. Shows total count vs the M0 limit (3).
+
+**Postgres:** Lists the `vector` extension and required `chunks` indexes (`chunks_embedding_384_hnsw`, `chunks_embedding_1024_hnsw`, `chunks_text_search_gin`) as PRESENT or MISSING.
 
 #### `indexes reset`
 
@@ -150,17 +158,17 @@ rag-params-finder indexes reset --force            # skip confirmation prompt
 
 **Examples**:
 ```bash
-# See what's consuming quota
+# See what's consuming quota (Mongo) or missing from schema.sql (Postgres)
 rag-params-finder indexes list
 
-# Free a slot by removing stray indexes from other tools/projects
+# Free a slot by removing stray indexes from other tools/projects (Mongo)
 rag-params-finder indexes reset
 
-# Nuclear option — rebuild all chunks search indexes (~1–2 min rebuild)
+# Nuclear option — rebuild all chunks search indexes (~1–2 min rebuild) (Mongo)
 rag-params-finder indexes reset --all --force
 ```
 
-Known index names: `vector_index_384`, `vector_index_1024`, `vector_index_30522`, `text_search_index`.
+Known Atlas index names: `vector_index_384`, `vector_index_1024`, `vector_index_30522`, `text_search_index`.
 
 ---
 
@@ -210,8 +218,10 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/healthz` | Liveness for the active storage backend — MongoDB: `{"ok": true, "storage_backend": "mongodb", "mongodb": "ok"}`; Postgres: `{"ok": true, "storage_backend": "postgres", "postgres": "ok"}`; HTTP 503 when the active backend is unreachable |
+| GET | `/healthz` | Liveness for the active storage backend — MongoDB: `{"ok": true, "storage_backend": "mongodb", "storage_mode": "mongodb-cloud", "mongodb": "ok"}`; Postgres: `{"ok": true, "storage_backend": "postgres", "storage_mode": "postgres-local", "postgres": "ok"}`; HTTP 503 when the active backend is unreachable |
 | GET | `/health` | Extended health — storage fields from `/healthz` plus `sie` (`disabled` / `reachable` / `unreachable`) and `version` |
+
+**`storage_mode`** is one of four compounds derived from `STORAGE_BACKEND` plus the connection-string host: `mongodb-local`, `mongodb-cloud`, `postgres-local`, `postgres-cloud`. Atlas cloud is detected via `*.mongodb.net`; hosted Supabase via `*.supabase.*`. It is *not* the YAML `database_provider` field (see [configuration.md](configuration.md)).
 | POST | `/api/v1/sweep` | Tier 1 ranked SIE vs Voyage sweep over caller-supplied corpus *(see [sie-setup.md](sie-setup.md))* |
 | GET | `/api/v1/best-config` | Best config from sweep history *(placeholder — Slice 22)* |
 | POST | `/experiments` | Submit an experiment sweep *(422 if search-index preflight fails)* |

@@ -1,18 +1,22 @@
-"""Mongo-only: preflight guard — load Atlas cluster state, ensure indexes, validate requirements.
+"""Search-index preflight guard — Atlas (Mongo) and Postgres catalog paths.
 
-When ``STORAGE_BACKEND`` is not mongodb, validation short-circuits via
-``preflight_not_applicable`` (Postgres declares indexes at schema bootstrap).
+Mongo: load Atlas cluster state, ensure indexes, validate requirements.
+Postgres: introspect ``pg_extension`` / ``pg_indexes`` for schema.sql objects
+(no Atlas Admin API, no quota negotiation).
 """
 
 from __future__ import annotations
 
 from server.core.search_index_plan import (
+    POSTGRES_VECTOR_EXTENSION,
     SearchIndexAssessment,
     SearchIndexMismatchError,
     SearchIndexSnapshot,
     assess_search_index_readiness,
     format_mismatch_message,
+    format_postgres_mismatch_message,
     preflight_not_applicable,
+    required_postgres_catalog_indexes,
     required_search_indexes,
     validate_vector_index_feasibility,
 )
@@ -25,6 +29,7 @@ from server.db.indexes import (
     prune_unknown_search_indexes,
     reconcile_chunks_search_indexes,
 )
+from server.db.postgres import fetch_all, fetch_one
 from server.models.config import ExperimentConfig
 from server.settings import normalize_storage_backend, settings
 from server.utils.logger import get_logger
@@ -32,13 +37,14 @@ from server.utils.logger import get_logger
 logger = get_logger(__name__)
 
 _READY_STATUSES = frozenset({"READY", True})
+_CHUNKS_TABLE = "chunks"
 
 
 def collect_search_index_snapshot(
     *,
     cluster_limit: int = M0_SEARCH_INDEX_LIMIT,
 ) -> SearchIndexSnapshot:
-    """Build a snapshot of search-index readiness from the live cluster."""
+    """Build a snapshot of search-index readiness from the live Atlas cluster."""
     db_name = get_database().name
     rows = list_cluster_search_indexes()
 
@@ -65,25 +71,82 @@ def collect_search_index_snapshot(
     )
 
 
+def postgres_vector_extension_present() -> bool:
+    """True when the ``vector`` extension is installed in the current database."""
+    row = fetch_one(
+        "SELECT 1 AS ok FROM pg_extension WHERE extname = %s",
+        (POSTGRES_VECTOR_EXTENSION,),
+    )
+    return row is not None
+
+
+def collect_postgres_index_snapshot(
+    required: frozenset[str],
+) -> SearchIndexSnapshot:
+    """Build a snapshot of required HNSW/GIN indexes from ``pg_indexes``."""
+    if not required:
+        present: frozenset[str] = frozenset()
+    else:
+        rows = fetch_all(
+            """
+            SELECT indexname
+              FROM pg_indexes
+             WHERE schemaname = current_schema()
+               AND tablename = %s
+               AND indexname = ANY(%s)
+            """,
+            (_CHUNKS_TABLE, list(required)),
+        )
+        present = frozenset(str(row["indexname"]) for row in rows)
+
+    return SearchIndexSnapshot(
+        chunks_ready=present,
+        chunks_building=frozenset(),
+        cluster_total=len(present),
+        cluster_limit=max(len(required), 1),
+        unknown_count=0,
+    )
+
+
+def validate_postgres_experiment_indexes(
+    config: ExperimentConfig,
+) -> SearchIndexAssessment:
+    """Verify schema.sql catalog objects or raise SearchIndexMismatchError."""
+    required = required_postgres_catalog_indexes(config)
+    extension_ok = postgres_vector_extension_present()
+    snapshot = collect_postgres_index_snapshot(required)
+    assessment = assess_search_index_readiness(required=required, snapshot=snapshot)
+
+    if extension_ok and assessment.is_satisfied:
+        return assessment
+
+    message = format_postgres_mismatch_message(
+        extension_present=extension_ok,
+        assessment=assessment,
+    )
+    logger.error("postgres index preflight failed — %s", message)
+    raise SearchIndexMismatchError(message)
+
+
 def validate_experiment_search_indexes(
     config: ExperimentConfig,
     *,
     attempt_ensure: bool = True,
     cluster_limit: int = M0_SEARCH_INDEX_LIMIT,
 ) -> SearchIndexAssessment:
-    """Ensure required Atlas indexes exist or raise SearchIndexMismatchError.
+    """Ensure required indexes exist or raise SearchIndexMismatchError.
 
-    When ``attempt_ensure`` is true (default), automatically:
-    1. Drops failed and surplus known indexes on ``chunks`` to free quota.
-    2. Prunes unknown indexes cluster-wide if still blocked.
-    3. Creates any missing required indexes.
-
-    Every step here talks to Atlas, so non-Mongo backends short-circuit: they
-    would otherwise open a MongoDB connection the sweep never uses.
+    Mongo: Atlas ensure/reconcile path.
+    Postgres: catalog introspection only (schema bootstrap remains the ensure path).
     """
-    if normalize_storage_backend(settings.storage_backend) != "mongodb":
+    backend = normalize_storage_backend(settings.storage_backend)
+    if backend == "postgres":
+        logger.info("search index preflight — postgres catalog introspection")
+        return validate_postgres_experiment_indexes(config)
+
+    if backend != "mongodb":
         logger.info(
-            "search index preflight skipped — backend=%s declares its indexes at schema bootstrap",
+            "search index preflight skipped — unknown backend=%s",
             settings.storage_backend,
         )
         return preflight_not_applicable()

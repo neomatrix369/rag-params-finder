@@ -1,4 +1,8 @@
-"""Mongo-only: pure logic for Atlas Search index requirements and capacity assessment."""
+"""Search-index requirement planning — Atlas (Mongo) and Postgres catalog checks.
+
+Mongo path: Atlas Search index names and M0 quota assessment.
+Postgres path: schema.sql HNSW/GIN catalog names (no cluster quota).
+"""
 
 from __future__ import annotations
 
@@ -12,6 +16,18 @@ from server.db.indexes import (
     vector_index_dimensions,
 )
 from server.models.config import ExperimentConfig
+
+POSTGRES_VECTOR_EXTENSION = "vector"
+POSTGRES_HNSW_384_INDEX = "chunks_embedding_384_hnsw"
+POSTGRES_HNSW_1024_INDEX = "chunks_embedding_1024_hnsw"
+POSTGRES_TEXT_SEARCH_GIN_INDEX = "chunks_text_search_gin"
+POSTGRES_REQUIRED_INDEXES = frozenset(
+    {
+        POSTGRES_HNSW_384_INDEX,
+        POSTGRES_HNSW_1024_INDEX,
+        POSTGRES_TEXT_SEARCH_GIN_INDEX,
+    }
+)
 
 
 class SearchIndexMismatchError(Exception):
@@ -48,9 +64,8 @@ class SearchIndexAssessment:
 def preflight_not_applicable() -> SearchIndexAssessment:
     """A satisfied assessment for backends with no runtime index negotiation.
 
-    Postgres declares its HNSW indexes in ``schema.sql`` and applies them at pool
-    bootstrap, so there is no cluster quota to free and nothing to wait for. The
-    Atlas notion of index *capacity* has no counterpart there.
+    Prefer the Postgres catalog introspection path when ``STORAGE_BACKEND=postgres``.
+    Kept for callers that need an explicit no-op assessment.
     """
     empty: frozenset[str] = frozenset()
     return SearchIndexAssessment(
@@ -65,6 +80,49 @@ def preflight_not_applicable() -> SearchIndexAssessment:
         is_satisfied=True,
         failure_reason=None,
     )
+
+
+def required_postgres_catalog_indexes(
+    config: ExperimentConfig | None = None,
+) -> frozenset[str]:
+    """Return HNSW/GIN index names ``schema.sql`` must have created on ``chunks``.
+
+    Dense-only sweeps still need both HNSW indexes (384 and 1024) because the
+    table always carries both width columns. GIN is always created by bootstrap
+    and verifying it catches a failed DDL.
+    """
+    del config  # reserved for future config-conditional pruning
+    return POSTGRES_REQUIRED_INDEXES
+
+
+def format_postgres_mismatch_message(
+    *,
+    extension_present: bool,
+    assessment: SearchIndexAssessment,
+) -> str:
+    """Human-readable Postgres preflight failure (no Atlas quota wording)."""
+    lines: list[str] = []
+    if not extension_present:
+        lines.append(
+            f"Postgres extension {POSTGRES_VECTOR_EXTENSION!r} is missing. "
+            "Re-run schema bootstrap (server start / pool init) or "
+            f"CREATE EXTENSION IF NOT EXISTS {POSTGRES_VECTOR_EXTENSION}."
+        )
+    if assessment.missing:
+        lines.append(
+            "Required Postgres indexes missing on chunks: "
+            f"{sorted(assessment.missing)}. "
+            "Re-run schema bootstrap so schema.sql HNSW/GIN indexes are applied; "
+            "then `rag-params-finder indexes list` to verify."
+        )
+    if not lines:
+        lines.append(assessment.failure_reason or "Postgres index preflight failed.")
+    lines.append(
+        f"Required: {sorted(assessment.required)}; "
+        f"present: {sorted(assessment.present_ready)}; "
+        f"missing: {sorted(assessment.missing)}."
+    )
+    return " ".join(lines)
 
 
 def validate_vector_index_feasibility(required: frozenset[str]) -> str | None:
@@ -89,7 +147,6 @@ def validate_vector_index_feasibility(required: frozenset[str]) -> str | None:
 def required_search_indexes(config: ExperimentConfig) -> frozenset[str]:
     """Return Atlas Search index names this experiment config needs on chunks."""
     names = {get_index_name(model) for model in config.embedding.models}
-    # Check if any retriever needs text search (sparse or hybrid)
     needs_text = any(r.type in ("sparse", "hybrid") for r in config.retrieval.retrievers)
     if needs_text:
         names.add(TEXT_SEARCH_INDEX_NAME)

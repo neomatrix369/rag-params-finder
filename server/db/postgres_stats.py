@@ -58,13 +58,15 @@ def _cluster_storage_mb() -> dict[str, float | str | None]:
     ) or {"total_bytes": 0, "index_bytes": 0}
     total_bytes = float(row["total_bytes"] or 0)
     index_bytes = float(row["index_bytes"] or 0)
+    mode = postgres_storage_mode(settings.database_url)
     return {
         "database_used_mb": bytes_to_mb(total_bytes),
         "database_data_mb": bytes_to_mb(max(0.0, total_bytes - index_bytes)),
         "database_index_mb": bytes_to_mb(index_bytes),
         "database_storage_limit_mb": None,
         "database_free_mb": None,
-        "cluster_tier_type": postgres_storage_mode(settings.database_url),
+        "cluster_tier_type": mode,
+        "storage_mode": mode,
     }
 
 

@@ -14,32 +14,53 @@ import pytest
 import typer
 
 from cli.indexes_cmd import indexes_list, indexes_reset
+from server.core.search_index_plan import SearchIndexSnapshot
 
 
 class TestIndexesCmdBackendGuardShould:
-    """Scenario: Atlas index commands are Mongo-only."""
+    """Scenario: indexes list works on Postgres catalog; reset stays Atlas-only."""
 
-    def test_given_postgres_backend_when_indexes_list_then_exits_without_atlas(
+    def test_given_postgres_backend_when_indexes_list_then_lists_catalog(
         self,
     ) -> None:
         """
-        Scenario: Postgres stacks do not open Atlas for index listing.
-        Slice: 43 — Supabase/Postgres operator parity
+        Scenario: Postgres stacks list HNSW/GIN presence without Atlas I/O.
+        Slice: slice-36-postgres-preflight-stats
 
-        Given STORAGE_BACKEND=postgres,
+        Given STORAGE_BACKEND=postgres and a catalog snapshot,
         When indexes list runs,
-        Then it exits as not applicable and never lists Atlas indexes.
+        Then it does not call Atlas list APIs.
         """
-        ### Given / When / Then
+        ### Given / When
+        required = frozenset(
+            {
+                "chunks_embedding_384_hnsw",
+                "chunks_embedding_1024_hnsw",
+                "chunks_text_search_gin",
+            }
+        )
+        ready = SearchIndexSnapshot(
+            chunks_ready=required,
+            chunks_building=frozenset(),
+            cluster_total=3,
+            cluster_limit=3,
+            unknown_count=0,
+        )
         with (
             patch("cli.indexes_cmd.settings.storage_backend", "postgres"),
             patch("cli.indexes_cmd.list_cluster_search_indexes") as list_indexes,
-            pytest.raises(typer.Exit) as exited,
+            patch(
+                "cli.indexes_cmd.postgres_vector_extension_present",
+                return_value=True,
+            ),
+            patch(
+                "cli.indexes_cmd.collect_postgres_index_snapshot",
+                return_value=ready,
+            ),
         ):
             indexes_list()
 
         ### Then
-        assert exited.value.exit_code == 0
         list_indexes.assert_not_called()
 
     def test_given_postgres_backend_when_indexes_reset_then_exits_without_atlas(
@@ -47,11 +68,11 @@ class TestIndexesCmdBackendGuardShould:
     ) -> None:
         """
         Scenario: Postgres stacks do not open Atlas for index reset.
-        Slice: 43 — Supabase/Postgres operator parity
+        Slice: slice-36-postgres-preflight-stats
 
         Given STORAGE_BACKEND=postgres,
         When indexes reset runs,
-        Then it exits as not applicable and never mutates Atlas indexes.
+        Then it exits as Atlas-only and never mutates Atlas indexes.
         """
         ### Given / When / Then
         with (

@@ -52,6 +52,15 @@ Both indexes can coexist on the same `chunks` collection — the server selects 
 
 **Symptom**: CLI or API returns **422** on submit, or experiment status is `failed` immediately with `error_message` mentioning search indexes. Server logs show `search index preflight failed`.
 
+Preflight is backend-aware — jump to the section for your `STORAGE_BACKEND`:
+
+| Backend | What preflight checks | Section |
+|---|---|---|
+| `mongodb` | Atlas Search indexes on `chunks` + cluster quota | below |
+| `postgres` | `vector` extension + HNSW/GIN indexes from `schema.sql` | [Postgres index preflight](#-postgres-index-preflight-failed) |
+
+### MongoDB / Atlas
+
 **Cause**: Before any run starts, the server checks that your YAML's required Atlas Search indexes exist on `chunks` and that the cluster has free quota to create any missing ones. Failure happens when:
 
 - Required indexes are **missing** on `chunks` (common on M0 — manual creation required)
@@ -97,6 +106,39 @@ rag-params-finder indexes reset
 If `indexes list` shows 3/3 with unknown indexes, run `indexes reset` before submitting again.
 
 On **M10+**, the server attempts programmatic creation when slots are available; restart uvicorn and check logs if creation fails.
+
+---
+
+## 🚫 Postgres index preflight failed
+
+**Symptom**: with `STORAGE_BACKEND=postgres`, submit returns **422** naming missing `chunks_*` indexes or the `vector` extension.
+
+**Cause**: Postgres has no Atlas-style quota or Admin API — indexes are declared in [`server/db/schema.sql`](../../server/db/schema.sql) and applied when the connection pool first opens. Preflight only **introspects** the catalog, so a 422 here means bootstrap did not complete (wrong database, insufficient privileges, or a partially applied schema).
+
+**Required catalog objects**:
+
+| Object | Kind |
+|---|---|
+| `vector` | extension |
+| `chunks_embedding_384_hnsw` | HNSW index (local / 384-dim models) |
+| `chunks_embedding_1024_hnsw` | HNSW index (Voyage / SIE 1024-dim models) |
+| `chunks_text_search_gin` | GIN index on generated `text_search` column (sparse / hybrid) |
+
+**Fix**:
+
+```bash
+# 1. See which objects are PRESENT vs MISSING
+rag-params-finder indexes list
+
+# 2. Re-run schema bootstrap by restarting the server (idempotent DDL)
+#    Docker:  ./start-services.sh --postgres
+#    Host:    uvicorn server.main:app --reload --port 8001
+
+# 3. Confirm the backend and mode the server actually resolved
+curl -sS http://127.0.0.1:8001/healthz | python3 -m json.tool
+```
+
+`indexes reset` is **Atlas-only** — it does not apply to Postgres. If objects are still missing after a restart, check that `DATABASE_URL` points at the database you expect and that the role may `CREATE EXTENSION` (see [Postgres Setup](postgres-setup.md)).
 
 ---
 

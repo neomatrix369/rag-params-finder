@@ -411,6 +411,12 @@ Create a `.env` file in the project root to configure server behavior:
 # YAML database_provider (mongodb|supabase) is metadata — this env selects the adapter.
 STORAGE_BACKEND=mongodb
 
+# /healthz and db-stats expose storage_mode (four compounds — matches planned
+# start-services flags in Slice 37; flags themselves land there):
+#   mongodb-local | mongodb-cloud | postgres-local | postgres-cloud
+# Derived from STORAGE_BACKEND + URI host (Atlas *.mongodb.net vs local;
+# Supabase *.supabase.* vs local Docker). Not the same as YAML database_provider.
+
 # MongoDB Atlas (REQUIRED when STORAGE_BACKEND=mongodb)
 MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder
 

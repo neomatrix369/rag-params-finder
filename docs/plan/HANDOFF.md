@@ -1,44 +1,32 @@
-# Handoff — 2026-07-25
+# Handoff — 2026-07-26
 
 ## Where We Are
 
-**41A** ✅ COMPLETE. **42** ✅ COMPLETE (multi-stage Docker builds, BuildKit cache mounts, nginx:alpine, CI docker-build job — merged PR #107). **41B** 📦 PARKED — full spec added capturing parallelism analysis, categorical axes design, study persistence, random search strategy, and dashboard Bayesian card; parked until production sweep evidence exists. Core implementation focus remains the Supabase migration chain (32–38, 📋 PLANNED, next Must block).
+**35** ✅ COMPLETE (sparse/hybrid + copy hygiene, PR #112). **43** ✅ COMPLETE (supabase config smoke, PR #115). **36** 🔨 IN PROGRESS — core implementation landed on `slice/36-postgres-preflight-stats`; live dashboard smoke + coverage/mutation gate remain. Parallel gate track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨 (implementation largely landed; after-checks remain).
 
-## What's Done
+## What's Done (recent)
 
-- Slice 42 — Docker Build Optimisation — ✅ COMPLETE (multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime ~62 MB; CI docker-build job non-blocking; merged PR #107)
-- Slice 41A — Bayesian Search: Simple Functional — ✅ COMPLETE (all 14 ACs verified; trial_log, CLI Bayesian summary, 10 new tests; 217 tests green)
-- Slice 41B — Bayesian Search: Advanced — 📦 PARKED
-  - Full spec in `docs/plan/slices/SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`
-  - TRAIL.md, PROGRESS.md, DECISIONS.md (#73, #74) updated
-  - Open questions A1, A2, A4, D3, D7 documented; A3 decided; D6 not a gate — owner must resolve remaining questions before slice opens
-- Slice 39 — Demo-ready dashboard polish — ✅ COMPLETE
+- Slice 43 — Supabase example-config verification — ✅ COMPLETE (`gate-evidence/slice-43.json`)
+- Slice 35 — Postgres sparse + hybrid RRF — ✅ COMPLETE (`gate-evidence/slice-35.json`)
+- Slice 34 — Postgres dense retrieval — ✅ COMPLETE
+- Storage refactor — Mongo/Postgres boundaries + contract suite (PR #113)
+- Canonical `STORAGE_BACKEND=mongodb` (legacy `mongo` alias)
 
 ## What's Next
 
-- **Slice 32** — Storage Backend Protocol (next Must, blocks 33–38 Supabase chain)
-- **Slice 41B** — stays PARKED; reopen after production Bayesian sweep data exists
+- **Slice 36** — close out (`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`)
+  - Landed: four-value `storage_mode` on `/healthz` + db-stats; Postgres catalog preflight (422); backend-aware `indexes list`; user/contributor/agent docs synced
+  - Remaining After-Checks: live dashboard stats smoke on Postgres, branch-coverage/mutation gate, commit
+  - Do **not** steal 37 (four-flag parse, config↔server 422) or 38 (quality matrix)
+- Then **37** → **38** → **22**
 
 ## Blockers / Open Questions
 
-- 41B open questions (must resolve before slice opens):
-  - A1: SQLite vs MongoDB for study persistence backend
-  - A2: Categorical axis TPE quality validation across ≥3 real datasets
-  - ~~A3~~: **Decided** — `bayesian.parallelism` is a separate field, capped at 4. Not a gate.
-  - A4: Owner-set N for default promotion evaluation (suggested baseline: 20 sweeps). **Time-bound**: if N not reached by 2026-10-01, force product decision.
-  - D3: `sweep_summary` field for Bayesian — whether to add `search_strategy` and `bayesian_config` keys
-  - D6: `max_score` sort key — **not a gate for 41B**; independent product decision; can resolve anytime
-  - D7: Random search `n_samples` config design
+- Gap 8 health-check: add Specification coverage gates to `SLICE-44`? (user pending)
+- 32C/32B after-checks still open on the Protocol gate track (do not block 36 execution)
 
 ## Context for Next Session
 
-- 41B spec is the authoritative architecture record for Bayesian advanced features; do not re-derive from scratch when this slice opens
-- Gate evidence file: `docs/plan/gate-evidence/slice-41A.json` — PASSED
-- Slice 42 `continue-on-error: true` removal criteria: after 5 consecutive CI successes, promote to blocking and log in PROGRESS.md
-
-## Retrospective
-
-Scenario: Brownfield + Growing Requirement (Flow D) continuation | Session: 2026-07-22–25 | Steps: combined
-- Slice 41B spec was provided in full; routing + modification into PARKED slice were the key steps
-- Slice 42 review caught real gaps (nginx SPA fallback, spike ambiguity, npm mount) that would have caused debug time — run `/nw-review` on every slice spec before branching
-- Do differently next session: after review fixes, push PR updates immediately with `/update-pr`
+- Spec SSOT: `docs/plan/slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md` (baseline table 2026-07-26)
+- Branch when ready: `slice/36-postgres-preflight-stats`
+- Reviewer: `nw-solution-architect-reviewer` before branching to 🔨

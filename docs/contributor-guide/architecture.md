@@ -111,8 +111,9 @@ rag-params-finder/
 │   │   ├── sie_guard.py     # SIE preflight — SIE_ENABLED + gateway reachability
 │   │   ├── aim_logger.py    # Aim experiment run logging (no-op on init failure)
 │   │   ├── executors.py     # SWEEP_EXECUTOR + HEAVY_READ_EXECUTOR (isolate long work from API pool)
-│   │   ├── search_index_plan.py  # required indexes from config; capacity assessment (pure)
-│   │   ├── search_index_guard.py # cluster snapshot + ensure retry; SearchIndexMismatchError
+│   │   ├── search_index_plan.py  # required Atlas indexes + Postgres catalog objects (pure)
+│   │   ├── search_index_guard.py # Atlas snapshot + ensure retry | Postgres catalog introspection; SearchIndexMismatchError
+│   │   ├── health_check.py  # /healthz storage ping; resolve_storage_mode() four-value compound
 │   │   ├── startup_reconciliation.py  # fix stale running experiments on boot
 │   │   ├── atlas_storage.py # Atlas Admin API quota + dbStats footprint
 │   │   ├── pdf_parser.py    # pypdf text extraction
@@ -124,7 +125,6 @@ rag-params-finder/
 │   │   ├── local_reranker.py  # CrossEncoder reranking (lazy-load, cached)
 │   │   ├── retriever_mongo.py  # Atlas Vector Search (dense/sparse/hybrid) — Mongo-only
 │   │   ├── retriever_postgres.py  # pgvector dense + tsvector sparse + RRF hybrid
-│   │   ├── retriever_postgres.py # pgvector dense search (sparse/hybrid → Slice 35)
 │   │   ├── results_analyzer.py  # aggregates scores, min-max normalization
 │   │   └── chunkers/
 │   │       ├── recursive.py # LangChain RecursiveCharacterTextSplitter
@@ -144,13 +144,13 @@ rag-params-finder/
 │       ├── mongo_stats.py       # Stats / explore / vector-db helpers (delegated by mongo_store)
 │       ├── store_factory.py     # get_storage_backend() / get_retriever_backend()
 │       ├── atlas.py             # MongoDB connection singleton (TLS for cloud URIs only)
-│       ├── mongodb_uri.py       # is_atlas_uri(), parse_atlas_cluster_name() — cloud vs local detection
+│       ├── mongodb_uri.py       # is_atlas_uri(), parse_atlas_cluster_name(), mongodb_storage_mode()
 │       ├── indexes.py           # collection + search index creation; bootstrap_indexes() on local URI
 │       ├── postgres.py          # pgvector pool + schema bootstrap; hnsw.iterative_scan per connection
 │       ├── postgres_store.py    # Postgres adapters for both ports (CRUD / dense search)
 │       ├── postgres_stats.py    # Stats / explore helpers (delegated by postgres_store)
 │       ├── postgres_docs.py     # document ↔ row mapping; vector column per embedding width
-│       ├── postgres_uri.py      # Supabase vs local detection; TLS defaults
+│       ├── postgres_uri.py      # Supabase vs local detection; TLS defaults; postgres_storage_mode()
 │       ├── stats_common.py      # backend-agnostic stats maths shared by both adapters
 │       └── schema.sql           # Postgres DDL — tables, FK cascade, HNSW indexes (idempotent)
 ├── cli/
@@ -160,7 +160,8 @@ rag-params-finder/
 │   └── api_client.py        # HTTP client to server
 ├── tests/
 │   ├── test_search_index_plan.py   # index requirement + capacity scenarios
-│   └── test_search_index_guard.py  # preflight guard (mocked I/O)
+│   ├── test_search_index_guard.py  # preflight guard, both backends (mocked I/O)
+│   └── test_storage_mode.py        # four-value storage_mode classification
 └── frontend/src/
     ├── App.tsx              # root component (screen routing)
     ├── components/
@@ -318,7 +319,9 @@ See `docs/adr/` for Architecture Decision Records:
 | Timezone-aware UTC timestamps | PyMongo `tz_aware=True`; all writes use `datetime.now(timezone.utc)` so JSON includes `Z` and browser elapsed/duration math is correct |
 | `started_at` on first run | Duration and ETA exclude queue time between submission and first pipeline phase |
 | Search index preflight | `required_search_indexes(config)` + cluster snapshot; fail before runs if missing/quota exhausted; HTTP 422 on submit |
-| Atlas index CLI | `indexes list` / `indexes reset` for M0 3-index cluster-wide quota troubleshooting |
+| Postgres index preflight | Same 422 contract via catalog introspection (`pg_extension`, `pg_indexes`) — no Atlas Admin API, no quota/reconcile step; indexes come from `schema.sql` at pool bootstrap |
+| Four-value `storage_mode` | `resolve_storage_mode()` composes `STORAGE_BACKEND` × URI host → `mongodb-local` \| `mongodb-cloud` \| `postgres-local` \| `postgres-cloud`; surfaced on `/healthz`, `/health`, and db-stats |
+| Index CLI | `indexes list` is backend-aware (Atlas quota view or Postgres catalog view); `indexes reset` stays Atlas-only — Postgres remediation is a schema-bootstrap restart |
 | Option A scoped logging | `[rag-params-finder] [Scope] operation — details` in server (`scope_log.py`) and dashboard dev console (`devLog.ts`) |
 | Dedicated thread pools (`executors.py`) | Sweeps and heavy Mongo aggregations no longer compete with lightweight `GET /experiments` on the default executor |
 | Batched vector-db-stats queries | Three aggregation pipelines replace per-experiment N+1 round-trips on the experiments list |
