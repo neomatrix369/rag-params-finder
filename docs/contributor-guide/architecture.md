@@ -239,7 +239,7 @@ Two deployment modes share identical query syntax (`$vectorSearch`, `$search`):
 | **Atlas cloud** | `mongodb+srv://...` | Manual in Atlas UI on M0/M2/M5; server preflights on submit |
 | **Atlas Local (Docker)** | `mongodb://localhost:27017/...?directConnection=true` | `bootstrap_indexes()` on server boot — no UI steps |
 
-Detection: `server/db/mongodb_uri.py` (`is_atlas_uri`). TLS enabled only for cloud URIs (`server/db/atlas.py`). Docker: `./start-services.sh --local` or `RAG_LOCAL_ATLAS=1`. See [MongoDB Setup](../user-guide/mongodb-setup.md).
+Detection: `server/db/mongodb_uri.py` (`is_atlas_uri`). TLS enabled only for cloud URIs (`server/db/atlas.py`). Docker: `./start-services.sh --mongodb-local` or `RAG_MONGODB_LOCAL=1`. See [MongoDB Setup](../user-guide/mongodb-setup.md).
 
 ---
 
@@ -248,7 +248,7 @@ Detection: `server/db/mongodb_uri.py` (`is_atlas_uri`). TLS enabled only for clo
 `STORAGE_BACKEND=postgres` selects the Postgres adapters (`postgres_store.py`,
 `retriever_postgres.py`). Default remains `STORAGE_BACKEND=mongodb` (legacy
 alias `mongo` normalizes to `mongodb`). **One backend**, two deployments: local Docker
-(`./start-services.sh --postgres`) or **Supabase-hosted Postgres** (same adapter;
+(`./start-services.sh --postgres-local`) or **Supabase-hosted Postgres** (same adapter;
 cloud `DATABASE_URL`). Example YAMLs live under `configs/supabase/` — that folder
 name is not a second storage backend. Schema:
 [`server/db/schema.sql`](../../server/db/schema.sql).
@@ -336,7 +336,7 @@ See `docs/adr/` for Architecture Decision Records:
 |------|---------|-------|
 | Manual (default dev) | `uvicorn` + `npm run dev` | Two terminals; hot reload |
 | Docker (prod profile) | `./start-services.sh` | Server + dashboard containers; Atlas cloud from `.env` |
-| Docker + Atlas Local | `./start-services.sh --local` | Adds `mongodb-atlas-local` container; auto-provisions search indexes |
+| Docker + Atlas Local | `./start-services.sh --mongodb-local` | Adds `mongodb-atlas-local` container; auto-provisions search indexes |
 | Docker (dev profile) | `docker compose --profile dev up` | Bind mounts + HMR |
 
 Atlas connection string and API keys live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md) and [MongoDB Setup](../user-guide/mongodb-setup.md).

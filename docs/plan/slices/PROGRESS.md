@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-26 (Slice 36 ✅ COMPLETE; next Must = **37**)
-**Current**: Active migration: **37** 📋 local/cloud parity + config gate → **38**. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **36** ✅ preflight/stats/storage_mode. **43** ✅. Deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-26 (Slice 37 ✅ COMPLETE)
+**Current**: Active migration: **38** 📋 cutover + ADR-004 (next Must). **37** ✅ local/cloud parity. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **36** ✅. **43** ✅. Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -40,7 +40,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); caller-supplied corpus (`corpus: list[str]`); Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`SLICE-21-SIE-SKATEBOARD.md`](SLICE-21-SIE-SKATEBOARD.md) |
 | 24 — Port standardisation | ✅ COMPLETE | ~1 h | Unique static ports: frontend 5173→5374 (avoids Vite default), SIE 8080→8720 (avoids Jenkins/Tomcat/etc.); backend 8001 unchanged — spec: [`SLICE-24-PORT-STANDARDISATION.md`](SLICE-24-PORT-STANDARDISATION.md) |
 | 25 — Atlas Local Dev Mode | ✅ COMPLETE | ~1 h | `mongodb-atlas-local` Docker image as opt-in local backend; `local-atlas` compose profile; auto-provision all search indexes on boot for local URI; eliminates M0 512 MB ceiling for local dev — spec: [`SLICE-25-ATLAS-LOCAL.md`](SLICE-25-ATLAS-LOCAL.md) |
-| 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | `./start-services.sh --local`; `./start-services.sh mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](SLICE-25B-ATLAS-SWITCHING.md) |
+| 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | Shipped as `--local`; now `--mongodb-local`; `mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](SLICE-25B-ATLAS-SWITCHING.md) |
 | 22 — SIE Scooter | 📋 PLANNED | ~3 h | SIE reranking + SPLADE sparse + `GET /api/v1/best-config` — Must — **after Slice 38** — spec: [`SLICE-22-SIE-SCOOTER.md`](SLICE-22-SIE-SCOOTER.md) |
 | 23 — SIE Bicycle | 📋 PLANNED | ~3 h | Ollama + Tier 2–3 retrieval + Evidently AI (Could, post-hackathon) — spec: [`SLICE-23-SIE-BICYCLE.md`](SLICE-23-SIE-BICYCLE.md) |
 | 26 — Local MongoDB smooth-path docs | 📦 DEFERRED | ~1 h | Re-scope after Postgres cutover — [`SLICE-26-LOCAL-MONGODB-DOCS.md`](SLICE-26-LOCAL-MONGODB-DOCS.md) |
@@ -49,11 +49,11 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 32 — Storage Backend Protocol | 🔨 IN PROGRESS | ~3–4 h | Storage + Retriever ports; Mongo adapter — [`SLICE-32-STORAGE-BACKEND-PROTOCOL.md`](SLICE-32-STORAGE-BACKEND-PROTOCOL.md) · [PR #110](https://github.com/neomatrix369/rag-params-finder/pull/110) |
 | 32C — Storage Protocol Review Remediation | 📋 PLANNED | ~2–3 h | Craft split, port schemas, index deferral, checklist hygiene — [`SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md`](SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md) |
 | 32B — Storage Protocol Gate Closure | 📋 PLANNED | ~1–2 h | Coverage, mutation/waiver, full gates, nw-review, COMPLETE — [`SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md`](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) |
-| 33 — Postgres schema + CRUD | 🔨 IN PROGRESS | ~4–6 h | Pool, schema, cascade, local Path A (`--postgres` → rename in 37), 19 live tests, CI job — hosted DX deferred to 37 — [`SLICE-33-POSTGRES-SCHEMA-CRUD.md`](SLICE-33-POSTGRES-SCHEMA-CRUD.md) |
+| 33 — Postgres schema + CRUD | 🔨 IN PROGRESS | ~4–6 h | Pool, schema, cascade, local Path A (shipped `--postgres` → `--postgres-local` in 37), 19 live tests, CI job — hosted DX deferred to 37 — [`SLICE-33-POSTGRES-SCHEMA-CRUD.md`](SLICE-33-POSTGRES-SCHEMA-CRUD.md) |
 | 34 — Postgres dense retrieval | ✅ COMPLETE | ~3–4 h | pgvector dense + embedding_model filter; Atlas-scale scores; HNSW iterative_scan; mode/hosted DX handed to 36–37 — [`SLICE-34-POSTGRES-DENSE-RETRIEVAL.md`](SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) |
 | 35 — Postgres sparse + hybrid | ✅ COMPLETE | ~4–5 h | tsvector + RRF + Supabase-mode copy hygiene; equivalence CONDITIONAL → 38 — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
 | 36 — Preflight + stats + storage_mode | ✅ COMPLETE | ~3–4 h | Catalog preflight 422 + four-value `storage_mode`; live smoke `postgres-local`; mutation waived #101 — [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md) |
-| 37 — Local/cloud parity + low-friction switch | 📋 PLANNED | ~3–4 h | Flags + ensure_env + 422 + Path B; **absorbs 36 leftovers** (compose spelling, supabase label/`vector_db_id`, axes docs) — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) |
+| 37 — Local/cloud parity + low-friction switch | ✅ COMPLETE | ~3–4 h | Four-flag grid + config↔server 422 + supabase normalize + live `postgres-local`/`postgres-cloud` smoke; `SUPABASE_URI` alias; removed `--local`/`--postgres` flags — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) · [`gate-evidence/slice-37.json`](../gate-evidence/slice-37.json) |
 | 38 — Cutover + ADR-004 | 📋 PLANNED | ~3–4 h | Side-by-side quality, ADR-004, default `postgres-cloud` — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) |
 | 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
 | 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
@@ -87,7 +87,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 34 | Must | ✅ COMPLETE | 33 | Dense pgvector |
 | 35 | Must | ✅ COMPLETE | 34 | Sparse + hybrid + copy hygiene |
 | 36 | Must | ✅ COMPLETE | 35 | Preflight + db-stats + storage mode (replaces 27) |
-| 37 | Must | 📋 PLANNED | 36 | Supabase local/hosted parity |
+| 37 | Must | ✅ COMPLETE | 36 | Supabase local/hosted parity |
 | 38 | Must | 📋 PLANNED | 37 | ADR-004 + quality comparison artifact |
 | 28 | Must | 📋 PLANNED | — | External — @cschanhniem / #49 |
 | 22 | Must | 📋 PLANNED | 21, 32, 38 (soft) | SIE Scooter — hard dep 32 Protocol; soft 38 cutover |
@@ -690,6 +690,14 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-26 | 37 | sync-docs (post nw-review): CLAUDE/development shellcheck scope + unit counts 317/16; DECISIONS #109 generic Unknown option retained, #110 start-services shellcheck gate; gate-evidence follow_ups for resolver isolation — evidence **VERIFIED** | Post-review quality-gate + quantitative claims were stale vs measured truth |
+| 2026-07-26 | 37 | sync-docs: remove `--local`/`-l`/`--postgres`/`-p` from current operator/agent surfaces; DECISIONS #108; PRD operator contract + `.env.example` + skip hints use canonical flags only — evidence **IMPLEMENTED** (unit reject) + **VERIFIED** (resolver smoke exit 2) | Short flags now fail as unknown options; leaving them in setup/checklist/test skip copy would mislead |
+| 2026-07-26 | 37 | `SUPABASE_URI` optional alias for `DATABASE_URL` + live hosted Supabase smoke PASSED (`49c23d41-…`, `storage_mode=postgres-cloud`) — DECISIONS #107 | User requested product-named URI + real Path B verification; reverses earlier Won't on URI aliases (still no `POSTGRES_URI`) |
+| 2026-07-26 | 37 | Slice 37 → ✅ COMPLETE — Docker VM DiskFull cleared (~28GB prune); matching one-run smoke `1903dc76-…` complete with `storage_mode=postgres-local`; mismatch 422 live; hosted Path B initially documented skip (later upgraded — see #107); `gate-evidence/slice-37.json` | Verify-slice was BLOCKED only on volume/VM full, not product defect; After-Checks closed |
+| 2026-07-26 | 37 | sync-docs: operator + agent + release surfaces aligned to four-flag vocabulary, supabase→postgres normalize, config↔server 422, Engine × Location — evidence **IMPLEMENTED** (unit); VERIFIED withheld pending live four-mode / gate-evidence | `/sync-docs` after Must+Should code; stale `--local`/`--postgres` / supabase-label claims would mislead operators |
+| 2026-07-26 | 37 | Captured pending vocabulary into SLICE-37: product-wording map (Atlas cloud/Local, Supabase-hosted, local pgvector), `configuration.md` Engine × Location subsection, Should-rename `collect_search_index_snapshot` | Informational Qs from post-36 review must not stay only in chat; operator docs must never treat Atlas as cloud-only without Local qualifier |
+| 2026-07-26 | 37 | Path A Resume — TRAIL/PROGRESS/SLICE-37 → 🔨; platform review CONDITIONALLY APPROVED after 422/post-start templates | User asked start Slice 37 after enhanced-flow-planner + nw review |
+| 2026-07-26 | 37 | Drift sync vs main (36/43): foundations table; bare `.env` STORAGE_BACKEND Must; Won't URI aliases + example-cloud.yaml; Should CLI/pause/boot tests; distinct config 422 vs catalog 422; execution order 1–6 | enhanced-flow-planner continuation before execute; Gate Status no longer “wait for 36 merge” |
 | 2026-07-26 | 37 | Absorbed Slice 36 close leftovers into SLICE-37 §Absorbed (flags, compose spelling, supabase label/`vector_db_id`, axes docs); configs folder rename non-blocker | Keeps Slice 36 COMPLETE without open vocabulary After-Checks; operator DX slice already owned the flag grid |
 | 2026-07-26 | 36 | Slice 36 → ✅ COMPLETE — live `/healthz` `storage_mode=postgres-local`; vector-db-stats four-value tokens; mutation waived DECISIONS #101; `gate-evidence/slice-36.json` | Runtime VERIFIED after compose rebuild; YAML `database_provider: supabase` and compose `local-postgres` remain Slice 37 vocabulary leftovers |
 | 2026-07-26 | 36 | sync-docs: `/healthz` `storage_mode` + Postgres preflight documented as IMPLEMENTED across cli-reference, troubleshooting, postgres-setup, architecture, development, local-environment, CLAUDE.md, AGENTS.md, CHANGELOG | Public 422 contract and health body changed, so user + agent surfaces had to move in the same slice; VERIFIED is withheld until the live dashboard smoke on Postgres runs |

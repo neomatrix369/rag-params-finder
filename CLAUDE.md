@@ -51,10 +51,12 @@ npm run build
 
 ```bash
 ./start-services.sh                    # server + dashboard (Atlas cloud in .env)
-./start-services.sh --local            # server + dashboard + MongoDB Atlas Local (no cloud account)
-./start-services.sh --postgres         # server + dashboard + local pgvector (STORAGE_BACKEND=postgres)
-RAG_LOCAL_ATLAS=1 ./start-services.sh  # same as --local via env var
+./start-services.sh --mongodb-local    # server + dashboard + MongoDB Atlas Local (no cloud account)
+./start-services.sh --postgres-local   # server + dashboard + local pgvector (STORAGE_BACKEND=postgres)
+./start-services.sh --postgres-cloud   # hosted Supabase (DATABASE_URL or SUPABASE_URI; no MONGODB_URI)
+RAG_MONGODB_LOCAL=1 ./start-services.sh  # same as --mongodb-local via env var
 ./start-services.sh mongodb [start|stop|reset|status]  # manage local Atlas container standalone
+./start-services.sh postgres [start|stop|reset|status]  # manage local pgvector container standalone
 ./scripts/health-check.sh
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build  # dev HMR
 ```
@@ -66,6 +68,7 @@ Backend switching — only the start command changes:
 | Atlas cloud | `MONGODB_URI=mongodb+srv://...` (from .env) |
 | Atlas Local | `MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true` |
 | Local pgvector | `STORAGE_BACKEND=postgres` + `DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder` |
+| Hosted Supabase | `STORAGE_BACKEND=postgres` + `DATABASE_URL` (or optional `SUPABASE_URI` alias) — Session-mode pooler |
 
 Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/SLICE-14-DOCKER-COMPOSE.md`, `docs/user-guide/mongodb-setup.md`, and `docs/user-guide/postgres-setup.md`.
 
@@ -110,7 +113,9 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
 | `server/core/search_index_plan.py` | Pure logic: required Atlas indexes from config + capacity assessment; required Postgres catalog objects (`vector` extension, HNSW/GIN names) |
 | `server/core/search_index_guard.py` | Backend-aware preflight — Atlas snapshot + ensure_indexes retry, or Postgres catalog introspection; raises on mismatch (HTTP 422) |
-| `server/core/health_check.py` | `/healthz` storage ping + `resolve_storage_mode()` four-value compound |
+| `server/core/health_check.py` | `/healthz` storage ping + `resolve_storage_mode()` four-value compound; Postgres error remediation substring |
+| `server/core/config_backend_guard.py` | Config↔server engine mismatch 422 (before index/SIE preflight) |
+| `scripts/lib/storage_mode.sh` | Four-flag `(db_type, location)` resolver for `start-services.sh` |
 | `server/core/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
 | `server/db/mongodb_uri.py` | Cloud vs local URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`); `mongodb_storage_mode()` → `mongodb-local` \| `mongodb-cloud` |
 | `server/core/atlas_storage.py` | Atlas Admin API cluster quota + tier specs (`resolve_tier_specs`); shared-tier storage fallbacks |
@@ -260,14 +265,16 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 **Repo lint** (2026-05-27):
 - `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
 
+**Repo lint** shellcheck scope: `start-services.sh` + `scripts/**/*.sh` (pre-commit `files: ^(start-services\.sh|scripts/.*\.sh)$`).
+
 **Backend** (2026-07-26 — unit tier):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **282** tests; scoped coverage ≥80%; no `MONGODB_URI` required
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **317** tests; scoped coverage ≥80%; no `MONGODB_URI` required
 
 **Frontend** (2026-07-26):
 - `npm run lint` → 0 errors (eslint + security plugin)
-- `npm run test` → **15** tests (3 files, Vitest + React Testing Library)
+- `npm run test` → **16** tests (Vitest + React Testing Library)
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities

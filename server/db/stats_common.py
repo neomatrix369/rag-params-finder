@@ -102,8 +102,41 @@ def assemble_experiment_db_stats(
     }
 
 
-def vector_db_group_key(database_provider: str, cluster_host: str | None) -> str:
-    return f"{database_provider}:{cluster_host or 'unknown'}"
+def normalize_stats_database_provider(value: str | None, *, fallback: str) -> str:
+    """Canonical engine label for stats (never emit ``supabase``)."""
+    raw = (value or fallback).strip().lower()
+    if raw in {"supabase", "postgres"}:
+        return "postgres"
+    if raw in {"mongo", "mongodb"}:
+        return "mongodb"
+    return fallback
+
+
+def resolve_experiment_storage_mode(
+    experiment: dict | None,
+    *,
+    fallback_mode: str,
+) -> str:
+    """Prefer persisted experiment storage_mode; else live/runtime fallback."""
+    if not experiment:
+        return fallback_mode
+    top = experiment.get("storage_mode")
+    if isinstance(top, str) and top.strip():
+        return top.strip()
+    sweep = experiment.get("sweep_summary") or {}
+    nested = sweep.get("storage_mode")
+    if isinstance(nested, str) and nested.strip():
+        return nested.strip()
+    return fallback_mode
+
+
+def vector_db_group_key(storage_mode: str, cluster_host: str | None) -> str:
+    """Group key for vector-db-stats — ``storage_mode:<host>`` (Slice 37).
+
+    Prefer the four-value ``storage_mode`` over ``database_provider`` so product
+    labels (``supabase``) never appear in ``vector_db_id``.
+    """
+    return f"{storage_mode}:{cluster_host or 'unknown'}"
 
 
 def new_vector_db_group(group_key: str, stats: dict) -> dict:

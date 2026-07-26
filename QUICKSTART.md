@@ -41,7 +41,7 @@ installation is required for this path.
 git clone https://github.com/neomatrix369/rag-params-finder.git
 cd rag-params-finder
 cp .env.example .env
-./start-services.sh --local
+./start-services.sh --mongodb-local
 ```
 
 For this path, `.env` only needs to exist; no values need to be edited. Then open `http://localhost:5374`. The Docker stack starts MongoDB Atlas Local, the API server, and the dashboard.
@@ -130,14 +130,14 @@ cp .env.example .env
 The `.env.example` file contains the available settings and safe placeholders. The `.env` file is the local, uncommitted configuration read by the server and startup scripts. Edit only the values required by the path you selected:
 
 - Atlas Cloud: set `MONGODB_URI` to the Atlas connection string.
-- Atlas Local: leave the placeholders unchanged; `--local` supplies the
+- Atlas Local: leave the placeholders unchanged; `--mongodb-local` supplies the
   container connection internally.
 - Voyage: add `VOYAGE_API_KEY` when using a Voyage configuration.
 - SIE: enable it and set `SIE_ENDPOINT` when using an SIE configuration.
 
 Keep credentials in `.env`; never put them in committed YAML configs.
 
-> **Naming note:** `configs/mongodb/example-local.yaml` uses **local embedding models** (sentence-transformers), not local MongoDB. Any MongoDB example works with either Atlas backend — only `MONGODB_URI` (or `./start-services.sh --local`) picks the database. Matching Supabase/pgvector examples live under `configs/supabase/`.
+> **Naming note:** `configs/mongodb/example-local.yaml` uses **local embedding models** (sentence-transformers), not local MongoDB. Any MongoDB example works with either Atlas backend — only `MONGODB_URI` (or `./start-services.sh --mongodb-local`) picks the database. Matching Supabase/pgvector examples live under `configs/supabase/`.
 
 ---
 </details>
@@ -146,10 +146,10 @@ Keep credentials in `.env`; never put them in committed YAML configs.
 
 | Service | URL / port | Required? | Started by |
 |---------|------------|-----------|------------|
-| FastAPI server | `http://localhost:8001` | Yes | `./start-services.sh --local` / `--postgres` / default / `uvicorn` |
+| FastAPI server | `http://localhost:8001` | Yes | `./start-services.sh --mongodb-local` / `--postgres-local` / default / `uvicorn` |
 | Dashboard | `http://localhost:5374` | Recommended | same as server row, or `npm run dev` |
-| MongoDB | `localhost:27017` (local) or Atlas cloud | Mongo path | `./start-services.sh --local`, `mongodb start`, or Atlas |
-| Postgres/pgvector | `localhost:5433` | Postgres path | `./start-services.sh --postgres` |
+| MongoDB | `localhost:27017` (local) or Atlas cloud | Mongo path | `./start-services.sh --mongodb-local`, `mongodb start`, or Atlas |
+| Postgres/pgvector | `localhost:5433` | Postgres path | `./start-services.sh --postgres-local` |
 | SIE gateway | `http://localhost:8720` | SIE sweeps only | Manual — **not** in `start-services.sh`; see [sie-setup.md](docs/user-guide/sie-setup.md) |
 
 CLI on the host always uses `SERVER_URL=http://localhost:8001` (default in `.env`).
@@ -173,7 +173,7 @@ cp .env.example .env
 No `.env` values need to be edited for this path.
 
 ```bash
-./start-services.sh --local      # MongoDB + server + dashboard
+./start-services.sh --mongodb-local      # MongoDB + server + dashboard
 ```
 
 For host CLI sweeps after Path A, use the local URI (also printed by the script):
@@ -182,12 +182,12 @@ For host CLI sweeps after Path A, use the local URI (also printed by the script)
 export MONGODB_URI="mongodb://localhost:27017/rag_params_finder?directConnection=true"
 ```
 
-Do **not** run `./start-services.sh` (without `--local`) while `.env` points a `localhost:27017` — the server container cannot reach the host’s `localhost`.
+Do **not** run `./start-services.sh` (without `--mongodb-local`) while `.env` points a `localhost:27017` — the server container cannot reach the host’s `localhost`.
 
 If MongoDB stays unhealthy (`keyfile` / `Unable to acquire security key`), reset stale volumes once after upgrading:
 
 ```bash
-./start-services.sh mongodb reset && ./start-services.sh --local
+./start-services.sh mongodb reset && ./start-services.sh --mongodb-local
 ```
 
 <details><summary>Other paths</summary>
@@ -224,7 +224,7 @@ Prefer a short first prove (16 runs).
 
 ```bash
 cp .env.example .env   # if needed
-./start-services.sh --postgres
+./start-services.sh --postgres-local
 ```
 
 For host CLI after Path D:
@@ -234,6 +234,12 @@ export STORAGE_BACKEND=postgres
 export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
 ```
+
+**Hosted Supabase** (same backend, cloud URI): put Session-mode pooler URI in
+`.env` as `DATABASE_URL` or optional `SUPABASE_URI`, then
+`./start-services.sh --postgres-cloud`. URI comes from the project **Connect**
+button (not Project Settings → Database). Details:
+[postgres-setup.md → Path B](docs/user-guide/postgres-setup.md#path-b--hosted-supabase).
 
 Full setup: [postgres-setup.md](docs/user-guide/postgres-setup.md).
 

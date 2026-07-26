@@ -74,7 +74,7 @@ Replace MongoDB Atlas as the *primary* storage backend with Supabase (PostgreSQL
 | Concern | Mongo | Postgres |
 |---|---|---|
 | Backend switch | `STORAGE_BACKEND=mongodb` (alias: `mongo`) | `STORAGE_BACKEND=postgres` |
-| Local flag | `--mongodb-local` (alias: `--local`) | `--postgres-local` (alias: `--postgres`) |
+| Local flag | `--mongodb-local` | `--postgres-local` |
 | Cloud flag | `--mongodb-cloud` (or bare + `.env`) | `--postgres-cloud` — **must not require `MONGODB_URI`** |
 | Detection | `is_atlas_uri()` | `is_supabase_uri()` |
 | Mode on healthz/stats | `mongodb-local` \| `mongodb-cloud` | `postgres-local` \| `postgres-cloud` |

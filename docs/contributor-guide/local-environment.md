@@ -25,7 +25,7 @@ For offline development without a cloud Atlas account, use Atlas Local via Docke
 → [MongoDB Setup → Path B](../user-guide/mongodb-setup.md#path-b--atlas-local-docker)
 
 ```bash
-./start-services.sh --local          # server + dashboard + mongodb-atlas-local
+./start-services.sh --mongodb-local          # server + dashboard + mongodb-atlas-local
 ./start-services.sh mongodb status     # container health only
 ```
 

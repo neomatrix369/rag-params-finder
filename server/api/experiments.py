@@ -24,8 +24,13 @@ from server.api.experiments_shared import (
 from server.api.experiments_shared import (
     get_vector_db_stats_grouped as fetch_vector_db_stats_grouped,
 )
+from server.core.config_backend_guard import (
+    ConfigBackendMismatchError,
+    validate_config_backend_match,
+)
 from server.core.executors import HEAVY_READ_EXECUTOR, schedule_sweep
 from server.core.experiment_control import is_sweep_in_flight, request_cancel, request_pause
+from server.core.health_check import resolve_storage_mode
 from server.core.orchestrator import resume_sweep, run_sweep
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
@@ -219,8 +224,12 @@ async def _run_heavy_read[R](fn: Callable[[], R]) -> R:
 async def create_experiment(config: ExperimentConfig):
     """Submit a new experiment sweep configuration."""
     try:
+        # Engine match before any catalog/SIE I/O (Slice 37).
+        validate_config_backend_match(config)
         await asyncio.to_thread(validate_experiment_search_indexes, config)
         await asyncio.to_thread(validate_sie_readiness, config)
+    except ConfigBackendMismatchError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except SearchIndexMismatchError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except SIEUnavailableError as exc:
@@ -233,6 +242,7 @@ async def create_experiment(config: ExperimentConfig):
 
     metadata = collect_experiment_metadata()
     now = datetime.now(UTC)
+    storage_mode = resolve_storage_mode()
 
     retrieval_methods_for_summary = [r.type.value for r in config.retrieval.retrievers]
     rerankers = [
@@ -256,6 +266,7 @@ async def create_experiment(config: ExperimentConfig):
         "status": ExperimentStatus.RUNNING,
         "run_count": runs,
         "grid_equivalent_count": len(expand_sweep(config)),
+        "storage_mode": storage_mode,
         **metadata,
         "data_paths": config.data_paths,
         "queries_file": config.queries_file,
@@ -266,6 +277,7 @@ async def create_experiment(config: ExperimentConfig):
         "on_error": config.execution.on_error,
         "sweep_summary": {
             "database_provider": config.database_provider,
+            "storage_mode": storage_mode,
             "embedding_provider": config.embedding.provider,
             "models": config.embedding.models,
             "chunking_methods": [m.value for m in config.chunking.methods],

@@ -11,7 +11,7 @@ The mandatory embedding_model filter is the slice's central invariant, so it is
 asserted against real SQL rather than a mock: a mocked query would only confirm
 our own assumptions about what we wrote.
 
-Needs a live database — ``./start-services.sh --postgres``. Skips when absent
+Needs a live database — ``./start-services.sh --postgres-local``. Skips when absent
 unless RAG_REQUIRE_POSTGRES=1 (CI).
 """
 
@@ -55,7 +55,7 @@ pytestmark = [
     pytest.mark.integration,
     pytest.mark.skipif(
         (not postgres_reachable()) and os.environ.get("RAG_REQUIRE_POSTGRES") != "1",
-        reason=f"No Postgres at {TEST_DATABASE_URL} — run ./start-services.sh --postgres",
+        reason=f"No Postgres at {TEST_DATABASE_URL} — run ./start-services.sh --postgres-local",
     ),
 ]
 

@@ -29,7 +29,7 @@ Everything you need to run your first RAG parameter sweep experiment.
 
 **New to Atlas or Voyage?** Start with **[MongoDB Setup](mongodb-setup.md)** — account creation, connection string, search indexes, API key, and Tier 1 billing (~15 min).
 
-**Prefer Postgres?** See **[Postgres Setup](postgres-setup.md)** — local `./start-services.sh --postgres` or **Supabase-hosted Postgres** (same `STORAGE_BACKEND=postgres`); first prove with `configs/supabase/example-unified-retrievers.yaml`.
+**Prefer Postgres?** See **[Postgres Setup](postgres-setup.md)** — local `./start-services.sh --postgres-local` or **Supabase-hosted Postgres** (`./start-services.sh --postgres-cloud`, same `STORAGE_BACKEND=postgres`); first prove with `configs/supabase/example-unified-retrievers.yaml`.
 
 **Using SIE (open-source BGE-M3 embeddings)?** See **[SIE Provider Setup](sie-setup.md)** — set `SIE_ENABLED=true` (on/off), then `SIE_ENDPOINT` (+ `SIE_API_KEY` if needed) for a remote gateway, or optional local Docker.
 
@@ -89,7 +89,7 @@ DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 SERVER_URL=http://localhost:8001
 ```
 
-There is no `SUPABASE_URI` — see [Postgres Setup](postgres-setup.md#supabase-vs-postgres-read-this-first).
+Optional `SUPABASE_URI` aliases `DATABASE_URL` when the canonical var is unset — see [Postgres Setup](postgres-setup.md#supabase-vs-postgres-read-this-first).
 
 Full variable reference: [Troubleshooting → Environment Variables](troubleshooting.md#-environment-variables-reference). Optional Atlas Admin API keys enable cluster tier + storage quota in the dashboard — see `.env.example`.
 
@@ -157,8 +157,10 @@ Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) and `
 
 ```bash
 ./start-services.sh              # Atlas cloud URI from .env (Mongo default)
-./start-services.sh --local      # MongoDB Atlas Local in Docker
-./start-services.sh --postgres   # local pgvector (STORAGE_BACKEND=postgres)
+./start-services.sh --mongodb-local   # Atlas Local in Docker
+./start-services.sh --postgres-local  # local pgvector (STORAGE_BACKEND=postgres)
+./start-services.sh --postgres-cloud  # Supabase-hosted (DATABASE_URL; no MONGODB_URI)
+# Note: the old --local / --postgres flags were removed — use the canonical flags above
 ```
 
 - Server: `http://localhost:8001` (OpenAPI docs at `/docs`)

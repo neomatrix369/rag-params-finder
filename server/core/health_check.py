@@ -15,6 +15,9 @@ from pymongo.errors import PyMongoError
 from server.db.mongodb_uri import mongo_client_kwargs, mongodb_storage_mode
 from server.db.postgres_uri import postgres_connect_kwargs, postgres_storage_mode
 from server.settings import normalize_storage_backend, settings
+from server.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 _MONGODB_PLACEHOLDER_MARKERS = (
     "your_mongodb_atlas_uri_here",
@@ -25,6 +28,12 @@ _MONGODB_PLACEHOLDER_MARKERS = (
 
 # Keep well under the Docker HEALTHCHECK timeout (10s).
 _POSTGRES_CONNECT_TIMEOUT_S = 5
+
+_POSTGRES_CLOUD_ERROR_REMEDIATION = (
+    "Postgres unreachable — if this is a free-tier Supabase project, resume it "
+    "in the dashboard or upgrade; prefer Session-mode pooler URI "
+    "(see docs/user-guide/postgres-setup.md Path B)."
+)
 
 
 def resolve_storage_mode() -> str:
@@ -85,12 +94,16 @@ def storage_health() -> dict[str, str | bool]:
     mode = resolve_storage_mode()
     if backend == "postgres":
         postgres = postgres_health_status()
-        return {
+        body: dict[str, str | bool] = {
             "ok": postgres == "ok",
             "storage_backend": "postgres",
             "storage_mode": mode,
             "postgres": postgres,
         }
+        if postgres == "error":
+            body["remediation"] = _POSTGRES_CLOUD_ERROR_REMEDIATION
+            logger.warning("%s storage_mode=%s", _POSTGRES_CLOUD_ERROR_REMEDIATION, mode)
+        return body
     if backend == "mongodb":
         mongodb = mongodb_health_status()
         return {

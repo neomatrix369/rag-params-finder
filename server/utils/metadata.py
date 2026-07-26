@@ -11,7 +11,9 @@ from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-_SENSITIVE_FIELDS = frozenset({"voyage_api_key", "mongodb_uri", "database_url", "sie_api_key"})
+_SENSITIVE_FIELDS = frozenset(
+    {"voyage_api_key", "mongodb_uri", "database_url", "supabase_uri", "sie_api_key"}
+)
 
 
 def _run_git(*args: str) -> str:

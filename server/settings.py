@@ -3,7 +3,6 @@ from __future__ import annotations
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from server.db.postgres_uri import is_supabase_uri
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -103,6 +102,8 @@ class Settings(BaseSettings):
     # Hosted Supabase: Settings → Database → Connection string (Session mode pooler).
     # Local Docker: postgresql://rag:rag@localhost:5433/rag_params_finder
     database_url: str = ""
+    # Optional alias for DATABASE_URL (hosted Supabase). Prefer DATABASE_URL when both set.
+    supabase_uri: str = ""
     postgres_pool_max_size: int = 10
     # Seconds to wait for a free pooled connection before failing the request.
     postgres_pool_timeout_s: float = 30.0
@@ -133,6 +134,13 @@ class Settings(BaseSettings):
         self.storage_backend = backend
         return self
 
+    @model_validator(mode="after")
+    def apply_supabase_uri_alias(self) -> Settings:
+        """Copy SUPABASE_URI into database_url when DATABASE_URL is unset."""
+        if not self.database_url.strip() and self.supabase_uri.strip():
+            self.database_url = self.supabase_uri.strip()
+        return self
+
     def ensure_storage_ready(self) -> None:
         """Raise when the active backend is missing its required connection URI.
 
@@ -148,7 +156,7 @@ class Settings(BaseSettings):
             )
         if backend == "postgres" and not self.database_url.strip():
             raise ValueError(
-                "STORAGE_BACKEND=postgres requires DATABASE_URL. "
+                "STORAGE_BACKEND=postgres requires DATABASE_URL or SUPABASE_URI. "
                 "Set it in .env (local pgvector or hosted Supabase)."
             )
 
@@ -156,12 +164,11 @@ class Settings(BaseSettings):
         """Label for runs/stats when YAML omits ``database_provider``.
 
         Runtime selection remains ``storage_backend``. This only fills the
-        metadata label used by resume signatures and explorer grouping.
+        engine metadata label (``mongodb`` | ``postgres``) — never a product
+        shorthand like ``supabase`` (Slice 37).
         """
         if normalize_storage_backend(self.storage_backend) != "postgres":
             return "mongodb"
-        if self.database_url.strip() and is_supabase_uri(self.database_url):
-            return "supabase"
         return "postgres"
 
 

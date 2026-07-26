@@ -109,6 +109,21 @@ On **M10+**, the server attempts programmatic creation when slots are available;
 
 ---
 
+## 🚫 Config engine mismatch (database_provider ≠ STORAGE_BACKEND)
+
+**Symptom**: submit returns **422** starting with `Config engine mismatch: database_provider=... but server storage_backend=...`.
+
+**Cause**: YAML declares a different **engine** than the running process. This check runs **before** search-index / SIE preflight and before any experiment row is written. It is **not** the same as catalog/index missing-object 422s.
+
+**Fix** (pick one):
+
+1. Restart with the flag named in the error (`./start-services.sh --mongodb-local|cloud` or `--postgres-local|cloud`).
+2. Or submit a matching example config (`configs/mongodb/example-*.yaml` vs `configs/supabase/example-*.yaml`).
+
+`database_provider: supabase` is accepted but normalizes to `postgres` — it will not fix a Mongo server.
+
+---
+
 ## 🚫 Postgres index preflight failed
 
 **Symptom**: with `STORAGE_BACKEND=postgres`, submit returns **422** naming missing `chunks_*` indexes or the `vector` extension.
@@ -131,7 +146,7 @@ On **M10+**, the server attempts programmatic creation when slots are available;
 rag-params-finder indexes list
 
 # 2. Re-run schema bootstrap by restarting the server (idempotent DDL)
-#    Docker:  ./start-services.sh --postgres
+#    Docker:  ./start-services.sh --postgres-local
 #    Host:    uvicorn server.main:app --reload --port 8001
 
 # 3. Confirm the backend and mode the server actually resolved
@@ -411,7 +426,8 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md).
 |---|---|---|---|
 | `STORAGE_BACKEND` | No | `mongodb` | Storage adapter: `mongodb` (default; legacy alias `mongo`) or `postgres` (local Docker or Supabase-hosted Postgres) |
 | `MONGODB_URI` | When `STORAGE_BACKEND=mongodb` | — | MongoDB Atlas / Atlas Local connection string |
-| `DATABASE_URL` | When `STORAGE_BACKEND=postgres` | — | Postgres connection string (no `SUPABASE_URI` — Supabase is hosted Postgres) |
+| `DATABASE_URL` | When `STORAGE_BACKEND=postgres` | — | Canonical Postgres connection string (local or Supabase-hosted) |
+| `SUPABASE_URI` | No | — | Optional alias for `DATABASE_URL` (used only when `DATABASE_URL` is unset) |
 | `VOYAGE_API_KEY` | No | — | Voyage AI API key (only if using Voyage models) |
 | `SERVER_URL` | No | `http://localhost:8001` | FastAPI server URL (used by CLI) |
 | `VOYAGE_RPM_LIMIT` | No | `3` | Voyage requests-per-minute limit (throttle guard; free-tier default) |
@@ -459,7 +475,7 @@ Quick reference for the most common SIE problems:
 
 ## Postgres / pgvector
 
-Use this section when `STORAGE_BACKEND=postgres` (local `./start-services.sh --postgres` or hosted Supabase). Full setup → [Postgres Setup](postgres-setup.md).
+Use this section when `STORAGE_BACKEND=postgres` (local `./start-services.sh --postgres-local` or hosted `./start-services.sh --postgres-cloud`). Full setup → [Postgres Setup](postgres-setup.md).
 
 ### Connection refused / pool fails on boot
 
@@ -468,7 +484,7 @@ Use this section when `STORAGE_BACKEND=postgres` (local `./start-services.sh --p
 **Cause**: Postgres container not running, wrong port, or `STORAGE_BACKEND=postgres` without `DATABASE_URL`.
 
 **Fix**:
-1. Start local pgvector: `./start-services.sh --postgres`
+1. Start local pgvector: `./start-services.sh --postgres-local`
 2. Confirm health: `docker ps` shows `rag-params-finder-postgres-local` healthy
 3. Host CLI / native server: `export STORAGE_BACKEND=postgres` and `export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder`
 4. Confirm `GET http://localhost:8001/healthz` reports `"storage_backend": "postgres"` and postgres status `ok`
@@ -479,7 +495,7 @@ Use this section when `STORAGE_BACKEND=postgres` (local `./start-services.sh --p
 
 **Cause**: The image is plain Postgres without the `vector` extension, or `schema.sql` was applied before the extension install.
 
-**Fix**: Use `pgvector/pgvector:pg16` (compose default). Recreate the volume if needed: stop the stack, remove the `postgres_local_data` volume, then `./start-services.sh --postgres` again so `schema.sql` re-runs on first pool open.
+**Fix**: Use `pgvector/pgvector:pg16` (compose default). Recreate the volume if needed: stop the stack, remove the `postgres_local_data` volume, then `./start-services.sh --postgres-local` again so `schema.sql` re-runs on first pool open.
 
 ### Dimension mismatch (`embedding_384` vs `embedding_1024`)
 

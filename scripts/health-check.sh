@@ -37,7 +37,7 @@ else
         check "Postgres ping via server (postgres=ok)" true
       else
         check "Postgres ping via server (postgres=${postgres_status})" false
-        echo "     Hint: verify DATABASE_URL and that ./start-services.sh --postgres is up"
+        echo "     Hint: verify DATABASE_URL and that ./start-services.sh --postgres-local is up"
       fi
     else
       mongodb_status="$(python3 -c "import json,sys; d=json.loads(sys.argv[1]); print(d.get('mongodb',''))" "$health_json")"

@@ -61,7 +61,8 @@ compose_local_atlas_active() {
 }
 
 compose_local_atlas_profiles() {
-  COMPOSE_PROFILES=(--profile local-atlas)
+  # Canonical profile matches storage_mode=mongodb-local (local-atlas remains an alias).
+  COMPOSE_PROFILES=(--profile mongodb-local)
 }
 
 compose_local_postgres_active() {
@@ -69,7 +70,8 @@ compose_local_postgres_active() {
 }
 
 compose_local_postgres_profiles() {
-  COMPOSE_PROFILES=(--profile local-postgres)
+  # Canonical profile matches storage_mode=postgres-local (local-postgres remains an alias).
+  COMPOSE_PROFILES=(--profile postgres-local)
 }
 
 compose_export_local_postgres_env() {
@@ -115,8 +117,8 @@ print_local_atlas_cli_hints() {
   echo "    MONGODB_URI=\"$RAG_LOCAL_MONGODB_URI_HOST\" rag-params-finder run --config configs/mongodb/example-local.yaml"
   if [[ "$include_full_stack" == "1" ]]; then
     echo ""
-    echo "  Full stack with local Atlas:"
-    echo "    ./start-services.sh --local"
+    echo "  Full stack with Atlas Local:"
+    echo "    ./start-services.sh --mongodb-local"
   fi
   echo ""
   echo "  Reset data:"
@@ -125,7 +127,7 @@ print_local_atlas_cli_hints() {
 
 print_mongodb_local_reset_hint() {
   echo "If logs mention 'keyfile' or 'Unable to acquire security key', reset stale volumes:" >&2
-  echo "  ./start-services.sh mongodb reset && ./start-services.sh --local" >&2
+  echo "  ./start-services.sh mongodb reset && ./start-services.sh --mongodb-local" >&2
 }
 
 wait_for_mongodb_local_healthy() {

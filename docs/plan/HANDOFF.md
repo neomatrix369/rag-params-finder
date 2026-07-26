@@ -2,28 +2,29 @@
 
 ## Where We Are
 
-**36** ✅ COMPLETE. Next Must = **37** (local/cloud parity + vocabulary leftovers absorbed from 36 close). Parallel gate track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨.
+**37** ✅ COMPLETE on `slice/37-postgres-local-cloud-parity`. Evidence: [`gate-evidence/slice-37.json`](gate-evidence/slice-37.json). Next Must = **38** (cutover + ADR-004). PR: [#117](https://github.com/neomatrix369/rag-params-finder/pull/117).
 
 ## What's Done (recent)
 
-- Slice 36 — Postgres catalog preflight + four-value `storage_mode` — ✅ (`gate-evidence/slice-36.json`)
-- Slice 43 / 35 / 34 — ✅ as before
+- Four-flag grid + config↔server 422 + supabase normalize + `SUPABASE_URI` + hosted/local Postgres smoke
+- Removed CLI flag aliases `--local`/`-l`/`--postgres`/`-p` → generic `Unknown option` (DECISIONS #108/#109; env `RAG_LOCAL_*` still warn)
+- Review follow-up: `test_storage_mode_resolve.py` → 22 cases (`_clean_env` isolation, `RAG_*` selectors, empty `DATABASE_URL`, hint non-leak)
+- Review follow-up: shellcheck gates root `start-services.sh` (DECISIONS #110); SC2155 cleared
+- Unit tier measured **317** backend / **16** frontend (2026-07-26)
 
 ## What's Next
 
-- **Slice 37** — SSOT: [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md)
-  - Core: four-flag `start-services`, hosted `ensure_env`, config↔server 422, Path B docs
-  - **Absorbed from 36 close:** compose `local-postgres` → `postgres-local`; normalize `database_provider` / `default_database_provider` / `vector_db_id` so `supabase` is not a peer backend; docs state engine × location (Atlas/Supabase = cloud shorthand only)
-  - Keep `configs/supabase/` path this slice (document ≠ adapter); full folder rename is optional follow-up, not a 37 blocker
-- Then **38** → **22**
+1. Commit + push Slice 37 follow-up onto PR #117
+2. Merge #117 when CI/review green
+3. Start **38** → then **22**
 
 ## Blockers / Open Questions
 
-- 32C/32B after-checks still open (do not block 37)
-- Hosted Supabase credentials for Path B smoke (or documented skip)
+- None for 37. Optional: delete smoke experiments `1903dc76-…` (local) and `49c23d41-…` (hosted).
 
 ## Context for Next Session
 
-- Spec: `docs/plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md` (§Absorbed from Slice 36)
-- Prior evidence: `docs/plan/gate-evidence/slice-36.json`
-- Axes: `STORAGE_BACKEND` (engine) × `storage_mode` (location); Atlas/Supabase = cloud shorthand
+- Spec: `docs/plan/slices/SLICE-38-CUTOVER-ADR-004.md`
+- Canonical start flags only: `--mongodb-local|cloud` / `--postgres-local|cloud`
+- Canonical URI: `DATABASE_URL`; optional alias: `SUPABASE_URI`
+- Shellcheck scope: `start-services.sh` + `scripts/**/*.sh`
