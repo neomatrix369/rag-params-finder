@@ -3,7 +3,7 @@ Tests for server.db.store_factory.
 
 Author: Mani Sarkar
 Created: 2026-07-25
-Scope: storage_backend routing — mongo default, unknown rejection, postgres NotImplemented
+Scope: storage_backend routing — mongo default, unknown rejection, postgres adapters
 """
 
 from __future__ import annotations
@@ -164,24 +164,27 @@ class TestStoreFactoryShould:
         ### Then
         assert actual is mock_retriever, f"Expected postgres retriever adapter, got {actual!r}"
 
-    def test_given_storage_backend_postgres_when_sparse_retrieval_requested_then_names_slice_35(
+    def test_given_postgres_retriever_when_sparse_search_then_routes_to_sparse_search(
         self,
     ) -> None:
         """
-        Scenario: Unimplemented Postgres retrieval methods fail loudly, not silently.
-        Slice: slice-34-postgres-dense-retrieval
+        Scenario: Postgres retriever dispatches sparse to the Slice 35 path.
+        Slice: slice-35-postgres-sparse-hybrid
 
         Given the Postgres retriever adapter,
         When a sparse search is requested,
-        Then NotImplementedError names Slice 35 and suggests a working alternative —
-        a sweep that quietly fell back to dense would invalidate its own comparison.
+        Then sparse_search is invoked (no NotImplementedError).
         """
         ### Given
         retriever = get_postgres_retriever()
+        expected = [MagicMock(name="hit")]
 
-        ### When / Then
-        with pytest.raises(NotImplementedError, match="Slice 35"):
-            retriever.search(
+        ### When
+        with patch(
+            "server.core.retriever_postgres.sparse_search",
+            return_value=expected,
+        ) as mock_sparse:
+            actual = retriever.search(
                 RetrievalMethod.SPARSE,
                 "what is the deadline?",
                 "exp-1",
@@ -190,3 +193,13 @@ class TestStoreFactoryShould:
                 5,
                 None,
             )
+
+        ### Then
+        assert actual is expected
+        mock_sparse.assert_called_once_with(
+            "what is the deadline?",
+            "exp-1",
+            "all-MiniLM-L6-v2",
+            "run-1",
+            5,
+        )

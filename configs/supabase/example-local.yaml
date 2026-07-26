@@ -8,15 +8,16 @@
 # Chunking:   fixed · recursive · token · sentence · semantic
 # Retrievers: dense · sparse · hybrid · cross_encoder (swept individually — one per run)
 #
-# Time: same grid as mongodb/example-local.yaml (120 runs). Sparse/hybrid raise until Slice 35;
-# dense + cross_encoder work today. Use example-unified-retrievers.yaml for a shorter sweep.
+# Time: same grid as mongodb/example-local.yaml (120 runs). Dense, sparse, hybrid,
+# and cross_encoder all work on Postgres/pgvector. Use example-unified-retrievers.yaml
+# for a shorter sweep.
 #
 
 # Postgres / Supabase prerequisites:
 #   - STORAGE_BACKEND=postgres
 #   - DATABASE_URL=postgresql://... (local :5433 or Supabase URI)
 #   - Schema auto-applied on server boot (no manual indexes)
-#   - Dense retrieval works today; sparse/hybrid arrive in Slice 35
+#   - Dense, sparse, and hybrid retrieval work on Postgres (tsvector + RRF)
 #   See docs/user-guide/postgres-setup.md
 #
 experiment_name: example-supabase-local
@@ -52,8 +53,8 @@ retrieval:
   retrievers:
     # Each entry is one sweep dimension — one retriever per run (never combined).
     - type: dense    # pgvector cosine (<=>) filtered by embedding_model
-    - type: sparse   # Postgres FTS (tsvector) — Slice 35; raises until then
-    - type: hybrid   # RRF of dense + sparse — Slice 35; raises until then
+    - type: sparse   # Postgres FTS (tsvector / ts_rank)
+    - type: hybrid   # RRF of dense + sparse (rrf_k=60)
     - type: cross_encoder
       provider: local
       model: cross-encoder/ms-marco-MiniLM-L-6-v2

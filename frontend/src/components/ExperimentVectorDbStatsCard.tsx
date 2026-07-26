@@ -1,6 +1,11 @@
 import CollapsibleCard from './CollapsibleCard';
 import type { ReactNode } from 'react';
 import type { ExperimentDbStatsSummary } from '../types';
+import {
+  clusterHostLabel,
+  clusterSectionTitle,
+  collectionOrTableLabel,
+} from '../utils/storageLabels';
 
 type ExperimentVectorDbStatsCardProps = {
   experimentId: string;
@@ -59,10 +64,18 @@ export default function ExperimentVectorDbStatsCard({
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <InfoPanel title="Cluster & Collection">
+          <InfoPanel title={clusterSectionTitle(stats.database_provider)}>
             <Row label="Provider" value={stats.database_provider} />
-            <Row label="Collection" value={stats.collection_name} mono />
-            <Row label="Atlas host" value={stats.cluster_host ?? '—'} mono />
+            <Row
+              label={collectionOrTableLabel(stats.database_provider)}
+              value={stats.collection_name}
+              mono
+            />
+            <Row
+              label={clusterHostLabel(stats.database_provider)}
+              value={stats.cluster_host ?? '—'}
+              mono
+            />
             <Row label="Source documents" value={String(stats.unique_documents)} />
             <Row label="Unique queries" value={String(stats.unique_queries)} />
             <Row label="Avg chunks / run" value={String(stats.avg_chunks_per_run)} />

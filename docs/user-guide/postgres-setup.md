@@ -13,11 +13,11 @@ Two targets share this backend:
 TLS is applied automatically for `*.supabase.co` hosts and left off for local
 containers. Set `sslmode` explicitly in the URI to override either default.
 
-> **Scope today:** storage (schema, CRUD, cascade delete, db-stats) and **dense**
-> retrieval are working, so a dense-only sweep runs end to end on Postgres.
-> Sparse and hybrid retrieval arrive in Slice 35 — until then they raise a clear
-> error rather than falling back to dense, which would silently change what a
-> sweep is measuring. Use `STORAGE_BACKEND=mongo` if you need them today.
+> **Scope today:** storage (schema, CRUD, cascade delete, db-stats) and **dense,
+> sparse, and hybrid** retrieval run end to end on Postgres. Sparse uses
+> `tsvector` / `ts_rank`; hybrid fuses dense + sparse with RRF (`rrf_k=60`).
+> SPLADE embedding *storage* (30522-dim) is not available yet — keyword sparse
+> does not need it.
 
 ---
 
@@ -91,8 +91,9 @@ a field is added.
 `chunks` has one nullable vector column per supported embedding width, and every
 retrieval query filters by `embedding_model` so vectors from different models are
 never compared. A model whose width has no column — such as SPLADE-v3's 30522-dim
-sparse vectors — raises a clear error rather than being silently dropped; sparse
-storage lands in Slice 35.
+sparse *embeddings* — raises a clear error rather than being silently dropped.
+Keyword sparse/hybrid retrieval uses a generated `text_search` tsvector column
+(GIN-indexed); SPLADE embedding storage remains deferred.
 
 ---
 
@@ -106,8 +107,8 @@ rag-params-finder run --config configs/supabase/example-local.yaml
 ```
 
 `configs/supabase/example-local.yaml` mirrors `configs/mongodb/example-local.yaml`
-(same embedding/chunking/retriever grid). Dense (+ cross-encoder) runs end to end
-today; sparse and hybrid raise until Slice 35. Shorter grids:
+(same embedding/chunking/retriever grid). Dense, sparse, hybrid, and cross-encoder
+all run end to end. Shorter grids:
 `example-unified-retrievers.yaml` and the `*-bayesian.yaml` variants in the same folder.
 
 ---
@@ -161,11 +162,11 @@ green forever.
 
 ## Troubleshooting
 
-**`curl /healthz` returns `"mongodb": "error"` (or Docker marks the server unhealthy)**
+**`curl /healthz` looks wrong or Docker marks the server unhealthy**
 On a Postgres stack the probe must report `"storage_backend": "postgres"` and
-`"postgres": "ok"`. If you still see a Mongo field, the running image is older
-than this behaviour — rebuild with `./start-services.sh --postgres`. Mongo is
-not required when `STORAGE_BACKEND=postgres`.
+`"postgres": "ok"`. If you still see only a Mongo health field, the running
+image is older than this behaviour — rebuild with `./start-services.sh --postgres`.
+Mongo is not required when `STORAGE_BACKEND=postgres`.
 
 **`DATABASE_URL not set ... required when STORAGE_BACKEND=postgres`**
 The backend was selected but no connection string was given. Export

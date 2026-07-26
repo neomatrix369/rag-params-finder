@@ -548,22 +548,26 @@ class TestPostgresSearchDispatcherShould:
         [RetrievalMethod.SPARSE, RetrievalMethod.HYBRID],
         ids=["sparse", "hybrid"],
     )
-    def test_given_unimplemented_method_when_dispatched_then_raises_naming_slice_35(
+    def test_given_sparse_or_hybrid_when_dispatched_then_does_not_raise_not_implemented(
         self, two_model_corpus: PostgresStorageBackend, method: RetrievalMethod
     ) -> None:
         """
-        Scenario: Sparse and hybrid refuse rather than silently degrading to dense.
-        Slice: slice-34-postgres-dense-retrieval
+        Scenario: Sparse and hybrid are implemented on Postgres (Slice 35).
+        Slice: slice-34-postgres-dense-retrieval (dispatcher smoke)
 
-        Given a retrieval method Postgres cannot serve yet,
+        Given RetrievalMethod.SPARSE or HYBRID,
         When search dispatches,
-        Then NotImplementedError names Slice 35 and offers a working alternative.
+        Then NotImplementedError is not raised (detailed behaviour is covered
+        in test_postgres_sparse_hybrid.py).
         """
-        ### Given / When / Then
-        with pytest.raises(NotImplementedError, match="Slice 35"):
+        ### Given / When
+        try:
             retriever_postgres.search(
                 method, "q", _EXP_ID, _MODEL_A, _RUN_A, 5, _unit_vector(384, 0)
             )
+        except NotImplementedError as exc:
+            ### Then
+            pytest.fail(f"Slice 35 should have implemented {method}: {exc}")
 
     def test_given_unrecognised_method_when_dispatched_then_raises_value_error(
         self,

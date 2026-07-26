@@ -107,14 +107,17 @@ def result_row_to_doc(row: dict) -> dict:
 def vector_column_for(dimensions: int) -> str:
     """Map an embedding dimension to its chunks column.
 
-    Raises for dimensions with no column — notably SPLADE-v3 sparse vectors,
-    whose storage is decided in Slice 35.
+    Raises for dimensions with no column — notably SPLADE-v3 sparse vectors
+    (30522-dim). Keyword sparse/hybrid retrieval uses ``tsvector`` (Slice 35);
+    SPLADE *embedding storage* remains unsupported until a sparsevec path lands.
     """
     column = VECTOR_COLUMNS.get(dimensions)
     if column is None:
         supported = ", ".join(str(d) for d in sorted(VECTOR_COLUMNS))
         raise ValueError(
             f"No Postgres vector column for {dimensions}-dim embeddings "
-            f"(supported: {supported}). Sparse/high-dimension models land in Slice 35."
+            f"(supported: {supported}). SPLADE/high-dimension sparse embedding "
+            "storage is not available yet — use dense models (384/1024) or "
+            "keyword sparse/hybrid retrieval via tsvector."
         )
     return column
