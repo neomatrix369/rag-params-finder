@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-26 (Slice 43 🔨 docs §2–§6; live smoke §1 open; `STORAGE_BACKEND=mongodb` canonical; Active: **36–38** · **32**/**33** gate track)
-**Current**: Active migration: **34** ✅ dense → **35** ✅ sparse/hybrid → **36–38**. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **43** 🔨 supabase config verification (smoke remaining). Deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-26 (Slice 43 ✅ live Supabase-config smoke; `STORAGE_BACKEND=mongodb` canonical; Active: **36–38** · **32**/**33** gate track)
+**Current**: Active migration: **34** ✅ dense → **35** ✅ sparse/hybrid → **36–38**. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **43** ✅ supabase config verification. Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -63,7 +63,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 41B — Bayesian Search: Numeric Improvements | 📋 PLANNED | ~2–3 h | Unlocked: `bayesian.parallelism` (constant liar, ≤4 workers), `padding` as third numeric dimension, `n_trials` formula, 3-condition stopping loop, 41A embedding-parallelism gap fix — [`SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`](SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) |
 | 41C — Bayesian Search: Extended | 📋 PLANNED | ~3–4 h | All questions resolved (A1 SQLite, A2 waived, A4 N=20, D3 sweep_summary keys, D7 RandomConfig); blocked only on 41B ✅: study persistence, categorical axes, random search, dashboard card, default promotion — [`SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md`](SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md) |
 | 42 — Docker Build Optimisation | ✅ COMPLETE | ~2–3 h | Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime (62 MB); CI docker-build job (non-blocking, path-scoped) — [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
-| 43 — Supabase example-config verification | 🔨 IN PROGRESS | ~1–2 h | **Could** — operator docs §2/§3 done (`STORAGE_BACKEND` vs `database_provider`, env asymmetry, `mongodb` token); **§1 live smoke still open** — [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) |
+| 43 — Supabase example-config verification | ✅ COMPLETE | ~1–2 h | **Could** — 16/16 local Postgres smoke runs complete; operator docs distinguish `STORAGE_BACKEND` from `database_provider` and explain env asymmetry — [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) |
 | 44 — Frontend coverage + gate summary | 📋 PLANNED | ~2–3 h | **Should** — spun out of 43 (SLAP): add service/util/component tests; embed coverage table + floor in pre-push & CI like the backend — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
@@ -100,7 +100,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 10 | Could | 🔨 PARTIAL | — | Boot reconciliation ✅; retry CLI/API remaining |
 | 30 | Could | 📋 PLANNED | — | Search Explorer UX |
 | 31 | Should | 📋 PLANNED | — | Experiment list filter |
-| 43 | Could | 📋 PLANNED | 35 (soft: 37) | Supabase config live smoke + operator QoL — non-blocking |
+| 43 | Could | ✅ COMPLETE | 35 (soft: 37) | Supabase config live smoke + operator QoL — hosted smoke remains optional and is owned by 37 |
 | 39 | Should | ✅ COMPLETE | — | Demo-ready list/detail journey; lifecycle component coverage and clean implementation history verified |
 | 40 | Should | 📋 PLANNED | — | Clarify `docs/plan` vs `docs/plan/slices` roles; status SSOT remains here |
 | 41A | Could | ✅ COMPLETE | 16 | All ACs closed; trial_log in bayesian_summary; CLI Trial History table; 10 new tests + parametrize refactor (13 total); 183 total tests green |
@@ -690,6 +690,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-26 | 43 | Close Slice 43 after the recommended Supabase config completed on local Postgres: experiment `dd107437-be69-4d62-a549-003b743ed841`, 16/16 runs complete, all four retriever types produced result rows | This supplies the missing operator-path evidence without overstating hosted Supabase verification; hosted smoke and config↔server rejection remain owned by Slice 37 |
 | 2026-07-26 | naming | Canonical `STORAGE_BACKEND=mongodb` (legacy alias `mongo` → normalize); health `storage_backend` key matches; `database_provider` already used `mongodb` | Operator/docs/env were split between short `mongo` and label `mongodb`; Slice 37 already planned the rename — land the token now with alias so existing `.env` values keep working |
 | 2026-07-26 | 43 | sync-docs: §2–§5 operator-doc acceptance marked IMPLEMENTED; slice status → 🔨; §1 live smoke remains the DoD gate | Docs rewritten + `mongodb` token landed; completion still requires recorded supabase CLI smoke |
 | 2026-07-26 | 43 | Collated deferred/open items from PR bodies #109–#113 into SLICE-43 §6 (in-scope vs elsewhere-owned) | Bodies cited: #113 `_id`/provider/ADR-004 deferrals; #112 SPLADE + Slice 38 equivalence; #111 config split, HNSW recall, operator contract→37; #110 32C/32B open gates + IndexBackend→36; #109 Gap 8→41B/41C — code-review-graph bot tables excluded |
@@ -933,6 +934,8 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-07-26 | main | /nw-review (nw-documentarist-reviewer) | Slice 43 closure | APPROVED | No technical blockers; reviewer validated live evidence, operator docs, honest hosted-Supabase deferral, and owned-elsewhere routing. Required tracker housekeeping applied before PASSED. |
+| 2026-07-26 | main | /slice-workflow | Slice 43 closure | COMPLETE | `/healthz` Postgres healthy; config tests 25 passed; experiment `dd107437-be69-4d62-a549-003b743ed841` completed 16/16; full quality gates passed (276 backend, 16 frontend, 96.8% scoped coverage, audits clean). |
 | 2026-07-24 | chore/project-hygiene | /sync-docs | CVE suppression (PR #105) | APPLIED | PROGRESS.md: 1 decision row (Trivy CVE suppression strategy, compensating controls, blockers). No user-guide, CHANGELOG, or contributor-guide changes — CI internals only; no user-visible behavior change. |
 | 2026-07-24 | chore/project-hygiene | /sync-docs (round 3) | hygiene chore | APPLIED | `development.md`: Chalk added to nightly job lists (2 locations); BACKEND_CHANGED gating noted in pre-push description; push/nightly table rows updated. `PROGRESS.md`: 4 maintenance rows (Chalk, artifact audit, cron fix, BACKEND_CHANGED); 2 decision rows (Chalk vs CycloneDX, BACKEND_CHANGED design). No user-guide or CHANGELOG changes warranted (tooling chore). |
 | 2026-07-24 | chore/project-hygiene | /sync-docs + /clean-commit | hygiene chore (round 2) | APPLIED | PROGRESS.md updated with nw-review findings, frontend JUnit, action pinning decisions; 3 new decision log rows; 4 new skill log rows |

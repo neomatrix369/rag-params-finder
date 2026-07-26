@@ -2,7 +2,7 @@
 
 **MoSCoW:** Could
 **Target time:** ~1–2 h
-**Status:** 🔨 IN PROGRESS (docs §2/§3 landed; §1 live smoke open)
+**Status:** ✅ COMPLETE (live smoke + full gates + mandatory review verified 2026-07-26)
 **Depends on:** 35 ✅ (soft: 37 for hard config↔server 422)
 **Non-blocking / non-urgent:** Does not gate 36–38 cutover. Pick up when operator friction appears or after Slice 37.
 
@@ -70,10 +70,10 @@ Static checks passed; no observed end-to-end sweep of a **supabase** example aga
 **Refs:** [#111](https://github.com/neomatrix369/rag-params-finder/pull/111) proved dense smoke on local Postgres and config load/expand; it did **not** claim a recorded `configs/supabase/*` CLI sweep as gate evidence for operators. [#112](https://github.com/neomatrix369/rag-params-finder/pull/112) verified sparse/hybrid GWT on pgvector, not a full supabase-stem smoke table.
 
 **Acceptance**
-- [ ] Run and record: `./start-services.sh --postgres` then
+- [x] Run and record: `./start-services.sh --postgres` then
   `rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml`
   (16 runs — dense · sparse · hybrid · cross_encoder, local embeddings)
-- [ ] Gate evidence note (command, date, experiment id / outcome) under `docs/plan/gate-evidence/` or PROGRESS Decision Log
+- [x] Gate evidence note (command, date, experiment id / outcome) under `docs/plan/gate-evidence/` or PROGRESS Decision Log — **VERIFIED** 2026-07-26: [`slice-43.json`](../gate-evidence/slice-43.json), experiment `dd107437-be69-4d62-a549-003b743ed841`, 16/16 complete
 - [ ] Optional stretch: same config (or smoke twin) against hosted Supabase `DATABASE_URL`
 
 ### 2. Backend switch is env, not YAML
@@ -83,7 +83,7 @@ Static checks passed; no observed end-to-end sweep of a **supabase** example aga
 
 **Acceptance**
 - [x] `postgres-setup.md` + `configuration.md` state this in one clear sentence each — **IMPLEMENTED** 2026-07-26 (operator docs rewrite)
-- [ ] Hard reject / HTTP 422 on config↔server mismatch remains **Slice 37** — this slice only documents today’s behaviour and links to 37
+- [x] Hard reject / HTTP 422 on config↔server mismatch remains **Slice 37** — this slice only documents today’s behaviour and links to 37
 
 ### 3. Connection-env naming is asymmetric (Mongo vs Postgres/Supabase)
 
@@ -193,21 +193,21 @@ Scenario: Docs warn about HNSW truncated top-k
 
 ## Before-Checks [GATE]
 
-- [ ] Slice 35 ✅ COMPLETE (sparse/hybrid available)
-- [ ] `configs/supabase/` nine stems present and passing `tests/test_config_examples.py`
+- [x] Slice 35 ✅ COMPLETE (sparse/hybrid available)
+- [x] `configs/supabase/` nine stems present and passing `tests/test_config_examples.py` — **VERIFIED** 2026-07-26: 25 passed
 
 ---
 
 ## After-Checks [GATE]
 
-- [ ] §1 Live smoke evidence recorded
-- [ ] §2–§3 Operator docs updated (backend switch + Mongo↔Postgres env table)
-- [ ] §4 First-hosted-prove guidance present; optional smoke YAML present **or** explicitly Won’t with reason
-- [ ] §5 HNSW truncated-top-k warning present in operator path
-- [ ] §6 Atlas/Mongo wording regression watch confirmed on Postgres paths
-- [ ] *Owned elsewhere* table reviewed; each item still points at its owner slice
-- [ ] PROGRESS.md status → ✅ COMPLETE; Decision Log row
-- [ ] No Must-track regression (36–38 untouched unless docs cross-links only)
+- [x] §1 Live smoke evidence recorded
+- [x] §2–§3 Operator docs updated (backend switch + Mongo↔Postgres env table)
+- [x] §4 First-hosted-prove guidance present; optional smoke YAML present **or** explicitly Won’t with reason
+- [x] §5 HNSW truncated-top-k warning present in operator path
+- [x] §6 Atlas/Mongo wording regression watch confirmed on Postgres paths
+- [x] *Owned elsewhere* table reviewed; each item still points at its owner slice
+- [x] PROGRESS.md status → ✅ COMPLETE; Decision Log row
+- [x] No Must-track regression (36–38 untouched unless docs cross-links only)
 
 ---
 
@@ -223,4 +223,4 @@ Nothing else in Slice 43 depends on it.
 
 ## Gate Status
 
-📋 PLANNED
+✅ PASSED — runtime and documentation gates verified 2026-07-26; mandatory nw-documentarist review APPROVED
