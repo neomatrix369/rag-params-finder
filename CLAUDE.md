@@ -216,16 +216,22 @@ Record every non-obvious choice in `docs/plan/slices/PROGRESS.md` → Decision L
 
 ### Verify-all commands (run before each commit)
 ```bash
-# One command — mirrors CI (repo lint is step 1)
+# One command — mirrors CI (repo lint is step 1; unit-tier pytest only)
 ./scripts/quality-gates.sh
 
 # Repo lint only (shell + workflows + Markdown)
 bash scripts/repo-lint.sh
 
-# Or individually:
+# Or individually (same unit ignores as quality-gates / CI backend):
 uv run ruff check .
 uv run mypy server/ cli/
-uv run pytest --tb=short -q --cov=server.core.search_index_plan \
+uv run pytest --tb=short -q \
+  --ignore=tests/contract \
+  --ignore=tests/test_postgres_store_integration.py \
+  --ignore=tests/test_postgres_dense_retrieval.py \
+  --ignore=tests/test_postgres_sparse_hybrid.py \
+  -m "not integration" \
+  --cov=server.core.search_index_plan \
   --cov=server.core.search_index_guard --cov=server.core.results_analyzer \
   --cov=server.models.config --cov-fail-under=80
 cd frontend && npm run lint && npm run test && npm run typecheck && npm run build

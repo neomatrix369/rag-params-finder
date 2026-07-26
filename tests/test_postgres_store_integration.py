@@ -14,6 +14,7 @@ whole module skips when RAG_TEST_DATABASE_URL points nowhere reachable.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from datetime import UTC, datetime
 
@@ -24,19 +25,28 @@ pytest.importorskip("psycopg")
 from server.db import postgres  # noqa: E402
 from server.db.postgres_store import PostgresStorageBackend  # noqa: E402
 from server.models.enums import ExperimentStatus  # noqa: E402
-from tests.helpers.storage_live import TEST_DATABASE_URL, postgres_skip_reason  # noqa: E402
+from tests.helpers.storage_live import (  # noqa: E402
+    TEST_DATABASE_URL,
+    postgres_reachable,
+    postgres_skip_reason,
+)
 
 _EXP_ID = "exp-pg-integration"
 _RUN_ID = "run-pg-integration"
 
-pytestmark = pytest.mark.skipif(
-    postgres_skip_reason() is not None,
-    reason=postgres_skip_reason() or "",
-)
+# skipif must not call postgres_skip_reason() — that can pytest.fail at import
+# when RAG_REQUIRE_POSTGRES=1. Fixtures enforce the hard-fail in CI.
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        (not postgres_reachable()) and os.environ.get("RAG_REQUIRE_POSTGRES") != "1",
+        reason=f"No Postgres at {TEST_DATABASE_URL} — run ./start-services.sh --postgres",
+    ),
+]
 
 
 @pytest.fixture
-def store() -> Iterator[PostgresStorageBackend]:
+def store(live_postgres_pool: None) -> Iterator[PostgresStorageBackend]:
     """A backend bound to the test database, with the fixture's rows removed.
 
     Cleanup runs before and after so a crashed run cannot poison the next one.
@@ -45,9 +55,11 @@ def store() -> Iterator[PostgresStorageBackend]:
     """
     from server.settings import settings
 
-    original_url = settings.database_url
+    reason = postgres_skip_reason()
+    if reason is not None:
+        pytest.skip(reason)
+
     settings.database_url = TEST_DATABASE_URL
-    postgres.close_pool()
 
     backend = PostgresStorageBackend()
     postgres.execute("DELETE FROM experiments WHERE experiment_id = %s", (_EXP_ID,))
@@ -55,8 +67,6 @@ def store() -> Iterator[PostgresStorageBackend]:
         yield backend
     finally:
         postgres.execute("DELETE FROM experiments WHERE experiment_id = %s", (_EXP_ID,))
-        postgres.close_pool()
-        settings.database_url = original_url
 
 
 def _experiment_doc(**overrides: object) -> dict:

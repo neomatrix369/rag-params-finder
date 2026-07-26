@@ -112,6 +112,10 @@ Run all gates before committing. All must pass with zero regressions.
 ./scripts/quality-gates.sh --full       # CI mirror + local gitleaks + pre-commit all-files
 ```
 
+Backend pytest in those scripts is the **unit tier**: it ignores live Mongo/Postgres suites
+(`tests/contract/`, `tests/test_postgres_*.py`) and uses `-m "not integration"`. Live DB
+coverage runs in dedicated CI jobs (`postgres-integration`, `mongo-integration`).
+
 **Integrity check (unit tests + import smoke):**
 
 ```bash
@@ -243,24 +247,38 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 
 ## 🧪 Testing Strategy
 
-**Fast unit tier** (`tests/`, run in CI and `./scripts/quality-gates.sh`):
+**Fast unit tier** (`tests/`, run in CI `backend` job and `./scripts/quality-gates.sh`):
 
-| Module | Tests | Focus |
-|--------|-------|--------|
-| `test_search_index_plan.py` | 15 | Required Atlas indexes, capacity scenarios |
-| `test_search_index_guard.py` | 2 | Preflight guard (mocked I/O) |
-| `test_expand_sweep.py` | 3 | Unified `retrievers` sweep expansion |
-| `test_tiebreaker_ranking.py` | 3 | Weighted ranking / tiebreaker logic |
-| `test_embedder_factory.py` | 6 | Provider dispatch factory (voyage/local/sie) |
-| `test_sie_embedder.py` | 5 | SIE BGE-M3 dense embedding (mocked SIEClient) |
-| `test_sweep_endpoint.py` | 9 | `POST /api/v1/sweep` + health helpers |
+Excludes live storage suites (`--ignore=tests/contract` and `tests/test_postgres_*.py`,
+`-m "not integration"`). That keeps the unit job free of shared-DB races when a local
+pgvector or Atlas Local container happens to be up.
 
-**Total:** 97 pytest tests (includes semantic overlap, padding, SIE, search-index, sweep-endpoint suites). Coverage is enforced at **80%** on scoped server modules (see Quality Gates above).
+| Module | Focus |
+|--------|--------|
+| `test_search_index_plan.py` / `test_search_index_guard.py` | Atlas index plan + preflight (mocked I/O) |
+| `test_expand_sweep.py` / `test_tiebreaker_ranking.py` | Sweep expansion + ranking |
+| `test_embedder_factory.py` / `test_sie_*` / `test_sweep_endpoint.py` | Provider dispatch, SIE, sweep API |
+| `test_store_factory.py` / `test_mongo_store_acceptance.py` | Factory routing + mocked Mongo acceptance |
+
+**Live integration tier** (`pytest.mark.integration` — dedicated CI jobs only):
+
+| Suite | CI job | Needs |
+|-------|--------|--------|
+| `tests/test_postgres_store_integration.py` | `postgres-integration` | pgvector on `:5433`; `RAG_REQUIRE_POSTGRES=1` |
+| `tests/test_postgres_dense_retrieval.py` | same | ≥95% branch coverage on `retriever_postgres` |
+| `tests/test_postgres_sparse_hybrid.py` | same | sparse + hybrid + failure-path coverage |
+| `tests/contract/test_storage_backend_contract.py` | postgres **and** `mongo-integration` | Parametrized mongo/postgres; skips the missing backend locally |
+
+One process-wide Postgres pool (`live_postgres_pool` session fixture) bootstraps schema
+once — per-test `close_pool()` was removed because re-running DDL deadlocked when
+contract + dense/sparse suites interleaved.
+
+Locally: `./start-services.sh --postgres` and/or `--local`, then run the live paths
+explicitly (or rely on CI). Without those services, mongo/postgres contract params skip.
 
 **Still manual / not automated:**
-- End-to-end pipeline via CLI + dashboard (real Atlas + optional Voyage)
-- **Integration tests**: full pipeline with mock MongoDB and pre-computed embedding fixtures (planned — `integration` marker exists in `pyproject.toml`)
-- **Frontend**: ESLint + `tsc` + production build in CI; no Vitest/Jest suite yet
+- End-to-end pipeline via CLI + dashboard (real Atlas/Postgres + optional Voyage)
+- Full pipeline with pre-computed embedding fixtures beyond the live store/retriever suites
 
 ---
 
@@ -338,7 +356,9 @@ GitHub Actions has two workflows (see `.github/workflows/`):
 | Job | Steps |
 |-----|--------|
 | **Repo lint** | `pre-commit run shellcheck` → `actionlint` → `markdownlint` (all files) |
-| **Backend (Python)** | `ruff check` → `ruff format --check` → `mypy` → `bandit -ll` → `pytest` + 80% scoped coverage |
+| **Backend (Python)** | `ruff` → `mypy` → `bandit` → **unit-tier** `pytest` + 80% scoped coverage (live DB suites ignored) |
+| **Postgres integration** | Live pgvector CRUD/dense/sparse/hybrid + contract (postgres param); `RAG_REQUIRE_POSTGRES=1`; ≥95% `retriever_postgres` |
+| **Mongo integration** | Live Atlas Local StorageBackend contract (mongo param); `RAG_REQUIRE_MONGO=1` |
 | **Frontend (Node.js)** | `npm run lint` → `npm run typecheck` → `npm run build` → `npm run test` |
 | **Secrets** | `gitleaks` diff-only scan |
 | **Dependency audit** | `pip-audit` (backend) + `npm audit` (frontend); lockfile-gated, PR-only |

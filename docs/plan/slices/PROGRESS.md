@@ -1,6 +1,6 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-26 (Mongo/Supabase boundary hygiene + StorageBackend contract suite; Slice 35 ✅; Active: **36–38** · **32**/**33** gate track)
+**Last Updated**: 2026-07-26 (CI unit/live split + Postgres pool isolation; Mongo/Supabase boundary hygiene; Slice 35 ✅; Active: **36–38** · **32**/**33** gate track)
 **Current**: Active migration: **34** ✅ dense → **35** ✅ sparse/hybrid + copy scrub → **boundary hygiene** ✅ → **36–38**. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 gate closure · **33** 🔨. Then **22** · **28** · **41B** · deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
@@ -687,6 +687,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-26 | hygiene | Unit tier ignores live DB suites; session-scoped `live_postgres_pool` + schema advisory lock for live jobs | Interleaved contract+dense/sparse fixtures called `close_pool()` per test → DDL deadlocks / FK races; CI unit job must stay DB-free while postgres/mongo jobs own live coverage |
 | 2026-07-26 | hygiene | Boundary hygiene, no folder moves: rename agnostic `mongo_*` API helpers to port verbs; `retriever.py` → `retriever_mongo.py`; Mongo-only docstring markers in place | Ports already load-bearing; physical `server/db/mongo/` split would collide with open 32/33 work; naming was the real leak |
 | 2026-07-26 | hygiene | Shared live `StorageBackend` contract suite (`tests/contract/`) + `tests/conftest.py` skip helpers; CI `mongo-integration` job (Atlas Local) mirrors `postgres-integration` | Mongo acceptance was mocked, Postgres was live-only — nothing asserted both adapters answer the port identically (Slice 38 prerequisite) |
 | 2026-07-26 | hygiene | Documented, not closed: `_id` leak (Postgres synthesises it); `database_provider` YAML is metadata (Slice 37 owns 422 mismatch); configs/mongodb vs supabase near-duplicates (managed by `test_config_examples`); quality-gates omit postgres coverage (32B); ADR-004 missing (38); no supabase screenshots | Confirmed scope — close inside existing slices, not a parallel restructure |

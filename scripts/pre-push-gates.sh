@@ -59,7 +59,13 @@ unset STORAGE_BACKEND || true
 echo ""
 echo "1/3 Full test suite + coverage..."
 if [[ "$BACKEND_CHANGED" -gt 0 ]]; then
+  # Live Mongo/Postgres suites belong in dedicated CI jobs (see ci.yml).
   uv run pytest --tb=short -q \
+    --ignore=tests/contract \
+    --ignore=tests/test_postgres_store_integration.py \
+    --ignore=tests/test_postgres_dense_retrieval.py \
+    --ignore=tests/test_postgres_sparse_hybrid.py \
+    -m "not integration" \
     --cov=server.core.search_index_plan \
     --cov=server.core.search_index_guard \
     --cov=server.core.results_analyzer \

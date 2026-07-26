@@ -50,6 +50,11 @@ RESULTS_TABLE = "results"
 
 _pool: ConnectionPool | None = None
 
+# Serializes schema DDL across processes that reopen the pool (tests call
+# close_pool frequently). Without this, concurrent CREATE INDEX / ALTER TABLE
+# on the same relation deadlocks under AccessExclusiveLock.
+_SCHEMA_ADVISORY_LOCK_KEY = 0x524147_504F53  # "RAGPOS" in hex-ish
+
 
 def _require_database_url() -> str:
     uri = settings.database_url.strip()
@@ -68,7 +73,11 @@ def bootstrap_schema(uri: str) -> None:
     """
     ddl = SCHEMA_PATH.read_text(encoding="utf-8")
     with psycopg.connect(uri, autocommit=True, **postgres_connect_kwargs(uri)) as conn:
-        conn.execute(ddl)
+        conn.execute("SELECT pg_advisory_lock(%s)", (_SCHEMA_ADVISORY_LOCK_KEY,))
+        try:
+            conn.execute(ddl)
+        finally:
+            conn.execute("SELECT pg_advisory_unlock(%s)", (_SCHEMA_ADVISORY_LOCK_KEY,))
     logger.info("postgres schema ready — mode=%s", postgres_storage_mode(uri))
 
 

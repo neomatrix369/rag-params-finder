@@ -3,7 +3,8 @@
 Author: Mani Sarkar
 Created: 2026-07-26
 Scope: Parametrized StorageBackend fixtures for Mongo (Atlas Local) and Postgres
-       (pgvector) — skips locally, hard-fails in CI.
+       (pgvector) — skips locally, hard-fails in CI. One Postgres pool per
+       session so live suites do not deadlock on per-test schema bootstrap.
 """
 
 from __future__ import annotations
@@ -22,10 +23,38 @@ from tests.helpers.storage_live import (
 )
 
 
-@pytest.fixture
-def postgres_storage() -> Iterator[object]:
-    """Live PostgresStorageBackend bound to RAG_TEST_DATABASE_URL."""
+@pytest.fixture(scope="session")
+def live_postgres_pool() -> Iterator[None]:
+    """Bind DATABASE_URL and open one pool for the whole pytest process.
+
+    Live fixtures used to call ``close_pool()`` on every test. Each reopen
+    re-ran ``schema.sql`` DDL (AccessExclusiveLock). Interleaved contract +
+    dense/sparse/integration suites then deadlocked or saw half-applied
+    deletes (FK / UniqueViolation). Bootstrap once; tests only clean rows.
+    """
     from server.db import postgres
+    from server.settings import settings
+
+    reason = postgres_skip_reason()
+    if reason is not None:
+        # Dependents still call postgres_skip_reason() and skip/fail themselves.
+        yield
+        return
+
+    original_url = settings.database_url
+    settings.database_url = TEST_DATABASE_URL
+    postgres.close_pool()
+    postgres.get_pool()
+    try:
+        yield
+    finally:
+        postgres.close_pool()
+        settings.database_url = original_url
+
+
+@pytest.fixture
+def postgres_storage(live_postgres_pool: None) -> Iterator[object]:
+    """Live PostgresStorageBackend bound to RAG_TEST_DATABASE_URL."""
     from server.db.postgres_store import PostgresStorageBackend
     from server.settings import settings
 
@@ -33,11 +62,9 @@ def postgres_storage() -> Iterator[object]:
     if reason is not None:
         pytest.skip(reason)
 
-    original_url = settings.database_url
     original_backend = settings.storage_backend
     settings.database_url = TEST_DATABASE_URL
     settings.storage_backend = "postgres"
-    postgres.close_pool()
 
     backend = PostgresStorageBackend()
     backend.delete_experiment_data(CONTRACT_EXP_ID)
@@ -45,8 +72,6 @@ def postgres_storage() -> Iterator[object]:
         yield backend
     finally:
         backend.delete_experiment_data(CONTRACT_EXP_ID)
-        postgres.close_pool()
-        settings.database_url = original_url
         settings.storage_backend = original_backend
 
 

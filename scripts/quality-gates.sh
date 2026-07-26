@@ -61,7 +61,12 @@ uv run bandit -c pyproject.toml -r server/ cli/ -q -ll
 if [[ "${MODE}" == "quick" ]]; then
   echo ""
   echo "6/9 Backend unit tests (no coverage)..."
-  uv run pytest --tb=short -q -m "not integration"
+  uv run pytest --tb=short -q \
+    --ignore=tests/contract \
+    --ignore=tests/test_postgres_store_integration.py \
+    --ignore=tests/test_postgres_dense_retrieval.py \
+    --ignore=tests/test_postgres_sparse_hybrid.py \
+    -m "not integration"
   echo ""
   echo "7/9 Frontend lint (eslint)..."
   npm --prefix frontend run lint
@@ -84,7 +89,15 @@ fi
 
 echo ""
 echo "6/11 Backend tests + coverage..."
-uv run pytest --tb=short -q --cov=server.core.search_index_plan \
+# Live Mongo/Postgres suites run in dedicated CI jobs — keep the unit tier
+# free of shared-DB races (matches .github/workflows/ci.yml backend job).
+uv run pytest --tb=short -q \
+  --ignore=tests/contract \
+  --ignore=tests/test_postgres_store_integration.py \
+  --ignore=tests/test_postgres_dense_retrieval.py \
+  --ignore=tests/test_postgres_sparse_hybrid.py \
+  -m "not integration" \
+  --cov=server.core.search_index_plan \
   --cov=server.core.search_index_guard \
   --cov=server.core.results_analyzer \
   --cov=server.models.config \

@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **StorageBackend contract suite** — shared live fixtures (`tests/helpers/storage_live.py`, parametrized `storage`) and `tests/contract/test_storage_backend_contract.py` exercise CRUD/cascade/db-stats against Mongo and Postgres; CI `mongo-integration` job (Atlas Local) plus postgres job coverage
+- **StorageBackend contract suite** — shared live fixtures (`tests/helpers/storage_live.py`, parametrized `storage`) and `tests/contract/test_storage_backend_contract.py` exercise CRUD/cascade/db-stats against Mongo and Postgres; CI `mongo-integration` job (Atlas Local) plus postgres job coverage; sparse/hybrid failure-path tests keep `retriever_postgres` ≥95% branch coverage
 - **Postgres sparse + hybrid retrieval** (Slice 35) — `retriever_postgres` tsvector BM25-style sparse and RRF hybrid; backend-aware dashboard copy via `storageLabels.ts`; see [postgres-setup.md](docs/user-guide/postgres-setup.md)
 - **Postgres dense retrieval** (Slice 34) — `server/core/retriever_postgres.py` pgvector HNSW dense search with mandatory `embedding_model` filter, Atlas-scale scores (`1 - cosine_distance / 2`), and `hnsw.iterative_scan = strict_order` on every pooled connection; Atlas search-index preflight short-circuits for non-Mongo backends; `/healthz` reports active `storage_backend` (`mongo` \| `postgres`); live pgvector tests
 - **Postgres/pgvector storage backend** (Slice 33) — `STORAGE_BACKEND=postgres` + `DATABASE_URL`; schema bootstrap (`server/db/schema.sql`); CRUD/cascade via `PostgresStorageBackend`; `./start-services.sh --postgres` local profile (host port **5433**); `configs/supabase/example-local.yaml`; see [postgres-setup.md](docs/user-guide/postgres-setup.md)
@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Unit vs live test split** — `quality-gates.sh` / CI backend / `pre-push-gates.sh` exclude live Mongo/Postgres suites (`tests/contract/`, `tests/test_postgres_*.py`, `-m "not integration"`); live coverage stays in `postgres-integration` and `mongo-integration` jobs. Session-scoped Postgres pool + schema advisory lock avoid DDL deadlocks when live suites do run interleaved.
 - **Mongo/Postgres boundary hygiene** — rename agnostic `mongo_*` API helpers to port verbs; `retriever.py` → `retriever_mongo.py`; Mongo-only docstring markers; CLI `indexes` exits as not applicable on non-mongo; settings `ensure_storage_ready()`; ops/UI copy no longer assumes Atlas on `--postgres`
 - **Example configs split by backend** — YAML examples live under `configs/mongodb/` and `configs/supabase/` with mirrored stems (`example-local.yaml`, `example-voyage.yaml`, `example-sie.yaml`, parallel/bayesian/unified variants). Shared queries remain at `configs/questions.example.json`. Supabase configs use `database_provider: supabase`; dense, sparse, and hybrid retrieval are available on both backends (Slice 35).
 - **Slice 39 — Demo-ready dashboard polish** — result-led experiment cards, lifecycle-first detail hierarchy, shared responsive visual tokens, visible focus treatment, WCAG AA contrast, and reduced-motion support; API calls, controls, routing, and polling contracts remain unchanged

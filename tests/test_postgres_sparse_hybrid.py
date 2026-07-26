@@ -5,7 +5,8 @@ Author: Mani Sarkar
 Created: 2026-07-26
 Scope: sparse_search — keyword ranking + embedding_model isolation;
        hybrid_search — RRF fusion vs pure dense/sparse; search dispatcher;
-       empty embedding_model and missing hybrid embedding guards.
+       empty embedding_model and missing hybrid embedding guards;
+       query-failure logging for sparse and hybrid paths.
 
 Needs a live database — ``./start-services.sh --postgres``. Skips when absent
 unless RAG_REQUIRE_POSTGRES=1 (CI).
@@ -13,27 +14,41 @@ unless RAG_REQUIRE_POSTGRES=1 (CI).
 
 from __future__ import annotations
 
+import logging
+import os
 from collections.abc import Iterator
+from unittest.mock import patch
 
 import pytest
 
 pytest.importorskip("psycopg")
 
+import psycopg  # noqa: E402
+
 from server.core import retriever_postgres  # noqa: E402
 from server.db import postgres  # noqa: E402
 from server.db.postgres_store import PostgresStorageBackend  # noqa: E402
 from server.models.enums import RetrievalMethod  # noqa: E402
-from tests.helpers.storage_live import TEST_DATABASE_URL, postgres_skip_reason  # noqa: E402
+from tests.helpers.storage_live import (  # noqa: E402
+    TEST_DATABASE_URL,
+    postgres_reachable,
+    postgres_skip_reason,
+)
 
 _EXP_ID = "exp-pg-sparse-hybrid"
 _RUN_A = "run-sparse-a"
 _MODEL_A = "all-MiniLM-L6-v2"
 _MODEL_B = "bge-small-en-v1.5"
 
-pytestmark = pytest.mark.skipif(
-    postgres_skip_reason() is not None,
-    reason=postgres_skip_reason() or "",
-)
+# skipif must not call postgres_skip_reason() — that can pytest.fail at import
+# when RAG_REQUIRE_POSTGRES=1. Fixtures enforce the hard-fail in CI.
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        (not postgres_reachable()) and os.environ.get("RAG_REQUIRE_POSTGRES") != "1",
+        reason=f"No Postgres at {TEST_DATABASE_URL} — run ./start-services.sh --postgres",
+    ),
+]
 
 
 def _unit_vector(dimensions: int, hot_index: int) -> list[float]:
@@ -43,12 +58,14 @@ def _unit_vector(dimensions: int, hot_index: int) -> list[float]:
 
 
 @pytest.fixture
-def store() -> Iterator[PostgresStorageBackend]:
+def store(live_postgres_pool: None) -> Iterator[PostgresStorageBackend]:
     from server.settings import settings
 
-    original_url = settings.database_url
+    reason = postgres_skip_reason()
+    if reason is not None:
+        pytest.skip(reason)
+
     settings.database_url = TEST_DATABASE_URL
-    postgres.close_pool()
 
     backend = PostgresStorageBackend()
     postgres.execute("DELETE FROM experiments WHERE experiment_id = %s", (_EXP_ID,))
@@ -56,8 +73,6 @@ def store() -> Iterator[PostgresStorageBackend]:
         yield backend
     finally:
         postgres.execute("DELETE FROM experiments WHERE experiment_id = %s", (_EXP_ID,))
-        postgres.close_pool()
-        settings.database_url = original_url
 
 
 def _chunk(
@@ -324,3 +339,69 @@ class TestPostgresSparseHybridDispatcherShould:
         ### Then
         assert actual
         assert actual[0].retrieval_method == "hybrid"
+
+
+class TestPostgresSparseHybridFailureShould:
+    """Scenario: sparse/hybrid query failures log enough context to debug."""
+
+    def test_given_sparse_query_failure_when_searched_then_context_is_logged_and_raised(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """
+        Scenario: A sparse SQL error surfaces with experiment and model ids.
+        Slice: slice-35-postgres-sparse-hybrid
+
+        Given the underlying sparse query raises,
+        When sparse_search runs,
+        Then the error propagates and the log names the experiment and model.
+        """
+        ### Given
+        boom = psycopg.errors.UndefinedTable('relation "chunks" does not exist')
+
+        ### When
+        with (
+            patch("server.core.retriever_postgres.fetch_all", side_effect=boom),
+            caplog.at_level(logging.ERROR),
+            pytest.raises(psycopg.errors.UndefinedTable),
+        ):
+            retriever_postgres.sparse_search(
+                "Pell Grant deadline", "exp-boom", _MODEL_A, _RUN_A, top_k=5
+            )
+
+        ### Then
+        assert "exp-boom" in caplog.text
+        assert _MODEL_A in caplog.text
+
+    def test_given_hybrid_query_failure_when_searched_then_context_is_logged_and_raised(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """
+        Scenario: A hybrid SQL error surfaces with experiment, model, and column.
+        Slice: slice-35-postgres-sparse-hybrid
+
+        Given the underlying hybrid query raises,
+        When hybrid_search runs,
+        Then the error propagates and the log names experiment, model, and column.
+        """
+        ### Given
+        boom = psycopg.errors.UndefinedTable('relation "chunks" does not exist')
+
+        ### When
+        with (
+            patch("server.core.retriever_postgres.fetch_all", side_effect=boom),
+            caplog.at_level(logging.ERROR),
+            pytest.raises(psycopg.errors.UndefinedTable),
+        ):
+            retriever_postgres.hybrid_search(
+                "Pell Grant deadline",
+                _unit_vector(384, 0),
+                "exp-boom",
+                _MODEL_A,
+                _RUN_A,
+                top_k=5,
+            )
+
+        ### Then
+        assert "exp-boom" in caplog.text
+        assert _MODEL_A in caplog.text
+        assert "embedding_384" in caplog.text

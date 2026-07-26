@@ -144,19 +144,28 @@ result set changes the scores a sweep reports without any visible error.
 
 ## Tests
 
-The Postgres adapter's integration tests need a live database:
+The Postgres adapter's integration tests need a live database. They are **not** part of
+`./scripts/quality-gates.sh` / the CI unit job — those ignore live suites. Run them
+explicitly (or via the CI `postgres-integration` job):
 
 ```bash
 ./start-services.sh --postgres
-uv run pytest tests/test_postgres_store_integration.py \
-              tests/test_postgres_dense_retrieval.py -q
+RAG_REQUIRE_POSTGRES=1 uv run pytest \
+  tests/test_postgres_store_integration.py \
+  tests/test_postgres_dense_retrieval.py \
+  tests/test_postgres_sparse_hybrid.py \
+  tests/contract/test_storage_backend_contract.py \
+  -q -rs
 ```
 
-Without a reachable database they skip, so the default suite stays green on a
-machine with no Docker. Point them elsewhere with `RAG_TEST_DATABASE_URL`. CI
-sets `RAG_REQUIRE_POSTGRES=1`, which turns an unreachable database into a
-failure instead of a skip — otherwise a broken service container would report
-green forever.
+Without a reachable database they skip, so the unit tier stays green on a machine with
+no Docker. Point them elsewhere with `RAG_TEST_DATABASE_URL`. CI sets
+`RAG_REQUIRE_POSTGRES=1`, which turns an unreachable database into a failure instead of
+a skip — otherwise a broken service container would report green forever.
+
+The StorageBackend contract suite is parametrized over mongo and postgres: without
+`./start-services.sh --local`, the six mongo cases skip; without Postgres, the six
+postgres cases skip.
 
 ---
 

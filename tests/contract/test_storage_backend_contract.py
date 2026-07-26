@@ -14,9 +14,13 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import pytest
+
 from server.db.storage import StorageBackend
 from server.models.enums import ExperimentStatus
 from tests.helpers.storage_live import CONTRACT_EXP_ID, CONTRACT_RUN_ID
+
+pytestmark = pytest.mark.integration
 
 # Keys documented on StorageBackend.get_experiment_db_stats (server/db/storage.py).
 _DB_STATS_KEYS = frozenset(
