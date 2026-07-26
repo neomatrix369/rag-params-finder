@@ -217,6 +217,38 @@ print_local_postgres_cli_hints
     assert result.returncode == 0, result.stderr
     assert secret not in result.stdout
     assert secret not in result.stderr
+    assert "./start-services.sh postgres reset" in result.stdout
+    assert "docker rm -f" not in result.stdout
+
+
+def test_wait_for_postgres_local_healthy_exists_as_shared_helper() -> None:
+    """
+    Scenario: Postgres health wait is a shared compose helper (Mongo parity).
+    Slice: slice-38-cutover-adr-004
+
+    Given compose.sh is sourced
+    When wait_for_postgres_local_healthy is typed
+    Then the function is defined (not inlined only in start-services).
+    """
+    ### Given / When
+    result = subprocess.run(
+        [
+            "bash",
+            "-c",
+            f"source '{_REPO / 'scripts' / 'lib' / 'compose.sh'}'; "
+            "type wait_for_postgres_local_healthy; type print_postgres_local_reset_hint",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=_REPO,
+        env=_clean_env(),
+        check=False,
+    )
+
+    ### Then
+    assert result.returncode == 0, result.stderr
+    assert "wait_for_postgres_local_healthy is a function" in result.stdout
+    assert "print_postgres_local_reset_hint is a function" in result.stdout
 
 
 def test_conflicting_flags_fail_before_mode_export() -> None:
@@ -401,3 +433,112 @@ printf 'ok\\n'
     ### Then
     assert result.returncode == 0, result.stderr
     assert "ok" in result.stdout
+
+
+def test_mongodb_local_exports_storage_backend_over_hostile_postgres_env() -> None:
+    """
+    Scenario: --mongodb-local forces STORAGE_BACKEND=mongodb despite leftover postgres.
+    Slice: slice-38-cutover-adr-004
+
+    Given STORAGE_BACKEND=postgres in the environment
+    When resolve_stack_mode --mongodb-local and export_storage_backend_for_stack run
+    Then STORAGE_BACKEND is mongodb.
+    """
+    ### Given
+    script = f"""
+set -euo pipefail
+source '{_LIB}'
+resolve_stack_mode --mongodb-local
+export_storage_backend_for_stack
+printf 'backend=%s\\n' "$STORAGE_BACKEND"
+printf 'mode=%s\\n' "$STACK_STORAGE_MODE"
+"""
+    env = _clean_env(STORAGE_BACKEND="postgres")
+
+    ### When
+    result = subprocess.run(
+        ["bash", "-c", script],
+        capture_output=True,
+        text=True,
+        cwd=_REPO,
+        env=env,
+        check=False,
+    )
+
+    ### Then
+    assert result.returncode == 0, result.stderr
+    data = _kv(result.stdout)
+    assert data["backend"] == "mongodb", result.stdout
+    assert data["mode"] == "mongodb-local"
+
+
+def test_mongodb_cloud_exports_storage_backend_over_hostile_postgres_env() -> None:
+    """
+    Scenario: --mongodb-cloud forces STORAGE_BACKEND=mongodb despite leftover postgres.
+    Slice: slice-38-cutover-adr-004
+
+    Given STORAGE_BACKEND=postgres in the environment
+    When resolve_stack_mode --mongodb-cloud and export_storage_backend_for_stack run
+    Then STORAGE_BACKEND is mongodb.
+    """
+    ### Given
+    script = f"""
+set -euo pipefail
+source '{_LIB}'
+resolve_stack_mode --mongodb-cloud
+export_storage_backend_for_stack
+printf 'backend=%s\\n' "$STORAGE_BACKEND"
+"""
+    env = _clean_env(STORAGE_BACKEND="postgres")
+
+    ### When
+    result = subprocess.run(
+        ["bash", "-c", script],
+        capture_output=True,
+        text=True,
+        cwd=_REPO,
+        env=env,
+        check=False,
+    )
+
+    ### Then
+    assert result.returncode == 0, result.stderr
+    assert _kv(result.stdout)["backend"] == "mongodb"
+
+
+def test_ensure_postgres_cloud_rejects_project_ref_placeholder() -> None:
+    """
+    Scenario: Placeholder Supabase URI fails closed with a clear remediation.
+    Slice: slice-38-cutover-adr-004
+
+    Given --postgres-cloud and DATABASE_URL containing <project-ref>
+    When ensure_stack_mode_env runs
+    Then it exits non-zero and names DATABASE_URL / SUPABASE_URI.
+    """
+    ### Given
+    placeholder = (
+        "postgresql://postgres.<project-ref>:<password>"
+        "@aws-0-<region>.pooler.supabase.com:5432/postgres"
+    )
+    script = f"""
+set -euo pipefail
+source '{_LIB}'
+resolve_stack_mode --postgres-cloud
+ensure_stack_mode_env
+"""
+    env = _clean_env(DATABASE_URL=placeholder)
+
+    ### When
+    result = subprocess.run(
+        ["bash", "-c", script],
+        capture_output=True,
+        text=True,
+        cwd=_REPO,
+        env=env,
+        check=False,
+    )
+
+    ### Then
+    assert result.returncode == 1
+    assert "placeholder" in result.stderr.lower() or "<project-ref>" in result.stderr
+    assert "DATABASE_URL" in result.stderr or "SUPABASE_URI" in result.stderr

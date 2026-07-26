@@ -8,7 +8,7 @@
 
 Internal notes for local setup, debugging, and maintenance. Not required for basic contribution — see [development.md](development.md) for the standard dev workflow.
 
-**Storage backends:** MongoDB Atlas notes dominate this file (historical contributor notes). For Postgres/pgvector (local Docker or Supabase-hosted), use the public guide [Postgres Setup](../user-guide/postgres-setup.md) and [development.md → Testing Strategy](development.md#testing-strategy).
+**Storage backends:** MongoDB Atlas (cloud or Atlas Local) and Postgres/pgvector (local Docker or Supabase-hosted). Public guides: [MongoDB Setup](../user-guide/mongodb-setup.md) · [Postgres Setup](../user-guide/postgres-setup.md). See also [development.md → Testing Strategy](development.md#testing-strategy).
 
 ---
 
@@ -27,11 +27,35 @@ For offline development without a cloud Atlas account, use Atlas Local via Docke
 ```bash
 ./start-services.sh --mongodb-local          # server + dashboard + mongodb-atlas-local
 ./start-services.sh mongodb status     # container health only
+./start-services.sh mongodb reset      # wipe volumes (FCV / keyfile / invalid RS)
 ```
 
 Local URI (from `.env.example`): `mongodb://localhost:27017/rag_params_finder?directConnection=true`
 
 **Cloud Path A only:** the manual index JSON definitions below apply when using `mongodb+srv://...` on M0/M2/M5.
+
+---
+
+## 🐘 Postgres / pgvector — Local Path A
+
+→ [Postgres Setup → Path A](../user-guide/postgres-setup.md#path-a--local-docker)
+
+```bash
+./start-services.sh --postgres-local         # server + dashboard + pgvector (:5433)
+./start-services.sh postgres status    # container health only
+./start-services.sh postgres reset     # wipe local volume
+```
+
+Host CLI:
+
+```bash
+export STORAGE_BACKEND=postgres
+export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+```
+
+Schema / indexes come from `server/db/schema.sql` on first pool open (no Atlas UI). Hosted Supabase: `--postgres-cloud` + `DATABASE_URL` / `SUPABASE_URI` — [Path B](../user-guide/postgres-setup.md#path-b--hosted-supabase).
+
+Dual-container smoke: `./scripts/health-check.sh` probes whichever of Atlas Local / pgvector is present.
 
 ### Connection String Format
 

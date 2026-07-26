@@ -296,7 +296,8 @@ See `docs/adr/` for Architecture Decision Records:
 
 - [ADR-001](../adr/ADR-001-two-process-architecture.md): Why CLI + Server (two-process architecture)
 - [ADR-002](../adr/ADR-002-voyage-and-local-providers.md): Why dual embedding/reranking providers
-- [ADR-003](../adr/ADR-003-mongodb-atlas-vector-store.md): Why MongoDB Atlas over Pinecone/Weaviate
+- [ADR-003](../adr/ADR-003-mongodb-atlas-vector-store.md): MongoDB Atlas as original sole vector store (**Superseded**)
+- [ADR-004](../adr/ADR-004-postgresql-pgvector-vector-store.md): Dual-backend Postgres/pgvector (Supabase) **and** MongoDB — code default stays `mongodb` (DECISIONS #130 Won't flip)
 
 **Key design choices not covered by ADRs**:
 
@@ -335,11 +336,14 @@ See `docs/adr/` for Architecture Decision Records:
 | Mode | Command | Notes |
 |------|---------|-------|
 | Manual (default dev) | `uvicorn` + `npm run dev` | Two terminals; hot reload |
-| Docker (prod profile) | `./start-services.sh` | Server + dashboard containers; Atlas cloud from `.env` |
-| Docker + Atlas Local | `./start-services.sh --mongodb-local` | Adds `mongodb-atlas-local` container; auto-provisions search indexes |
+| Docker (prod profile) | `./start-services.sh` | Server + dashboard containers; Atlas cloud from `.env` when `STORAGE_BACKEND=mongodb` |
+| Docker + Atlas Local | `./start-services.sh --mongodb-local` | Adds `mongodb/mongodb-atlas-local:8.3.3` container; auto-provisions search indexes |
+| Docker + local Postgres | `./start-services.sh --postgres-local` | Adds `pgvector/pgvector:0.8.5-pg16` (Supabase stand-in); host port **5433** |
+| Docker + hosted Supabase | `./start-services.sh --postgres-cloud` | No local DB container; requires `DATABASE_URL` or `SUPABASE_URI` |
+| DB container only | `./start-services.sh mongodb\|postgres start\|stop\|reset\|status` | Native server/frontend on host |
 | Docker (dev profile) | `docker compose --profile dev up` | Bind mounts + HMR |
 
-Atlas connection string and API keys live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md) and [MongoDB Setup](../user-guide/mongodb-setup.md).
+Atlas / Postgres connection strings and API keys live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md), [MongoDB Setup](../user-guide/mongodb-setup.md), and [Postgres Setup](../user-guide/postgres-setup.md).
 
 ---
 
@@ -359,4 +363,4 @@ Atlas connection string and API keys live in `.env` on the host (mounted into th
 
 - [Extending the System](extending.md) — add new models, chunkers, or endpoints
 - [Development Guide](development.md) — dev loop, quality gates, slice playbook
-- [ADR-001](../adr/ADR-001-two-process-architecture.md) · [ADR-002](../adr/ADR-002-voyage-and-local-providers.md) · [ADR-003](../adr/ADR-003-mongodb-atlas-vector-store.md) — detailed rationale for key decisions
+- [ADR-001](../adr/ADR-001-two-process-architecture.md) · [ADR-002](../adr/ADR-002-voyage-and-local-providers.md) · [ADR-003](../adr/ADR-003-mongodb-atlas-vector-store.md) · [ADR-004](../adr/ADR-004-postgresql-pgvector-vector-store.md) — detailed rationale for key decisions

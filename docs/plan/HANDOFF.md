@@ -2,29 +2,40 @@
 
 ## Where We Are
 
-**37** ✅ COMPLETE on `slice/37-postgres-local-cloud-parity`. Evidence: [`gate-evidence/slice-37.json`](gate-evidence/slice-37.json). Next Must = **38** (cutover + ADR-004). PR: [#117](https://github.com/neomatrix369/rag-params-finder/pull/117).
+**38** ✅ COMPLETE on `slice/38-cutover-adr-004` ([PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118)).
 
-## What's Done (recent)
+**ADR-004 Accepted**; local comparison VERIFIED; CI dual-backend ✅; mutation waived (#128). **No default flip** (#130 Won't) — code default stays `mongodb` permanently; backends independently selectable (#129).
 
-- Four-flag grid + config↔server 422 + supabase normalize + `SUPABASE_URI` + hosted/local Postgres smoke
-- Removed CLI flag aliases `--local`/`-l`/`--postgres`/`-p` → generic `Unknown option` (DECISIONS #108/#109; env `RAG_LOCAL_*` still warn)
-- Review follow-up: `test_storage_mode_resolve.py` → 22 cases (`_clean_env` isolation, `RAG_*` selectors, empty `DATABASE_URL`, hint non-leak)
-- Review follow-up: shellcheck gates root `start-services.sh` (DECISIONS #110); SC2155 cleared
-- Unit tier measured **317** backend / **16** frontend (2026-07-26)
+## What's Done
+
+- Remediations #114–#119, image pins #120–#121, Postgres ops parity #122, dual health-check #123, sync-docs #124
+- ADR-004 Accepted / ADR-003 Superseded (#127)
+- `slice-38-quality-comparison.md` — both 120-run twins; latency ≤2× PASS; overlap informational (#129)
+- `slice-38.json` — `gate_status: PASSED`; default-flip gate removed (#130)
 
 ## What's Next
 
-1. Commit + push Slice 37 follow-up onto PR #117
-2. Merge #117 when CI/review green
-3. Start **38** → then **22**
+1. Merge [PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118) when ready
+2. Slice **43** residuals (#125/#126): hosted production-claim matrix, Pro-tier ADR mandate, etc. (`/sync-docs` for #130 permanent default — **APPLIED**)
+3. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 (not a 38 blocker)
 
-## Blockers / Open Questions
+## Key decisions locked
 
-- None for 37. Optional: delete smoke experiments `1903dc76-…` (local) and `49c23d41-…` (hosted).
-
-## Context for Next Session
-
-- Spec: `docs/plan/slices/SLICE-38-CUTOVER-ADR-004.md`
-- Canonical start flags only: `--mongodb-local|cloud` / `--postgres-local|cloud`
-- Canonical URI: `DATABASE_URL`; optional alias: `SUPABASE_URI`
-- Shellcheck scope: `start-services.sh` + `scripts/**/*.sh`
+| # | Choice |
+|---|---|
+| 114 | Latency = QUERYING `elapsed_ms` median+max ≤2× |
+| 115 | Baseline = Slice 43 mirrored 384-dim local |
+| 116 | Flip surfaces include shell + compose; Mongo exports mongodb |
+| 117 | Placeholder `SUPABASE_URI` commented + rejected |
+| 119 | Remediations land before any silent default change; #129 clarifies backends are independent |
+| 120 | Pin Atlas Local `8.3.3` + pgvector `0.8.5-pg16` |
+| 121 | Healthy ≠ writable after FCV churn → reset volumes + restart server |
+| 122 | Postgres container ops parity with Mongo (wait/reset/port UX) |
+| 123 | `health-check.sh` probes both local DB containers when present |
+| 124 | sync-docs Mongo↔Postgres operator/doc parity |
+| 125 | Unrealistic 38 gates parked on Slice 43 residuals (hosted claim / PRD bookkeeping / 100% shell) |
+| 126 | All non-100%-Yes 38 gates parked on 43 (Pro-tier mandate, sync-docs, …) — post-flip smoke dropped via #130 |
+| 127 | ADR-004 Accepted — dual-backend Postgres/Supabase + Mongo; ADR-003 Superseded |
+| 128 | Backend mutation waived to nightly CI (same pattern as #95/#101) |
+| 129 | Mongo ⟂ Postgres — neither is a fail-safe for the other |
+| 130 | **Won't** — no `STORAGE_BACKEND` default flip; code default stays `mongodb` permanently |

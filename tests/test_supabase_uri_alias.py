@@ -83,3 +83,29 @@ def test_given_postgres_without_uri_when_ensure_ready_then_mentions_supabase_ali
     ### When / Then
     with pytest.raises(ValueError, match="SUPABASE_URI"):
         loaded.ensure_storage_ready()
+
+
+def test_given_postgres_placeholder_uri_when_ensure_ready_then_rejects(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Scenario: Example .env SUPABASE_URI placeholder fails before opaque connect.
+    Slice: slice-38-cutover-adr-004
+
+    Given STORAGE_BACKEND=postgres and a <project-ref> placeholder URI
+    When ensure_storage_ready runs
+    Then ValueError names the placeholder and remediation.
+    """
+    ### Given
+    placeholder = (
+        "postgresql://postgres.<project-ref>:<password>"
+        "@aws-0-<region>.pooler.supabase.com:5432/postgres"
+    )
+    monkeypatch.setenv("STORAGE_BACKEND", "postgres")
+    monkeypatch.setenv("SUPABASE_URI", placeholder)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    loaded = Settings(_env_file=None)
+
+    ### When / Then
+    with pytest.raises(ValueError, match="placeholder|project-ref"):
+        loaded.ensure_storage_ready()

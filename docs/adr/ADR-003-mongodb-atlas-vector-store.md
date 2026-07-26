@@ -1,8 +1,10 @@
 # ADR-003: MongoDB Atlas as the Vector Store
 
-**Status**: Accepted
+**Status**: Superseded by [ADR-004](ADR-004-postgresql-pgvector-vector-store.md)
 **Date**: 2026-05-02
 **Slice**: 1 — Skateboard
+
+> **Supersession note (2026-07-26):** MongoDB Atlas / Atlas Local remain a **supported** backend for rollback and A/B. ADR-004 endorses **dual-backend** storage (Postgres/pgvector + Mongo) and retires the “Mongo-only vector store” decision. Operational details below still apply when `STORAGE_BACKEND=mongodb`.
 
 ---
 
@@ -37,7 +39,7 @@ Use **MongoDB Atlas** for all storage — both vector embeddings and structured 
 - **Dimension-specific indexes**: Each embedding dimension (384, 1024) requires its own index. Mixed-dimension queries fail silently or error.
 - **M0 storage limit**: 512 MB on the free tier. A typical sweep (36 runs × 1000 chunks × 1024-dim × 4 bytes) uses ~147 MB. Large experiments or many sweeps may exhaust the free tier.
 - **Shared CPU on M0**: Free-tier clusters share compute. Vector search latency may be higher during peak Atlas usage.
-- **Local dev with Atlas Local Docker** (Slice 25): Developers may use `mongodb/mongodb-atlas-local` via `./start-services.sh --mongodb-local` with the same `$vectorSearch` / `$search` syntax. Index creation is automatic on boot (`bootstrap_indexes()`); the manual UI steps above apply to cloud M0/M2/M5 only.
+- **Local dev with Atlas Local Docker** (Slice 25): Developers may use `mongodb/mongodb-atlas-local:8.3.3` (pinned in `docker-compose.yml` / CI) via `./start-services.sh --mongodb-local` with the same `$vectorSearch` / `$search` syntax. Index creation is automatic on boot (`bootstrap_indexes()`); the manual UI steps above apply to cloud M0/M2/M5 only. Downgrading the image pin below a volume's `featureCompatibilityVersion` requires `./start-services.sh mongodb reset`.
 
 ---
 

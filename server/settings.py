@@ -30,6 +30,11 @@ def normalize_storage_backend(value: str) -> str:
     return _STORAGE_BACKEND_ALIASES.get(backend, backend)
 
 
+def _is_postgres_uri_placeholder(uri: str) -> bool:
+    """True when URI still holds .env.example angle-bracket placeholders."""
+    return "<project-ref>" in uri or "<password>" in uri or "<region>" in uri
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -154,11 +159,19 @@ class Settings(BaseSettings):
                 "STORAGE_BACKEND=mongodb requires MONGODB_URI. "
                 "Set it in .env or the environment (Atlas cloud or Atlas Local)."
             )
-        if backend == "postgres" and not self.database_url.strip():
-            raise ValueError(
-                "STORAGE_BACKEND=postgres requires DATABASE_URL or SUPABASE_URI. "
-                "Set it in .env (local pgvector or hosted Supabase)."
-            )
+        if backend == "postgres":
+            uri = self.database_url.strip()
+            if not uri:
+                raise ValueError(
+                    "STORAGE_BACKEND=postgres requires DATABASE_URL or SUPABASE_URI. "
+                    "Set it in .env (local pgvector or hosted Supabase)."
+                )
+            if _is_postgres_uri_placeholder(uri):
+                raise ValueError(
+                    "STORAGE_BACKEND=postgres has a placeholder DATABASE_URL / SUPABASE_URI "
+                    "(contains <project-ref>). Replace it with a real Session-mode URI, "
+                    "or use ./start-services.sh --postgres-local."
+                )
 
     def default_database_provider(self) -> str:
         """Label for runs/stats when YAML omits ``database_provider``.

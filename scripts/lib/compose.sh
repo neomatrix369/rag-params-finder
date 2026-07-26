@@ -84,21 +84,31 @@ compose_clear_local_postgres_env() {
 }
 
 print_local_postgres_cli_hints() {
+  local include_full_stack="${1:-0}"
   echo ""
   echo "Local Postgres + pgvector is ready."
   echo ""
   echo "  Connection string (CLI / host server):"
   echo "    export STORAGE_BACKEND=postgres"
   echo "    export DATABASE_URL=\"$RAG_LOCAL_DATABASE_URL_HOST\""
-  echo "    rag-params-finder run --config configs/supabase/example-local.yaml"
+  echo ""
+  echo "  Quick sweep:"
+  echo "    STORAGE_BACKEND=postgres DATABASE_URL=\"$RAG_LOCAL_DATABASE_URL_HOST\" \\"
+  echo "      rag-params-finder run --config configs/supabase/example-local.yaml"
+  if [[ "$include_full_stack" == "1" ]]; then
+    echo ""
+    echo "  Full stack with local Postgres:"
+    echo "    ./start-services.sh --postgres-local"
+  fi
   echo ""
   echo "  Reset data:"
-  echo "    docker rm -f $RAG_POSTGRES_LOCAL_CONTAINER && docker volume rm $RAG_POSTGRES_LOCAL_VOLUME"
+  echo "    ./start-services.sh postgres reset"
 }
 
 compose_export_local_atlas_env() {
   export RAG_SERVER_MONGODB_URI="$RAG_LOCAL_MONGODB_URI_DOCKER"
   export RAG_MONGODB_STORAGE_LIMIT_MB=0
+  export STORAGE_BACKEND=mongodb
 }
 
 compose_clear_local_atlas_env() {
@@ -130,6 +140,11 @@ print_mongodb_local_reset_hint() {
   echo "  ./start-services.sh mongodb reset && ./start-services.sh --mongodb-local" >&2
 }
 
+print_postgres_local_reset_hint() {
+  echo "If the volume is corrupt or the container stays unhealthy, reset and recreate:" >&2
+  echo "  ./start-services.sh postgres reset && ./start-services.sh --postgres-local" >&2
+}
+
 wait_for_mongodb_local_healthy() {
   local tries=0
   local health=""
@@ -143,6 +158,10 @@ wait_for_mongodb_local_healthy() {
       echo ""
       echo "MongoDB Atlas Local is unhealthy." >&2
       echo "  docker logs $RAG_MONGODB_LOCAL_CONTAINER 2>&1 | tail -20" >&2
+      if docker logs "$RAG_MONGODB_LOCAL_CONTAINER" 2>&1 | grep -q "Wrong mongod version\|featureCompatibilityVersion"; then
+        echo "Detected featureCompatibilityVersion / image mismatch (e.g. volumes from a newer" >&2
+        echo "Atlas Local image than the compose pin). Reset volumes, then restart:" >&2
+      fi
       print_mongodb_local_reset_hint
       return 1
     fi
@@ -151,7 +170,39 @@ wait_for_mongodb_local_healthy() {
       echo ""
       echo "Timed out waiting for $RAG_MONGODB_LOCAL_CONTAINER to become healthy." >&2
       echo "  docker logs $RAG_MONGODB_LOCAL_CONTAINER 2>&1 | tail -20" >&2
+      if docker logs "$RAG_MONGODB_LOCAL_CONTAINER" 2>&1 | grep -q "Wrong mongod version\|featureCompatibilityVersion"; then
+        echo "Detected featureCompatibilityVersion / image mismatch — reset volumes:" >&2
+      fi
       print_mongodb_local_reset_hint
+      return 1
+    fi
+    printf "."
+    sleep 2
+  done
+}
+
+wait_for_postgres_local_healthy() {
+  local tries=0
+  local health=""
+  while true; do
+    health="$(docker inspect --format='{{.State.Health.Status}}' "$RAG_POSTGRES_LOCAL_CONTAINER" 2>/dev/null || echo "")"
+    if [[ "$health" == "healthy" ]]; then
+      echo ""
+      return 0
+    fi
+    if [[ "$health" == "unhealthy" ]]; then
+      echo ""
+      echo "Local Postgres + pgvector is unhealthy." >&2
+      echo "  docker logs $RAG_POSTGRES_LOCAL_CONTAINER 2>&1 | tail -20" >&2
+      print_postgres_local_reset_hint
+      return 1
+    fi
+    tries=$((tries + 1))
+    if [[ $tries -ge 90 ]]; then
+      echo ""
+      echo "Timed out waiting for $RAG_POSTGRES_LOCAL_CONTAINER to become healthy." >&2
+      echo "  docker logs $RAG_POSTGRES_LOCAL_CONTAINER 2>&1 | tail -20" >&2
+      print_postgres_local_reset_hint
       return 1
     fi
     printf "."

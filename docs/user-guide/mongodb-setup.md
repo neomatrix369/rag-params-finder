@@ -139,7 +139,9 @@ The server **preflights** required indexes on experiment submit — missing inde
 
 ![MongoDB Atlas Local](https://img.shields.io/badge/MongoDB_Atlas_Local-Docker-47A248?logo=mongodb&logoColor=white)
 
-Run the full RAG pipeline — including `$vectorSearch` and `$search` (BM25) — on your laptop using the official `mongodb/mongodb-atlas-local` Docker image. No Atlas cloud account, no 512 MB storage ceiling, no manual UI index creation.
+Run the full RAG pipeline — including `$vectorSearch` and `$search` (BM25) — on your laptop using the official `mongodb/mongodb-atlas-local:8.3.3` Docker image (pinned in `docker-compose.yml` / CI — not `:latest`). No Atlas cloud account, no 512 MB storage ceiling, no manual UI index creation.
+
+> **Image pin vs existing volumes:** Pinning an older major/minor than a volume's `featureCompatibilityVersion` (e.g. FCV `8.3` with image `8.0.x`) makes mongod exit immediately (`Wrong mongod version` / exit 62) and Compose waits forever on health. Fix: `./start-services.sh mongodb reset` then `./start-services.sh --mongodb-local`. After changing the compose image tag, recreate containers (`docker compose --profile mongodb-local down` then start again).
 
 **Prerequisites:** Docker Desktop running; project dependencies installed (`uv venv && source .venv/bin/activate && uv pip install -e ".[dev]"`).
 

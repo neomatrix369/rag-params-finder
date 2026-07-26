@@ -1,0 +1,71 @@
+{
+  "slice": 38,
+  "gate_status": "PASSED",
+  "verified_at": "2026-07-26",
+  "verifier": "slice-workflow",
+  "branch": "slice/38-cutover-adr-004",
+  "pr": "https://github.com/neomatrix369/rag-params-finder/pull/118",
+  "note": "Slice 38 COMPLETE — ADR-004 Accepted; local comparison VERIFIED; CI dual-backend success. Default-flip gate removed (DECISIONS #130 Won't). Code default stays mongodb permanently; backends independently selectable (#129).",
+  "evidence": {
+    "dual_backend_ci": {
+      "rule": "skipped ≠ success; dual-backend green is the union of both jobs — each must conclude success",
+      "workflow_run": {
+        "id": 30218369352,
+        "url": "https://github.com/neomatrix369/rag-params-finder/actions/runs/30218369352",
+        "event": "pull_request",
+        "head_sha": "c004369ec82352a508e88dffca50315f7d7c1982",
+        "head_branch": "slice/38-cutover-adr-004",
+        "conclusion": "success",
+        "completed_at": "2026-07-26T20:13:39Z"
+      },
+      "jobs": {
+        "mongo-integration": {
+          "name": "Mongo integration (Atlas Local)",
+          "conclusion": "success",
+          "status": "completed",
+          "job_url": "https://github.com/neomatrix369/rag-params-finder/actions/runs/30218369352/job/89836370576",
+          "skipped": false
+        },
+        "postgres-integration": {
+          "name": "Postgres integration (pgvector)",
+          "conclusion": "success",
+          "status": "completed",
+          "job_url": "https://github.com/neomatrix369/rag-params-finder/actions/runs/30218369352/job/89836370548",
+          "skipped": false
+        }
+      },
+      "verdict": "PASS",
+      "verdict_rationale": "Both required jobs concluded success (not skipped, not failure). Workflow-level success alone would be insufficient if either integration job were skipped."
+    },
+    "adr": {
+      "adr_004": "Accepted 2026-07-26 — dual-backend Postgres/pgvector + Mongo",
+      "adr_003": "Superseded by ADR-004; Mongo remains a supported independent backend",
+      "default_flip": "WON'T (#130) — gate removed; code default stays mongodb permanently"
+    },
+    "quality_comparison": {
+      "status": "verified",
+      "artifact": "docs/plan/gate-evidence/slice-38-quality-comparison.md",
+      "mongodb_local": {
+        "experiment_id": "1a16eaff-bab2-4672-9503-aafcbcb1630e",
+        "experiment_name": "example-mongodb-local-parallel_20260726-185445",
+        "runs": "120/120"
+      },
+      "postgres_local": {
+        "experiment_id": "9ab49abc-e989-4724-b15f-5777237bfdd6",
+        "experiment_name": "example-supabase-local-parallel_20260726-204016",
+        "runs": "120/120"
+      },
+      "latency_gate": "PASS — QUERYING elapsed_ms gate-set median/max ≤2× Mongo",
+      "rank_overlap": "informational under #129 — overall top-3 45.7%; dense 92.9%; hybrid 43.5%; sparse 0.7%",
+      "note": "Cross-DB mismatch expected (independent engines); not a fail-safe tripwire"
+    },
+    "mutation": "waived — DECISIONS #128 (same pattern as #95/#101; no non-trivial new Python retrieval/storage logic in this close-out)",
+    "cutover_model": "DECISIONS #129 — Mongo and Postgres are independent selectable backends; neither is a fail-safe for the other",
+    "close_out": "DECISIONS #130 — COMPLETE; default-flip gate removed (Won't)"
+  },
+  "decisions": [114, 115, 116, 117, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130],
+  "open_for_complete": [],
+  "wont": [
+    "STORAGE_BACKEND code/docs default flip to postgres — DECISIONS #130"
+  ]
+}

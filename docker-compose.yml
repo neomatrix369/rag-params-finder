@@ -21,9 +21,10 @@ services:
       # Cloud: MONGODB_URI from .env. Local Atlas: RAG_SERVER_MONGODB_URI set by start-services.sh --mongodb-local
       MONGODB_URI: ${RAG_SERVER_MONGODB_URI:-${MONGODB_URI}}
       MONGODB_STORAGE_LIMIT_MB: ${RAG_MONGODB_STORAGE_LIMIT_MB:-${MONGODB_STORAGE_LIMIT_MB:-}}
-      # Postgres/pgvector is opt-in — STORAGE_BACKEND stays "mongodb" unless set.
+      # Code default is mongodb permanently (DECISIONS #130 Won't — no flip to postgres).
       # Local pgvector: RAG_SERVER_DATABASE_URL set by start-services.sh --postgres-local
       # Supabase: DATABASE_URL (or SUPABASE_URI alias) from .env (Slice 37)
+      # Mongo modes export STORAGE_BACKEND=mongodb so leftover postgres env cannot stick.
       STORAGE_BACKEND: ${STORAGE_BACKEND:-mongodb}
       DATABASE_URL: ${RAG_SERVER_DATABASE_URL:-${DATABASE_URL:-}}
       HF_HOME: ${HF_HOME:-/root/.cache/huggingface}
@@ -122,7 +123,9 @@ services:
   # See docs/user-guide/mongodb-setup.md
   mongodb-local:
     profiles: ["mongodb-local", "local-atlas"]
-    image: mongodb/mongodb-atlas-local:latest
+    # Pin 8.3.x — volumes from prior :latest often have FCV 8.3; 8.0.x refuses them
+    # (exit 62) and Compose waits forever. Downgrade below volume FCV → mongodb reset.
+    image: mongodb/mongodb-atlas-local:8.3.3
     container_name: ${MONGODB_LOCAL_CONTAINER_NAME:-rag-params-finder-mongodb-local}
     ports:
       - "27017:27017"
@@ -147,7 +150,8 @@ services:
   # CLI on host: export DATABASE_URL from scripts/lib/compose.sh (RAG_LOCAL_DATABASE_URL_HOST)
   postgres-local:
     profiles: ["postgres-local", "local-postgres"]
-    image: pgvector/pgvector:pg16
+    # Pin pgvector + PG major (not floating :pg16). 0.8.x required for hnsw.iterative_scan.
+    image: pgvector/pgvector:0.8.5-pg16
     container_name: ${POSTGRES_LOCAL_CONTAINER_NAME:-rag-params-finder-postgres-local}
     ports:
       - "5433:5432"

@@ -59,13 +59,15 @@ rag-params-finder run --config configs/mongodb/example-local.yaml
 
 One-command stack for server + dashboard (MongoDB Atlas stays external). The **CLI runs on the host** at `SERVER_URL=http://localhost:8001` ([ADR-001](../adr/ADR-001-two-process-architecture.md)).
 
-**Prerequisites:** Docker Desktop (or engine + Compose v2), valid `.env` with `MONGODB_URI`, Atlas search indexes per [mongodb-setup](../user-guide/mongodb-setup.md).
+**Prerequisites:** Docker Desktop (or engine + Compose v2), plus either:
+- **Mongo:** `MONGODB_URI` (Atlas cloud) or `./start-services.sh --mongodb-local` — search indexes per [mongodb-setup](../user-guide/mongodb-setup.md)
+- **Postgres:** `STORAGE_BACKEND=postgres` + `DATABASE_URL`, or `./start-services.sh --postgres-local` / `--postgres-cloud` — [postgres-setup](../user-guide/postgres-setup.md)
 
 ```bash
 cp .env.example .env
 ./start-services.sh              # prod: built frontend + uvicorn (ports 8001, 5374)
 ./start-services.sh --force-build # rebuild images even when source unchanged
-./scripts/health-check.sh        # smoke: server, frontend, Atlas via /healthz
+./scripts/health-check.sh        # smoke: /healthz active backend + any local Mongo/Postgres containers + frontend
 
 # Host CLI (install once: uv pip install -e .)
 rag-params-finder run --config configs/mongodb/example-local.yaml

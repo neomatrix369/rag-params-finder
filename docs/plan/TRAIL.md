@@ -4,7 +4,7 @@
 ## Original Material
 
 - **PCTO Spec** (`docs/PCTO-rag-params-finder-2026-06-27.md`): Add SIE as primary open-source inference backend (encode + score + extract), caller-supplied corpus (`corpus: list[str]` field on `SweepRequest`), Aim for experiment tracking, and two new API endpoints (`POST /api/v1/sweep`, `GET /api/v1/best-config`)
-- **Supabase migration PRD** (`docs/plan/PRD-supabase-pgvector-migration.md`, 2026-07-09): Dual-backend storage Protocol; Postgres/pgvector + Supabase as target primary store; Mongo retained for rollback/A-B until Slice 38 cutover
+- **Supabase migration PRD** (`docs/plan/PRD-supabase-pgvector-migration.md`, 2026-07-09): Dual-backend storage Protocol; Postgres/pgvector + Supabase as first-class engine alongside Mongo (code default stays `mongodb` — #130 Won't flip)
 - **Codebase** (v0.11.0, 20+ slices complete): Mature Voyage AI + local sentence-transformers RAG sweep pipeline, MongoDB Atlas, FastAPI, React dashboard, Docker, full CI toolchain
 - **Constraints**: Hackathon deadline — Slice 21 targets Days 1–5; Voyage AI stays as numeric baseline (not replaced); PCTO changes remain additive; **Slice 39 is a ≤2 h demo interrupt, then storage migration resumes ahead of Slice 22** (2026-07-18)
 
@@ -34,7 +34,7 @@ Each PCTO / migration slice lives in its own file below. Existing planned slices
 | 35 | [../plan/slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md](../plan/slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md) | Postgres sparse + hybrid RRF (+ Mongo equivalence gate) | Must | ✅ COMPLETE | 34 | — | ~2 min | 2026-07-26 |
 | 36 | [../plan/slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md](../plan/slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md) | Preflight + db-stats + four-value storage_mode | Must | ✅ COMPLETE | 35 | — | ~2 min | 2026-07-26 |
 | 37 | [../plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md](../plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) | `--<db>-local/cloud` + config gate + product-wording vocabulary | Must | ✅ COMPLETE | 36 | — | ~2 min | 2026-07-26 |
-| 38 | [../plan/slices/SLICE-38-CUTOVER-ADR-004.md](../plan/slices/SLICE-38-CUTOVER-ADR-004.md) | Quality comparison + ADR-004 + default cutover | Must | 📋 PLANNED | 37 | — | ~2 min | 2026-07-26 |
+| 38 | [../plan/slices/SLICE-38-CUTOVER-ADR-004.md](../plan/slices/SLICE-38-CUTOVER-ADR-004.md) | Quality comparison + ADR-004 + default cutover | Must | ✅ COMPLETE | 37 | [#118](https://github.com/neomatrix369/rag-params-finder/pull/118) | ~2 min | 2026-07-26 |
 | 43 | [../plan/slices/SLICE-43-SUPABASE-CONFIG-VERIFICATION.md](../plan/slices/SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) | Supabase example-config verification + operator QoL | Could | ✅ COMPLETE | 35 (soft: 37) | [#115](https://github.com/neomatrix369/rag-params-finder/pull/115) | ~2 min | 2026-07-26 |
 | 44 | [../plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md](../plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md) | Frontend coverage + gate summary (spun from 43) | Should | 📋 PLANNED | none | — | ~2 min | 2026-07-26 |
 | 28 | [../plan/slices/SLICE-28-RESULTS-EXPORT.md](../plan/slices/SLICE-28-RESULTS-EXPORT.md) | Results export — CSV/JSONL download (issue #49; @cschanhniem) | Must | 📋 PLANNED | none | [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | ~3 min | 2026-07-06 |
@@ -121,3 +121,6 @@ Updated as each slice reaches Gate Status PASSED.
 | 2026-07-09 | nw-documentarist-reviewer (iter 3) | **APPROVED** | Gap-bridge docs; soft-dep 30 note applied; latency handoff in SLICE-11 |
 | 2026-07-26 | nw-platform-architect-reviewer (Slice 37) | **CONDITIONALLY APPROVED** (planning) | Unimplemented Musts reclassified as execution exits; 422 + post-start templates applied |
 | 2026-07-26 | nw-platform-architect-reviewer (Slice 37) | **CONDITIONALLY APPROVED** (planning) | Missing Musts reclassified as execution exits; 422 + post-start templates applied |
+| 2026-07-26 | nw-platform-architect-reviewer (Slice 38) | **NEEDS REVISION** → remediations applied | BLOCKERs: flip surfaces + Mongo export; latency metric; baseline feasibility; SUPABASE_URI placeholder — DECISIONS #114–#118; pins #120–#121 |
+| 2026-07-26 | Slice 38 gate hygiene | All non-100%-Yes gates → Slice 43 residuals | DECISIONS #125/#126 — local comparison only for 38 COMPLETE |
+| 2026-07-26 | Slice 38 COMPLETE | ✅ PASSED — no default flip (#130 Won't) | ADR-004 + comparison VERIFIED; default stays mongodb permanently; backends independent (#129) |

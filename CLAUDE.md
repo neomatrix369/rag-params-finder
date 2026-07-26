@@ -84,9 +84,9 @@ rag-params-finder pause <experiment-id>
 rag-params-finder resume <experiment-id>
 rag-params-finder delete <experiment-id>           # Delete experiment and all data
 rag-params-finder delete <experiment-id> --force   # Skip confirmation
-rag-params-finder indexes list                     # Atlas Search indexes (known vs unknown)
-rag-params-finder indexes reset                    # Drop unknown indexes + ensure required
-rag-params-finder indexes reset --all              # Drop all chunks indexes + recreate
+rag-params-finder indexes list                     # Atlas known/unknown OR Postgres PRESENT/MISSING
+rag-params-finder indexes reset                    # Atlas only — drop unknown + ensure required
+rag-params-finder indexes reset --all              # Atlas only — rebuild all chunks search indexes
 rag-params-finder version
 ```
 
@@ -97,7 +97,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | File | Purpose |
 |---|---|
 | `server/main.py` | FastAPI app entry; lifespan ensures DB indexes + orphan reconciliation |
-| `server/settings.py` | Centralized pydantic-settings config (`storage_backend`: `mongodb` default or `postgres`) |
+| `server/settings.py` | Centralized pydantic-settings config (`storage_backend`: `mongodb` default permanently — DECISIONS #130 — or `postgres`) |
 | `server/db/storage.py` | `StorageBackend` Protocol — experiment/run/chunk/result CRUD + cascade + reconciliation |
 | `server/db/retriever_backend.py` | `RetrieverBackend` Protocol — dense/sparse/hybrid search port |
 | `server/db/mongo_store.py` | Mongo adapters for both ports (Atlas / Atlas Local) |

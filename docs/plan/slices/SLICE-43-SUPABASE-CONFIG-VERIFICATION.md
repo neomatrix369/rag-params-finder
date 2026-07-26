@@ -80,7 +80,7 @@ Static checks passed; no observed end-to-end sweep of a **supabase** example aga
   *(historical note: checklist originally said `--postgres`; that short flag was removed in Slice 37)*
   (16 runs — dense · sparse · hybrid · cross_encoder, local embeddings)
 - [x] Gate evidence note (command, date, experiment id / outcome) under `docs/plan/gate-evidence/` or PROGRESS Decision Log — **VERIFIED** 2026-07-26: [`slice-43.json`](../gate-evidence/slice-43.json), experiment `dd107437-be69-4d62-a549-003b743ed841`, 16/16 complete
-- [ ] Optional stretch: same config (or smoke twin) against hosted Supabase `DATABASE_URL`
+- [ ] Optional stretch: same config (or smoke twin) against hosted Supabase `DATABASE_URL` — **superseded by residuals §Parked from Slice 38** (full hosted quality matrix, not just smoke)
 
 ### 2. Backend switch is env, not YAML
 `database_provider: supabase` is **metadata** (db-stats / labels). Runtime path is `STORAGE_BACKEND=postgres` + `DATABASE_URL`. Operators can submit a supabase YAML while the server is still on mongodb.
@@ -98,7 +98,7 @@ Operators naturally ask “what’s the Supabase equivalent of `MONGODB_URI`?”
 | Concern | MongoDB (today) | Postgres / Supabase (today) |
 |---|---|---|
 | Connection string | `MONGODB_URI` | `DATABASE_URL` (no `SUPABASE_URI` / `POSTGRES_URI`) |
-| Backend select | Often implicit (`STORAGE_BACKEND` defaults to `mongodb`; legacy alias `mongo`) | Explicit second knob: `STORAGE_BACKEND=postgres` |
+| Backend select | Often implicit (`STORAGE_BACKEND` defaults to `mongodb` permanently — #130; legacy alias `mongo`) | Explicit second knob: `STORAGE_BACKEND=postgres` |
 | Config folder / YAML label | `configs/mongodb/` · `database_provider: mongodb` | `configs/supabase/` · `database_provider: supabase` |
 | Runtime backend token | `mongodb` (settings) | `postgres` (settings) — **not** `supabase` |
 
@@ -146,7 +146,8 @@ Single routing table (merges the former “collated 6b” and “non-goals 7” 
 | Item | Owner | Ref |
 |---|---|---|
 | SPLADE / `sparsevec` / 30522-dim storage | Slice **22** | [#112](https://github.com/neomatrix369/rag-params-finder/pull/112), [#111](https://github.com/neomatrix369/rag-params-finder/pull/111) |
-| ADR-004 (dual-backend record) + cross-backend quality / rank-overlap (Lucene vs `ts_rank`) matrix | Slice **38** | [#113](https://github.com/neomatrix369/rag-params-finder/pull/113), [#112](https://github.com/neomatrix369/rag-params-finder/pull/112); DECISIONS #93 |
+| ADR-004 + **local** dual-backend quality / rank-overlap matrix (Lucene vs `ts_rank`) | Slice **38** | [#113](https://github.com/neomatrix369/rag-params-finder/pull/113), [#112](https://github.com/neomatrix369/rag-params-finder/pull/112); DECISIONS #93 / #125 |
+| Hosted `postgres-cloud` production-claim quality/latency matrix + PRD bookkeeping + sync-docs parked from 38 | **This slice — residuals below** | DECISIONS #125 / #126; default flip Won't (#130) |
 | Env renames/aliases, `--<db>-local\|cloud`, four-value `storage_mode`, config↔server 422, two-command switching | Slice **37** | [#111](https://github.com/neomatrix369/rag-params-finder/pull/111) operator contract |
 | IndexBackend / index-seam + Atlas preflight parity for Postgres | Slice **36** | [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) |
 | `_id` synthesised on Postgres reads (not stored) | Documented deferral / hygiene (existing slices, not 43) | [#113](https://github.com/neomatrix369/rag-params-finder/pull/113), [#111](https://github.com/neomatrix369/rag-params-finder/pull/111) |
@@ -230,3 +231,30 @@ Nothing else in Slice 43 depends on it.
 ## Gate Status
 
 ✅ PASSED — runtime and documentation gates verified 2026-07-26; mandatory nw-documentarist review APPROVED
+
+> **Residuals open (do not reopen COMPLETE):** §Parked from Slice 38 below. Pick up when claiming production `postgres-cloud` cutover or cleaning PRD bookkeeping — not required to keep Slice 43 ✅.
+
+---
+
+## Parked from Slice 38 (2026-07-26 — DECISIONS #125 / #126)
+
+Anything that was **not a clear Yes** on the Slice 38 realism review lives here. Slice 38 COMPLETE gates only on local comparison + ADR + independent dual-backend model (#129) + no default flip (#130) + `slice-38.json` + tracker/CHANGELOG. Slice 43 status stays ✅; these are post-COMPLETE residuals.
+
+| Item | Why not 100% Yes on 38 | Acceptance (when picked up) |
+|---|---|---|
+| Hosted `postgres-cloud` quality + latency matrix vs Mongo | Production claim ≠ local comparison; free-tier pause risk | Amend comparison artifact with hosted mode scope; QUERYING ≤2×; numeric top-3; claim only if PASS/CONDITIONAL |
+| Slice 37 hosted Path B as Before for production claim | Nuanced — required for production claim only | Use `slice-37.json` hosted smoke as Before for this residual |
+| Hosted-unreachable / withhold-production-claim GWT | Belongs with hosted matrix | Document partial hosted scope; no PASS claim |
+| ~~Post-flip fresh-clone / Mongo rollback GWTs~~ | **Dropped — DECISIONS #130 Won't** (no code-default flip) | N/A |
+| ADR **Pro-tier / non-pausing** note as COMPLETE mandate | Production-claim prose, not local comparison | ADR-004 Consequences (or amend) state Pro/non-pausing for warm demos |
+| 32/32B/32C/33 tracker one-liner in comparison/ADR | Half-wrong Before; DECISIONS already notes debt | Optional one-liner in artifact/ADR; formal PRD tick separate below |
+| PRD §9 boxes for slices 33–37 + evidence pointers | Scope creep / historical bookkeeping | Edit PRD §9 so only genuine open work remains |
+| Full PRD §Documentation matrix audit (README default, CLAUDE Key Files, cross-links, …) | Overscoped vs CHANGELOG+ADR | Tick or defer each matrix row with evidence |
+| `/sync-docs` operator + contributor footprint for #130 (permanent `mongodb` default) | **APPLIED** 2026-07-26 | README/AGENTS/CLAUDE/getting-started/configuration/postgres-setup/troubleshooting/architecture/`.env.example`/`docker-compose.yml` + plan surfaces |
+| Branch coverage **100%** on shell helpers | Unrealistic here | Targeted shell tests **or** permanent exclusions documented |
+| Shell-exclusion documentation as After-Check | Softened 100% gate still process debt | Same as row above |
+| Separate “specification coverage” After-Check for every GWT | Probes already required inside comparison artifact | Ensure residual GWTs have probes when those residuals run |
+| Graphiti dual-backend decision episode as COMPLETE gate | Process hygiene | Optional episode `rag-params-finder-flow-planner` |
+| PRD rollback spelling with baked verification date | Brittle checklist date | “Canonical `mongodb` verified” without fixed date, or N/A |
+
+**Won’t re-open Slice 43 COMPLETE** when these land — treat as residual follow-ups / optional amend to gate-evidence.

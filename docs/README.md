@@ -61,7 +61,8 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 |-----|----------------|
 | [adr/ADR-001-two-process-architecture.md](./adr/ADR-001-two-process-architecture.md) | CLI + server separation |
 | [adr/ADR-002-voyage-and-local-providers.md](./adr/ADR-002-voyage-and-local-providers.md) | Dual embedding/rerank providers |
-| [adr/ADR-003-mongodb-atlas-vector-store.md](./adr/ADR-003-mongodb-atlas-vector-store.md) | MongoDB Atlas as vector store |
+| [adr/ADR-003-mongodb-atlas-vector-store.md](./adr/ADR-003-mongodb-atlas-vector-store.md) | MongoDB Atlas as vector store (**Superseded** by ADR-004; Mongo still supported) |
+| [adr/ADR-004-postgresql-pgvector-vector-store.md](./adr/ADR-004-postgresql-pgvector-vector-store.md) | Dual-backend: Postgres/pgvector (Supabase) **and** MongoDB |
 | [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) | Slice status, decision log, forward roadmap |
 | [plan/slices/SLICE-*.md](./plan/slices/) | Per-slice specs (acceptance criteria, verification) |
 

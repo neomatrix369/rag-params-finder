@@ -12,7 +12,7 @@ backend — Postgres with the `pgvector` extension — instead of MongoDB Atlas.
 | Term | What it is in this project |
 |---|---|
 | **Postgres + pgvector** | The **only** non-Mongo storage backend (`STORAGE_BACKEND=postgres`). Same SQL adapter for every deployment. |
-| **Local Docker** | A `pgvector/pgvector:pg16` container on your laptop (`./start-services.sh --postgres-local`). |
+| **Local Docker** | A `pgvector/pgvector:0.8.5-pg16` container on your laptop (`./start-services.sh --postgres-local`). |
 | **Supabase** | A **hosted Postgres product** (managed cloud Postgres + dashboard). We connect with a normal `postgresql://…` URI — not a separate Supabase SDK or API. Start with `./start-services.sh --postgres-cloud`. |
 | **`configs/supabase/`** | Example YAML **folder name** for Postgres-path configs (mirrors `configs/mongodb/`). Not a second backend and not `STORAGE_BACKEND`. |
 | **`database_provider`** | Engine intent only: `mongodb` \| `postgres`. Deprecated YAML input `supabase` **normalizes to `postgres`** (DeprecationWarning). Location (local vs cloud) comes from the URI → `storage_mode`. |
@@ -69,7 +69,7 @@ Use `./start-services.sh --postgres-local` or `--postgres-cloud`, or submit a
 | Concern | Mongo (today) | Postgres path (local **or** Supabase) |
 |---|---|---|
 | Connection string | `MONGODB_URI` | `DATABASE_URL` (canonical); optional `SUPABASE_URI` alias — no `POSTGRES_URI` |
-| Backend select | Often implicit (`STORAGE_BACKEND` defaults to `mongodb`) | Explicit: `STORAGE_BACKEND=postgres` (or `--postgres-*` flag) |
+| Backend select | Often implicit (`STORAGE_BACKEND` defaults to `mongodb` permanently — #130) | Explicit: `STORAGE_BACKEND=postgres` (or `--postgres-*` flag) |
 | Config folder / YAML engine | `configs/mongodb/` · `database_provider: mongodb` | `configs/supabase/` · `database_provider: postgres` (`supabase` input → normalize) |
 | Runtime backend token | `mongodb` | `postgres` — Supabase is **not** a separate token |
 | Location identity | `storage_mode=mongodb-local\|cloud` | `storage_mode=postgres-local\|cloud` |
@@ -100,12 +100,38 @@ export STORAGE_BACKEND=postgres
 export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 ```
 
+### Native dev (Postgres in Docker, server/frontend on host)
+
+```bash
+# Terminal 1 — Postgres only (blocks until healthy)
+./start-services.sh postgres start
+
+# Terminal 2 — server
+export STORAGE_BACKEND=postgres
+export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+uvicorn server.main:app --reload --port 8001
+
+# Terminal 3 — frontend
+cd frontend && npm run dev
+```
+
+> **Wait for Postgres to be healthy before starting uvicorn.** Prefer
+> `./start-services.sh postgres start` (it waits). If you started the container
+> another way:
+> ```bash
+> until [ "$(docker inspect --format='{{.State.Health.Status}}' \
+>   rag-params-finder-postgres-local 2>/dev/null)" = "healthy" ]; do
+>   echo "waiting for Postgres…"; sleep 5
+> done
+> ```
+
 ### Operational checks (required)
 
 - Liveness: `curl -sS http://127.0.0.1:8001/healthz`
   — expect `"storage_backend": "postgres"`, `"storage_mode": "postgres-local"`, and `"postgres": "ok"`
   (hosted Supabase reports `"storage_mode": "postgres-cloud"`)
 - Readiness: `curl -sS http://127.0.0.1:8001/experiments`
+- Dual-container smoke (optional): `./scripts/health-check.sh` — also probes Atlas Local if that container is present
 
 `/healthz` can return success while `/experiments` still fails; run both before
 judging the stack operational.
@@ -116,11 +142,12 @@ judging the stack operational.
 |--------|---------|
 | Full stack — local Postgres | `./start-services.sh --postgres-local` |
 | Full stack — hosted Supabase | `./start-services.sh --postgres-cloud` (requires `DATABASE_URL`; no `MONGODB_URI`) |
-| Container only | `docker compose --profile postgres-local up -d postgres-local` |
-| Stop Postgres profile | `docker compose --profile postgres-local down` |
-| Lifecycle (container only) | `./start-services.sh postgres [start\|stop\|reset\|status]` |
+| Postgres container only | `./start-services.sh postgres start` |
+| Stop local Postgres | `./start-services.sh postgres stop` |
 | Wipe local data (volume) | `./start-services.sh postgres reset` |
-| Status | `docker ps --filter name=postgres-local` |
+| Status + connection string | `./start-services.sh postgres status` |
+
+Optional raw Compose (same profile): `docker compose --profile postgres-local up -d postgres-local` / `down`. Prefer the `postgres` subcommands above for parity with Mongo.
 
 Deprecated env alias (still works): `RAG_LOCAL_POSTGRES=1` → `--postgres-local`; compose profile `local-postgres` → `postgres-local`. The old `--postgres` / `-p` flags were removed — use `--postgres-local`.
 
@@ -130,7 +157,7 @@ Deprecated env alias (still works): `RAG_LOCAL_POSTGRES=1` → `--postgres-local
 |-----------|----------------|
 | Mongo local → Postgres local | `./start-services.sh --postgres-local` + `configs/supabase/example-local.yaml` |
 | Mongo cloud → Postgres cloud | put `DATABASE_URL` in `.env`, `./start-services.sh --postgres-cloud` + `configs/supabase/example-*.yaml` |
-| Postgres → Mongo | `--mongodb-local` or `--mongodb-cloud` + matching `configs/mongodb/example-*.yaml` |
+| Postgres → Mongo | `--mongodb-local` or `--mongodb-cloud` + matching `configs/mongodb/example-*.yaml` (forces `STORAGE_BACKEND=mongodb` even if `.env` still has a leftover `STORAGE_BACKEND=postgres`) |
 | Postgres local → Postgres cloud | `--postgres-cloud` (same `database_provider: postgres` YAML OK after normalize) |
 
 YAML `database_provider: supabase` still loads but normalizes to `postgres`. A wrong engine vs the running server returns **HTTP 422** before index preflight (distinct from catalog missing-index 422).
@@ -198,10 +225,16 @@ No manual index creation — see [Schema](#schema) below.
 `ensure_env` requires `DATABASE_URL` or `SUPABASE_URI` and does **not** require `MONGODB_URI`. Bare
 `./start-services.sh` with `.env` `STORAGE_BACKEND=postgres` behaves the same.
 
+An unedited placeholder URI (one still containing `<project-ref>`, `<password>`, or `<region>`) is
+**rejected before startup** — both the start script and the server's `ensure_storage_ready` fail with a
+clear message rather than an opaque connect error. Replace the placeholder with a real Session-mode URI,
+or use `--postgres-local` (no cloud URI required).
+
 ### Pooler / pause troubleshooting
 
 | Symptom | Likely cause | Action |
 |---------|--------------|--------|
+| "placeholder DATABASE_URL / SUPABASE_URI" on start | Copied `.env.example` URI unedited (`<project-ref>`) | Paste a real Session-mode URI, or use `--postgres-local` |
 | Prepared statement errors | Transaction pooler mode | Use **Session mode** URI from the dashboard |
 | Connection timeout on boot | Paused free-tier project | Resume in Supabase UI or upgrade tier; `/healthz` shows `"postgres": "error"` |
 | HNSW query failures | Wrong pooler or missing extension | Session mode + `CREATE EXTENSION vector` in SQL editor |
@@ -318,10 +351,15 @@ documented first prove (Slice 43 Won’t).
 
 ---
 
-## Dense retrieval (operator note)
+## Retrieval (operator note)
 
-Dense search uses pgvector HNSW on `embedding_384` / `embedding_1024`. Scores are
-reported on Atlas’s scale (`(1 + cosine) / 2`) so backends stay comparable.
+| YAML `type` | Postgres engine |
+|---|---|
+| `dense` | **pgvector** HNSW on `embedding_384` / `embedding_1024` |
+| `sparse` | **Not pgvector** — `tsvector` / `ts_rank` full-text |
+| `hybrid` | RRF of dense (pgvector) + sparse (FTS), `rrf_k=60` |
+
+Dense scores are reported on Atlas’s scale (`(1 + cosine) / 2`) so backends stay comparable.
 
 **HNSW warning:** with filters (`experiment_id` / `embedding_model` / `run_id`),
 HNSW can return fewer than `LIMIT` rows unless `hnsw.iterative_scan = strict_order`
@@ -352,7 +390,7 @@ Container not running or still starting. Check
 `docker logs rag-params-finder-postgres-local`.
 
 **`type "vector" does not exist`**
-Use `pgvector/pgvector:pg16` (compose default), not stock `postgres`.
+Use `pgvector/pgvector:0.8.5-pg16` (compose default), not stock `postgres`.
 
 **`No Postgres vector column for N-dim embeddings`**
 Supported widths are 384 and 1024; see [Schema](#schema).
