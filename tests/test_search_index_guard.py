@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,6 +21,19 @@ from server.models.config import (
     RetrievalConfig,
 )
 from server.models.enums import ChunkingMethod, RetrievalMethod
+
+
+@pytest.fixture(autouse=True)
+def mongo_backend() -> Iterator[None]:
+    """Pin the Mongo backend for every test in this module.
+
+    validate_experiment_search_indexes short-circuits on non-Mongo backends, so
+    without this pin an ambient STORAGE_BACKEND=postgres in the shell silently
+    turns the Atlas-path tests into no-ops. Tests that exercise the backend gate
+    itself re-patch this value locally.
+    """
+    with patch("server.settings.settings.storage_backend", "mongo"):
+        yield
 
 
 def _local_sparse_config() -> ExperimentConfig:
