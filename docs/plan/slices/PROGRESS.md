@@ -687,6 +687,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-26 | hygiene | Experiment detail resolves a storage backend only when it must load runs or persist reconciliation; Bayesian summary is built either way | `ensure_storage_ready()` raises without `MONGODB_URI`, so the unit tier failed in CI while passing locally off `.env`; the detail path already had its run rows and needed no backend |
 | 2026-07-26 | hygiene | Unit tier ignores live DB suites; session-scoped `live_postgres_pool` + schema advisory lock for live jobs | Interleaved contract+dense/sparse fixtures called `close_pool()` per test → DDL deadlocks / FK races; CI unit job must stay DB-free while postgres/mongo jobs own live coverage |
 | 2026-07-26 | hygiene | Boundary hygiene, no folder moves: rename agnostic `mongo_*` API helpers to port verbs; `retriever.py` → `retriever_mongo.py`; Mongo-only docstring markers in place | Ports already load-bearing; physical `server/db/mongo/` split would collide with open 32/33 work; naming was the real leak |
 | 2026-07-26 | hygiene | Shared live `StorageBackend` contract suite (`tests/contract/`) + `tests/conftest.py` skip helpers; CI `mongo-integration` job (Atlas Local) mirrors `postgres-integration` | Mongo acceptance was mocked, Postgres was live-only — nothing asserted both adapters answer the port identically (Slice 38 prerequisite) |

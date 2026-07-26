@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Unit tier without a database URI** — experiment detail no longer resolves a storage backend when run rows are already present, and Mongo `store_factory` tests supply a URI, so the unit suite passes with `MONGODB_URI` unset (CI) as well as with a populated `.env` (local)
 - **Bayesian PARTIAL+failures `UnboundLocalError`** — `_finalise_bayesian_experiment` had no `completion_reason` assignment when `final_status` was `PARTIAL` with `failed_count > 0`; added `else: completion_reason = "partial_completion"` branch, preventing an `UnboundLocalError` crash on experiments where some trials failed but not all. Uncovered by acceptance test AT-08 in this slice.
 - **Dependency audit determinism** — audit the project `.venv`, upgrade Pillow to `>=12.3.0`, and document narrow ML advisory exceptions where patched releases require an incompatible major upgrade or lack a declared-platform wheel
 - **Semantic chunker overlap** (PR #47, closes #44) — `overlap` honored with sentence-granular trailing-sentence carry; fixes duplicate sweep runs when varying overlap

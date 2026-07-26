@@ -154,11 +154,14 @@ def _normalize_stale_running_status(experiment: dict) -> dict:
 
     experiment_id = experiment.get("experiment_id") or experiment.get("_id")
     if not experiment_id or is_sweep_in_flight(experiment_id):
+        # Still expose Bayesian progress while a sweep is in flight; do not touch storage.
+        _ensure_bayesian_summary(experiment, runs=runs)
         return experiment
 
     runs = list(runs)
-    storage = get_storage_backend()
+    storage = None
     if not runs:
+        storage = get_storage_backend()
         runs = storage.find_run_statuses(experiment_id)
     _ensure_bayesian_summary(experiment, runs=runs)
     if not runs:
@@ -198,6 +201,8 @@ def _normalize_stale_running_status(experiment: dict) -> dict:
         "completion_reason": completion_reason,
         "completed_at": now,
     }
+    if storage is None:
+        storage = get_storage_backend()
     storage.update_experiment(experiment_id, resolved)
     experiment.update(resolved)
     _ensure_bayesian_summary(experiment, runs=runs)
