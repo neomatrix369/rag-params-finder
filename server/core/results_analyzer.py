@@ -28,7 +28,7 @@ def _run_config_key(run: dict) -> tuple[str, str, str, str, int, int, int, str, 
         retriever_type = primary.get("type", retriever_type)
         retriever_model = primary.get("model") or retriever_model
     return (
-        run.get("database_provider", "mongodb"),
+        run.get("database_provider", settings.default_database_provider()),
         run.get("embedding_provider", "local"),
         run["embedding_model"],
         run["chunking_method"],
@@ -46,11 +46,11 @@ def analyze_results(
     run_statuses: list[dict[str, Any]],
     selected_query: str | None = None,
 ) -> dict[str, Any]:
-    """Build the explore response from raw MongoDB documents.
+    """Build the explore response from storage-backend result documents.
 
     Args:
-        query_results: docs from the ``results`` collection.
-        run_statuses: docs from the ``run_status`` collection.
+        query_results: Records from the ``results`` collection or table.
+        run_statuses: Records from the ``run_status`` collection or table.
         selected_query: optional query_text filter; None means all queries.
 
     Returns:
@@ -122,7 +122,9 @@ def analyze_results(
                 {
                     "score": normalized,
                     "raw_score": round(raw, 4),
-                    "database_provider": run.get("database_provider", "mongodb"),
+                    "database_provider": run.get(
+                        "database_provider", settings.default_database_provider()
+                    ),
                     "embedding_provider": run.get("embedding_provider", "local"),
                     "embedding_model": chunk.get("embedding_model", run.get("embedding_model", "")),
                     "chunking_method": chunk.get("chunk_method", run.get("chunking_method", "")),

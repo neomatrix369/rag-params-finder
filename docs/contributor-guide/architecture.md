@@ -242,6 +242,40 @@ Detection: `server/db/mongodb_uri.py` (`is_atlas_uri`). TLS enabled only for clo
 
 ---
 
+## 🗄️ Postgres / pgvector Backend
+
+`STORAGE_BACKEND=postgres` selects the Postgres adapters (`postgres_store.py`,
+`retriever_postgres.py`). Default remains `STORAGE_BACKEND=mongodb` (legacy
+alias `mongo` normalizes to `mongodb`). **One backend**, two deployments: local Docker
+(`./start-services.sh --postgres`) or **Supabase-hosted Postgres** (same adapter;
+cloud `DATABASE_URL`). Example YAMLs live under `configs/supabase/` — that folder
+name is not a second storage backend. Schema:
+[`server/db/schema.sql`](../../server/db/schema.sql).
+Operator setup: [Postgres Setup](../user-guide/postgres-setup.md).
+
+### Dense retrieval — HNSW and `iterative_scan`
+
+Dense search ranks by cosine similarity using pgvector’s `<=>` operator against
+HNSW indexes on `embedding_384` and `embedding_1024`. Scores are reported on
+**Atlas’s scale**, `(1 + cosine) / 2`, so an identical vector scores `1.0` and an
+orthogonal one `0.5`. pgvector returns cosine *distance*; the query converts with
+`1 - distance / 2`.
+
+An HNSW index cannot apply a `WHERE` clause inside itself. Mandatory filters
+(`experiment_id` / `embedding_model` / `run_id`) therefore run *after* the index
+returns candidates, and anything filtered out is lost from the top-k. Measured on
+a 2 472-chunk table with the planner forced onto HNSW, a query asking for 20 rows
+came back with **3**.
+
+Every pooled connection therefore sets `hnsw.iterative_scan = strict_order`
+(pgvector ≥ 0.8), which keeps re-scanning until the limit is satisfied, in exact
+distance order. On an older pgvector the server logs a warning and Postgres falls
+back to an exact non-index scan — slower, but never short. A truncated result set
+changes sweep scores without a visible error — upgrade pgvector if that warning
+appears.
+
+---
+
 ## 🗄️ MongoDB Collections
 
 | Collection | Purpose | Key Indexes |

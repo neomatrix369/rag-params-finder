@@ -50,7 +50,7 @@ abc123-run-0 | all-MiniLM-L6-v2  | recursive | 512  | 50      | EMBEDDING
 abc123-run-1 | all-MiniLM-L6-v2  | recursive | 512  | 0       | CHUNKING
 ```
 
-**Preflight:** submission fails immediately with a clear error if required Atlas Search indexes are missing or the cluster search-index quota is exhausted (HTTP 422). Fix indexes first — see [Troubleshooting → Search index preflight failed](troubleshooting.md#-search-index-preflight-failed).
+**Preflight (Mongo only):** submission fails immediately with a clear error if required Atlas Search indexes are missing or the cluster search-index quota is exhausted (HTTP 422). Fix indexes first — see [Troubleshooting → Search index preflight failed](troubleshooting.md#-search-index-preflight-failed). On `STORAGE_BACKEND=postgres`, Atlas index preflight is skipped (schema/indexes come from `schema.sql`) — see [Postgres Setup](postgres-setup.md).
 
 ---
 
@@ -116,13 +116,13 @@ rag-params-finder delete abc123-def4-5678-90ab-cdefg1234567
 rag-params-finder delete abc123-def4-5678-90ab-cdefg1234567 --force
 ```
 
-**Use case:** Free up MongoDB Atlas storage by removing old experiments. The free M0 tier has a 512MB storage limit, and embeddings consume significant space (~40MB per 10k chunks).
+**Use case:** Free storage by removing old experiments. Atlas M0 has a 512MB limit (~40MB per 10k chunks of embeddings). On Postgres/Supabase, cascade delete frees the same experiment rows/chunks — same CLI.
 
 ---
 
 ### `indexes` — Manage Atlas Search indexes
 
-**Mongo-only.** With `STORAGE_BACKEND=postgres` (or any non-mongo backend), these commands exit with a clear “not applicable” message instead of calling Atlas APIs.
+**MongoDB-only.** With `STORAGE_BACKEND=postgres` (or any non-mongodb backend), these commands exit with a clear “not applicable” message instead of calling Atlas APIs.
 
 Inspect and repair search indexes on the connected cluster. Useful on **M0 free tier** where the 3-index cluster-wide limit is easy to exceed.
 
@@ -210,7 +210,7 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/healthz` | Liveness for the active storage backend — Mongo: `{"ok": true, "storage_backend": "mongo", "mongodb": "ok"}`; Postgres: `{"ok": true, "storage_backend": "postgres", "postgres": "ok"}`; HTTP 503 when the active backend is unreachable |
+| GET | `/healthz` | Liveness for the active storage backend — MongoDB: `{"ok": true, "storage_backend": "mongodb", "mongodb": "ok"}`; Postgres: `{"ok": true, "storage_backend": "postgres", "postgres": "ok"}`; HTTP 503 when the active backend is unreachable |
 | GET | `/health` | Extended health — storage fields from `/healthz` plus `sie` (`disabled` / `reachable` / `unreachable`) and `version` |
 | POST | `/api/v1/sweep` | Tier 1 ranked SIE vs Voyage sweep over caller-supplied corpus *(see [sie-setup.md](sie-setup.md))* |
 | GET | `/api/v1/best-config` | Best config from sweep history *(placeholder — Slice 22)* |

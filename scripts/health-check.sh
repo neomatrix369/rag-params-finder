@@ -27,10 +27,10 @@ else
   check "server ${SERVER_URL}/healthz responds" true
   if command -v python3 >/dev/null 2>&1; then
     ok_flag="$(python3 -c "import json,sys; d=json.loads(sys.argv[1]); print('true' if d.get('ok') else 'false')" "$health_json")"
-    backend="$(python3 -c "import json,sys; d=json.loads(sys.argv[1]); print(d.get('storage_backend') or 'mongo')" "$health_json")"
+    backend="$(python3 -c "import json,sys; d=json.loads(sys.argv[1]); print(d.get('storage_backend') or 'mongodb')" "$health_json")"
     if [[ "$ok_flag" != "true" ]]; then
       check "storage backend ready via server (ok=false, backend=${backend})" false
-      echo "     Hint: for postgres set DATABASE_URL; for mongo set MONGODB_URI / Atlas Network Access"
+      echo "     Hint: for postgres set DATABASE_URL; for mongodb set MONGODB_URI / Atlas Network Access"
     elif [[ "$backend" == "postgres" ]]; then
       postgres_status="$(python3 -c "import json,sys; d=json.loads(sys.argv[1]); print(d.get('postgres',''))" "$health_json")"
       if [[ "$postgres_status" == "ok" ]]; then

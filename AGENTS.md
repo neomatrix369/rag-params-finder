@@ -14,7 +14,8 @@ Agent session entry point for `rag-params-finder`.
 
 - Run quality gates before and after every change; install hooks with `bash scripts/install-git-hooks.sh` (commit + pre-push checks — see `CLAUDE.md` → Quality Gates Baseline).
 - Follow the slice execution playbook in `CLAUDE.md` → Slice Execution Playbook.
-- Secrets (`VOYAGE_API_KEY`, `MONGODB_URI`) stay server-side — never in CLI configs or committed files.
+- Secrets (`VOYAGE_API_KEY`, `MONGODB_URI`, `DATABASE_URL`) stay server-side — never in CLI configs or committed files.
+- Storage backend: `STORAGE_BACKEND=mongodb` (default) or `postgres`. Legacy `mongo` normalizes to `mongodb`. YAML `database_provider` is a label only — see `docs/user-guide/postgres-setup.md`.
 - Provider/model must match: `provider: local` + Voyage model → Pydantic validation error. SIE: `SIE_ENABLED=true` (on/off, same for both paths), `SIE_ENDPOINT` (where), `SIE_API_KEY` (auth when required) — see `docs/user-guide/sie-setup.md`.
 
 ## Quick commands

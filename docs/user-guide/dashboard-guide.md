@@ -34,7 +34,16 @@ The landing screen presents all submitted experiments as result-led cards, newes
 
 **Collapsible cards**: Click the chevron on a card to expand inline details without leaving the list. Expansion state is remembered per experiment (`localStorage`).
 
-**Operational storage context** (after the experiment list): Aggregated storage footprint for your Atlas cluster — total chunks, estimated embedding storage, active index names, and per-experiment breakdown. Keeping this section after the result-led cards preserves the metrics without competing with lifecycle and outcome information. It loads from `GET /experiments/vector-db-stats` on its own schedule (**every 60 s**, 90 s fetch timeout) so a slow stats aggregation does not block the experiment list (2 s poll, 30 s timeout). When Atlas Admin API credentials or `MONGODB_STORAGE_LIMIT_MB` is configured, the section also shows cluster quota (used/free MB), instance tier (e.g. `M0 (shared)`), cloud provider, and region. The Atlas API does not expose RAM, vCPU, or pricing — only tier and storage limits.
+**Operational storage context** (after the experiment list): Aggregated storage
+footprint for the **active** backend — total chunks, estimated embedding storage,
+index/schema names, and per-experiment breakdown. On **Mongo/Atlas**, when Admin
+API credentials or `MONGODB_STORAGE_LIMIT_MB` is configured, the section also
+shows cluster quota (used/free MB), instance tier (e.g. `M0 (shared)`), cloud
+provider, and region. On **Postgres** (local or Supabase-hosted), the same panel
+reports Postgres-mode labels and footprint without Atlas quota fields. It loads
+from `GET /experiments/vector-db-stats` on its own schedule (**every 60 s**,
+90 s fetch timeout) so a slow stats aggregation does not block the experiment
+list (2 s poll, 30 s timeout).
 
 **Actions**:
 - **View experiment**: Use the explicit action on a card to open the Experiment Detail screen

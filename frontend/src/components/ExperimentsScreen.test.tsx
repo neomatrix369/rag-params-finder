@@ -167,4 +167,31 @@ describe('ExperimentsScreen lifecycle presentation', () => {
     };
     expect(actualLifecyclePresentation).toEqual(expectedLifecyclePresentation);
   });
+
+  it('Given no experiments, when the empty state renders, then both storage paths are offered', async () => {
+    /**
+     * Scenario: A first-time operator can start with MongoDB or Postgres.
+     * Slice: 43 — Supabase/Postgres operator parity.
+     * Given the server returns no experiments.
+     * When the confirmed empty state renders.
+     * Then example commands are shown for both supported storage backends.
+     */
+    // -- Given --
+    apiMocks.getExperiments.mockResolvedValue([]);
+    apiMocks.getExperimentsWithProgress.mockResolvedValue([]);
+
+    // -- When --
+    render(
+      <ExperimentsScreen
+        cacheReady
+        cachedExperiments={[]}
+        cachedVectorDbGroups={[]}
+      />,
+    );
+
+    // -- Then --
+    expect(await screen.findByText('No experiments yet')).toBeInTheDocument();
+    expect(screen.getByText(/configs\/mongodb\/example-local\.yaml/)).toBeInTheDocument();
+    expect(screen.getByText(/configs\/supabase\/example-local\.yaml/)).toBeInTheDocument();
+  });
 });

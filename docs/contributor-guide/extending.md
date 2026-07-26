@@ -52,13 +52,19 @@ For most new models of an existing provider, no changes to the factory are neede
 - Set `"contextualized": True` in `EMBEDDING_MODELS`; `is_contextualized_embedding()` drives dispatch in `embed_documents()`
 - Standard Voyage models (`contextualized: False`) are unaffected — they use `client.embed()` only
 
-### 4. Create an Atlas vector index
+### 4. Create a vector index (Mongo) / column (Postgres)
 
-A new dimension size requires a new Atlas vector index. See [getting-started.md](../user-guide/getting-started.md#2-create-the-atlas-vector-index) for the index JSON format.
+- **Mongo/Atlas:** a new dimension size requires a new Atlas vector index. See
+  [MongoDB Setup → step 6](../user-guide/mongodb-setup.md#6-create-search-indexes-m0--required-before-sweep).
+- **Postgres:** add a nullable `embedding_<dims>` column + HNSW index in
+  [`server/db/schema.sql`](../../server/db/schema.sql) (idempotent on boot). See
+  [Postgres Setup → Schema](../user-guide/postgres-setup.md#schema).
 
 ### 5. Update the example configs
 
-Add the new model to `configs/mongodb/example-local.yaml`, `configs/mongodb/example-voyage.yaml`, or `configs/mongodb/example-sie.yaml` (whichever provider it belongs to), so users can immediately try it.
+Add the new model to the matching example under `configs/mongodb/` **and** the twin
+under `configs/supabase/` (`example-local.yaml`, `example-voyage.yaml`, or
+`example-sie.yaml`), so users can try it on either storage backend.
 
 ---
 
@@ -208,8 +214,9 @@ your adapter. Unknown values must raise `ValueError` (no silent fallback).
 
 ### 3. Settings
 
-`STORAGE_BACKEND` env var → `settings.storage_backend` (default `"mongo"`).
-Postgres path raises `NotImplementedError` until Slice 33+ / 34+.
+`STORAGE_BACKEND` env var → `settings.storage_backend` (default `"mongodb"`; legacy alias `"mongo"`).
+Postgres is implemented (`STORAGE_BACKEND=postgres` + `DATABASE_URL`) — local Docker
+or Supabase-hosted Postgres share one adapter; see [Postgres Setup](../user-guide/postgres-setup.md).
 
 ### 4. Tests
 
@@ -223,9 +230,9 @@ conformance check for the new adapter. Call-site modules must not import
 
 | Gotcha | What to watch for |
 |---|---|
-| Vector dimension mismatch | Local models are 384-dim; Voyage models are 1024-dim. Cannot mix in the same experiment. Each dimension needs its own Atlas vector index. |
+| Vector dimension mismatch | Local models are 384-dim; Voyage/SIE dense are 1024-dim. Cannot mix in the same experiment. Mongo: one Atlas vector index per dimension. Postgres: one `embedding_<dims>` column per width. |
 | Provider/model mismatch | Config validation fails if `provider: local` is paired with a Voyage model name. The `model_registry.py` cross-checks this at load time. |
-| Missing embeddings filter | Always filter Atlas vector search by `embedding_model` — different models produce incompatible vectors that must not be compared. |
+| Missing embeddings filter | Always filter vector search by `embedding_model` (Atlas `$vectorSearch` filter or Postgres `WHERE`) — different models produce incompatible vectors that must not be compared. |
 | Queries file URL caching | URL-sourced query files are downloaded to `configs/` and cached by hash. Delete the cached file to force re-download. |
 | Server must be running | The CLI requires the server at `SERVER_URL` (default: `http://localhost:8001`). All commands fail if the server is down. |
 | Rate limits on Voyage | Free tier: 3 RPM / 10k TPM (defaults). Tier 1: 2,000 RPM + model TPM — set `VOYAGE_RPM_LIMIT` / `VOYAGE_TPM_LIMIT` in `.env`. |

@@ -46,7 +46,7 @@ class TestSweepEndpointTier1:
 
     def test_sweep_returns_200_with_required_fields(self, sweep_client: TestClient):
         """
-        Given SIE running, MongoDB connected, and a pre-fetched corpus provided
+        Given SIE running and a pre-fetched corpus provided
         When POST /api/v1/sweep {"topic":"AI agents","embedding_model":"bge-m3","corpus":[...]}
         Then HTTP 200 with body containing best_config, results, experiment_id, corpus_source.
         """
@@ -190,7 +190,6 @@ class TestHealthEnhanced:
 
             return {
                 "status": "ok",
-                "mongodb": "connected",
                 "sie": check_sie_health(),
                 "version": "test",
             }

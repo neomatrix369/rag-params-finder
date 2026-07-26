@@ -227,7 +227,7 @@ class TestStorageHealthShould:
         Scenario: The default Mongo backend keeps its existing probe.
         Slice: postgres-aware-healthz
 
-        Given STORAGE_BACKEND=mongo and Mongo reports ok,
+        Given STORAGE_BACKEND=mongodb and MongoDB reports ok,
         When storage_health runs,
         Then ok is true with mongodb=ok.
         """
@@ -237,13 +237,13 @@ class TestStorageHealthShould:
             patch("server.core.health_check.mongodb_health_status", return_value="ok"),
             patch("server.core.health_check.postgres_health_status") as postgres_probe,
         ):
-            mock_settings.storage_backend = "mongo"
+            mock_settings.storage_backend = "mongodb"
             actual = storage_health()
 
         ### Then
         assert actual == {
             "ok": True,
-            "storage_backend": "mongo",
+            "storage_backend": "mongodb",
             "mongodb": "ok",
         }
         postgres_probe.assert_not_called()
@@ -253,7 +253,7 @@ class TestStorageHealthShould:
         Scenario: Unset MONGODB_URI still allows process liveness on Mongo mode.
         Slice: postgres-aware-healthz
 
-        Given STORAGE_BACKEND=mongo and mongodb_health_status returns skipped,
+        Given STORAGE_BACKEND=mongodb and mongodb_health_status returns skipped,
         When storage_health runs,
         Then ok remains true (legacy behaviour for host-only boots without URI).
         """
@@ -262,7 +262,7 @@ class TestStorageHealthShould:
             patch("server.core.health_check.settings") as mock_settings,
             patch("server.core.health_check.mongodb_health_status", return_value="skipped"),
         ):
-            mock_settings.storage_backend = "mongo"
+            mock_settings.storage_backend = "mongodb"
             actual = storage_health()
 
         ### Then

@@ -6,6 +6,8 @@
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
+![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-hosted_Postgres-3ECF8E?logo=supabase&logoColor=white)
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
@@ -20,7 +22,7 @@
 
 > Find your optimal RAG configuration — **before** you build your RAG application.
 
-**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using **MongoDB Atlas Vector Search** (default) or **Postgres/pgvector** (`STORAGE_BACKEND=postgres`; dense retrieval today, sparse/hybrid in Slice 35). Supports **Voyage AI** (hosted), **local sentence-transformers** (no API key), and **SIE** open-source embeddings (remote gateway preferred; optional self-hosted Docker).
+**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using **MongoDB Atlas Vector Search** (default) or **Postgres/pgvector** (`STORAGE_BACKEND=postgres` — local Docker or **Supabase-hosted Postgres**; dense, sparse, and hybrid). Supports **Voyage AI** (hosted), **local sentence-transformers** (no API key), and **SIE** open-source embeddings (remote gateway preferred; optional self-hosted Docker).
 
 Most RAG projects start with a guess: pick an embedding model, pick a chunking method, a retrieval method (or a re-ranker), realise it's wrong, refactor. That loop is
 slow and expensive.
@@ -60,11 +62,11 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 | Persona | Start here | What you will do |
 |---------|------------|------------------|
 | **New user — cloud accounts** | [MongoDB Setup](docs/user-guide/mongodb-setup.md) | Atlas + optional Voyage, then [QUICKSTART](QUICKSTART.md) |
-| **New user — Postgres/pgvector** | [Postgres Setup](docs/user-guide/postgres-setup.md) | `./start-services.sh --postgres` + dense-only example config |
+| **New user — Postgres (local or Supabase-hosted)** | [Postgres Setup](docs/user-guide/postgres-setup.md) | `./start-services.sh --postgres` + `configs/supabase/example-unified-retrievers.yaml` |
 | **New user — first sweep** | [QUICKSTART](QUICKSTART.md) | Install, run server + CLI, open dashboard |
 | **Operator — config & CLI** | [Configuration Reference](docs/user-guide/configuration.md) | YAML sweeps, env vars, `rag-params-finder` commands |
 | **Operator — dashboard** | [Dashboard Guide](docs/user-guide/dashboard-guide.md) | Live phases, Search Explorer, experiment controls |
-| **Operator — fixing errors** | [Troubleshooting](docs/user-guide/troubleshooting.md) | Indexes, Voyage limits, Docker, storage quota |
+| **Operator — fixing errors** | [Troubleshooting](docs/user-guide/troubleshooting.md) | Indexes, Voyage limits, Docker, Postgres, storage quota |
 | **Contributor — system design** | [Architecture](docs/contributor-guide/architecture.md) | Modules, data flow, ADRs |
 | **Contributor — dev setup** | [Development Guide](docs/contributor-guide/development.md) | Quality gates, slices, Docker, hooks |
 | **Agent / slice worker** | [AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md) | [PROGRESS](docs/plan/slices/PROGRESS.md) → current slice spec |
@@ -159,7 +161,7 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 
 **Frontend**: React 19 · TypeScript 5.8 · Vite 6 · Tailwind CSS
 
-**AI/ML**: Voyage AI · sentence-transformers · SIE (Superlinked Inference Engine) · MongoDB Atlas Vector Search
+**AI/ML**: Voyage AI · sentence-transformers · SIE (Superlinked Inference Engine) · MongoDB Atlas Vector Search · Postgres/pgvector (incl. Supabase-hosted)
 
 **Dev tools**: uv · ruff · mypy · pytest · GitHub Actions
 
@@ -184,7 +186,7 @@ This project follows [Semantic Versioning](https://semver.org/):
 
 Contributions welcome — please open an issue first to discuss the change.
 
-**Running experiments does not require any extra tooling** — the [user guide](docs/user-guide/getting-started.md) path (Atlas, CLI, optional dashboard) is enough.
+**Running experiments does not require any extra tooling** — the [user guide](docs/user-guide/getting-started.md) path (Atlas **or** Postgres/Supabase, CLI, optional dashboard) is enough.
 
 **Contributors** use the [Development Guide](docs/contributor-guide/development.md) for setup (`bash scripts/install-git-hooks.sh` — checks on commit and push), quality gates (`./scripts/quality-gates.sh`), the slice workflow, and [release cadence](docs/contributor-guide/release-process.md#when-to-release) (release when a slice or feature is user-visible; see [CHANGELOG](CHANGELOG.md) `Unreleased` during development).
 

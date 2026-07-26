@@ -12,7 +12,7 @@ from server.core.health_check import storage_health
 from server.core.sie_guard import check_sie_health
 from server.core.startup_reconciliation import reconcile_orphaned_experiments
 from server.db.indexes import bootstrap_indexes
-from server.settings import LOCALHOST_CORS_ORIGIN_REGEX, settings
+from server.settings import LOCALHOST_CORS_ORIGIN_REGEX, normalize_storage_backend, settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
     # Atlas search indexes are a Mongo concern. Postgres applies schema.sql
     # (including HNSW) when its pool opens — reaching for Mongo here would fail
     # a --postgres stack that has no MONGODB_URI / no Atlas Local container.
-    if settings.storage_backend.lower() == "mongo":
+    if normalize_storage_backend(settings.storage_backend) == "mongodb":
         try:
             bootstrap_indexes()
         except Exception as e:

@@ -1,21 +1,40 @@
 """CLI commands for Atlas Search index management."""
 
+from __future__ import annotations
+
 import typer
 from rich.console import Console
 from rich.table import Table
 
+from server.db.atlas import get_database
 from server.db.indexes import (
     M0_SEARCH_INDEX_LIMIT,
     SearchIndexInfo,
+    ensure_indexes,
     list_cluster_search_indexes,
     prune_unknown_search_indexes,
     reset_chunks_search_indexes,
 )
+from server.settings import normalize_storage_backend, settings
 from server.utils.logger import get_logger
 
 indexes_app = typer.Typer(help="Manage Atlas Search indexes on the connected cluster")
 console = Console()
 logger = get_logger(__name__)
+
+
+def _require_mongo_backend() -> None:
+    """Exit clearly when Atlas index commands are used on a non-MongoDB stack."""
+    backend = normalize_storage_backend(settings.storage_backend)
+    if backend == "mongodb":
+        return
+    console.print(
+        f"[yellow]indexes[/yellow] is MongoDB/Atlas-only. "
+        f"Current STORAGE_BACKEND={backend!r} — not applicable. "
+        "Postgres/pgvector creates HNSW and tsvector indexes via schema.sql; "
+        "no Atlas Search index management is required."
+    )
+    raise typer.Exit(0)
 
 
 def _build_indexes_table(rows: list[SearchIndexInfo]) -> Table:
@@ -43,6 +62,7 @@ def _build_indexes_table(rows: list[SearchIndexInfo]) -> Table:
 @indexes_app.command("list")
 def indexes_list() -> None:
     """List all Atlas Search indexes on the cluster (known vs unknown)."""
+    _require_mongo_backend()
     rows = list_cluster_search_indexes()
     if not rows:
         console.print("[dim]No Atlas Search indexes found on this cluster.[/dim]")
@@ -68,6 +88,7 @@ def indexes_reset(
     force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation prompt"),
 ) -> None:
     """Drop search indexes and recreate required ones on chunks."""
+    _require_mongo_backend()
     rows = list_cluster_search_indexes()
     unknown = [row for row in rows if not row["known"]]
 
@@ -75,8 +96,6 @@ def indexes_reset(
         if not unknown:
             console.print("[green]No unknown search indexes to drop.[/green]")
             console.print("[cyan]Ensuring required indexes on chunks...[/cyan]")
-            from server.db.indexes import ensure_indexes
-
             ensure_indexes()
             console.print("[green]Done.[/green]")
             return
@@ -93,16 +112,12 @@ def indexes_reset(
             raise typer.Exit(0)
 
         dropped = prune_unknown_search_indexes()
-        from server.db.indexes import ensure_indexes
-
         ensure_indexes()
         logger.info("indexes reset (unknown-only) — dropped=%s", dropped)
         console.print(
             f"[green]Dropped {len(dropped)} unknown index(es). Required indexes ensured.[/green]"
         )
         return
-
-    from server.db.atlas import get_database
 
     db_name = get_database().name
     chunks_rows = [

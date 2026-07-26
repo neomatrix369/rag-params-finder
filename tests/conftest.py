@@ -88,7 +88,7 @@ def mongo_storage() -> Iterator[object]:
     original_uri = settings.mongodb_uri
     original_backend = settings.storage_backend
     settings.mongodb_uri = TEST_MONGODB_URI
-    settings.storage_backend = "mongo"
+    settings.storage_backend = "mongodb"
     reset_mongo_client()
 
     backend = MongoStorageBackend()
@@ -102,8 +102,8 @@ def mongo_storage() -> Iterator[object]:
         settings.storage_backend = original_backend
 
 
-@pytest.fixture(params=["mongo", "postgres"], ids=["mongo", "postgres"])
+@pytest.fixture(params=["mongodb", "postgres"], ids=["mongodb", "postgres"])
 def storage(request: pytest.FixtureRequest) -> Iterator[object]:
     """Parametrized live StorageBackend for the shared contract suite."""
-    fixture_name = "mongo_storage" if request.param == "mongo" else "postgres_storage"
+    fixture_name = "mongo_storage" if request.param == "mongodb" else "postgres_storage"
     yield request.getfixturevalue(fixture_name)

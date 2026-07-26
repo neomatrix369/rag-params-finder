@@ -283,7 +283,7 @@ jobs:
         env:
           RAG_TEST_MONGODB_URI: mongodb://localhost:27017/rag_params_finder?directConnection=true
           RAG_REQUIRE_MONGO: "1"
-          STORAGE_BACKEND: mongo
+          STORAGE_BACKEND: mongodb
         run: |
           pytest tests/contract/test_storage_backend_contract.py \
                  --tb=short -q -rs

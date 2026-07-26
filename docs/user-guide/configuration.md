@@ -19,14 +19,17 @@ Place config files under `configs/mongodb/` or `configs/supabase/` (mirrored ste
 | `mongodb/example-voyage.yaml` | MongoDB Atlas | Voyage AI (voyage-3.5-lite) | all 5 methods | hybrid · dense · sparse · reranker | 40 | Yes |
 | `mongodb/example-sie.yaml` | MongoDB Atlas | SIE (bge-m3, stella-v5) | all 5 methods | dense · sparse · hybrid · cross-encoder | 80 | No (remote SIE gateway or optional Docker) |
 | `mongodb/example-unified-retrievers.yaml` | MongoDB Atlas | local (all-MiniLM-L6-v2) | 2 methods | dense · sparse · hybrid · cross-encoder | 16 | No |
-| `supabase/example-local.yaml` | Supabase / pgvector | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid · cross-encoder | 120 | No |
-| `supabase/example-voyage.yaml` | Supabase / pgvector | Voyage AI (voyage-3.5-lite) | all 5 methods | hybrid · dense · sparse · reranker | 40 | Yes |
-| `supabase/example-sie.yaml` | Supabase / pgvector | SIE (bge-m3, stella-v5) | all 5 methods | dense · sparse · hybrid · cross-encoder | 80 | No (remote SIE gateway or optional Docker) |
-| `supabase/example-unified-retrievers.yaml` | Supabase / pgvector | local (all-MiniLM-L6-v2) | 2 methods | dense · sparse · hybrid · cross-encoder | 16 | No |
+| `supabase/example-local.yaml` | Postgres (local or Supabase-hosted) | local (all-MiniLM-L6-v2) | all 5 methods | dense · sparse · hybrid · cross-encoder | 120 | No |
+| `supabase/example-voyage.yaml` | Postgres (local or Supabase-hosted) | Voyage AI (voyage-3.5-lite) | all 5 methods | hybrid · dense · sparse · reranker | 40 | Yes |
+| `supabase/example-sie.yaml` | Postgres (local or Supabase-hosted) | SIE (bge-m3, stella-v5) | all 5 methods | dense · sparse · hybrid · cross-encoder | 80 | No (remote SIE gateway or optional Docker) |
+| `supabase/example-unified-retrievers.yaml` | Postgres (local or Supabase-hosted) | local (all-MiniLM-L6-v2) | 2 methods | dense · sparse · hybrid · cross-encoder | 16 | No |
 
-> **Postgres note:** dense, sparse, and hybrid (+ rerankers) run on Supabase/pgvector.
-> Sparse uses `tsvector`/`ts_rank`; hybrid uses RRF (`rrf_k=60`). Use
-> `STORAGE_BACKEND=postgres` + `DATABASE_URL` — see [postgres-setup.md](postgres-setup.md).
+> **Postgres note:** One backend — Postgres + pgvector (`STORAGE_BACKEND=postgres`).
+> **Supabase** is a hosted Postgres deployment (cloud URI), not a second adapter.
+> `configs/supabase/` holds example YAMLs for that path; `database_provider: supabase`
+> is a label only. Dense, sparse, and hybrid (+ rerankers) all run. Sparse uses
+> `tsvector`/`ts_rank`; hybrid uses RRF (`rrf_k=60`). There is no `SUPABASE_URI`.
+> See [postgres-setup.md](postgres-setup.md) (Supabase vs Postgres + env table).
 
 Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retriever runs as an independent experiment. Each entry in `retrieval.retrievers` creates a separate run — retrievers are never combined in a single run.
 
@@ -403,19 +406,24 @@ To **re-run only failed combinations inside an existing experiment** *(same `exp
 Create a `.env` file in the project root to configure server behavior:
 
 ```bash
-# Storage backend: "mongo" (default) or "postgres"
-STORAGE_BACKEND=mongo
+# Storage backend: "mongodb" (default) or "postgres"
+# Legacy alias: mongo → mongodb
+# YAML database_provider (mongodb|supabase) is metadata — this env selects the adapter.
+STORAGE_BACKEND=mongodb
 
-# MongoDB Atlas (REQUIRED when STORAGE_BACKEND=mongo)
+# MongoDB Atlas (REQUIRED when STORAGE_BACKEND=mongodb)
 MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder
 
 # Postgres/pgvector (REQUIRED when STORAGE_BACKEND=postgres)
+# One backend for local Docker and Supabase-hosted Postgres.
+# Supabase equivalent of MONGODB_URI is DATABASE_URL (no SUPABASE_URI).
 # Local container:  ./start-services.sh --postgres
 # DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
-# Hosted Supabase (TLS applied automatically for *.supabase.co):
+# Supabase-hosted (TLS applied automatically for *.supabase.co):
 # DATABASE_URL=postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres
 # POSTGRES_POOL_MAX_SIZE=10
 # POSTGRES_POOL_TIMEOUT_S=30
+# Full checklist: docs/user-guide/postgres-setup.md
 
 # Voyage AI (OPTIONAL — only if using Voyage models)
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

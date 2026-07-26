@@ -237,13 +237,24 @@ returns `"sie":"disabled"` and sweeps default to local `all-MiniLM-L6-v2` instea
 
 ## Use SIE in a config
 
-Use the ready-made example config for a full CLI pipeline sweep:
+Use the ready-made example config for a full CLI pipeline sweep (Mongo **or** Postgres):
 
 ```bash
+# Mongo / Atlas (needs vector_index_1024 + text_search_index)
 rag-params-finder run --config configs/mongodb/example-sie.yaml
+
+# Postgres path (local Docker or Supabase-hosted — no Atlas indexes)
+# export STORAGE_BACKEND=postgres && export DATABASE_URL=...
+rag-params-finder run --config configs/supabase/example-sie.yaml
 ```
 
-See [`configs/mongodb/example-sie.yaml`](../../configs/mongodb/example-sie.yaml) — **80 runs** (bge-m3, stella-v5; all 5 chunking methods; dense/sparse/hybrid/cross-encoder). Prerequisites: reachable SIE gateway (`SIE_ENABLED=true`, `SIE_ENDPOINT`, `SIE_API_KEY` when required) or warm local Docker; `vector_index_1024` + `text_search_index` on Atlas.
+See [`configs/mongodb/example-sie.yaml`](../../configs/mongodb/example-sie.yaml) and the twin
+[`configs/supabase/example-sie.yaml`](../../configs/supabase/example-sie.yaml) — **80 runs**
+(bge-m3, stella-v5; all 5 chunking methods; dense/sparse/hybrid/cross-encoder).
+Prerequisites: reachable SIE gateway (`SIE_ENABLED=true`, `SIE_ENDPOINT`,
+`SIE_API_KEY` when required) or warm local Docker. On Mongo also need
+`vector_index_1024` + `text_search_index` on Atlas; on Postgres schema/indexes
+are automatic — [Postgres Setup](postgres-setup.md).
 
 Minimal inline snippet:
 
@@ -773,9 +784,11 @@ python3 -c "import os; print(os.getenv('SIE_ENDPOINT', 'http://localhost:8720'))
 [ ] SIE_ENABLED=true, SIE_ENDPOINT, SIE_API_KEY in server .env
 [ ] curl -H "Authorization: Bearer $SIE_API_KEY" "$SIE_ENDPOINT/healthz" → ok
 [ ] vector_index_1024 + text_search_index on Atlas chunks collection
+  (skip if STORAGE_BACKEND=postgres — use configs/supabase/example-sie.yaml)
 [ ] Server running: uvicorn server.main:app --reload --port 8001
 [ ] GET http://localhost:8001/health shows sie: reachable
 [ ] rag-params-finder run --config configs/mongodb/example-sie.yaml --detach
+  (or configs/supabase/example-sie.yaml on Postgres)
 ```
 
 ### Path B — Self-hosted Docker
@@ -788,6 +801,7 @@ python3 -c "import os; print(os.getenv('SIE_ENDPOINT', 'http://localhost:8720'))
 [ ] Model warm-up poll passes (HTTP 200 from POST /v1/encode/BAAI/bge-m3)
 [ ] SIE_ENABLED=true, SIE_ENDPOINT=http://localhost:8720 in server .env
 [ ] vector_index_1024 + text_search_index on Atlas
+  (skip if STORAGE_BACKEND=postgres — use configs/supabase/example-sie.yaml)
 [ ] GET http://localhost:8001/health shows sie: reachable
 [ ] Smoke test: curl POST /api/v1/sweep returns HTTP 200
 ```
@@ -798,5 +812,6 @@ python3 -c "import os; print(os.getenv('SIE_ENDPOINT', 'http://localhost:8720'))
 
 - [Getting Started](getting-started.md) — install, configure, first experiment
 - [MongoDB Setup](mongodb-setup.md) — Atlas vector search indexes
+- [Postgres Setup](postgres-setup.md) — local pgvector or Supabase-hosted Postgres (`configs/supabase/example-sie.yaml`)
 - [Troubleshooting](troubleshooting.md) — general error fixes
 - [Configuration reference](configuration.md) — full YAML reference including `provider: sie`

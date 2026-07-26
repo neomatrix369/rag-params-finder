@@ -14,7 +14,7 @@ from pymongo.errors import PyMongoError
 
 from server.db.mongodb_uri import mongo_client_kwargs
 from server.db.postgres_uri import postgres_connect_kwargs
-from server.settings import settings
+from server.settings import normalize_storage_backend, settings
 
 _MONGODB_PLACEHOLDER_MARKERS = (
     "your_mongodb_atlas_uri_here",
@@ -73,7 +73,7 @@ def storage_health() -> dict[str, str | bool]:
     Returns a body fragment for ``/healthz`` / ``/health``:
     ``ok``, ``storage_backend``, and either ``mongodb`` or ``postgres``.
     """
-    backend = (settings.storage_backend or "mongo").strip().lower()
+    backend = normalize_storage_backend(settings.storage_backend or "mongodb")
     if backend == "postgres":
         postgres = postgres_health_status()
         return {
@@ -81,11 +81,11 @@ def storage_health() -> dict[str, str | bool]:
             "storage_backend": "postgres",
             "postgres": postgres,
         }
-    if backend == "mongo":
+    if backend == "mongodb":
         mongodb = mongodb_health_status()
         return {
             "ok": mongodb in ("ok", "skipped"),
-            "storage_backend": "mongo",
+            "storage_backend": "mongodb",
             "mongodb": mongodb,
         }
     return {

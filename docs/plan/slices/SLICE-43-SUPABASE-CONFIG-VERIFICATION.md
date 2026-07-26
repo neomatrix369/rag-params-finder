@@ -2,7 +2,7 @@
 
 **MoSCoW:** Could
 **Target time:** ~1–2 h
-**Status:** 📋 PLANNED
+**Status:** 🔨 IN PROGRESS (docs §2/§3 landed; §1 live smoke open)
 **Depends on:** 35 ✅ (soft: 37 for hard config↔server 422)
 **Non-blocking / non-urgent:** Does not gate 36–38 cutover. Pick up when operator friction appears or after Slice 37.
 
@@ -77,42 +77,41 @@ Static checks passed; no observed end-to-end sweep of a **supabase** example aga
 - [ ] Optional stretch: same config (or smoke twin) against hosted Supabase `DATABASE_URL`
 
 ### 2. Backend switch is env, not YAML
-`database_provider: supabase` is **metadata** (db-stats / labels). Runtime path is `STORAGE_BACKEND=postgres` + `DATABASE_URL`. Operators can submit a supabase YAML while the server is still on mongo.
+`database_provider: supabase` is **metadata** (db-stats / labels). Runtime path is `STORAGE_BACKEND=postgres` + `DATABASE_URL`. Operators can submit a supabase YAML while the server is still on mongodb.
 
 **Refs:** Explicit deferred item in [#113](https://github.com/neomatrix369/rag-params-finder/pull/113) Documentation (“`database_provider` metadata”); config split in [#111](https://github.com/neomatrix369/rag-params-finder/pull/111); hard 422 owned by Slice 37.
 
 **Acceptance**
-- [ ] `postgres-setup.md` + `configuration.md` state this in one clear sentence each
+- [x] `postgres-setup.md` + `configuration.md` state this in one clear sentence each — **IMPLEMENTED** 2026-07-26 (operator docs rewrite)
 - [ ] Hard reject / HTTP 422 on config↔server mismatch remains **Slice 37** — this slice only documents today’s behaviour and links to 37
 
 ### 3. Connection-env naming is asymmetric (Mongo vs Postgres/Supabase)
 
 Operators naturally ask “what’s the Supabase equivalent of `MONGODB_URI`?” Today the answer is **not** a parallel name:
 
-| Concern | Mongo (today) | Postgres / Supabase (today) |
+| Concern | MongoDB (today) | Postgres / Supabase (today) |
 |---|---|---|
 | Connection string | `MONGODB_URI` | `DATABASE_URL` (no `SUPABASE_URI` / `POSTGRES_URI`) |
-| Backend select | Often implicit (`STORAGE_BACKEND` defaults to `mongo`) | Explicit second knob: `STORAGE_BACKEND=postgres` |
+| Backend select | Often implicit (`STORAGE_BACKEND` defaults to `mongodb`; legacy alias `mongo`) | Explicit second knob: `STORAGE_BACKEND=postgres` |
 | Config folder / YAML label | `configs/mongodb/` · `database_provider: mongodb` | `configs/supabase/` · `database_provider: supabase` |
-| Runtime backend token | `mongo` (settings) | `postgres` (settings) — **not** `supabase` |
+| Runtime backend token | `mongodb` (settings) | `postgres` (settings) — **not** `supabase` |
 
 Definition and use diverge on three axes: **URI name**, **whether a backend flag is required**, and **folder/YAML label vs `STORAGE_BACKEND` value**. Correct, but easy to mis-teach and mis-configure.
 
-**Refs:** Operator FAQ 2026-07-26; [#111](https://github.com/neomatrix369/rag-params-finder/pull/111) commit narrative (“Selecting the postgres backend also drops the `MONGODB_URI` requirement”); `.env.example` comments.
+**Refs:** Operator FAQ 2026-07-26; [#111](https://github.com/neomatrix369/rag-params-finder/pull/111) commit narrative (“Selecting the postgres backend also drops the `MONGODB_URI` requirement”); `.env.example` comments. Canonical `STORAGE_BACKEND=mongodb` landed 2026-07-26 (legacy `mongo` alias).
 
-**Acceptance (document now; rename later)**
-- [ ] `postgres-setup.md` (and `.env.example` comment block) include a one-row “Mongo ↔ Postgres env” table matching the above
-- [ ] Explicit note: there is no `SUPABASE_URI`; hosted and local both use `DATABASE_URL`
-- [ ] Cross-link Slice **37** for future rename / alias work — **this slice does not rename env vars** (alias/one-knob backlog is owned by 37; see *Owned elsewhere*)
-
+**Acceptance (document now; further rename later)**
+- [x] `postgres-setup.md` (and `.env.example` comment block) include a one-row “Mongo ↔ Postgres env” table matching the above — **IMPLEMENTED** 2026-07-26
+- [x] Explicit note: there is no `SUPABASE_URI`; hosted and local both use `DATABASE_URL` — **IMPLEMENTED** 2026-07-26
+- [x] Cross-link Slice **37** for future rename / alias work beyond the `mongo`→`mongodb` token — **IMPLEMENTED** 2026-07-26 (`postgres-setup.md` footer / Slice 37 pointer). Remaining 37 work: URI aliases, config↔server 422, start-services mode grid.
 ### 4. Hosted free-tier / large-grid risk
 Full grids (e.g. `example-local.yaml` = 120 runs) may be slow or hit Supabase free-project limits. Not a correctness bug.
 
 **Refs:** [#111](https://github.com/neomatrix369/rag-params-finder/pull/111) verified mongodb vs supabase local parity at **120 runs** — fine for local CI/dev but a poor first hosted prove.
 
 **Acceptance**
-- [ ] Docs recommend first hosted prove: `example-unified-retrievers.yaml` or `*-bayesian.yaml` (dense-only)
-- [ ] Optional: add `configs/supabase/example-local-smoke.yaml` (1 method × 1 size × dense) if operators still overshoot
+- [x] Docs recommend first hosted prove: `example-unified-retrievers.yaml` or `*-bayesian.yaml` — **IMPLEMENTED** in `postgres-setup.md` / QUICKSTART Path D
+- [x] Optional: add `configs/supabase/example-local-smoke.yaml` — **Won’t for 43** (unified-retrievers is the first-prove config; documented as such)
 
 ### 5. HNSW post-filter recall (operator-invisible shortfall)
 With filters (`experiment_id` / `embedding_model` / `run_id`), HNSW can return fewer than `LIMIT` rows unless `hnsw.iterative_scan = strict_order` is on. Failure mode is silent: scores change, no error.
@@ -120,8 +119,8 @@ With filters (`experiment_id` / `embedding_model` / `run_id`), HNSW can return f
 **Refs:** [#111](https://github.com/neomatrix369/rag-params-finder/pull/111) (`feat(slice-34)` + HNSW recall finding); already partially documented in `postgres-setup.md`.
 
 **Acceptance**
-- [ ] First-prove / troubleshooting section still warns about truncated top-k if iterative scan is off
-- [ ] Link to existing postgres-setup HNSW note (do not duplicate a second long explanation)
+- [x] First-prove / troubleshooting section still warns about truncated top-k if iterative scan is off — **IMPLEMENTED** in `postgres-setup.md`
+- [x] Link to architecture explanation for HNSW iterative scan — **IMPLEMENTED** (design rationale moved to `contributor-guide/architecture.md`)
 
 ### 6. Docs must not re-introduce Atlas/Mongo wording on Postgres paths
 Regression watch after the Slice 35 / #113 copy scrub: operator docs and UI copy on Postgres/Supabase paths must not describe Atlas/Mongo as the live backend.
@@ -129,8 +128,8 @@ Regression watch after the Slice 35 / #113 copy scrub: operator docs and UI copy
 **Refs:** [#112](https://github.com/neomatrix369/rag-params-finder/pull/112) Outcome; [#113](https://github.com/neomatrix369/rag-params-finder/pull/113) Summary.
 
 **Acceptance**
-- [ ] `postgres-setup` / `configuration` / `troubleshooting` reviewed — no Atlas-only host wording on Postgres paths
-- [ ] Optional: a lightweight note so future edits don’t regress
+- [x] `postgres-setup` / `configuration` / `troubleshooting` reviewed — no Atlas-only host wording on Postgres paths — **AUDITED** 2026-07-26 (docs parity + code/UI storageLabels)
+- [x] Optional: lightweight regression note — **IMPLEMENTED** via `postgres-setup.md` “Supabase vs Postgres” table + Slice 43 §6 as the watchlist
 
 ---
 
