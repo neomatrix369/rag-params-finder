@@ -101,7 +101,7 @@ rag-params-finder/
 │   ├── settings.py          # Centralized pydantic-settings config
 │   ├── api/
 │   │   ├── experiments.py   # CRUD, explore, db-stats, pause, resume, cancel, delete
-│   │   ├── experiments_shared.py  # Mongo helpers incl. db-stats aggregation
+│   │   ├── experiments_shared.py  # StorageBackend helpers (threadpool I/O) incl. db-stats
 │   │   ├── sweep.py         # POST /api/v1/sweep, GET /api/v1/best-config (Tier 1 ranked sweep)
 │   │   └── runs.py          # GET /runs/{id}/status
 │   ├── core/

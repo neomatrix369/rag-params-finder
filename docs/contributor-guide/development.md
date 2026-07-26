@@ -115,6 +115,9 @@ Run all gates before committing. All must pass with zero regressions.
 Backend pytest in those scripts is the **unit tier**: it ignores live Mongo/Postgres suites
 (`tests/contract/`, `tests/test_postgres_*.py`) and uses `-m "not integration"`. Live DB
 coverage runs in dedicated CI jobs (`postgres-integration`, `mongo-integration`).
+The unit tier must stay green with `MONGODB_URI` / `DATABASE_URL` unset (as on CI): factory
+tests supply a dummy URI when they exercise `ensure_storage_ready()`, and API detail tests
+must not open a storage backend when run rows are already on the payload.
 
 **Integrity check (unit tests + import smoke):**
 
@@ -147,10 +150,10 @@ uv run pytest --tb=short -q \
 bash scripts/pip-audit.sh
 ```
 
-**Baseline (as of 2026-07-05)**:
+**Baseline (as of 2026-07-26)** — unit tier, same ignores as CI `backend`:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` → 97 tests, coverage on scoped modules
+- `pytest` (unit ignores + `-m "not integration"`) → **268** tests, scoped coverage ≥80%
 
 ### Frontend
 
@@ -173,9 +176,9 @@ npm run build
 npm audit --audit-level=high
 ```
 
-**Baseline (as of 2026-07-19)**:
+**Baseline (as of 2026-07-26)**:
 - `npm run lint` → 0 errors
-- `npm run test` → 7 component scenarios pass
+- `npm run test` → **15** tests across 3 files (Vitest + React Testing Library)
 - `npm run typecheck` → 0 errors
 - `npm run build` → built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
@@ -251,14 +254,16 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 
 Excludes live storage suites (`--ignore=tests/contract` and `tests/test_postgres_*.py`,
 `-m "not integration"`). That keeps the unit job free of shared-DB races when a local
-pgvector or Atlas Local container happens to be up.
+pgvector or Atlas Local container happens to be up, and free of `ensure_storage_ready()`
+failures when no database URI is configured.
 
 | Module | Focus |
 |--------|--------|
 | `test_search_index_plan.py` / `test_search_index_guard.py` | Atlas index plan + preflight (mocked I/O) |
 | `test_expand_sweep.py` / `test_tiebreaker_ranking.py` | Sweep expansion + ranking |
 | `test_embedder_factory.py` / `test_sie_*` / `test_sweep_endpoint.py` | Provider dispatch, SIE, sweep API |
-| `test_store_factory.py` / `test_mongo_store_acceptance.py` | Factory routing + mocked Mongo acceptance |
+| `test_store_factory.py` / `test_mongo_store_acceptance.py` | Factory routing (dummy URI) + mocked Mongo acceptance |
+| `test_experiments_api_bayesian.py` | Bayesian detail/summary without opening a live backend |
 
 **Live integration tier** (`pytest.mark.integration` — dedicated CI jobs only):
 
