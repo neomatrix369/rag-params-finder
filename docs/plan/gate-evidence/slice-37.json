@@ -1,0 +1,42 @@
+{
+  "slice": 37,
+  "gate_status": "PASSED",
+  "verified_at": "2026-07-26",
+  "verifier": "verify-slice",
+  "branch": "slice/37-postgres-local-cloud-parity",
+  "feat_commits": [
+    "0be2764",
+    "3fc9c98",
+    "c966479"
+  ],
+  "evidence": {
+    "acceptance_criteria": "Four-flag resolve + conflict fail (scripts/lib/storage_mode.sh, tests/test_storage_mode_resolve.py); config↔server 422 before preflight (config_backend_guard + tests); supabase→postgres normalize; persist storage_mode; vector_db_id storage_mode:host; postgres lifecycle; Engine × Location docs",
+    "static_integration": "ensure_stack_mode_env before Docker; compose profiles mongodb-local/postgres-local (+ local-atlas/local-postgres aliases); experiments API calls assert_config_matches_server before search_index/SIE; default_database_provider never returns supabase",
+    "runtime": {
+      "disk_recovery": "Docker VM was 100% full (DiskFull on insert); pruned build cache/images (~28GB); /dev/vda1 → 33% used",
+      "healthz": {
+        "ok": true,
+        "storage_backend": "postgres",
+        "storage_mode": "postgres-local",
+        "postgres": "ok"
+      },
+      "conflict_selectors": "ERROR: conflicting mode selectors: postgres-local and mongodb-local (exit before Docker)",
+      "mismatch_422": {
+        "http": 422,
+        "detail_prefix": "Config engine mismatch: database_provider=mongodb but server storage_backend=postgres (storage_mode=postgres-local)."
+      },
+      "matching_one_run_smoke": {
+        "experiment_id": "1903dc76-b3ac-450f-a715-c26ae19fe8c0",
+        "config": "/tmp/slice37-smoke/one-run.yaml",
+        "status": "complete",
+        "storage_mode": "postgres-local",
+        "database_provider": "postgres",
+        "runs": "1/1 complete"
+      },
+      "hosted_postgres_cloud_smoke": "SKIPPED — no Supabase credentials in this environment; Path B ensure_env + Session-mode docs covered; Before-Checks allow documented skip"
+    },
+    "quality_gates": "Prior verify-slice unit tier PASS (306 backend / 16 frontend); conflict/--help/profiles green; DiskFull blocked only live matching submit — re-smoke after prune PASSED",
+    "mutation": "waived — same as Slice 36 (DECISIONS #101); shell-heavy start-services paths excluded with note"
+  },
+  "decisions": [102, 103, 104]
+}

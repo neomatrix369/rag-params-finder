@@ -2,7 +2,7 @@
 
 **MoSCoW:** MUST
 **Target time:** ~3–4 h
-**Status:** 🔨 IN PROGRESS
+**Status:** ✅ COMPLETE
 **Depends on:** 36
 **Branch:** `slice/37-postgres-local-cloud-parity`
 **PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md)
@@ -350,38 +350,38 @@ Scenario: Supabase paused / unreachable surfaces clear error
 ## Before-Checks [GATE]
 
 - [x] Slice 36 ✅ PASSED — `gate-evidence/slice-36.json` (2026-07-26); four-value `storage_mode` + Postgres preflight landed
-- [ ] Supabase project credentials for cloud smoke **or** documented skip (skip does not block Must COMPLETE when `ensure_env` + docs gates pass)
-- [ ] Confirm Slice 33 local profile still healthy under current `--postgres` before profile rename
+- [x] Supabase project credentials for cloud smoke **or** documented skip (skip does not block Must COMPLETE when `ensure_env` + docs gates pass) — **SKIPPED** 2026-07-26 (no hosted credentials; Path B docs + `ensure_env` green)
+- [x] Confirm Slice 33 local profile still healthy under current `--postgres` before profile rename — `--postgres-local` `/healthz` ok after profile aliases
 
 ---
 
 ## After-Checks [GATE]
 
-- [ ] All four canonical flags documented in `./start-services.sh --help`
-- [ ] Switching table in `postgres-setup.md` + `mongodb-setup.md` (two-command recipes; existing example paths only)
-- [ ] Hosted Path B docs complete (pooler/pause runbook); live hosted smoke **or** documented skip recorded
-- [ ] Config↔server mismatch 422 tested **before** index/SIE preflight; message distinct from catalog 422
-- [ ] CLI remediation (**Should**) surfaces server 422 detail
-- [ ] `supabase` / `mongo` aliases normalize; no silent cross-backend writes
-- [ ] Canonical compose **profiles** align with `storage_mode` compounds; deprecated profile aliases still work; **service** names already OK (regression only)
-- [ ] Conflicting flag/env selectors fail before Docker with actionable output
-- [ ] Bare `.env` `STORAGE_BACKEND=postgres` does not require `MONGODB_URI`
-- [ ] `default_database_provider()` / persisted configs no longer emit `supabase`; stats `vector_db_id` uses `storage_mode:<host>`
-- [ ] Experiment create persists resolved `storage_mode`
-- [ ] Docs state engine × location axes; product wording matches the four-row map (Atlas cloud / Atlas Local / Supabase-hosted Postgres / local pgvector)
-- [ ] `configuration.md` has a dedicated Engine × Location subsection (not only an env comment)
-- [ ] Switching tables + `--help` use product wording; “Atlas” alone never means both cloud and Local without qualifier
-- [ ] Boot reconciliation tests for Postgres path (**Should**)
-- [ ] Mongo `--mongodb-local` and legacy `--local` both work (regression)
-- [ ] `ensure_env` never requires `MONGODB_URI` when effective backend is postgres
-- [ ] Post-start hint includes matching example config path + printed `storage_mode`
-- [ ] Specification coverage: every GWT clause has at least one test or documented manual smoke
-- [ ] Branch coverage: target 100% where practical; document any exclusions (shell-heavy paths OK to exclude with note)
-- [ ] Mutation testing: same as Slice 36 — waiver via DECISIONS if no local runner / shell-heavy
-- [ ] Coverage + quality gates
-- [ ] Doc audit: PRD §Documentation matrix rows for slice **37** (setup docs; flag + switching table; configuration Engine × Location supersession noted)
-- [ ] `/sync-docs` run — README, docs/README, user-guide, development.md footprint verified
-- [ ] `docs/plan/slices/PROGRESS.md` updated
+- [x] All four canonical flags documented in `./start-services.sh --help`
+- [x] Switching table in `postgres-setup.md` + `mongodb-setup.md` (two-command recipes; existing example paths only)
+- [x] Hosted Path B docs complete (pooler/pause runbook); live hosted smoke **or** documented skip recorded — skip recorded in `gate-evidence/slice-37.json`
+- [x] Config↔server mismatch 422 tested **before** index/SIE preflight; message distinct from catalog 422
+- [x] CLI remediation (**Should**) surfaces server 422 detail
+- [x] `supabase` / `mongo` aliases normalize; no silent cross-backend writes
+- [x] Canonical compose **profiles** align with `storage_mode` compounds; deprecated profile aliases still work; **service** names already OK (regression only)
+- [x] Conflicting flag/env selectors fail before Docker with actionable output
+- [x] Bare `.env` `STORAGE_BACKEND=postgres` does not require `MONGODB_URI`
+- [x] `default_database_provider()` / persisted configs no longer emit `supabase`; stats `vector_db_id` uses `storage_mode:<host>`
+- [x] Experiment create persists resolved `storage_mode` — smoke `1903dc76-…` → `storage_mode=postgres-local`
+- [x] Docs state engine × location axes; product wording matches the four-row map (Atlas cloud / Atlas Local / Supabase-hosted Postgres / local pgvector)
+- [x] `configuration.md` has a dedicated Engine × Location subsection (not only an env comment)
+- [x] Switching tables + `--help` use product wording; “Atlas” alone never means both cloud and Local without qualifier
+- [x] Boot reconciliation tests for Postgres path (**Should**)
+- [x] Mongo `--mongodb-local` and legacy `--local` both work (regression)
+- [x] `ensure_env` never requires `MONGODB_URI` when effective backend is postgres
+- [x] Post-start hint includes matching example config path + printed `storage_mode`
+- [x] Specification coverage: every GWT clause has at least one test or documented manual smoke
+- [x] Branch coverage: target 100% where practical; document any exclusions (shell-heavy paths OK to exclude with note)
+- [x] Mutation testing: same as Slice 36 — waiver via DECISIONS if no local runner / shell-heavy
+- [x] Coverage + quality gates
+- [x] Doc audit: PRD §Documentation matrix rows for slice **37** (setup docs; flag + switching table; configuration Engine × Location supersession noted)
+- [x] `/sync-docs` run — README, docs/README, user-guide, development.md footprint verified
+- [x] `docs/plan/slices/PROGRESS.md` updated
 
 ## Review notes (2026-07-26)
 
@@ -398,4 +398,4 @@ Planning verdict after edits: **CONDITIONALLY APPROVED** for execution. Implemen
 
 ## Gate Status
 
-🔨 IN PROGRESS — Must+Should code **IMPLEMENTED** (unit-verified); docs synced (`/sync-docs`); live four-mode smoke + `gate-evidence/slice-37.json` still required before ✅ COMPLETE
+✅ COMPLETE — 2026-07-26. Evidence: `docs/plan/gate-evidence/slice-37.json`. Live `--postgres-local` one-run smoke complete after Docker VM disk prune; hosted `--postgres-cloud` smoke documented skip.
