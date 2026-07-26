@@ -48,6 +48,12 @@ fi
 
 echo "=== Pre-push gates (push-specific checks) ==="
 
+# Operator shells often export STORAGE_BACKEND=postgres while a local pgvector
+# stack is running. That must not leak into the dual-backend unit suite — Atlas
+# preflight tests short-circuit and fail when the ambient backend is not mongo.
+# Integration jobs that need Postgres set STORAGE_BACKEND explicitly themselves.
+unset STORAGE_BACKEND || true
+
 echo ""
 echo "1/3 Full test suite + coverage..."
 if [[ "$BACKEND_CHANGED" -gt 0 ]]; then
