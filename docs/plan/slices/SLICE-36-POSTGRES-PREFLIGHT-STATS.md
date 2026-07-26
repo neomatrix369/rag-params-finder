@@ -2,7 +2,7 @@
 
 **MoSCoW:** MUST
 **Target time:** ~3–4 h
-**Status:** 🔨 IN PROGRESS
+**Status:** ✅ COMPLETE
 **Depends on:** 35
 **PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md)
 
@@ -203,19 +203,19 @@ Scenario: indexes list shows known vs missing indexes on Postgres
 ## After-Checks [GATE]
 
 - [x] 422 parity with Mongo preflight UX (actionable detail; no Atlas calls on postgres)
-- [ ] Dashboard stats smoke on Postgres — `VectorDbStatsPanel` still renders; mode string shows four-value tokens (no frontend redesign required if `cluster_tier_type` is updated in place)
+- [x] Dashboard stats smoke on Postgres — live reload 2026-07-26: `/healthz` → `storage_mode=postgres-local`; vector-db-stats `cluster_tier_type`/`storage_mode` = `postgres-local` (not `local-postgres`); dashboard HTTP 200; `indexes list` all PRESENT
 - [x] Storage mode field documented; values match planned Slice 37 flag names exactly
 - [x] **Slice 27 absorbed:** named tests for all four modes (`mongodb-local`, `mongodb-cloud`, `postgres-local`, `postgres-cloud`)
-- [x] No user-facing mode string is `supabase`, `local-postgres`, bare `mongo`, or bare `mongodb`
+- [x] No user-facing **mode** string is `supabase`, `local-postgres`, bare `mongo`, or bare `mongodb` (`database_provider: supabase` remains YAML/metadata until Slice 37)
 - [x] Mongo preflight/stats still pass when `STORAGE_BACKEND=mongodb` (legacy `mongo` alias OK)
 - [x] Does **not** implement start-services four-flag parse or config↔server 422 (owned by 37)
 - [x] Specification coverage: every GWT clause has at least one test; essential error paths covered
-- [ ] Branch coverage: target 100% where practical; document any exclusions
-- [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors (or DECISIONS waiver if no local mutmut — #95 precedent)
-- [x] Coverage + quality gates — unit tier green after implementation
+- [x] Branch coverage: scoped unit suites for plan/guard/health/mode helpers green (~86% combined with branch); exclusions documented — Atlas I/O branches in `search_index_guard` (Mongo path), URI edge helpers in `mongodb_uri`/`postgres_uri` (`parse_*`, TLS defaults), `postgres_stats` exercised via live smoke rather than unit import
+- [x] Mutation testing: **waived** — no local mutmut/cosmic-ray; nightly CI carries mutation signal (DECISIONS #101, #95 precedent)
+- [x] Coverage + quality gates — unit tier green after implementation; pre-push gates passed on feat commit
 - [x] Doc audit (`/sync-docs`, 2026-07-26): PRD §Documentation matrix rows claimed for **36** — `cli-reference.md` (`/healthz` body + `storage_mode` note), `configuration.md` (storage-mode), `troubleshooting.md` (new §Postgres index preflight failed), `postgres-setup.md` (§Index preflight + operational checks), `architecture.md` (module map + capability rows), `development.md` (test tiers), `local-environment.md`, `CLAUDE.md` (Key Files + 282-test baseline), `AGENTS.md`, `CHANGELOG.md`
-- [ ] `docs/plan/slices/PROGRESS.md` updated — final COMPLETE when smoke + coverage closed
+- [x] `docs/plan/slices/PROGRESS.md` updated — COMPLETE
 
 ## Gate Status
 
-🔨 IN PROGRESS — core impl + doc sync landed 2026-07-26; remaining: live dashboard smoke on Postgres + branch-coverage/mutation gate close
+✅ COMPLETE / PASSED — 2026-07-26 (`gate-evidence/slice-36.json`)

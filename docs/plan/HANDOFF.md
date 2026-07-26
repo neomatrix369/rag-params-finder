@@ -2,10 +2,11 @@
 
 ## Where We Are
 
-**35** ✅ COMPLETE (sparse/hybrid + copy hygiene, PR #112). **43** ✅ COMPLETE (supabase config smoke, PR #115). **36** 🔨 IN PROGRESS — core implementation landed on `slice/36-postgres-preflight-stats`; live dashboard smoke + coverage/mutation gate remain. Parallel gate track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨 (implementation largely landed; after-checks remain).
+**36** ✅ COMPLETE (Postgres catalog preflight + four-value `storage_mode`, branch `slice/36-postgres-preflight-stats`). **35** ✅ / **43** ✅. Next Must = **37**. Parallel gate track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨 (implementation largely landed; after-checks remain).
 
 ## What's Done (recent)
 
+- Slice 36 — Postgres index preflight + db-stats `storage_mode` — ✅ COMPLETE (`gate-evidence/slice-36.json`)
 - Slice 43 — Supabase example-config verification — ✅ COMPLETE (`gate-evidence/slice-43.json`)
 - Slice 35 — Postgres sparse + hybrid RRF — ✅ COMPLETE (`gate-evidence/slice-35.json`)
 - Slice 34 — Postgres dense retrieval — ✅ COMPLETE
@@ -14,19 +15,17 @@
 
 ## What's Next
 
-- **Slice 36** — close out (`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`)
-  - Landed: four-value `storage_mode` on `/healthz` + db-stats; Postgres catalog preflight (422); backend-aware `indexes list`; user/contributor/agent docs synced
-  - Remaining After-Checks: live dashboard stats smoke on Postgres, branch-coverage/mutation gate, commit
-  - Do **not** steal 37 (four-flag parse, config↔server 422) or 38 (quality matrix)
-- Then **37** → **38** → **22**
+- **Slice 37** — `--mongodb|postgres-local|cloud` flags, hosted `ensure_env`, config↔server 422, Path B docs (`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`)
+  - Also owns: `database_provider` normalize `supabase`→`postgres`, compose profile spelling vs mode tokens, `configs/supabase/` naming backlog
+- Then **38** → **22**
 
 ## Blockers / Open Questions
 
-- Gap 8 health-check: add Specification coverage gates to `SLICE-44`? (user pending)
-- 32C/32B after-checks still open on the Protocol gate track (do not block 36 execution)
+- 32C/32B after-checks still open on the Protocol gate track (do not block 37)
+- Vocabulary leftovers (YAML `supabase` label, compose `local-postgres`) deferred to 37 — not Slice 36 regressions
 
 ## Context for Next Session
 
-- Spec SSOT: `docs/plan/slices/SLICE-36-POSTGRES-PREFLIGHT-STATS.md` (baseline table 2026-07-26)
-- Branch when ready: `slice/36-postgres-preflight-stats`
-- Reviewer: `nw-solution-architect-reviewer` before branching to 🔨
+- Spec SSOT: `docs/plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`
+- Prior evidence: `docs/plan/gate-evidence/slice-36.json`
+- Abstraction reminder: engine (`STORAGE_BACKEND`) × location (`storage_mode`); Atlas/Supabase = cloud shorthand only
