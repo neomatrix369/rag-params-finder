@@ -270,7 +270,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 **Backend** (2026-07-26 — unit tier):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **317** tests; scoped coverage ≥80%; no `MONGODB_URI` required
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **322** tests; scoped coverage ≥80%; no `MONGODB_URI` required
 
 **Frontend** (2026-07-26):
 - `npm run lint` → 0 errors (eslint + security plugin)
@@ -278,6 +278,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
+- Coverage scripts (`test:coverage` / `test:ci`) exist but are not yet wired into quality-gates / pre-push / CI — see Slice 44 (**PROPOSED**)
 
 ## Release Process
 
