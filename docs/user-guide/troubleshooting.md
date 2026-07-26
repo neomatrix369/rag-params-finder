@@ -495,7 +495,7 @@ Use this section when `STORAGE_BACKEND=postgres` (local `./start-services.sh --p
 
 **Cause**: The image is plain Postgres without the `vector` extension, or `schema.sql` was applied before the extension install.
 
-**Fix**: Use `pgvector/pgvector:pg16` (compose default). Recreate the volume if needed: stop the stack, remove the `postgres_local_data` volume, then `./start-services.sh --postgres-local` again so `schema.sql` re-runs on first pool open.
+**Fix**: Use `pgvector/pgvector:0.8.5-pg16` (compose default). Recreate the volume if needed: stop the stack, remove the `postgres_local_data` volume, then `./start-services.sh --postgres-local` again so `schema.sql` re-runs on first pool open.
 
 ### Dimension mismatch (`embedding_384` vs `embedding_1024`)
 

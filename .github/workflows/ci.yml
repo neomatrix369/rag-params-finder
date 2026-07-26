@@ -193,7 +193,7 @@ jobs:
     # proven against a real database — mocks would assert our own assumptions.
     services:
       postgres:
-        image: pgvector/pgvector:pg16
+        image: pgvector/pgvector:0.8.5-pg16
         env:
           POSTGRES_USER: rag
           POSTGRES_PASSWORD: rag
@@ -252,7 +252,7 @@ jobs:
     # docker-compose.yml local-atlas profile. Mocks cannot prove port parity.
     services:
       mongodb:
-        image: mongodb/mongodb-atlas-local:latest
+        image: mongodb/mongodb-atlas-local:8.0.9
         ports:
           - 27017:27017
         options: >-

@@ -123,7 +123,8 @@ services:
   # See docs/user-guide/mongodb-setup.md
   mongodb-local:
     profiles: ["mongodb-local", "local-atlas"]
-    image: mongodb/mongodb-atlas-local:latest
+    # Pin patch (not :latest / :8.0) for reproducible local + CI runs.
+    image: mongodb/mongodb-atlas-local:8.0.9
     container_name: ${MONGODB_LOCAL_CONTAINER_NAME:-rag-params-finder-mongodb-local}
     ports:
       - "27017:27017"
@@ -148,7 +149,8 @@ services:
   # CLI on host: export DATABASE_URL from scripts/lib/compose.sh (RAG_LOCAL_DATABASE_URL_HOST)
   postgres-local:
     profiles: ["postgres-local", "local-postgres"]
-    image: pgvector/pgvector:pg16
+    # Pin pgvector + PG major (not floating :pg16). 0.8.x required for hnsw.iterative_scan.
+    image: pgvector/pgvector:0.8.5-pg16
     container_name: ${POSTGRES_LOCAL_CONTAINER_NAME:-rag-params-finder-postgres-local}
     ports:
       - "5433:5432"

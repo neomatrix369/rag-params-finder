@@ -100,7 +100,7 @@ Scenario: External experiment_id preserved
 ## CI (mandatory before merge)
 
 - [x] Add Postgres/pgvector service to CI — `postgres-integration` job in `.github/workflows/ci.yml`
-      (`pgvector/pgvector:pg16` service container on 5433, health-gated)
+      (`pgvector/pgvector:0.8.5-pg16` service container on 5433, health-gated)
 - [x] Smoke: `STORAGE_BACKEND=postgres` CRUD test passes in CI pipeline —
       `tests/test_postgres_store_integration.py`, with `RAG_REQUIRE_POSTGRES=1` so a
       missing container fails instead of skipping

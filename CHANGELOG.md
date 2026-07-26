@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Pinned local DB Docker images** — `mongodb/mongodb-atlas-local:8.0.9` (was `:latest`) and `pgvector/pgvector:0.8.5-pg16` (was `:pg16`) in `docker-compose.yml` and CI integration jobs for reproducible stacks; pgvector 0.8.x required for `hnsw.iterative_scan`. Hosted Supabase unchanged (no Docker image).
 - **`STORAGE_BACKEND=mongodb` canonical token** — default and health/docs/CI use `mongodb` (matches YAML `database_provider: mongodb`); legacy `STORAGE_BACKEND=mongo` still accepted and normalized. Operator guides (postgres-setup, configuration, troubleshooting, CLI health examples) updated.
 - **Postgres/Supabase operator docs parity** — `postgres-setup.md` mirrors Mongo/SIE scaffolding (env tables, Path B, diagnostics); Supabase clarified as hosted Postgres under `STORAGE_BACKEND=postgres` + canonical `DATABASE_URL` (optional `SUPABASE_URI` alias added in Slice 37); empty-state dashboard offers both `configs/mongodb/` and `configs/supabase/` examples.
 - **CLI `indexes` on Postgres** — `indexes list|reset` exits not-applicable when `STORAGE_BACKEND` is not mongodb (no Atlas/`MONGODB_URI` surprise).

@@ -336,7 +336,8 @@ See `docs/adr/` for Architecture Decision Records:
 |------|---------|-------|
 | Manual (default dev) | `uvicorn` + `npm run dev` | Two terminals; hot reload |
 | Docker (prod profile) | `./start-services.sh` | Server + dashboard containers; Atlas cloud from `.env` |
-| Docker + Atlas Local | `./start-services.sh --mongodb-local` | Adds `mongodb-atlas-local` container; auto-provisions search indexes |
+| Docker + Atlas Local | `./start-services.sh --mongodb-local` | Adds `mongodb/mongodb-atlas-local:8.0.9` container; auto-provisions search indexes |
+| Docker + local Postgres | `./start-services.sh --postgres-local` | Adds `pgvector/pgvector:0.8.5-pg16` (Supabase stand-in); host port **5433** |
 | Docker (dev profile) | `docker compose --profile dev up` | Bind mounts + HMR |
 
 Atlas connection string and API keys live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md) and [MongoDB Setup](../user-guide/mongodb-setup.md).

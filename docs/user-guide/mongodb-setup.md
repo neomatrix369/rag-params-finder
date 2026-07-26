@@ -139,7 +139,7 @@ The server **preflights** required indexes on experiment submit — missing inde
 
 ![MongoDB Atlas Local](https://img.shields.io/badge/MongoDB_Atlas_Local-Docker-47A248?logo=mongodb&logoColor=white)
 
-Run the full RAG pipeline — including `$vectorSearch` and `$search` (BM25) — on your laptop using the official `mongodb/mongodb-atlas-local` Docker image. No Atlas cloud account, no 512 MB storage ceiling, no manual UI index creation.
+Run the full RAG pipeline — including `$vectorSearch` and `$search` (BM25) — on your laptop using the official `mongodb/mongodb-atlas-local:8.0.9` Docker image (pinned in `docker-compose.yml` / CI — not `:latest`). No Atlas cloud account, no 512 MB storage ceiling, no manual UI index creation.
 
 **Prerequisites:** Docker Desktop running; project dependencies installed (`uv venv && source .venv/bin/activate && uv pip install -e ".[dev]"`).
 

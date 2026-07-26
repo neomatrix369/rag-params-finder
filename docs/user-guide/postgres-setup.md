@@ -12,7 +12,7 @@ backend — Postgres with the `pgvector` extension — instead of MongoDB Atlas.
 | Term | What it is in this project |
 |---|---|
 | **Postgres + pgvector** | The **only** non-Mongo storage backend (`STORAGE_BACKEND=postgres`). Same SQL adapter for every deployment. |
-| **Local Docker** | A `pgvector/pgvector:pg16` container on your laptop (`./start-services.sh --postgres-local`). |
+| **Local Docker** | A `pgvector/pgvector:0.8.5-pg16` container on your laptop (`./start-services.sh --postgres-local`). |
 | **Supabase** | A **hosted Postgres product** (managed cloud Postgres + dashboard). We connect with a normal `postgresql://…` URI — not a separate Supabase SDK or API. Start with `./start-services.sh --postgres-cloud`. |
 | **`configs/supabase/`** | Example YAML **folder name** for Postgres-path configs (mirrors `configs/mongodb/`). Not a second backend and not `STORAGE_BACKEND`. |
 | **`database_provider`** | Engine intent only: `mongodb` \| `postgres`. Deprecated YAML input `supabase` **normalizes to `postgres`** (DeprecationWarning). Location (local vs cloud) comes from the URI → `storage_mode`. |
@@ -358,7 +358,7 @@ Container not running or still starting. Check
 `docker logs rag-params-finder-postgres-local`.
 
 **`type "vector" does not exist`**
-Use `pgvector/pgvector:pg16` (compose default), not stock `postgres`.
+Use `pgvector/pgvector:0.8.5-pg16` (compose default), not stock `postgres`.
 
 **`No Postgres vector column for N-dim embeddings`**
 Supported widths are 384 and 1024; see [Schema](#schema).
