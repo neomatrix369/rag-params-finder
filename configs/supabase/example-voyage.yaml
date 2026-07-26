@@ -19,7 +19,7 @@
 #   - STORAGE_BACKEND=postgres
 #   - DATABASE_URL=postgresql://... (local :5433 or Supabase URI)
 #   - Schema auto-applied on server boot (no manual indexes)
-#   - Dense retrieval works today; sparse/hybrid arrive in Slice 35
+#   - Dense, sparse, and hybrid retrieval work on Postgres (tsvector + RRF)
 #   See docs/user-guide/postgres-setup.md
 #
 experiment_name: example-supabase-voyage
@@ -69,9 +69,9 @@ retrieval:
   top_k_final: 5     # Final results after reranking
   retrievers:
     # Each entry is one sweep dimension — one retriever per run (never combined).
-    - type: hybrid   # RRF of dense + sparse — Slice 35; raises until then
+    - type: hybrid   # RRF of dense + sparse (rrf_k=60)
     - type: dense    # pgvector cosine (<=>) filtered by embedding_model
-    - type: sparse   # Postgres FTS (tsvector) — Slice 35; raises until then
+    - type: sparse   # Postgres FTS (tsvector / ts_rank)
     - type: reranker
       provider: voyage
       model: rerank-2.5-lite

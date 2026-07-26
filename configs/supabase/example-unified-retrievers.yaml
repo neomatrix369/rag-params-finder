@@ -17,7 +17,7 @@
 #   - STORAGE_BACKEND=postgres
 #   - DATABASE_URL=postgresql://... (local :5433 or Supabase URI)
 #   - Schema auto-applied on server boot (no manual indexes)
-#   - Dense retrieval works today; sparse/hybrid arrive in Slice 35
+#   - Dense, sparse, and hybrid retrieval work on Postgres (tsvector + RRF)
 #   See docs/user-guide/postgres-setup.md
 #
 experiment_name: example-supabase-unified-retrievers
@@ -49,7 +49,7 @@ retrieval:
   retrievers:
     # Each entry is one sweep dimension — one retriever per run (never combined).
     - type: dense
-    - type: sparse   # Slice 35 — Postgres FTS; raises until then
+    - type: sparse   # Postgres FTS (tsvector / ts_rank)
     - type: hybrid
     - type: cross_encoder
       provider: local

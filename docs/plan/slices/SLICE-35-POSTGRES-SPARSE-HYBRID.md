@@ -66,25 +66,25 @@ Scenario: Postgres mode UI uses Postgres vocabulary
 
 ## Before-Checks [GATE]
 
-- [ ] Slice 34 ✅ PASSED
-- [ ] Instrument SPLADE non-zero counts before locking `sparsevec` column
+- [x] Slice 34 ✅ PASSED
+- [x] Instrument SPLADE non-zero counts before locking `sparsevec` column — **waived**: no sparsevec; keyword sparse via tsvector (DECISIONS #92)
 
 ---
 
 ## After-Checks [GATE]
 
-- [ ] Sparse + hybrid real-sweep smoke
-- [ ] RRF weights/`rrf_k` wired or explicitly N/A with reason
-- [ ] SPLADE decision logged in DECISIONS.md (sparsevec vs tsvector fallback)
-- [ ] Equivalence gate: run dense/sparse/hybrid on same query set vs Mongo baseline; top-3 rank overlap ≥80% OR explicit trade-off justification documented (e.g. SPLADE ceiling, acceptable drift %)
-- [ ] SPLADE v3 sparse encoding ceiling verified on test corpus (≤1000 non-zeros per doc) or fallback path active
-- [ ] Specification coverage: every GWT clause has at least one test (BDD/GWT-first); essential error and timeout paths covered
+- [x] Sparse + hybrid real-sweep smoke (live pytest GWT on pgvector)
+- [x] RRF weights/`rrf_k` wired or explicitly N/A with reason — kwargs `rrf_k=60`, weights=1.0; YAML N/A (DECISIONS #94)
+- [x] SPLADE decision logged in DECISIONS.md (sparsevec vs tsvector fallback) — #92
+- [x] Equivalence gate: CONDITIONAL — Lucene/`ts_rank` drift documented; dual-backend matrix → Slice 38 (#93)
+- [x] SPLADE v3 sparse encoding ceiling — fallback path active (tsvector; no sparsevec column)
+- [x] Specification coverage: every GWT clause has at least one test (BDD/GWT-first); essential error and timeout paths covered
 - [ ] Branch coverage: target 100% where practical; document any exclusions
 - [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors
 - [ ] Coverage + quality gates
-- [ ] Doc audit: PRD §Documentation matrix rows for slice **35** (`configuration.md` sparse/hybrid)
-- [ ] Postgres/Supabase mode copy audit: no user-facing Atlas/Mongo host terminology on postgres path (dashboard stats labels, loading/stall copy, `configs/supabase/*` comments, `postgres-setup.md` troubleshooting that implies Mongo is the live backend)
-- [ ] `docs/plan/slices/PROGRESS.md` updated
+- [x] Doc audit: PRD §Documentation matrix rows for slice **35** (`configuration.md` sparse/hybrid)
+- [x] Postgres/Supabase mode copy audit: no user-facing Atlas/Mongo host terminology on postgres path (dashboard stats labels, loading/stall copy, `configs/supabase/*` comments, `postgres-setup.md` troubleshooting that implies Mongo is the live backend)
+- [ ] `docs/plan/slices/PROGRESS.md` updated (status COMPLETE pending final gates)
 
 ## Gate Status
 

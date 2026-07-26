@@ -171,7 +171,7 @@ execution:
 - Use `configs/mongodb/example-local-parallel.yaml` for local-provider throughput tuning.
 - Use `configs/mongodb/example-voyage-parallel.yaml` or `configs/mongodb/example-sie-parallel.yaml` for provider-specific parallel demo baselines.
 - Keep `1` for deterministic small runs and reserved resource profiles.
-- Postgres/Supabase: same stems under `configs/supabase/` (dense today; sparse/hybrid → Slice 35).
+- Postgres/Supabase: same stems under `configs/supabase/` (dense, sparse, hybrid).
 
 Example configs:
 - Sequential (`parallelism: 1`):

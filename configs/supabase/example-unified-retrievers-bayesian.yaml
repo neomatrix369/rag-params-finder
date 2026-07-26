@@ -11,7 +11,7 @@
 #   - STORAGE_BACKEND=postgres
 #   - DATABASE_URL=postgresql://... (local :5433 or Supabase URI)
 #   - Schema auto-applied on server boot (no manual indexes)
-#   - Dense retrieval works today; sparse/hybrid arrive in Slice 35
+#   - Dense, sparse, and hybrid retrieval work on Postgres (tsvector + RRF)
 #   See docs/user-guide/postgres-setup.md
 #
 experiment_name: example-supabase-unified-retrievers-bayesian

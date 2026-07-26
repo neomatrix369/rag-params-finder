@@ -41,7 +41,7 @@ def get_retriever_backend() -> RetrieverBackend:
     """Return the configured RetrieverBackend.
 
     Reads STORAGE_BACKEND from settings (default "mongo").
-    Postgres serves dense retrieval; sparse and hybrid arrive in Slice 35.
+    Postgres serves dense, sparse, and hybrid retrieval (Slice 35).
     """
     backend = settings.storage_backend.lower()
     if backend == "mongo":

@@ -201,8 +201,8 @@ export function createStallWatcher(options: {
     if (!options.alive()) return;
     const elapsed = deadline() - baseline;
     const s = (elapsed / 1000).toFixed(1);
-    const uiText = `Still waiting (${s}s) — server busy, Atlas latency, or large payload.`;
-    devWarn(options.scope, `stall — ${options.operation} still waiting (${s}s) — server busy, Atlas latency, or large payload`);
+    const uiText = `Still waiting (${s}s) — server busy, network latency, or large payload.`;
+    devWarn(options.scope, `stall — ${options.operation} still waiting (${s}s) — server busy, network latency, or large payload`);
     options.onWarning(uiText);
   };
 

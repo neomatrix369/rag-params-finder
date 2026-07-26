@@ -24,7 +24,9 @@ Place config files under `configs/mongodb/` or `configs/supabase/` (mirrored ste
 | `supabase/example-sie.yaml` | Supabase / pgvector | SIE (bge-m3, stella-v5) | all 5 methods | dense · sparse · hybrid · cross-encoder | 80 | No (remote SIE gateway or optional Docker) |
 | `supabase/example-unified-retrievers.yaml` | Supabase / pgvector | local (all-MiniLM-L6-v2) | 2 methods | dense · sparse · hybrid · cross-encoder | 16 | No |
 
-> **Postgres note:** dense (+ rerankers) run today on Supabase/pgvector. Sparse and hybrid raise until [Slice 35](../plan/slices/SLICE-35-POSTGRES-SPARSE-HYBRID.md). Use `STORAGE_BACKEND=postgres` + `DATABASE_URL` — see [postgres-setup.md](postgres-setup.md).
+> **Postgres note:** dense, sparse, and hybrid (+ rerankers) run on Supabase/pgvector.
+> Sparse uses `tsvector`/`ts_rank`; hybrid uses RRF (`rrf_k=60`). Use
+> `STORAGE_BACKEND=postgres` + `DATABASE_URL` — see [postgres-setup.md](postgres-setup.md).
 
 Each config is a **full Cartesian sweep**: every combination of embedding model, chunking method, chunk size, overlap, and retriever runs as an independent experiment. Each entry in `retrieval.retrievers` creates a separate run — retrievers are never combined in a single run.
 
@@ -338,7 +340,7 @@ Each query is executed independently per run. Results are stored with `persona_i
 
 ## 🏠 Quick Start (No API Key)
 
-Use `configs/mongodb/example-local.yaml` — it covers all 5 chunking methods and all traditional retrieval methods (dense, sparse, hybrid) plus local cross-encoder reranking. No Voyage API key needed. **120 runs** — mostly wall-clock time; sparse/hybrid query existing chunk text (BM25/RRF) and do not add embedding storage beyond each run’s chunks. For a shorter sweep, use `configs/mongodb/example-unified-retrievers.yaml` (16 runs). Supabase/pgvector twin: `configs/supabase/example-local.yaml` (dense works today; sparse/hybrid → Slice 35).
+Use `configs/mongodb/example-local.yaml` — it covers all 5 chunking methods and all traditional retrieval methods (dense, sparse, hybrid) plus local cross-encoder reranking. No Voyage API key needed. **120 runs** — mostly wall-clock time; sparse/hybrid query existing chunk text (BM25/RRF) and do not add embedding storage beyond each run’s chunks. For a shorter sweep, use `configs/mongodb/example-unified-retrievers.yaml` (16 runs). Supabase/pgvector twin: `configs/supabase/example-local.yaml` (same retriever grid; sparse uses `tsvector`).
 
 ```bash
 rag-params-finder run --config configs/mongodb/example-local.yaml

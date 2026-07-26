@@ -70,6 +70,15 @@ CREATE INDEX IF NOT EXISTS chunks_embedding_1024_hnsw
     ON chunks USING hnsw (embedding_1024 vector_cosine_ops)
     WHERE embedding_1024 IS NOT NULL;
 
+-- Full-text search for sparse / hybrid retrieval (Slice 35). Generated column
+-- stays in sync with `text` on insert/update; GIN serves @@ / ts_rank_cd.
+ALTER TABLE chunks
+    ADD COLUMN IF NOT EXISTS text_search tsvector
+    GENERATED ALWAYS AS (to_tsvector('english', coalesce(text, ''))) STORED;
+
+CREATE INDEX IF NOT EXISTS chunks_text_search_gin
+    ON chunks USING gin (text_search);
+
 CREATE TABLE IF NOT EXISTS results (
     result_id     BIGSERIAL PRIMARY KEY,
     experiment_id TEXT  NOT NULL REFERENCES experiments (experiment_id) ON DELETE CASCADE,

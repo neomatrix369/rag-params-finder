@@ -126,7 +126,7 @@ export default function LoadingFeedbackPanel(props: {
             className={`mt-2 font-mono text-xs leading-snug ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}
           >
             {downloadSummary ??
-              'Waiting for first byte… (TLS, Mongo Atlas, or large JSON can take a few seconds)'}
+              'Waiting for first byte… (TLS handshake or large JSON can take a few seconds)'}
           </div>
         </div>
       )}

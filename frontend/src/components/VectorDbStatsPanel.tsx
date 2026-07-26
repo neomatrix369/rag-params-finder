@@ -1,5 +1,12 @@
 import CollapsibleCard from './CollapsibleCard';
 import type { VectorDbStatsGroup } from '../types';
+import {
+  clusterHostLabel,
+  collectionOrTableLabel,
+  isMongoProvider,
+  storageQuotaHint,
+  sweepWriteHint,
+} from '../utils/storageLabels';
 
 function groupLabel(group: VectorDbStatsGroup): string {
   if (group.cluster_host) return group.cluster_host;
@@ -41,8 +48,7 @@ export default function VectorDbStatsPanel({
       <div className="mb-6 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 p-6 text-sm text-slate-600">
         <p className="font-medium text-slate-800">Loading vector database stats…</p>
         <p className="mt-2 text-slate-600">
-          Counting chunks and storage across experiments. This is separate from the experiment list
-          and may take longer while a sweep is writing to Atlas.
+          {sweepWriteHint(groups[0]?.database_provider)}
         </p>
       </div>
     );
@@ -115,7 +121,7 @@ export default function VectorDbStatsPanel({
                 hint={
                   group.totals.database_storage_limit_mb != null
                     ? `of ${group.totals.database_storage_limit_mb} MB cluster quota`
-                    : 'Configure Atlas Admin API to show cluster quota'
+                    : storageQuotaHint(group.database_provider)
                 }
               />
               <StatTile
@@ -146,11 +152,23 @@ export default function VectorDbStatsPanel({
 
             <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="rounded-lg border border-indigo-200 bg-white p-4">
-                <div className="mb-2 text-xs uppercase tracking-wider text-slate-500">Cluster & Collection</div>
+                <div className="mb-2 text-xs uppercase tracking-wider text-slate-500">
+                  {isMongoProvider(group.database_provider)
+                    ? 'Cluster & Collection'
+                    : 'Cluster & Table'}
+                </div>
                 <div className="space-y-1 text-sm">
                   <Row label="Provider" value={group.database_provider} />
-                  <Row label="Collection" value={group.collection_name} mono />
-                  <Row label="Atlas host" value={group.cluster_host ?? '—'} mono />
+                  <Row
+                    label={collectionOrTableLabel(group.database_provider)}
+                    value={group.collection_name}
+                    mono
+                  />
+                  <Row
+                    label={clusterHostLabel(group.database_provider)}
+                    value={group.cluster_host ?? '—'}
+                    mono
+                  />
                   {group.totals.cluster_tier && (
                     <Row
                       label="Tier"

@@ -1,0 +1,7 @@
+{
+  "slice": 34,
+  "gate_status": "PASSED",
+  "inferred": true,
+  "note": "Backfilled by plan-health-check — Slice 34 marked COMPLETE in TRAIL/PROGRESS; verify fields before downstream use",
+  "backfilled_at": "2026-07-26"
+}

@@ -126,7 +126,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/reranker.py` | Voyage reranking client |
 | `server/core/local_reranker.py` | CrossEncoder reranking (lazy-load) |
 | `server/core/retriever.py` | Atlas Vector Search (dense/sparse/hybrid) |
-| `server/core/retriever_postgres.py` | pgvector dense retrieval; Atlas-scale scores, mandatory `embedding_model` filter; sparse/hybrid land in Slice 35 |
+| `server/core/retriever_postgres.py` | pgvector dense + tsvector sparse + RRF hybrid; Atlas-scale dense scores; mandatory `embedding_model` filter |
 | `server/models/config.py` | Pydantic experiment config + provider validators |
 | `server/models/enums.py` | ChunkingMethod, RetrievalMethod, Phase |
 | `server/api/experiments.py` | Experiments CRUD, results/explore, db-stats, pause, resume, cancel, delete |
