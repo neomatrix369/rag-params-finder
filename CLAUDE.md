@@ -94,7 +94,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | File | Purpose |
 |---|---|
 | `server/main.py` | FastAPI app entry; lifespan ensures DB indexes + orphan reconciliation |
-| `server/settings.py` | Centralized pydantic-settings config (`storage_backend`: mongo default; postgres reserved Slice 33+) |
+| `server/settings.py` | Centralized pydantic-settings config (`storage_backend`: `mongodb` default or `postgres`) |
 | `server/db/storage.py` | `StorageBackend` Protocol — experiment/run/chunk/result CRUD + cascade + reconciliation |
 | `server/db/retriever_backend.py` | `RetrieverBackend` Protocol — dense/sparse/hybrid search port |
 | `server/db/mongo_store.py` | Mongo adapters for both ports (Atlas / Atlas Local) |

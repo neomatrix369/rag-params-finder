@@ -281,6 +281,27 @@ contract + dense/sparse suites interleaved.
 Locally: `./start-services.sh --postgres` and/or `--local`, then run the live paths
 explicitly (or rely on CI). Without those services, mongo/postgres contract params skip.
 
+**Run Postgres live suites locally** (not part of `./scripts/quality-gates.sh` / the CI
+unit job — those ignore live suites):
+
+```bash
+./start-services.sh --postgres
+RAG_REQUIRE_POSTGRES=1 uv run pytest \
+  tests/test_postgres_store_integration.py \
+  tests/test_postgres_dense_retrieval.py \
+  tests/test_postgres_sparse_hybrid.py \
+  tests/contract/test_storage_backend_contract.py \
+  -q -rs
+```
+
+Without a reachable database they skip, so the unit tier stays green on a machine with
+no Docker. Point them elsewhere with `RAG_TEST_DATABASE_URL`. CI sets
+`RAG_REQUIRE_POSTGRES=1`, which turns an unreachable database into a failure instead of
+a skip — otherwise a broken service container would report green forever.
+
+Operator first-prove (CLI sweep, not pytest): see
+[postgres-setup → Run the smoke sweep](../user-guide/postgres-setup.md#run-the-smoke-sweep).
+
 **Still manual / not automated:**
 - End-to-end pipeline via CLI + dashboard (real Atlas/Postgres + optional Voyage)
 - Full pipeline with pre-computed embedding fixtures beyond the live store/retriever suites

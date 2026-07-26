@@ -1,11 +1,14 @@
 # Local Environment
 
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
+![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 
 Internal notes for local setup, debugging, and maintenance. Not required for basic contribution — see [development.md](development.md) for the standard dev workflow.
+
+**Storage backends:** MongoDB Atlas notes dominate this file (historical contributor notes). For Postgres/pgvector (local Docker or Supabase-hosted), use the public guide [Postgres Setup](../user-guide/postgres-setup.md) and [development.md → Testing Strategy](development.md#testing-strategy).
 
 ---
 

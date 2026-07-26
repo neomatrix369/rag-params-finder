@@ -4,12 +4,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   clusterHostLabel,
+  clusterSectionTitle,
   collectionOrTableLabel,
   displayDatabaseProvider,
   explorerFetchFeedText,
   explorerPayloadHint,
   experimentHydratingBlurb,
   isMongoProvider,
+  storageQuotaHint,
+  sweepWriteHint,
   waitingForFirstByteHint,
 } from './storageLabels';
 
@@ -17,7 +20,9 @@ describe('storageLabels', () => {
   it('keeps Atlas host for mongodb provider', () => {
     expect(clusterHostLabel('mongodb')).toBe('Atlas host');
     expect(collectionOrTableLabel('mongodb')).toBe('Collection');
+    expect(clusterSectionTitle('mongodb')).toBe('Cluster & Collection');
     expect(isMongoProvider('mongodb')).toBe(true);
+    expect(isMongoProvider('mongo')).toBe(true);
   });
 
   it('uses Host and Table for postgres/supabase providers', () => {
@@ -25,6 +30,8 @@ describe('storageLabels', () => {
     expect(clusterHostLabel('supabase')).toBe('Host');
     expect(collectionOrTableLabel('postgres')).toBe('Table');
     expect(collectionOrTableLabel('supabase')).toBe('Table');
+    expect(clusterSectionTitle('postgres')).toBe('Host & Table');
+    expect(clusterSectionTitle('supabase')).toBe('Host & Table');
     expect(isMongoProvider('postgres')).toBe(false);
   });
 
@@ -39,6 +46,8 @@ describe('storageLabels', () => {
     expect(explorerPayloadHint('postgres')).toContain('storage');
     expect(experimentHydratingBlurb('postgres')).toContain('storage');
     expect(waitingForFirstByteHint('postgres')).not.toContain('Atlas');
+    expect(storageQuotaHint('postgres')).toContain('backend metrics');
+    expect(sweepWriteHint('postgres')).not.toContain('Atlas');
   });
 
   it('keeps Mongo wording when provider is mongodb', () => {
@@ -46,5 +55,7 @@ describe('storageLabels', () => {
     expect(explorerPayloadHint('mongodb')).toContain('Mongo');
     expect(experimentHydratingBlurb('mongodb')).toContain('Mongo');
     expect(waitingForFirstByteHint('mongodb')).toContain('Atlas');
+    expect(storageQuotaHint('mongodb')).toContain('Atlas Admin API');
+    expect(sweepWriteHint('mongodb')).toContain('Atlas');
   });
 });

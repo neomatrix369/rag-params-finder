@@ -216,9 +216,11 @@ cd frontend && npm run dev                      # Terminal 2 (optional)
 
 **Atlas cloud:** create search indexes in the Atlas UI first (M0), then start uvicorn + frontend as above with `mongodb+srv://…` in `.env`.
 
-### Path D — Docker + Postgres/pgvector (dense retrieval)
+### Path D — Docker + Postgres/pgvector
 
-No Atlas account. Local `pgvector` on host port **5433**; dense sweeps only until Slice 35.
+No Atlas account. Local `pgvector` on host port **5433** (same Postgres backend as
+Supabase-hosted; only the URI differs). Dense, sparse, and hybrid run end to end.
+Prefer a short first prove (16 runs).
 
 ```bash
 cp .env.example .env   # if needed
@@ -230,7 +232,7 @@ For host CLI after Path D:
 ```bash
 export STORAGE_BACKEND=postgres
 export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
-rag-params-finder run --config configs/supabase/example-local.yaml
+rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
 ```
 
 Full setup: [postgres-setup.md](docs/user-guide/postgres-setup.md).
@@ -270,8 +272,8 @@ rag-params-finder run --config configs/mongodb/example-local.yaml   # 120 runs, 
 rag-params-finder run --config configs/mongodb/example-voyage.yaml  # 40 runs, Voyage + Tier 1
 # rag-params-finder run --config configs/mongodb/example-sie.yaml   # SIE — see sie-setup.md
 
-# Postgres/Supabase dense sweep (Path D — see postgres-setup.md; sparse/hybrid → Slice 35)
-# rag-params-finder run --config configs/supabase/example-local.yaml
+# Postgres/Supabase first prove (Path D — see postgres-setup.md)
+# rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
 ```
 
 Open `http://localhost:5374` to watch progress and explore results. See [docs/images](https://github.com/neomatrix369/rag-params-finder#-screenshots).

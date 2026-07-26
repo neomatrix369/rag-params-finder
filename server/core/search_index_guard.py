@@ -1,6 +1,6 @@
 """Mongo-only: preflight guard — load Atlas cluster state, ensure indexes, validate requirements.
 
-When ``STORAGE_BACKEND`` is not mongo, validation short-circuits via
+When ``STORAGE_BACKEND`` is not mongodb, validation short-circuits via
 ``preflight_not_applicable`` (Postgres declares indexes at schema bootstrap).
 """
 
@@ -26,7 +26,7 @@ from server.db.indexes import (
     reconcile_chunks_search_indexes,
 )
 from server.models.config import ExperimentConfig
-from server.settings import settings
+from server.settings import normalize_storage_backend, settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -81,7 +81,7 @@ def validate_experiment_search_indexes(
     Every step here talks to Atlas, so non-Mongo backends short-circuit: they
     would otherwise open a MongoDB connection the sweep never uses.
     """
-    if settings.storage_backend.lower() != "mongo":
+    if normalize_storage_backend(settings.storage_backend) != "mongodb":
         logger.info(
             "search index preflight skipped — backend=%s declares its indexes at schema bootstrap",
             settings.storage_backend,

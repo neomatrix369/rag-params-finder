@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from server.db.postgres_uri import is_supabase_uri
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -17,6 +18,17 @@ _DEFAULT_CORS_ORIGINS: tuple[str, ...] = (
 # Matches http(s) localhost / loopback on any port — covers Vite port drift (5174+)
 # without widening CORS to arbitrary hosts (see Starlette cors regex docs).
 LOCALHOST_CORS_ORIGIN_REGEX: str = r"^https?://" r"(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$"
+
+# Runtime token for MongoDB Atlas / Atlas Local. Legacy env value ``mongo`` is
+# normalized to ``mongodb`` so STORAGE_BACKEND matches database_provider labels.
+_STORAGE_BACKEND_ALIASES: dict[str, str] = {"mongo": "mongodb"}
+_KNOWN_STORAGE_BACKENDS: frozenset[str] = frozenset({"mongodb", "postgres"})
+
+
+def normalize_storage_backend(value: str) -> str:
+    """Map legacy ``mongo`` to canonical ``mongodb``; otherwise lower/strip."""
+    backend = value.strip().lower()
+    return _STORAGE_BACKEND_ALIASES.get(backend, backend)
 
 
 class Settings(BaseSettings):
@@ -82,9 +94,10 @@ class Settings(BaseSettings):
     # MongoDB ping timeout for /healthz (ms). Keep below Docker healthcheck timeout (10s).
     health_check_mongodb_timeout_ms: int = 5000
 
-    # Active storage backend. "mongo" (default) uses MongoDB Atlas / Atlas Local.
+    # Active storage backend. "mongodb" (default) uses MongoDB Atlas / Atlas Local.
     # "postgres" uses Supabase (hosted) or a local pgvector container.
-    storage_backend: str = "mongo"
+    # Legacy alias: STORAGE_BACKEND=mongo → normalized to mongodb.
+    storage_backend: str = "mongodb"
 
     # Postgres connection string — required when STORAGE_BACKEND=postgres.
     # Hosted Supabase: Settings → Database → Connection string (Session mode pooler).
@@ -109,13 +122,15 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def storage_backend_must_be_known(self) -> Settings:
-        """Reject unknown STORAGE_BACKEND values at construction."""
-        backend = self.storage_backend.lower()
-        if backend not in {"mongo", "postgres"}:
+        """Normalize aliases and reject unknown STORAGE_BACKEND values."""
+        backend = normalize_storage_backend(self.storage_backend)
+        if backend not in _KNOWN_STORAGE_BACKENDS:
             raise ValueError(
                 f"Unknown STORAGE_BACKEND={self.storage_backend!r}. "
-                "Set STORAGE_BACKEND to 'mongo' or 'postgres'."
+                "Set STORAGE_BACKEND to 'mongodb' or 'postgres' "
+                "(legacy alias: 'mongo')."
             )
+        self.storage_backend = backend
         return self
 
     def ensure_storage_ready(self) -> None:
@@ -125,10 +140,10 @@ class Settings(BaseSettings):
         with one clear message before any driver I/O. Empty URIs remain allowed
         at Settings construction so unit tests can import the module without a DB.
         """
-        backend = self.storage_backend.lower()
-        if backend == "mongo" and not self.mongodb_uri.strip():
+        backend = normalize_storage_backend(self.storage_backend)
+        if backend == "mongodb" and not self.mongodb_uri.strip():
             raise ValueError(
-                "STORAGE_BACKEND=mongo requires MONGODB_URI. "
+                "STORAGE_BACKEND=mongodb requires MONGODB_URI. "
                 "Set it in .env or the environment (Atlas cloud or Atlas Local)."
             )
         if backend == "postgres" and not self.database_url.strip():
@@ -136,6 +151,18 @@ class Settings(BaseSettings):
                 "STORAGE_BACKEND=postgres requires DATABASE_URL. "
                 "Set it in .env (local pgvector or hosted Supabase)."
             )
+
+    def default_database_provider(self) -> str:
+        """Label for runs/stats when YAML omits ``database_provider``.
+
+        Runtime selection remains ``storage_backend``. This only fills the
+        metadata label used by resume signatures and explorer grouping.
+        """
+        if normalize_storage_backend(self.storage_backend) != "postgres":
+            return "mongodb"
+        if self.database_url.strip() and is_supabase_uri(self.database_url):
+            return "supabase"
+        return "postgres"
 
 
 settings = Settings()

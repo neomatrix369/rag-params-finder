@@ -32,7 +32,7 @@ def mongo_backend() -> Iterator[None]:
     turns the Atlas-path tests into no-ops. Tests that exercise the backend gate
     itself re-patch this value locally.
     """
-    with patch("server.settings.settings.storage_backend", "mongo"):
+    with patch("server.settings.settings.storage_backend", "mongodb"):
         yield
 
 
@@ -564,7 +564,7 @@ class TestPreflightBackendScopeShould:
         Scenario: The default backend keeps its preflight behaviour.
         Slice: slice-34-postgres-dense-retrieval
 
-        Given STORAGE_BACKEND="mongo",
+        Given STORAGE_BACKEND="mongodb",
         When validate_experiment_search_indexes runs,
         Then the cluster snapshot is still collected.
         """
@@ -580,7 +580,7 @@ class TestPreflightBackendScopeShould:
 
         ### When
         with (
-            patch("server.settings.settings.storage_backend", "mongo"),
+            patch("server.settings.settings.storage_backend", "mongodb"),
             patch(
                 "server.core.search_index_guard.collect_search_index_snapshot",
                 return_value=ready,

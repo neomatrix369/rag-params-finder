@@ -645,9 +645,14 @@ export default function ExperimentsScreen({
           <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-muted">
             The server is connected and returned an empty list. Submit the first sweep from the CLI, then return here to follow its lifecycle and inspect its results.
           </p>
-          <code className="mx-auto mt-4 block max-w-xl overflow-x-auto rounded-xl border border-line bg-canvas p-3 text-left text-xs text-ink">
-            rag-params-finder run --config configs/mongodb/example-local.yaml
-          </code>
+          <div className="mx-auto mt-4 max-w-xl space-y-2 text-left text-xs text-ink">
+            <code className="block overflow-x-auto rounded-xl border border-line bg-canvas p-3">
+              MongoDB: rag-params-finder run --config configs/mongodb/example-local.yaml
+            </code>
+            <code className="block overflow-x-auto rounded-xl border border-line bg-canvas p-3">
+              Postgres: rag-params-finder run --config configs/supabase/example-local.yaml
+            </code>
+          </div>
         </div>
       )}
 

@@ -822,17 +822,20 @@ def test_stored_enum_value_and_run_doc_signature() -> None:
     assert _stored_enum_value(ChunkingMethod.RECURSIVE) == "recursive"
     assert _stored_enum_value("plain") == "plain"
     assert _stored_enum_value(None) == ""
-    assert _run_doc_signature({"chunking_method": ChunkingMethod.RECURSIVE}) == (
-        "mongodb",
-        "",
-        "",
-        "recursive",
-        0,
-        0,
-        "",
-        "",
-        None,
-    )
+    # Pin storage_backend so ambient STORAGE_BACKEND=postgres in .env cannot
+    # change the missing-database_provider fallback used by resume signatures.
+    with patch("server.core.orchestrator.settings.storage_backend", "mongodb"):
+        assert _run_doc_signature({"chunking_method": ChunkingMethod.RECURSIVE}) == (
+            "mongodb",
+            "",
+            "",
+            "recursive",
+            0,
+            0,
+            "",
+            "",
+            None,
+        )
 
 
 def test_primary_retriever_with_empty_retrievers_raises() -> None:

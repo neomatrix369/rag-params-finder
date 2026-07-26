@@ -6,7 +6,7 @@
 
 **Essential, minimal steps** to run the example sweep commands on **Atlas Cloud** or **Atlas Local (Docker)**. Official vendor docs are linked; details you can skip are marked *optional*.
 
-> **Naming note:** MongoDB examples live under `configs/mongodb/`. `example-local.yaml` means **local embedding models** (sentence-transformers, 384-dim) — not local MongoDB. Any MongoDB example works on Atlas Cloud or Atlas Local; only `MONGODB_URI` (or `./start-services.sh --local`) selects the database. Supabase/pgvector twins live under `configs/supabase/`.
+> **Naming note:** MongoDB examples live under `configs/mongodb/`. `example-local.yaml` means **local embedding models** (sentence-transformers, 384-dim) — not local MongoDB. Any MongoDB example works on Atlas Cloud or Atlas Local; only `MONGODB_URI` (or `./start-services.sh --local`) selects the database. Postgres/pgvector twins (local Docker or Supabase-hosted) live under `configs/supabase/` — same YAML keys, runtime `STORAGE_BACKEND=postgres` — see [Postgres Setup](postgres-setup.md).
 
 ---
 
@@ -369,3 +369,4 @@ Docker stack (optional): `./start-services.sh` (cloud) or `./start-services.sh -
 
 - [Troubleshooting](troubleshooting.md) — index not found, rate limits, dimension mismatch
 - [Getting Started](getting-started.md) — install, documents, pause/resume
+- [Postgres Setup](postgres-setup.md) — Postgres/pgvector alternative (local or Supabase-hosted)

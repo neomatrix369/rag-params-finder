@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-26 (Slice 43 Could backlog for supabase config smoke/QoL; CI unit/live split; Slice 35 ✅; Active: **36–38** · **32**/**33** gate track)
-**Current**: Active migration: **34** ✅ dense → **35** ✅ sparse/hybrid → **36–38**. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. Non-urgent: **43** supabase config verification. Deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-26 (Slice 43 🔨 docs §2–§6; live smoke §1 open; `STORAGE_BACKEND=mongodb` canonical; Active: **36–38** · **32**/**33** gate track)
+**Current**: Active migration: **34** ✅ dense → **35** ✅ sparse/hybrid → **36–38**. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **43** 🔨 supabase config verification (smoke remaining). Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -63,7 +63,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 41B — Bayesian Search: Numeric Improvements | 📋 PLANNED | ~2–3 h | Unlocked: `bayesian.parallelism` (constant liar, ≤4 workers), `padding` as third numeric dimension, `n_trials` formula, 3-condition stopping loop, 41A embedding-parallelism gap fix — [`SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`](SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) |
 | 41C — Bayesian Search: Extended | 📋 PLANNED | ~3–4 h | All questions resolved (A1 SQLite, A2 waived, A4 N=20, D3 sweep_summary keys, D7 RandomConfig); blocked only on 41B ✅: study persistence, categorical axes, random search, dashboard card, default promotion — [`SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md`](SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md) |
 | 42 — Docker Build Optimisation | ✅ COMPLETE | ~2–3 h | Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime (62 MB); CI docker-build job (non-blocking, path-scoped) — [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
-| 43 — Supabase example-config verification | 📋 PLANNED | ~1–2 h | **Could / non-urgent** — live smoke of `configs/supabase/*`; `STORAGE_BACKEND` vs `database_provider`; env asymmetry; HNSW first-prove note; PR-body backlog from [#109](https://github.com/neomatrix369/rag-params-finder/pull/109)–[#113](https://github.com/neomatrix369/rag-params-finder/pull/113) — [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) |
+| 43 — Supabase example-config verification | 🔨 IN PROGRESS | ~1–2 h | **Could** — operator docs §2/§3 done (`STORAGE_BACKEND` vs `database_provider`, env asymmetry, `mongodb` token); **§1 live smoke still open** — [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) |
 | 44 — Frontend coverage + gate summary | 📋 PLANNED | ~2–3 h | **Should** — spun out of 43 (SLAP): add service/util/component tests; embed coverage table + floor in pre-push & CI like the backend — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
@@ -690,7 +690,8 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
-| 2026-07-26 | 43/44 | Enhanced-flow-planner quality lens: 9/10 pass (fail = SLAP). Deduped SLICE-43 (old §6a→folded into §§1–5; old §6b+§7 merged into one *Owned elsewhere* table); added in-scope MoSCoW; §1 live smoke confirmed as 43's definition-of-done. Spun the frontend-coverage residual out to new **SLICE-44** (Should) | §6a only re-listed §§1–5; two "owned elsewhere" tables duplicated; slice mixed Supabase-config docs with unrelated frontend/CI hygiene — one abstraction level per slice, so coverage work gets its own slice |
+| 2026-07-26 | naming | Canonical `STORAGE_BACKEND=mongodb` (legacy alias `mongo` → normalize); health `storage_backend` key matches; `database_provider` already used `mongodb` | Operator/docs/env were split between short `mongo` and label `mongodb`; Slice 37 already planned the rename — land the token now with alias so existing `.env` values keep working |
+| 2026-07-26 | 43 | sync-docs: §2–§5 operator-doc acceptance marked IMPLEMENTED; slice status → 🔨; §1 live smoke remains the DoD gate | Docs rewritten + `mongodb` token landed; completion still requires recorded supabase CLI smoke |
 | 2026-07-26 | 43 | Collated deferred/open items from PR bodies #109–#113 into SLICE-43 §6 (in-scope vs elsewhere-owned) | Bodies cited: #113 `_id`/provider/ADR-004 deferrals; #112 SPLADE + Slice 38 equivalence; #111 config split, HNSW recall, operator contract→37; #110 32C/32B open gates + IndexBackend→36; #109 Gap 8→41B/41C — code-review-graph bot tables excluded |
 | 2026-07-26 | 43 | Recorded Mongo↔Postgres env asymmetry as Slice 43 residual §3 (document now; aliases/infer → 37) | `MONGODB_URI` (+ default mongo) vs `DATABASE_URL` + required `STORAGE_BACKEND=postgres`; folder/YAML say `supabase` while runtime token is `postgres`; no `SUPABASE_URI` — operator FAQ from 2026-07-26 |
 | 2026-07-26 | 43 | New Could slice for supabase example-config live smoke + operator QoL; does not block 36–38 | Sanity check found configs structurally correct; residual risks are unverified E2E, env-vs-YAML confusion, and hosted large-grid guidance — SPLADE→22, 422 mismatch→37, quality matrix→38 |

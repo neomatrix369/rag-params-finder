@@ -21,10 +21,10 @@ services:
       # Cloud: MONGODB_URI from .env. Local Atlas: RAG_SERVER_MONGODB_URI set by start-services.sh --local
       MONGODB_URI: ${RAG_SERVER_MONGODB_URI:-${MONGODB_URI}}
       MONGODB_STORAGE_LIMIT_MB: ${RAG_MONGODB_STORAGE_LIMIT_MB:-${MONGODB_STORAGE_LIMIT_MB:-}}
-      # Postgres/pgvector is opt-in — STORAGE_BACKEND stays "mongo" unless set.
+      # Postgres/pgvector is opt-in — STORAGE_BACKEND stays "mongodb" unless set.
       # Local pgvector: RAG_SERVER_DATABASE_URL set by start-services.sh --postgres
       # Supabase: DATABASE_URL from .env (Slice 37)
-      STORAGE_BACKEND: ${STORAGE_BACKEND:-mongo}
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-mongodb}
       DATABASE_URL: ${RAG_SERVER_DATABASE_URL:-${DATABASE_URL:-}}
       HF_HOME: ${HF_HOME:-/root/.cache/huggingface}
       # SIE is opt-in — remote gateway preferred (SIE_ENDPOINT + SIE_API_KEY in .env).

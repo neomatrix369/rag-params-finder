@@ -15,11 +15,12 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | Persona | Start here | Then |
 |---------|------------|------|
 | **New user — MongoDB + providers** | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) | [QUICKSTART.md](../QUICKSTART.md) → [user-guide/getting-started.md](./user-guide/getting-started.md) |
+| **New user — Postgres (local or Supabase-hosted)** | [user-guide/postgres-setup.md](./user-guide/postgres-setup.md) | [QUICKSTART.md](../QUICKSTART.md) Path D → `configs/supabase/example-unified-retrievers.yaml` |
 | **New user — first sweep** | [QUICKSTART.md](../QUICKSTART.md) | [user-guide/getting-started.md](./user-guide/getting-started.md) → dashboard at `http://localhost:5374` |
 | **Operator — config & CLI** | [user-guide/configuration.md](./user-guide/configuration.md) | [user-guide/cli-reference.md](./user-guide/cli-reference.md) |
 | **Operator — dashboard** | [user-guide/dashboard-guide.md](./user-guide/dashboard-guide.md) | [user-guide/configuration.md](./user-guide/configuration.md) (tiebreaker, env vars) |
 | **Operator — SIE (BGE-M3 / Stella / SPLADE)** | [user-guide/sie-setup.md](./user-guide/sie-setup.md) | [user-guide/troubleshooting.md](./user-guide/troubleshooting.md#sie-superlinked-inference-engine) |
-| **Operator — fixing errors** | [user-guide/troubleshooting.md](./user-guide/troubleshooting.md) | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) (indexes, Voyage tiers) |
+| **Operator — fixing errors** | [user-guide/troubleshooting.md](./user-guide/troubleshooting.md) | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) (indexes, Voyage tiers) · [postgres-setup.md](./user-guide/postgres-setup.md) |
 | **Contributor — system design** | [contributor-guide/architecture.md](./contributor-guide/architecture.md) | [adr/](./adr/) |
 | **Contributor — extending** | [contributor-guide/extending.md](./contributor-guide/extending.md) | [contributor-guide/development.md](./contributor-guide/development.md) |
 | **Contributor — dev environment** | [contributor-guide/development.md](./contributor-guide/development.md) | [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) · [plan/slices/](./plan/slices/) specs |
@@ -32,7 +33,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | Doc | What it covers |
 |-----|----------------|
 | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) | MongoDB Atlas cloud or local Docker, Voyage AI, search indexes |
-| [user-guide/postgres-setup.md](./user-guide/postgres-setup.md) | Postgres/pgvector backend — local Docker or hosted Supabase, schema, smoke sweep |
+| [user-guide/postgres-setup.md](./user-guide/postgres-setup.md) | Postgres + pgvector — local Docker or Supabase-hosted Postgres (same backend) |
 | [user-guide/getting-started.md](./user-guide/getting-started.md) | Install, configure, first experiment (step-by-step) |
 | [user-guide/sie-setup.md](./user-guide/sie-setup.md) | SIE setup — remote gateway (preferred) or optional self-hosted Docker; warm-up, Aim UI, known issues |
 | [user-guide/configuration.md](./user-guide/configuration.md) | Full YAML config reference, env vars, sweep dimensions |
@@ -86,7 +87,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | Install and run first sweep | [QUICKSTART.md](../QUICKSTART.md) |
 | Atlas vector + text search indexes | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) |
 | Example YAML configs | `configs/mongodb/` and `configs/supabase/` (mirrored stems; shared `configs/questions.example.json`) |
-| Run on Postgres/pgvector instead of Atlas | [user-guide/postgres-setup.md](./user-guide/postgres-setup.md) · `./start-services.sh --postgres` |
+| Run on Postgres/pgvector (local or Supabase-hosted) | [user-guide/postgres-setup.md](./user-guide/postgres-setup.md) · `./start-services.sh --postgres` |
 | Quality gates before commit | [contributor-guide/development.md](./contributor-guide/development.md) · `./scripts/quality-gates.sh` |
 | Docker server + dashboard | [plan/slices/SLICE-14-DOCKER-COMPOSE.md](./plan/slices/SLICE-14-DOCKER-COMPOSE.md) |
 | SIE (BGE-M3) Docker setup | [user-guide/sie-setup.md](./user-guide/sie-setup.md) |

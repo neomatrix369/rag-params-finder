@@ -18,6 +18,7 @@
   - `start-services.sh` / `scripts/lib/compose.sh` — four-flag parse + `ensure_env` + hints + `postgres` lifecycle
   - `docker-compose.yml` — profiles renamed/aliased to `mongodb-local` / `postgres-local`
   - `server/settings.py` / `store_factory.py` — `STORAGE_BACKEND` accepts `mongodb` (+ legacy `mongo`)
+    - **Partial land 2026-07-26:** canonical default is `mongodb`; `normalize_storage_backend()` aliases `mongo` → `mongodb`. Remaining 37 work: start-services mode grid, URI aliases, config↔server 422.
   - `server/models/config.py` — normalize `database_provider` (`supabase` → `postgres`)
   - `server/api/experiments.py` (or shared helper) — reject config/backend mismatch before persist
   - `cli/api_client.py` / `cli/main.py` — optional preflight against `/healthz` with same remediation text

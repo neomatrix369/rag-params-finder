@@ -4,7 +4,8 @@ Entry point for the SIE Skateboard (Slice 21).  Accepts a topic and an optional
 pre-fetched corpus, embeds with the requested model (default: bge-m3 via SIE),
 runs a miniature RAG pipeline, and returns ranked results.
 
-GET /api/v1/best-config is a thin read from MongoDB sweep history (Slice 22 extension).
+GET /api/v1/best-config is a future read from storage-backend sweep history
+(Slice 22 extension).
 """
 
 from __future__ import annotations
@@ -144,7 +145,7 @@ def _rank_methods(
     In a real Tier 2 sweep this would run actual vector DB queries.  For the
     skateboard, embedding similarity is used as a cheap proxy score so all the
     wiring (embed → rank → Aim log) can be validated end-to-end without
-    requiring Atlas search indexes to be set up for the topic corpus.
+    requiring a vector database or its indexes for the topic corpus.
     """
     if not doc_embeddings:
         return [{"retrieval_method": m, "score": 0.0} for m in methods]
@@ -165,7 +166,7 @@ def _apply_method_modifier(method: str, base_score: float) -> float:
     """Apply a small empirical modifier per retrieval method for ranking diversity.
 
     hybrid-rrf typically beats dense + bm25 alone (RRF merges rank lists).
-    This is a pedagogical approximation; real comparisons need Atlas vector search.
+    This is a pedagogical approximation; real comparisons need vector-database search.
     """
     modifiers = {"hybrid-rrf": 1.03, "dense": 1.00, "bm25": 0.97}
     return base_score * modifiers.get(method, 1.00)
@@ -196,7 +197,8 @@ def sweep(request: SweepRequest) -> dict:
 def best_config(task: str | None = None) -> dict:
     """Return the best RAG config from sweep history (placeholder for Slice 22).
 
-    Queries MongoDB sweep history for the highest-scoring config for the given task.
+    The future implementation will query the active storage backend for the
+    highest-scoring config for the given task.
     """
     return {
         "task": task,

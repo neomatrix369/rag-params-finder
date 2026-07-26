@@ -3,7 +3,7 @@ Tests for server.db.store_factory.
 
 Author: Mani Sarkar
 Created: 2026-07-25
-Scope: storage_backend routing — mongo default, unknown rejection, postgres adapters
+Scope: storage_backend routing — mongodb default, unknown rejection, postgres adapters
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ class TestStoreFactoryShould:
         Scenario: Default backend remains Mongo.
         Slice: slice-32-storage-backend-protocol
 
-        Given STORAGE_BACKEND is unset or "mongo",
+        Given STORAGE_BACKEND is unset or "mongodb",
         When get_storage_backend() is called,
         Then the Mongo StorageBackend adapter is returned.
         """
@@ -36,7 +36,7 @@ class TestStoreFactoryShould:
 
         ### When
         with (
-            patch("server.settings.settings.storage_backend", "mongo"),
+            patch("server.settings.settings.storage_backend", "mongodb"),
             patch(
                 "server.settings.settings.mongodb_uri",
                 "mongodb://localhost:27017/rag_params_finder?directConnection=true",
@@ -58,7 +58,7 @@ class TestStoreFactoryShould:
         Scenario: Default retriever backend remains Mongo.
         Slice: slice-32-storage-backend-protocol
 
-        Given STORAGE_BACKEND is "mongo",
+        Given STORAGE_BACKEND is "mongodb",
         When get_retriever_backend() is called,
         Then the Mongo RetrieverBackend adapter is returned.
         """
@@ -67,7 +67,7 @@ class TestStoreFactoryShould:
 
         ### When
         with (
-            patch("server.settings.settings.storage_backend", "mongo"),
+            patch("server.settings.settings.storage_backend", "mongodb"),
             patch(
                 "server.settings.settings.mongodb_uri",
                 "mongodb://localhost:27017/rag_params_finder?directConnection=true",
@@ -82,6 +82,37 @@ class TestStoreFactoryShould:
         ### Then
         assert actual is mock_retriever, f"Expected mongo retriever adapter, got {actual!r}"
 
+    def test_given_legacy_mongo_alias_when_get_storage_backend_then_returns_mongo_adapter(
+        self,
+    ) -> None:
+        """
+        Scenario: Legacy STORAGE_BACKEND=mongo still selects MongoDB.
+        Slice: naming consistency — mongodb canonical token
+
+        Given STORAGE_BACKEND="mongo" (legacy alias),
+        When get_storage_backend() is called,
+        Then the MongoDB StorageBackend adapter is returned.
+        """
+        ### Given
+        mock_storage = MagicMock(name="MongoStorageBackend")
+
+        ### When
+        with (
+            patch("server.settings.settings.storage_backend", "mongo"),
+            patch(
+                "server.settings.settings.mongodb_uri",
+                "mongodb://localhost:27017/rag_params_finder?directConnection=true",
+            ),
+            patch(
+                "server.db.mongo_store.get_mongo_storage",
+                return_value=mock_storage,
+            ),
+        ):
+            actual = get_storage_backend()
+
+        ### Then
+        assert actual is mock_storage, f"Expected mongodb storage adapter, got {actual!r}"
+
     def test_given_mongo_without_uri_when_get_storage_backend_then_raises_value_error(
         self,
     ) -> None:
@@ -89,15 +120,34 @@ class TestStoreFactoryShould:
         Scenario: Factory fails closed when MONGODB_URI is missing.
         Slice: slice-32-storage-backend-protocol
 
-        Given STORAGE_BACKEND="mongo" and MONGODB_URI is empty,
+        Given STORAGE_BACKEND="mongodb" and MONGODB_URI is empty,
         When get_storage_backend() is called,
         Then ValueError names the missing URI (matches CI unit tier).
         """
         ### Given / When / Then
         with (
-            patch("server.settings.settings.storage_backend", "mongo"),
+            patch("server.settings.settings.storage_backend", "mongodb"),
             patch("server.settings.settings.mongodb_uri", ""),
             pytest.raises(ValueError, match="requires MONGODB_URI"),
+        ):
+            get_storage_backend()
+
+    def test_given_postgres_without_url_when_get_storage_backend_then_raises_value_error(
+        self,
+    ) -> None:
+        """
+        Scenario: Factory fails closed when DATABASE_URL is missing.
+        Slice: 43 — Supabase/Postgres operator parity
+
+        Given STORAGE_BACKEND="postgres" and DATABASE_URL is empty,
+        When get_storage_backend() is called,
+        Then ValueError names the missing URI.
+        """
+        ### Given / When / Then
+        with (
+            patch("server.settings.settings.storage_backend", "postgres"),
+            patch("server.settings.settings.database_url", ""),
+            pytest.raises(ValueError, match="requires DATABASE_URL"),
         ):
             get_storage_backend()
 

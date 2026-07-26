@@ -8,7 +8,7 @@ Usage:
 
 from server.db.retriever_backend import RetrieverBackend
 from server.db.storage import StorageBackend
-from server.settings import settings
+from server.settings import normalize_storage_backend, settings
 
 # Adapter modules are imported inside the functions below, not at module scope.
 # Importing both eagerly would load pymongo and psycopg on every server start,
@@ -20,12 +20,12 @@ from server.settings import settings
 def get_storage_backend() -> StorageBackend:
     """Return the configured StorageBackend.
 
-    Reads STORAGE_BACKEND from settings (default "mongo").
+    Reads STORAGE_BACKEND from settings (default ``mongodb``).
     Raises ValueError for unknown backends or a missing connection URI.
     """
     settings.ensure_storage_ready()
-    backend = settings.storage_backend.lower()
-    if backend == "mongo":
+    backend = normalize_storage_backend(settings.storage_backend)
+    if backend == "mongodb":
         from server.db.mongo_store import get_mongo_storage
 
         return get_mongo_storage()
@@ -34,19 +34,19 @@ def get_storage_backend() -> StorageBackend:
 
         return get_postgres_storage()
     raise ValueError(
-        f"Unknown storage backend {backend!r}. Set STORAGE_BACKEND to 'mongo' or 'postgres'."
+        f"Unknown storage backend {backend!r}. Set STORAGE_BACKEND to 'mongodb' or 'postgres'."
     )
 
 
 def get_retriever_backend() -> RetrieverBackend:
     """Return the configured RetrieverBackend.
 
-    Reads STORAGE_BACKEND from settings (default "mongo").
-    Postgres serves dense, sparse, and hybrid retrieval (Slice 35).
+    Reads STORAGE_BACKEND from settings (default ``mongodb``).
+    Postgres serves dense, sparse, and hybrid retrieval.
     """
     settings.ensure_storage_ready()
-    backend = settings.storage_backend.lower()
-    if backend == "mongo":
+    backend = normalize_storage_backend(settings.storage_backend)
+    if backend == "mongodb":
         from server.db.mongo_store import get_mongo_retriever
 
         return get_mongo_retriever()
@@ -55,5 +55,5 @@ def get_retriever_backend() -> RetrieverBackend:
 
         return get_postgres_retriever()
     raise ValueError(
-        f"Unknown storage backend {backend!r}. Set STORAGE_BACKEND to 'mongo' or 'postgres'."
+        f"Unknown storage backend {backend!r}. Set STORAGE_BACKEND to 'mongodb' or 'postgres'."
     )

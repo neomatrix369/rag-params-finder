@@ -5,7 +5,7 @@ Author: Mani Sarkar
 Created: 2026-07-25
 Scope: dense_search — mandatory embedding_model filter, run scoping, dimension
        column selection, ranking and Atlas-comparable scoring; search dispatcher
-       — dense routing, unimplemented methods, missing embedding.
+       — dense/sparse/hybrid routing and missing-embedding rejection.
 
 The mandatory embedding_model filter is the slice's central invariant, so it is
 asserted against real SQL rather than a mock: a mocked query would only confirm

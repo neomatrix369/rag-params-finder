@@ -25,6 +25,7 @@ from server.models.config import ExperimentConfig, RetrieverConfig, RunParams, e
 from server.models.enums import ExperimentStatus, Phase, RetrievalMethod, RetrieverType
 from server.models.results import QueryResult, SearchResult
 from server.models.status import RunStatus
+from server.settings import settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -168,7 +169,7 @@ def _stored_enum_value(value: object | None) -> str:
 
 def _run_doc_signature(run: dict) -> ParamSignature:
     return (
-        str(run.get("database_provider") or "mongodb"),
+        str(run.get("database_provider") or settings.default_database_provider()),
         str(run.get("embedding_provider") or ""),
         str(run.get("embedding_model") or ""),
         _stored_enum_value(run.get("chunking_method")),
@@ -1140,7 +1141,7 @@ _run_start_times: dict[str, float] = {}
 
 
 def _update_phase(run_id: str, phase: Phase, error_message: str | None = None) -> None:
-    """Update run_status phase and elapsed_ms in MongoDB."""
+    """Update run status and elapsed time through the active storage backend."""
     now = time.monotonic()
     if run_id not in _run_start_times:
         _run_start_times[run_id] = now

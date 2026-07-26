@@ -1,72 +1,171 @@
 # Postgres / pgvector setup
 
-How to run `rag-params-finder` against Postgres with the `pgvector` extension
-instead of MongoDB Atlas.
+![Postgres](https://img.shields.io/badge/Postgres-4169E1?logo=postgresql&logoColor=white)
+![pgvector](https://img.shields.io/badge/pgvector-4169E1?logo=postgresql&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?logo=supabase&logoColor=white)
 
-Two targets share this backend:
+**Essential, minimal steps** to run example sweeps against **one** storage
+backend — Postgres with the `pgvector` extension — instead of MongoDB Atlas.
 
-| Target | When to use | Connection string |
-|---|---|---|
-| Local Docker (`pgvector/pgvector:pg16`) | Development and tests, no cloud account | `postgresql://rag:rag@localhost:5433/rag_params_finder` |
-| Supabase (hosted Postgres) | Shared or deployed environments | `postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres` |
+### Supabase vs Postgres (read this first)
 
-TLS is applied automatically for `*.supabase.co` hosts and left off for local
-containers. Set `sslmode` explicitly in the URI to override either default.
+| Term | What it is in this project |
+|---|---|
+| **Postgres + pgvector** | The **only** non-Mongo storage backend (`STORAGE_BACKEND=postgres`). Same SQL adapter for every deployment. |
+| **Local Docker** | A `pgvector/pgvector:pg16` container on your laptop (`./start-services.sh --postgres`). |
+| **Supabase** | A **hosted Postgres product** (managed cloud Postgres + dashboard). We connect with a normal `postgresql://…` URI — not a separate Supabase SDK or API. |
+| **`configs/supabase/`** | Example YAML **folder name** for Postgres-path configs (mirrors `configs/mongodb/`). Not a second backend. |
+| **`database_provider: supabase`** | **Label only** (db-stats / UI). Does **not** select the adapter. Local labels may use `postgres`; hosted examples use `supabase`. |
 
-> **Scope today:** storage (schema, CRUD, cascade delete, db-stats) and **dense,
-> sparse, and hybrid** retrieval run end to end on Postgres. Sparse uses
+There is **no** `STORAGE_BACKEND=supabase` and **no** `SUPABASE_URI`. Runtime is always
+`STORAGE_BACKEND=postgres` + `DATABASE_URL`. Future aliases →
+[Slice 37](../plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md).
+
+> **Scope today:** storage (schema, CRUD, cascade delete, db-stats) and
+> **dense, sparse, and hybrid** retrieval run end to end. Sparse uses
 > `tsvector` / `ts_rank`; hybrid fuses dense + sparse with RRF (`rrf_k=60`).
 > SPLADE embedding *storage* (30522-dim) is not available yet — keyword sparse
 > does not need it.
 
 ---
 
-## Path A — local Docker (recommended for development)
+## Choose your Postgres deployment
+
+Same backend (`STORAGE_BACKEND=postgres`). Only where Postgres runs changes:
+
+| Feature | Path A — Local Docker (`pgvector`) | Path B — Hosted Supabase (managed Postgres) |
+|---------|------------------------------------|---------------------------------------------|
+| Product | Self-hosted Postgres + pgvector | Supabase-hosted Postgres (+ their dashboard) |
+| Dense / sparse / hybrid | identical SQL | identical SQL |
+| Schema + indexes | Auto on first pool open | Auto on first pool open |
+| Account | None | Supabase project |
+| TLS | Off (localhost) | On for `*.supabase.co` (auto) |
+| Port / host | `localhost:5433` | `db.<project>.supabase.co:5432` |
+| First prove | Short config recommended | Prefer short config (plan limits) |
+
+**Path A** — [Local Docker](#path-a--local-docker) — no cloud account; recommended for development.
+
+**Path B** — [Hosted Supabase](#path-b--hosted-supabase) — same Postgres adapter, cloud URI.
+
+---
+
+## Environment variables
+
+| Variable | Role | Local Docker | Hosted Supabase |
+|---|---|---|---|
+| `STORAGE_BACKEND` | **Backend selector** — always `postgres` for both paths | `postgres` | `postgres` |
+| `DATABASE_URL` | Postgres connection string (no `SUPABASE_URI`) | `postgresql://rag:rag@localhost:5433/rag_params_finder` | `postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres` |
+| `sslmode` (in URI) | TLS override | Usually unset (TLS off) | Usually unset (TLS on for `*.supabase.co`) |
+
+Submitting a `configs/supabase/*.yaml` file while the server still has
+`STORAGE_BACKEND=mongodb` (default; legacy alias `mongo`) writes to MongoDB — the folder name does not
+switch backends. Hard reject on mismatch →
+[Slice 37](../plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md).
+
+### Mongo ↔ Postgres env asymmetry
+
+| Concern | Mongo (today) | Postgres path (local **or** Supabase) |
+|---|---|---|
+| Connection string | `MONGODB_URI` | `DATABASE_URL` (no `SUPABASE_URI` / `POSTGRES_URI`) |
+| Backend select | Often implicit (`STORAGE_BACKEND` defaults to `mongodb`) | Explicit: `STORAGE_BACKEND=postgres` |
+| Config folder / YAML label | `configs/mongodb/` · `database_provider: mongodb` | `configs/supabase/` · `database_provider: supabase` (label) |
+| Runtime backend token | `mongo` | `postgres` — Supabase is **not** a separate token |
+
+---
+
+## Path A — local Docker
+
+![pgvector Docker](https://img.shields.io/badge/pgvector-Docker-4169E1?logo=docker&logoColor=white)
+
+### Quick start (full stack)
 
 ```bash
 ./start-services.sh --postgres
 ```
 
-That starts the `pgvector` container alongside the server and dashboard, and
-points the server at it with `STORAGE_BACKEND=postgres`.
+- **Postgres/pgvector**: `localhost:5433`
+- **Server**: `http://localhost:8001` (`STORAGE_BACKEND=postgres`)
+- **Dashboard**: `http://localhost:5374`
 
-For the host CLI or a natively-run server:
+The container publishes **5433**, not 5432, so an existing local Postgres keeps
+working untouched.
+
+### Host CLI / native server
 
 ```bash
 export STORAGE_BACKEND=postgres
 export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 ```
 
-The container publishes **5433**, not 5432, so an existing local Postgres keeps
-working untouched.
+### Operational checks (required)
 
-### Container only
+- Liveness: `curl -sS http://127.0.0.1:8001/healthz`
+  — expect `"storage_backend": "postgres"` and `"postgres": "ok"`
+- Readiness: `curl -sS http://127.0.0.1:8001/experiments`
 
-```bash
-docker compose --profile local-postgres up -d postgres-local
-```
+`/healthz` can return success while `/experiments` still fails; run both before
+judging the stack operational.
 
-### Reset the data
+### Operational commands
 
-```bash
-docker rm -f rag-params-finder-postgres-local
-docker volume rm rag-params-finder_postgres_local_data
-```
+| Action | Command |
+|--------|---------|
+| Full stack — local Postgres | `./start-services.sh --postgres` |
+| Container only | `docker compose --profile local-postgres up -d postgres-local` |
+| Stop Postgres profile | `docker compose --profile local-postgres down` |
+| Wipe local data (volume) | `docker rm -f rag-params-finder-postgres-local` then `docker volume rm rag-params-finder_postgres_local_data` |
+| Status | `docker ps --filter name=postgres-local` |
+
+Symmetric `--postgres-local|cloud` flags arrive in
+[Slice 37](../plan/slices/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md).
 
 ---
 
 ## Path B — hosted Supabase
 
-1. Create a project at <https://supabase.com/dashboard>.
-2. Copy **Settings → Database → Connection string** (Session mode pooler).
-3. Put it in `.env`:
+Supabase here means **managed Postgres in the cloud**. The app still uses
+`STORAGE_BACKEND=postgres` and talks Postgres over `DATABASE_URL` — the same
+adapter as Path A.
+
+### 1. Create an account
+
+Register at [supabase.com](https://supabase.com/dashboard)
+(email, GitHub, or SSO).
+
+→ [Supabase Dashboard](https://supabase.com/dashboard)
+
+### 2. Create a project
+
+Dashboard → **New project** → pick org, name, region, database password →
+**Create**.
+
+→ [Supabase Docs — Creating a project](https://supabase.com/docs/guides/getting-started)
+
+### 3. Copy the connection string
+
+**Project Settings → Database → Connection string** → prefer **Session mode**
+(pooler) for a long-lived server process. Replace `[YOUR-PASSWORD]` with the
+database password.
+
+→ [Connect to your database](https://supabase.com/docs/guides/database/connecting-to-postgres)
+
+### 4. Set `.env`
 
 ```bash
 STORAGE_BACKEND=postgres
 DATABASE_URL=postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres
 ```
 
-No dashboard clicking is needed beyond that — see *Schema* below.
+TLS is applied automatically for `*.supabase.co` hosts. Override with
+`?sslmode=require` (or `disable`) in the URI if needed.
+
+No manual index creation — see [Schema](#schema) below.
+
+### Hosted limits
+
+Prefer a **short** first prove (16 runs) on free-tier projects. Full 120-run
+grids may be slow or hit plan limits. Check current quotas at
+[Supabase Pricing](https://supabase.com/pricing) before a large hosted sweep.
 
 ---
 
@@ -83,17 +182,41 @@ so tables, foreign keys, and indexes appear on first start.
 | `chunks` | Text chunks and embeddings | Fully columnar; `embedding_384` and `embedding_1024` |
 | `results` | Query results | Cascades from `experiments` |
 
-Queryable fields (`experiment_id`, `status`, timestamps, `phase`, …) are real
-columns; the rest of each document lives in a `doc` JSONB column. That keeps the
-document-shaped `StorageBackend` contract intact without a migration every time
-a field is added.
-
 `chunks` has one nullable vector column per supported embedding width, and every
 retrieval query filters by `embedding_model` so vectors from different models are
-never compared. A model whose width has no column — such as SPLADE-v3's 30522-dim
-sparse *embeddings* — raises a clear error rather than being silently dropped.
-Keyword sparse/hybrid retrieval uses a generated `text_search` tsvector column
-(GIN-indexed); SPLADE embedding storage remains deferred.
+never compared. Keyword sparse/hybrid uses a generated `text_search` tsvector
+column (GIN-indexed). SPLADE embedding storage remains deferred.
+
+---
+
+## Before you run a sweep
+
+**First prove (recommended):** `configs/supabase/example-unified-retrievers.yaml`
+(16 runs — dense · sparse · hybrid · cross_encoder). Use
+`example-local.yaml` (120 runs) only after a short prove succeeds. Hosted
+Supabase: prefer the short config.
+
+### Local embeddings — `example-unified-retrievers.yaml` / `example-local.yaml`
+
+| # | Step | Where |
+|---|---|---|
+| 1 | Postgres backend ready | [Path A](#path-a--local-docker) or [Path B](#path-b--hosted-supabase) |
+| 2 | `STORAGE_BACKEND=postgres` + `DATABASE_URL` | [Environment variables](#environment-variables) |
+| 3 | Server healthy (`postgres: ok`) | [Operational checks](#operational-checks-required) |
+
+No Voyage or SIE account needed for local embeddings.
+
+### Voyage sweep — `example-voyage.yaml`
+
+Complete the local checklist, then add Voyage steps from
+[MongoDB Setup → Voyage AI](mongodb-setup.md#voyage-ai-required-for-voyage-sweep)
+(`VOYAGE_API_KEY`, Tier 1 limits). No Atlas vector indexes required on Postgres.
+
+### SIE sweep — `example-sie.yaml`
+
+Complete the local checklist, then follow
+[SIE setup](sie-setup.md#choose-your-path) (`SIE_ENABLED=true`, `SIE_ENDPOINT`,
+`SIE_API_KEY` when required). Dense SIE models use `embedding_1024`.
 
 ---
 
@@ -103,102 +226,97 @@ Keyword sparse/hybrid retrieval uses a generated `text_search` tsvector column
 ./start-services.sh --postgres
 export STORAGE_BACKEND=postgres
 export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+
+# Preferred first prove — 16 runs
+rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
+```
+
+**Expected:** experiment submitted; runs reach a terminal status; dense, sparse,
+hybrid, and cross_encoder each produce results. Watch progress at
+`http://localhost:5374`.
+
+Full 120-run twin of the Mongo local grid:
+
+```bash
 rag-params-finder run --config configs/supabase/example-local.yaml
 ```
 
-`configs/supabase/example-local.yaml` mirrors `configs/mongodb/example-local.yaml`
-(same embedding/chunking/retriever grid). Dense, sparse, hybrid, and cross-encoder
-all run end to end. Shorter grids:
-`example-unified-retrievers.yaml` and the `*-bayesian.yaml` variants in the same folder.
+Shorter Bayesian variants: `*-bayesian.yaml` in the same folder.
+
+No optional `example-local-smoke.yaml` — the unified-retrievers config is the
+documented first prove (Slice 43 Won’t).
 
 ---
 
-## Dense retrieval
+## Dense retrieval (operator note)
 
-Dense search ranks chunks by cosine similarity using pgvector's `<=>` operator
-against HNSW indexes on `embedding_384` and `embedding_1024`.
+Dense search uses pgvector HNSW on `embedding_384` / `embedding_1024`. Scores are
+reported on Atlas’s scale (`(1 + cosine) / 2`) so backends stay comparable.
 
-Scores are reported on **Atlas's scale**, `(1 + cosine) / 2`, so an identical
-vector scores `1.0` and an orthogonal one `0.5`. pgvector returns a cosine
-*distance* instead, so the query converts it with `1 - distance / 2`. Without
-that conversion the two backends would report different numbers for identical
-retrieval quality, and comparing them would be meaningless.
-
-### Why `hnsw.iterative_scan` is switched on
-
-An HNSW index cannot apply a `WHERE` clause inside itself. The mandatory
-`experiment_id` / `embedding_model` / `run_id` filters therefore run *after* the
-index returns its candidate set, and anything filtered out is lost from the
-top-k. Measured on a 2 472-chunk table with the planner forced onto HNSW, a query
-asking for 20 rows came back with **3**.
-
-Every pooled connection therefore sets `hnsw.iterative_scan = strict_order`
-(pgvector ≥ 0.8), which keeps re-scanning until the limit is satisfied, in exact
-distance order. On an older pgvector the server logs a warning and Postgres falls
-back to an exact non-index scan — slower, but never short.
-
-If you see that warning, upgrade pgvector rather than ignoring it: a truncated
-result set changes the scores a sweep reports without any visible error.
-
----
-
-## Tests
-
-The Postgres adapter's integration tests need a live database. They are **not** part of
-`./scripts/quality-gates.sh` / the CI unit job — those ignore live suites. Run them
-explicitly (or via the CI `postgres-integration` job):
-
-```bash
-./start-services.sh --postgres
-RAG_REQUIRE_POSTGRES=1 uv run pytest \
-  tests/test_postgres_store_integration.py \
-  tests/test_postgres_dense_retrieval.py \
-  tests/test_postgres_sparse_hybrid.py \
-  tests/contract/test_storage_backend_contract.py \
-  -q -rs
-```
-
-Without a reachable database they skip, so the unit tier stays green on a machine with
-no Docker. Point them elsewhere with `RAG_TEST_DATABASE_URL`. CI sets
-`RAG_REQUIRE_POSTGRES=1`, which turns an unreachable database into a failure instead of
-a skip — otherwise a broken service container would report green forever.
-
-The StorageBackend contract suite is parametrized over mongo and postgres: without
-`./start-services.sh --local`, the six mongo cases skip; without Postgres, the six
-postgres cases skip.
+**HNSW warning:** with filters (`experiment_id` / `embedding_model` / `run_id`),
+HNSW can return fewer than `LIMIT` rows unless `hnsw.iterative_scan = strict_order`
+is on (pgvector ≥ 0.8). Failure mode is **silent** — scores change with no error.
+The server sets this on every pooled connection; if logs warn that iterative scan
+is unavailable, upgrade pgvector. Design rationale →
+[Architecture → Postgres dense retrieval](../contributor-guide/architecture.md#postgres--pgvector-backend).
 
 ---
 
 ## Troubleshooting
 
+Full symptom → fix list → [Troubleshooting → Postgres / pgvector](troubleshooting.md#postgres--pgvector).
+
 **`curl /healthz` looks wrong or Docker marks the server unhealthy**
 On a Postgres stack the probe must report `"storage_backend": "postgres"` and
-`"postgres": "ok"`. If you still see only a Mongo health field, the running
-image is older than this behaviour — rebuild with `./start-services.sh --postgres`.
-Mongo is not required when `STORAGE_BACKEND=postgres`.
+`"postgres": "ok"`. If you still see only a Mongo health field, rebuild with
+`./start-services.sh --postgres`. Mongo is not required when
+`STORAGE_BACKEND=postgres`.
 
 **`DATABASE_URL not set ... required when STORAGE_BACKEND=postgres`**
-The backend was selected but no connection string was given. Export
-`DATABASE_URL`, or unset `STORAGE_BACKEND` to fall back to Mongo.
+Export `DATABASE_URL`, or unset `STORAGE_BACKEND` to fall back to Mongo.
 
 **`could not connect to server` on port 5433**
-The container is not running or is still starting. Check with
+Container not running or still starting. Check
 `docker ps --filter name=postgres-local` and
 `docker logs rag-params-finder-postgres-local`.
 
 **`type "vector" does not exist`**
-The image lacks the extension. Use `pgvector/pgvector:pg16` rather than the
-stock `postgres` image; `schema.sql` runs `CREATE EXTENSION IF NOT EXISTS vector`
-but cannot install what is not present.
+Use `pgvector/pgvector:pg16` (compose default), not stock `postgres`.
 
 **`No Postgres vector column for N-dim embeddings`**
-The chosen embedding model's width has no column. Supported widths are 384 and
-1024; see *Schema* above.
+Supported widths are 384 and 1024; see [Schema](#schema).
 
 ---
 
-## See also
+## Diagnostics cheat sheet
 
-- [`mongodb-setup.md`](mongodb-setup.md) — the MongoDB Atlas path
-- [`configuration.md`](configuration.md) — full environment variable reference
-- [`../adr/ADR-003-mongodb-atlas-vector-store.md`](../adr/ADR-003-mongodb-atlas-vector-store.md) — why Atlas was chosen originally
+```bash
+# Is the Postgres container running?
+docker ps --filter name=postgres-local
+
+# Container logs
+docker logs rag-params-finder-postgres-local
+
+# Does the app see Postgres?
+curl -sS http://127.0.0.1:8001/healthz | python3 -m json.tool
+# → "storage_backend": "postgres", "postgres": "ok"
+
+# Can the host reach the DB?
+docker exec rag-params-finder-postgres-local \
+  psql -U rag -d rag_params_finder -c "SELECT 1"
+
+# Did schema bootstrap?
+docker exec rag-params-finder-postgres-local \
+  psql -U rag -d rag_params_finder -c "\dt"
+```
+
+---
+
+## Related docs
+
+- [Getting Started](getting-started.md) — install, first experiment
+- [Configuration reference](configuration.md) — YAML + env vars (`STORAGE_BACKEND`)
+- [Troubleshooting](troubleshooting.md#postgres--pgvector) — Postgres errors
+- [MongoDB Setup](mongodb-setup.md) — Atlas path (comparison)
+- [SIE Provider Setup](sie-setup.md) — use SIE with `configs/supabase/example-sie.yaml`
+- [Contributor development](../contributor-guide/development.md#testing-strategy) — live Postgres integration tests

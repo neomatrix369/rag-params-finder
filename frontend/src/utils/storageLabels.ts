@@ -25,7 +25,7 @@ export function collectionOrTableLabel(databaseProvider: string | undefined | nu
 }
 
 export function clusterSectionTitle(databaseProvider: string | undefined | null): string {
-  return isMongoProvider(databaseProvider) ? 'Cluster & Collection' : 'Cluster & Table';
+  return isMongoProvider(databaseProvider) ? 'Cluster & Collection' : 'Host & Table';
 }
 
 export function storageQuotaHint(databaseProvider: string | undefined | null): string {

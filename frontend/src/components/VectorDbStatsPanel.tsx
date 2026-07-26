@@ -2,8 +2,8 @@ import CollapsibleCard from './CollapsibleCard';
 import type { VectorDbStatsGroup } from '../types';
 import {
   clusterHostLabel,
+  clusterSectionTitle,
   collectionOrTableLabel,
-  isMongoProvider,
   storageQuotaHint,
   sweepWriteHint,
 } from '../utils/storageLabels';
@@ -153,9 +153,7 @@ export default function VectorDbStatsPanel({
             <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="rounded-lg border border-indigo-200 bg-white p-4">
                 <div className="mb-2 text-xs uppercase tracking-wider text-slate-500">
-                  {isMongoProvider(group.database_provider)
-                    ? 'Cluster & Collection'
-                    : 'Cluster & Table'}
+                  {clusterSectionTitle(group.database_provider)}
                 </div>
                 <div className="space-y-1 text-sm">
                   <Row label="Provider" value={group.database_provider} />
@@ -169,10 +167,18 @@ export default function VectorDbStatsPanel({
                     value={group.cluster_host ?? '—'}
                     mono
                   />
-                  {group.totals.cluster_tier && (
+                  {(group.totals.cluster_tier || group.totals.cluster_tier_type) && (
                     <Row
-                      label="Tier"
-                      value={`${group.totals.cluster_tier}${group.totals.cluster_tier_type ? ` (${group.totals.cluster_tier_type})` : ''}`}
+                      label={group.totals.cluster_tier ? 'Tier' : 'Deployment'}
+                      value={
+                        group.totals.cluster_tier
+                          ? `${group.totals.cluster_tier}${
+                              group.totals.cluster_tier_type
+                                ? ` (${group.totals.cluster_tier_type})`
+                                : ''
+                            }`
+                          : String(group.totals.cluster_tier_type)
+                      }
                     />
                   )}
                   {group.totals.cluster_provider && (

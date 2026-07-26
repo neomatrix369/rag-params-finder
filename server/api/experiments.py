@@ -210,7 +210,7 @@ def _normalize_stale_running_status(experiment: dict) -> dict:
 
 
 async def _run_heavy_read[R](fn: Callable[[], R]) -> R:
-    """Run expensive read-only Mongo aggregations off the default API thread pool."""
+    """Run expensive read-only storage aggregations off the default API thread pool."""
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(HEAVY_READ_EXECUTOR, fn)
 
