@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-26 (Slice 36 ✅ COMPLETE; next Must = **37**)
-**Current**: Active migration: **37** 📋 local/cloud parity + config gate → **38**. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **36** ✅ preflight/stats/storage_mode. **43** ✅. Deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-26 (Slice 37 🔨 IN PROGRESS)
+**Current**: Active migration: **37** 🔨 local/cloud parity + config gate → **38**. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **36** ✅ preflight/stats/storage_mode. **43** ✅. Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -53,7 +53,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 34 — Postgres dense retrieval | ✅ COMPLETE | ~3–4 h | pgvector dense + embedding_model filter; Atlas-scale scores; HNSW iterative_scan; mode/hosted DX handed to 36–37 — [`SLICE-34-POSTGRES-DENSE-RETRIEVAL.md`](SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) |
 | 35 — Postgres sparse + hybrid | ✅ COMPLETE | ~4–5 h | tsvector + RRF + Supabase-mode copy hygiene; equivalence CONDITIONAL → 38 — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
 | 36 — Preflight + stats + storage_mode | ✅ COMPLETE | ~3–4 h | Catalog preflight 422 + four-value `storage_mode`; live smoke `postgres-local`; mutation waived #101 — [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md) |
-| 37 — Local/cloud parity + low-friction switch | 📋 PLANNED | ~3–4 h | Flags + ensure_env + 422 + Path B; **absorbs 36 leftovers** (compose spelling, supabase label/`vector_db_id`, axes docs) — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) |
+| 37 — Local/cloud parity + low-friction switch | 🔨 IN PROGRESS | ~3–4 h | Flags + 422 + Path B + **product-wording map** + `configuration.md` axes; plan synced + platform review remediations — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) |
 | 38 — Cutover + ADR-004 | 📋 PLANNED | ~3–4 h | Side-by-side quality, ADR-004, default `postgres-cloud` — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) |
 | 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
 | 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
@@ -87,7 +87,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 34 | Must | ✅ COMPLETE | 33 | Dense pgvector |
 | 35 | Must | ✅ COMPLETE | 34 | Sparse + hybrid + copy hygiene |
 | 36 | Must | ✅ COMPLETE | 35 | Preflight + db-stats + storage mode (replaces 27) |
-| 37 | Must | 📋 PLANNED | 36 | Supabase local/hosted parity |
+| 37 | Must | 🔨 IN PROGRESS | 36 | Supabase local/hosted parity |
 | 38 | Must | 📋 PLANNED | 37 | ADR-004 + quality comparison artifact |
 | 28 | Must | 📋 PLANNED | — | External — @cschanhniem / #49 |
 | 22 | Must | 📋 PLANNED | 21, 32, 38 (soft) | SIE Scooter — hard dep 32 Protocol; soft 38 cutover |
@@ -690,6 +690,9 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-26 | 37 | Captured pending vocabulary into SLICE-37: product-wording map (Atlas cloud/Local, Supabase-hosted, local pgvector), `configuration.md` Engine × Location subsection, Should-rename `collect_search_index_snapshot` | Informational Qs from post-36 review must not stay only in chat; operator docs must never treat Atlas as cloud-only without Local qualifier |
+| 2026-07-26 | 37 | Path A Resume — TRAIL/PROGRESS/SLICE-37 → 🔨; platform review CONDITIONALLY APPROVED after 422/post-start templates | User asked start Slice 37 after enhanced-flow-planner + nw review |
+| 2026-07-26 | 37 | Drift sync vs main (36/43): foundations table; bare `.env` STORAGE_BACKEND Must; Won't URI aliases + example-cloud.yaml; Should CLI/pause/boot tests; distinct config 422 vs catalog 422; execution order 1–6 | enhanced-flow-planner continuation before execute; Gate Status no longer “wait for 36 merge” |
 | 2026-07-26 | 37 | Absorbed Slice 36 close leftovers into SLICE-37 §Absorbed (flags, compose spelling, supabase label/`vector_db_id`, axes docs); configs folder rename non-blocker | Keeps Slice 36 COMPLETE without open vocabulary After-Checks; operator DX slice already owned the flag grid |
 | 2026-07-26 | 36 | Slice 36 → ✅ COMPLETE — live `/healthz` `storage_mode=postgres-local`; vector-db-stats four-value tokens; mutation waived DECISIONS #101; `gate-evidence/slice-36.json` | Runtime VERIFIED after compose rebuild; YAML `database_provider: supabase` and compose `local-postgres` remain Slice 37 vocabulary leftovers |
 | 2026-07-26 | 36 | sync-docs: `/healthz` `storage_mode` + Postgres preflight documented as IMPLEMENTED across cli-reference, troubleshooting, postgres-setup, architecture, development, local-environment, CLAUDE.md, AGENTS.md, CHANGELOG | Public 422 contract and health body changed, so user + agent surfaces had to move in the same slice; VERIFIED is withheld until the live dashboard smoke on Postgres runs |

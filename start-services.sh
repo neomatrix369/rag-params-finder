@@ -1,9 +1,9 @@
 #!/bin/bash
 # Start rag-params-finder server + dashboard via Docker Compose (prod stack)
 # Usage:
-#   ./start-services.sh [--force-build] [--local]     Start full stack
-#   ./start-services.sh mongodb start|stop|reset|status   MongoDB Atlas Local container only
-#   Env: RAG_FORCE_BUILD=1, RAG_DEV_STACK=1, RAG_LOCAL_ATLAS=1, NONINTERACTIVE=1
+#   ./start-services.sh [--mongodb-local|--mongodb-cloud|--postgres-local|--postgres-cloud]
+#   ./start-services.sh mongodb|postgres start|stop|reset|status
+#   Env: RAG_MONGODB_LOCAL=1, RAG_POSTGRES_CLOUD=1, RAG_FORCE_BUILD=1, RAG_DEV_STACK=1, NONINTERACTIVE=1
 set -e
 set -o pipefail
 
@@ -16,43 +16,53 @@ source ./scripts/docker-cleanup.sh
 source ./scripts/docker-build-context.sh
 # shellcheck source=scripts/lib/compose.sh
 source ./scripts/lib/compose.sh
+# shellcheck source=scripts/lib/storage_mode.sh
+source ./scripts/lib/storage_mode.sh
 
 FORCE_BUILD=0
 LOCAL_ATLAS=0
 LOCAL_POSTGRES=0
+STACK_DB_TYPE=""
+STACK_LOCATION=""
+STACK_STORAGE_MODE=""
 
 usage() {
   cat <<EOF
 Usage: ./start-services.sh [OPTIONS]
-       ./start-services.sh mongodb start|stop|reset|status
+       ./start-services.sh mongodb|postgres start|stop|reset|status
 
-Start server + dashboard via Docker Compose (default), or manage MongoDB Atlas Local only.
+Start server + dashboard via Docker Compose (default), or manage a local DB container.
 
-Stack options:
-  --local, -l                  Use MongoDB Atlas Local (no cloud account needed)
-  --postgres, -p               Use local Postgres + pgvector (Supabase stand-in)
+Stack options (pick one):
+  --mongodb-local              Atlas Local container (no cloud account)
+  --mongodb-cloud              Atlas cloud — requires MONGODB_URI
+  --postgres-local             Local pgvector — STORAGE_BACKEND=postgres
+  --postgres-cloud             Hosted Supabase — requires DATABASE_URL; no MONGODB_URI
+  --local, -l                  Deprecated alias for --mongodb-local
+  --postgres, -p               Deprecated alias for --postgres-local
   --force-build, --build, -b   Rebuild images even when build context is unchanged
   -h, --help                   Show this help
 
-MongoDB container only (Atlas Local Docker):
-  mongodb start                Start mongodb-local container
-  mongodb stop                 Stop container
-  mongodb reset                Stop + wipe data volume
-  mongodb status               Container state + CLI connection string
+Container-only:
+  mongodb start|stop|reset|status    Atlas Local container
+  postgres start|stop|reset|status   Local pgvector container
 
 Environment:
-  RAG_LOCAL_ATLAS=1            Same as --local
-  RAG_LOCAL_POSTGRES=1         Same as --postgres
+  RAG_MONGODB_LOCAL=1          Same as --mongodb-local
+  RAG_MONGODB_CLOUD=1          Same as --mongodb-cloud
+  RAG_POSTGRES_LOCAL=1         Same as --postgres-local
+  RAG_POSTGRES_CLOUD=1         Same as --postgres-cloud
+  RAG_LOCAL_ATLAS=1            Deprecated → --mongodb-local
+  RAG_LOCAL_POSTGRES=1         Deprecated → --postgres-local
   RAG_FORCE_BUILD=1            Same as --force-build
   RAG_DEV_STACK=1              Dev overlay (HMR + uvicorn --reload)
   NONINTERACTIVE=1             Fail fast on missing .env / port conflicts
 
-Backends:
-  Cloud (default):  requires MONGODB_URI in .env (mongodb+srv://...)
-  Local (--local):  starts mongodb-atlas-local container; no .env MONGODB_URI needed
-                    CLI: export MONGODB_URI="$RAG_LOCAL_MONGODB_URI_HOST"
-  Postgres (-p):    starts pgvector container; no MONGODB_URI needed
-                    CLI: export STORAGE_BACKEND=postgres DATABASE_URL="$RAG_LOCAL_DATABASE_URL_HOST"
+Modes (storage_mode = engine × location):
+  mongodb-cloud (default bare start): requires MONGODB_URI in .env
+  mongodb-local:  Atlas Local container; CLI export MONGODB_URI=$RAG_LOCAL_MONGODB_URI_HOST
+  postgres-local: pgvector container; CLI export STORAGE_BACKEND=postgres DATABASE_URL=$RAG_LOCAL_DATABASE_URL_HOST
+  postgres-cloud: hosted Supabase; requires DATABASE_URL; must not require MONGODB_URI
 EOF
 }
 
@@ -117,41 +127,113 @@ run_mongodb_subcommand() {
   esac
 }
 
+cmd_postgres_start() {
+  echo "Starting local Postgres + pgvector..."
+  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" up -d postgres-local
+  echo ""
+  echo "Waiting for Postgres to be ready..."
+  local tries=0
+  local health=""
+  while true; do
+    health="$(docker inspect --format='{{.State.Health.Status}}' "$RAG_POSTGRES_LOCAL_CONTAINER" 2>/dev/null || echo "")"
+    if [[ "$health" == "healthy" ]]; then
+      echo ""
+      print_local_postgres_cli_hints
+      return 0
+    fi
+    if [[ "$health" == "unhealthy" || $tries -ge 60 ]]; then
+      echo ""
+      echo "Postgres did not become healthy." >&2
+      echo "  docker logs $RAG_POSTGRES_LOCAL_CONTAINER 2>&1 | tail -20" >&2
+      return 1
+    fi
+    tries=$((tries + 1))
+    printf "."
+    sleep 2
+  done
+}
+
+cmd_postgres_stop() {
+  echo "Stopping local Postgres..."
+  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" stop postgres-local
+  echo "Stopped."
+}
+
+cmd_postgres_reset() {
+  echo "Stopping and wiping local Postgres data volume..."
+  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" rm -sf postgres-local
+  docker volume rm "$RAG_POSTGRES_LOCAL_VOLUME" 2>/dev/null || true
+  echo "Volume wiped. Run './start-services.sh postgres start' to recreate."
+}
+
+cmd_postgres_status() {
+  local state
+  state="$(docker inspect --format='{{.State.Status}}' "$RAG_POSTGRES_LOCAL_CONTAINER" 2>/dev/null || echo "not found")"
+  local health
+  health="$(docker inspect --format='{{.State.Health.Status}}' "$RAG_POSTGRES_LOCAL_CONTAINER" 2>/dev/null || echo "—")"
+  echo "Container: $RAG_POSTGRES_LOCAL_CONTAINER"
+  echo "  State:  $state"
+  echo "  Health: $health"
+  if [[ "$state" == "running" && "$health" == "healthy" ]]; then
+    print_local_postgres_cli_hints
+  fi
+}
+
+run_postgres_subcommand() {
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "Docker is not installed. See https://docs.docker.com/get-docker/" >&2
+    exit 1
+  fi
+  compose_require_docker_daemon || exit 1
+  compose_detect
+  compose_files
+  compose_local_postgres_profiles
+
+  local cmd="${1:-start}"
+  case "$cmd" in
+    start)  cmd_postgres_start ;;
+    stop)   cmd_postgres_stop ;;
+    reset)  cmd_postgres_reset ;;
+    status) cmd_postgres_status ;;
+    *)
+      echo "Unknown postgres command: $cmd" >&2
+      echo "Usage: ./start-services.sh postgres [start|stop|reset|status]" >&2
+      exit 1
+      ;;
+  esac
+}
+
 parse_args() {
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --local | -l)
-        LOCAL_ATLAS=1
-        shift
-        ;;
-      --postgres | -p)
-        LOCAL_POSTGRES=1
-        shift
-        ;;
-      --force-build | --build | -b)
-        FORCE_BUILD=1
-        shift
-        ;;
-      -h | --help)
-        usage
-        exit 0
-        ;;
-      *)
-        echo "Unknown option: $1 (try --help)" >&2
-        exit 1
+  if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    usage
+    exit 0
+  fi
+  STACK_MODE_FROM_CLI=0
+  if ! resolve_stack_mode "$@"; then
+    exit 1
+  fi
+  # resolve_stack_mode leaves STACK_STORAGE_MODE set; treat any explicit
+  # flag/env selector as CLI-owned so .env STORAGE_BACKEND cannot override it.
+  if [[ "${RAG_MONGODB_LOCAL:-}${RAG_MONGODB_CLOUD:-}${RAG_POSTGRES_LOCAL:-}${RAG_POSTGRES_CLOUD:-}${RAG_LOCAL_ATLAS:-}${RAG_LOCAL_POSTGRES:-}" == *"1"* ]] \
+    || [[ " $* " == *" --mongodb-"* ]] \
+    || [[ " $* " == *" --postgres-"* ]] \
+    || [[ " $* " == *" --local "* ]] \
+    || [[ " $* " == *" -l "* ]] \
+    || [[ " $* " == *" --postgres "* ]] \
+    || [[ " $* " == *" -p "* ]]; then
+    STACK_MODE_FROM_CLI=1
+  fi
+  # Also detect when resolve already left a non-default because of flags:
+  # parse argv for known tokens.
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      --mongodb-local | --mongodb-cloud | --postgres-local | --postgres-cloud | --local | -l | --postgres | -p)
+        STACK_MODE_FROM_CLI=1
         ;;
     esac
   done
-  if [[ "${RAG_FORCE_BUILD:-}" == "1" ]]; then
-    FORCE_BUILD=1
-  fi
-  if [[ "${RAG_LOCAL_ATLAS:-}" == "1" ]]; then
-    LOCAL_ATLAS=1
-  fi
-  if [[ "${RAG_LOCAL_POSTGRES:-}" == "1" ]]; then
-    LOCAL_POSTGRES=1
-  fi
-  export FORCE_BUILD LOCAL_ATLAS LOCAL_POSTGRES
+  export FORCE_BUILD LOCAL_ATLAS LOCAL_POSTGRES STACK_DB_TYPE STACK_LOCATION STACK_STORAGE_MODE STACK_MODE_FROM_CLI
 }
 
 if [[ "${1:-}" == "mongodb" ]]; then
@@ -160,7 +242,73 @@ if [[ "${1:-}" == "mongodb" ]]; then
   exit 0
 fi
 
+if [[ "${1:-}" == "postgres" ]]; then
+  shift
+  run_postgres_subcommand "${1:-start}"
+  exit 0
+fi
+
 parse_args "$@"
+
+ensure_env() {
+  if [[ ! -f .env ]]; then
+    if [[ -f .env.example ]]; then
+      if [[ "${NONINTERACTIVE:-}" == "1" ]]; then
+        echo "Missing .env — copy .env.example and set connection URIs." >&2
+        exit 1
+      fi
+      cp .env.example .env
+      echo "Created .env from .env.example — edit connection URIs, then re-run."
+      exit 1
+    fi
+    echo "Missing .env file." >&2
+    exit 1
+  fi
+
+  # shellcheck disable=SC1091
+  set -a
+  source .env
+  set +a
+
+  # Bare start: re-resolve from .env STORAGE_BACKEND / DATABASE_URL after load.
+  if [[ "${STACK_MODE_FROM_CLI:-0}" != "1" ]]; then
+    if ! resolve_stack_mode; then
+      exit 1
+    fi
+    export FORCE_BUILD LOCAL_ATLAS LOCAL_POSTGRES STACK_DB_TYPE STACK_LOCATION STACK_STORAGE_MODE
+  fi
+
+  if ! ensure_stack_mode_env; then
+    exit 1
+  fi
+}
+
+apply_stack_profiles() {
+  PROFILES=()
+  compose_clear_local_atlas_env
+  compose_clear_local_postgres_env
+
+  if [[ "$LOCAL_ATLAS" == "1" ]]; then
+    compose_export_local_atlas_env
+    compose_local_atlas_profiles
+    PROFILES+=("${COMPOSE_PROFILES[@]}")
+    echo "Atlas Local enabled — mongodb-atlas-local container, no cloud account needed"
+  fi
+
+  if [[ "$LOCAL_POSTGRES" == "1" ]]; then
+    compose_export_local_postgres_env
+    compose_local_postgres_profiles
+    PROFILES+=("${COMPOSE_PROFILES[@]}")
+    echo "Local Postgres enabled — pgvector container, STORAGE_BACKEND=postgres"
+  elif [[ "$STACK_DB_TYPE" == "postgres" ]]; then
+    export STORAGE_BACKEND=postgres
+    echo "Hosted Postgres enabled — STORAGE_BACKEND=postgres; requires DATABASE_URL"
+  fi
+}
+
+# Validate env before requiring Docker so --postgres-cloud missing DATABASE_URL
+# fails with the URI remediation instead of a daemon error.
+ensure_env
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "Docker is not installed. See https://docs.docker.com/get-docker/" >&2
@@ -176,54 +324,8 @@ if [[ "${RAG_DEV_STACK:-}" == "1" ]]; then
   echo "Dev stack enabled (RAG_DEV_STACK=1) — HMR + uvicorn --reload"
 fi
 
-if [[ "$LOCAL_ATLAS" == "1" ]]; then
-  compose_export_local_atlas_env
-  compose_local_atlas_profiles
-  PROFILES+=("${COMPOSE_PROFILES[@]}")
-  echo "Local Atlas enabled (--local) — mongodb-atlas-local container, no cloud account needed"
-else
-  compose_clear_local_atlas_env
-fi
-
-if [[ "$LOCAL_POSTGRES" == "1" ]]; then
-  compose_export_local_postgres_env
-  compose_local_postgres_profiles
-  PROFILES+=("${COMPOSE_PROFILES[@]}")
-  echo "Local Postgres enabled (--postgres) — pgvector container, STORAGE_BACKEND=postgres"
-else
-  compose_clear_local_postgres_env
-fi
-
-ensure_env() {
-  if [[ ! -f .env ]]; then
-    if [[ -f .env.example ]]; then
-      if [[ "${NONINTERACTIVE:-}" == "1" ]]; then
-        echo "Missing .env — copy .env.example and set MONGODB_URI." >&2
-        exit 1
-      fi
-      cp .env.example .env
-      echo "Created .env from .env.example — edit MONGODB_URI, then re-run."
-      exit 1
-    fi
-    echo "Missing .env file." >&2
-    exit 1
-  fi
-
-  # shellcheck disable=SC1091
-  set -a
-  source .env
-  set +a
-
-  # Local Atlas: server MONGODB_URI is set via RAG_SERVER_MONGODB_URI env (compose_export_local_atlas_env).
-  # Cloud Atlas: .env MONGODB_URI must be a real connection string.
-  # Postgres backend: Mongo is unused, so no MONGODB_URI is required.
-  if [[ "$LOCAL_ATLAS" == "0" && "$LOCAL_POSTGRES" == "0" ]]; then
-    if [[ -z "${MONGODB_URI:-}" ]] || [[ "$MONGODB_URI" == *"your_mongodb_atlas_uri_here"* ]]; then
-      echo "Set a real MONGODB_URI in .env (Atlas connection string), or use --local for local dev." >&2
-      exit 1
-    fi
-  fi
-}
+apply_stack_profiles
+echo "Resolved storage_mode=${STACK_STORAGE_MODE}"
 
 check_ports() {
   # Ports are chosen to avoid common conflicts:
@@ -314,7 +416,6 @@ print_unhealthy_server_hint() {
 
 mkdir -p input_data/pdfs configs
 
-ensure_env
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   export GIT_COMMIT="$(git rev-parse --short HEAD)"
   export GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
@@ -354,33 +455,45 @@ echo ""
 echo "Services ready:"
 echo "  Server:    http://localhost:8001  (docs: /docs)"
 echo "  Dashboard: http://localhost:5374"
+echo ""
+echo "storage_mode=${STACK_STORAGE_MODE}"
 
-if [[ "$LOCAL_ATLAS" == "1" ]]; then
-  echo "  MongoDB:   localhost:27017  (Atlas Local — no cloud quota)"
-  echo ""
-  echo "CLI (local Atlas — set URI for host commands):"
-  echo "  export MONGODB_URI=\"$RAG_LOCAL_MONGODB_URI_HOST\""
-  echo "  rag-params-finder run --config configs/mongodb/example-local.yaml"
-  echo ""
-  echo "Switch back to cloud:  ./start-services.sh  (no --local flag)"
-  echo "Manage MongoDB only:   ./start-services.sh mongodb [start|stop|reset|status]"
-  echo "Reset all data:        docker compose --profile local-atlas down -v"
-elif [[ "$LOCAL_POSTGRES" == "1" ]]; then
-  echo "  Postgres:  localhost:5433  (pgvector — STORAGE_BACKEND=postgres)"
-  echo ""
-  echo "Switch to Mongo Atlas cloud: ./start-services.sh"
-  echo "Switch to Atlas Local:       ./start-services.sh --local"
-else
-  echo ""
-  echo "CLI:       rag-params-finder run --config configs/mongodb/example-local.yaml"
-  echo ""
-  echo "Switch to local Atlas:    ./start-services.sh --local"
-  echo "Switch to local Postgres: ./start-services.sh --postgres"
-fi
-
-if [[ "$LOCAL_POSTGRES" == "1" ]]; then
-  print_local_postgres_cli_hints
-fi
+case "$STACK_STORAGE_MODE" in
+  mongodb-local)
+    echo "STORAGE_BACKEND=mongodb"
+    echo "MONGODB_URI=${RAG_LOCAL_MONGODB_URI_HOST}"
+    echo "Suggested: rag-params-finder run --config $(example_config_for_stack_mode)"
+    echo ""
+    echo "  MongoDB:   localhost:27017  (Atlas Local — no cloud quota)"
+    echo "Manage MongoDB only:   ./start-services.sh mongodb [start|stop|reset|status]"
+    echo "Reset all data:        docker compose --profile local-atlas down -v"
+    ;;
+  mongodb-cloud)
+    echo "STORAGE_BACKEND=mongodb"
+    echo "Suggested: rag-params-finder run --config $(example_config_for_stack_mode)"
+    echo ""
+    echo "Switch to Atlas Local:       ./start-services.sh --mongodb-local"
+    echo "Switch to local Postgres:    ./start-services.sh --postgres-local"
+    echo "Switch to hosted Postgres:   ./start-services.sh --postgres-cloud"
+    ;;
+  postgres-local)
+    echo "STORAGE_BACKEND=postgres"
+    echo "DATABASE_URL=${RAG_LOCAL_DATABASE_URL_HOST}"
+    echo "Suggested: rag-params-finder run --config $(example_config_for_stack_mode)"
+    echo ""
+    echo "  Postgres:  localhost:5433  (pgvector)"
+    echo "Manage Postgres only:  ./start-services.sh postgres [start|stop|reset|status]"
+    print_local_postgres_cli_hints
+    ;;
+  postgres-cloud)
+    echo "STORAGE_BACKEND=postgres"
+    echo "DATABASE_URL is set from .env (password redacted)"
+    echo "Suggested: rag-params-finder run --config $(example_config_for_stack_mode)"
+    echo ""
+    echo "Switch to local Postgres: ./start-services.sh --postgres-local"
+    echo "Switch to Atlas Local:    ./start-services.sh --mongodb-local"
+    ;;
+esac
 
 echo ""
 echo "SIE (BGE-M3): not started — opt-in only (SIE_ENABLED=false by default)."
@@ -389,5 +502,5 @@ echo "  CLI sweep: rag-params-finder run --config configs/mongodb/example-sie.ya
 echo ""
 echo "Aim UI:      ./scripts/aim-ui.sh  → http://localhost:43800 (experiment runs in ./.aim)"
 echo ""
-echo "Dev stack:   RAG_DEV_STACK=1 ./start-services.sh [--local]"
-echo "Force build: ./start-services.sh --force-build [--local]"
+echo "Dev stack:   RAG_DEV_STACK=1 ./start-services.sh [--mongodb-local|--postgres-local]"
+echo "Force build: ./start-services.sh --force-build [--mongodb-local|--postgres-local]"
