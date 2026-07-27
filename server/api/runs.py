@@ -2,7 +2,7 @@ import asyncio
 
 from fastapi import APIRouter, HTTPException
 
-from server.db.store_factory import get_storage_backend
+from server.db.ports.store_factory import get_storage_backend
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)

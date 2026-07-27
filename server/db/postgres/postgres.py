@@ -1,8 +1,8 @@
 """Postgres/pgvector connection pool and schema bootstrap.
 
-Counterpart to ``server.db.atlas`` for the Postgres backend. Owns the pool
+Counterpart to ``server.db.mongo.atlas`` for the Postgres backend. Owns the pool
 singleton and the idempotent DDL apply; all query code lives in
-``server.db.postgres_store``.
+``server.db.postgres.postgres_store``.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from pgvector.psycopg import register_vector
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
-from server.db.postgres_uri import postgres_connect_kwargs, postgres_storage_mode
+from server.db.postgres.postgres_uri import postgres_connect_kwargs, postgres_storage_mode
 
 __all__ = [
     "CHUNKS_TABLE",
@@ -42,7 +42,7 @@ logger = get_logger(__name__)
 
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
-# Table names — mirrors the *_COLLECTION constants in server.db.atlas.
+# Table names — mirrors the *_COLLECTION constants in server.db.mongo.atlas.
 EXPERIMENTS_TABLE = "experiments"
 RUN_STATUS_TABLE = "run_status"
 CHUNKS_TABLE = "chunks"

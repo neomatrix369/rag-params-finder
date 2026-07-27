@@ -253,7 +253,7 @@ skip; unit gates for `--postgres-cloud` `ensure_env` (no `MONGODB_URI`) still ap
 ## Schema
 
 Unlike the Atlas path, **there is no manual index step.** The server applies
-[`server/db/schema.sql`](../../server/db/schema.sql) on every boot, idempotently,
+[`server/db/postgres/schema.sql`](../../server/db/schema.sql) on every boot, idempotently,
 so tables, foreign keys, and indexes appear on first start.
 
 | Table | Holds | Notes |

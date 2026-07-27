@@ -15,8 +15,8 @@ from __future__ import annotations
 from pgvector import Vector
 from psycopg import sql
 
-from server.db.postgres import fetch_all
-from server.db.postgres_docs import vector_column_for
+from server.db.postgres.postgres import fetch_all
+from server.db.postgres.postgres_docs import vector_column_for
 from server.models.enums import RetrievalMethod
 from server.models.results import Chunk, SearchResult
 from server.utils.logger import get_logger

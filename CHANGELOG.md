@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Slice 45 (orchestrator SLAP)** — extracted `server/core/pipeline/search.py` (retriever search helpers) and `signatures.py` (resume/skip param signatures); phase/status + Bayesian bodies stay in `orchestrator.py` so mega-suite `patch("server.core.orchestrator.get_storage_backend")` keeps working.
 - **Slice 45 (embedding + retrieval packages)** — moved embedders/`rate_limiter` into `server/core/embedding/` and Mongo/Postgres retrievers into `server/core/retrieval/`; `sys.modules` shims keep `patch("server.core.sie_embedder.*")` / `retriever_mongo.*` working.
 - **Slice 45 (rerank package)** — moved `reranker` + `local_reranker` into `server/core/rerank/`; shim aliases keep old import/patch paths working.
+- **Slice 45 (db theme packages)** — moved ports/factory into `server/db/ports/`, Mongo adapters into `server/db/mongo/`, Postgres adapters + `schema.sql` into `server/db/postgres/`; shim aliases at old `server.db.*` paths.
 - **Nightly Meterian OSS path** — `nightly.yml` Meterian job uses `oss: true` (no `METERIAN_API_TOKEN`), pins scanners to Python + Node (`cli_args`), and archives `meterian-<run>` artifacts (HTML, JUnit, SARIF, CycloneDX + CSV SBOM) for comparison with Anchore (**IMPLEMENTED**; not yet observed on a green nightly run).
 - **Shared coverage floors 95/90/95/95** (DECISIONS #142) — FE Vitest **95/90/95/95**; BE **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` (stmts/br/lines from coverage JSON; functions n/a on coverage.py). Gap tests raised TOTAL ≈97.7%.
 - **Fair coverage metric floors** (DECISIONS #141) — FE **95/90/95/95**; BE interim policy 92/85 with `fail_under=90` — **superseded for BE by #142**.
@@ -77,6 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`server.core.{embedder,local_embedder,sie_embedder,embedder_factory,rate_limiter}`** — shim aliases; prefer `server.core.embedding.<module>` (DECISIONS #150).
 - **`server.core.{retriever_mongo,retriever_postgres}`** — shim aliases; prefer `server.core.retrieval.<module>` (DECISIONS #150).
 - **`server.core.{reranker,local_reranker}`** — shim aliases; prefer `server.core.rerank.<module>` (DECISIONS #151).
+- **`server.db.{storage,retriever_backend,store_factory,stats_common,atlas,mongodb_uri,mongo_store,mongo_stats,indexes,postgres_*}`** — shim aliases; prefer `server.db.{ports,mongo,postgres}.*` (DECISIONS #152). Former flat `server.db.postgres` is the **package** (pool helpers re-exported on `__init__`); there is no `server/db/postgres.py` shim.
 
 ### Fixed
 

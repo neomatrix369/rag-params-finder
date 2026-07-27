@@ -20,8 +20,8 @@ from server.core.guards.search_index_plan import (
     required_search_indexes,
     validate_vector_index_feasibility,
 )
-from server.db.atlas import CHUNKS_COLLECTION, get_database
-from server.db.indexes import (
+from server.db.mongo.atlas import CHUNKS_COLLECTION, get_database
+from server.db.mongo.indexes import (
     M0_SEARCH_INDEX_LIMIT,
     SearchIndexInfo,
     ensure_required_search_indexes,
@@ -29,7 +29,7 @@ from server.db.indexes import (
     prune_unknown_search_indexes,
     reconcile_chunks_search_indexes,
 )
-from server.db.postgres import fetch_all, fetch_one
+from server.db.postgres.postgres import fetch_all, fetch_one
 from server.models.config import ExperimentConfig
 from server.settings import normalize_storage_backend, settings
 from server.utils.logger import get_logger

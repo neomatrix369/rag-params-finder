@@ -39,7 +39,7 @@ from server.core.pipeline.orchestrator import resume_sweep, run_sweep
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
 from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
-from server.db.store_factory import get_storage_backend
+from server.db.ports.store_factory import get_storage_backend
 from server.models.config import ExperimentConfig, expand_sweep
 from server.models.enums import ExperimentStatus, Phase, RetrieverType
 from server.utils.log_throttle import info_throttled

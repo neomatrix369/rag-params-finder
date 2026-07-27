@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from server.db.indexes import (
+from server.db.mongo.indexes import (
     TEXT_SEARCH_INDEX_NAME,
     VECTOR_INDEX_CONFIGS,
     _build_vector_index_model,
@@ -49,8 +49,8 @@ def test_vector_index_configs_includes_all_managed_dimensions() -> None:
 
 def test_create_text_search_index_includes_run_id_token_field() -> None:
     with (
-        patch("server.db.indexes.get_collection") as get_collection,
-        patch("server.db.indexes._wait_for_indexes_ready", return_value=True),
+        patch("server.db.mongo.indexes.get_collection") as get_collection,
+        patch("server.db.mongo.indexes._wait_for_indexes_ready", return_value=True),
     ):
         collection = MagicMock()
         collection.list_search_indexes.return_value = []

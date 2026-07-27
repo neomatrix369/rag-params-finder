@@ -13,7 +13,7 @@ from server.core.search_index_plan import (
     required_search_indexes,
     validate_vector_index_feasibility,
 )
-from server.db.indexes import M0_SEARCH_INDEX_LIMIT, TEXT_SEARCH_INDEX_NAME
+from server.db.mongo.indexes import M0_SEARCH_INDEX_LIMIT, TEXT_SEARCH_INDEX_NAME
 from server.models.config import (
     ChunkingConfig,
     ChunkParams,

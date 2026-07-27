@@ -41,7 +41,7 @@ Mongo is **not** deleted. Dual-backend is intentional through cutover and beyond
 | Concern | Why Postgres/Supabase *and* Mongo |
 |---|---|
 | Operator choice | Laptop/`postgres-local` (pgvector on :5433) and hosted Supabase without requiring an Atlas account |
-| Schema-as-code | Indexes and extensions live in `server/db/schema.sql`; preflight is catalog introspection (HTTP 422), not Atlas UI quota alone |
+| Schema-as-code | Indexes and extensions live in `server/db/postgres/schema.sql`; preflight is catalog introspection (HTTP 422), not Atlas UI quota alone |
 | Cost / ceiling | Atlas M0 512 MB and shared CPU vs Supabase project limits — different trade-offs; operators pick per environment |
 | Equivalence, not identity | Dense scores are Atlas-scaled on Postgres; sparse/hybrid may differ (Lucene BM25 vs `ts_rank`) — compare with overlap gates, not byte-identical ranks (DECISIONS #93 / #114 / #115). On Postgres, **pgvector is dense (and hybrid’s dense leg) only**; sparse is `tsvector` FTS. |
 | Rollback | Two-command **engine switch** to Mongo (`--mongodb-local\|cloud` + matching `configs/mongodb/…`) if the operator chooses — not automatic failover; backends are independent (#129) |

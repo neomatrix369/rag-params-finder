@@ -1,5 +1,5 @@
 """
-Integration tests for server.db.postgres_store against a live pgvector database.
+Integration tests for server.db.postgres.postgres_store against a live pgvector database.
 
 Author: Mani Sarkar
 Created: 2026-07-25
@@ -23,7 +23,7 @@ import pytest
 pytest.importorskip("psycopg")
 
 from server.db import postgres  # noqa: E402
-from server.db.postgres_store import PostgresStorageBackend  # noqa: E402
+from server.db.postgres.postgres_store import PostgresStorageBackend  # noqa: E402
 from server.models.enums import ExperimentStatus  # noqa: E402
 from tests.helpers.storage_live import (  # noqa: E402
     TEST_DATABASE_URL,
@@ -241,7 +241,10 @@ class TestPostgresConnectionShould:
         Then it succeeds and the vector extension is present.
         """
         ### Given
-        from server.db.postgres_uri import STORAGE_MODE_LOCAL_POSTGRES, postgres_storage_mode
+        from server.db.postgres.postgres_uri import (
+            STORAGE_MODE_LOCAL_POSTGRES,
+            postgres_storage_mode,
+        )
 
         assert postgres_storage_mode(TEST_DATABASE_URL) == STORAGE_MODE_LOCAL_POSTGRES
         assert "sslmode" not in postgres.postgres_connect_kwargs(TEST_DATABASE_URL), (

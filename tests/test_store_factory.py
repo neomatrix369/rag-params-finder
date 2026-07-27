@@ -1,5 +1,5 @@
 """
-Tests for server.db.store_factory.
+Tests for server.db.ports.store_factory.
 
 Author: Mani Sarkar
 Created: 2026-07-25
@@ -12,8 +12,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from server.db.postgres_store import get_postgres_retriever
-from server.db.store_factory import get_retriever_backend, get_storage_backend
+from server.db.ports.store_factory import get_retriever_backend, get_storage_backend
+from server.db.postgres.postgres_store import get_postgres_retriever
 from server.models.enums import RetrievalMethod
 
 
@@ -42,7 +42,7 @@ class TestStoreFactoryShould:
                 "mongodb://localhost:27017/rag_params_finder?directConnection=true",
             ),
             patch(
-                "server.db.mongo_store.get_mongo_storage",
+                "server.db.mongo.mongo_store.get_mongo_storage",
                 return_value=mock_storage,
             ),
         ):
@@ -73,7 +73,7 @@ class TestStoreFactoryShould:
                 "mongodb://localhost:27017/rag_params_finder?directConnection=true",
             ),
             patch(
-                "server.db.mongo_store.get_mongo_retriever",
+                "server.db.mongo.mongo_store.get_mongo_retriever",
                 return_value=mock_retriever,
             ),
         ):
@@ -104,7 +104,7 @@ class TestStoreFactoryShould:
                 "mongodb://localhost:27017/rag_params_finder?directConnection=true",
             ),
             patch(
-                "server.db.mongo_store.get_mongo_storage",
+                "server.db.mongo.mongo_store.get_mongo_storage",
                 return_value=mock_storage,
             ),
         ):
@@ -209,7 +209,7 @@ class TestStoreFactoryShould:
                 "postgresql://rag:rag@localhost:5433/rag_params_finder",
             ),
             patch(
-                "server.db.postgres_store.get_postgres_storage",
+                "server.db.postgres.postgres_store.get_postgres_storage",
                 return_value=mock_storage,
             ),
         ):
@@ -240,7 +240,7 @@ class TestStoreFactoryShould:
                 "postgresql://rag:rag@localhost:5433/rag_params_finder",
             ),
             patch(
-                "server.db.postgres_store.get_postgres_retriever",
+                "server.db.postgres.postgres_store.get_postgres_retriever",
                 return_value=mock_retriever,
             ),
         ):

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.db.mongodb_uri import is_atlas_uri, mongo_client_kwargs
+from server.db.mongo.mongodb_uri import is_atlas_uri, mongo_client_kwargs
 
 
 def test_is_atlas_uri_true_for_cloud_srv() -> None:

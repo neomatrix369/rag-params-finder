@@ -57,7 +57,7 @@ For most new models of an existing provider, no changes to the factory are neede
 - **Mongo/Atlas:** a new dimension size requires a new Atlas vector index. See
   [MongoDB Setup → step 6](../user-guide/mongodb-setup.md#6-create-search-indexes-m0--required-before-sweep).
 - **Postgres:** add a nullable `embedding_<dims>` column + HNSW index in
-  [`server/db/schema.sql`](../../server/db/schema.sql) (idempotent on boot). See
+  [`server/db/postgres/schema.sql`](../../server/db/schema.sql) (idempotent on boot). See
   [Postgres Setup → Schema](../user-guide/postgres-setup.md#schema).
 
 ### 5. Update the example configs
@@ -198,8 +198,8 @@ directly.
 
 | Port | Module | Owns |
 |---|---|---|
-| `StorageBackend` | `server/db/storage.py` | Experiment/run/chunk/result CRUD, cascade delete, boot reconciliation |
-| `RetrieverBackend` | `server/db/retriever_backend.py` | dense / sparse / hybrid search only |
+| `StorageBackend` | `server/db/ports/storage.py` | Experiment/run/chunk/result CRUD, cascade delete, boot reconciliation |
+| `RetrieverBackend` | `server/db/ports/retriever_backend.py` | dense / sparse / hybrid search only |
 
 ### 1. Implement the adapter
 
@@ -209,7 +209,7 @@ stats helpers in `mongo_stats.py`).
 
 ### 2. Wire the factory
 
-In `server/db/store_factory.py`, branch on `settings.storage_backend` and return
+In `server/db/ports/store_factory.py`, branch on `settings.storage_backend` and return
 your adapter. Unknown values must raise `ValueError` (no silent fallback).
 
 ### 3. Settings

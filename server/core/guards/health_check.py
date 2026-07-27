@@ -12,8 +12,8 @@ import psycopg
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-from server.db.mongodb_uri import mongo_client_kwargs, mongodb_storage_mode
-from server.db.postgres_uri import postgres_connect_kwargs, postgres_storage_mode
+from server.db.mongo.mongodb_uri import mongo_client_kwargs, mongodb_storage_mode
+from server.db.postgres.postgres_uri import postgres_connect_kwargs, postgres_storage_mode
 from server.settings import normalize_storage_backend, settings
 from server.utils.logger import get_logger
 

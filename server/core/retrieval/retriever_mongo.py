@@ -7,8 +7,8 @@ counterpart is ``server.core.retrieval.retriever_postgres``.
 import time
 
 from server.core.model_registry import get_index_name
-from server.db.atlas import CHUNKS_COLLECTION, get_collection
-from server.db.indexes import TEXT_SEARCH_INDEX_NAME
+from server.db.mongo.atlas import CHUNKS_COLLECTION, get_collection
+from server.db.mongo.indexes import TEXT_SEARCH_INDEX_NAME
 from server.models.enums import RetrievalMethod
 from server.models.results import Chunk, SearchResult
 from server.utils.logger import get_logger

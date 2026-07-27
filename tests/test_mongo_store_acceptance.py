@@ -1,5 +1,5 @@
 """
-Acceptance tests for server.db.mongo_store (MongoStorageBackend port).
+Acceptance tests for server.db.mongo.mongo_store (MongoStorageBackend port).
 
 Author: Mani Sarkar
 Created: 2026-07-25
@@ -16,8 +16,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from server.db.indexes import TEXT_SEARCH_INDEX_NAME
-from server.db.mongo_store import (
+from server.db.mongo.indexes import TEXT_SEARCH_INDEX_NAME
+from server.db.mongo.mongo_store import (
     MongoStorageBackend,
     get_mongo_retriever,
     get_mongo_storage,
@@ -57,7 +57,7 @@ def _patch_collections(mapping: dict[str, MagicMock]) -> Any:
             mapping[name] = _coll()
         return mapping[name]
 
-    return patch("server.db.mongo_store.get_collection", side_effect=_get)
+    return patch("server.db.mongo.mongo_store.get_collection", side_effect=_get)
 
 
 def _patch_stats_collections(mapping: dict[str, MagicMock]) -> Any:
@@ -68,7 +68,7 @@ def _patch_stats_collections(mapping: dict[str, MagicMock]) -> Any:
             mapping[name] = _coll()
         return mapping[name]
 
-    return patch("server.db.mongo_stats.get_collection", side_effect=_get)
+    return patch("server.db.mongo.mongo_stats.get_collection", side_effect=_get)
 
 
 class TestMongoStorageBackendShould:
@@ -472,7 +472,7 @@ class TestMongoStorageBackendShould:
         ### When / Then
         with (
             patch(
-                "server.db.mongo_stats.get_collection",
+                "server.db.mongo.mongo_stats.get_collection",
                 side_effect=RuntimeError("db down"),
             ),
             pytest.raises(RuntimeError, match="db down"),
@@ -575,9 +575,9 @@ class TestMongoStorageBackendShould:
         with (
             _patch_collections(collections),
             _patch_stats_collections(collections),
-            patch("server.db.mongo_stats.get_database", return_value=db),
+            patch("server.db.mongo.mongo_stats.get_database", return_value=db),
             patch(
-                "server.db.mongo_stats.resolve_tier_specs",
+                "server.db.mongo.mongo_stats.resolve_tier_specs",
                 return_value=tier,
             ),
             patch(
@@ -731,7 +731,7 @@ class TestMongoStorageBackendShould:
         Then each pair returns the identical instance.
         """
         ### Given
-        import server.db.mongo_store as mod
+        import server.db.mongo.mongo_store as mod
 
         mod._storage = None
         mod._retriever = None

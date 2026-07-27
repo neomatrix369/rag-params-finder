@@ -128,7 +128,7 @@ On **M10+**, the server attempts programmatic creation when slots are available;
 
 **Symptom**: with `STORAGE_BACKEND=postgres`, submit returns **422** naming missing `chunks_*` indexes or the `vector` extension.
 
-**Cause**: Postgres has no Atlas-style quota or Admin API — indexes are declared in [`server/db/schema.sql`](../../server/db/schema.sql) and applied when the connection pool first opens. Preflight only **introspects** the catalog, so a 422 here means bootstrap did not complete (wrong database, insufficient privileges, or a partially applied schema).
+**Cause**: Postgres has no Atlas-style quota or Admin API — indexes are declared in [`server/db/postgres/schema.sql`](../../server/db/schema.sql) and applied when the connection pool first opens. Preflight only **introspects** the catalog, so a 422 here means bootstrap did not complete (wrong database, insufficient privileges, or a partially applied schema).
 
 **Required catalog objects**:
 

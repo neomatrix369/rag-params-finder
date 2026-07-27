@@ -27,7 +27,7 @@ import psycopg  # noqa: E402
 
 from server.core import retriever_postgres  # noqa: E402
 from server.db import postgres  # noqa: E402
-from server.db.postgres_store import PostgresStorageBackend  # noqa: E402
+from server.db.postgres.postgres_store import PostgresStorageBackend  # noqa: E402
 from server.models.enums import RetrievalMethod  # noqa: E402
 from tests.helpers.storage_live import (  # noqa: E402
     TEST_DATABASE_URL,

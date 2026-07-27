@@ -46,7 +46,7 @@ from server.core.query_loader import load_queries
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
 from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
-from server.db.store_factory import get_storage_backend
+from server.db.ports.store_factory import get_storage_backend
 from server.models.config import ExperimentConfig, RunParams, expand_sweep
 from server.models.enums import ExperimentStatus, Phase, RetrieverType
 from server.models.results import QueryResult

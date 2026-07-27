@@ -1,10 +1,10 @@
 """
-Tests for server.db.mongo_store adapter + call-site port usage.
+Tests for server.db.mongo.mongo_store adapter + call-site port usage.
 
 Author: Mani Sarkar
 Created: 2026-07-25
 Scope: MongoStorageBackend / MongoRetrieverBackend Protocol conformance;
-       orchestrator/API modules do not import server.db.atlas directly
+       orchestrator/API modules do not import server.db.mongo.atlas directly
 """
 
 from __future__ import annotations
@@ -13,30 +13,31 @@ import ast
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from server.db.mongo_store import MongoRetrieverBackend, MongoStorageBackend
-from server.db.retriever_backend import RetrieverBackend
-from server.db.storage import StorageBackend
+from server.db.mongo.mongo_store import MongoRetrieverBackend, MongoStorageBackend
+from server.db.ports.retriever_backend import RetrieverBackend
+from server.db.ports.storage import StorageBackend
 from server.models.enums import RetrievalMethod
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
 _NO_DIRECT_ATLAS_MODULES = (
-    "server/core/orchestrator.py",
+    "server/core/pipeline/orchestrator.py",
     "server/api/experiments.py",
     "server/api/experiments_shared.py",
     "server/api/runs.py",
-    "server/core/startup_reconciliation.py",
+    "server/core/pipeline/startup_reconciliation.py",
 )
 
 
 def _imports_atlas(module_path: Path) -> bool:
     tree = ast.parse(module_path.read_text(encoding="utf-8"))
     for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom) and node.module == "server.db.atlas":
+        if isinstance(node, ast.ImportFrom) and node.module == "server.db.mongo.atlas":
             return True
         if isinstance(node, ast.Import):
             for alias in node.names:
-                if alias.name == "server.db.atlas" or alias.name.startswith("server.db.atlas."):
+                atlas = "server.db.mongo.atlas"
+                if alias.name == atlas or alias.name.startswith(f"{atlas}."):
                     return True
     return False
 
@@ -110,7 +111,7 @@ class TestMongoStoreAdapterShould:
 
         ### When
         with patch(
-            "server.db.mongo_store._mongo_search",
+            "server.db.mongo.mongo_store._mongo_search",
             return_value=expected_results,
         ) as mock_search:
             actual = adapter.search(**search_kwargs)
@@ -123,17 +124,17 @@ class TestMongoStoreAdapterShould:
         self,
     ) -> None:
         """
-        Scenario: Call sites depend on ports — never on server.db.atlas.
+        Scenario: Call sites depend on ports — never on server.db.mongo.atlas.
         Slice: slice-32-storage-backend-protocol
 
         Given orchestrator, experiments*, runs, and startup_reconciliation modules,
         When their AST import graph is inspected,
-        Then none import server.db.atlas directly.
+        Then none import server.db.mongo.atlas directly.
         """
         ### Given / When
         offenders = [rel for rel in _NO_DIRECT_ATLAS_MODULES if _imports_atlas(_REPO_ROOT / rel)]
 
         ### Then
         assert offenders == [], (
-            "These modules must not import server.db.atlas directly: " + ", ".join(offenders)
+            "These modules must not import server.db.mongo.atlas directly: " + ", ".join(offenders)
         )

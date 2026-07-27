@@ -74,9 +74,9 @@ Mild (optional later): `server/api/` → `experiments/` vs `sweep/`.
 
 | Theme group | Files | Tags |
 |-------------|-------|------|
-| Ports / factory | `storage.py`, `retriever_backend.py`, `store_factory.py`, `stats_common.py` | Function |
-| Mongo | `atlas.py`, `mongodb_uri.py`, `mongo_store.py`, `mongo_stats.py`, `indexes.py` | Behavior \| Feature |
-| Postgres | `postgres.py`, `postgres_uri.py`, `postgres_store.py`, `postgres_stats.py`, `postgres_docs.py`, `schema.sql` | Behavior \| Feature |
+| Ports / factory | `ports/storage.py`, `ports/retriever_backend.py`, `ports/store_factory.py`, `ports/stats_common.py` | Function — **IMPLEMENTED** (Slice 45; shims at `server.db.<name>`) |
+| Mongo | `mongo/atlas.py`, `mongo/mongodb_uri.py`, `mongo/mongo_store.py`, `mongo/mongo_stats.py`, `mongo/indexes.py` | Behavior \| Feature — **IMPLEMENTED** (Slice 45) |
+| Postgres | `postgres/postgres.py`, `postgres/postgres_uri.py`, `postgres/postgres_store.py`, `postgres/postgres_stats.py`, `postgres/postgres_docs.py`, `postgres/schema.sql` | Behavior \| Feature — **IMPLEMENTED** (Slice 45) |
 
 ---
 

@@ -99,18 +99,18 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `docs/contributor-guide/module-theme-map.md` | Behavior \| Feature \| Function theme map + ranked hotspot separations (Slice 44 §3); moves → Slice 45 |
 | `server/main.py` | FastAPI app entry; lifespan ensures DB indexes + orphan reconciliation |
 | `server/settings.py` | Centralized pydantic-settings config (`storage_backend`: `mongodb` default permanently — DECISIONS #130 — or `postgres`) |
-| `server/db/storage.py` | `StorageBackend` Protocol — experiment/run/chunk/result CRUD + cascade + reconciliation |
-| `server/db/retriever_backend.py` | `RetrieverBackend` Protocol — dense/sparse/hybrid search port |
-| `server/db/mongo_store.py` | Mongo adapters for both ports (Atlas / Atlas Local) |
-| `server/db/mongo_stats.py` | Stats / explore / vector-db helpers (delegated by `MongoStorageBackend`) |
-| `server/db/stats_common.py` | Backend-agnostic db-stats assembly shared by Mongo and Postgres |
-| `server/db/postgres.py` | Postgres pool, idempotent `schema.sql` bootstrap, query helpers |
-| `server/db/postgres_uri.py` | Supabase vs local-pgvector detection; TLS only for hosted; `postgres_storage_mode()` → `postgres-local` \| `postgres-cloud` |
-| `server/db/postgres_docs.py` | Document ↔ row mapping (promoted columns + `doc` JSONB) |
-| `server/db/postgres_store.py` | Postgres `StorageBackend` impl (Supabase / local pgvector) |
-| `server/db/postgres_stats.py` | Postgres stats / explore helpers (delegated by `PostgresStorageBackend`) |
-| `server/db/schema.sql` | Postgres DDL — 4 tables, FK cascade, `embedding_384` / `embedding_1024` |
-| `server/db/store_factory.py` | `get_storage_backend()` / `get_retriever_backend()` from settings |
+| `server/db/ports/storage.py` | `StorageBackend` Protocol — experiment/run/chunk/result CRUD + cascade + reconciliation |
+| `server/db/ports/retriever_backend.py` | `RetrieverBackend` Protocol — dense/sparse/hybrid search port |
+| `server/db/mongo/mongo_store.py` | Mongo adapters for both ports (Atlas / Atlas Local) |
+| `server/db/mongo/mongo_stats.py` | Stats / explore / vector-db helpers (delegated by `MongoStorageBackend`) |
+| `server/db/ports/stats_common.py` | Backend-agnostic db-stats assembly shared by Mongo and Postgres |
+| `server/db/postgres/postgres.py` | Postgres pool, idempotent `schema.sql` bootstrap, query helpers |
+| `server/db/postgres/postgres_uri.py` | Supabase vs local-pgvector detection; TLS only for hosted; `postgres_storage_mode()` → `postgres-local` \| `postgres-cloud` |
+| `server/db/postgres/postgres_docs.py` | Document ↔ row mapping (promoted columns + `doc` JSONB) |
+| `server/db/postgres/postgres_store.py` | Postgres `StorageBackend` impl (Supabase / local pgvector) |
+| `server/db/postgres/postgres_stats.py` | Postgres stats / explore helpers (delegated by `PostgresStorageBackend`) |
+| `server/db/postgres/schema.sql` | Postgres DDL — 4 tables, FK cascade, `embedding_384` / `embedding_1024` |
+| `server/db/ports/store_factory.py` | `get_storage_backend()` / `get_retriever_backend()` from settings |
 | `server/core/pipeline/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
 | `server/core/guards/search_index_plan.py` | Pure logic: required Atlas indexes from config + capacity assessment; required Postgres catalog objects (`vector` extension, HNSW/GIN names) |
 | `server/core/guards/search_index_guard.py` | Backend-aware preflight — Atlas snapshot + ensure_indexes retry, or Postgres catalog introspection; raises on mismatch (HTTP 422) |
@@ -118,7 +118,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/guards/config_backend_guard.py` | Config↔server engine mismatch 422 (before index/SIE preflight) |
 | `scripts/lib/storage_mode.sh` | Four-flag `(db_type, location)` resolver for `start-services.sh` |
 | `server/core/pipeline/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
-| `server/db/mongodb_uri.py` | Cloud vs local URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`); `mongodb_storage_mode()` → `mongodb-local` \| `mongodb-cloud` |
+| `server/db/mongo/mongodb_uri.py` | Cloud vs local URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`); `mongodb_storage_mode()` → `mongodb-local` \| `mongodb-cloud` |
 | `server/core/atlas_storage.py` | Atlas Admin API cluster quota + tier specs (`resolve_tier_specs`); shared-tier storage fallbacks |
 | `server/core/model_registry.py` | Embedding + reranking model catalog |
 | `server/core/embedding/embedder_factory.py` | Provider dispatch factory; `get_embedder(provider)` returns `(embed_docs_fn, embed_query_fn)` — add new providers here, not in orchestrator |
@@ -138,7 +138,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/models/enums.py` | ChunkingMethod, RetrievalMethod, Phase |
 | `server/api/experiments.py` | Experiments CRUD, results/explore, db-stats, pause, resume, cancel, delete |
 | `server/api/experiments_shared.py` | Thin API helpers — delegates all I/O to `StorageBackend` via store_factory |
-| `server/db/indexes.py` | Collection + search index creation; cluster-wide index listing |
+| `server/db/mongo/indexes.py` | Collection + search index creation; cluster-wide index listing |
 | `cli/main.py` | Typer app (`run`, `cancel`, `pause`, `resume`, `delete`, `indexes`, `version`) |
 | `cli/indexes_cmd.py` | `indexes list` (Atlas or Postgres catalog) and `indexes reset` (Atlas-only) subcommands |
 | `cli/config_loader.py` | YAML parser + model registry validation |

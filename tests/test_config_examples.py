@@ -14,7 +14,7 @@ import pytest
 
 from cli.config_loader import load_config
 from server.core.search_index_plan import required_search_indexes
-from server.db.indexes import TEXT_SEARCH_INDEX_NAME
+from server.db.mongo.indexes import TEXT_SEARCH_INDEX_NAME
 from server.models.config import ExperimentConfig, expand_sweep
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent

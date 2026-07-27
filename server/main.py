@@ -11,7 +11,7 @@ from server.core.health_check import storage_health
 from server.core.pipeline.executors import shutdown_executors
 from server.core.pipeline.startup_reconciliation import reconcile_orphaned_experiments
 from server.core.sie_guard import check_sie_health
-from server.db.indexes import bootstrap_indexes
+from server.db.mongo.indexes import bootstrap_indexes
 from server.settings import LOCALHOST_CORS_ORIGIN_REGEX, normalize_storage_backend, settings
 from server.utils.logger import get_logger
 

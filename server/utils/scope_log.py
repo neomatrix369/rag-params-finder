@@ -36,6 +36,8 @@ _SCOPE_OVERRIDES: dict[str, str] = {
     "server.core.atlas_storage": "atlasStorage",
     "server.core.results_analyzer": "resultsAnalyzer",
     "server.core.model_registry": "modelRegistry",
+    "server.db.mongo.atlas": "atlasDB",
+    "server.db.mongo.indexes": "indexes",
     "server.db.atlas": "atlasDB",
     "server.db.indexes": "indexes",
     "server.utils.metadata": "metadata",

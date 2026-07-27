@@ -11,12 +11,12 @@ from __future__ import annotations
 
 import pytest
 
-from server.db.mongodb_uri import (
+from server.db.mongo.mongodb_uri import (
     STORAGE_MODE_MONGODB_CLOUD,
     STORAGE_MODE_MONGODB_LOCAL,
     mongodb_storage_mode,
 )
-from server.db.postgres_uri import (
+from server.db.postgres.postgres_uri import (
     STORAGE_MODE_POSTGRES_CLOUD,
     STORAGE_MODE_POSTGRES_LOCAL,
     postgres_storage_mode,

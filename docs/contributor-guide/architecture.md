@@ -241,7 +241,7 @@ Two deployment modes share identical query syntax (`$vectorSearch`, `$search`):
 | **Atlas cloud** | `mongodb+srv://...` | Manual in Atlas UI on M0/M2/M5; server preflights on submit |
 | **Atlas Local (Docker)** | `mongodb://localhost:27017/...?directConnection=true` | `bootstrap_indexes()` on server boot — no UI steps |
 
-Detection: `server/db/mongodb_uri.py` (`is_atlas_uri`). TLS enabled only for cloud URIs (`server/db/atlas.py`). Docker: `./start-services.sh --mongodb-local` or `RAG_MONGODB_LOCAL=1`. See [MongoDB Setup](../user-guide/mongodb-setup.md).
+Detection: `server/db/mongo/mongodb_uri.py` (`is_atlas_uri`). TLS enabled only for cloud URIs (`server/db/mongo/atlas.py`). Docker: `./start-services.sh --mongodb-local` or `RAG_MONGODB_LOCAL=1`. See [MongoDB Setup](../user-guide/mongodb-setup.md).
 
 ---
 
@@ -253,7 +253,7 @@ alias `mongo` normalizes to `mongodb`). **One backend**, two deployments: local 
 (`./start-services.sh --postgres-local`) or **Supabase-hosted Postgres** (same adapter;
 cloud `DATABASE_URL`). Example YAMLs live under `configs/supabase/` — that folder
 name is not a second storage backend. Schema:
-[`server/db/schema.sql`](../../server/db/schema.sql).
+[`server/db/postgres/schema.sql`](../../server/db/schema.sql).
 Operator setup: [Postgres Setup](../user-guide/postgres-setup.md).
 
 ### Dense retrieval — HNSW and `iterative_scan`

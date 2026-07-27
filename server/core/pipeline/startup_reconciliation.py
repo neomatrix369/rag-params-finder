@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from server.db.store_factory import get_storage_backend
+from server.db.ports.store_factory import get_storage_backend
 from server.models.enums import ExperimentStatus, Phase
 from server.utils.logger import get_logger
 

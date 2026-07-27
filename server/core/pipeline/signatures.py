@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.db.store_factory import get_storage_backend
+from server.db.ports.store_factory import get_storage_backend
 from server.models.config import RunParams
 from server.settings import settings
 

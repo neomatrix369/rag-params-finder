@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from server.core.model_registry import get_index_name
-from server.db.indexes import (
+from server.db.mongo.indexes import (
     ATLAS_MAX_VECTOR_DIMENSIONS,
     M0_SEARCH_INDEX_LIMIT,
     TEXT_SEARCH_INDEX_NAME,
