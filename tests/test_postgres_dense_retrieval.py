@@ -606,7 +606,7 @@ class TestPostgresDenseFailureShould:
 
         ### When
         with (
-            patch("server.core.retriever_postgres.fetch_all", side_effect=boom),
+            patch("server.core.retrieval.retriever_postgres.fetch_all", side_effect=boom),
             caplog.at_level(logging.ERROR),
             pytest.raises(psycopg.errors.UndefinedTable),
         ):

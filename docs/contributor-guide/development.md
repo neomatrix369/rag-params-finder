@@ -143,9 +143,9 @@ uv run pytest --tb=short -q \
   --cov=server.core.guards.search_index_guard \
   --cov=server.core.results_analyzer \
   --cov=server.models.config \
-  --cov=server.core.sie_embedder \
+  --cov=server.core.embedding.sie_embedder \
   --cov=server.core.aim_logger \
-  --cov=server.core.embedder_factory \
+  --cov=server.core.embedding.embedder_factory \
   --cov-fail-under=95
 
 # Python dependency audit (ML transitive vulns tracked — see scripts/pip-audit.sh)

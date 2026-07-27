@@ -16,7 +16,7 @@ from typing import Any, cast
 from server.core.aim_logger import AimLogger
 from server.core.chunkers import chunk_text
 from server.core.data_loader import load_all_files
-from server.core.embedder_factory import get_embedder
+from server.core.embedding.embedder_factory import get_embedder
 from server.core.pipeline.experiment_control import (
     ExperimentCancelledError,
     ExperimentPausedError,

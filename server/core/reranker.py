@@ -1,5 +1,5 @@
-from server.core.embedder import get_client, get_limiter
-from server.core.rate_limiter import call_with_retry, estimate_tokens
+from server.core.embedding.embedder import get_client, get_limiter
+from server.core.embedding.rate_limiter import call_with_retry, estimate_tokens
 from server.models.results import SearchResult
 from server.utils.logger import get_logger
 

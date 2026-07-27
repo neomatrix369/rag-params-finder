@@ -43,10 +43,10 @@ class TestEmbedderFactoryRouting:
         Then a (embed_docs_fn, embed_query_fn) tuple is returned, both callable.
         """
         voyage_mock = _make_voyage_mock()
-        with patch.dict("sys.modules", {"server.core.embedder": voyage_mock}):
+        with patch.dict("sys.modules", {"server.core.embedding.embedder": voyage_mock}):
             import importlib
 
-            import server.core.embedder_factory as fmod
+            import server.core.embedding.embedder_factory as fmod
 
             importlib.reload(fmod)
             embed_docs, embed_query = fmod.get_embedder("voyage")
@@ -61,10 +61,10 @@ class TestEmbedderFactoryRouting:
         Then a (embed_docs_fn, embed_query_fn) tuple is returned, both callable.
         """
         local_mock = _make_local_mock()
-        with patch.dict("sys.modules", {"server.core.local_embedder": local_mock}):
+        with patch.dict("sys.modules", {"server.core.embedding.local_embedder": local_mock}):
             import importlib
 
-            import server.core.embedder_factory as fmod
+            import server.core.embedding.embedder_factory as fmod
 
             importlib.reload(fmod)
             embed_docs, embed_query = fmod.get_embedder("local")
@@ -79,10 +79,10 @@ class TestEmbedderFactoryRouting:
         Then a (embed_docs_fn, embed_query_fn) tuple is returned, both callable.
         """
         sie_mock = _make_sie_mock()
-        with patch.dict("sys.modules", {"server.core.sie_embedder": sie_mock}):
+        with patch.dict("sys.modules", {"server.core.embedding.sie_embedder": sie_mock}):
             import importlib
 
-            import server.core.embedder_factory as fmod
+            import server.core.embedding.embedder_factory as fmod
 
             importlib.reload(fmod)
             embed_docs, embed_query = fmod.get_embedder("sie")
@@ -96,7 +96,7 @@ class TestEmbedderFactoryRouting:
         When get_embedder("unknown_provider") is called
         Then a ValueError is raised.
         """
-        from server.core.embedder_factory import get_embedder
+        from server.core.embedding.embedder_factory import get_embedder
 
         with pytest.raises(ValueError, match="unknown_provider"):
             get_embedder("unknown_provider")
@@ -104,13 +104,13 @@ class TestEmbedderFactoryRouting:
     def test_get_embedder_voyage_delegates_to_voyage_module(self):
         """
         When provider="voyage", the returned embed_docs function
-        is embed_documents_voyage from server.core.embedder.
+        is embed_documents_voyage from server.core.embedding.embedder.
         """
         voyage_mock = _make_voyage_mock()
-        with patch.dict("sys.modules", {"server.core.embedder": voyage_mock}):
+        with patch.dict("sys.modules", {"server.core.embedding.embedder": voyage_mock}):
             import importlib
 
-            import server.core.embedder_factory as fmod
+            import server.core.embedding.embedder_factory as fmod
 
             importlib.reload(fmod)
             embed_docs, _ = fmod.get_embedder("voyage")
@@ -120,13 +120,13 @@ class TestEmbedderFactoryRouting:
     def test_get_embedder_sie_delegates_to_sie_module(self):
         """
         When provider="sie", the returned embed_docs function
-        is embed_documents_sie from server.core.sie_embedder.
+        is embed_documents_sie from server.core.embedding.sie_embedder.
         """
         sie_mock = _make_sie_mock()
-        with patch.dict("sys.modules", {"server.core.sie_embedder": sie_mock}):
+        with patch.dict("sys.modules", {"server.core.embedding.sie_embedder": sie_mock}):
             import importlib
 
-            import server.core.embedder_factory as fmod
+            import server.core.embedding.embedder_factory as fmod
 
             importlib.reload(fmod)
             embed_docs, _ = fmod.get_embedder("sie")

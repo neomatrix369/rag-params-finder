@@ -17,7 +17,7 @@ from typing import Any
 from pgvector import Vector
 from psycopg import sql
 
-from server.core import retriever_postgres
+from server.core.retrieval import retriever_postgres
 from server.db import postgres_stats
 from server.db.postgres import execute, execute_many, fetch_all, fetch_one, fetch_value
 from server.db.postgres_docs import (

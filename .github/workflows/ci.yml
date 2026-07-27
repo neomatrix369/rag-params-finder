@@ -241,7 +241,7 @@ jobs:
                  tests/test_postgres_sparse_hybrid.py \
                  tests/contract/test_storage_backend_contract.py \
                  --tb=short -q -rs \
-                 --cov=server.core.retriever_postgres \
+                 --cov=server.core.retrieval.retriever_postgres \
                  --cov-branch --cov-report=term-missing --cov-fail-under=95
 
   mongo-integration:

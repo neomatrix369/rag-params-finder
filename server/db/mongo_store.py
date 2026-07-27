@@ -9,7 +9,7 @@ Stats / explore helpers live in ``server.db.mongo_stats``.
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from server.core.retriever_mongo import search as _mongo_search
+from server.core.retrieval.retriever_mongo import search as _mongo_search
 from server.db import mongo_stats
 from server.db.atlas import (
     CHUNKS_COLLECTION,

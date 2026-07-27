@@ -121,10 +121,10 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/db/mongodb_uri.py` | Cloud vs local URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`); `mongodb_storage_mode()` → `mongodb-local` \| `mongodb-cloud` |
 | `server/core/atlas_storage.py` | Atlas Admin API cluster quota + tier specs (`resolve_tier_specs`); shared-tier storage fallbacks |
 | `server/core/model_registry.py` | Embedding + reranking model catalog |
-| `server/core/embedder_factory.py` | Provider dispatch factory; `get_embedder(provider)` returns `(embed_docs_fn, embed_query_fn)` — add new providers here, not in orchestrator |
-| `server/core/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting; provider dispatch removed to `embedder_factory.py` |
-| `server/core/local_embedder.py` | sentence-transformers embedding (lazy-load) |
-| `server/core/sie_embedder.py` | SIE embeddings (BGE-M3, Stella-v5, SPLADE-v3) via remote gateway or optional self-hosted Docker |
+| `server/core/embedding/embedder_factory.py` | Provider dispatch factory; `get_embedder(provider)` returns `(embed_docs_fn, embed_query_fn)` — add new providers here, not in orchestrator |
+| `server/core/embedding/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting; provider dispatch removed to `embedder_factory.py` |
+| `server/core/embedding/local_embedder.py` | sentence-transformers embedding (lazy-load) |
+| `server/core/embedding/sie_embedder.py` | SIE embeddings (BGE-M3, Stella-v5, SPLADE-v3) via remote gateway or optional self-hosted Docker |
 | `server/core/guards/sie_guard.py` | SIE preflight guard — verifies `SIE_ENABLED` and gateway reachability before SIE embedding sweeps |
 | `server/core/aim_logger.py` | Aim experiment run logging wrapper; `AimLogger.log_run()` — no-op if Aim init fails |
 | `scripts/aim-ui.sh` | Start Aim UI on :43800 via Docker (shared `./.aim` repo with server) |
@@ -132,8 +132,8 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/api/sweep.py` | `POST /api/v1/sweep` (ranked results, SIE vs voyage baseline) + `GET /api/v1/best-config` |
 | `server/core/reranker.py` | Voyage reranking client |
 | `server/core/local_reranker.py` | CrossEncoder reranking (lazy-load) |
-| `server/core/retriever_mongo.py` | Atlas Vector Search (dense/sparse/hybrid) — Mongo-only |
-| `server/core/retriever_postgres.py` | pgvector dense + tsvector sparse + RRF hybrid; Atlas-scale dense scores; mandatory `embedding_model` filter |
+| `server/core/retrieval/retriever_mongo.py` | Atlas Vector Search (dense/sparse/hybrid) — Mongo-only |
+| `server/core/retrieval/retriever_postgres.py` | pgvector dense + tsvector sparse + RRF hybrid; Atlas-scale dense scores; mandatory `embedding_model` filter |
 | `server/models/config.py` | Pydantic experiment config + provider validators |
 | `server/models/enums.py` | ChunkingMethod, RetrievalMethod, Phase |
 | `server/api/experiments.py` | Experiments CRUD, results/explore, db-stats, pause, resume, cancel, delete |
@@ -169,10 +169,10 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 
 **Two independent provider settings**:
 - `embedding.provider`: "local", "voyage", or "sie"
-  - Local → `server/core/local_embedder.py` → `all-MiniLM-L6-v2` (384-dim)
-  - Voyage → `server/core/embedder.py` → all models in `EMBEDDING_MODELS` with `provider: voyage` (1024-dim; `voyage-context-3` uses `contextualized_embed()` with automatic segment splitting for long documents)
-  - SIE → `server/core/sie_embedder.py` → BGE-M3, Stella-v5 (1024-dim dense), SPLADE-v3 (30522-dim sparse); **opt-in** — remote gateway via `SIE_ENDPOINT` + `SIE_API_KEY` (no Docker), or self-hosted Docker fallback (`docs/user-guide/sie-setup.md`)
-  - Dispatch: `server/core/embedder_factory.py` — `get_embedder(provider)` returns the right functions; orchestrator never does if/elif on provider
+  - Local → `server/core/embedding/local_embedder.py` → `all-MiniLM-L6-v2` (384-dim)
+  - Voyage → `server/core/embedding/embedder.py` → all models in `EMBEDDING_MODELS` with `provider: voyage` (1024-dim; `voyage-context-3` uses `contextualized_embed()` with automatic segment splitting for long documents)
+  - SIE → `server/core/embedding/sie_embedder.py` → BGE-M3, Stella-v5 (1024-dim dense), SPLADE-v3 (30522-dim sparse); **opt-in** — remote gateway via `SIE_ENDPOINT` + `SIE_API_KEY` (no Docker), or self-hosted Docker fallback (`docs/user-guide/sie-setup.md`)
+  - Dispatch: `server/core/embedding/embedder_factory.py` — `get_embedder(provider)` returns the right functions; orchestrator never does if/elif on provider
 - **`retrieval.retrievers`** (unified format):
   - Each list entry is one sweep dimension — one retriever per run
   - Traditional: `{type: dense|sparse|hybrid}` — no provider/model needed

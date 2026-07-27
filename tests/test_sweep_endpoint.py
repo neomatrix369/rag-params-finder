@@ -33,7 +33,7 @@ def sweep_client():
 
     with (
         patch(
-            "server.core.embedder_factory.get_embedder",
+            "server.core.embedding.embedder_factory.get_embedder",
             return_value=(mock_embed_docs, mock_embed_query),
         ),
         patch("server.api.sweep.AimLogger.log_run"),

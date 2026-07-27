@@ -266,7 +266,7 @@ class TestStoreFactoryShould:
 
         ### When
         with patch(
-            "server.core.retriever_postgres.sparse_search",
+            "server.core.retrieval.retriever_postgres.sparse_search",
             return_value=expected,
         ) as mock_sparse:
             actual = retriever.search(

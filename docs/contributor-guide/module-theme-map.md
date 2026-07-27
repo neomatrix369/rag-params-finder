@@ -61,9 +61,9 @@ Mild (optional later): `server/api/` → `experiments/` vs `sweep/`.
 |-------------|-------|------|
 | Pipeline orchestration | `pipeline/orchestrator.py`, `pipeline/executors.py`, `pipeline/experiment_control.py`, `pipeline/startup_reconciliation.py` | Behavior \| Feature — **IMPLEMENTED** (Slice 45; shims at `server.core.<name>`) |
 | Ingest | `data_loader.py`, `query_loader.py`, `chunkers/*` | Feature |
-| Embedding providers | `embedder.py`, `local_embedder.py`, `sie_embedder.py`, `embedder_factory.py`, `rate_limiter.py` | Feature \| Function |
+| Embedding providers | `embedding/embedder.py`, `embedding/local_embedder.py`, `embedding/sie_embedder.py`, `embedding/embedder_factory.py`, `embedding/rate_limiter.py` | Feature \| Function — **IMPLEMENTED** (Slice 45; shims at `server.core.<name>`) |
 | Rerank | `reranker.py`, `local_reranker.py` | Feature |
-| Retrieval | `retriever_mongo.py`, `retriever_postgres.py` | Feature \| Behavior |
+| Retrieval | `retrieval/retriever_mongo.py`, `retrieval/retriever_postgres.py` | Feature \| Behavior — **IMPLEMENTED** (Slice 45; shims at `server.core.<name>`) |
 | Preflight guards | `guards/search_index_plan.py`, `guards/search_index_guard.py`, `guards/sie_guard.py`, `guards/config_backend_guard.py`, `guards/health_check.py` | Behavior \| Function — **IMPLEMENTED** (Slice 45; shims at `server.core.<name>`) |
 | Catalog / analysis | `model_registry.py`, `results_analyzer.py` | Function \| Feature |
 | Observability / ops | `aim_logger.py`, `atlas_storage.py` | Function \| Feature |
