@@ -71,7 +71,9 @@ if [[ "$BACKEND_CHANGED" -gt 0 ]]; then
     --cov=server.core.results_analyzer \
     --cov=server.models.config \
     --cov-report=term-missing \
-    --cov-fail-under=80
+    --cov-report=json:.reports/coverage-backend-unit.json \
+    --cov-fail-under=95
+  uv run python scripts/check_backend_coverage_floors.py .reports/coverage-backend-unit.json
 else
   echo "   Skipped (no backend changes in this push)"
 fi
@@ -88,7 +90,7 @@ echo ""
 echo "3/3 Frontend build + tests + audit..."
 if [[ "$FRONTEND_CHANGED" -gt 0 ]]; then
   npm --prefix frontend run build
-  npm --prefix frontend run test
+  npm --prefix frontend run test:coverage
   if [[ "$FRONTEND_LOCK_CHANGED" -gt 0 ]]; then
     npm --prefix frontend audit --audit-level=high
   else

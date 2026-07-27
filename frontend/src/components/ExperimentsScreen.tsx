@@ -515,10 +515,9 @@ export default function ExperimentsScreen({
         if (!aliveRef.current) return;
         setExperiments(data);
         setError(null);
+        setFeed((f) => appendFeed(f, 'Experiments loaded — vector DB stats loading above.', 'default'));
         devInfo('ExperimentsScreen', `list load OK — ${data.length} experiment(s)`);
         void loadVectorDbStats();
-        if (!aliveRef.current) return;
-        setFeed((f) => appendFeed(f, 'Experiments loaded — vector DB stats loading above.', 'default'));
       } catch (err) {
         stall.stop();
         if (!aliveRef.current) return;
@@ -627,13 +626,9 @@ export default function ExperimentsScreen({
             feed={feed}
             receivedBytes={receivedBytes}
             totalBytes={totalBytes}
-            footer={
-              initialLoadDone
-                ? `List auto-refreshes every ${EXPERIMENTS_POLL_MS / 1000}s once connected.`
-                : `After load, list refreshes every ${EXPERIMENTS_POLL_MS / 1000}s.`
-            }
+            footer={`After load, list refreshes every ${EXPERIMENTS_POLL_MS / 1000}s.`}
             theme="light"
-            expectPayloadProgress={!initialLoadDone || receivedBytes !== null}
+            expectPayloadProgress={receivedBytes !== null}
           />
         </div>
       )}

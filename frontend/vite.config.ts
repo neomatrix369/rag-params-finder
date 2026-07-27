@@ -14,6 +14,23 @@ export default defineConfig({
       provider: 'v8',
       reportsDirectory: '../.reports/coverage/frontend',
       reporter: ['text', 'json', 'html'],
+      // Shared FE+BE product floors (DECISIONS #142): stmts/funcs/lines ≥95, branches ≥90.
+      // Backend: fail_under=95 + scripts/check_backend_coverage_floors.py (95/90/n/a/95).
+      // Do not change without a Decision Log row.
+      all: true,
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/test/**',
+        'src/main.tsx',
+        'src/types/**',
+      ],
+      thresholds: {
+        statements: 95,
+        branches: 90,
+        functions: 95,
+        lines: 95,
+      },
     },
   },
   server: {

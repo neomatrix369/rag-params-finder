@@ -6,9 +6,9 @@
 
 **ADR-004 Accepted**; local comparison VERIFIED; CI dual-backend ✅; mutation waived (#128). **No default flip** (#130 Won't) — code default stays `mongodb` permanently; backends independently selectable (#129).
 
-**44** 📋 PLANNED — coverage Must open; taxonomy §3 published; **nw-review remediations APPLIED** (#137) — DoR APPROVED for execution (scripts locked: local `test:coverage`, CI `test:ci`).
+**44** ✅ COMPLETE on `slice/44-frontend-coverage-gate` — **#142**: FE **95/90/95/95**; BE **95/90/n/a/95** (`fail_under=95` + `scripts/check_backend_coverage_floors.py`); measured FE ≈98.21 / 92.89 / 99.7 / 99.61; BE stmts ≈98.6 / br ≈95.2 / TOTAL ≈97.7; **252** FE / **335** BE unit tests (**VERIFIED**).
 
-**45** 📋 PLANNED — module theme separation; architect HIGH remediations APPLIED (#137) — **APPROVED** for phased execution after taxonomy pre-check.
+**45** 📋 PLANNED — module theme separation + FE/BE Code Complete craft (§1b orchestrator/API/CLI/mega-suites; §4b FE primitives/screens); architect APPROVED (#137) for moves — ready for phased execution (~16–24 h).
 
 ## What's Done
 
@@ -16,16 +16,16 @@
 - ADR-004 Accepted / ADR-003 Superseded (#127)
 - `slice-38-quality-comparison.md` — both 120-run twins; latency ≤2× PASS; overlap informational (#129)
 - `slice-38.json` — `gate_status: PASSED`; default-flip gate removed (#130)
-- Slice 44 Path B revise: latest stub + measured coverage baseline (`npm run test:coverage` → lines **50.18%**, **16** tests; gates still bare Vitest)
-- Slice 44 §3 taxonomy: [`module-theme-map.md`](../contributor-guide/module-theme-map.md), canvas `project-structure-taxonomy.canvas.tsx`, [`SLICE-45-MODULE-THEME-SEPARATION.md`](slices/SLICE-45-MODULE-THEME-SEPARATION.md)
+- Slice 44 + #142: FE **95/90/95/95**; BE **95/90/n/a/95** via fail_under + JSON floor checker; gate-evidence PASSED
+- Slice 44 §3 taxonomy: [`module-theme-map.md`](../contributor-guide/module-theme-map.md), [`SLICE-45-MODULE-THEME-SEPARATION.md`](slices/SLICE-45-MODULE-THEME-SEPARATION.md) (IDE canvas optional / not in-repo)
 
 ## What's Next
 
-1. Path A Resume Slice **44** coverage Must — `test:coverage` in quality-gates/pre-push; `test:ci` in CI; re-measure floor on Before-Check
-2. Slice 44 Should FE module tests (or defer with Decision Log)
-3. Optional: Slice **45** phase 1 (`server/core/`) — taxonomy pre-check already satisfiable
-4. Merge [PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118) when ready
-5. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 if prioritized over 44
+1. Merge [PR #121](https://github.com/neomatrix369/rag-params-finder/pull/121) (Slice 44 + #142) when review-ready
+2. Slice **45** — phase 1: `server/core/` move **+** orchestrator SLAP into `pipeline/`, **or** FE primitives-first; see [`SLICE-45`](slices/SLICE-45-MODULE-THEME-SEPARATION.md) §1b / §4b + execution order
+3. Merge [PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118) when ready (if still open)
+4. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 if prioritized
+5. Commit Slice 45 spec expands (FE + BE craft backlogs) if still local-only
 
 ## Key decisions locked
 
@@ -48,8 +48,10 @@
 | 129 | Mongo ⟂ Postgres — neither is a fail-safe for the other |
 | 130 | **Won't** — no `STORAGE_BACKEND` default flip; code default stays `mongodb` permanently |
 | 131 | Health Gap 8 SKIPPED for COMPLETE historical stubs |
-| 132 | Path B revise Slice 44 → latest stub + live baseline |
-| 133 | Slice 44 quality-lens provisional 9/10 (pending user confirm) |
-| 135 | Taxonomy audit in Slice 44 Should; moves deferred to Slice 45 Could |
-| 136 | sync-docs: theme map on CHANGELOG/CLAUDE/development/AGENTS; coverage floor still PROPOSED |
-| 137 | nw-review remediations on SLICE-44/45 — DoR/architect APPROVED for execution |
+| 135 | Taxonomy audit = Slice 44 Should; moves = Slice 45 |
+| 137 | Slice 44/45 nw-review remediations APPLIED |
+| 138 | FE coverage floor ratcheted 50.18%→64% lines after Should tests; mutation waived |
+| 139 | Phase B FE floor ≥95% stmts/funcs/lines + ≥90% branches (`all: true`) — product floors via #140/#141/#142 |
+| 140 | Uniform overall ≥90% (BE fail_under=90; FE briefly 90/90/90/90) — superseded by #141/#142 |
+| 141 | Fair floors: FE **95/90/95/95**; BE policy briefly 92/85 — superseded by #142 |
+| 142 | FE **95/90/95/95**; BE **95/90/n/a/95** via `fail_under=95` + `check_backend_coverage_floors.py` |

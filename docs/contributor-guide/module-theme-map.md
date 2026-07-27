@@ -2,7 +2,7 @@
 
 > Behavior | Feature | Function taxonomy for `rag-params-finder`.
 > Planning SSOT from Slice 44 Should audit (2026-07-27). **No filesystem moves** in Slice 44 — execution proposals live in [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md).
-> Interactive view: workspace canvas `project-structure-taxonomy.canvas.tsx`.
+> Optional IDE canvas name: `project-structure-taxonomy.canvas.tsx` (not required in-repo).
 
 ## Theme labels
 
@@ -118,5 +118,5 @@ Existing: `tests/contract/`, `tests/helpers/`.
 
 - Module tree detail: [`architecture.md`](architecture.md) → Module Map
 - Slice 44 (taxonomy Should + coverage Must): [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](../plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md)
-- Slice 45 (execute moves): [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md)
+- Slice 45 (execute moves + FE craft §4b + BE craft §1b): [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md)
 - DECISIONS #135 — audit+proposal in 44; moves deferred to 45

@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-27 (Slice 44 taxonomy Should §3 published — theme map + Slice 45 stub; coverage Must still PLANNED)
-**Current**: Active migration: **38** 🔨 cutover + ADR-004 (partial — remediations/pins/ADR/CI done; Postgres twin comparison running). **37** ✅ local/cloud parity. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **36** ✅. **43** ✅. Deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-27 (Slice 44 ✅ + fair FE/BE coverage floors — DECISIONS #141)
+**Current**: Active migration: **38** 🔨 cutover + ADR-004 (partial — remediations/pins/ADR/CI done; Postgres twin comparison running). **37** ✅ local/cloud parity. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **36** ✅. **43** ✅. **44** ✅. Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -64,8 +64,8 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 41C — Bayesian Search: Extended | 📋 PLANNED | ~3–4 h | All questions resolved (A1 SQLite, A2 waived, A4 N=20, D3 sweep_summary keys, D7 RandomConfig); blocked only on 41B ✅: study persistence, categorical axes, random search, dashboard card, default promotion — [`SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md`](SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md) |
 | 42 — Docker Build Optimisation | ✅ COMPLETE | ~2–3 h | Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime (62 MB); CI docker-build job (non-blocking, path-scoped) — [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
 | 43 — Supabase example-config verification | ✅ COMPLETE | ~1–2 h | **Could** — 16/16 local Postgres smoke runs complete; operator docs distinguish `STORAGE_BACKEND` from `database_provider` and explain env asymmetry — [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) |
-| 44 — Frontend coverage + gate summary | 📋 PLANNED | ~3–4 h | **Should** — spun out of 43 (SLAP); stub migrated 2026-07-26; taxonomy Should added 2026-07-27 (#135) — Must: coverage floor in gates; Should: FE tests + theme map (§3 done) + Slice 45 stub — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) |
-| 45 — Module theme separation | 📋 PLANNED | ~4–6 h | **Could** — execute Behavior/Feature/Function folder moves from Slice 44 audit; no contract changes — [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) |
+| 44 — Frontend coverage + gate summary | ✅ COMPLETE | Phase A+B + #142 | FE **95/90/95/95**; BE **95/90/n/a/95** (`fail_under` + JSON floor checker) — DECISIONS #142 — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) · [`gate-evidence/slice-44.json`](../gate-evidence/slice-44.json) |
+| 45 — Module theme separation + FE/BE craft | 📋 PLANNED | ~16–24 h | **Could** — folder moves + FE/BE Code Complete backlog (orchestrator SLAP, fat API/CLI, mega-suites, FE primitives/screens); no contract changes — [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
 
@@ -691,6 +691,15 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-27 | 44 | Coverage floor: Before-Check lines 50.18% → after Should ~64.75%; thresholds ratcheted to lines≥64 / branches≥58 / functions≥61 / statements≥62 — DECISIONS #138; mutation waived | Invent floor / keep ungated bare vitest |
+| 2026-07-27 | 45 | Park BE Code Complete craft debt on Slice 45 Should/Could (§1b: orchestrator SLAP, fat API/CLI, mega-suites; Won't: merge dual backends / whole-tree 100% / local mutation) — estimate ~16–24 h with FE | Leave orchestrator god module untracked / invent Slice 45B |
+| 2026-07-27 | 45 | Park FE Code Complete craft debt on Slice 45 Should/Could (shared UI primitives, screen SLAP, shared test helpers; Won't: higher floors / TanStack / mutation) — expand estimate (later raised with BE) | Bundle into Slice 44 coverage PR / invent Slice 44B |
+| 2026-07-27 | coverage | Shared FE+BE floors **#142** — FE 95/90/95/95; BE **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` (TOTAL ≈97.7%) | Keep BE at 90 / soft 92/85 policy |
+| 2026-07-27 | coverage | Fair floors **#141** — FE 95/90/95/95; BE fail_under=90 + policy 92/85/n/a/90 | Keep flat FE 90 / invent BE branch≥90 without tests |
+| 2026-07-27 | coverage | Uniform **≥90%** product floor — BE `--cov-fail-under=90` + FE thresholds 90/90/90/90 (DECISIONS #140); postgres module gate stays 95 | Keep FE 95 / BE 80 asymmetry |
+| 2026-07-27 | 44 | Phase B reopen: FE gate → **≥95%** lines/stmts/funcs + **≥90%** branches (option 1; reopen 44 not 44B) — DECISIONS #139 | Keep Phase A 64% as permanent bar / new Slice 44B |
+| 2026-07-27 | 44 | Phase B mop-up ✅ — measured 98.21/92.89/99.7/99.61; 252 tests / 20 files; former near-miss modules (ExperimentsScreen branches, Detail/ControlButtons/devLog) ≥95/90 | Leave per-file gaps under floor / lower thresholds |
+| 2026-07-27 | 44 | Phase B ✅ — measured 96.84/90.96/97.92/98.85 (stmts/br/fn/lines); thresholds 95/90/95/95 + `all: true`; 229 tests / 20 files | Stop at Phase A floor / invent literal 100% without exclusions |
 | 2026-07-27 | 44/45 | nw-review remediations APPLIED (#137) — 44 DoR APPROVED for execution; 45 architect APPROVED; coverage Must still PLANNED | Leave review NEEDS_REVISION / CONDITIONAL without stub edits |
 | 2026-07-27 | sync-docs | CHANGELOG / CLAUDE / development / AGENTS / ARCHITECTURE stub aligned to theme map (**IMPLEMENTED**); coverage gate still **PROPOSED** — DECISIONS #136 | Agent + release surfaces lagged plan-tracker updates |
 | 2026-07-27 | 44/45 | Structure taxonomy audit = Slice 44 Should (§3); filesystem moves deferred to Slice 45 Could — DECISIONS #135; theme map + canvas + SLICE-45 stub published | Bundle audit into 44 hygiene; keep SLAP — moves are a different abstraction |
@@ -917,8 +926,8 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | 30 — Search Explorer UX fixes | Spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) — tab switch latency, zero-score noise, BM25 score labels, VDB card default-expanded | Could | ~2 h |
 | 31 — Experiment list filter | Spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) — status dropdown + name/ID search above experiments table | Should | ~2 h |
 | 43 — Supabase config verification | Spec: [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) — live smoke of supabase examples; `STORAGE_BACKEND` vs YAML provider docs; hosted short-config guidance | Could | ~1–2 h |
-| 44 — Frontend coverage gate | Spec: [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) — Must: embed coverage table/floor in quality-gates + pre-push + CI; Should: FE tests + structure taxonomy (§3 theme map + canvas + Slice 45 stub published 2026-07-27; baseline ~50% lines / 16 tests) | Should | ~3–4 h |
-| 45 — Module theme separation | Spec: [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) — execute ranked folder moves (`server/core`, `server/db`, tests, frontend components, scripts); depends on Slice 44 taxonomy artifacts | Could | ~4–6 h |
+| 44 — Frontend coverage gate | Spec: [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) — Must: embed coverage table/floor in quality-gates + pre-push + CI (**VERIFIED**); Should: FE tests + structure taxonomy (§3) — ✅ COMPLETE 2026-07-27 | Should | ~3–4 h |
+| 45 — Module theme separation + FE/BE craft | Spec: [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) — ranked folder moves + FE craft §4b + BE craft §1b (orchestrator SLAP, fat surfaces, mega-suites); depends on Slice 44 taxonomy + #142 floors | Could | ~16–24 h |
 
 ---
 

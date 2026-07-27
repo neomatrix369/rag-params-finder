@@ -181,7 +181,9 @@ jobs:
             --cov=server.core.results_analyzer \
             --cov=server.models.config \
             --cov-report=term-missing \
-            --cov-fail-under=80
+            --cov-report=json:.reports/coverage-backend-unit.json \
+            --cov-fail-under=95
+          python scripts/check_backend_coverage_floors.py .reports/coverage-backend-unit.json
 
   postgres-integration:
     name: Postgres integration (pgvector)
@@ -315,8 +317,14 @@ jobs:
       - name: Lint (eslint)
         run: npm run lint
 
-      - name: Verify (tests + tsc + build)
-        run: npm run verify
+      - name: Test with coverage (v8 thresholds + JUnit via vite.config)
+        run: npm run test:ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
 
   dependency-audit:
     name: Dependency audit (PR + deps changes)

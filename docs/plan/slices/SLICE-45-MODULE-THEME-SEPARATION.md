@@ -1,19 +1,23 @@
-# Slice 45: Module Theme Separation
+# Slice 45: Module Theme Separation + FE/BE Craft
 
 > Scenario: Brownfield + Growing Requirement (Flow D) | MoSCoW: Could
 
-**Target time:** ~4–6 h (phased by hotspot; do not do all five in one commit)
+**Target time:** ~16–24 h (phased by hotspot + FE/BE craft; do not land all phases in one commit)
 **Status:** 📋 PLANNED
-**Depends on:** Slice 44 taxonomy Should artifacts **IMPLEMENTED** — [`module-theme-map.md`](../../contributor-guide/module-theme-map.md) present with B/F/F tags; canvas published; this stub present. *(Slice 44 coverage Must need not be COMPLETE.)*
-**Non-blocking:** Structural hygiene — does not gate PCTO / migration Must slices.
+**Depends on:** Slice 44 taxonomy Should artifacts **IMPLEMENTED** — [`module-theme-map.md`](../../contributor-guide/module-theme-map.md) present with B/F/F tags; canvas published; this stub present. Slice 44 coverage Must + shared floors #142 **COMPLETE** (FE/BE product floors gated).
+**Non-blocking:** Structural hygiene + FE/BE construction quality — does not gate PCTO / migration Must slices.
 
 **Origin:** Spun from Slice 44 Should audit on 2026-07-27 (DECISIONS #135). Slice 44 publishes proposals only; **this slice owns filesystem moves and import rewrites**.
+
+**Scope expansion (2026-07-27):** After Slice 44 coverage gate + Code Complete standing assessments (FE then BE), park **construction / composition / test-structure debt** here (not more coverage floors). Coverage is already Excellent; this slice attacks *shape*.
 
 ---
 
 ## Goal
 
-Execute ranked folder separations so Behavior / Feature / Function themes live in dedicated directories (fewest elements that reveal intent — Simple Design). Preserve public API / CLI / HTTP contracts; change **internal** import paths only.
+1. Execute ranked folder separations so Behavior / Feature / Function themes live in dedicated directories (fewest elements that reveal intent — Simple Design). Preserve public API / CLI / HTTP contracts; change **internal** import paths only.
+2. Raise **frontend** implementation and test construction toward Code Complete / composability: extract duplicated UI primitives, shrink god screens, share test factories — while keeping FE coverage floors (**95/90/95/95**) green.
+3. Raise **backend / CLI / tests / scripts** construction toward Code Complete: carve the orchestrator god module, slim fat API/CLI surfaces, break mega-suites, keep ports/factories intact — while keeping BE floors (**95/90/n/a/95**) green.
 
 ---
 
@@ -25,8 +29,20 @@ Execute ranked folder separations so Behavior / Feature / Function themes live i
 | **Must** | Move `server/db/` into `ports/` + `mongo/` + `postgres/` (or equivalent); factory still resolves backends |
 | **Should** | Reorganize `tests/` to mirror packages or `unit/` + existing `contract/` / `helpers/` |
 | **Should** | Split `frontend/src/components/` into `screens/` / `chrome/` / `experiment/` / `stats/` |
-| **Could** | Split `scripts/` into `ci/` / `docker/` / `release/` / `security/` (+ keep `lib/`); update gate script paths |
+| **Should** | **FE shared primitives** — extract duplicated `Pagination`, `StatTile`/`Row`, `append*Feed`, `completionReasonLabel` into composable modules (Rule of 3) |
+| **Should** | **FE screen SLAP** — carve `ExperimentsScreen` / `ExperimentDetailScreen` / `SearchExplorerScreen` toward ≤~200–400 lines each via extract+inject (hooks / presentational children); reduce nesting / else chains |
+| **Should** | **FE shared test factories** — move repeated builders (`experiment()`, `vectorDbGroup()`, `buildConfig()`, detail fixtures) to `frontend/src/test/helpers/` (or equivalent); shrink mega-suites as screens shrink |
+| **Should** | **BE orchestrator SLAP** — split `server/core/orchestrator.py` (~1161 lines; `_run_single` / `_run_sweep_inner` / `_run_bayesian_inner` 185–217 lines) into `pipeline/` modules (sweep / bayesian / run-lifecycle / search helpers) via extract+inject; preserve public entrypoints |
+| **Should** | **BE fat-surface slim** — carve `server/api/experiments.py` (~549), `cli/main.py` (~519), and optionally `server/db/indexes.py` (~480) / `postgres_store.py` (~422) toward smaller focused modules (handlers / presentation / index ops) |
+| **Should** | **BE mega-suite shrink** — split or fold `tests/test_slice16_parallel_sweep.py` (~2296 lines) and other >600-line suites; raise GWT marker / factory discipline toward craft norms as files are touched |
+| **Could** | Split `scripts/` into `ci/` / `docker/` / `release/` / `security/` (+ keep `lib/`); update gate script paths; optionally slim `start-services.sh` (~504) via further `scripts/lib/` extract |
+| **Could** | Finish brownfield FE test narrative docstring migration (remaining Scenario/Slice gaps called out in Slice 44 nw-review) |
+| **Could** | CI drift guard: assert Vitest `coverage.thresholds` match `[tool.rag_params_finder.coverage_thresholds]` / documented FE floors |
+| **Could** | Brownfield BE test GWT migration on touch (markers + narrative docstrings for suites edited during moves/splits) |
 | **Won't** | Rename public CLI commands, HTTP routes, or config YAML keys; delete Mongo or Postgres backends; whole-repo monorepo reshape |
+| **Won't** | Raise product coverage floors further; invent 100% branch / mutation for FE screens or whole `server/` tree (product floors stay #142; mutation remains waived/#128 nightly unless non-trivial pure logic is added) |
+| **Won't** | Migrate data fetching to TanStack Query / redesign FE state architecture (separate slice if prioritized) |
+| **Won't** | Collapse Mongo∥Postgres retriever/store twins into one abstraction beyond existing Protocols — dual adapters are intentional (#129); share only proven pure helpers (pattern: `stats_common`) |
 
 ---
 
@@ -73,6 +89,66 @@ rg -n "from ['\"].*components/" frontend/src/
 
 **Blast radius:** `orchestrator.py` callers (`api/`, `main` lifespan), embedder_factory imports, retriever wiring, all `tests/test_*` that import `server.core.*`. Prefer thin `__init__.py` re-exports for one release if import churn is high — see **Re-export deprecation lifecycle**.
 
+### 1b. Backend Code Complete / composition backlog (parked from BE standing assessment)
+
+> Source: Code Complete + craft review of `server/` / `cli/` / `tests/` / `scripts` (2026-07-27), **excluding frontend**. Architecture/DIP already strong (Protocols, factories, `stats_common`); this work improves **construction**, not floors or dual-backend policy.
+
+#### Baseline (debt inventory)
+
+| Hotspot | Approx size | Craft issue |
+|---------|-------------|-------------|
+| `server/core/orchestrator.py` | ~1161 lines | God module — `_run_single` ~217, `_run_sweep_inner` ~195, `_run_bayesian_inner` ~185 |
+| `server/api/experiments.py` | ~549 lines | Fat HTTP surface |
+| `cli/main.py` | ~519 lines | Typer app + presentation weight |
+| `server/db/indexes.py` | ~480 lines | Atlas index ops bulk |
+| `server/db/postgres_store.py` | ~422 lines | Large adapter (high nest in places) |
+| `tests/test_slice16_parallel_sweep.py` | ~2296 lines | Mega-suite |
+| Other suites >600 lines | mongo acceptance, search_index_guard, postgres integration/dense, … | Hard to navigate; uneven GWT |
+| Ports / factories / guards / URI / `stats_common` | mostly ≤250 lines | **Healthy** — leave alone unless touched |
+
+~21 `server`/`cli` modules >200 lines; ~5 >400. Product BE floors (#142) already Excellent on gated modules.
+
+#### Orchestrator SLAP targets (Should — pair with or follow `core/pipeline/` move)
+
+1. Extract Bayesian trial loop, grid sweep, single-run lifecycle, and search/rerank helpers into focused modules under `server/core/pipeline/` (names illustrative): e.g. `bayesian_sweep.py`, `grid_sweep.py`, `run_lifecycle.py`, `retriever_dispatch.py`.
+2. Keep a thin `orchestrator.py` (or `pipeline/__init__.py` façade) as the public entry used by API / BackgroundTasks.
+3. Prefer extract+inject (storage/retriever/embedder already via factory) — do not add new singletons.
+4. Exit criteria (informational): orchestrator façade trending **≤400 lines**; no single function **>80 lines** where practical; BE **95/90/n/a/95** stays green.
+5. Characterization: existing unit/orchestrator tests must stay green; add focused unit tests for newly extracted pure helpers.
+
+#### Fat-surface slim (Should)
+
+| Module | Direction |
+|--------|-----------|
+| `server/api/experiments.py` | Extract request/response helpers, delete/stats assembly, or route groups into `api/experiments_*.py` siblings; keep router registration stable |
+| `cli/main.py` | Move presentation / summary printing / large command bodies toward `cli/` helpers (pattern already started with `indexes_cmd.py`) |
+| `server/db/indexes.py` | Optional later split: list vs ensure vs reset vs capacity — only if touched during `db/mongo/` move |
+| `postgres_store.py` | Prefer keep as adapter during ports move; extract only if a pure helper emerges (follow `stats_common` pattern) |
+
+#### Mega-suite / test craft (Should + Could)
+
+| Today | Target |
+|-------|--------|
+| Flat `tests/test_*.py` (~39 files, ~11k lines) | Mirror packages (§3) **and** split files >~600–800 lines by behaviour theme |
+| `test_slice16_parallel_sweep.py` ~2296 | Multiple focused modules under `tests/server/core/` (or `tests/unit/pipeline/`) |
+| GWT markers ~19/39 files | On touch: add `### Given/When/Then` + narrative docstrings (brownfield §D) — Could for untouched files |
+| `tests/helpers/` + contract suite | Keep; expand helpers when splitting mega-suites |
+
+Do **not** delete behavioral coverage to shrink files. Do **not** raise `fail_under` / JSON floors in this slice.
+
+#### Preserve (do not “fix”)
+
+- `StorageBackend` / `RetrieverBackend` Protocols + `store_factory` / `embedder_factory`
+- Mongo∥Postgres dual adapters (#129) — twin retrievers/stores are intentional
+- Shared pure maths in `stats_common` (model for further cross-backend extracts)
+- Scoped coverage gate modules + `check_backend_coverage_floors.py`
+
+#### Explicitly out of Slice 45 for BE (Won't / later)
+
+- Whole-tree 100% coverage or inventing function coverage on coverage.py
+- Local mutation gate for BE (stay on #128 nightly waive unless new non-trivial pure logic)
+- Merging Mongo and Postgres into one store implementation
+
 ### 2. `server/db/` → ports + backends
 
 | Destination | Modules |
@@ -92,6 +168,8 @@ rg -n "from ['\"].*components/" frontend/src/
 
 Update `quality-gates.sh` / CI ignore paths if directories move.
 
+**Craft addendum:** when mirroring, also **split** mega-suites (esp. `test_slice16_parallel_sweep.py`); expand `tests/helpers/` rather than duplicating fixtures. Prefer one behavioural theme per file after the move.
+
 ### 4. `frontend/src/components/` (Should)
 
 | Destination | Modules |
@@ -102,6 +180,58 @@ Update `quality-gates.sh` / CI ignore paths if directories move.
 | `components/stats/` | `VectorDbStatsPanel`, `ExperimentVectorDbStatsCard` |
 
 Update `App.tsx` imports; move each `*.test.tsx` **with** its module (same folder).
+
+### 4b. Frontend Code Complete / composition backlog (parked from Slice 44 standing assessment)
+
+> Source: post–Slice 44 Code Complete + craft review (2026-07-27). Coverage gates already pass (#142); this work improves **construction**, not floors.
+
+#### Baseline (debt inventory)
+
+| Hotspot | Approx size | Craft issue |
+|---------|-------------|-------------|
+| `ExperimentDetailScreen.tsx` | ~1715 lines | God screen — fetch, polling, badges, pagination, copy in one module |
+| `SearchExplorerScreen.tsx` | ~1200 lines | Same; high `else` / nest depth |
+| `ExperimentsScreen.tsx` | ~867 lines | Same |
+| Co-located `*.test.tsx` for above | ~1070–1577 lines each | Mega-suites; factories not shared |
+| Utils / chrome / services | mostly ≤250 lines | **Healthy** — leave alone unless touched |
+
+#### Rule-of-3 extracted (Should — do before or with screen shrink)
+
+| Primitive | Current copies | Proposed home |
+|-----------|----------------|---------------|
+| `Pagination` | ExperimentsScreen, ExperimentDetailScreen, SearchExplorerScreen (×3) | `components/chrome/Pagination.tsx` (or `components/shared/`) |
+| `StatTile` + `Row` | VectorDbStatsPanel, ExperimentVectorDbStatsCard (×2) | `components/stats/StatTile.tsx` (+ `Row`) |
+| `append*Feed` | `appendFeed` / `appendDetailFeed` / `xfAppend` (×3) | `utils/feedEntries.ts` or chrome helper |
+| `completionReasonLabel` | ExperimentsScreen + ExperimentDetailScreen (×2; third touch → extract) | `utils/completionReason.ts` (or extend `experimentStatus.ts`) |
+
+Each extracted primitive: independently usable + unit/RTL tests; screens import and compose.
+
+#### Screen SLAP targets (Should)
+
+For each of the three screens:
+
+1. Extract presentational subtrees (badges, outcome banners, tables) into siblings under `screens/` or `experiment/`.
+2. Extract polling / list-refresh / control-refresh into named hooks (`useExperimentListPoll`, `useDetailPoll`, …) — **inject** deps (api client), do not reach singletons.
+3. Prefer early returns / table-driven status maps over deep `else` chains.
+4. Exit criteria (informational, not a hard CI gate): each screen file trending toward **≤400 lines** (stretch ≤200 Object Calisthenics ideal); max brace nesting ≤4 where practical.
+5. Keep FE **95/90/95/95** floors green after every extract PR.
+
+#### Shared test helpers (Should)
+
+| Today (duplicated) | Target |
+|--------------------|--------|
+| `experiment()` / lifecycle fixtures in ExperimentsScreen.test | `frontend/src/test/helpers/experiments.ts` |
+| `vectorDbGroup()` / stats fixtures | `frontend/src/test/helpers/vectorDbStats.ts` |
+| `buildConfig` / `buildDetailedResult` in SearchExplorerScreen.test | `frontend/src/test/helpers/explore.ts` |
+| Detail `run()` / `detailFixture()` / `dbStats*` | `frontend/src/test/helpers/experimentDetail.ts` |
+
+Rules: named builders with `Partial<>` overrides; `ANY_*` for irrelevant fields; no shared mutable state across tests. Mega-suite shrink is a **consequence** of smaller screens + shared helpers — do not delete behavioral coverage.
+
+#### Explicitly out of Slice 45 (Won't / later)
+
+- Product coverage floor raises; Stryker/mutation for UI screens
+- TanStack Query / Zustand redesign for dashboard data fetching
+- Literal 100% branch coverage on every UI edge
 
 ### 5. `scripts/` (Could)
 
@@ -152,6 +282,37 @@ Scenario: Frontend component tests remain co-located after move
   Then ExperimentsScreen.test.tsx lives in components/screens/ (same folder)
   And App.tsx imports reference the new path
   And rg finds no dangling imports from the old components/ root for moved modules
+
+Scenario: Shared Pagination composes without behaviour change
+  Given Pagination extracted from the three screens into a shared chrome module
+  When list / detail / explorer pagination interactions run under Vitest
+  Then page changes and items-per-page behave as before
+  And only one Pagination implementation remains under components/
+
+Scenario: Screen extract keeps coverage floors
+  Given presentational pieces or hooks are extracted from ExperimentDetailScreen (or a sibling screen)
+  When npm run test:coverage
+  Then FE thresholds 95/90/95/95 still pass
+  And the screen module line count is materially lower than the pre-extract baseline
+
+Scenario: Shared test helpers replace duplicated factories
+  Given experiment/vectorDb/explore builders live under frontend/src/test/helpers/
+  When screen tests import those helpers
+  Then local copy-pasted factory definitions are removed from the mega-suites
+  And suite behaviour (pass/fail) is unchanged
+
+Scenario: Orchestrator façade stays thin after pipeline extract
+  Given sweep / bayesian / run-lifecycle helpers live under server/core/pipeline/
+  When the unit pytest suite and orchestrator-related tests run
+  Then public experiment execution behaviour is unchanged
+  And orchestrator.py (or pipeline façade) is materially smaller than the ~1161-line baseline
+  And BE coverage floors 95/90/n/a/95 still pass
+
+Scenario: Mega-suite split preserves behaviour
+  Given test_slice16_parallel_sweep scenarios are redistributed into focused modules
+  When the unit-tier pytest suite runs
+  Then previously covered behaviours still pass
+  And no intentional test deletions occurred for coverage cosmetics
 ```
 
 ---
@@ -161,11 +322,13 @@ Scenario: Frontend component tests remain co-located after move
 - [ ] Confirm [`module-theme-map.md`](../../contributor-guide/module-theme-map.md) lists five hotspots (**IMPLEMENTED** taxonomy §3)
 - [ ] Slice 44 theme map + this stub reviewed; Reuse Analysis table accepted
 - [ ] Branch `slice/45-module-theme-separation` created
-- [ ] Baseline `./scripts/quality-gates.sh` green before first move
+- [ ] Baseline `./scripts/quality-gates.sh` green before first move (includes FE/BE #142 floors)
 - [ ] Run blast-radius `rg` commands above; record caller list in PR body
 - [ ] Audit CLI import points (`cli/indexes_cmd.py`, `cli/main.py`, …) for the hotspot being moved
-- [ ] Choose phase 1 hotspot (`server/core/` recommended)
+- [ ] Choose phase 1 hotspot (`server/core/` + orchestrator SLAP recommended **or** FE primitives-first if prioritizing UI craft)
 - [ ] If a hotspot needs >200 import rewrites, split further (e.g. `core/embedding/` then `core/pipeline/`)
+- [ ] For FE craft phases: record pre-extract line counts for the three screens + locate Rule-of-3 copies (`rg -n 'function Pagination|function StatTile|appendFeed|completionReasonLabel' frontend/src`)
+- [ ] For BE craft phases: record pre-extract line counts for `orchestrator.py`, `experiments.py`, `cli/main.py` + list functions >80 lines (`ast` / manual); note mega-suite line counts
 
 ---
 
@@ -174,23 +337,32 @@ Scenario: Frontend component tests remain co-located after move
 - [ ] At least Must items for chosen phase(s) landed with green gates
 - [ ] `module-theme-map.md` updated to IMPLEMENTED paths (or note SUPERSEDED proposals)
 - [ ] CLAUDE.md Key Files paths updated
-- [ ] CHANGELOG Unreleased — internal layout note
+- [ ] CHANGELOG Unreleased — internal layout note (+ FE/BE craft notes when primitives/pipeline land)
 - [ ] If re-exports used: CHANGELOG Deprecated + Decision Log row with version window + removal trigger
 - [ ] `docs/plan/gate-evidence/slice-45.json` written
-- [ ] Mutation: waive unless non-trivial logic added; Decision Log row
+- [ ] Mutation: waive unless non-trivial logic added; Decision Log row (#128 pattern)
 - [ ] Optional smoke: `./scripts/quality-gates.sh` + `rag-params-finder version` / healthz `storage_mode` unchanged
+- [ ] FE craft phases: shared primitives have tests; no duplicate Pagination/StatTile/Feed helpers left in screens; FE **95/90/95/95** still green
+- [ ] FE craft phases: shared `test/helpers` used by moved/shrunk suites; Decision Log notes pre→post screen line counts
+- [ ] BE craft phases: orchestrator/pipeline split green; Protocols + factories unchanged; BE **95/90/n/a/95** still green; Decision Log notes pre→post orchestrator line counts
+- [ ] BE craft phases (when claimed): mega-suite split or fat-surface slim landed without intentional coverage loss
 
 ---
 
 ## Execution order (recommended)
 
-1. `server/core/` (highest cognitive load)
-2. `server/db/`
-3. `tests/` mirror (after import paths stable)
-4. `frontend/src/components/`
-5. `scripts/` (last — many path references in hooks/docs)
+1. `server/core/` thematic move **paired with** orchestrator SLAP extract into `pipeline/` (highest cognitive load)
+2. `server/db/` ports + backends (preserve Protocols; optional indexes slim only if in path)
+3. Fat-surface slim: `experiments.py` / `cli/main.py` (can follow db or interleave after API import paths stable)
+4. `tests/` mirror + mega-suite split (after import paths stable)
+5. **FE shared primitives** (`Pagination`, stats tiles, feed append, completionReason) — prefer **before** bulk FE folder move
+6. **FE screen SLAP** extracts — keep floors green
+7. `frontend/src/components/` folder split + co-located tests
+8. **FE shared test helpers** + mega-suite shrink (parallel with 5–7)
+9. `scripts/` (last — many path references in hooks/docs); optional `start-services.sh` lib extract
+10. Could: FE docstring leftovers; FE↔pyproject drift guard; BE GWT-on-touch migration
 
-One hotspot per PR when possible.
+One hotspot / one craft theme per PR when possible.
 
 ---
 
@@ -204,11 +376,33 @@ Applied nw-solution-architect HIGH + nw-documentarist medium findings (DECISIONS
 
 **Superseding architect verdict: APPROVED** for phased execution after this pass.
 
+## Scope addendum (2026-07-27) — FE + BE Code Complete backlog
+
+**FE** (post–Slice 44 standing assessment + nw-software-crafter-reviewer non-blocking notes):
+
+- Shared UI primitives (Rule of 3)
+- Screen SLAP / size / nesting
+- Shared test factories + suite shrink
+- Could: docstring migration leftovers; coverage threshold drift guard
+- Won't: higher floors, mutation on screens, TanStack Query rewrite
+
+**BE** (post–backend standing assessment, exclude FE):
+
+- Orchestrator SLAP into `pipeline/` (god module ~1161)
+- Fat-surface slim: `experiments.py`, `cli/main.py` (+ optional `indexes.py` / `postgres_store` helpers)
+- Mega-suite shrink + GWT-on-touch; mirror `tests/` layout
+- Preserve Ports/factories/`stats_common`; keep Mongo∥Postgres twins (#129)
+- Could: scripts/`start-services` further extract; BE test docstring migration on touch
+- Won't: whole-tree 100% coverage; merge dual backends; local mutation gate beyond #128
+
+Re-approve only if Must Python move tables change; FE/BE Should/Could addenda do not invalidate #137 architect APPROVED for core/db moves.
+
 ## Related
 
 - [`module-theme-map.md`](../../contributor-guide/module-theme-map.md)
-- [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) §3
-- DECISIONS #135, #137
+- [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) §3 + nw-review APPROVED
+- DECISIONS #135, #137, #142 (#129 dual-backend independence)
+- PR #121 (Slice 44 delivery)
 
 ---
 
