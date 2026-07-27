@@ -3,7 +3,7 @@
 > Scenario: Brownfield + Growing Requirement (Flow D) | MoSCoW: Should
 
 **Target time:** ~3–4 h · **Estimated Pomos:** `3–4` — coverage Must (~2 Pomos) + FE Should tests + structure taxonomy Should (~1–2 Pomos)
-**Status:** 🔨 IN PROGRESS
+**Status:** ✅ COMPLETE
 **Depends on:** none (external slices); requires existing frontend test harness (Vitest + `@vitest/coverage-v8` already in `frontend/`)
 **Non-blocking / non-urgent:** Pure CI-hygiene parity — does not gate any backend / PCTO slice.
 
@@ -228,7 +228,7 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 - [x] Baseline logged in `CLAUDE.md` / `development.md` and PROGRESS Decision Log
 - [x] Frontend baseline in `CLAUDE.md` updated (test count + coverage floor)
 - [x] No backend / migration-track regression (`./scripts/quality-gates.sh` green)
-- [ ] Code committed with `test(slice-44): …` (or conventional equivalent)
+- [x] Code committed with `test(slice-44): …` (or conventional equivalent)
 - [x] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first); essential error paths covered (90–100% of clauses); taxonomy GWT via artifacts
 - [x] Product coverage floor enforced via `coverage.thresholds`; whole-tree 100% branch **Won’t** this slice — exclusions / aspirational craft target documented in Decision Log (§12)
 - [x] Mutation testing: run if non-trivial pure logic added; else waiver row in Decision Log (§23)
@@ -261,7 +261,7 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 
 ## Gate Status
 
-🔨 IN PROGRESS — quality-gates green; commit + nw-review before PASSED
+✅ PASSED — quality-gates green; commit `dcbdf3a`; nw-review APPROVED (2026-07-27)
 
 ## What Changed
 
@@ -285,7 +285,7 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 | Estimated Pomos | 3–4 (~coverage Must + FE Should + taxonomy Should) |
 | Execution time | ~1 session (2026-07-27) |
 | Blockers encountered | none |
-| Next-session notes | Commit + nw-review → mark PASSED; open PR |
+| Next-session notes | Push branch + open PR; Slice 45 owns folder moves |
 
 ---
 

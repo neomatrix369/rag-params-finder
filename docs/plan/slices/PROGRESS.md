@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-27 (Slice 44 coverage Must + Should tests IMPLEMENTED — gate review pending PASSED)
-**Current**: Active migration: **38** 🔨 cutover + ADR-004 (partial — remediations/pins/ADR/CI done; Postgres twin comparison running). **37** ✅ local/cloud parity. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **36** ✅. **43** ✅. **44** 🔨. Deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-27 (Slice 44 ✅ PASSED — frontend coverage floor in gates + Should tests)
+**Current**: Active migration: **38** 🔨 cutover + ADR-004 (partial — remediations/pins/ADR/CI done; Postgres twin comparison running). **37** ✅ local/cloud parity. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **36** ✅. **43** ✅. **44** ✅. Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -64,7 +64,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 41C — Bayesian Search: Extended | 📋 PLANNED | ~3–4 h | All questions resolved (A1 SQLite, A2 waived, A4 N=20, D3 sweep_summary keys, D7 RandomConfig); blocked only on 41B ✅: study persistence, categorical axes, random search, dashboard card, default promotion — [`SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md`](SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md) |
 | 42 — Docker Build Optimisation | ✅ COMPLETE | ~2–3 h | Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime (62 MB); CI docker-build job (non-blocking, path-scoped) — [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
 | 43 — Supabase example-config verification | ✅ COMPLETE | ~1–2 h | **Could** — 16/16 local Postgres smoke runs complete; operator docs distinguish `STORAGE_BACKEND` from `database_provider` and explain env asymmetry — [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) |
-| 44 — Frontend coverage + gate summary | 🔨 IN PROGRESS | ~3–4 h | **Should** — Must: coverage floor in gates (**IMPLEMENTED**); Should: FE tests (**IMPLEMENTED**) + theme map (§3 done) — branch `slice/44-frontend-coverage-gate`; review pending PASSED — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) |
+| 44 — Frontend coverage + gate summary | ✅ COMPLETE | ~3–4 h | **Should** — Must: coverage floor in gates (**VERIFIED**); Should: FE tests (**VERIFIED**) + theme map (§3); branch `slice/44-frontend-coverage-gate` `dcbdf3a`; nw-review APPROVED — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) |
 | 45 — Module theme separation | 📋 PLANNED | ~4–6 h | **Could** — execute Behavior/Feature/Function folder moves from Slice 44 audit; no contract changes — [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
