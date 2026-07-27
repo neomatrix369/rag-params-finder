@@ -221,8 +221,8 @@ Three embedding providers routed via `embedder_factory.get_embedder(provider)` �
 - List of retriever types to sweep — each entry becomes one run (never combined)
 - Traditional: `{type: dense|sparse|hybrid}` — no provider/model needed
 - Rerankers: `{type: reranker|cross_encoder, provider: local|voyage, model: ...}`
-  - `provider: local` → `server/core/local_reranker.py` → CrossEncoder `cross-encoder/ms-marco-MiniLM-L-6-v2`
-  - `provider: voyage` → `server/core/reranker.py` → Voyage AI rerank API
+  - `provider: local` → `server/core/rerank/local_reranker.py` → CrossEncoder `cross-encoder/ms-marco-MiniLM-L-6-v2`
+  - `provider: voyage` → `server/core/rerank/reranker.py` → Voyage AI rerank API
   - Reranker runs fetch dense candidates internally before reranking
 - Old format (`methods` + `retrieval_provider`/`retrieval_model`) auto-migrates to `retrievers` via Pydantic validator
 

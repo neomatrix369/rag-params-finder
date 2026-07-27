@@ -20,6 +20,9 @@ _SCOPE_OVERRIDES: dict[str, str] = {
     "server.core.embedding.rate_limiter": "rateLimiter",
     "server.core.retrieval.retriever_mongo": "Retriever",
     "server.core.retrieval.retriever_postgres": "RetrieverPostgres",
+    "server.core.rerank.reranker": "Reranker",
+    "server.core.rerank.local_reranker": "localReranker",
+    # Deprecated shim paths (Slice 45 — keep until shims removed)
     "server.core.reranker": "Reranker",
     "server.core.local_reranker": "localReranker",
     # Deprecated shim paths (Slice 45 — keep until shims removed)

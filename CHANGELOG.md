@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Slice 45 (pipeline package)** — moved `orchestrator`, `executors`, `experiment_control`, `startup_reconciliation` into `server/core/pipeline/`; production imports use canonical paths; shim aliases keep `patch("server.core.orchestrator.*")` working.
 - **Slice 45 (orchestrator SLAP)** — extracted `server/core/pipeline/search.py` (retriever search helpers) and `signatures.py` (resume/skip param signatures); phase/status + Bayesian bodies stay in `orchestrator.py` so mega-suite `patch("server.core.orchestrator.get_storage_backend")` keeps working.
 - **Slice 45 (embedding + retrieval packages)** — moved embedders/`rate_limiter` into `server/core/embedding/` and Mongo/Postgres retrievers into `server/core/retrieval/`; `sys.modules` shims keep `patch("server.core.sie_embedder.*")` / `retriever_mongo.*` working.
+- **Slice 45 (rerank package)** — moved `reranker` + `local_reranker` into `server/core/rerank/`; shim aliases keep old import/patch paths working.
 - **Nightly Meterian OSS path** — `nightly.yml` Meterian job uses `oss: true` (no `METERIAN_API_TOKEN`), pins scanners to Python + Node (`cli_args`), and archives `meterian-<run>` artifacts (HTML, JUnit, SARIF, CycloneDX + CSV SBOM) for comparison with Anchore (**IMPLEMENTED**; not yet observed on a green nightly run).
 - **Shared coverage floors 95/90/95/95** (DECISIONS #142) — FE Vitest **95/90/95/95**; BE **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` (stmts/br/lines from coverage JSON; functions n/a on coverage.py). Gap tests raised TOTAL ≈97.7%.
 - **Fair coverage metric floors** (DECISIONS #141) — FE **95/90/95/95**; BE interim policy 92/85 with `fail_under=90` — **superseded for BE by #142**.
@@ -75,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`server.core.{orchestrator,executors,experiment_control,startup_reconciliation}`** — shim module aliases remain for one release; prefer `server.core.pipeline.<module>` (DECISIONS #148).
 - **`server.core.{embedder,local_embedder,sie_embedder,embedder_factory,rate_limiter}`** — shim aliases; prefer `server.core.embedding.<module>` (DECISIONS #150).
 - **`server.core.{retriever_mongo,retriever_postgres}`** — shim aliases; prefer `server.core.retrieval.<module>` (DECISIONS #150).
+- **`server.core.{reranker,local_reranker}`** — shim aliases; prefer `server.core.rerank.<module>` (DECISIONS #151).
 
 ### Fixed
 
