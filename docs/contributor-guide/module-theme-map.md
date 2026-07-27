@@ -2,7 +2,7 @@
 
 > Behavior | Feature | Function taxonomy for `rag-params-finder`.
 > Planning SSOT from Slice 44 Should audit (2026-07-27). **No filesystem moves** in Slice 44 — execution proposals live in [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md).
-> Interactive view: workspace canvas `project-structure-taxonomy.canvas.tsx`.
+> Optional IDE canvas name: `project-structure-taxonomy.canvas.tsx` (not required in-repo).
 
 ## Theme labels
 

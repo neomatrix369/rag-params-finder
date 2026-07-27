@@ -4,13 +4,24 @@
   "verified_at": "2026-07-27",
   "verifier": "slice-workflow",
   "branch": "slice/44-frontend-coverage-gate",
-  "commit": "dcbdf3a",
+  "phases": {
+    "A": {
+      "status": "PASSED",
+      "commit": "dcbdf3a",
+      "note": "Coverage embedded in gates; floor ~64% lines after Should tests (DECISIONS #138)."
+    },
+    "B": {
+      "status": "PASSED",
+      "note": "Option 1 reopen: ≥95% stmts/funcs/lines + ≥90% branches; all:true excludes tests/setup/main/types (DECISIONS #139)."
+    }
+  },
   "review": {
     "agent": "nw-software-crafter-reviewer",
     "verdict": "APPROVED",
-    "review_id": "4aba9d1e-cd48-4ecc-9cb3-f7b0627c4fde"
+    "review_id": "4aba9d1e-cd48-4ecc-9cb3-f7b0627c4fde",
+    "phase": "A"
   },
-  "note": "Frontend coverage embedded in quality-gates + pre-push + CI; Should tests added; taxonomy §3 already published (no import-path moves).",
+  "note": "Frontend coverage embedded in quality-gates + pre-push + CI; Phase B ratchets near-100% floor; taxonomy §3 published (no import-path moves).",
   "evidence": {
     "before_check_baseline": {
       "command": "cd frontend && npm run test:coverage",
@@ -31,12 +42,34 @@
       "lines": 64.75,
       "measured_at": "2026-07-27T00:36:00Z"
     },
+    "phase_b_measured": {
+      "command": "cd frontend && npm run test:coverage",
+      "tests": 229,
+      "test_files": 20,
+      "statements": 96.84,
+      "branches": 90.96,
+      "functions": 97.92,
+      "lines": 98.85,
+      "all": true,
+      "excludes": ["*.test.*", "src/test/**", "src/main.tsx", "src/types/**"],
+      "measured_at": "2026-07-27T10:20:00Z"
+    },
     "thresholds_ratcheted": {
-      "statements": 62,
-      "branches": 58,
-      "functions": 61,
-      "lines": 64,
-      "decision": "DECISIONS #138"
+      "phase_a": {
+        "statements": 62,
+        "branches": 58,
+        "functions": 61,
+        "lines": 64,
+        "decision": "DECISIONS #138"
+      },
+      "phase_b": {
+        "statements": 95,
+        "branches": 90,
+        "functions": 95,
+        "lines": 95,
+        "all": true,
+        "decision": "DECISIONS #139"
+      }
     },
     "gate_wiring": {
       "quality_gates_sh": "npm --prefix frontend run test:coverage",
@@ -45,14 +78,14 @@
     },
     "taxonomy_should_3": {
       "module_theme_map": "docs/contributor-guide/module-theme-map.md",
-      "canvas": "canvases/project-structure-taxonomy.canvas.tsx",
+      "canvas": "not shipped in-repo — theme map is SSOT; optional IDE canvas only",
       "slice_45_stub": "docs/plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md",
       "production_import_moves": false
     },
     "mutation_testing": {
       "status": "waived",
-      "rationale": "CI-hygiene slice; no non-trivial new pure production logic — DECISIONS #138"
+      "rationale": "CI-hygiene slice; coverage expansion is mostly UI/component GWT — DECISIONS #138/#139"
     }
   },
-  "lifecycle": "VERIFIED / PASSED — quality-gates green; nw-review APPROVED"
+  "lifecycle": "VERIFIED / PASSED — Phase A + Phase B complete"
 }

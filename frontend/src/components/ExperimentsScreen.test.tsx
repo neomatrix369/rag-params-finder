@@ -2,16 +2,25 @@
  * Author: RAG Params Finder contributors
  * Created: 2026-07-19
  * Scope: Slice 39 experiment-list lifecycle copy and control visibility.
+ * Scope (Slice 44 Phase B additions): selection/bulk delete, collapse toggle,
+ * pagination, bootstrap loading/error/abort paths, background polling
+ * (list + vector-db stats), vector-db stats error/loading, and
+ * experimentOutcomeLabel/completionReasonLabel edge-case branches.
  */
-import { render, screen, waitFor, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Experiment } from '../types';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { EXPERIMENTS_POLL_MS, VECTOR_DB_STATS_POLL_MS } from '../constants';
+import type { Experiment, VectorDbStatsGroup } from '../types';
 import ExperimentsScreen from './ExperimentsScreen';
 
 const apiMocks = vi.hoisted(() => ({
   getExperiments: vi.fn(),
   getExperimentsWithProgress: vi.fn(),
   getVectorDbStatsGrouped: vi.fn(),
+  deleteExperiment: vi.fn(),
+  pauseExperiment: vi.fn(),
+  resumeExperiment: vi.fn(),
+  cancelExperiment: vi.fn(),
 }));
 
 vi.mock('../services/apiClient', async () => {
@@ -58,6 +67,27 @@ const lifecycleExperiments = [
     },
   }),
 ];
+
+function vectorDbGroup(overrides: Partial<VectorDbStatsGroup> = {}): VectorDbStatsGroup {
+  return {
+    vector_db_id: 'mongodb::chunks',
+    database_provider: 'mongodb',
+    collection_name: 'chunks',
+    cluster_host: null,
+    index_names: ['vector_index_1024'],
+    embedding_dimensions: [1024],
+    totals: {
+      experiment_count: 1,
+      total_chunks: 120,
+      total_results: 42,
+      estimated_storage_mb: 5,
+      estimated_embedding_mb: 4,
+      estimated_metadata_mb: 1,
+    },
+    experiments: [],
+    ...overrides,
+  };
+}
 
 function renderedRowPresentation(experimentName: string) {
   const openExperiment = screen.getByText(experimentName, { exact: true }).closest('button');
@@ -193,5 +223,813 @@ describe('ExperimentsScreen lifecycle presentation', () => {
     expect(await screen.findByText('No experiments yet')).toBeInTheDocument();
     expect(screen.getByText(/configs\/mongodb\/example-local\.yaml/)).toBeInTheDocument();
     expect(screen.getByText(/configs\/supabase\/example-local\.yaml/)).toBeInTheDocument();
+  });
+});
+
+describe('ExperimentsScreen selection and bulk delete', () => {
+  const runningExp = experiment('running');
+  const completeA = experiment('complete', 0, {
+    experiment_id: 'experiment-complete-a',
+    experiment_name: 'complete sweep a',
+  });
+  const completeB = experiment('complete', 0, {
+    experiment_id: 'experiment-complete-b',
+    experiment_name: 'complete sweep b',
+  });
+  const selectionExperiments = [runningExp, completeA, completeB];
+
+  beforeEach(() => {
+    apiMocks.getExperiments.mockReset();
+    apiMocks.getExperimentsWithProgress.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockReset();
+    apiMocks.deleteExperiment.mockReset();
+    apiMocks.getExperiments.mockResolvedValue(selectionExperiments);
+    apiMocks.getExperimentsWithProgress.mockResolvedValue(selectionExperiments);
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+    apiMocks.deleteExperiment.mockResolvedValue({ message: 'deleted' });
+  });
+
+  async function renderSelectionScreen() {
+    render(
+      <ExperimentsScreen
+        cacheReady
+        cachedExperiments={selectionExperiments}
+        cachedVectorDbGroups={[]}
+      />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+  }
+
+  it('Given a deletable experiment, when its checkbox is checked, then the selection banner shows a count of one', async () => {
+    /**
+     * Scenario: Checking one row surfaces the bulk-action banner with an accurate count.
+     * Slice: 44 Phase B — ExperimentsScreen selection.
+     * Given a list containing a running (undeletable) and two complete experiments,
+     * When the "complete sweep a" checkbox is checked,
+     * Then a banner reports "1 experiment selected".
+     */
+    // -- Given --
+    await renderSelectionScreen();
+
+    // -- When --
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select complete sweep a' }));
+
+    // -- Then --
+    expect(screen.getByText('1 experiment selected')).toBeInTheDocument();
+  });
+
+  it('Given running experiments, when "Select all deletable experiments" is checked, then only non-running rows are selected', async () => {
+    /**
+     * Scenario: Bulk select-all skips running experiments, which cannot be deleted.
+     * Slice: 44 Phase B — ExperimentsScreen selection.
+     * Given a running row and two complete rows,
+     * When the select-all checkbox is checked,
+     * Then both complete rows are selected and the running row's checkbox stays disabled.
+     */
+    // -- Given --
+    await renderSelectionScreen();
+
+    // -- When --
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all deletable experiments' }));
+
+    // -- Then --
+    expect(screen.getByText('2 experiments selected')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Select running sweep' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Select complete sweep a' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Select complete sweep b' })).toBeChecked();
+
+    // -- When (uncheck via select-all) --
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all deletable experiments' }));
+
+    // -- Then --
+    expect(screen.queryByText(/experiments? selected/)).not.toBeInTheDocument();
+  });
+
+  it('Given a selection, when "Clear selection" is clicked, then the banner disappears', async () => {
+    /**
+     * Scenario: Clear selection resets the selected-id set without deleting anything.
+     * Slice: 44 Phase B — ExperimentsScreen selection.
+     */
+    // -- Given --
+    await renderSelectionScreen();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select complete sweep a' }));
+    expect(screen.getByText('1 experiment selected')).toBeInTheDocument();
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
+
+    // -- Then --
+    expect(screen.queryByText(/experiment selected/)).not.toBeInTheDocument();
+  });
+
+  it('Given a single selected experiment, when the delete is confirmed, then deleteExperiment is called and the list refreshes', async () => {
+    /**
+     * Scenario: Confirming a single-row delete removes exactly that experiment and refreshes the list.
+     * Slice: 44 Phase B — ExperimentsScreen bulk delete (single).
+     * Given one complete experiment is selected,
+     * When the confirm-delete modal is confirmed,
+     * Then deleteExperiment is invoked once with its id and the experiment list is reloaded.
+     */
+    // -- Given --
+    await renderSelectionScreen();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select complete sweep a' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete 1' }));
+    expect(screen.getByText('Delete Experiment?')).toBeInTheDocument();
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Experiment' }));
+
+    // -- Then --
+    await waitFor(() => expect(apiMocks.deleteExperiment).toHaveBeenCalledWith('experiment-complete-a'));
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText('Delete Experiment?')).not.toBeInTheDocument();
+    expect(screen.queryByText(/experiment selected/)).not.toBeInTheDocument();
+  });
+
+  it('Given two selected experiments, when bulk delete is confirmed, then deleteExperiment is called for each id', async () => {
+    /**
+     * Scenario: Bulk delete of 2+ experiments issues one delete call per id and shows bulk copy.
+     * Slice: 44 Phase B — ExperimentsScreen bulk delete (multi).
+     */
+    // -- Given --
+    await renderSelectionScreen();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select complete sweep a' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select complete sweep b' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete 2' }));
+    expect(screen.getByText('Delete 2 Experiments?')).toBeInTheDocument();
+
+    // -- When --
+    const confirmButtons = screen.getAllByRole('button', { name: 'Delete 2' });
+    fireEvent.click(confirmButtons[confirmButtons.length - 1]);
+
+    // -- Then --
+    await waitFor(() => expect(apiMocks.deleteExperiment).toHaveBeenCalledTimes(2));
+    expect(apiMocks.deleteExperiment).toHaveBeenCalledWith('experiment-complete-a');
+    expect(apiMocks.deleteExperiment).toHaveBeenCalledWith('experiment-complete-b');
+    await waitFor(() => expect(screen.queryByText('Delete 2 Experiments?')).not.toBeInTheDocument());
+  });
+
+  it('Given a delete failure, when the API rejects, then an error banner is shown and the modal closes', async () => {
+    /**
+     * Scenario: A failed bulk delete surfaces its message without silently dropping the error.
+     * Slice: 44 Phase B — ExperimentsScreen bulk delete failure path.
+     * Given deleteExperiment rejects,
+     * When the confirm button is clicked,
+     * Then an alert shows the failure message and the modal is closed.
+     */
+    // -- Given --
+    apiMocks.deleteExperiment.mockRejectedValueOnce(new Error('delete blocked by server'));
+    await renderSelectionScreen();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select complete sweep a' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete 1' }));
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Experiment' }));
+
+    // -- Then --
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('delete blocked by server'));
+    expect(screen.queryByText('Delete Experiment?')).not.toBeInTheDocument();
+  });
+});
+
+describe('ExperimentsScreen row collapse and pagination', () => {
+  beforeEach(() => {
+    apiMocks.getExperiments.mockReset();
+    apiMocks.getExperimentsWithProgress.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+  });
+
+  it('Given an expanded row, when its collapse chevron is clicked, then details hide and localStorage records the id', async () => {
+    /**
+     * Scenario: Collapsing a row hides its expanded detail grid and persists the choice.
+     * Slice: 44 Phase B — ExperimentsScreen row collapse.
+     * Given one experiment renders expanded by default,
+     * When its collapse toggle is clicked,
+     * Then the detail grid disappears and localStorage records the collapsed id;
+     * When toggled again, the detail grid reappears and localStorage is cleared.
+     */
+    // -- Given --
+    const single = [experiment('complete')];
+    apiMocks.getExperiments.mockResolvedValue(single);
+    apiMocks.getExperimentsWithProgress.mockResolvedValue(single);
+    render(<ExperimentsScreen cacheReady cachedExperiments={single} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+    expect(screen.getByText('Experiment ID')).toBeInTheDocument();
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse complete sweep' }));
+
+    // -- Then --
+    expect(screen.queryByText('Experiment ID')).not.toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('collapsedExperiments') ?? '[]')).toEqual([
+      'experiment-complete',
+    ]);
+
+    // -- When (expand again) --
+    fireEvent.click(screen.getByRole('button', { name: 'Expand complete sweep' }));
+
+    // -- Then --
+    expect(screen.getByText('Experiment ID')).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('collapsedExperiments') ?? '[]')).toEqual([]);
+  });
+
+  it('Given more experiments than fit on one page, when Next/Previous and per-page controls are used, then the visible rows change', async () => {
+    /**
+     * Scenario: Pagination controls move between pages and re-page when items-per-page changes.
+     * Slice: 44 Phase B — ExperimentsScreen pagination.
+     * Given 17 experiments (default 15 per page),
+     * When Next is clicked,
+     * Then page two shows the remaining rows and Next becomes disabled;
+     * When Previous is clicked and then per-page is raised to 50,
+     * Then all 17 rows fit on a single page.
+     */
+    // -- Given --
+    const many = Array.from({ length: 17 }, (_, i) =>
+      experiment('complete', 0, { experiment_id: `experiment-${i}`, experiment_name: `sweep ${i}` }),
+    );
+    apiMocks.getExperiments.mockResolvedValue(many);
+    apiMocks.getExperimentsWithProgress.mockResolvedValue(many);
+    render(<ExperimentsScreen cacheReady cachedExperiments={many} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+    expect(screen.getByText('sweep 0')).toBeInTheDocument();
+    expect(screen.queryByText('sweep 16')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+    // -- Then --
+    expect(screen.getByText('sweep 16')).toBeInTheDocument();
+    expect(screen.queryByText('sweep 0')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+    fireEvent.change(screen.getByLabelText('Per page:'), { target: { value: '50' } });
+
+    // -- Then --
+    expect(screen.getByText('sweep 0')).toBeInTheDocument();
+    expect(screen.getByText('sweep 16')).toBeInTheDocument();
+  });
+});
+
+describe('ExperimentsScreen bootstrap loading and error paths', () => {
+  beforeEach(() => {
+    apiMocks.getExperiments.mockReset();
+    apiMocks.getExperimentsWithProgress.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockReset();
+  });
+
+  it('Given no cache, when the initial load succeeds with progress updates, then the loading panel yields to the list and vector stats load', async () => {
+    /**
+     * Scenario: A cold start shows connecting copy, threads progress updates, then renders the list.
+     * Slice: 44 Phase B — ExperimentsScreen bootstrap (cacheReady=false, success).
+     * Given no cache is available,
+     * When the progress-tracked initial fetch reports a message and a download update before resolving,
+     * Then the loading panel first shows connecting copy, then the list renders and vector DB stats load.
+     */
+    // -- Given --
+    const loaded = [experiment('complete')];
+    apiMocks.getExperimentsWithProgress.mockImplementation(async (onProgress) => {
+      onProgress?.({ type: 'message', text: 'Connecting…', variant: 'default' });
+      onProgress?.({ type: 'downloading', receivedBytes: 500, totalBytes: 1000 });
+      return loaded;
+    });
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+
+    // -- When --
+    render(<ExperimentsScreen />);
+
+    // -- Then --
+    expect(screen.getByText('Connecting to server')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('complete sweep')).toBeInTheDocument());
+    await waitFor(() => expect(apiMocks.getVectorDbStatsGrouped).toHaveBeenCalled());
+  });
+
+  it('Given no cache, when the initial load fails, then an error banner shows the failure message', async () => {
+    /**
+     * Scenario: A failed cold start surfaces the error without crashing the screen.
+     * Slice: 44 Phase B — ExperimentsScreen bootstrap (cacheReady=false, failure).
+     */
+    // -- Given --
+    apiMocks.getExperimentsWithProgress.mockRejectedValue(new Error('network down'));
+
+    // -- When --
+    render(<ExperimentsScreen />);
+
+    // -- Then --
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('network down'));
+  });
+
+  it('Given no cache, when the initial fetch is aborted, then no error banner is shown', async () => {
+    /**
+     * Scenario: An aborted initial fetch (e.g. fast unmount/remount) is treated as a silent no-op.
+     * Slice: 44 Phase B — ExperimentsScreen bootstrap (AbortError branch).
+     * Given the progress-tracked fetch rejects with a DOMException named AbortError,
+     * When the bootstrap effect handles the rejection,
+     * Then no error alert is rendered and the load is marked done.
+     */
+    // -- Given --
+    apiMocks.getExperimentsWithProgress.mockRejectedValue(new DOMException('aborted', 'AbortError'));
+    apiMocks.getExperiments.mockResolvedValue([]);
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+
+    // -- When --
+    render(<ExperimentsScreen />);
+
+    // -- Then --
+    await waitFor(() => expect(screen.queryByText('Connecting to server')).not.toBeInTheDocument());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('Given a cache-ready mount, when the background refresh fails, then it fails silently and cached data stays visible', async () => {
+    /**
+     * Scenario: Background refresh failures on a warm cache do not disturb the visible list.
+     * Slice: 44 Phase B — ExperimentsScreen bootstrap (cacheReady=true background refresh failure).
+     */
+    // -- Given --
+    const cached = [experiment('complete', 0, { experiment_name: 'cached sweep' })];
+    apiMocks.getExperiments.mockRejectedValueOnce(new Error('cache refresh boom'));
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />);
+
+    // -- Then --
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByText('cached sweep')).toBeInTheDocument();
+  });
+});
+
+describe('ExperimentsScreen background polling', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    apiMocks.getExperiments.mockReset();
+    apiMocks.getExperimentsWithProgress.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockReset();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('Given a cache-ready mount, when the list poll interval elapses, then the list refreshes silently', async () => {
+    /**
+     * Scenario: The periodic list poll swaps in newer server data without an error.
+     * Slice: 44 Phase B — ExperimentsScreen polling (success).
+     */
+    // -- Given --
+    const initial = [experiment('running')];
+    const updated = [experiment('complete')];
+    apiMocks.getExperiments.mockResolvedValueOnce(initial).mockResolvedValueOnce(updated);
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+    render(<ExperimentsScreen cacheReady cachedExperiments={initial} cachedVectorDbGroups={[]} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(apiMocks.getExperiments).toHaveBeenCalledTimes(1);
+
+    // -- When --
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(EXPERIMENTS_POLL_MS);
+    });
+
+    // -- Then --
+    expect(apiMocks.getExperiments).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('complete sweep')).toBeInTheDocument();
+  });
+
+  it('Given a cache-ready mount, when a poll fails, then an error banner is shown', async () => {
+    /**
+     * Scenario: A polling failure after a healthy mount surfaces the error to the operator.
+     * Slice: 44 Phase B — ExperimentsScreen polling (failure).
+     */
+    // -- Given --
+    const initial = [experiment('complete')];
+    apiMocks.getExperiments
+      .mockResolvedValueOnce(initial)
+      .mockRejectedValueOnce(new Error('poll connection reset'));
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+    render(<ExperimentsScreen cacheReady cachedExperiments={initial} cachedVectorDbGroups={[]} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // -- When --
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(EXPERIMENTS_POLL_MS);
+    });
+
+    // -- Then --
+    expect(screen.getByRole('alert')).toHaveTextContent('poll connection reset');
+  });
+
+  it('Given a cache-ready mount, when the vector-db stats poll interval elapses, then stats refresh silently', async () => {
+    /**
+     * Scenario: The slower vector-db stats poll re-fetches without disturbing the list.
+     * Slice: 44 Phase B — ExperimentsScreen polling (vector DB stats).
+     */
+    // -- Given --
+    const cached = [experiment('complete')];
+    apiMocks.getExperiments.mockResolvedValue(cached);
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [vectorDbGroup()] });
+    render(<ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[vectorDbGroup()]} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    const initialCalls = apiMocks.getVectorDbStatsGrouped.mock.calls.length;
+
+    // -- When --
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(VECTOR_DB_STATS_POLL_MS);
+    });
+
+    // -- Then --
+    expect(apiMocks.getVectorDbStatsGrouped.mock.calls.length).toBeGreaterThan(initialCalls);
+  });
+});
+
+describe('ExperimentsScreen vector DB stats panel states', () => {
+  beforeEach(() => {
+    apiMocks.getExperiments.mockReset();
+    apiMocks.getExperimentsWithProgress.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockReset();
+  });
+
+  it('Given the vector DB stats request fails, when it settles, then the panel shows the error message', async () => {
+    /**
+     * Scenario: A vector-DB stats failure is visible without blocking the experiment list.
+     * Slice: 44 Phase B — ExperimentsScreen vector DB stats error path.
+     */
+    // -- Given --
+    const cached = [experiment('complete')];
+    apiMocks.getExperiments.mockResolvedValue(cached);
+    apiMocks.getVectorDbStatsGrouped.mockRejectedValue(new Error('stats aggregation timed out'));
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />);
+
+    // -- Then --
+    await waitFor(() =>
+      expect(screen.getByText('Could not load vector database stats')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('stats aggregation timed out')).toBeInTheDocument();
+  });
+
+  it('Given vector DB stats for a collapsed experiment, when the row is collapsed, then stored-result counts are shown', async () => {
+    /**
+     * Scenario: Collapsed rows surface a compact "stored results" summary from vector-db stats.
+     * Slice: 44 Phase B — ExperimentsScreen vector DB stats + collapse integration.
+     */
+    // -- Given --
+    const exp = experiment('complete');
+    const group = vectorDbGroup({
+      experiments: [
+        {
+          experiment_id: exp.experiment_id,
+          experiment_name: exp.experiment_name,
+          status: exp.status,
+          created_at: exp.created_at,
+          database_provider: 'mongodb',
+          collection_name: 'chunks',
+          cluster_host: null,
+          total_chunks: 200,
+          unique_documents: 10,
+          embedding_models: ['test-model'],
+          embedding_dimensions: [1024],
+          index_names: ['vector_index_1024'],
+          retrieval_methods: ['dense'],
+          chunking_methods: ['recursive'],
+          chunking_breakdown: {},
+          estimated_storage_mb: 2,
+          estimated_embedding_mb: 1,
+          estimated_metadata_mb: 1,
+          runs_with_data: 1,
+          avg_chunks_per_run: 200,
+          total_results: 1234,
+          unique_queries: 5,
+          run_breakdown: [],
+        },
+      ],
+    });
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [group] });
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[group]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse complete sweep' }));
+
+    // -- Then --
+    expect(screen.getByText('1,234 stored results')).toBeInTheDocument();
+  });
+});
+
+describe('ExperimentsScreen outcome label edge cases', () => {
+  beforeEach(() => {
+    apiMocks.getExperiments.mockReset();
+    apiMocks.getExperimentsWithProgress.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+  });
+
+  it('Given a running experiment with no run_count yet, when rendered, then "Run count pending" is shown', async () => {
+    /**
+     * Scenario: run_count can be null before sweep bootstrap finishes; the copy must not print "null".
+     * Slice: 44 Phase B — ExperimentsScreen experimentOutcomeLabel (null run_count).
+     */
+    // -- Given --
+    const exp = experiment('running', 0, { run_count: undefined });
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(screen.getByText('Run count pending · sweep in progress')).toBeInTheDocument();
+  });
+
+  it('Given a completed experiment with an unmapped completion reason, when rendered, then the reason is humanized from its raw value', async () => {
+    /**
+     * Scenario: Unknown completion_reason strings still render readably (underscores replaced).
+     * Slice: 44 Phase B — ExperimentsScreen completionReasonLabel fallback branch.
+     */
+    // -- Given --
+    const exp = experiment('complete', 0, { completion_reason: 'some_future_reason_code' });
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(screen.getByText(/some future reason code/)).toBeInTheDocument();
+  });
+
+  it('Given a failed experiment with zero recorded failures, when rendered, then the generic "sweep failed" fallback is shown', async () => {
+    /**
+     * Scenario: A failed experiment without a failed_count still needs non-empty outcome copy.
+     * Slice: 44 Phase B — ExperimentsScreen experimentOutcomeLabel fallback branch.
+     */
+    // -- Given --
+    const exp = experiment('failed', 0);
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(screen.getByText('3 runs configured · sweep failed')).toBeInTheDocument();
+  });
+
+  it('Given a partial Bayesian sweep with no attempted-trials count yet, when rendered, then "sampling incomplete" is shown', async () => {
+    /**
+     * Scenario: A partial Bayesian sweep can report before attempted_trials populates.
+     * Slice: 44 Phase B — ExperimentsScreen experimentOutcomeLabel (Bayesian partial, attempted=null).
+     */
+    // -- Given --
+    const exp = experiment('partial', 0, {
+      config: { execution: { search_strategy: 'bayesian' } },
+      bayesian_summary: { planned_trials: 40 },
+    });
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(screen.getByText('3 runs configured · Bayesian sampling incomplete')).toBeInTheDocument();
+  });
+
+  it('Given a completed Bayesian sweep that stopped short of its planned trials, when rendered, then the "not started" remainder is called out', async () => {
+    /**
+     * Scenario: A completed Bayesian sweep can still be short of its planned trial count.
+     * Slice: 44 Phase B — ExperimentsScreen experimentOutcomeLabel (complete + Bayesian incomplete + not-started remainder).
+     */
+    // -- Given --
+    const exp = experiment('complete', 0, {
+      config: { execution: { search_strategy: 'bayesian' } },
+      completion_reason: 'completed_with_sampling_shortfall',
+      bayesian_summary: { planned_trials: 20, attempted_trials: 12, discarded_trials: 3, not_started: 20 },
+    });
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(
+      screen.getByText(
+        '3 runs configured · Bayesian: 12 attempted · 3 discarded · 5 not started · completed with sampling shortfall',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('Given a partial Bayesian sweep with an attempted-trials count, when rendered, then attempted and discarded counts are shown', async () => {
+    /**
+     * Scenario: Once attempted_trials populates, the partial-Bayesian branch reports concrete counts.
+     * Slice: 44 Phase B — ExperimentsScreen experimentOutcomeLabel (partial + Bayesian attempted set).
+     */
+    // -- Given --
+    const exp = experiment('partial', 0, {
+      config: { execution: { search_strategy: 'bayesian' } },
+      bayesian_summary: { planned_trials: 40, attempted_trials: 30, discarded_trials: 2 },
+    });
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(
+      screen.getByText('3 runs configured · Bayesian: 30 attempted · 2 discarded · 8 not started'),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('ExperimentsScreen checkbox toggling and onSelect navigation', () => {
+  beforeEach(() => {
+    apiMocks.getExperiments.mockReset();
+    apiMocks.getExperimentsWithProgress.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+  });
+
+  it('Given a checked selection checkbox, when it is unchecked, then the experiment is removed from the selection', async () => {
+    /**
+     * Scenario: Unchecking a selected row's checkbox must remove it from the selection set (delete branch).
+     * Slice: 44 Phase B — ExperimentsScreen handleSelectExperiment uncheck branch.
+     */
+    // -- Given --
+    const exp = experiment('complete');
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+    const checkbox = screen.getByRole('checkbox', { name: `Select ${exp.experiment_name}` });
+    fireEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
+
+    // -- When --
+    fireEvent.click(checkbox);
+
+    // -- Then --
+    expect(checkbox).not.toBeChecked();
+    expect(screen.queryByRole('button', { name: 'Clear selection' })).not.toBeInTheDocument();
+  });
+
+  it('Given an onSelect handler, when the experiment title is clicked, then onSelect fires with that experiment', async () => {
+    /**
+     * Scenario: Clicking the experiment title button opens its detail screen via the onSelect callback.
+     * Slice: 44 Phase B — ExperimentsScreen onSelect wiring (collapsed row title).
+     */
+    // -- Given --
+    const exp = experiment('complete');
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+    const onSelect = vi.fn();
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} onSelect={onSelect} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- When --
+    fireEvent.click(screen.getByText(exp.experiment_name, { exact: true }));
+
+    // -- Then --
+    expect(onSelect).toHaveBeenCalledWith(exp);
+  });
+
+  it('Given an expanded row, when the Experiment ID button is clicked, then onSelect fires with that experiment', async () => {
+    /**
+     * Scenario: The expanded row's "Experiment ID" button is a second onSelect entry point.
+     * Slice: 44 Phase B — ExperimentsScreen onSelect wiring (expanded row experiment-id button).
+     */
+    // -- Given --
+    const exp = experiment('complete');
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+    const onSelect = vi.fn();
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} onSelect={onSelect} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- When --
+    fireEvent.click(screen.getByText(`${exp.experiment_id.slice(0, 8)}...`));
+
+    // -- Then --
+    expect(onSelect).toHaveBeenCalledWith(exp);
+  });
+});
+
+describe('ExperimentsScreen row control-button wiring', () => {
+  beforeEach(() => {
+    apiMocks.getExperiments.mockReset();
+    apiMocks.getExperimentsWithProgress.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockReset();
+    apiMocks.pauseExperiment.mockReset();
+    apiMocks.resumeExperiment.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('Given a running experiment, when Pause succeeds, then the list refreshes via refreshExperimentList', async () => {
+    /**
+     * Scenario: A successful pause action re-fetches the experiment list through the onStatusChange callback.
+     * Slice: 44 Phase B — ExperimentsScreen refreshExperimentList wiring (success path).
+     */
+    // -- Given --
+    const exp = experiment('running');
+    apiMocks.getExperiments.mockResolvedValueOnce([exp]).mockResolvedValueOnce([{ ...exp, status: 'paused' }]);
+    apiMocks.pauseExperiment.mockResolvedValue(undefined);
+    const onCacheUpdate = vi.fn();
+    render(
+      <ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} onCacheUpdate={onCacheUpdate} />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledTimes(1));
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: /^Pause$/ }));
+
+    // -- Then --
+    await waitFor(() => expect(apiMocks.pauseExperiment).toHaveBeenCalledWith(exp.experiment_id));
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledTimes(2));
+    expect(onCacheUpdate).toHaveBeenCalled();
+  });
+
+  it('Given a running experiment, when Pause fails, then the error banner shows the failure message', async () => {
+    /**
+     * Scenario: A failed pause action surfaces its message through the onError callback into the page-level error banner.
+     * Slice: 44 Phase B — ExperimentsScreen onError wiring (control-button failure path).
+     */
+    // -- Given --
+    const exp = experiment('running');
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+    apiMocks.pauseExperiment.mockRejectedValue(new Error('pause rejected by server'));
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: /^Pause$/ }));
+
+    // -- Then --
+    await waitFor(() => expect(screen.getByText('pause rejected by server')).toBeInTheDocument());
+  });
+
+  it('Given a paused experiment, when Resume succeeds, then the list refreshes via refreshExperimentList', async () => {
+    /**
+     * Scenario: The Resume action wires through the same onStatusChange refresh path as Pause.
+     * Slice: 44 Phase B — ExperimentsScreen refreshExperimentList wiring (resume success path).
+     */
+    // -- Given --
+    const exp = experiment('paused');
+    apiMocks.getExperiments.mockResolvedValueOnce([exp]).mockResolvedValueOnce([{ ...exp, status: 'running' }]);
+    apiMocks.resumeExperiment.mockResolvedValue(undefined);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledTimes(1));
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: /^Resume$/ }));
+
+    // -- Then --
+    await waitFor(() => expect(apiMocks.resumeExperiment).toHaveBeenCalledWith(exp.experiment_id));
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe('ExperimentsScreen delete modal dismissal', () => {
+  beforeEach(() => {
+    apiMocks.getExperiments.mockReset();
+    apiMocks.getExperimentsWithProgress.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockReset();
+    apiMocks.deleteExperiment.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+  });
+
+  it('Given the delete-confirmation modal is open, when Cancel is clicked, then it closes without deleting', async () => {
+    /**
+     * Scenario: Cancelling the delete modal must close it without calling deleteExperiment.
+     * Slice: 44 Phase B — ExperimentsScreen ConfirmDeleteModal onClose wiring.
+     */
+    // -- Given --
+    const exp = experiment('complete');
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole('checkbox', { name: `Select ${exp.experiment_name}` }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete 1' }));
+    expect(screen.getByText('Delete Experiment?')).toBeInTheDocument();
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    // -- Then --
+    expect(screen.queryByText('Delete Experiment?')).not.toBeInTheDocument();
+    expect(apiMocks.deleteExperiment).not.toHaveBeenCalled();
   });
 });

@@ -273,10 +273,10 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 - `mypy server/ cli/` → 0 errors
 - `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **322** tests; scoped coverage ≥80%; no `MONGODB_URI` required
 
-**Frontend** (2026-07-27 — Slice 44):
+**Frontend** (2026-07-27 — Slice 44 Phase B):
 - `npm run lint` → 0 errors (eslint + security plugin)
-- `npm run test` → **53** tests across **9** files (Vitest + React Testing Library)
-- `npm run test:coverage` / `test:ci` → v8 text report + `coverage.thresholds` floor (lines ≥64%, branches ≥58%, functions ≥61%, statements ≥62%) — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
+- `npm run test` → **229** tests across **20** files (Vitest + React Testing Library)
+- `npm run test:coverage` / `test:ci` → v8 text report + `coverage.thresholds` floor (statements/functions/lines ≥95%, branches ≥90%; `all: true` on `src/**`, excludes tests/setup/`main.tsx`/types — DECISIONS #139) — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities

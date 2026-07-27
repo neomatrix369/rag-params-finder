@@ -91,4 +91,56 @@ describe('ConfirmDeleteModal', () => {
     expect(screen.getByText('Delete 3 Experiments?')).toBeInTheDocument();
     expect(screen.getByText(/will be deleted/)).toBeInTheDocument();
   });
+
+  it('Given open modal, when backdrop is clicked, then onClose fires', () => {
+    /**
+     * Scenario: Backdrop click dismisses when not deleting.
+     * Slice: 44 Phase B — ConfirmDeleteModal
+     */
+    // -- Given --
+    const onClose = vi.fn();
+    const { container } = render(
+      <ConfirmDeleteModal
+        isOpen
+        onClose={onClose}
+        onConfirm={() => undefined}
+        experimentName="demo"
+        experimentId="abcdef12-3456"
+        isDeleting={false}
+      />,
+    );
+    const backdrop = container.firstElementChild as HTMLElement;
+
+    // -- When --
+    fireEvent.click(backdrop);
+
+    // -- Then --
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('Given deleting in progress, when backdrop is clicked, then onClose does not fire', () => {
+    /**
+     * Scenario: Backdrop dismiss is blocked while delete is in flight.
+     * Slice: 44 Phase B — ConfirmDeleteModal
+     */
+    // -- Given --
+    const onClose = vi.fn();
+    const { container } = render(
+      <ConfirmDeleteModal
+        isOpen
+        onClose={onClose}
+        onConfirm={() => undefined}
+        experimentName="demo"
+        experimentId="abcdef12-3456"
+        isDeleting
+      />,
+    );
+    const backdrop = container.firstElementChild as HTMLElement;
+
+    // -- When --
+    fireEvent.click(backdrop);
+
+    // -- Then --
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });

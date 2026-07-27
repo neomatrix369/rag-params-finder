@@ -14,14 +14,22 @@ export default defineConfig({
       provider: 'v8',
       reportsDirectory: '../.reports/coverage/frontend',
       reporter: ['text', 'json', 'html'],
-      // Floor = post–Should re-measure 2026-07-27 (Slice 44). Started at pre-test
-      // baseline (lines 50.18%); ratcheted after apiClient/fetch/status/control tests.
+      // Phase B (DECISIONS #139): include all src except tests/setup/bootstrap/types.
+      // Floor ≥95% stmts/funcs/lines + ≥90% branches — surpasses backend 80%.
       // Do not lower without a Decision Log row.
+      all: true,
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/test/**',
+        'src/main.tsx',
+        'src/types/**',
+      ],
       thresholds: {
-        statements: 62,
-        branches: 58,
-        functions: 61,
-        lines: 64,
+        statements: 95,
+        branches: 90,
+        functions: 95,
+        lines: 95,
       },
     },
   },

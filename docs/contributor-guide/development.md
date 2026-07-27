@@ -181,10 +181,10 @@ npm run build
 npm audit --audit-level=high
 ```
 
-**Baseline (as of 2026-07-27 — Slice 44)**:
+**Baseline (as of 2026-07-27 — Slice 44 Phase B)**:
 - `npm run lint` → 0 errors
-- `npm run test` → **53** tests across **9** files (Vitest + React Testing Library)
-- `npm run test:coverage` → lines **≥64%**, branches **≥58%**, functions **≥61%**, statements **≥62%** (`coverage.thresholds` in `vite.config.ts`); measured post-Should ≈64.75% / 58.22% / 61.15% / 62.63%
+- `npm run test` → **229** tests across **20** files (Vitest + React Testing Library)
+- `npm run test:coverage` → statements/functions/lines **≥95%**, branches **≥90%** (`coverage.thresholds` + `all: true` in `vite.config.ts`; DECISIONS #139); measured ≈96.84% / 90.96% / 97.92% / 98.85%
 - Local `quality-gates.sh` / `pre-push-gates.sh` invoke `test:coverage`; CI frontend job invokes `test:ci` (**VERIFIED**)
 - `npm run typecheck` → 0 errors
 - `npm run build` → built in ~4s, 49 modules

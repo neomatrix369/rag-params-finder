@@ -4,7 +4,7 @@
  * Scope: Slice 44 — terminal/active status helpers and retriever display labels.
  */
 import { describe, expect, it } from 'vitest';
-import { Phase, RetrieverType, type RunStatus } from '../types';
+import { Phase, RetrievalMethod, RetrieverType, type RunStatus } from '../types';
 import {
   displayRetrievers,
   isActiveExperimentStatus,
@@ -99,6 +99,74 @@ describe('experimentStatus', () => {
     expect(isActiveExperimentStatus('complete')).toBe(false);
   });
 
+  it('Given completedAt set, when running/paused helpers run, then both return false', () => {
+    /**
+     * Scenario: Timestamp completion short-circuits activity helpers.
+     * Slice: 44 Phase B — experimentStatus
+     */
+    // -- Given / When / Then --
+    expect(isRunningExperimentStatus('running', '2026-07-27T01:00:00Z')).toBe(false);
+    expect(isPausedExperimentStatus('paused', '2026-07-27T01:00:00Z')).toBe(false);
+    expect(isTerminalExperimentStatus(undefined)).toBe(false);
+  });
+
+  it('Given undefined runs, when summarized, then expected falls back to zero', () => {
+    /**
+     * Scenario: Missing runs and expected count yield empty summary.
+     * Slice: 44 Phase B — experimentStatus
+     */
+    // -- Given / When --
+    const actual = summarizeExperimentRuns(undefined, undefined);
+
+    // -- Then --
+    expect(actual).toEqual({
+      expected: 0,
+      started: 0,
+      complete: 0,
+      failed: 0,
+      interrupted: 0,
+      neverStarted: 0,
+      inProgress: 0,
+    });
+  });
+
+  it('Given retrieval_method only, when displayed, then method string is returned', () => {
+    /**
+     * Scenario: Legacy method without model uses retrieval_method alone.
+     * Slice: 44 Phase B — experimentStatus
+     */
+    // -- Given --
+    const methodOnly = run(Phase.COMPLETE, {
+      retrievers: undefined,
+      retrieval_method: RetrievalMethod.HYBRID,
+      retrieval_model: undefined,
+      retrieval_provider: undefined,
+    });
+
+    // -- When --
+    const actual = displayRetrievers(methodOnly);
+
+    // -- Then --
+    expect(actual).toEqual(['hybrid']);
+  });
+
+  it('Given reranker without provider model, when displayed, then type alone is returned', () => {
+    /**
+     * Scenario: Incomplete reranker config skips provider:model suffix.
+     * Slice: 44 Phase B — experimentStatus
+     */
+    // -- Given --
+    const incomplete = run(Phase.COMPLETE, {
+      retrievers: [{ type: RetrieverType.RERANKER }],
+    });
+
+    // -- When --
+    const actual = displayRetrievers(incomplete);
+
+    // -- Then --
+    expect(actual).toEqual(['reranker']);
+  });
+
   it('Given new retriever format, when displayed, then type and optional model label appear', () => {
     /**
      * Scenario: Unified retrievers render a human-readable label.
@@ -147,5 +215,88 @@ describe('experimentStatus', () => {
 
     // -- Then --
     expect(actual).toEqual(['reranker (voyage:rerank-2.5-lite)']);
+  });
+
+  it('Given unified reranker retrievers, when displayed, then provider model label is used', () => {
+    /**
+     * Scenario: New retrievers[] format with reranker type.
+     * Slice: 44 Phase B — experimentStatus
+     */
+    // -- Given --
+    const modern = run(Phase.COMPLETE, {
+      retrievers: [
+        {
+          type: RetrieverType.CROSS_ENCODER,
+          provider: 'local',
+          model: 'cross-encoder/ms-marco-MiniLM-L-6-v2',
+        },
+      ],
+    });
+
+    // -- When --
+    const actual = displayRetrievers(modern);
+
+    // -- Then --
+    expect(actual[0]).toContain('cross_encoder');
+    expect(actual[0]).toContain('local:');
+  });
+
+  it('Given dense-only retrievers entry, when displayed, then type alone is returned', () => {
+    /**
+     * Scenario: Traditional dense retriever needs no provider suffix.
+     * Slice: 44 Phase B — experimentStatus
+     */
+    // -- Given --
+    const dense = run(Phase.COMPLETE, {
+      retrievers: [{ type: RetrieverType.DENSE }],
+      retrieval_method: undefined,
+      retrieval_model: undefined,
+      retrieval_provider: undefined,
+    });
+
+    // -- When --
+    const actual = displayRetrievers(dense);
+
+    // -- Then --
+    expect(actual).toEqual(['dense']);
+  });
+
+  it('Given no retriever fields, when displayed, then dense is the default', () => {
+    /**
+     * Scenario: Empty legacy run defaults to dense.
+     * Slice: 44 Phase B — experimentStatus
+     */
+    // -- Given --
+    const empty = run(Phase.COMPLETE, {
+      retrievers: undefined,
+      retrieval_method: undefined,
+      retrieval_model: undefined,
+      retrieval_provider: undefined,
+    });
+
+    // -- When --
+    const actual = displayRetrievers(empty);
+
+    // -- Then --
+    expect(actual).toEqual(['dense']);
+  });
+
+  it('Given local legacy retrieval_model, when displayed, then cross_encoder label is used', () => {
+    /**
+     * Scenario: Non-voyage legacy provider maps to cross_encoder.
+     * Slice: 44 Phase B — experimentStatus
+     */
+    // -- Given --
+    const legacyLocal = run(Phase.COMPLETE, {
+      retrievers: undefined,
+      retrieval_provider: 'local',
+      retrieval_model: 'cross-encoder/ms-marco-MiniLM-L-6-v2',
+    });
+
+    // -- When --
+    const actual = displayRetrievers(legacyLocal);
+
+    // -- Then --
+    expect(actual[0]).toContain('cross_encoder');
   });
 });

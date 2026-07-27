@@ -3,9 +3,12 @@
 > Scenario: Brownfield + Growing Requirement (Flow D) | MoSCoW: Should
 
 **Target time:** ~3–4 h · **Estimated Pomos:** `3–4` — coverage Must (~2 Pomos) + FE Should tests + structure taxonomy Should (~1–2 Pomos)
-**Status:** ✅ COMPLETE
+**Status:** ✅ COMPLETE — Phase A + Phase B
 **Depends on:** none (external slices); requires existing frontend test harness (Vitest + `@vitest/coverage-v8` already in `frontend/`)
 **Non-blocking / non-urgent:** Pure CI-hygiene parity — does not gate any backend / PCTO slice.
+
+**Phase A (✅ 2026-07-27):** Coverage embedded in gates; floor ratcheted to ~64% lines after Should tests.
+**Phase B (✅ 2026-07-27):** Floor raised to **≥95%** statements / functions / lines and **≥90%** branches on included `frontend/src` (`all: true`; excludes tests/setup/`main.tsx`/types) — surpasses backend `--cov-fail-under=80` (DECISIONS #139; option 1 + reopen 44).
 
 **Secondary goal:** Publish a Behavior | Feature | Function theme map and ranked folder-separation proposals for flat hotspots (planning only — no filesystem moves in this slice). Follow-on execution → [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md).
 
@@ -54,7 +57,7 @@ This is a **CI-hygiene infrastructure slice** (non-user-facing, per DECISIONS #1
   - new `frontend/src/**/*.test.ts(x)` for Must/Should modules below
   - `CLAUDE.md` / `docs/contributor-guide/development.md` — baseline line + embedded-report note
   - `docs/contributor-guide/module-theme-map.md` — Behavior | Feature | Function SSOT (taxonomy Should)
-  - Canvas: workspace `canvases/project-structure-taxonomy.canvas.tsx` — interactive hotspot audit
+  - Canvas: optional IDE canvas `project-structure-taxonomy.canvas.tsx` (not required in-repo; theme map is SSOT)
   - `docs/plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md` — follow-on move proposal stub (PLANNED; not executed here)
 - Exit criteria: frontend gate (quality-gates + pre-push + CI) runs with coverage enabled, prints a coverage table, and fails below the configured floor; new tests keep measured coverage ≥ floor; baseline logged in PROGRESS Decision Log; theme map + Slice 45 stub published with **no** production import-path changes for taxonomy.
 - Commit pattern: `test(slice-44): add frontend coverage floor and embed report in gate` (+ optional `docs(slice-44): publish module theme map and Slice 45 stub`)
@@ -82,7 +85,8 @@ Secondary: publish a repo theme map (Behavior | Feature | Function) and ranked s
 | **Must** | Record baseline in docs + Decision Log | §2 — `CLAUDE.md` / `development.md` + PROGRESS Decision Log row |
 | **Should** | Tests for modules on critical dashboard paths | §1 — apiClient, fetchWithProgress, experimentStatus, key control/stats components |
 | **Should** | Project structure taxonomy audit | §3 — theme map doc + canvas + Slice 45 reorg proposal for five hotspots (planning only) |
-| **Won’t (44)** | Execute folder moves / import rewrites; 100% whole-tree frontend coverage; e2e/browser tests; ESLint/Vite major bumps (TRAIL Deferred Work) | Moves → Slice 45; toolchain / e2e → separate slices |
+| **Must (Phase B)** | Near-100% FE coverage floor (option 1) | `coverage.thresholds`: statements/functions/lines **≥95**, branches **≥90**; `all: true` on `src/**`; excludes: `*.test.*`, `src/test/**`, `main.tsx`, types-only |
+| **Won’t (44)** | Execute folder moves / import rewrites; literal 100% branch on every UI edge; e2e/browser tests; ESLint/Vite major bumps | Moves → Slice 45; e2e / toolchain → separate slices |
 
 ---
 
@@ -162,7 +166,7 @@ Taxonomy artifacts were **pre-published** on 2026-07-27 as planning SSOT (`modul
 
 **Acceptance**
 - [x] [`docs/contributor-guide/module-theme-map.md`](../../contributor-guide/module-theme-map.md) lists major trees with Behavior \| Feature \| Function tags
-- [x] Interactive canvas `project-structure-taxonomy.canvas.tsx` shows hotspot table + proposed folders
+- [x] Interactive canvas was planned as `project-structure-taxonomy.canvas.tsx` — **not shipped in-repo**; theme map SSOT is [`module-theme-map.md`](../../contributor-guide/module-theme-map.md) (DECISIONS #135)
 - [x] [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) exists as 📋 PLANNED with concrete move tables
 - [x] No production import paths changed for taxonomy in this planning pass (DECISIONS #135)
 
@@ -230,7 +234,7 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 - [x] No backend / migration-track regression (`./scripts/quality-gates.sh` green)
 - [x] Code committed with `test(slice-44): …` (or conventional equivalent)
 - [x] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first); essential error paths covered (90–100% of clauses); taxonomy GWT via artifacts
-- [x] Product coverage floor enforced via `coverage.thresholds`; whole-tree 100% branch **Won’t** this slice — exclusions / aspirational craft target documented in Decision Log (§12)
+- [x] Product coverage floor enforced via `coverage.thresholds` (Phase B: ≥95% stmts/funcs/lines + ≥90% branches, `all: true`); whole-tree literal 100% branch **Won’t** — exclusions documented in DECISIONS #139 (§12)
 - [x] Mutation testing: run if non-trivial pure logic added; else waiver row in Decision Log (§23)
 - [x] Docs updated (14-row audit below)
 - [x] `docs/plan/gate-evidence/slice-44.json` written
@@ -261,31 +265,30 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 
 ## Gate Status
 
-✅ PASSED — quality-gates green; commit `dcbdf3a`; nw-review APPROVED (2026-07-27)
+✅ PASSED — Phase A (`dcbdf3a`) + Phase B (2026-07-27): thresholds 95/90/95/95 + `all: true`; measured stmts **96.84%** / branches **90.96%** / funcs **97.92%** / lines **98.85%** (229 tests / 20 files)
 
 ## What Changed
 
 | File | Type | Reason |
 |------|------|--------|
-| `frontend/vite.config.ts` | config | `coverage.thresholds` floor (ratcheted 64/58/61/62) |
+| `frontend/vite.config.ts` | config | Phase A floor → Phase B `all: true` + thresholds 95/90/95/95 (#139) |
 | `frontend/package.json` | config | `test:ci` = coverage without overriding JUnit reporters |
 | `scripts/quality-gates.sh` / `pre-push-gates.sh` | ci | `test:coverage` |
 | `.github/workflows/ci.yml` | ci | frontend `test:ci` + typecheck + build |
-| `frontend/src/**/*.test.ts(x)` | test | apiClient, fetchWithProgress, experimentStatus, control/stats/delete UI |
-| `CLAUDE.md` / `development.md` / CHANGELOG / DECISIONS / PROGRESS | docs | baselines + #138 |
-| `docs/plan/gate-evidence/slice-44.json` | docs | gate evidence |
+| `frontend/src/**/*.test.ts(x)` | test | Phase A critical-path + Phase B thin-module / branch push |
+| `CLAUDE.md` / `development.md` / CHANGELOG / DECISIONS / PROGRESS | docs | baselines + #138/#139 |
+| `docs/plan/gate-evidence/slice-44.json` | docs | gate evidence (Phase A + B) |
 | `docs/contributor-guide/module-theme-map.md` | docs | Theme SSOT (§3) |
-| `canvases/project-structure-taxonomy.canvas.tsx` | docs | Interactive audit |
 | `docs/plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md` | docs | Follow-on move proposal |
 
 ## Session Metrics
 
 | Metric | Value |
 |--------|-------|
-| Estimated Pomos | 3–4 (~coverage Must + FE Should + taxonomy Should) |
-| Execution time | ~1 session (2026-07-27) |
+| Estimated Pomos | 3–4 Phase A + ~2–3 Phase B |
+| Execution time | Phase A + Phase B (2026-07-27) |
 | Blockers encountered | none |
-| Next-session notes | Push branch + open PR; Slice 45 owns folder moves |
+| Next-session notes | Phase B docs synced; commit/push remaining working tree; Slice 45 owns folder moves |
 
 ---
 
