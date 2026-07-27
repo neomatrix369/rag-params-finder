@@ -96,7 +96,7 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md). T
 
 Run all gates before committing. All must pass with zero regressions.
 
-**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit`, `docker-build`, `license-check`, `container-scan` (eight jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM/CycloneDX, Meterian, container scan, Chalk provenance, dependency-audit, full-secrets-scan — every night 02:00 UTC, also manually triggerable via `workflow_dispatch`).
+**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit`, `docker-build`, `license-check`, `container-scan` (eight jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM/CycloneDX, Meterian OSS SCA + archived reports, container scan, Chalk provenance, dependency-audit, full-secrets-scan — every night 02:00 UTC, also manually triggerable via `workflow_dispatch`).
 
 | Layer | Tools |
 |-------|--------|
@@ -254,7 +254,7 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 |---------|-----------|
 | `git commit` | **pre-commit** — hygiene, gitleaks, repo lint, ruff, dmypy, bandit, eslint, tsc --noEmit, testmon fast-tests (changed modules) |
 | `git push` | **pre-push** — pytest+coverage (backend-changed only), vite build, vitest, pip-audit, npm audit (zero overlap with commit) |
-| PR or push to `main` | **GitHub Actions** — CI (repo-lint, backend, frontend, secrets, dependency-audit jobs) + nightly 02:00 UTC (mutmut, Stryker, TruffleHog, SBOM/CycloneDX, Meterian, container scan, Chalk) |
+| PR or push to `main` | **GitHub Actions** — CI (repo-lint, backend, frontend, secrets, dependency-audit jobs) + nightly 02:00 UTC (mutmut, Stryker, TruffleHog, SBOM/CycloneDX, Meterian OSS SCA, container scan, Chalk) |
 | Manual | `./scripts/quality-gates.sh` — full local mirror of CI before opening a PR |
 
 ---
@@ -405,7 +405,9 @@ GitHub Actions has two workflows (see `.github/workflows/`):
 | **Container scan** | Trivy CVE scan of built server image — HIGH/CRITICAL; non-blocking; fires on Docker/backend/frontend changes |
 
 **nightly.yml** — every night 02:00 UTC (T4 deep checks):
-`mutmut` (Python mutation) · `Stryker` (Node mutation) · `TruffleHog` (full git history) · `anchore/sbom-action` (CycloneDX SBOM) · Trivy license compliance · Meterian SCA · container scan (Dockerfile-gated)
+`mutmut` (Python mutation) · `Stryker` (Node mutation) · `TruffleHog` (full git history) · `anchore/sbom-action` (CycloneDX SBOM artifact) · Trivy license compliance · **Meterian** SCA + license (`oss: true`, no `METERIAN_API_TOKEN`; scanners pinned to Python + Node via `--enabled-scanners=python,nodejs`; archives `meterian-<run>`: HTML, JUnit, SARIF, `sbom.cdx.json`, `sbom.csv` for vendor comparison with Anchore) · container scan (Dockerfile-gated) · Chalk provenance · dependency-audit · full-secrets-scan
+
+Local `./scripts/security-scan.sh --meterian` still uses the Docker CLI path and remains token-gated (`METERIAN_API_TOKEN`) — that is separate from the nightly GHA OSS job.
 
 Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabot.yml`).
 

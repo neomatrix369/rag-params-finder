@@ -87,4 +87,5 @@ docs/ideate-prompts/
 .dmypy.json
 .test-results/
 .reports/
+meterian-reports/
 .playwright-mcp/
