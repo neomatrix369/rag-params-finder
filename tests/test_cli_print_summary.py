@@ -1,7 +1,7 @@
 """
 Author: rag-params-finder contributors
 Created: 2026-07-23
-Scope: Unit tests for cli/main.py _print_summary — Bayesian summary and trial log output.
+Scope: Unit tests for cli/display.py _print_summary — Bayesian summary and trial log output.
 
 Process note: tests written post-implementation (GREEN-first deviation from RED→GREEN).
 Coverage is equivalent but the ATDD RED phase was skipped for this closure pass.
@@ -23,12 +23,12 @@ def _capture_print_summary(data: dict) -> str:
     markup=False on the Console causes Rich markup tags to appear literally in
     the output (e.g. '[green]completed[/green]' not ANSI codes), enabling
     assertions on both text content and styling.  The patch() context manager
-    restores cli.main.console on exit, so tests are serially isolated.
+    restores cli.display.console on exit, so tests are serially isolated.
     """
-    from cli.main import _print_summary
+    from cli.display import _print_summary
 
     buf = StringIO()
-    with patch("cli.main.console", Console(file=buf, highlight=False, markup=False)):
+    with patch("cli.display.console", Console(file=buf, highlight=False, markup=False)):
         _print_summary(data)
     return buf.getvalue()
 

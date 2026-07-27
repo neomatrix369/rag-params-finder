@@ -137,9 +137,11 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/models/config.py` | Pydantic experiment config + provider validators |
 | `server/models/enums.py` | ChunkingMethod, RetrievalMethod, Phase |
 | `server/api/experiments.py` | Experiments CRUD, results/explore, db-stats, pause, resume, cancel, delete |
+| `server/api/experiments_lifecycle.py` | Bayesian summary + stale RUNNING reconciliation helpers (Slice 45) |
 | `server/api/experiments_shared.py` | Thin API helpers — delegates all I/O to `StorageBackend` via store_factory |
 | `server/db/mongo/indexes.py` | Collection + search index creation; cluster-wide index listing |
 | `cli/main.py` | Typer app (`run`, `cancel`, `pause`, `resume`, `delete`, `indexes`, `version`) |
+| `cli/display.py` | CLI live watch table + experiment summary panel (Slice 45) |
 | `cli/indexes_cmd.py` | `indexes list` (Atlas or Postgres catalog) and `indexes reset` (Atlas-only) subcommands |
 | `cli/config_loader.py` | YAML parser + model registry validation |
 | `cli/api_client.py` | HTTP client to server (POST /experiments, DELETE, etc.) |
