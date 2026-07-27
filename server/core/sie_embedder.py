@@ -22,8 +22,8 @@ from typing import Any, cast
 
 from sie_sdk import SIEClient  # type: ignore[import-untyped]
 
-from server.core.experiment_control import ExperimentCancelledError, ExperimentPausedError
 from server.core.model_registry import get_model_info
+from server.core.pipeline.experiment_control import ExperimentCancelledError, ExperimentPausedError
 from server.core.sie_guard import SIEUnavailableError
 from server.settings import settings
 from server.utils.logger import get_logger

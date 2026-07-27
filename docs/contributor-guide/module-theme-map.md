@@ -59,7 +59,7 @@ Mild (optional later): `server/api/` → `experiments/` vs `sweep/`.
 
 | Theme group | Files | Tags |
 |-------------|-------|------|
-| Pipeline orchestration | `orchestrator.py`, `executors.py`, `experiment_control.py`, `startup_reconciliation.py` | Behavior \| Feature |
+| Pipeline orchestration | `pipeline/orchestrator.py`, `pipeline/executors.py`, `pipeline/experiment_control.py`, `pipeline/startup_reconciliation.py` | Behavior \| Feature — **IMPLEMENTED** (Slice 45; shims at `server.core.<name>`) |
 | Ingest | `data_loader.py`, `query_loader.py`, `chunkers/*` | Feature |
 | Embedding providers | `embedder.py`, `local_embedder.py`, `sie_embedder.py`, `embedder_factory.py`, `rate_limiter.py` | Feature \| Function |
 | Rerank | `reranker.py`, `local_reranker.py` | Feature |

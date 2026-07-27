@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Slice 45 (phase 1 skateboard)** — moved preflight/health modules into `server/core/guards/` (`search_index_plan`, `search_index_guard`, `sie_guard`, `config_backend_guard`, `health_check`). Coverage/gate `--cov` paths updated to `server.core.guards.*`.
+- **Slice 45 (pipeline package)** — moved `orchestrator`, `executors`, `experiment_control`, `startup_reconciliation` into `server/core/pipeline/`; production imports use canonical paths; shim aliases keep `patch("server.core.orchestrator.*")` working.
 - **Nightly Meterian OSS path** — `nightly.yml` Meterian job uses `oss: true` (no `METERIAN_API_TOKEN`), pins scanners to Python + Node (`cli_args`), and archives `meterian-<run>` artifacts (HTML, JUnit, SARIF, CycloneDX + CSV SBOM) for comparison with Anchore (**IMPLEMENTED**; not yet observed on a green nightly run).
 - **Shared coverage floors 95/90/95/95** (DECISIONS #142) — FE Vitest **95/90/95/95**; BE **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` (stmts/br/lines from coverage JSON; functions n/a on coverage.py). Gap tests raised TOTAL ≈97.7%.
 - **Fair coverage metric floors** (DECISIONS #141) — FE **95/90/95/95**; BE interim policy 92/85 with `fail_under=90` — **superseded for BE by #142**.
@@ -69,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 
 - **`server.core.{search_index_plan,search_index_guard,sie_guard,config_backend_guard,health_check}`** — shim re-exports remain for one release; prefer `server.core.guards.<module>`. Removal trigger: next minor after this notice (DECISIONS #146/#147).
+- **`server.core.{orchestrator,executors,experiment_control,startup_reconciliation}`** — shim module aliases remain for one release; prefer `server.core.pipeline.<module>` (DECISIONS #148).
 
 ### Fixed
 

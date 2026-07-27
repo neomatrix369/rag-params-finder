@@ -28,10 +28,14 @@ from server.core.config_backend_guard import (
     ConfigBackendMismatchError,
     validate_config_backend_match,
 )
-from server.core.executors import HEAVY_READ_EXECUTOR, schedule_sweep
-from server.core.experiment_control import is_sweep_in_flight, request_cancel, request_pause
 from server.core.health_check import resolve_storage_mode
-from server.core.orchestrator import resume_sweep, run_sweep
+from server.core.pipeline.executors import HEAVY_READ_EXECUTOR, schedule_sweep
+from server.core.pipeline.experiment_control import (
+    is_sweep_in_flight,
+    request_cancel,
+    request_pause,
+)
+from server.core.pipeline.orchestrator import resume_sweep, run_sweep
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
 from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness

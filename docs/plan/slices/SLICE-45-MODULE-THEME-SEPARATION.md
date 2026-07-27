@@ -370,7 +370,7 @@ One hotspot / one craft theme per PR when possible.
 
 ## Gate Status
 
-🔨 IN PROGRESS — Before-Checks complete. Phase 1 skateboard **`server/core/guards/`** landed (shims + cov path updates). Next: `pipeline/` orchestrator SLAP.
+🔨 IN PROGRESS — `guards/` ✅ + `pipeline/` package ✅ (orchestrator still ~1161 lines; function-level SLAP next).
 
 ## Remediation pass (2026-07-27)
 
