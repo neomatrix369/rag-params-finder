@@ -918,7 +918,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | 30 — Search Explorer UX fixes | Spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) — tab switch latency, zero-score noise, BM25 score labels, VDB card default-expanded | Could | ~2 h |
 | 31 — Experiment list filter | Spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) — status dropdown + name/ID search above experiments table | Should | ~2 h |
 | 43 — Supabase config verification | Spec: [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) — live smoke of supabase examples; `STORAGE_BACKEND` vs YAML provider docs; hosted short-config guidance | Could | ~1–2 h |
-| 44 — Frontend coverage gate | Spec: [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) — Must: embed coverage table/floor in quality-gates + pre-push + CI; Should: FE tests + structure taxonomy (§3 theme map + canvas + Slice 45 stub published 2026-07-27; baseline ~50% lines / 16 tests) | Should | ~3–4 h |
+| 44 — Frontend coverage gate | Spec: [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) — Must: embed coverage table/floor in quality-gates + pre-push + CI (**VERIFIED**); Should: FE tests + structure taxonomy (§3) — ✅ COMPLETE 2026-07-27 | Should | ~3–4 h |
 | 45 — Module theme separation | Spec: [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) — execute ranked folder moves (`server/core`, `server/db`, tests, frontend components, scripts); depends on Slice 44 taxonomy artifacts | Could | ~4–6 h |
 
 ---
