@@ -714,7 +714,7 @@ def test_search_traditional_retriever_embeds_when_needed() -> None:
     """
     Scenario: _search_traditional_retriever computes query embedding for dense/hybrid retrieval.
     """
-    with patch("server.core.orchestrator.get_retriever_backend") as mock_get_retriever_backend:
+    with patch("server.core.pipeline.search.get_retriever_backend") as mock_get_retriever_backend:
         mock_retriever_search = mock_get_retriever_backend.return_value.search
         mock_retriever_search.return_value = []
         embed_query_calls = []
@@ -761,7 +761,7 @@ def test_search_reranker_retriever_rejects_missing_provider_or_model() -> None:
 
 
 @patch("server.core.orchestrator._update_phase")
-@patch("server.core.orchestrator._search_traditional_retriever")
+@patch("server.core.pipeline.search._search_traditional_retriever")
 def test_search_reranker_retriever_no_candidates_logs_warning(
     mock_search_traditional: MagicMock, mock_update_phase: MagicMock
 ) -> None:
@@ -810,7 +810,7 @@ def test_completed_param_signatures_extracts_phase_fields() -> None:
         ("mongodb", "local", "all-MiniLM-L6-v2", "recursive", 512, 25, "dense", "local", None)
     }
 
-    with patch("server.core.orchestrator.get_storage_backend") as mock_get_storage_backend:
+    with patch("server.core.pipeline.signatures.get_storage_backend") as mock_get_storage_backend:
         mock_get_storage_backend.return_value.find_completed_run_sigs.return_value = runs
         assert _completed_param_signatures("exp") == expected
 
@@ -824,7 +824,7 @@ def test_stored_enum_value_and_run_doc_signature() -> None:
     assert _stored_enum_value(None) == ""
     # Pin storage_backend so ambient STORAGE_BACKEND=postgres in .env cannot
     # change the missing-database_provider fallback used by resume signatures.
-    with patch("server.core.orchestrator.settings.storage_backend", "mongodb"):
+    with patch("server.core.pipeline.signatures.settings.storage_backend", "mongodb"):
         assert _run_doc_signature({"chunking_method": ChunkingMethod.RECURSIVE}) == (
             "mongodb",
             "",

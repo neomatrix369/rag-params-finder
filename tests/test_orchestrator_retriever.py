@@ -32,7 +32,7 @@ def _dense_candidate() -> SearchResult:
     "retriever_type",
     [RetrieverType.DENSE, RetrieverType.SPARSE, RetrieverType.HYBRID],
 )
-@patch("server.core.orchestrator.get_retriever_backend")
+@patch("server.core.pipeline.search.get_retriever_backend")
 def test_search_traditional_retriever_passes_run_id(
     mock_get_retriever_backend: MagicMock,
     retriever_type: RetrieverType,
@@ -56,8 +56,8 @@ def test_search_traditional_retriever_passes_run_id(
 
 
 @patch("server.core.orchestrator._update_phase")
-@patch("server.core.orchestrator.rerank_results")
-@patch("server.core.orchestrator.get_retriever_backend")
+@patch("server.core.pipeline.search.rerank_results")
+@patch("server.core.pipeline.search.get_retriever_backend")
 def test_search_reranker_retriever_passes_run_id_to_dense_prefetch(
     mock_get_retriever_backend: MagicMock,
     mock_rerank: MagicMock,

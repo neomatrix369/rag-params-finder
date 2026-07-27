@@ -1,3 +1,12 @@
+"""End-to-end sweep orchestration (grid + Bayesian).
+
+Search + signature helpers live in sibling modules and are re-exported here.
+Phase/status helpers stay in this module so ``patch(...get_storage_backend)``
+on the orchestrator namespace continues to affect ``_update_phase``.
+"""
+
+from __future__ import annotations
+
 import time
 import uuid
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
@@ -15,40 +24,38 @@ from server.core.pipeline.experiment_control import (
     register_sweep_control,
     unregister_sweep_control,
 )
+from server.core.pipeline.search import (
+    _RERANKER_RETRIEVER_TYPES,
+    _TRADITIONAL_RETRIEVER_TYPES,
+    _primary_retriever,
+    _search_reranker_retriever,
+    _search_traditional_retriever,
+)
+from server.core.pipeline.signatures import (
+    ParamSignature,
+    _completed_param_signatures,
+    _params_signature,
+)
+from server.core.pipeline.signatures import (
+    _run_doc_signature as _run_doc_signature,
+)
+from server.core.pipeline.signatures import (
+    _stored_enum_value as _stored_enum_value,
+)
 from server.core.query_loader import load_queries
-from server.core.reranker import rerank_results
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
 from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
-from server.db.store_factory import get_retriever_backend, get_storage_backend
-from server.models.config import ExperimentConfig, RetrieverConfig, RunParams, expand_sweep
-from server.models.enums import ExperimentStatus, Phase, RetrievalMethod, RetrieverType
-from server.models.results import QueryResult, SearchResult
+from server.db.store_factory import get_storage_backend
+from server.models.config import ExperimentConfig, RunParams, expand_sweep
+from server.models.enums import ExperimentStatus, Phase, RetrieverType
+from server.models.results import QueryResult
 from server.models.status import RunStatus
-from server.settings import settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-ParamSignature = tuple[
-    str,
-    str,
-    str,
-    str,
-    int,
-    int,
-    str,
-    str,
-    str | None,
-]
-
-
-_TRADITIONAL_RETRIEVER_TYPES = {
-    RetrieverType.DENSE,
-    RetrieverType.SPARSE,
-    RetrieverType.HYBRID,
-}
-_RERANKER_RETRIEVER_TYPES = {RetrieverType.RERANKER, RetrieverType.CROSS_ENCODER}
+_run_start_times: dict[str, float] = {}
 
 
 def _make_trial_log_entry(params: RunParams, state: str, score: float | None) -> dict[str, object]:
@@ -68,122 +75,6 @@ def _make_trial_log_entry(params: RunParams, state: str, score: float | None) ->
         "state": state,
         "score": score,
     }
-
-
-def _primary_retriever(params: RunParams) -> RetrieverConfig:
-    if not params.retrievers:
-        raise ValueError(f"Run {params} has no retriever configured")
-    return params.retrievers[0]
-
-
-def _search_traditional_retriever(
-    retriever_cfg: RetrieverConfig,
-    *,
-    run_id: str,
-    query_text: str,
-    experiment_id: str,
-    embedding_model: str,
-    embed_query_fn,  # Callable[[str, str], list[float]] from embedder_factory
-    top_k: int,
-    query_embedding: list[float] | None,
-) -> tuple[list[SearchResult], list[float] | None]:
-    needs_embedding = retriever_cfg.type in {RetrieverType.DENSE, RetrieverType.HYBRID}
-    if needs_embedding and query_embedding is None:
-        query_embedding = embed_query_fn(query_text, embedding_model)
-
-    results = get_retriever_backend().search(
-        method=RetrievalMethod(retriever_cfg.type.value),
-        query_text=query_text,
-        experiment_id=experiment_id,
-        embedding_model=embedding_model,
-        run_id=run_id,
-        top_k=top_k,
-        query_embedding=query_embedding,
-    )
-    return results, query_embedding
-
-
-def _search_reranker_retriever(
-    retriever_cfg: RetrieverConfig,
-    *,
-    run_id: str,
-    query_text: str,
-    experiment_id: str,
-    embedding_model: str,
-    embed_query_fn,  # Callable[[str, str], list[float]] from embedder_factory
-    top_k_initial: int,
-    top_k_final: int,
-) -> list[SearchResult]:
-    if not retriever_cfg.provider or not retriever_cfg.model:
-        raise ValueError(f"Reranker {retriever_cfg.type} missing provider or model")
-
-    candidates, _ = _search_traditional_retriever(
-        RetrieverConfig(type=RetrieverType.DENSE),
-        run_id=run_id,
-        query_text=query_text,
-        experiment_id=experiment_id,
-        embedding_model=embedding_model,
-        embed_query_fn=embed_query_fn,
-        top_k=top_k_initial,
-        query_embedding=None,
-    )
-    if not candidates:
-        logger.warning(
-            "reranker has no dense candidates — run %s query %r",
-            run_id,
-            query_text[:60],
-        )
-        return []
-
-    _update_phase(run_id, Phase.RERANKING)
-    return rerank_results(
-        query=query_text,
-        search_results=candidates,
-        model=retriever_cfg.model,
-        top_k=top_k_final,
-        provider=retriever_cfg.provider,
-    )
-
-
-def _params_signature(params: RunParams) -> ParamSignature:
-    return (
-        params.database_provider,
-        params.embedding_provider,
-        params.embedding_model,
-        params.chunking_method.value,
-        params.chunk_size,
-        params.overlap,
-        params.retrieval_method.value,
-        params.retrieval_provider,
-        params.retrieval_model,
-    )
-
-
-def _stored_enum_value(value: object | None) -> str:
-    if value is None:
-        return ""
-    if hasattr(value, "value"):
-        return str(getattr(value, "value"))
-    return str(value)
-
-
-def _run_doc_signature(run: dict) -> ParamSignature:
-    return (
-        str(run.get("database_provider") or settings.default_database_provider()),
-        str(run.get("embedding_provider") or ""),
-        str(run.get("embedding_model") or ""),
-        _stored_enum_value(run.get("chunking_method")),
-        int(run.get("chunk_size") or 0),
-        int(run.get("overlap") or 0),
-        _stored_enum_value(run.get("retrieval_method")),
-        str(run.get("retrieval_provider") or ""),
-        run.get("retrieval_model"),
-    )
-
-
-def _completed_param_signatures(experiment_id: str) -> set[ParamSignature]:
-    rows = get_storage_backend().find_completed_run_sigs(experiment_id)
-    return {_run_doc_signature(run) for run in rows}
 
 
 def _experiment_cancelled_in_db(experiment_id: str) -> bool:
@@ -269,7 +160,7 @@ def _run_bayesian_inner(
     best_trial: dict | None = None
 
     def _try_run_trial(
-        trial: "optuna.trial.Trial",
+        trial: optuna.trial.Trial,
         params: RunParams,
     ) -> float | None:
         nonlocal cancelled
@@ -1135,9 +1026,6 @@ def _run_single(
         logger.error("run failed — %s: %s", run_id, e, exc_info=True)
         _update_phase(run_id, Phase.FAILED, error_message=str(e))
         raise
-
-
-_run_start_times: dict[str, float] = {}
 
 
 def _update_phase(run_id: str, phase: Phase, error_message: str | None = None) -> None:
