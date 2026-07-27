@@ -1,4 +1,4 @@
-# Handoff — 2026-07-26
+# Handoff — 2026-07-27
 
 ## Where We Are
 
@@ -6,7 +6,9 @@
 
 **ADR-004 Accepted**; local comparison VERIFIED; CI dual-backend ✅; mutation waived (#128). **No default flip** (#130 Won't) — code default stays `mongodb` permanently; backends independently selectable (#129).
 
-**44** 📋 PLANNED — stub migrated to latest plan-generator format + live baseline (DECISIONS #131–#133). Quality-lens provisional 9/10 — awaiting user confirm on adversarial questions.
+**44** 📋 PLANNED — coverage Must open; taxonomy §3 published; **nw-review remediations APPLIED** (#137) — DoR APPROVED for execution (scripts locked: local `test:coverage`, CI `test:ci`).
+
+**45** 📋 PLANNED — module theme separation; architect HIGH remediations APPLIED (#137) — **APPROVED** for phased execution after taxonomy pre-check.
 
 ## What's Done
 
@@ -15,13 +17,15 @@
 - `slice-38-quality-comparison.md` — both 120-run twins; latency ≤2× PASS; overlap informational (#129)
 - `slice-38.json` — `gate_status: PASSED`; default-flip gate removed (#130)
 - Slice 44 Path B revise: latest stub + measured coverage baseline (`npm run test:coverage` → lines **50.18%**, **16** tests; gates still bare Vitest)
+- Slice 44 §3 taxonomy: [`module-theme-map.md`](../contributor-guide/module-theme-map.md), canvas `project-structure-taxonomy.canvas.tsx`, [`SLICE-45-MODULE-THEME-SEPARATION.md`](slices/SLICE-45-MODULE-THEME-SEPARATION.md)
 
 ## What's Next
 
-1. Confirm Slice 44 quality-lens (adversarial: Must-only floor vs full Should tests; defer vs execute)
-2. Path A Resume Slice **44** when ready — or continue formal gate-closure debt on tracker rows 32 / 32B / 32C / 33
-3. Merge [PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118) when ready
-4. Slice **43** residuals (#125/#126): hosted production-claim matrix, Pro-tier ADR mandate, etc.
+1. Path A Resume Slice **44** coverage Must — `test:coverage` in quality-gates/pre-push; `test:ci` in CI; re-measure floor on Before-Check
+2. Slice 44 Should FE module tests (or defer with Decision Log)
+3. Optional: Slice **45** phase 1 (`server/core/`) — taxonomy pre-check already satisfiable
+4. Merge [PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118) when ready
+5. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 if prioritized over 44
 
 ## Key decisions locked
 
@@ -46,3 +50,6 @@
 | 131 | Health Gap 8 SKIPPED for COMPLETE historical stubs |
 | 132 | Path B revise Slice 44 → latest stub + live baseline |
 | 133 | Slice 44 quality-lens provisional 9/10 (pending user confirm) |
+| 135 | Taxonomy audit in Slice 44 Should; moves deferred to Slice 45 Could |
+| 136 | sync-docs: theme map on CHANGELOG/CLAUDE/development/AGENTS; coverage floor still PROPOSED |
+| 137 | nw-review remediations on SLICE-44/45 — DoR/architect APPROVED for execution |

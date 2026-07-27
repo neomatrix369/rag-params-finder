@@ -184,7 +184,8 @@ npm audit --audit-level=high
 - `npm run typecheck` → 0 errors
 - `npm run build` → built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
-- Coverage tooling exists (`npm run test:coverage` / `test:ci`, Vitest v8) but is **not** invoked by `quality-gates.sh`, `pre-push-gates.sh`, or CI `verify` yet — planned in [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](../plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md) (**PROPOSED**)
+- Coverage tooling exists (`npm run test:coverage` / `test:ci`, Vitest v8) but is **not** invoked by `quality-gates.sh`, `pre-push-gates.sh`, or CI `verify` yet — Slice 44 Must (**PROPOSED**); see [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](../plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md)
+- Module theme map (Behavior \| Feature \| Function) + ranked separation proposals — Slice 44 Should §3 (**IMPLEMENTED**): [`module-theme-map.md`](module-theme-map.md); folder moves deferred to [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md) (**PROPOSED**)
 
 ### Repo lint (shell, workflows, Markdown)
 

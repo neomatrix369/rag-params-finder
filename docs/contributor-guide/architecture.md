@@ -94,6 +94,8 @@ FastAPI Server
 
 ## 📁 Module Map
 
+Theme tags (Behavior | Feature | Function) and ranked folder-separation proposals: [`module-theme-map.md`](module-theme-map.md). Moves execute in [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md) — not in Slice 44.
+
 ```
 rag-params-finder/
 ├── server/
