@@ -1,0 +1,52 @@
+{
+  "slice": 44,
+  "gate_status": "IMPLEMENTED",
+  "verified_at": "2026-07-27",
+  "verifier": "slice-workflow",
+  "branch": "slice/44-frontend-coverage-gate",
+  "note": "Frontend coverage embedded in quality-gates + pre-push + CI; Should tests added; taxonomy §3 already published (no import-path moves).",
+  "evidence": {
+    "before_check_baseline": {
+      "command": "cd frontend && npm run test:coverage",
+      "tests": 16,
+      "statements": 48.48,
+      "branches": 47.74,
+      "functions": 45.38,
+      "lines": 50.18,
+      "measured_at": "2026-07-27T00:32:00Z"
+    },
+    "after_should_measured": {
+      "command": "cd frontend && npm run test:coverage",
+      "tests": 53,
+      "test_files": 9,
+      "statements": 62.63,
+      "branches": 58.22,
+      "functions": 61.15,
+      "lines": 64.75,
+      "measured_at": "2026-07-27T00:36:00Z"
+    },
+    "thresholds_ratcheted": {
+      "statements": 62,
+      "branches": 58,
+      "functions": 61,
+      "lines": 64,
+      "decision": "DECISIONS #138"
+    },
+    "gate_wiring": {
+      "quality_gates_sh": "npm --prefix frontend run test:coverage",
+      "pre_push_gates_sh": "npm --prefix frontend run test:coverage",
+      "ci_frontend": "npm run test:ci (+ typecheck + build; reporters from vite.config)"
+    },
+    "taxonomy_should_3": {
+      "module_theme_map": "docs/contributor-guide/module-theme-map.md",
+      "canvas": "canvases/project-structure-taxonomy.canvas.tsx",
+      "slice_45_stub": "docs/plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md",
+      "production_import_moves": false
+    },
+    "mutation_testing": {
+      "status": "waived",
+      "rationale": "CI-hygiene slice; no non-trivial new pure production logic — DECISIONS #138"
+    }
+  },
+  "lifecycle": "IMPLEMENTED — code-review gate pending before PASSED"
+}

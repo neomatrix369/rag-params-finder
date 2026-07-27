@@ -3,7 +3,7 @@
 > Scenario: Brownfield + Growing Requirement (Flow D) | MoSCoW: Should
 
 **Target time:** ~3–4 h · **Estimated Pomos:** `3–4` — coverage Must (~2 Pomos) + FE Should tests + structure taxonomy Should (~1–2 Pomos)
-**Status:** 📋 PLANNED
+**Status:** 🔨 IN PROGRESS
 **Depends on:** none (external slices); requires existing frontend test harness (Vitest + `@vitest/coverage-v8` already in `frontend/`)
 **Non-blocking / non-urgent:** Pure CI-hygiene parity — does not gate any backend / PCTO slice.
 
@@ -125,9 +125,9 @@ Only 3 frontend test files today. Target modules are on the live polling / contr
 | `VectorDbStatsPanel`, `ConfirmDeleteModal`, `ExperimentControlButtons` | List/detail UX; delete + pause/resume/cancel | mostly untested |
 
 **Acceptance**
-- [ ] Add tests for: `services/apiClient.ts`, `services/fetchWithProgress.ts`, `utils/experimentStatus.ts`
-- [ ] Add tests for key components: `VectorDbStatsPanel`, `ConfirmDeleteModal`, `ExperimentControlButtons`
-- [ ] After adds, `npm run test:coverage` stays ≥ configured floor (ratchet note in Decision Log if floor raised)
+- [x] Add tests for: `services/apiClient.ts`, `services/fetchWithProgress.ts`, `utils/experimentStatus.ts`
+- [x] Add tests for key components: `VectorDbStatsPanel`, `ConfirmDeleteModal`, `ExperimentControlButtons`
+- [x] After adds, `npm run test:coverage` stays ≥ configured floor (ratchet note in Decision Log if floor raised)
 
 ### 2. Coverage not embedded in the gate (Must)
 
@@ -139,10 +139,10 @@ Only 3 frontend test files today. Target modules are on the live polling / contr
 | `vite.config.ts` | `provider: 'v8'`, reporters `text`/`json`/`html`; **no** thresholds | + `coverage.thresholds` from Before-Check re-measure |
 
 **Acceptance**
-- [ ] Pre-push + quality-gates: `test:coverage`; CI test leg: `test:ci` — coverage table (v8 text) in gate output
-- [ ] `coverage.thresholds` in `vite.config.ts` — floor starts at **re-measured** baseline (reference: lines **50.18%**, branches **47.74%**, functions **45.38%**, statements **48.48%** on 2026-07-26); ratchet intent logged
-- [ ] Baseline frontend line in `CLAUDE.md` / `development.md` records the floor + notes the embedded report
-- [ ] PROGRESS Decision Log row captures the chosen baseline number and ratchet intent
+- [x] Pre-push + quality-gates: `test:coverage`; CI test leg: `test:ci` — coverage table (v8 text) in gate output
+- [x] `coverage.thresholds` in `vite.config.ts` — floor starts at **re-measured** baseline (reference: lines **50.18%**, branches **47.74%**, functions **45.38%**, statements **48.48%** on 2026-07-26); ratchet intent logged
+- [x] Baseline frontend line in `CLAUDE.md` / `development.md` records the floor + notes the embedded report
+- [x] PROGRESS Decision Log row captures the chosen baseline number and ratchet intent
 
 **Refs:** `frontend/package.json` scripts; `frontend/vite.config.ts` coverage block; `scripts/quality-gates.sh` §8; `scripts/pre-push-gates.sh` frontend step; `.github/workflows/ci.yml` `frontend` job.
 
@@ -178,11 +178,11 @@ Taxonomy artifacts were **pre-published** on 2026-07-27 as planning SSOT (`modul
 
 ## Before-Checks [GATE]
 
-- [ ] Branch `slice/44-frontend-coverage-gate` created
-- [ ] Existing frontend suite green (`npm run test`, `npm run typecheck`, `npm run build`)
-- [ ] Confirm `frontend/vite.config.ts` already has `coverage.provider: 'v8'` and reporters including `text` (VERIFIED present 2026-07-27; thresholds still absent until this slice)
-- [ ] Re-measure coverage (`npm run test:coverage`) and lock the floor number in the Decision Log (do not invent a number from memory)
-- [ ] Gate scripts locked: local/pre-push → `test:coverage`; CI → `test:ci` (JUnit `outputFile` already in vite config — do **not** pass CLI `--reporter=junit` alone)
+- [x] Branch `slice/44-frontend-coverage-gate` created
+- [x] Existing frontend suite green (`npm run test`, `npm run typecheck`, `npm run build`)
+- [x] Confirm `frontend/vite.config.ts` already has `coverage.provider: 'v8'` and reporters including `text` (VERIFIED present 2026-07-27; thresholds still absent until this slice)
+- [x] Re-measure coverage (`npm run test:coverage`) and lock the floor number in the Decision Log (do not invent a number from memory)
+- [x] Gate scripts locked: local/pre-push → `test:coverage`; CI → `test:ci` (JUnit `outputFile` already in vite config — do **not** pass CLI `--reporter=junit` alone)
 
 ---
 
@@ -222,19 +222,19 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 
 ## After-Checks [GATE]
 
-- [ ] §1 Should tests added for named services/utils/components **or** explicitly deferred with Decision Log row + floor still honest
-- [ ] §2 quality-gates + pre-push + CI emit a coverage table and enforce the floor
+- [x] §1 Should tests added for named services/utils/components **or** explicitly deferred with Decision Log row + floor still honest
+- [x] §2 quality-gates + pre-push + CI emit a coverage table and enforce the floor
 - [x] §3 theme map + canvas + Slice 45 stub published; no import-path moves for taxonomy *(links resolve; does not imply Slice 44 COMPLETE)*
-- [ ] Baseline logged in `CLAUDE.md` / `development.md` and PROGRESS Decision Log
-- [ ] Frontend baseline in `CLAUDE.md` updated (test count + coverage floor)
-- [ ] No backend / migration-track regression (`./scripts/quality-gates.sh` green)
+- [x] Baseline logged in `CLAUDE.md` / `development.md` and PROGRESS Decision Log
+- [x] Frontend baseline in `CLAUDE.md` updated (test count + coverage floor)
+- [x] No backend / migration-track regression (`./scripts/quality-gates.sh` green)
 - [ ] Code committed with `test(slice-44): …` (or conventional equivalent)
-- [ ] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first); essential error paths covered (90–100% of clauses); taxonomy GWT via artifacts
-- [ ] Product coverage floor enforced via `coverage.thresholds`; whole-tree 100% branch **Won’t** this slice — exclusions / aspirational craft target documented in Decision Log (§12)
-- [ ] Mutation testing: run if non-trivial pure logic added; else waiver row in Decision Log (§23)
-- [ ] Docs updated (14-row audit below)
-- [ ] `docs/plan/gate-evidence/slice-44.json` written
-- [ ] Troubleshooting note for “coverage floor failed” (how to read v8 table / raise floor) in `development.md` or troubleshooting — **Recommended**
+- [x] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first); essential error paths covered (90–100% of clauses); taxonomy GWT via artifacts
+- [x] Product coverage floor enforced via `coverage.thresholds`; whole-tree 100% branch **Won’t** this slice — exclusions / aspirational craft target documented in Decision Log (§12)
+- [x] Mutation testing: run if non-trivial pure logic added; else waiver row in Decision Log (§23)
+- [x] Docs updated (14-row audit below)
+- [x] `docs/plan/gate-evidence/slice-44.json` written
+- [x] Troubleshooting note for “coverage floor failed” (how to read v8 table / raise floor) in `development.md` or troubleshooting — **Recommended**
 
 ---
 
@@ -246,14 +246,14 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 | 2 | Inline comments added where non-obvious | threshold / ratchet rationale in vite config if non-obvious |
 | 3 | Function signatures documented | N/A unless new exported helpers |
 | 4 | Error paths documented | apiClient / fetch error paths covered by tests |
-| 5 | CHANGELOG entry written | Unreleased — theme map pointer (**IMPLEMENTED** 2026-07-27); coverage floor in gates still **PROPOSED** until Must lands |
+| 5 | CHANGELOG entry written | Unreleased — theme map + coverage floor in gates (**VERIFIED** 2026-07-27) |
 | 6 | Architecture doc updated | Pointer to `module-theme-map.md` under Module Map |
 | 7 | API doc updated | N/A |
 | 8 | Config/env vars documented | N/A |
 | 9 | Examples added or updated | N/A |
 | 10 | Deprecated features marked | N/A |
 | 11 | Migration guide written | N/A — Slice 45 owns move execution notes |
-| 12 | Troubleshooting section added | **Recommended** — “coverage floor failed” → how to read v8 text table / raise floor (`development.md` or troubleshooting) |
+| 12 | Troubleshooting section added | **Done** — “coverage floor failed” in `development.md` Frontend baseline |
 | 13 | Related links cross-referenced | CLAUDE.md ↔ development.md ↔ this slice ↔ theme map ↔ Slice 45 |
 | 14 | No orphaned file references | gate scripts + CI job paths match; theme-map / Slice 45 links resolve |
 
@@ -261,15 +261,21 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 
 ## Gate Status
 
-📋 PLANNED
+🔨 IN PROGRESS — quality-gates green; commit + nw-review before PASSED
 
 ## What Changed
 
 | File | Type | Reason |
 |------|------|--------|
-| `docs/plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md` | docs | Augmented with taxonomy Should §3 |
-| `docs/contributor-guide/module-theme-map.md` | docs | Theme SSOT |
-| `canvases/project-structure-taxonomy.canvas.tsx` | docs | Interactive audit (workspace canvases) |
+| `frontend/vite.config.ts` | config | `coverage.thresholds` floor (ratcheted 64/58/61/62) |
+| `frontend/package.json` | config | `test:ci` = coverage without overriding JUnit reporters |
+| `scripts/quality-gates.sh` / `pre-push-gates.sh` | ci | `test:coverage` |
+| `.github/workflows/ci.yml` | ci | frontend `test:ci` + typecheck + build |
+| `frontend/src/**/*.test.ts(x)` | test | apiClient, fetchWithProgress, experimentStatus, control/stats/delete UI |
+| `CLAUDE.md` / `development.md` / CHANGELOG / DECISIONS / PROGRESS | docs | baselines + #138 |
+| `docs/plan/gate-evidence/slice-44.json` | docs | gate evidence |
+| `docs/contributor-guide/module-theme-map.md` | docs | Theme SSOT (§3) |
+| `canvases/project-structure-taxonomy.canvas.tsx` | docs | Interactive audit |
 | `docs/plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md` | docs | Follow-on move proposal |
 
 ## Session Metrics
@@ -277,9 +283,9 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 | Metric | Value |
 |--------|-------|
 | Estimated Pomos | 3–4 (~coverage Must + FE Should + taxonomy Should) |
-| Execution time | — |
-| Blockers encountered | — |
-| Next-session notes | Scripts locked: local `test:coverage`, CI `test:ci`; re-measure floor on Before-Check; taxonomy §3 done — execute coverage Must next |
+| Execution time | ~1 session (2026-07-27) |
+| Blockers encountered | none |
+| Next-session notes | Commit + nw-review → mark PASSED; open PR |
 
 ---
 

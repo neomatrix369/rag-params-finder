@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "verify": "vitest run && tsc --noEmit && vite build",
     "test:coverage": "vitest run --coverage",
-    "test:ci": "vitest run --coverage --reporter=default --reporter=junit"
+    "test:ci": "vitest run --coverage"
   },
   "dependencies": {
     "react": "^19.0.0",

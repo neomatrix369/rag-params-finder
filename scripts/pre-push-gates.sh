@@ -88,7 +88,7 @@ echo ""
 echo "3/3 Frontend build + tests + audit..."
 if [[ "$FRONTEND_CHANGED" -gt 0 ]]; then
   npm --prefix frontend run build
-  npm --prefix frontend run test
+  npm --prefix frontend run test:coverage
   if [[ "$FRONTEND_LOCK_CHANGED" -gt 0 ]]; then
     npm --prefix frontend audit --audit-level=high
   else

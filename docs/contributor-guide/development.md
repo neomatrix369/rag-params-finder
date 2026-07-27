@@ -165,8 +165,11 @@ cd frontend
 # Lint — expect 0 errors, 0 warnings (eslint + security plugin)
 npm run lint
 
-# Component tests — expect all lifecycle scenarios to pass
+# Component tests — expect all lifecycle + service scenarios to pass
 npm run test
+
+# Coverage (local gates + CI) — v8 text table; fails below vite.config thresholds
+npm run test:coverage
 
 # Type check — expect 0 errors
 npm run typecheck
@@ -178,15 +181,17 @@ npm run build
 npm audit --audit-level=high
 ```
 
-**Baseline (as of 2026-07-26)**:
+**Baseline (as of 2026-07-27 — Slice 44)**:
 - `npm run lint` → 0 errors
-- `npm run test` → **16** tests across 3 files (Vitest + React Testing Library)
+- `npm run test` → **53** tests across **9** files (Vitest + React Testing Library)
+- `npm run test:coverage` → lines **≥64%**, branches **≥58%**, functions **≥61%**, statements **≥62%** (`coverage.thresholds` in `vite.config.ts`); measured post-Should ≈64.75% / 58.22% / 61.15% / 62.63%
+- Local `quality-gates.sh` / `pre-push-gates.sh` invoke `test:coverage`; CI frontend job invokes `test:ci` (**VERIFIED**)
 - `npm run typecheck` → 0 errors
 - `npm run build` → built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
-- Coverage tooling exists (`npm run test:coverage` / `test:ci`, Vitest v8) but is **not** invoked by `quality-gates.sh`, `pre-push-gates.sh`, or CI `verify` yet — Slice 44 Must (**PROPOSED**); see [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](../plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md)
 - Module theme map (Behavior \| Feature \| Function) + ranked separation proposals — Slice 44 Should §3 (**IMPLEMENTED**): [`module-theme-map.md`](module-theme-map.md); folder moves deferred to [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md) (**PROPOSED**)
 
+**Coverage floor failed?** Read the v8 text table printed by `npm run test:coverage` (or CI `test:ci`). Vitest exits non-zero when any metric is below `coverage.thresholds` in `frontend/vite.config.ts`. Fix by adding tests for uncovered lines listed in the table, or intentionally ratchet the floor in the same PR with a Decision Log row explaining why (never lower silently).
 ### Repo lint (shell, workflows, Markdown)
 
 ```bash
@@ -390,7 +395,7 @@ GitHub Actions has two workflows (see `.github/workflows/`):
 | **Backend (Python)** | `ruff` → `mypy` → `bandit` → **unit-tier** `pytest` + 80% scoped coverage (live DB suites ignored) |
 | **Postgres integration** | Live pgvector CRUD/dense/sparse/hybrid + contract (postgres param); `RAG_REQUIRE_POSTGRES=1`; ≥95% `retriever_postgres` |
 | **Mongo integration** | Live Atlas Local StorageBackend contract (mongo param); `RAG_REQUIRE_MONGO=1` |
-| **Frontend (Node.js)** | `npm run lint` → `npm run typecheck` → `npm run build` → `npm run test` |
+| **Frontend (Node.js)** | `npm run lint` → `npm run test:ci` (v8 coverage + thresholds) → `npm run typecheck` → `npm run build` |
 | **Secrets** | `gitleaks` diff-only scan |
 | **Dependency audit** | `pip-audit` (backend) + `npm audit` (frontend); lockfile-gated, PR-only |
 | **Docker build** | Build-only matrix (server + frontend prod + frontend dev Dockerfiles); non-blocking; GHA layer cache |

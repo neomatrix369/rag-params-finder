@@ -315,8 +315,14 @@ jobs:
       - name: Lint (eslint)
         run: npm run lint
 
-      - name: Verify (tests + tsc + build)
-        run: npm run verify
+      - name: Test with coverage (v8 thresholds + JUnit via vite.config)
+        run: npm run test:ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
 
   dependency-audit:
     name: Dependency audit (PR + deps changes)

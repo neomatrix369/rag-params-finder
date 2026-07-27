@@ -113,8 +113,8 @@ else
 fi
 
 echo ""
-echo "8/11 Frontend tests + lint + typecheck + build..."
-npm --prefix frontend run test
+echo "8/11 Frontend tests + coverage + lint + typecheck + build..."
+npm --prefix frontend run test:coverage
 npm --prefix frontend run lint
 npm --prefix frontend run typecheck
 npm --prefix frontend run build

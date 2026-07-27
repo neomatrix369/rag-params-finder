@@ -273,13 +273,14 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 - `mypy server/ cli/` → 0 errors
 - `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **322** tests; scoped coverage ≥80%; no `MONGODB_URI` required
 
-**Frontend** (2026-07-26):
+**Frontend** (2026-07-27 — Slice 44):
 - `npm run lint` → 0 errors (eslint + security plugin)
-- `npm run test` → **16** tests (Vitest + React Testing Library)
+- `npm run test` → **53** tests across **9** files (Vitest + React Testing Library)
+- `npm run test:coverage` / `test:ci` → v8 text report + `coverage.thresholds` floor (lines ≥64%, branches ≥58%, functions ≥61%, statements ≥62%) — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
-- Coverage scripts (`test:coverage` / `test:ci`) exist but are not yet wired into quality-gates / pre-push / CI — Slice 44 Must (**PROPOSED**). Theme map + Slice 45 move stub published 2026-07-27 — Slice 44 Should §3 (**IMPLEMENTED**); see [`docs/contributor-guide/module-theme-map.md`](docs/contributor-guide/module-theme-map.md)
+- Theme map + Slice 45 move stub — Slice 44 Should §3 (**IMPLEMENTED**); see [`docs/contributor-guide/module-theme-map.md`](docs/contributor-guide/module-theme-map.md)
 
 ## Release Process
 

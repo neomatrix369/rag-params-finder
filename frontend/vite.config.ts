@@ -14,6 +14,15 @@ export default defineConfig({
       provider: 'v8',
       reportsDirectory: '../.reports/coverage/frontend',
       reporter: ['text', 'json', 'html'],
+      // Floor = post–Should re-measure 2026-07-27 (Slice 44). Started at pre-test
+      // baseline (lines 50.18%); ratcheted after apiClient/fetch/status/control tests.
+      // Do not lower without a Decision Log row.
+      thresholds: {
+        statements: 62,
+        branches: 58,
+        functions: 61,
+        lines: 64,
+      },
     },
   },
   server: {
