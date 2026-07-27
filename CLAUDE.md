@@ -96,6 +96,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 
 | File | Purpose |
 |---|---|
+| `docs/contributor-guide/module-theme-map.md` | Behavior \| Feature \| Function theme map + ranked hotspot separations (Slice 44 §3); moves → Slice 45 |
 | `server/main.py` | FastAPI app entry; lifespan ensures DB indexes + orphan reconciliation |
 | `server/settings.py` | Centralized pydantic-settings config (`storage_backend`: `mongodb` default permanently — DECISIONS #130 — or `postgres`) |
 | `server/db/storage.py` | `StorageBackend` Protocol — experiment/run/chunk/result CRUD + cascade + reconciliation |
@@ -278,7 +279,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
-- Coverage scripts (`test:coverage` / `test:ci`) exist but are not yet wired into quality-gates / pre-push / CI — see Slice 44 (**PROPOSED**)
+- Coverage scripts (`test:coverage` / `test:ci`) exist but are not yet wired into quality-gates / pre-push / CI — Slice 44 Must (**PROPOSED**). Theme map + Slice 45 move stub published 2026-07-27 — Slice 44 Should §3 (**IMPLEMENTED**); see [`docs/contributor-guide/module-theme-map.md`](docs/contributor-guide/module-theme-map.md)
 
 ## Release Process
 
@@ -305,6 +306,7 @@ The project follows [Semantic Versioning](https://semver.org/). Release automati
 | `docs/user-guide/getting-started.md` | End users | Setup, first experiment |
 | `docs/user-guide/configuration.md` | End users | Full config reference |
 | `docs/contributor-guide/architecture.md` | Contributors | System design, modules, data flow |
+| `docs/contributor-guide/module-theme-map.md` | Contributors / agents | Behavior \| Feature \| Function taxonomy; Slice 45 move proposals |
 | `docs/contributor-guide/extending.md` | Contributors | Adding models, chunkers, endpoints |
 | `docs/contributor-guide/development.md` | Contributors | Dev loop, quality gates |
 | `docs/contributor-guide/release-process.md` | Contributors | Creating releases, versioning strategy |

@@ -1,6 +1,6 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-26 (Slice 38 ✅ COMPLETE — ADR-004 · comparison · no default flip #130)
+**Last Updated**: 2026-07-27 (Slice 44 taxonomy Should §3 published — theme map + Slice 45 stub; coverage Must still PLANNED)
 **Current**: Active migration: **38** 🔨 cutover + ADR-004 (partial — remediations/pins/ADR/CI done; Postgres twin comparison running). **37** ✅ local/cloud parity. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **36** ✅. **43** ✅. Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
@@ -64,7 +64,8 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 41C — Bayesian Search: Extended | 📋 PLANNED | ~3–4 h | All questions resolved (A1 SQLite, A2 waived, A4 N=20, D3 sweep_summary keys, D7 RandomConfig); blocked only on 41B ✅: study persistence, categorical axes, random search, dashboard card, default promotion — [`SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md`](SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md) |
 | 42 — Docker Build Optimisation | ✅ COMPLETE | ~2–3 h | Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime (62 MB); CI docker-build job (non-blocking, path-scoped) — [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
 | 43 — Supabase example-config verification | ✅ COMPLETE | ~1–2 h | **Could** — 16/16 local Postgres smoke runs complete; operator docs distinguish `STORAGE_BACKEND` from `database_provider` and explain env asymmetry — [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) |
-| 44 — Frontend coverage + gate summary | 📋 PLANNED | ~2–3 h | **Should** — spun out of 43 (SLAP); stub migrated 2026-07-26 to latest format + live baseline (16 tests, ~50% lines; gates still bare Vitest) — Must: embed coverage floor in quality-gates/pre-push/CI; Should: service/util/component tests — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) |
+| 44 — Frontend coverage + gate summary | 📋 PLANNED | ~3–4 h | **Should** — spun out of 43 (SLAP); stub migrated 2026-07-26; taxonomy Should added 2026-07-27 (#135) — Must: coverage floor in gates; Should: FE tests + theme map (§3 done) + Slice 45 stub — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) |
+| 45 — Module theme separation | 📋 PLANNED | ~4–6 h | **Could** — execute Behavior/Feature/Function folder moves from Slice 44 audit; no contract changes — [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
 
@@ -690,6 +691,9 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-27 | 44/45 | nw-review remediations APPLIED (#137) — 44 DoR APPROVED for execution; 45 architect APPROVED; coverage Must still PLANNED | Leave review NEEDS_REVISION / CONDITIONAL without stub edits |
+| 2026-07-27 | sync-docs | CHANGELOG / CLAUDE / development / AGENTS / ARCHITECTURE stub aligned to theme map (**IMPLEMENTED**); coverage gate still **PROPOSED** — DECISIONS #136 | Agent + release surfaces lagged plan-tracker updates |
+| 2026-07-27 | 44/45 | Structure taxonomy audit = Slice 44 Should (§3); filesystem moves deferred to Slice 45 Could — DECISIONS #135; theme map + canvas + SLICE-45 stub published | Bundle audit into 44 hygiene; keep SLAP — moves are a different abstraction |
 | 2026-07-26 | 38 | ADR-004 Accepted (dual-backend Postgres/Supabase + Mongo); ADR-003 Superseded; default remains mongodb until local comparison — DECISIONS #127 | Flip default without quality gates |
 | 2026-07-26 | 38 | Parked **all** non-100%-Yes Before/After items onto Slice 43 residuals (#126); 38 After-Checks = local comparison + ADR + no-flip (#130) + slice-38.json + mutation waive + PROGRESS/TRAIL/CHANGELOG only | Leave nuanced/sync-docs items as Slice 38 COMPLETE blockers |
 | 2026-07-26 | 38 | Parked unrealistic Before/After gates onto Slice 43 residuals (hosted production-claim matrix, PRD §9/docs audit, 100% shell coverage, Graphiti/date spelling); Slice 38 COMPLETE gates on local dual-backend only — DECISIONS #125 | Keep hosted matrix as Slice 38 COMPLETE blocker |
@@ -913,7 +917,8 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | 30 — Search Explorer UX fixes | Spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) — tab switch latency, zero-score noise, BM25 score labels, VDB card default-expanded | Could | ~2 h |
 | 31 — Experiment list filter | Spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) — status dropdown + name/ID search above experiments table | Should | ~2 h |
 | 43 — Supabase config verification | Spec: [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) — live smoke of supabase examples; `STORAGE_BACKEND` vs YAML provider docs; hosted short-config guidance | Could | ~1–2 h |
-| 44 — Frontend coverage gate | Spec: [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) — Must: embed coverage table/floor in quality-gates + pre-push + CI; Should: service/util/component tests (stub migrated 2026-07-26; baseline ~50% lines / 16 tests) | Should | ~2–3 h |
+| 44 — Frontend coverage gate | Spec: [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) — Must: embed coverage table/floor in quality-gates + pre-push + CI; Should: FE tests + structure taxonomy (§3 theme map + canvas + Slice 45 stub published 2026-07-27; baseline ~50% lines / 16 tests) | Should | ~3–4 h |
+| 45 — Module theme separation | Spec: [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) — execute ranked folder moves (`server/core`, `server/db`, tests, frontend components, scripts); depends on Slice 44 taxonomy artifacts | Could | ~4–6 h |
 
 ---
 

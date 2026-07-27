@@ -48,6 +48,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | Doc | What it covers |
 |-----|----------------|
 | [contributor-guide/architecture.md](./contributor-guide/architecture.md) | Two-process design, modules, data flow, collections |
+| [contributor-guide/module-theme-map.md](./contributor-guide/module-theme-map.md) | Behavior \| Feature \| Function theme map + hotspot separation proposals |
 | [contributor-guide/development.md](./contributor-guide/development.md) | Dev loop, quality gates, Docker, slice playbook |
 | [contributor-guide/extending.md](./contributor-guide/extending.md) | New models, chunkers, retrieval methods, API endpoints |
 | [contributor-guide/release-process.md](./contributor-guide/release-process.md) | Versioning, `scripts/release.sh`, CHANGELOG |
