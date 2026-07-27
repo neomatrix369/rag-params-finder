@@ -99,22 +99,54 @@ jobs:
           scanners: license
           severity: HIGH,CRITICAL
 
-  # ── T4: Meterian — SCA + license compliance (API-key-gated) ──────────────────
+  # ── T4: Meterian — SCA + license (OSS path; no token — public MIT repo) ─────
+  # Stack: Python 3.12 (pyproject.toml + uv.lock) + Node/React (frontend/package-lock.json).
+  # Not a Java project — do not rely on auto-detect; pin scanners explicitly.
+  # Docs: https://docs.meterian.io/the-client/command-line-parameters/selecting-scanners.md
+  #       https://docs.meterian.io/the-client/command-line-parameters/producing-reports.md
+  # Reports: HTML + JUnit + SARIF + SBOM (CycloneDX + Meterian CSV) for OSS.
+  # JSON/PDF analysis reports need enterprise — skip those.
+  # Meterian SBOM archived here for vendor comparison with the anchore sbom job.
+  # Inputs: MeterianHQ/meterian-github-action@v1.0.17 → oss + cli_args
   meterian:
     name: Meterian SCA + license
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-      - name: Run Meterian
+      - name: Prepare Meterian report directory
+        run: mkdir -p meterian-reports
+      - name: Meterian Scanner
         uses: MeterianHQ/meterian-github-action@v1.0.17
-        env:
-          METERIAN_API_TOKEN: ${{ secrets.METERIAN_API_TOKEN }}
         with:
-          meterian-args: --min-security=95 --min-licensing=95
+          oss: true
+          # enabled-scanners → only python + nodejs (frontend npm)
+          # scan-*=true → fail closed if manifests missing
+          # scan-java=false → belt-and-suspenders (no pom/gradle here)
+          # exclude-folders → skip build/cache trees Meterian need not walk
+          # scan-javascript left off (vanilla JS crawler is opt-in; we use nodejs lockfile)
+          # report-* → archiveable CI outputs (dir must exist before scan)
+          # report-sbom → .cdx.json for Anchore parity; .csv for Meterian-native SBOM
+          cli_args: >-
+            --min-security=95
+            --min-licensing=95
+            --enabled-scanners=python,nodejs
+            --scan-python=true
+            --scan-nodejs=true
+            --scan-java=false
+            --exclude-folders=.venv,frontend/node_modules,frontend/dist,.aim,.pytest_cache,.mypy_cache,.ruff_cache,htmlcov,.tox
+            --report-console=nocolor,security,licensing
+            --report-file=meterian-reports/report.html
+            --report-junit=meterian-reports/report.xml
+            --report-sarif=meterian-reports/report.sarif
+            --report-sbom=meterian-reports/sbom.cdx.json,meterian-reports/sbom.csv
+      - name: Upload Meterian reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: meterian-${{ github.run_number }}
+          path: meterian-reports/
+          retention-days: 90
+          if-no-files-found: warn
 
   # ── T4: Container image scan (only when server Dockerfile is present) ───────────
   container-scan:
