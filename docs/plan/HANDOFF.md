@@ -8,7 +8,7 @@
 
 **44** ✅ COMPLETE on `slice/44-frontend-coverage-gate` — **#142**: FE **95/90/95/95**; BE **95/90/n/a/95** (`fail_under=95` + `scripts/check_backend_coverage_floors.py`); measured FE ≈98.21 / 92.89 / 99.7 / 99.61; BE stmts ≈98.6 / br ≈95.2 / TOTAL ≈97.7; **252** FE / **335** BE unit tests (**VERIFIED**).
 
-**45** 📋 PLANNED — module theme separation; architect APPROVED (#137) — ready for phased execution (taxonomy pre-check satisfiable).
+**45** 📋 PLANNED — module theme separation + FE/BE Code Complete craft (§1b orchestrator/API/CLI/mega-suites; §4b FE primitives/screens); architect APPROVED (#137) for moves — ready for phased execution (~16–24 h).
 
 ## What's Done
 
@@ -21,10 +21,11 @@
 
 ## What's Next
 
-1. Commit + push #142 floors + BE checker on `slice/44-frontend-coverage-gate` and refresh [PR #121](https://github.com/neomatrix369/rag-params-finder/pull/121)
-2. Optional: Slice **45** phase 1 (`server/core/`) — taxonomy pre-check already satisfiable
+1. Merge [PR #121](https://github.com/neomatrix369/rag-params-finder/pull/121) (Slice 44 + #142) when review-ready
+2. Slice **45** — phase 1: `server/core/` move **+** orchestrator SLAP into `pipeline/`, **or** FE primitives-first; see [`SLICE-45`](slices/SLICE-45-MODULE-THEME-SEPARATION.md) §1b / §4b + execution order
 3. Merge [PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118) when ready (if still open)
 4. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 if prioritized
+5. Commit Slice 45 spec expands (FE + BE craft backlogs) if still local-only
 
 ## Key decisions locked
 
