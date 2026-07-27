@@ -3,12 +3,15 @@
 > Scenario: Brownfield + Growing Requirement (Flow D) | MoSCoW: Should
 
 **Target time:** ~3–4 h · **Estimated Pomos:** `3–4` — coverage Must (~2 Pomos) + FE Should tests + structure taxonomy Should (~1–2 Pomos)
-**Status:** ✅ COMPLETE — Phase A + Phase B
+**Status:** ✅ COMPLETE — Phase A + Phase B + ✅ APPROVED (2026-07-27 nw-software-crafter-reviewer)
 **Depends on:** none (external slices); requires existing frontend test harness (Vitest + `@vitest/coverage-v8` already in `frontend/`)
 **Non-blocking / non-urgent:** Pure CI-hygiene parity — does not gate any backend / PCTO slice.
 
 **Phase A (✅ 2026-07-27):** Coverage embedded in gates; floor ratcheted to ~64% lines after Should tests.
-**Phase B (✅ 2026-07-27):** Floor raised to **≥95%** statements / functions / lines and **≥90%** branches on included `frontend/src` (`all: true`; excludes tests/setup/`main.tsx`/types) — surpasses backend `--cov-fail-under=80` (DECISIONS #139; option 1 + reopen 44).
+**Phase B (✅ 2026-07-27):** Floor raised to **≥95%** stmts/funcs/lines + **≥90%** branches (`all: true`) — DECISIONS #139.
+**Uniform overall ≥90% (✅ 2026-07-27):** interim BE `--cov-fail-under=90` — DECISIONS #140 (**superseded** by #142).
+**Fair metric floors (✅ 2026-07-27):** interim FE **95/90/95/95** + soft BE **92/85/n/a/90** — DECISIONS #141 (**superseded** by #142).
+**Shared product floors (✅ 2026-07-27):** FE **95/90/95/95**; BE **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` — DECISIONS #142. Postgres module CI gate remains ≥95%.
 
 **Secondary goal:** Publish a Behavior | Feature | Function theme map and ranked folder-separation proposals for flat hotspots (planning only — no filesystem moves in this slice). Follow-on execution → [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md).
 
@@ -44,22 +47,52 @@ This is a **CI-hygiene infrastructure slice** (non-user-facing, per DECISIONS #1
 
 ---
 
+## Review Summary (2026-07-27)
+
+**Verdict**: ✅ **APPROVED** — No blocking issues.
+
+**Scope reviewed**: All production + test changes (40 files, 7064 insertions).
+
+**Key findings**:
+- ✅ **Floors enforced across all gates**: local (quality-gates.sh), pre-push (pre-push-gates.sh), CI (.github/workflows/ci.yml) — verified end-to-end
+- ✅ **Measured coverage exceeds floors**: FE 98.21/92.89/99.7/99.61 (floor 95/90/95/95); BE 98.60/95.21/98.60 (floor 95/90/95)
+- ✅ **Test integrity**: No weakened assertions, no deleted tests, no testing theater (GWT structure + docstrings on all 252 tests)
+- ✅ **Composition**: Primitives reusable (check_backend_coverage_floors.py as standalone CLI; test factories composable via overrides)
+- ✅ **Production changes surgical**: Only ExperimentsScreen.tsx modified (6-line reorder, behavioral equiv)
+- ✅ **Documentation disciplined**: DECISIONS #139–#142 logged; pyproject.toml + vite.config.ts floors paired with inline references
+
+**Non-blocking observations**:
+- FE test docstrings ~95% compliant (brownfield migration ongoing; not a gate issue)
+- Backend functions metric omitted by design (coverage.py limitation; FE carries it)
+
+**Adversarial refutation lenses**:
+1. Correctness — all AC satisfied ✓
+2. Does-it-reproduce — gates execute, produce reports, floors enforced ✓
+3. Wiring & oracle soundness — floors enforced; configuration drift guarded by comments ✓
+4. Test integrity — zero G9 violations ✓
+5. Composition — primitives independently usable ✓
+
+---
+
 ## Slice Workflow Bundle
 
 - Slice name: `slice-44-frontend-coverage-gate`
 - Branch: `slice/44-frontend-coverage-gate`
 - Files (expected):
-  - `frontend/vite.config.ts` — add `coverage.thresholds` (floor from measured baseline)
+  - `frontend/vite.config.ts` — `coverage.thresholds` **95/90/95/95** (`all: true`; DECISIONS #142)
   - `frontend/package.json` — gate path: local `quality-gates`/`pre-push` use `npm run test:coverage`; CI frontend job uses `npm run test:ci` (coverage + JUnit via config `outputFile`)
-  - `scripts/quality-gates.sh` — frontend step: `npm run test:coverage` (v8 text table in gate output)
-  - `scripts/pre-push-gates.sh` — frontend step: `npm run test:coverage`
-  - `.github/workflows/ci.yml` — frontend job: `npm run test:ci` (not bare `verify` for the test leg)
+  - `scripts/quality-gates.sh` — FE `test:coverage`; BE `--cov-fail-under=95` + JSON floor checker
+  - `scripts/pre-push-gates.sh` — same FE/BE coverage gates as quality-gates
+  - `.github/workflows/ci.yml` — frontend `test:ci`; backend unit job fail-under + checker
+  - `pyproject.toml` — `fail_under=95` + `[tool.rag_params_finder.coverage_thresholds]` (95/90/95)
+  - `scripts/check_backend_coverage_floors.py` — BE stmts/br/lines gate (functions n/a)
+  - `tests/test_check_backend_coverage_floors.py` / `tests/test_coverage_floor_gaps.py` — checker + gap coverage
   - new `frontend/src/**/*.test.ts(x)` for Must/Should modules below
-  - `CLAUDE.md` / `docs/contributor-guide/development.md` — baseline line + embedded-report note
+  - `CLAUDE.md` / `docs/contributor-guide/development.md` — FE+BE baseline + floor note
   - `docs/contributor-guide/module-theme-map.md` — Behavior | Feature | Function SSOT (taxonomy Should)
   - Canvas: optional IDE canvas `project-structure-taxonomy.canvas.tsx` (not required in-repo; theme map is SSOT)
   - `docs/plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md` — follow-on move proposal stub (PLANNED; not executed here)
-- Exit criteria: frontend gate (quality-gates + pre-push + CI) runs with coverage enabled, prints a coverage table, and fails below the configured floor; new tests keep measured coverage ≥ floor; baseline logged in PROGRESS Decision Log; theme map + Slice 45 stub published with **no** production import-path changes for taxonomy.
+- Exit criteria: FE+BE gates enforce shared product floors (FE **95/90/95/95**, BE **95/90/n/a/95**); coverage tables print; theme map + Slice 45 stub published with **no** production import-path changes for taxonomy.
 - Commit pattern: `test(slice-44): add frontend coverage floor and embed report in gate` (+ optional `docs(slice-44): publish module theme map and Slice 45 stub`)
 
 ## Branch
@@ -86,7 +119,8 @@ Secondary: publish a repo theme map (Behavior | Feature | Function) and ranked s
 | **Should** | Tests for modules on critical dashboard paths | §1 — apiClient, fetchWithProgress, experimentStatus, key control/stats components |
 | **Should** | Project structure taxonomy audit | §3 — theme map doc + canvas + Slice 45 reorg proposal for five hotspots (planning only) |
 | **Must (Phase B)** | Near-100% FE coverage floor (option 1) | `coverage.thresholds`: statements/functions/lines **≥95**, branches **≥90**; `all: true` on `src/**`; excludes: `*.test.*`, `src/test/**`, `main.tsx`, types-only |
-| **Won’t (44)** | Execute folder moves / import rewrites; literal 100% branch on every UI edge; e2e/browser tests; ESLint/Vite major bumps | Moves → Slice 45; e2e / toolchain → separate slices |
+| **Must (#142)** | Shared FE+BE product floors | FE Vitest **95/90/95/95**; BE **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` (wired in quality-gates / pre-push / CI) |
+| **Won’t (44)** | Execute folder moves / import rewrites; literal 100% branch on every UI edge; e2e/browser tests; ESLint/Vite major bumps; invent coverage.py function metric | Moves → Slice 45; e2e / toolchain → separate slices; BE functions remain n/a |
 
 ---
 
@@ -111,6 +145,12 @@ Scenario: Structure taxonomy is published for operators and agents
   Then a Behavior|Feature|Function theme map exists in docs
   And the five flat hotspots have ranked separation proposals
   And no production import paths were changed in this slice
+
+Scenario: Shared product floors gate FE and BE identically where tooling allows
+  Given Vitest coverage.thresholds and the backend unit coverage JSON report
+  When quality-gates / pre-push / CI run the coverage steps
+  Then FE fails below 95/90/95/95 (stmts/br/fn/lines)
+  And BE fails below 95/90/n/a/95 via fail_under plus check_backend_coverage_floors.py
 ```
 
 ---
@@ -217,7 +257,7 @@ Do **not** pass Vitest CLI `--reporter=junit` without a configured `outputFile` 
 
 **VERIFY+COVERAGE gate confirms:**
 1. **Specification coverage** — every GWT clause above has ≥1 test (gate failure below floor + table present; new-module behaviours if Should landed); taxonomy GWT satisfied by published artifacts + Decision Log (no code test)
-2. **Product branch/line floor** — Vitest `coverage.thresholds` fail_under = measured baseline (not whole-tree 100% — see Won’t)
+2. **Product metric floors (DECISIONS #142)** — FE Vitest **95/90/95/95**; BE **95/90/n/a/95** (`fail_under=95` + `check_backend_coverage_floors.py`; not whole-tree 100% — see Won’t)
 3. **Mutation testing** — waive local Stryker for this CI-hygiene slice unless new pure util logic is non-trivial; log waiver in Decision Log (pattern: DECISIONS #128)
 
 On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note audit artifacts + “no moves” scope boundary).
@@ -234,10 +274,12 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 - [x] No backend / migration-track regression (`./scripts/quality-gates.sh` green)
 - [x] Code committed with `test(slice-44): …` (or conventional equivalent)
 - [x] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first); essential error paths covered (90–100% of clauses); taxonomy GWT via artifacts
-- [x] Product coverage floor enforced via `coverage.thresholds` (Phase B: ≥95% stmts/funcs/lines + ≥90% branches, `all: true`); whole-tree literal 100% branch **Won’t** — exclusions documented in DECISIONS #139 (§12)
+- [x] Product coverage floor enforced via `coverage.thresholds` / BE `fail_under` (shared **95/90/95/95** aim — DECISIONS #142); whole-tree literal 100% branch **Won’t**
+- [x] **Shared FE metric floors (DECISIONS #142)** — `frontend/vite.config.ts` `coverage.thresholds` = statements **≥95**, branches **≥90**, functions **≥95**, lines **≥95**. Verify: `cd frontend && npm run test:coverage` exits 0 (reference: 98.21 / 92.89 / 99.7 / 99.61)
+- [x] **Shared BE metric floors (DECISIONS #142)** — **95/90/n/a/95** (stmts/br/fn/lines): `fail_under=95` plus `scripts/check_backend_coverage_floors.py` on JSON report (pyproject `[tool.rag_params_finder.coverage_thresholds]`). Functions n/a on coverage.py. Verify: unit pytest + checker exits 0 (reference stmts ≈98.6% / br ≈95.2% / TOTAL ≈97.7%). Postgres `retriever_postgres` module gate **≥95%** remains separate
 - [x] Mutation testing: run if non-trivial pure logic added; else waiver row in Decision Log (§23)
 - [x] Docs updated (14-row audit below)
-- [x] `docs/plan/gate-evidence/slice-44.json` written
+- [x] `docs/plan/gate-evidence/slice-44.json` written (`fair_metric_floors` / `shared_metric_floors` + #142)
 - [x] Troubleshooting note for “coverage floor failed” (how to read v8 table / raise floor) in `development.md` or troubleshooting — **Recommended**
 
 ---
@@ -258,27 +300,31 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 | 10 | Deprecated features marked | N/A |
 | 11 | Migration guide written | N/A — Slice 45 owns move execution notes |
 | 12 | Troubleshooting section added | **Done** — “coverage floor failed” in `development.md` Frontend baseline |
-| 13 | Related links cross-referenced | CLAUDE.md ↔ development.md ↔ this slice ↔ theme map ↔ Slice 45 |
-| 14 | No orphaned file references | gate scripts + CI job paths match; theme-map / Slice 45 links resolve |
+| 13 | Related links cross-referenced | CLAUDE.md ↔ development.md ↔ this slice ↔ theme map ↔ Slice 45 ↔ `check_backend_coverage_floors.py` |
+| 14 | No orphaned file references | gate scripts + CI job paths match; theme-map / Slice 45 / BE checker links resolve |
 
 ---
 
 ## Gate Status
 
-✅ PASSED — Phase A (`dcbdf3a`) + Phase B (2026-07-27): thresholds 95/90/95/95 + `all: true`; land measured 96.84/90.96/97.92/98.85 (229 tests); mop-up measured stmts **98.21%** / branches **92.89%** / funcs **99.7%** / lines **99.61%** (**252** tests / **20** files)
+✅ PASSED — Phase A/B + #142: FE **95/90/95/95** measured **98.21 / 92.89 / 99.7 / 99.61** (252 tests); BE **95/90/n/a/95** measured stmts ≈**98.6%** / br ≈**95.2%** / TOTAL ≈**97.7%** (`fail_under=95` + JSON checker; ~335 unit tests)
 
 ## What Changed
 
 | File | Type | Reason |
 |------|------|--------|
-| `frontend/vite.config.ts` | config | Phase A floor → Phase B `all: true` + thresholds 95/90/95/95 (#139) |
+| `frontend/vite.config.ts` | config | Shared floors **95/90/95/95** (#142); `all: true` |
 | `frontend/package.json` | config | `test:ci` = coverage without overriding JUnit reporters |
-| `scripts/quality-gates.sh` / `pre-push-gates.sh` | ci | `test:coverage` |
-| `.github/workflows/ci.yml` | ci | frontend `test:ci` + typecheck + build |
+| `scripts/quality-gates.sh` / `pre-push-gates.sh` | ci | FE `test:coverage`; BE fail-under=95 + floor checker |
+| `.github/workflows/ci.yml` | ci | frontend `test:ci`; backend unit fail-under + checker |
+| `pyproject.toml` | config | `fail_under=95` + `[tool.rag_params_finder.coverage_thresholds]` |
+| `scripts/check_backend_coverage_floors.py` | ci | Enforce BE stmts/br/lines **95/90/95** from coverage JSON |
+| `tests/test_check_backend_coverage_floors.py` | test | Checker unit tests |
+| `tests/test_coverage_floor_gaps.py` | test | Raise BE stmts/branch to clear #142 floors |
 | `frontend/src/**/*.test.ts(x)` | test | Phase A critical-path + Phase B thin-module / branch push + mop-up |
 | `frontend/src/components/ExperimentsScreen.tsx` | fix | Dead/unreachable loading-panel + redundant aliveRef branches trimmed for honest coverage |
-| `CLAUDE.md` / `development.md` / CHANGELOG / DECISIONS / PROGRESS | docs | baselines + #138/#139 + mop-up counts |
-| `docs/plan/gate-evidence/slice-44.json` | docs | gate evidence (Phase A + B + mop-up) |
+| `CLAUDE.md` / `development.md` / CHANGELOG / DECISIONS / PROGRESS / HANDOFF | docs | baselines + #138–#142 + mop-up / checker |
+| `docs/plan/gate-evidence/slice-44.json` | docs | gate evidence (Phase A + B + mop-up + #142) |
 | `docs/contributor-guide/module-theme-map.md` | docs | Theme SSOT (§3) |
 | `docs/plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md` | docs | Follow-on move proposal |
 
@@ -287,9 +333,9 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 | Metric | Value |
 |--------|-------|
 | Estimated Pomos | 3–4 Phase A + ~2–3 Phase B |
-| Execution time | Phase A + Phase B (2026-07-27) |
+| Execution time | Phase A + Phase B + #142 floors (2026-07-27) |
 | Blockers encountered | none |
-| Next-session notes | Mop-up docs synced; push PR #121; Slice 45 owns folder moves |
+| Next-session notes | Commit/push #142 checker + floors; refresh PR #121; Slice 45 owns folder moves |
 
 ---
 

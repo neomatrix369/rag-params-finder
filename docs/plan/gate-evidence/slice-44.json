@@ -12,7 +12,70 @@
     },
     "B": {
       "status": "PASSED",
-      "note": "Option 1 reopen: ≥95% stmts/funcs/lines + ≥90% branches; all:true excludes tests/setup/main/types (DECISIONS #139)."
+      "note": "Option 1 reopen: ≥95% stmts/funcs/lines + ≥90% branches; all:true excludes tests/setup/main/types (DECISIONS #139). Product floors superseded by #140 → uniform ≥90%."
+    }
+  },
+  "uniform_product_floor": {
+    "decision": "DECISIONS #140",
+    "backend_fail_under": 90,
+    "note": "Overall ≥90% alignment step; FE quartet superseded by fair_metric_floors (#141)."
+  },
+  "fair_metric_floors": {
+    "decision": "DECISIONS #141",
+    "note": "Interim FE 95/90/95/95 + soft BE 92/85 — superseded by shared_metric_floors (#142)."
+  },
+  "shared_metric_floors": {
+    "decision": "DECISIONS #142",
+    "frontend_thresholds": {
+      "statements": 95,
+      "branches": 90,
+      "functions": 95,
+      "lines": 95
+    },
+    "backend": {
+      "statements": 95,
+      "branches": 90,
+      "functions": null,
+      "lines": 95,
+      "fail_under_enforced": 95,
+      "metric_checker": "scripts/check_backend_coverage_floors.py",
+      "checker_tests": "tests/test_check_backend_coverage_floors.py",
+      "gap_tests": "tests/test_coverage_floor_gaps.py",
+      "pyproject_section": "tool.rag_params_finder.coverage_thresholds",
+      "wired_in": [
+        "scripts/quality-gates.sh",
+        "scripts/pre-push-gates.sh",
+        ".github/workflows/ci.yml backend unit job"
+      ],
+      "note": "Quartet enforced as 95/90/n/a/95: fail_under (combined Cover) + JSON metric checker for stmts/br/lines; functions n/a on coverage.py"
+    },
+    "postgres_module_gate_unchanged": 95,
+    "backend_scoped_measured": {
+      "total_cover": 97.74,
+      "statements": 98.6,
+      "branches": 95.21,
+      "lines": 98.6,
+      "tests": 335
+    },
+    "frontend_measured": {
+      "statements": 98.21,
+      "branches": 92.89,
+      "functions": 99.7,
+      "lines": 99.61,
+      "tests": 252
+    },
+    "measured_at": "2026-07-27T14:00:00Z",
+    "after_checks": {
+      "fe_thresholds_enforced": true,
+      "be_fail_under_enforced": true,
+      "be_json_metric_checker_enforced": true,
+      "be_matches_fe_quartet_except_functions": true,
+      "verify_commands": [
+        "cd frontend && npm run test:coverage",
+        "uv run pytest … --cov-fail-under=95 --cov-report=json:.reports/coverage-backend-unit.json",
+        "uv run python scripts/check_backend_coverage_floors.py .reports/coverage-backend-unit.json"
+      ],
+      "slice_spec": "docs/plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md § After-Checks shared FE/BE metric floors (#142)"
     }
   },
   "review": {
@@ -80,12 +143,33 @@
         "lines": 95,
         "all": true,
         "decision": "DECISIONS #139"
+      },
+      "uniform_90": {
+        "backend_fail_under": 90,
+        "frontend_statements": 90,
+        "frontend_branches": 90,
+        "frontend_functions": 90,
+        "frontend_lines": 90,
+        "decision": "DECISIONS #140",
+        "supersedes": "DECISIONS #139 product FE asymmetry vs backend 80",
+        "superseded_by": "DECISIONS #141 for FE quartet"
+      },
+      "fair_141": {
+        "frontend_statements": 95,
+        "frontend_branches": 90,
+        "frontend_functions": 95,
+        "frontend_lines": 95,
+        "backend_fail_under": 90,
+        "backend_policy_statements": 92,
+        "backend_policy_branches": 85,
+        "decision": "DECISIONS #141"
       }
     },
     "gate_wiring": {
-      "quality_gates_sh": "npm --prefix frontend run test:coverage",
-      "pre_push_gates_sh": "npm --prefix frontend run test:coverage",
-      "ci_frontend": "npm run test:ci (+ typecheck + build; reporters from vite.config)"
+      "quality_gates_sh": "npm --prefix frontend run test:coverage; pytest --cov-fail-under=95 + check_backend_coverage_floors.py",
+      "pre_push_gates_sh": "same as quality-gates for FE/BE coverage floors",
+      "ci_frontend": "npm run test:ci (+ typecheck + build; reporters from vite.config)",
+      "ci_backend_unit": "--cov-fail-under=95 + scripts/check_backend_coverage_floors.py"
     },
     "taxonomy_should_3": {
       "module_theme_map": "docs/contributor-guide/module-theme-map.md",
@@ -98,5 +182,5 @@
       "rationale": "CI-hygiene slice; coverage expansion is mostly UI/component GWT — DECISIONS #138/#139"
     }
   },
-  "lifecycle": "VERIFIED / PASSED — Phase A + Phase B + per-file mop-up"
+  "lifecycle": "VERIFIED / PASSED — Phase A + Phase B + mop-up + shared floors #142 (FE 95/90/95/95; BE 95/90/n/a/95 via fail_under + JSON checker)"
 }

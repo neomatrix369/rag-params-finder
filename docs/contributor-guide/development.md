@@ -137,7 +137,7 @@ uv run ruff check .
 # Type check — expect 0 errors
 uv run mypy server/ cli/
 
-# Tests + coverage (scoped to unit-tested modules, 80% threshold)
+# Tests + coverage (scoped unit packages; fail_under=95 + JSON metric checker)
 uv run pytest --tb=short -q \
   --cov=server.core.search_index_plan \
   --cov=server.core.search_index_guard \
@@ -146,16 +146,18 @@ uv run pytest --tb=short -q \
   --cov=server.core.sie_embedder \
   --cov=server.core.aim_logger \
   --cov=server.core.embedder_factory \
-  --cov-fail-under=80
+  --cov-fail-under=95
 
 # Python dependency audit (ML transitive vulns tracked — see scripts/pip-audit.sh)
 bash scripts/pip-audit.sh
 ```
 
-**Baseline (as of 2026-07-26)** — unit tier, same ignores as CI `backend`:
+**Baseline (as of 2026-07-27)** — unit tier, same ignores as CI `backend`:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (unit ignores + `-m "not integration"`) → **322** tests, scoped coverage ≥80%
+- `pytest` (unit ignores + `-m "not integration"`) → **335** tests; BE floors **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` — DECISIONS #142
+
+**Backend coverage floor failed?** `fail_under=95` fails on combined Cover; the JSON checker then enforces statements ≥95, branches ≥90, lines ≥95 (functions n/a). Read `scripts/check_backend_coverage_floors.py` stderr for which metric missed. Add unit tests (see `tests/test_coverage_floor_gaps.py` pattern) or intentionally ratchet floors in `pyproject.toml` `[tool.rag_params_finder.coverage_thresholds]` + Decision Log — never lower silently.
 
 ### Frontend
 
@@ -184,7 +186,7 @@ npm audit --audit-level=high
 **Baseline (as of 2026-07-27 — Slice 44 Phase B)**:
 - `npm run lint` → 0 errors
 - `npm run test` → **252** tests across **20** files (Vitest + React Testing Library)
-- `npm run test:coverage` → statements/functions/lines **≥95%**, branches **≥90%** (`coverage.thresholds` + `all: true` in `vite.config.ts`; DECISIONS #139); measured ≈98.21% / 92.89% / 99.7% / 99.61%
+- `npm run test:coverage` → statements/functions/lines **≥95%**, branches **≥90%** (`coverage.thresholds` + `all: true`; DECISIONS #142); measured ≈98.21% / 92.89% / 99.7% / 99.61%
 - Local `quality-gates.sh` / `pre-push-gates.sh` invoke `test:coverage`; CI frontend job invokes `test:ci` (**VERIFIED**)
 - `npm run typecheck` → 0 errors
 - `npm run build` → built in ~4s, 49 modules
@@ -392,7 +394,7 @@ GitHub Actions has two workflows (see `.github/workflows/`):
 | Job | Steps |
 |-----|--------|
 | **Repo lint** | `pre-commit run shellcheck` → `actionlint` → `markdownlint` (all files) |
-| **Backend (Python)** | `ruff` → `mypy` → `bandit` → **unit-tier** `pytest` + 80% scoped coverage (live DB suites ignored) |
+| **Backend (Python)** | `ruff` → `mypy` → `bandit` → **unit-tier** `pytest` + `fail_under=95` + `check_backend_coverage_floors.py` (live DB suites ignored) |
 | **Postgres integration** | Live pgvector CRUD/dense/sparse/hybrid + contract (postgres param); `RAG_REQUIRE_POSTGRES=1`; ≥95% `retriever_postgres` |
 | **Mongo integration** | Live Atlas Local StorageBackend contract (mongo param); `RAG_REQUIRE_MONGO=1` |
 | **Frontend (Node.js)** | `npm run lint` → `npm run test:ci` (v8 coverage + thresholds) → `npm run typecheck` → `npm run build` |

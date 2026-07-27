@@ -102,7 +102,9 @@ uv run pytest --tb=short -q \
   --cov=server.core.results_analyzer \
   --cov=server.models.config \
   --cov-report=term-missing \
-  --cov-fail-under=80
+  --cov-report=json:.reports/coverage-backend-unit.json \
+  --cov-fail-under=95
+uv run python scripts/check_backend_coverage_floors.py .reports/coverage-backend-unit.json
 
 echo ""
 echo "7/11 Python dependency audit (pip-audit)..."

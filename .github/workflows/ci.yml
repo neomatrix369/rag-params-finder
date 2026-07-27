@@ -181,7 +181,9 @@ jobs:
             --cov=server.core.results_analyzer \
             --cov=server.models.config \
             --cov-report=term-missing \
-            --cov-fail-under=80
+            --cov-report=json:.reports/coverage-backend-unit.json \
+            --cov-fail-under=95
+          python scripts/check_backend_coverage_floors.py .reports/coverage-backend-unit.json
 
   postgres-integration:
     name: Postgres integration (pgvector)

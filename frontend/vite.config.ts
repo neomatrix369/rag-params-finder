@@ -14,9 +14,9 @@ export default defineConfig({
       provider: 'v8',
       reportsDirectory: '../.reports/coverage/frontend',
       reporter: ['text', 'json', 'html'],
-      // Phase B (DECISIONS #139): include all src except tests/setup/bootstrap/types.
-      // Floor ≥95% stmts/funcs/lines + ≥90% branches — surpasses backend 80%.
-      // Do not lower without a Decision Log row.
+      // Shared FE+BE product floors (DECISIONS #142): stmts/funcs/lines ≥95, branches ≥90.
+      // Backend: fail_under=95 + scripts/check_backend_coverage_floors.py (95/90/n/a/95).
+      // Do not change without a Decision Log row.
       all: true,
       include: ['src/**/*.{ts,tsx}'],
       exclude: [

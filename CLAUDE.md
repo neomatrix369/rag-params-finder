@@ -240,7 +240,7 @@ uv run pytest --tb=short -q \
   -m "not integration" \
   --cov=server.core.search_index_plan \
   --cov=server.core.search_index_guard --cov=server.core.results_analyzer \
-  --cov=server.models.config --cov-fail-under=80
+  --cov=server.models.config --cov-fail-under=95
 cd frontend && npm run lint && npm run test && npm run typecheck && npm run build
 ```
 
@@ -271,12 +271,12 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 **Backend** (2026-07-26 — unit tier):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **322** tests; scoped coverage ≥80%; no `MONGODB_URI` required
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **335** tests; BE floors **95/90/n/a/95** (stmts/br/fn/lines) via `fail_under=95` + `scripts/check_backend_coverage_floors.py` — DECISIONS #142; no `MONGODB_URI` required
 
-**Frontend** (2026-07-27 — Slice 44 Phase B):
+**Frontend** (2026-07-27 — Slice 44 + shared floors #142):
 - `npm run lint` → 0 errors (eslint + security plugin)
 - `npm run test` → **252** tests across **20** files (Vitest + React Testing Library)
-- `npm run test:coverage` / `test:ci` → v8 text report + `coverage.thresholds` floor (statements/functions/lines ≥95%, branches ≥90%; `all: true` on `src/**`, excludes tests/setup/`main.tsx`/types — DECISIONS #139); measured ≈98.21% / 92.89% / 99.7% / 99.61% — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
+- `npm run test:coverage` / `test:ci` → v8 thresholds **95/90/95/95** stmts/br/fn/lines (`all: true`; DECISIONS #142); measured ≈98.21% / 92.89% / 99.7% / 99.61% — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
