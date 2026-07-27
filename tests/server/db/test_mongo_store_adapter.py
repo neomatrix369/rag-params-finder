@@ -17,8 +17,9 @@ from server.db.mongo.mongo_store import MongoRetrieverBackend, MongoStorageBacke
 from server.db.ports.retriever_backend import RetrieverBackend
 from server.db.ports.storage import StorageBackend
 from server.models.enums import RetrievalMethod
+from tests.helpers.repo_paths import repo_root_from
 
-_REPO_ROOT = Path(__file__).resolve().parents[1]
+_REPO_ROOT = repo_root_from(Path(__file__))
 
 _NO_DIRECT_ATLAS_MODULES = (
     "server/core/pipeline/orchestrator.py",

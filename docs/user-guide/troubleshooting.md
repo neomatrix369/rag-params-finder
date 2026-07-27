@@ -513,7 +513,7 @@ so `schema.sql` re-runs on first pool open.
 
 **Cause**: Schema is applied when the Postgres pool opens (first storage I/O), not during Mongo-style Atlas index bootstrap. If the server never opened a pool against this database, tables are missing.
 
-**Fix**: Hit any storage endpoint (or submit a sweep) after setting `DATABASE_URL`. Or run the live integration tests: `RAG_REQUIRE_POSTGRES=1 pytest tests/test_postgres_store_integration.py -q`.
+**Fix**: Hit any storage endpoint (or submit a sweep) after setting `DATABASE_URL`. Or run the live integration tests: `RAG_REQUIRE_POSTGRES=1 pytest tests/server/db/test_postgres_store_integration.py -q`.
 
 ---
 

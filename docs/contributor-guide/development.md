@@ -115,7 +115,7 @@ Run all gates before committing. All must pass with zero regressions.
 ```
 
 Backend pytest in those scripts is the **unit tier**: it ignores live Mongo/Postgres suites
-(`tests/contract/`, `tests/test_postgres_*.py`) and uses `-m "not integration"`. Live DB
+(`tests/contract/`, `tests/server/db/test_postgres_*.py`) and uses `-m "not integration"`. Live DB
 coverage runs in dedicated CI jobs (`postgres-integration`, `mongo-integration`).
 The unit tier must stay green with `MONGODB_URI` / `DATABASE_URL` unset (as on CI): factory
 tests supply a dummy URI when they exercise `ensure_storage_ready()`, and API detail tests
@@ -159,7 +159,7 @@ bash scripts/pip-audit.sh
 - `mypy server/ cli/` → 0 errors
 - `pytest` (unit ignores + `-m "not integration"`) → **335** tests; BE floors **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` — DECISIONS #142
 
-**Backend coverage floor failed?** `fail_under=95` fails on combined Cover; the JSON checker then enforces statements ≥95, branches ≥90, lines ≥95 (functions n/a). Read `scripts/check_backend_coverage_floors.py` stderr for which metric missed. Add unit tests (see `tests/test_coverage_floor_gaps.py` pattern) or intentionally ratchet floors in `pyproject.toml` `[tool.rag_params_finder.coverage_thresholds]` + Decision Log — never lower silently.
+**Backend coverage floor failed?** `fail_under=95` fails on combined Cover; the JSON checker then enforces statements ≥95, branches ≥90, lines ≥95 (functions n/a). Read `scripts/check_backend_coverage_floors.py` stderr for which metric missed. Add unit tests (see `tests/server/models/test_coverage_floor_gaps.py` pattern) or intentionally ratchet floors in `pyproject.toml` `[tool.rag_params_finder.coverage_thresholds]` + Decision Log — never lower silently.
 
 ### Frontend
 
@@ -265,7 +265,7 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 
 **Fast unit tier** (`tests/`, run in CI `backend` job and `./scripts/quality-gates.sh`):
 
-Excludes live storage suites (`--ignore=tests/contract` and `tests/test_postgres_*.py`,
+Excludes live storage suites (`--ignore=tests/contract` and `tests/server/db/test_postgres_*.py`,
 `-m "not integration"`). That keeps the unit job free of shared-DB races when a local
 pgvector or Atlas Local container happens to be up, and free of `ensure_storage_ready()`
 failures when no database URI is configured.
@@ -283,9 +283,9 @@ failures when no database URI is configured.
 
 | Suite | CI job | Needs |
 |-------|--------|--------|
-| `tests/test_postgres_store_integration.py` | `postgres-integration` | pgvector on `:5433`; `RAG_REQUIRE_POSTGRES=1` |
-| `tests/test_postgres_dense_retrieval.py` | same | ≥95% branch coverage on `retriever_postgres` |
-| `tests/test_postgres_sparse_hybrid.py` | same | sparse + hybrid + failure-path coverage |
+| `tests/server/db/test_postgres_store_integration.py` | `postgres-integration` | pgvector on `:5433`; `RAG_REQUIRE_POSTGRES=1` |
+| `tests/server/db/test_postgres_dense_retrieval.py` | same | ≥95% branch coverage on `retriever_postgres` |
+| `tests/server/db/test_postgres_sparse_hybrid.py` | same | sparse + hybrid + failure-path coverage |
 | `tests/contract/test_storage_backend_contract.py` | postgres **and** `mongo-integration` | Parametrized mongo/postgres; skips the missing backend locally |
 
 One process-wide Postgres pool (`live_postgres_pool` session fixture) bootstraps schema
@@ -301,9 +301,9 @@ unit job — those ignore live suites):
 ```bash
 ./start-services.sh --postgres-local
 RAG_REQUIRE_POSTGRES=1 uv run pytest \
-  tests/test_postgres_store_integration.py \
-  tests/test_postgres_dense_retrieval.py \
-  tests/test_postgres_sparse_hybrid.py \
+  tests/server/db/test_postgres_store_integration.py \
+  tests/server/db/test_postgres_dense_retrieval.py \
+  tests/server/db/test_postgres_sparse_hybrid.py \
   tests/contract/test_storage_backend_contract.py \
   -q -rs
 ```

@@ -163,9 +163,9 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `frontend/src/services/fetchWithProgress.ts` | ReadableStream-based fetch with progress tracking |
 | `frontend/src/utils/devLog.ts` | Dev-only scoped console helpers (stripped from production builds) |
 | `server/utils/scope_log.py` | Option A scoped log format for server and CLI |
-| `tests/test_search_index_plan.py` | Search index requirement + capacity scenario tests |
-| `tests/test_search_index_guard.py` | Preflight guard tests (mocked I/O) |
-| `tests/test_postgres_store_integration.py` | Postgres CRUD/cascade/stats against live pgvector (skips without a DB) |
+| `tests/server/core/guards/test_search_index_plan.py` | Search index requirement + capacity scenario tests |
+| `tests/server/core/guards/test_search_index_guard.py` | Preflight guard tests (mocked I/O) |
+| `tests/server/db/test_postgres_store_integration.py` | Postgres CRUD/cascade/stats against live pgvector (skips without a DB) |
 
 ## Provider System
 
@@ -236,9 +236,9 @@ uv run ruff check .
 uv run mypy server/ cli/
 uv run pytest --tb=short -q \
   --ignore=tests/contract \
-  --ignore=tests/test_postgres_store_integration.py \
-  --ignore=tests/test_postgres_dense_retrieval.py \
-  --ignore=tests/test_postgres_sparse_hybrid.py \
+  --ignore=tests/server/db/test_postgres_store_integration.py \
+  --ignore=tests/server/db/test_postgres_dense_retrieval.py \
+  --ignore=tests/server/db/test_postgres_sparse_hybrid.py \
   -m "not integration" \
   --cov=server.core.guards.search_index_plan \
   --cov=server.core.guards.search_index_guard --cov=server.core.results_analyzer \

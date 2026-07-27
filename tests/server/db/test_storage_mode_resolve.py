@@ -12,7 +12,9 @@ from pathlib import Path
 
 import pytest
 
-_REPO = Path(__file__).resolve().parents[1]
+from tests.helpers.repo_paths import repo_root_from
+
+_REPO = repo_root_from(Path(__file__))
 _LIB = _REPO / "scripts" / "lib" / "storage_mode.sh"
 
 # Every env var that can steer mode resolution. Cleared before each scenario so a

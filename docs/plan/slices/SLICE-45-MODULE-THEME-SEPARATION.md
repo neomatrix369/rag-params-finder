@@ -339,15 +339,15 @@ Scenario: Mega-suite split preserves behaviour
 - [ ] Branch coverage: product floors stay green (FE **95/90/95/95**, BE **95/90/n/a/95** — DECISIONS #142); tool fail_under configured; whole-tree 100% branch Won't (§12 — test-writing-craft-quality.mdc)
 - [ ] Mutation testing run if slice adds non-trivial pure logic: survival budget met; else waive with Decision Log row (§23 / #128 pattern)
 - [ ] `module-theme-map.md` updated to IMPLEMENTED paths (or note SUPERSEDED proposals)
-- [ ] CLAUDE.md Key Files paths updated
-- [ ] CHANGELOG Unreleased — internal layout note (+ FE/BE craft notes when primitives/pipeline land)
+- [x] CLAUDE.md Key Files paths updated
+- [x] CHANGELOG Unreleased — internal layout note (+ FE/BE craft notes when primitives/pipeline land)
 - [ ] If re-exports used: CHANGELOG Deprecated + Decision Log row with version window + removal trigger
 - [ ] `docs/plan/gate-evidence/slice-45.json` written
 - [ ] Optional smoke: `./scripts/quality-gates.sh` + `rag-params-finder version` / healthz `storage_mode` unchanged
 - [ ] FE craft phases: shared primitives have tests; no duplicate Pagination/StatTile/Feed helpers left in screens; FE **95/90/95/95** still green
 - [ ] FE craft phases: shared `test/helpers` used by moved/shrunk suites; Decision Log notes pre→post screen line counts
 - [ ] BE craft phases: orchestrator/pipeline split green; Protocols + factories unchanged; BE **95/90/n/a/95** still green; Decision Log notes pre→post orchestrator line counts
-- [ ] BE craft phases (when claimed): mega-suite split or fat-surface slim landed without intentional coverage loss
+- [x] BE craft phases (when claimed): mega-suite split or fat-surface slim landed without intentional coverage loss
 
 ---
 
@@ -370,7 +370,7 @@ One hotspot / one craft theme per PR when possible.
 
 ## Gate Status
 
-🔨 IN PROGRESS — `guards/` ✅ + `pipeline/` package ✅ (orchestrator still ~1161 lines; function-level SLAP next).
+🔨 IN PROGRESS — Must filesystem moves + steps 1–4 done (`guards/` / `pipeline/` / `embedding|retrieval|rerank` / `db/{ports,mongo,postgres}` / fat-surface slim / **tests mirror + mega-suite split**). Next: FE shared primitives.
 
 ## Remediation pass (2026-07-27)
 

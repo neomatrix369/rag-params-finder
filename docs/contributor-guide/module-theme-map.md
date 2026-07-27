@@ -105,6 +105,8 @@ Mild (optional later): `server/api/` → `experiments/` vs `sweep/`.
 
 ## `tests/` grouping hint
 
+**IMPLEMENTED** (Slice 45): mirror layout under `tests/server/{core,db,api,models}/`, `tests/cli/`, `tests/scripts/` plus kept `contract/` + `helpers/`. Slice 16 mega-suite split into `tests/server/core/pipeline/` (+ `helpers/pipeline_sweep.py`).
+
 Prefer either:
 
 1. **Mirror packages** — `tests/server/core/`, `tests/server/db/`, `tests/cli/`, `tests/api/` (keeps import mental model), or

@@ -62,9 +62,9 @@ if [[ "$BACKEND_CHANGED" -gt 0 ]]; then
   # Live Mongo/Postgres suites belong in dedicated CI jobs (see ci.yml).
   uv run pytest --tb=short -q \
     --ignore=tests/contract \
-    --ignore=tests/test_postgres_store_integration.py \
-    --ignore=tests/test_postgres_dense_retrieval.py \
-    --ignore=tests/test_postgres_sparse_hybrid.py \
+    --ignore=tests/server/db/test_postgres_store_integration.py \
+    --ignore=tests/server/db/test_postgres_dense_retrieval.py \
+    --ignore=tests/server/db/test_postgres_sparse_hybrid.py \
     -m "not integration" \
     --cov=server.core.guards.search_index_plan \
     --cov=server.core.guards.search_index_guard \

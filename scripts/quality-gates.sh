@@ -63,9 +63,9 @@ if [[ "${MODE}" == "quick" ]]; then
   echo "6/9 Backend unit tests (no coverage)..."
   uv run pytest --tb=short -q \
     --ignore=tests/contract \
-    --ignore=tests/test_postgres_store_integration.py \
-    --ignore=tests/test_postgres_dense_retrieval.py \
-    --ignore=tests/test_postgres_sparse_hybrid.py \
+    --ignore=tests/server/db/test_postgres_store_integration.py \
+    --ignore=tests/server/db/test_postgres_dense_retrieval.py \
+    --ignore=tests/server/db/test_postgres_sparse_hybrid.py \
     -m "not integration"
   echo ""
   echo "7/9 Frontend lint (eslint)..."
@@ -93,9 +93,9 @@ echo "6/11 Backend tests + coverage..."
 # free of shared-DB races (matches .github/workflows/ci.yml backend job).
 uv run pytest --tb=short -q \
   --ignore=tests/contract \
-  --ignore=tests/test_postgres_store_integration.py \
-  --ignore=tests/test_postgres_dense_retrieval.py \
-  --ignore=tests/test_postgres_sparse_hybrid.py \
+  --ignore=tests/server/db/test_postgres_store_integration.py \
+  --ignore=tests/server/db/test_postgres_dense_retrieval.py \
+  --ignore=tests/server/db/test_postgres_sparse_hybrid.py \
   -m "not integration" \
   --cov=server.core.guards.search_index_plan \
   --cov=server.core.guards.search_index_guard \

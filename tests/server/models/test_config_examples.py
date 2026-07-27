@@ -16,8 +16,9 @@ from cli.config_loader import load_config
 from server.core.search_index_plan import required_search_indexes
 from server.db.mongo.indexes import TEXT_SEARCH_INDEX_NAME
 from server.models.config import ExperimentConfig, expand_sweep
+from tests.helpers.repo_paths import repo_root_from
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
+_REPO_ROOT = repo_root_from(Path(__file__))
 _MONGODB_CONFIG_DIR = _REPO_ROOT / "configs" / "mongodb"
 _SUPABASE_CONFIG_DIR = _REPO_ROOT / "configs" / "supabase"
 _SIE_CONFIG = _REPO_ROOT / "configs" / "mongodb" / "example-sie.yaml"
