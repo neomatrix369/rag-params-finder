@@ -139,8 +139,8 @@ uv run mypy server/ cli/
 
 # Tests + coverage (scoped unit packages; fail_under=95 + JSON metric checker)
 uv run pytest --tb=short -q \
-  --cov=server.core.search_index_plan \
-  --cov=server.core.search_index_guard \
+  --cov=server.core.guards.search_index_plan \
+  --cov=server.core.guards.search_index_guard \
   --cov=server.core.results_analyzer \
   --cov=server.models.config \
   --cov=server.core.sie_embedder \

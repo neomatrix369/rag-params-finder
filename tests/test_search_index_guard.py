@@ -62,7 +62,7 @@ def test_validate_raises_when_indexes_missing_and_no_slots() -> None:
     )
 
     with patch(
-        "server.core.search_index_guard.collect_search_index_snapshot",
+        "server.core.guards.search_index_guard.collect_search_index_snapshot",
         return_value=blocked,
     ):
         with pytest.raises(SearchIndexMismatchError) as exc_info:
@@ -90,15 +90,15 @@ def test_validate_attempts_ensure_when_slots_available() -> None:
     )
 
     with patch(
-        "server.core.search_index_guard.collect_search_index_snapshot",
+        "server.core.guards.search_index_guard.collect_search_index_snapshot",
         side_effect=[before, after],
     ):
         with patch(
-            "server.core.search_index_guard.reconcile_chunks_search_indexes",
+            "server.core.guards.search_index_guard.reconcile_chunks_search_indexes",
             return_value=[],
         ):
             with patch(
-                "server.core.search_index_guard.ensure_required_search_indexes"
+                "server.core.guards.search_index_guard.ensure_required_search_indexes"
             ) as ensure_mock:
                 assessment = validate_experiment_search_indexes(config)
 
@@ -143,15 +143,15 @@ def test_validate_reconciles_surplus_indexes_before_ensure() -> None:
     )
 
     with patch(
-        "server.core.search_index_guard.collect_search_index_snapshot",
+        "server.core.guards.search_index_guard.collect_search_index_snapshot",
         side_effect=[blocked, after_reconcile, after_ensure],
     ):
         with patch(
-            "server.core.search_index_guard.reconcile_chunks_search_indexes",
+            "server.core.guards.search_index_guard.reconcile_chunks_search_indexes",
             return_value=["vector_index_384 (surplus)"],
         ) as reconcile_mock:
             with patch(
-                "server.core.search_index_guard.ensure_required_search_indexes"
+                "server.core.guards.search_index_guard.ensure_required_search_indexes"
             ) as ensure_mock:
                 assessment = validate_experiment_search_indexes(config)
 
@@ -203,9 +203,9 @@ class TestCollectSearchIndexSnapshot:
         db_mock.name = "rag_params_finder"
 
         ### When
-        with patch("server.core.search_index_guard.get_database", return_value=db_mock):
+        with patch("server.core.guards.search_index_guard.get_database", return_value=db_mock):
             with patch(
-                "server.core.search_index_guard.list_cluster_search_indexes",
+                "server.core.guards.search_index_guard.list_cluster_search_indexes",
                 return_value=rows,
             ):
                 snapshot = collect_search_index_snapshot()
@@ -238,9 +238,9 @@ class TestCollectSearchIndexSnapshot:
         db_mock.name = "rag_params_finder"
 
         ### When
-        with patch("server.core.search_index_guard.get_database", return_value=db_mock):
+        with patch("server.core.guards.search_index_guard.get_database", return_value=db_mock):
             with patch(
-                "server.core.search_index_guard.list_cluster_search_indexes",
+                "server.core.guards.search_index_guard.list_cluster_search_indexes",
                 return_value=rows,
             ):
                 snapshot = collect_search_index_snapshot()
@@ -263,9 +263,9 @@ class TestCollectSearchIndexSnapshot:
         db_mock.name = "rag_params_finder"
 
         ### When
-        with patch("server.core.search_index_guard.get_database", return_value=db_mock):
+        with patch("server.core.guards.search_index_guard.get_database", return_value=db_mock):
             with patch(
-                "server.core.search_index_guard.list_cluster_search_indexes",
+                "server.core.guards.search_index_guard.list_cluster_search_indexes",
                 return_value=rows,
             ):
                 snapshot = collect_search_index_snapshot()
@@ -287,9 +287,9 @@ class TestCollectSearchIndexSnapshot:
         db_mock.name = "rag_params_finder"
 
         ### When
-        with patch("server.core.search_index_guard.get_database", return_value=db_mock):
+        with patch("server.core.guards.search_index_guard.get_database", return_value=db_mock):
             with patch(
-                "server.core.search_index_guard.list_cluster_search_indexes",
+                "server.core.guards.search_index_guard.list_cluster_search_indexes",
                 return_value=rows,
             ):
                 snapshot = collect_search_index_snapshot()
@@ -322,11 +322,11 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
 
         ### When
         with patch(
-            "server.core.search_index_guard.collect_search_index_snapshot",
+            "server.core.guards.search_index_guard.collect_search_index_snapshot",
             return_value=satisfied,
         ):
             with patch(
-                "server.core.search_index_guard.reconcile_chunks_search_indexes"
+                "server.core.guards.search_index_guard.reconcile_chunks_search_indexes"
             ) as reconcile_mock:
                 assessment = validate_experiment_search_indexes(config)
 
@@ -362,15 +362,15 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
 
         ### When
         with patch(
-            "server.core.search_index_guard.collect_search_index_snapshot",
+            "server.core.guards.search_index_guard.collect_search_index_snapshot",
             side_effect=[before, after_reconcile],
         ):
             with patch(
-                "server.core.search_index_guard.reconcile_chunks_search_indexes",
+                "server.core.guards.search_index_guard.reconcile_chunks_search_indexes",
                 return_value=["stale_index"],
             ):
                 with patch(
-                    "server.core.search_index_guard.ensure_required_search_indexes"
+                    "server.core.guards.search_index_guard.ensure_required_search_indexes"
                 ) as ensure_mock:
                     assessment = validate_experiment_search_indexes(config)
 
@@ -414,18 +414,20 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
 
         ### When
         with patch(
-            "server.core.search_index_guard.collect_search_index_snapshot",
+            "server.core.guards.search_index_guard.collect_search_index_snapshot",
             side_effect=[full, after_prune, after_ensure],
         ):
             with patch(
-                "server.core.search_index_guard.reconcile_chunks_search_indexes",
+                "server.core.guards.search_index_guard.reconcile_chunks_search_indexes",
                 return_value=[],
             ):
                 with patch(
-                    "server.core.search_index_guard.prune_unknown_search_indexes",
+                    "server.core.guards.search_index_guard.prune_unknown_search_indexes",
                     return_value=["unknown_1", "unknown_2"],
                 ) as prune_mock:
-                    with patch("server.core.search_index_guard.ensure_required_search_indexes"):
+                    with patch(
+                        "server.core.guards.search_index_guard.ensure_required_search_indexes"
+                    ):
                         assessment = validate_experiment_search_indexes(config)
 
         ### Then
@@ -453,15 +455,15 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
 
         ### When / Then
         with patch(
-            "server.core.search_index_guard.collect_search_index_snapshot",
+            "server.core.guards.search_index_guard.collect_search_index_snapshot",
             return_value=full,
         ):
             with patch(
-                "server.core.search_index_guard.reconcile_chunks_search_indexes",
+                "server.core.guards.search_index_guard.reconcile_chunks_search_indexes",
                 return_value=[],
             ):
                 with patch(
-                    "server.core.search_index_guard.prune_unknown_search_indexes",
+                    "server.core.guards.search_index_guard.prune_unknown_search_indexes",
                     return_value=[],
                 ):
                     with pytest.raises(SearchIndexMismatchError):
@@ -495,14 +497,14 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
 
         ### When / Then
         with patch(
-            "server.core.search_index_guard.collect_search_index_snapshot",
+            "server.core.guards.search_index_guard.collect_search_index_snapshot",
             side_effect=[before, still_building],
         ):
             with patch(
-                "server.core.search_index_guard.reconcile_chunks_search_indexes",
+                "server.core.guards.search_index_guard.reconcile_chunks_search_indexes",
                 return_value=[],
             ):
-                with patch("server.core.search_index_guard.ensure_required_search_indexes"):
+                with patch("server.core.guards.search_index_guard.ensure_required_search_indexes"):
                     with pytest.raises(SearchIndexMismatchError):
                         validate_experiment_search_indexes(config)
 
@@ -560,15 +562,15 @@ class TestPreflightBackendScopeShould:
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
             patch(
-                "server.core.search_index_guard.postgres_vector_extension_present",
+                "server.core.guards.search_index_guard.postgres_vector_extension_present",
                 return_value=True,
             ),
             patch(
-                "server.core.search_index_guard.collect_postgres_index_snapshot",
+                "server.core.guards.search_index_guard.collect_postgres_index_snapshot",
                 return_value=ready,
             ) as pg_snapshot,
-            patch("server.core.search_index_guard.collect_search_index_snapshot") as atlas,
-            patch("server.core.search_index_guard.ensure_required_search_indexes") as ensure,
+            patch("server.core.guards.search_index_guard.collect_search_index_snapshot") as atlas,
+            patch("server.core.guards.search_index_guard.ensure_required_search_indexes") as ensure,
         ):
             actual = validate_experiment_search_indexes(config)
 
@@ -603,14 +605,14 @@ class TestPreflightBackendScopeShould:
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
             patch(
-                "server.core.search_index_guard.postgres_vector_extension_present",
+                "server.core.guards.search_index_guard.postgres_vector_extension_present",
                 return_value=True,
             ),
             patch(
-                "server.core.search_index_guard.collect_postgres_index_snapshot",
+                "server.core.guards.search_index_guard.collect_postgres_index_snapshot",
                 return_value=empty,
             ),
-            patch("server.core.search_index_guard.collect_search_index_snapshot") as atlas,
+            patch("server.core.guards.search_index_guard.collect_search_index_snapshot") as atlas,
             pytest.raises(SearchIndexMismatchError) as exc_info,
         ):
             validate_experiment_search_indexes(config)
@@ -648,7 +650,7 @@ class TestPreflightBackendScopeShould:
         with (
             patch("server.settings.settings.storage_backend", "mongodb"),
             patch(
-                "server.core.search_index_guard.collect_search_index_snapshot",
+                "server.core.guards.search_index_guard.collect_search_index_snapshot",
                 return_value=ready,
             ) as snapshot,
         ):

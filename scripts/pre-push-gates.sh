@@ -66,8 +66,8 @@ if [[ "$BACKEND_CHANGED" -gt 0 ]]; then
     --ignore=tests/test_postgres_dense_retrieval.py \
     --ignore=tests/test_postgres_sparse_hybrid.py \
     -m "not integration" \
-    --cov=server.core.search_index_plan \
-    --cov=server.core.search_index_guard \
+    --cov=server.core.guards.search_index_plan \
+    --cov=server.core.guards.search_index_guard \
     --cov=server.core.results_analyzer \
     --cov=server.models.config \
     --cov-report=term-missing \

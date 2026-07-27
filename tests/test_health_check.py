@@ -1,5 +1,5 @@
 """
-Unit tests for server.core.health_check.
+Unit tests for server.core.guards.health_check.
 
 Author: Mani Sarkar
 Created: 2026-05-27
@@ -30,7 +30,7 @@ def test_given_empty_mongodb_uri_when_health_checked_then_return_skipped() -> No
     Then it returns skipped.
     """
     ### Given
-    with patch("server.core.health_check.settings") as mock_settings:
+    with patch("server.core.guards.health_check.settings") as mock_settings:
         mock_settings.mongodb_uri = ""
 
         ### When
@@ -50,7 +50,7 @@ def test_given_placeholder_mongodb_uri_when_health_checked_then_return_error() -
     Then it returns error.
     """
     ### Given
-    with patch("server.core.health_check.settings") as mock_settings:
+    with patch("server.core.guards.health_check.settings") as mock_settings:
         mock_settings.mongodb_uri = "your_mongodb_atlas_uri_here"
 
         ### When
@@ -72,9 +72,9 @@ def test_given_valid_uri_when_ping_succeeds_then_return_ok() -> None:
     ### Given
     mock_client = MagicMock()
     with (
-        patch("server.core.health_check.settings") as mock_settings,
+        patch("server.core.guards.health_check.settings") as mock_settings,
         patch(
-            "server.core.health_check.MongoClient", return_value=mock_client
+            "server.core.guards.health_check.MongoClient", return_value=mock_client
         ) as mock_mongo_client,
     ):
         mock_settings.mongodb_uri = "mongodb+srv://user:pass@cluster.mongodb.net/db"
@@ -99,7 +99,7 @@ def test_given_empty_database_url_when_postgres_health_checked_then_return_skipp
     Then it returns skipped.
     """
     ### Given
-    with patch("server.core.health_check.settings") as mock_settings:
+    with patch("server.core.guards.health_check.settings") as mock_settings:
         mock_settings.database_url = ""
 
         ### When
@@ -123,8 +123,8 @@ def test_given_reachable_postgres_when_health_checked_then_return_ok() -> None:
     mock_conn.__enter__.return_value = mock_conn
     mock_conn.__exit__.return_value = False
     with (
-        patch("server.core.health_check.settings") as mock_settings,
-        patch("server.core.health_check.psycopg.connect", return_value=mock_conn) as connect,
+        patch("server.core.guards.health_check.settings") as mock_settings,
+        patch("server.core.guards.health_check.psycopg.connect", return_value=mock_conn) as connect,
     ):
         mock_settings.database_url = "postgresql://rag:rag@localhost:5433/rag_params_finder"
 
@@ -148,9 +148,9 @@ def test_given_unreachable_postgres_when_health_checked_then_return_error() -> N
     """
     ### Given
     with (
-        patch("server.core.health_check.settings") as mock_settings,
+        patch("server.core.guards.health_check.settings") as mock_settings,
         patch(
-            "server.core.health_check.psycopg.connect",
+            "server.core.guards.health_check.psycopg.connect",
             side_effect=psycopg.OperationalError("connection refused"),
         ),
     ):
@@ -179,13 +179,13 @@ class TestStorageHealthShould:
         """
         ### Given / When
         with (
-            patch("server.core.health_check.settings") as mock_settings,
+            patch("server.core.guards.health_check.settings") as mock_settings,
             patch(
-                "server.core.health_check.postgres_health_status", return_value="ok"
+                "server.core.guards.health_check.postgres_health_status", return_value="ok"
             ) as postgres_probe,
-            patch("server.core.health_check.mongodb_health_status") as mongo_probe,
+            patch("server.core.guards.health_check.mongodb_health_status") as mongo_probe,
             patch(
-                "server.core.health_check.resolve_storage_mode",
+                "server.core.guards.health_check.resolve_storage_mode",
                 return_value="postgres-local",
             ),
         ):
@@ -215,10 +215,10 @@ class TestStorageHealthShould:
         """
         ### Given / When
         with (
-            patch("server.core.health_check.settings") as mock_settings,
-            patch("server.core.health_check.postgres_health_status", return_value="error"),
+            patch("server.core.guards.health_check.settings") as mock_settings,
+            patch("server.core.guards.health_check.postgres_health_status", return_value="error"),
             patch(
-                "server.core.health_check.resolve_storage_mode",
+                "server.core.guards.health_check.resolve_storage_mode",
                 return_value="postgres-local",
             ),
         ):
@@ -245,11 +245,11 @@ class TestStorageHealthShould:
         """
         ### Given / When
         with (
-            patch("server.core.health_check.settings") as mock_settings,
-            patch("server.core.health_check.mongodb_health_status", return_value="ok"),
-            patch("server.core.health_check.postgres_health_status") as postgres_probe,
+            patch("server.core.guards.health_check.settings") as mock_settings,
+            patch("server.core.guards.health_check.mongodb_health_status", return_value="ok"),
+            patch("server.core.guards.health_check.postgres_health_status") as postgres_probe,
             patch(
-                "server.core.health_check.resolve_storage_mode",
+                "server.core.guards.health_check.resolve_storage_mode",
                 return_value="mongodb-cloud",
             ),
         ):
@@ -276,10 +276,10 @@ class TestStorageHealthShould:
         """
         ### Given / When
         with (
-            patch("server.core.health_check.settings") as mock_settings,
-            patch("server.core.health_check.mongodb_health_status", return_value="skipped"),
+            patch("server.core.guards.health_check.settings") as mock_settings,
+            patch("server.core.guards.health_check.mongodb_health_status", return_value="skipped"),
             patch(
-                "server.core.health_check.resolve_storage_mode",
+                "server.core.guards.health_check.resolve_storage_mode",
                 return_value="mongodb-local",
             ),
         ):

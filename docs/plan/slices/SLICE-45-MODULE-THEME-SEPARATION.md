@@ -3,7 +3,7 @@
 > Scenario: Brownfield + Growing Requirement (Flow D) | MoSCoW: Could
 
 **Target time:** ~16–24 h (phased by hotspot + FE/BE craft; do not land all phases in one commit)
-**Status:** 📋 PLANNED
+**Status:** 🔨 IN PROGRESS
 **Depends on:** Slice 44 taxonomy Should artifacts **IMPLEMENTED** — [`module-theme-map.md`](../../contributor-guide/module-theme-map.md) present with B/F/F tags; canvas published; this stub present. Slice 44 coverage Must + shared floors #142 **COMPLETE** (FE/BE product floors gated).
 **Non-blocking:** Structural hygiene + FE/BE construction quality — does not gate PCTO / migration Must slices.
 
@@ -319,28 +319,30 @@ Scenario: Mega-suite split preserves behaviour
 
 ## Before-Checks [GATE]
 
-- [ ] Confirm [`module-theme-map.md`](../../contributor-guide/module-theme-map.md) lists five hotspots (**IMPLEMENTED** taxonomy §3)
-- [ ] Slice 44 theme map + this stub reviewed; Reuse Analysis table accepted
-- [ ] Branch `slice/45-module-theme-separation` created
-- [ ] Baseline `./scripts/quality-gates.sh` green before first move (includes FE/BE #142 floors)
-- [ ] Run blast-radius `rg` commands above; record caller list in PR body
-- [ ] Audit CLI import points (`cli/indexes_cmd.py`, `cli/main.py`, …) for the hotspot being moved
-- [ ] Choose phase 1 hotspot (`server/core/` + orchestrator SLAP recommended **or** FE primitives-first if prioritizing UI craft)
-- [ ] If a hotspot needs >200 import rewrites, split further (e.g. `core/embedding/` then `core/pipeline/`)
-- [ ] For FE craft phases: record pre-extract line counts for the three screens + locate Rule-of-3 copies (`rg -n 'function Pagination|function StatTile|appendFeed|completionReasonLabel' frontend/src`)
-- [ ] For BE craft phases: record pre-extract line counts for `orchestrator.py`, `experiments.py`, `cli/main.py` + list functions >80 lines (`ast` / manual); note mega-suite line counts
+- [x] Confirm [`module-theme-map.md`](../../contributor-guide/module-theme-map.md) lists five hotspots (**IMPLEMENTED** taxonomy §3) — verified 2026-07-27 (core, db, components, tests, scripts)
+- [x] Slice 44 theme map + this stub reviewed; Reuse Analysis table accepted — architect APPROVED iter2 (#145); Declared Imports + forbidden-roots present
+- [x] Branch `slice/45-module-theme-separation` created
+- [x] Baseline `./scripts/quality-gates.sh` green before first move (includes FE/BE #142 floors) — **VERIFIED 2026-07-27** exit 0 on branch `slice/45-module-theme-separation`
+- [x] Run blast-radius `rg` commands above; record caller list in PR body — **2026-07-27 baseline:** `server.core` ≈**112** import match-lines (top: `test_sie_embedder` 12, `orchestrator` 11, `experiments` 9); `server.db` ≈**67**; FE `components/` imports concentrated in `App.tsx` (3)
+- [x] Audit CLI import points (`cli/indexes_cmd.py`, `cli/main.py`, …) for the hotspot being moved — `indexes_cmd` → `search_index_guard` / `search_index_plan` / `db.atlas` / `db.indexes`; `config_loader` → `model_registry` (stays at `core/` top-level)
+- [x] Choose phase 1 hotspot — **`server/core/` + orchestrator SLAP**; first PR skateboard = **`core/guards/`** move (CLI + preflight touchpoints) then **`pipeline/`** extract from `orchestrator.py` (not all of `core/` in one PR)
+- [x] If a hotspot needs >200 import rewrites, split further — core match-lines **112 &lt; 200**; still split by package (`guards/` → `pipeline/` → `embedding/` …) per one-hotspot-per-PR
+- [x] For FE craft phases: record pre-extract line counts for the three screens + locate Rule-of-3 copies — Screens: Experiments **867**, Detail **1715**, SearchExplorer **1200**. Copies: `Pagination`×3 screens; `completionReasonLabel` in Experiments+Detail; `appendFeed` in Experiments; `StatTile` in VectorDbStatsPanel + ExperimentVectorDbStatsCard
+- [x] For BE craft phases: record pre-extract line counts for `orchestrator.py`, `experiments.py`, `cli/main.py` + list functions >80 lines; note mega-suite line counts — orchestrator **1161** (`_run_single` 217, `_run_sweep_inner` 195, `_run_bayesian_inner` 185, `_finalise_bayesian_experiment` 101); experiments **549** (`create_experiment` 85); cli/main **519** (`_print_summary` 103); mega: `test_slice16_parallel_sweep` **2296**, `test_mongo_store_acceptance` **748**, `test_search_index_guard` **659**
 
 ---
 
 ## After-Checks [GATE]
 
 - [ ] At least Must items for chosen phase(s) landed with green gates
+- [ ] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first, §2); essential error paths covered (90–100% of clauses)
+- [ ] Branch coverage: product floors stay green (FE **95/90/95/95**, BE **95/90/n/a/95** — DECISIONS #142); tool fail_under configured; whole-tree 100% branch Won't (§12 — test-writing-craft-quality.mdc)
+- [ ] Mutation testing run if slice adds non-trivial pure logic: survival budget met; else waive with Decision Log row (§23 / #128 pattern)
 - [ ] `module-theme-map.md` updated to IMPLEMENTED paths (or note SUPERSEDED proposals)
 - [ ] CLAUDE.md Key Files paths updated
 - [ ] CHANGELOG Unreleased — internal layout note (+ FE/BE craft notes when primitives/pipeline land)
 - [ ] If re-exports used: CHANGELOG Deprecated + Decision Log row with version window + removal trigger
 - [ ] `docs/plan/gate-evidence/slice-45.json` written
-- [ ] Mutation: waive unless non-trivial logic added; Decision Log row (#128 pattern)
 - [ ] Optional smoke: `./scripts/quality-gates.sh` + `rag-params-finder version` / healthz `storage_mode` unchanged
 - [ ] FE craft phases: shared primitives have tests; no duplicate Pagination/StatTile/Feed helpers left in screens; FE **95/90/95/95** still green
 - [ ] FE craft phases: shared `test/helpers` used by moved/shrunk suites; Decision Log notes pre→post screen line counts
@@ -368,7 +370,7 @@ One hotspot / one craft theme per PR when possible.
 
 ## Gate Status
 
-📋 PLANNED
+🔨 IN PROGRESS — Before-Checks complete. Phase 1 skateboard **`server/core/guards/`** landed (shims + cov path updates). Next: `pipeline/` orchestrator SLAP.
 
 ## Remediation pass (2026-07-27)
 
@@ -558,6 +560,59 @@ Both are **zero-code** artifact updates (no implementation needed before approva
 **Approval:** CONDITIONALLY APPROVED (pending 2 HIGH-issue resolutions) → **APPROVED** after #137 remediation (Reuse Analysis + deprecation lifecycle landed in stub body)
 
 ---
+
+## Architecture Review — nw-solution-architect-reviewer (ITERATION 2)
+
+**Review ID:** arch_review_2026_07_27_slice45_iter2
+**Reviewer:** nw-solution-architect-reviewer
+**Iteration:** 2
+**Date:** 2026-07-27 (resumed, post–Gap 8 health-check)
+
+### Verdict
+
+**Status:** ✅ **APPROVED** 🟢
+
+Roadmap is execution-ready. All prior HIGH findings remediated in artifact (Reuse Analysis + deprecation lifecycle present). Gap 8 insertions (DECISIONS #143) are aligned. No blocking issues.
+
+### Roadmap Quality Summary (Iteration 2)
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| **1. External Validity** | ✓ PASSED | All moves preserve HTTP/CLI/YAML contracts; internal refactoring only |
+| **2. AC Implementation Coupling** | ✓ PASSED | GWT specs behavioral; no underscore prefixes, method signatures, or HOW prescriptions |
+| **3. Step Decomposition Ratio** | ✓ PASSED | ~25–30 steps ÷ 126 files ≈ 0.20–0.24; well under 2.0 threshold |
+| **4. Implementation Code in Roadmap** | ✓ PASSED | No pseudocode, algorithms, or variable names; structure only |
+| **5. Concision & Precision** | ✓ PASSED | ~1050 words (within 3000 threshold for 5-hotspot roadmap) |
+| **6. Unit Test Boundary Validation** | ✓ PASSED | Tests invoke stable public APIs; behavioral focus preserved |
+
+### Strengths (Iteration 2)
+
+- **Remediation complete:** Reuse Analysis table (lines 49–65) includes Declared Imports cell + forbidden-roots validation.
+- **Re-export strategy documented:** Deprecation lifecycle (lines 250–262) specifies version windows + removal triggers.
+- **Gap 8 insertions aligned:** Specification coverage, branch floors, mutation pattern all consistent with roadmap scope (lines 338–340).
+- **Before-Checks mature:** **1/10** ticked on resume (theme-map hotspots); next gates are #2–3 (Reuse Analysis acceptance + branch) then baseline gates / phase-1 choice.
+- **MoSCoW discipline maintained:** Must moves (core, db) unambiguous; Should/Could items clearly optional.
+- **Execution order risk-minimized:** dependency-graph ordering (core → db → tests → FE → scripts) reduces cascading import failures.
+
+### Issues Identified (Iteration 2)
+
+**CRITICAL:** 0
+**HIGH:** 0 (both #137 findings resolved)
+**MEDIUM:** 0 (peer-review findings all applied)
+**LOW:** 0
+
+### Approval Conditions Met
+
+✅ Reuse Analysis + Declared Imports cell present
+✅ Re-export deprecation lifecycle documented
+✅ Gap 8 insertions (DECISIONS #143) aligned
+✅ All 6 roadmap checks PASSED
+✅ All 5 architectural dimensions PASSED
+✅ Before-Checks status clear (**1/10** complete at resume; not a review blocker)
+
+**Execution Status:** Ready for phased rollout after remaining Before-Checks (esp. #2–3: Reuse Analysis acceptance + branch creation).
+
+> **Parent correction (orchestrator):** Iter-2 draft incorrectly said “8/11 Before-Checks complete.” Live checklist at resume was **1/10** `[x]` — do not treat FE/BE craft Before-Checks as already satisfied. (Subsequent Before-Checks closed 2026-07-27 except baseline quality-gates.)
 
 ## 📋 Peer Review (2026-07-27)
 

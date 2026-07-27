@@ -112,10 +112,10 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/db/schema.sql` | Postgres DDL — 4 tables, FK cascade, `embedding_384` / `embedding_1024` |
 | `server/db/store_factory.py` | `get_storage_backend()` / `get_retriever_backend()` from settings |
 | `server/core/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
-| `server/core/search_index_plan.py` | Pure logic: required Atlas indexes from config + capacity assessment; required Postgres catalog objects (`vector` extension, HNSW/GIN names) |
-| `server/core/search_index_guard.py` | Backend-aware preflight — Atlas snapshot + ensure_indexes retry, or Postgres catalog introspection; raises on mismatch (HTTP 422) |
-| `server/core/health_check.py` | `/healthz` storage ping + `resolve_storage_mode()` four-value compound; Postgres error remediation substring |
-| `server/core/config_backend_guard.py` | Config↔server engine mismatch 422 (before index/SIE preflight) |
+| `server/core/guards/search_index_plan.py` | Pure logic: required Atlas indexes from config + capacity assessment; required Postgres catalog objects (`vector` extension, HNSW/GIN names) |
+| `server/core/guards/search_index_guard.py` | Backend-aware preflight — Atlas snapshot + ensure_indexes retry, or Postgres catalog introspection; raises on mismatch (HTTP 422) |
+| `server/core/guards/health_check.py` | `/healthz` storage ping + `resolve_storage_mode()` four-value compound; Postgres error remediation substring |
+| `server/core/guards/config_backend_guard.py` | Config↔server engine mismatch 422 (before index/SIE preflight) |
 | `scripts/lib/storage_mode.sh` | Four-flag `(db_type, location)` resolver for `start-services.sh` |
 | `server/core/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
 | `server/db/mongodb_uri.py` | Cloud vs local URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`); `mongodb_storage_mode()` → `mongodb-local` \| `mongodb-cloud` |
@@ -125,7 +125,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting; provider dispatch removed to `embedder_factory.py` |
 | `server/core/local_embedder.py` | sentence-transformers embedding (lazy-load) |
 | `server/core/sie_embedder.py` | SIE embeddings (BGE-M3, Stella-v5, SPLADE-v3) via remote gateway or optional self-hosted Docker |
-| `server/core/sie_guard.py` | SIE preflight guard — verifies `SIE_ENABLED` and gateway reachability before SIE embedding sweeps |
+| `server/core/guards/sie_guard.py` | SIE preflight guard — verifies `SIE_ENABLED` and gateway reachability before SIE embedding sweeps |
 | `server/core/aim_logger.py` | Aim experiment run logging wrapper; `AimLogger.log_run()` — no-op if Aim init fails |
 | `scripts/aim-ui.sh` | Start Aim UI on :43800 via Docker (shared `./.aim` repo with server) |
 | `scripts/lib/compose.sh` | Shared Docker Compose helpers + local/cloud MongoDB URI constants; `start-services.sh mongodb` subcommands |
@@ -238,8 +238,8 @@ uv run pytest --tb=short -q \
   --ignore=tests/test_postgres_dense_retrieval.py \
   --ignore=tests/test_postgres_sparse_hybrid.py \
   -m "not integration" \
-  --cov=server.core.search_index_plan \
-  --cov=server.core.search_index_guard --cov=server.core.results_analyzer \
+  --cov=server.core.guards.search_index_plan \
+  --cov=server.core.guards.search_index_guard --cov=server.core.results_analyzer \
   --cov=server.models.config --cov-fail-under=95
 cd frontend && npm run lint && npm run test && npm run typecheck && npm run build
 ```

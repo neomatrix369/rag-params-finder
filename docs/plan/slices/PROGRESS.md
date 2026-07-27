@@ -65,7 +65,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 42 — Docker Build Optimisation | ✅ COMPLETE | ~2–3 h | Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime (62 MB); CI docker-build job (non-blocking, path-scoped) — [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
 | 43 — Supabase example-config verification | ✅ COMPLETE | ~1–2 h | **Could** — 16/16 local Postgres smoke runs complete; operator docs distinguish `STORAGE_BACKEND` from `database_provider` and explain env asymmetry — [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) |
 | 44 — Frontend coverage + gate summary | ✅ COMPLETE | Phase A+B + #142 | FE **95/90/95/95**; BE **95/90/n/a/95** (`fail_under` + JSON floor checker) — DECISIONS #142 — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) · [`gate-evidence/slice-44.json`](../gate-evidence/slice-44.json) |
-| 45 — Module theme separation + FE/BE craft | 📋 PLANNED | ~16–24 h | **Could** — folder moves + FE/BE Code Complete backlog (orchestrator SLAP, fat API/CLI, mega-suites, FE primitives/screens); no contract changes — [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) |
+| 45 — Module theme separation + FE/BE craft | 🔨 IN PROGRESS | ~16–24 h | **Could** — folder moves + FE/BE Code Complete backlog (orchestrator SLAP, fat API/CLI, mega-suites, FE primitives/screens); no contract changes — [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
 
@@ -694,7 +694,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
 | 2026-07-27 | 44 | Coverage floor: Before-Check lines 50.18% → after Should ~64.75%; thresholds ratcheted to lines≥64 / branches≥58 / functions≥61 / statements≥62 — DECISIONS #138; mutation waived | Invent floor / keep ungated bare vitest |
-| 2026-07-27 | 45 | Park BE Code Complete craft debt on Slice 45 Should/Could (§1b: orchestrator SLAP, fat API/CLI, mega-suites; Won't: merge dual backends / whole-tree 100% / local mutation) — estimate ~16–24 h with FE | Leave orchestrator god module untracked / invent Slice 45B |
+| 2026-07-27 | 45 | Land `core/guards/` first with shim re-exports; retarget test patches to canonical paths | Keep sys.modules alias / big-bang rewrite all server.core imports |
 | 2026-07-27 | 45 | Park FE Code Complete craft debt on Slice 45 Should/Could (shared UI primitives, screen SLAP, shared test helpers; Won't: higher floors / TanStack / mutation) — expand estimate (later raised with BE) | Bundle into Slice 44 coverage PR / invent Slice 44B |
 | 2026-07-27 | coverage | Shared FE+BE floors **#142** — FE 95/90/95/95; BE **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` (TOTAL ≈97.7%) | Keep BE at 90 / soft 92/85 policy |
 | 2026-07-27 | coverage | Fair floors **#141** — FE 95/90/95/95; BE fail_under=90 + policy 92/85/n/a/90 | Keep flat FE 90 / invent BE branch≥90 without tests |

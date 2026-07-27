@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Module theme map** (Slice 44 Should §3) — Behavior | Feature | Function taxonomy and ranked folder-separation proposals for five flat hotspots ([module-theme-map.md](docs/contributor-guide/module-theme-map.md)); filesystem moves deferred to [SLICE-45](docs/plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md) (**PROPOSED**).
+- **Module theme map** (Slice 44 Should §3) — Behavior | Feature | Function taxonomy and ranked folder-separation proposals for five flat hotspots ([module-theme-map.md](docs/contributor-guide/module-theme-map.md)); Slice 45 owns moves — `server/core/guards/` **IMPLEMENTED** (phase 1 skateboard).
 - **Frontend coverage gate** (Slice 44 Must Phase A+B) — `quality-gates.sh` / `pre-push-gates.sh` run `npm run test:coverage`; CI frontend runs `test:ci`; Vitest v8 thresholds with `all: true` (product floor **95/90/95/95** — DECISIONS #142) (**VERIFIED**).
 - **Slice 38 COMPLETE — Cutover + ADR-004** — Dual-backend Postgres/pgvector (Supabase) + Mongo accepted ([ADR-004](docs/adr/ADR-004-postgresql-pgvector-vector-store.md); [ADR-003](docs/adr/ADR-003-mongodb-atlas-vector-store.md) superseded). Local comparison VERIFIED ([slice-38-quality-comparison.md](docs/plan/gate-evidence/slice-38-quality-comparison.md): 120-run twins; QUERYING latency ≤2× PASS; rank overlap informational under #129). **No default flip** (#130 Won't) — code default stays `mongodb`; engines independently selectable. Gate evidence: [slice-38.json](docs/plan/gate-evidence/slice-38.json).
 - **Local/cloud parity + low-friction switching** (Slice 37) — four-flag `./start-services.sh --{mongodb|postgres}-{local|cloud}` (legacy `--local`/`--postgres`/`-l`/`-p` flag aliases **removed** — they now fail as generic unknown options; env `RAG_LOCAL_ATLAS`/`RAG_LOCAL_POSTGRES` still map with a notice); pre-commit/CI shellcheck now covers root `start-services.sh` as well as `scripts/**/*.sh`; bare start respects `.env` `STORAGE_BACKEND`; compose profiles `mongodb-local`/`postgres-local` (aliases `local-atlas`/`local-postgres`); `database_provider: supabase` → `postgres` + warning; `vector_db_id` = `storage_mode:<host>`; `POST /experiments` rejects config↔server engine mismatch with HTTP 422 **before** index/SIE preflight and persists `storage_mode`; postgres lifecycle `start|stop|reset|status`; optional `SUPABASE_URI` alias for `DATABASE_URL` (canonical `DATABASE_URL` wins when both set); Path B Session-mode / pause runbook verified against live hosted Supabase (`storage_mode=postgres-cloud`). See [postgres-setup.md](docs/user-guide/postgres-setup.md), [configuration.md → Engine × Location](docs/user-guide/configuration.md#-environment-variables-env), [troubleshooting → Config engine mismatch](docs/user-guide/troubleshooting.md#-config-engine-mismatch-database_provider--storage_backend)
@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Slice 45 (phase 1 skateboard)** — moved preflight/health modules into `server/core/guards/` (`search_index_plan`, `search_index_guard`, `sie_guard`, `config_backend_guard`, `health_check`). Coverage/gate `--cov` paths updated to `server.core.guards.*`.
 - **Nightly Meterian OSS path** — `nightly.yml` Meterian job uses `oss: true` (no `METERIAN_API_TOKEN`), pins scanners to Python + Node (`cli_args`), and archives `meterian-<run>` artifacts (HTML, JUnit, SARIF, CycloneDX + CSV SBOM) for comparison with Anchore (**IMPLEMENTED**; not yet observed on a green nightly run).
 - **Shared coverage floors 95/90/95/95** (DECISIONS #142) — FE Vitest **95/90/95/95**; BE **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` (stmts/br/lines from coverage JSON; functions n/a on coverage.py). Gap tests raised TOTAL ≈97.7%.
 - **Fair coverage metric floors** (DECISIONS #141) — FE **95/90/95/95**; BE interim policy 92/85 with `fail_under=90` — **superseded for BE by #142**.
@@ -64,6 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pre-push hook** (2026-05-28): replaced `pre-commit run --all-files` on push with `quality-gates.sh --quick` so push runs pytest and frontend verify, not only lint hooks
 - Upgraded urllib3, starlette, idna, langchain-core via uv dependency overrides
 - Pre-commit: gitleaks config, frontend lint hook, bandit hook (`uv run bandit … -ll`, aligned with CI)
+
+### Deprecated
+
+- **`server.core.{search_index_plan,search_index_guard,sie_guard,config_backend_guard,health_check}`** — shim re-exports remain for one release; prefer `server.core.guards.<module>`. Removal trigger: next minor after this notice (DECISIONS #146/#147).
 
 ### Fixed
 

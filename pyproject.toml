@@ -96,8 +96,8 @@ markers = [
 
 [tool.coverage.run]
 source = [
-    "server/core/search_index_plan.py",
-    "server/core/search_index_guard.py",
+    "server/core/guards/search_index_plan.py",
+    "server/core/guards/search_index_guard.py",
     "server/core/results_analyzer.py",
     "server/models/config.py",
     "server/core/sie_embedder.py",

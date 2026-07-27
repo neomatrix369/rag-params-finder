@@ -94,7 +94,7 @@ class TestConfigBackendGuardShould:
         config = _minimal_config(database_provider="postgres")
 
         ### When / Then
-        with patch("server.core.config_backend_guard.settings") as mock_settings:
+        with patch("server.core.guards.config_backend_guard.settings") as mock_settings:
             mock_settings.storage_backend = "postgres"
             validate_config_backend_match(config)
 
@@ -113,9 +113,9 @@ class TestConfigBackendGuardShould:
 
         ### When
         with (
-            patch("server.core.config_backend_guard.settings") as mock_settings,
+            patch("server.core.guards.config_backend_guard.settings") as mock_settings,
             patch(
-                "server.core.config_backend_guard.resolve_storage_mode",
+                "server.core.guards.config_backend_guard.resolve_storage_mode",
                 return_value="postgres-cloud",
             ),
         ):

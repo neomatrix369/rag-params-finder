@@ -64,7 +64,7 @@ Mild (optional later): `server/api/` → `experiments/` vs `sweep/`.
 | Embedding providers | `embedder.py`, `local_embedder.py`, `sie_embedder.py`, `embedder_factory.py`, `rate_limiter.py` | Feature \| Function |
 | Rerank | `reranker.py`, `local_reranker.py` | Feature |
 | Retrieval | `retriever_mongo.py`, `retriever_postgres.py` | Feature \| Behavior |
-| Preflight guards | `search_index_plan.py`, `search_index_guard.py`, `sie_guard.py`, `config_backend_guard.py`, `health_check.py` | Behavior \| Function |
+| Preflight guards | `guards/search_index_plan.py`, `guards/search_index_guard.py`, `guards/sie_guard.py`, `guards/config_backend_guard.py`, `guards/health_check.py` | Behavior \| Function — **IMPLEMENTED** (Slice 45; shims at `server.core.<name>`) |
 | Catalog / analysis | `model_registry.py`, `results_analyzer.py` | Function \| Feature |
 | Observability / ops | `aim_logger.py`, `atlas_storage.py` | Function \| Feature |
 

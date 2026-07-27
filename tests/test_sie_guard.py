@@ -55,7 +55,7 @@ class TestSIEGuardPreflight:
             execution=ExecutionConfig(),
         )
 
-        with patch("server.core.sie_guard.probe_sie_reachable") as mock_probe:
+        with patch("server.core.guards.sie_guard.probe_sie_reachable") as mock_probe:
             validate_sie_readiness(config)
 
         mock_probe.assert_not_called()
@@ -71,7 +71,7 @@ class TestSIEGuardPreflight:
             sie_enabled=False, sie_endpoint="http://localhost:8720", sie_api_key=""
         )
 
-        with patch("server.core.sie_guard.settings", mock_settings):
+        with patch("server.core.guards.sie_guard.settings", mock_settings):
             with pytest.raises(SIEUnavailableError, match="SIE_ENABLED=true"):
                 validate_sie_readiness(config)
 
@@ -87,8 +87,8 @@ class TestSIEGuardPreflight:
         )
 
         with (
-            patch("server.core.sie_guard.settings", mock_settings),
-            patch("server.core.sie_guard.probe_sie_reachable", return_value=False),
+            patch("server.core.guards.sie_guard.settings", mock_settings),
+            patch("server.core.guards.sie_guard.probe_sie_reachable", return_value=False),
         ):
             with pytest.raises(SIEUnavailableError, match="unreachable"):
                 validate_sie_readiness(config)
@@ -105,8 +105,8 @@ class TestSIEGuardPreflight:
         )
 
         with (
-            patch("server.core.sie_guard.settings", mock_settings),
-            patch("server.core.sie_guard.probe_sie_reachable", return_value=True),
+            patch("server.core.guards.sie_guard.settings", mock_settings),
+            patch("server.core.guards.sie_guard.probe_sie_reachable", return_value=True),
         ):
             validate_sie_readiness(config)
 
@@ -121,8 +121,8 @@ class TestSIEGuardPreflight:
             sie_api_key="secret-token",
         )
         with (
-            patch("server.core.sie_guard.settings", mock_settings),
-            patch("server.core.sie_guard.httpx.get") as mock_get,
+            patch("server.core.guards.sie_guard.settings", mock_settings),
+            patch("server.core.guards.sie_guard.httpx.get") as mock_get,
         ):
             mock_get.return_value.status_code = 200
             from server.core.sie_guard import probe_sie_reachable
