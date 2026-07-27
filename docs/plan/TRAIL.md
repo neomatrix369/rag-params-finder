@@ -80,7 +80,9 @@ Each PCTO / migration slice lives in its own file below. Existing planned slices
 | Vite 6 → 8 + `@vitejs/plugin-react` upgrade | Peer dep conflict (#43 closed) | Future toolchain slice |
 | ESLint 8 → 9 + react-refresh 0.5 + security 4.0 | Config migration required (#41, #42 closed) | Future toolchain slice |
 | eslint-plugin-react-hooks 7 | React 19 hook rules fail CI (#26 closed) | After SearchExplorerScreen refactor |
-| sentence-transformers v4+ | mypy CrossEncoder mismatch (#40 closed) | Dedicated ML stack slice |
+| sentence-transformers v4+ (+ transformers ≥5.5) | ST 3.x requires `transformers<5`; CrossEncoder API/mypy (#40 closed); clears CVE-2026-4372/5241/1839 | Dedicated ML stack slice — until then: `.trivyignore` / `.meterian` / `pip-audit.sh` |
+| langsmith ≥0.8.18 (GHSA-f4xh-w4cj-qxq8) | sie-sdk pins `websockets>=14,<15`; fix needs `websockets≥15` | sie-sdk pin lift — until then: `.trivyignore` / `.meterian` / `pip-audit.sh` |
+| aim ≥4.x (CVE-2025-51464 / CVE-2025-5321) | PyPI aim 4.0.0–4.0.3 yanked; latest stable 3.29.1 | Non-yanked aim 4.x stable + AimLogger/aim-ui smoke — until then: `.meterian` + Aim UI opt-in only |
 | Mongo adapter removal | Dual-backend kept through Slice 38 | Post-cutover cleanup (Won't this cycle) |
 
 ## Supporting Artifacts

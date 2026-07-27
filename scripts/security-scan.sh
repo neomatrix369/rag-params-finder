@@ -169,11 +169,13 @@ if $RUN_METERIAN; then
     METERIAN_IMAGE="meterian/cli:latest"
     $HAS_PYTHON && METERIAN_IMAGE="meterian/cli:latest-python"
 
+    # Mounts repo root so Meterian reads `.meterian` exclusions (same file as nightly GHA).
     echo "  Running: Meterian SCA + license ($METERIAN_IMAGE)..."
     set +e
     docker run --rm \
       -e METERIAN_API_TOKEN="$METERIAN_API_TOKEN" \
       -v "$(pwd):/workspace" \
+      -w /workspace \
       "$METERIAN_IMAGE" \
       --interactive=false \
       --min-security=90 \

@@ -1,0 +1,49 @@
+{
+  "exclusions": {
+    "security": {
+      "cves": [
+        {
+          "cve": "CVE-2025-51464",
+          "reason": "mitigated",
+          "description": "aim XSS via /api/reports (Pyodide). Fix cited as aim 4.0.3 but all PyPI 4.0.0–4.0.3 releases are yanked; latest stable remains 3.29.1 (no installable patched release). Compensating: Aim UI is opt-in only (compose profile aim / scripts/aim-ui.sh); production path uses AimLogger write API (aim.Run) only — reports/query UI not in default deploy. Unblocked by: non-yanked aim >=4.x stable on PyPI, then bump + smoke AimLogger + aim-ui."
+        },
+        {
+          "cve": "CVE-2025-5321",
+          "reason": "mitigated",
+          "description": "aim RestrictedPythonQuery sandbox issue through 3.29.1. Same unblock as CVE-2025-51464 — no installable fixed stable on PyPI (4.0.x yanked). Compensating: Aim UI opt-in; keep :43800 off public networks / bind localhost when used. Unblocked by: non-yanked aim >=4.x stable."
+        },
+        {
+          "cve": "CVE-2024-7774",
+          "reason": "unapplicable",
+          "description": "Path traversal in langchain-ai/langchainjs getFullPath / setFileContent (JavaScript). This project uses Python langchain + langchain-text-splitters only (RecursiveCharacterTextSplitter, TokenTextSplitter) — no langchainjs filesystem APIs. Unblocked by: N/A (false positive for Python stack); remove if Meterian stops attributing JS advisories to the Python package."
+        },
+        {
+          "cve": "CVE-2026-4372",
+          "reason": "mitigated",
+          "description": "transformers RCE via malicious config/_attn_implementation_internal (fix >=5.3.0). Package is transitive via sentence-transformers 3.4.1 which requires transformers>=4.41,<5. Fix needs sentence-transformers>=4 (resolves to ST 5.x + transformers 5.14.x). Compensating: model IDs allowlisted in server/core/model_registry.py; arbitrary HF IDs rejected. Unblocked by: ML stack slice (TRAIL.md sentence-transformers v4+)."
+        },
+        {
+          "cve": "CVE-2026-5241",
+          "reason": "mitigated",
+          "description": "transformers LightGlue trust_remote_code override (fix >=5.5.0). LightGlue path unused; same ST<4 / transformers<5 lock constraint as CVE-2026-4372. Compensating: model-registry allowlist. Unblocked by: ML stack slice (sentence-transformers >=4, transformers >=5.5)."
+        },
+        {
+          "cve": "CVE-2026-1839",
+          "reason": "mitigated",
+          "description": "transformers Trainer._load_rng_state torch.load without weights_only (fix in v5.0.0rc3+). We do not use Trainer or load untrusted rng_state.pth checkpoints; local embed/rerank uses SentenceTransformer/CrossEncoder on allowlisted model IDs only. Unblocked by: same ML stack upgrade as CVE-2026-4372."
+        }
+      ],
+      "libraries": [
+        {
+          "library": {
+            "language": "python",
+            "name": "langsmith"
+          },
+          "version": "0.8.0",
+          "description": "GHSA-f4xh-w4cj-qxq8 (TracingMiddleware arbitrary file read). Fix langsmith>=0.8.18 requires websockets>=15; sie-sdk pins websockets>=14,<15 — uv lock unsatisfiable while sie-sdk is a direct dep. Compensating: TracingMiddleware is not mounted; langsmith is transitive via langchain text splitters only. Unblocked by: sie-sdk raising websockets to >=15 (or dropping the pin)."
+        }
+      ],
+      "advices": []
+    }
+  }
+}

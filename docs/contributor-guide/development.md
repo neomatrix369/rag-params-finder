@@ -152,6 +152,8 @@ uv run pytest --tb=short -q \
 bash scripts/pip-audit.sh
 ```
 
+**SCA suppressions** (congruent-lock blockers only — each entry documents blocker, compensating control, unblock): root [`.meterian`](../../.meterian) (Meterian nightly + local `security-scan.sh --meterian`) · [`.trivyignore`](../../.trivyignore) (Trivy image/container) · [`scripts/pip-audit.sh`](../../scripts/pip-audit.sh) ignores. Deferred unblock work: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) § Deferred Work.
+
 **Baseline (as of 2026-07-27)** — unit tier, same ignores as CI `backend`:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
@@ -405,9 +407,9 @@ GitHub Actions has two workflows (see `.github/workflows/`):
 | **Container scan** | Trivy CVE scan of built server image — HIGH/CRITICAL; non-blocking; fires on Docker/backend/frontend changes |
 
 **nightly.yml** — every night 02:00 UTC (T4 deep checks):
-`mutmut` (Python mutation) · `Stryker` (Node mutation) · `TruffleHog` (full git history) · `anchore/sbom-action` (CycloneDX SBOM artifact) · Trivy license compliance · **Meterian** SCA + license (`oss: true`, no `METERIAN_API_TOKEN`; scanners pinned to Python + Node via `--enabled-scanners=python,nodejs`; archives `meterian-<run>`: HTML, JUnit, SARIF, `sbom.cdx.json`, `sbom.csv` for vendor comparison with Anchore) · container scan (Dockerfile-gated) · Chalk provenance · dependency-audit · full-secrets-scan
+`mutmut` (Python mutation) · `Stryker` (Node mutation) · `TruffleHog` (full git history) · `anchore/sbom-action` (CycloneDX SBOM artifact) · Trivy license compliance · **Meterian** SCA + license (`oss: true`, no `METERIAN_API_TOKEN`; scanners pinned to Python + Node via `--enabled-scanners=python,nodejs`; archives `meterian-<run>`: HTML, JUnit, SARIF, `sbom.cdx.json`, `sbom.csv` for vendor comparison with Anchore; security exclusions in root [`.meterian`](../../.meterian) — Trivy image parity is [`.trivyignore`](../../.trivyignore)) · container scan (Dockerfile-gated) · Chalk provenance · dependency-audit · full-secrets-scan
 
-Local `./scripts/security-scan.sh --meterian` still uses the Docker CLI path and remains token-gated (`METERIAN_API_TOKEN`) — that is separate from the nightly GHA OSS job.
+Local `./scripts/security-scan.sh --meterian` still uses the Docker CLI path and remains token-gated (`METERIAN_API_TOKEN`) — that is separate from the nightly GHA OSS job. Both paths honor `.meterian` when the file is present at the repo root.
 
 Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabot.yml`).
 

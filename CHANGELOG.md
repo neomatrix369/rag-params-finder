@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Repo hygiene:** `.gitleaks.toml`, `.nvmrc`, `.editorconfig`, `.gitattributes`, Dependabot
 - **Frontend:** ESLint + `eslint-plugin-security` wired in CI and pre-commit
 
+### Security
+
+- **Meterian SCA exclusions** — root [`.meterian`](.meterian) waives CVEs / langsmith GHSA with no viable congruent lock fix (aim 4.x yanked; langchainjs false positive; transformers blocked on ST&lt;4; langsmith≥0.8.18 blocked on sie-sdk websockets&lt;15). Same policy as [`.trivyignore`](.trivyignore) / `scripts/pip-audit.sh`; deferred unblocks in [`docs/plan/TRAIL.md`](docs/plan/TRAIL.md) (**IMPLEMENTED**; **VERIFIED** pending next Meterian nightly).
+
 ### Changed
 
 - **Nightly Meterian OSS path** — `nightly.yml` Meterian job uses `oss: true` (no `METERIAN_API_TOKEN`), pins scanners to Python + Node (`cli_args`), and archives `meterian-<run>` artifacts (HTML, JUnit, SARIF, CycloneDX + CSV SBOM) for comparison with Anchore (**IMPLEMENTED**; not yet observed on a green nightly run).
