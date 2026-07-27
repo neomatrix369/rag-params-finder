@@ -54,6 +54,17 @@
       "excludes": ["*.test.*", "src/test/**", "src/main.tsx", "src/types/**"],
       "measured_at": "2026-07-27T10:20:00Z"
     },
+    "phase_b_mopup_measured": {
+      "command": "cd frontend && npm run test:coverage",
+      "tests": 252,
+      "test_files": 20,
+      "statements": 98.21,
+      "branches": 92.89,
+      "functions": 99.7,
+      "lines": 99.61,
+      "note": "Per-file mop-up for ExperimentsScreen / Detail / ControlButtons / devLog; all included modules ≥95/90",
+      "measured_at": "2026-07-27T12:21:00Z"
+    },
     "thresholds_ratcheted": {
       "phase_a": {
         "statements": 62,
@@ -87,5 +98,5 @@
       "rationale": "CI-hygiene slice; coverage expansion is mostly UI/component GWT — DECISIONS #138/#139"
     }
   },
-  "lifecycle": "VERIFIED / PASSED — Phase A + Phase B complete"
+  "lifecycle": "VERIFIED / PASSED — Phase A + Phase B + per-file mop-up"
 }

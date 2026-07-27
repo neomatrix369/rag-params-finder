@@ -693,6 +693,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 |------|-------|----------|-----|
 | 2026-07-27 | 44 | Coverage floor: Before-Check lines 50.18% → after Should ~64.75%; thresholds ratcheted to lines≥64 / branches≥58 / functions≥61 / statements≥62 — DECISIONS #138; mutation waived | Invent floor / keep ungated bare vitest |
 | 2026-07-27 | 44 | Phase B reopen: FE gate → **≥95%** lines/stmts/funcs + **≥90%** branches (option 1; reopen 44 not 44B) — DECISIONS #139 | Keep Phase A 64% as permanent bar / new Slice 44B |
+| 2026-07-27 | 44 | Phase B mop-up ✅ — measured 98.21/92.89/99.7/99.61; 252 tests / 20 files; former near-miss modules (ExperimentsScreen branches, Detail/ControlButtons/devLog) ≥95/90 | Leave per-file gaps under floor / lower thresholds |
 | 2026-07-27 | 44 | Phase B ✅ — measured 96.84/90.96/97.92/98.85 (stmts/br/fn/lines); thresholds 95/90/95/95 + `all: true`; 229 tests / 20 files | Stop at Phase A floor / invent literal 100% without exclusions |
 | 2026-07-27 | 44/45 | nw-review remediations APPLIED (#137) — 44 DoR APPROVED for execution; 45 architect APPROVED; coverage Must still PLANNED | Leave review NEEDS_REVISION / CONDITIONAL without stub edits |
 | 2026-07-27 | sync-docs | CHANGELOG / CLAUDE / development / AGENTS / ARCHITECTURE stub aligned to theme map (**IMPLEMENTED**); coverage gate still **PROPOSED** — DECISIONS #136 | Agent + release surfaces lagged plan-tracker updates |

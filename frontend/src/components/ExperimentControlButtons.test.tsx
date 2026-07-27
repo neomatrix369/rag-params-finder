@@ -94,6 +94,38 @@ describe('ExperimentControlButtons', () => {
     });
   });
 
+  it('Given running status, when Pause confirm is dismissed, then pauseExperiment is not called', () => {
+    /**
+     * Scenario: Declining the Pause confirm dialog is a no-op.
+     * Slice: 44 Phase B — ExperimentControlButtons confirm dismiss
+     */
+    // -- Given --
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<ExperimentControlButtons experimentId="exp-running" status="running" />);
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: /^Pause$/ }));
+
+    // -- Then --
+    expect(apiMocks.pauseExperiment).not.toHaveBeenCalled();
+  });
+
+  it('Given running status, when Cancel confirm is dismissed, then cancelExperiment is not called', () => {
+    /**
+     * Scenario: Declining the Cancel confirm dialog is a no-op.
+     * Slice: 44 Phase B — ExperimentControlButtons confirm dismiss
+     */
+    // -- Given --
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<ExperimentControlButtons experimentId="exp-running" status="running" />);
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: /^Cancel$/ }));
+
+    // -- Then --
+    expect(apiMocks.cancelExperiment).not.toHaveBeenCalled();
+  });
+
   it('Given running status and API error, when Cancel fails, then onError receives the message', async () => {
     /**
      * Scenario: Control failures surface through onError.

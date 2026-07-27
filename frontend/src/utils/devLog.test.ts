@@ -23,6 +23,7 @@ describe('devLog', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('Given DEV mode, when helpers are called, then scoped console methods fire', () => {
@@ -76,5 +77,26 @@ describe('devLog', () => {
 
     // -- Then --
     expect(console.info).toHaveBeenCalledTimes(2);
+  });
+
+  it('Given production mode, when helpers are called, then console methods stay quiet', () => {
+    /**
+     * Scenario: Non-DEV builds drop all console breadcrumbs.
+     * Slice: 44 Phase B — devLog DEV=false branches
+     */
+    // -- Given --
+    vi.stubEnv('DEV', false);
+
+    // -- When --
+    devDebug('Scope', 'debug msg');
+    devInfo('Scope', 'info msg');
+    devWarn('Scope', 'warn msg');
+    const lastAt = new Map<string, number>();
+    devInfoThrottled('Poll', 'list', 5_000, 'throttled', lastAt);
+
+    // -- Then --
+    expect(console.debug).not.toHaveBeenCalled();
+    expect(console.info).not.toHaveBeenCalled();
+    expect(console.warn).not.toHaveBeenCalled();
   });
 });

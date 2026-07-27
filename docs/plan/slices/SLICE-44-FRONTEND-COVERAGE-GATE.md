@@ -265,7 +265,7 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 
 ## Gate Status
 
-✅ PASSED — Phase A (`dcbdf3a`) + Phase B (2026-07-27): thresholds 95/90/95/95 + `all: true`; measured stmts **96.84%** / branches **90.96%** / funcs **97.92%** / lines **98.85%** (229 tests / 20 files)
+✅ PASSED — Phase A (`dcbdf3a`) + Phase B (2026-07-27): thresholds 95/90/95/95 + `all: true`; land measured 96.84/90.96/97.92/98.85 (229 tests); mop-up measured stmts **98.21%** / branches **92.89%** / funcs **99.7%** / lines **99.61%** (**252** tests / **20** files)
 
 ## What Changed
 
@@ -275,9 +275,10 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 | `frontend/package.json` | config | `test:ci` = coverage without overriding JUnit reporters |
 | `scripts/quality-gates.sh` / `pre-push-gates.sh` | ci | `test:coverage` |
 | `.github/workflows/ci.yml` | ci | frontend `test:ci` + typecheck + build |
-| `frontend/src/**/*.test.ts(x)` | test | Phase A critical-path + Phase B thin-module / branch push |
-| `CLAUDE.md` / `development.md` / CHANGELOG / DECISIONS / PROGRESS | docs | baselines + #138/#139 |
-| `docs/plan/gate-evidence/slice-44.json` | docs | gate evidence (Phase A + B) |
+| `frontend/src/**/*.test.ts(x)` | test | Phase A critical-path + Phase B thin-module / branch push + mop-up |
+| `frontend/src/components/ExperimentsScreen.tsx` | fix | Dead/unreachable loading-panel + redundant aliveRef branches trimmed for honest coverage |
+| `CLAUDE.md` / `development.md` / CHANGELOG / DECISIONS / PROGRESS | docs | baselines + #138/#139 + mop-up counts |
+| `docs/plan/gate-evidence/slice-44.json` | docs | gate evidence (Phase A + B + mop-up) |
 | `docs/contributor-guide/module-theme-map.md` | docs | Theme SSOT (§3) |
 | `docs/plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md` | docs | Follow-on move proposal |
 
@@ -288,7 +289,7 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 | Estimated Pomos | 3–4 Phase A + ~2–3 Phase B |
 | Execution time | Phase A + Phase B (2026-07-27) |
 | Blockers encountered | none |
-| Next-session notes | Phase B docs synced; commit/push remaining working tree; Slice 45 owns folder moves |
+| Next-session notes | Mop-up docs synced; push PR #121; Slice 45 owns folder moves |
 
 ---
 

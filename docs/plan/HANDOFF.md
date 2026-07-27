@@ -6,7 +6,7 @@
 
 **ADR-004 Accepted**; local comparison VERIFIED; CI dual-backend ✅; mutation waived (#128). **No default flip** (#130 Won't) — code default stays `mongodb` permanently; backends independently selectable (#129).
 
-**44** ✅ COMPLETE on `slice/44-frontend-coverage-gate` — Phase A (`dcbdf3a` / #138) + Phase B (#139): FE floor **≥95%** stmts/funcs/lines + **≥90%** branches (`all: true`); measured ≈96.84 / 90.96 / 97.92 / 98.85; **229** tests / **20** files (**VERIFIED**).
+**44** ✅ COMPLETE on `slice/44-frontend-coverage-gate` — Phase A (`dcbdf3a` / #138) + Phase B (#139): FE floor **≥95%** stmts/funcs/lines + **≥90%** branches (`all: true`); measured ≈98.21 / 92.89 / 99.7 / 99.61; **252** tests / **20** files (**VERIFIED**). Per-file mop-up kept former near-miss modules ≥ floor.
 
 **45** 📋 PLANNED — module theme separation; architect APPROVED (#137) — ready for phased execution (taxonomy pre-check satisfiable).
 
@@ -16,12 +16,12 @@
 - ADR-004 Accepted / ADR-003 Superseded (#127)
 - `slice-38-quality-comparison.md` — both 120-run twins; latency ≤2× PASS; overlap informational (#129)
 - `slice-38.json` — `gate_status: PASSED`; default-flip gate removed (#130)
-- Slice 44 Phase A+B: `test:coverage` in quality-gates/pre-push; `test:ci` in CI; 229 FE tests / 20 files; floor 95/90/95/95 + `all: true`; gate-evidence PASSED
+- Slice 44 Phase A+B: `test:coverage` in quality-gates/pre-push; `test:ci` in CI; 252 FE tests / 20 files; floor 95/90/95/95 + `all: true`; gate-evidence PASSED
 - Slice 44 §3 taxonomy: [`module-theme-map.md`](../contributor-guide/module-theme-map.md), [`SLICE-45-MODULE-THEME-SEPARATION.md`](slices/SLICE-45-MODULE-THEME-SEPARATION.md) (IDE canvas optional / not in-repo)
 
 ## What's Next
 
-1. Commit + push Phase B on `slice/44-frontend-coverage-gate` and open/update PR
+1. Push mop-up + docs to `slice/44-frontend-coverage-gate` and refresh [PR #121](https://github.com/neomatrix369/rag-params-finder/pull/121)
 2. Optional: Slice **45** phase 1 (`server/core/`) — taxonomy pre-check already satisfiable
 3. Merge [PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118) when ready (if still open)
 4. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 if prioritized

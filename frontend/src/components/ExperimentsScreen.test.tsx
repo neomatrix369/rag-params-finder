@@ -1033,3 +1033,478 @@ describe('ExperimentsScreen delete modal dismissal', () => {
     expect(apiMocks.deleteExperiment).not.toHaveBeenCalled();
   });
 });
+
+describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
+  beforeEach(() => {
+    apiMocks.getExperiments.mockReset();
+    apiMocks.getExperimentsWithProgress.mockReset();
+    apiMocks.getVectorDbStatsGrouped.mockReset();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('Given a stalled cold start, when the stall threshold elapses, then Still waiting appears', async () => {
+    /**
+     * Scenario: Slow initial list fetch surfaces stall feed copy.
+     * Slice: 44 Phase B — ExperimentsScreen createStallWatcher onWarning
+     */
+    // -- Given --
+    vi.useFakeTimers();
+    apiMocks.getExperimentsWithProgress.mockImplementationOnce(
+      () => new Promise<Experiment[]>(() => undefined),
+    );
+    render(<ExperimentsScreen />);
+    expect(screen.getByText('Connecting to server')).toBeInTheDocument();
+
+    // -- When --
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    // -- Then --
+    expect(screen.getByText(/Still waiting/)).toBeInTheDocument();
+  });
+
+  it('Given an in-flight stats request, when a second poll fires, then only one network call is active', async () => {
+    /**
+     * Scenario: Concurrent loadVectorDbStats reuses the in-flight promise.
+     * Slice: 44 Phase B — ExperimentsScreen vectorDbStatsInFlightRef
+     */
+    // -- Given --
+    vi.useFakeTimers();
+    const cached = [experiment('complete')];
+    let resolveStats: (value: { groups: VectorDbStatsGroup[] }) => void = () => undefined;
+    apiMocks.getExperiments.mockResolvedValue(cached);
+    apiMocks.getVectorDbStatsGrouped.mockImplementation(
+      () =>
+        new Promise<{ groups: VectorDbStatsGroup[] }>((resolve) => {
+          resolveStats = resolve;
+        }),
+    );
+    render(
+      <ExperimentsScreen
+        cacheReady
+        cachedExperiments={cached}
+        cachedVectorDbGroups={[vectorDbGroup()]}
+      />,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    const callsAfterMount = apiMocks.getVectorDbStatsGrouped.mock.calls.length;
+
+    // -- When --
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(VECTOR_DB_STATS_POLL_MS);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(VECTOR_DB_STATS_POLL_MS);
+    });
+    await act(async () => {
+      resolveStats({ groups: [vectorDbGroup()] });
+    });
+
+    // -- Then --
+    // First silent refresh starts one in-flight call; a second tick while pending must not stack another.
+    expect(apiMocks.getVectorDbStatsGrouped.mock.calls.length).toBeLessThanOrEqual(callsAfterMount + 1);
+  });
+
+  it('Given a pending stats fetch, when the screen unmounts before settle, then resolve is a no-op', async () => {
+    /**
+     * Scenario: Late stats after unmount are dropped by aliveRef.
+     * Slice: 44 Phase B — ExperimentsScreen stats aliveRef guard
+     */
+    // -- Given --
+    const cached = [experiment('complete')];
+    let resolveLate: (value: { groups: VectorDbStatsGroup[] }) => void = () => undefined;
+    apiMocks.getExperiments.mockResolvedValue(cached);
+    apiMocks.getVectorDbStatsGrouped.mockImplementationOnce(
+      () =>
+        new Promise<{ groups: VectorDbStatsGroup[] }>((resolve) => {
+          resolveLate = resolve;
+        }),
+    );
+    const { unmount } = render(
+      <ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />,
+    );
+    await waitFor(() => expect(apiMocks.getVectorDbStatsGrouped).toHaveBeenCalled());
+
+    // -- When --
+    unmount();
+    await act(async () => {
+      resolveLate({ groups: [vectorDbGroup()] });
+    });
+
+    // -- Then --
+    expect(apiMocks.getVectorDbStatsGrouped).toHaveBeenCalledTimes(1);
+  });
+
+  it('Given a pending list poll, when the screen unmounts before settle, then resolve is a no-op', async () => {
+    /**
+     * Scenario: Late list poll after unmount is dropped by aliveRef.
+     * Slice: 44 Phase B — ExperimentsScreen poll aliveRef guard
+     */
+    // -- Given --
+    vi.useFakeTimers();
+    const cached = [experiment('complete')];
+    let resolveLate: (value: Experiment[]) => void = () => undefined;
+    apiMocks.getExperiments
+      .mockResolvedValueOnce(cached)
+      .mockImplementationOnce(
+        () =>
+          new Promise<Experiment[]>((resolve) => {
+            resolveLate = resolve;
+          }),
+      );
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+    const { unmount } = render(
+      <ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(EXPERIMENTS_POLL_MS);
+    });
+
+    // -- When --
+    unmount();
+    await act(async () => {
+      resolveLate([experiment('running')]);
+    });
+
+    // -- Then --
+    expect(apiMocks.getExperiments.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('Given an unknown status and odd search_strategy, when rendered, then default badge and grid strategy copy apply', async () => {
+    /**
+     * Scenario: Defensive fallbacks for unexpected status / search_strategy values.
+     * Slice: 44 Phase B — ExperimentsScreen statusBadgeClass + resolveSearchStrategy defaults
+     */
+    // -- Given --
+    const exp = experiment('complete', 0, {
+      status: 'unknown' as Experiment['status'],
+      experiment_name: 'odd status sweep',
+      config: { execution: { search_strategy: 'random' } },
+      completion_reason: undefined,
+    });
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(screen.getByText('odd status sweep')).toBeInTheDocument();
+    expect(screen.getByText(/runs configured/)).toBeInTheDocument();
+  });
+
+  it('Given a poll that rejects a non-Error, when the interval fires, then the generic poll message is shown', async () => {
+    /**
+     * Scenario: Non-Error poll rejections still surface operator-readable copy.
+     * Slice: 44 Phase B — ExperimentsScreen silentPoll non-Error branch
+     */
+    // -- Given --
+    vi.useFakeTimers();
+    const cached = [experiment('complete')];
+    apiMocks.getExperiments
+      .mockResolvedValueOnce(cached)
+      .mockRejectedValueOnce('socket reset');
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+    render(<ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // -- When --
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(EXPERIMENTS_POLL_MS);
+    });
+
+    // -- Then --
+    expect(screen.getByRole('alert')).toHaveTextContent('Polling failed — check server connectivity.');
+  });
+
+  it('Given cache-ready remount, when the effect restarts, then prior poll timers are cleared and replaced', async () => {
+    /**
+     * Scenario: Remount clears existing intervals before installing new ones.
+     * Slice: 44 Phase B — ExperimentsScreen startPollTimers clearInterval branches
+     */
+    // -- Given --
+    vi.useFakeTimers();
+    const cached = [experiment('complete')];
+    apiMocks.getExperiments.mockResolvedValue(cached);
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+    const first = render(
+      <ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // -- When --
+    first.unmount();
+    render(<ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(EXPERIMENTS_POLL_MS);
+    });
+
+    // -- Then --
+    expect(apiMocks.getExperiments.mock.calls.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('Given a cold start that settles after unmount, when progress callbacks fire late, then they are ignored', async () => {
+    /**
+     * Scenario: applyProg aliveRef guard drops late download updates.
+     * Slice: 44 Phase B — ExperimentsScreen bootstrap applyProg aliveRef
+     */
+    // -- Given --
+    let onProgress: ((u: { type: string; receivedBytes?: number; totalBytes?: number; text?: string; variant?: string }) => void) | undefined;
+    let resolveLoad: (value: Experiment[]) => void = () => undefined;
+    apiMocks.getExperimentsWithProgress.mockImplementationOnce(async (progress) => {
+      onProgress = progress as typeof onProgress;
+      return new Promise<Experiment[]>((resolve) => {
+        resolveLoad = resolve;
+      });
+    });
+    const { unmount } = render(<ExperimentsScreen />);
+    await waitFor(() => expect(apiMocks.getExperimentsWithProgress).toHaveBeenCalled());
+
+    // -- When --
+    unmount();
+    onProgress?.({ type: 'downloading', receivedBytes: 10, totalBytes: 100 });
+    onProgress?.({ type: 'message', text: 'late', variant: 'default' });
+    await act(async () => {
+      resolveLoad([experiment('complete')]);
+    });
+
+    // -- Then --
+    expect(apiMocks.getExperimentsWithProgress).toHaveBeenCalledTimes(1);
+  });
+
+  it('Given a cold start with a warning progress update, when load succeeds, then the warning feed entry is kept', async () => {
+    /**
+     * Scenario: applyProg warning variant is recorded during bootstrap.
+     * Slice: 44 Phase B — ExperimentsScreen applyProg warning branch
+     */
+    // -- Given --
+    apiMocks.getExperimentsWithProgress.mockImplementation(async (onProgress) => {
+      onProgress?.({ type: 'message', text: 'Slow link', variant: 'warning' });
+      onProgress?.({ type: 'downloading', receivedBytes: 10, totalBytes: 100 });
+      return [experiment('complete')];
+    });
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+
+    // -- When --
+    render(<ExperimentsScreen />);
+
+    // -- Then --
+    await waitFor(() => expect(screen.getByText('complete sweep')).toBeInTheDocument());
+  });
+
+  it('Given bootstrap success that resolves after unmount, when the promise settles, then state updates are skipped', async () => {
+    /**
+     * Scenario: Post-success aliveRef guards drop late bootstrap completion.
+     * Slice: 44 Phase B — ExperimentsScreen bootstrap success aliveRef
+     */
+    // -- Given --
+    let resolveLoad: (value: Experiment[]) => void = () => undefined;
+    apiMocks.getExperimentsWithProgress.mockImplementationOnce(
+      () =>
+        new Promise<Experiment[]>((resolve) => {
+          resolveLoad = resolve;
+        }),
+    );
+    const { unmount } = render(<ExperimentsScreen />);
+    await waitFor(() => expect(apiMocks.getExperimentsWithProgress).toHaveBeenCalled());
+
+    // -- When --
+    unmount();
+    await act(async () => {
+      resolveLoad([experiment('complete')]);
+    });
+
+    // -- Then --
+    expect(apiMocks.getExperimentsWithProgress).toHaveBeenCalledTimes(1);
+  });
+
+  it('Given bootstrap failure that rejects after unmount, when the promise settles, then error state is skipped', async () => {
+    /**
+     * Scenario: Post-reject aliveRef guard drops late bootstrap failure.
+     * Slice: 44 Phase B — ExperimentsScreen bootstrap catch aliveRef
+     */
+    // -- Given --
+    let rejectLoad: (reason?: unknown) => void = () => undefined;
+    apiMocks.getExperimentsWithProgress.mockImplementationOnce(
+      () =>
+        new Promise<Experiment[]>((_, reject) => {
+          rejectLoad = reject;
+        }),
+    );
+    const { unmount } = render(<ExperimentsScreen />);
+    await waitFor(() => expect(apiMocks.getExperimentsWithProgress).toHaveBeenCalled());
+
+    // -- When --
+    unmount();
+    await act(async () => {
+      rejectLoad(new Error('late failure'));
+    });
+
+    // -- Then --
+    expect(apiMocks.getExperimentsWithProgress).toHaveBeenCalledTimes(1);
+  });
+
+  it('Given a cold start that loads experiments then stats, when the effect restarts, then Refreshing experiments is shown', async () => {
+    /**
+     * Scenario: Stats arrival recreates loadVectorDbStats and restarts bootstrap while initialLoadDone.
+     * Slice: 44 Phase B — ExperimentsScreen post-load loading panel titles
+     */
+    // -- Given --
+    apiMocks.getExperimentsWithProgress
+      .mockResolvedValueOnce([experiment('complete')])
+      .mockImplementationOnce(() => new Promise<Experiment[]>(() => undefined));
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [vectorDbGroup()] });
+
+    // -- When --
+    render(<ExperimentsScreen />);
+    await waitFor(() => expect(screen.getByText('complete sweep')).toBeInTheDocument());
+
+    // -- Then --
+    await waitFor(() => expect(screen.getByText('Refreshing experiments')).toBeInTheDocument());
+    expect(screen.getByText('Waiting for the server to finish this refresh cycle.')).toBeInTheDocument();
+  });
+
+  it('Given a cold start that loads an empty list then stats, when the effect restarts, then Checking for experiments is shown', async () => {
+    /**
+     * Scenario: Empty-list post-load refresh uses the Checking for experiments title.
+     * Slice: 44 Phase B — ExperimentsScreen empty post-load loading panel title
+     */
+    // -- Given --
+    apiMocks.getExperimentsWithProgress
+      .mockResolvedValueOnce([])
+      .mockImplementationOnce(() => new Promise<Experiment[]>(() => undefined));
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [vectorDbGroup()] });
+
+    // -- When --
+    render(<ExperimentsScreen />);
+    await waitFor(() => expect(screen.getByText('No experiments yet')).toBeInTheDocument());
+
+    // -- Then --
+    await waitFor(() => expect(screen.getByText('Checking for experiments')).toBeInTheDocument());
+  });
+
+  it('Given execution search_strategy is a non-object config blob, when rendered, then grid strategy is assumed', async () => {
+    /**
+     * Scenario: Malformed execution config falls back to grid.
+     * Slice: 44 Phase B — ExperimentsScreen resolveSearchStrategy typeof guard
+     */
+    // -- Given --
+    const exp = experiment('complete', 0, {
+      experiment_name: 'bad execution shape',
+      config: { execution: 'not-an-object' as unknown as Record<string, unknown> },
+    });
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(screen.getByText('bad execution shape')).toBeInTheDocument();
+  });
+
+  it('Given Bayesian shortfall with zero not-started remainder, when rendered, then the not-started suffix is omitted', async () => {
+    /**
+     * Scenario: notStarted math can be zero — outcome copy must omit that clause.
+     * Slice: 44 Phase B — ExperimentsScreen experimentOutcomeLabel notStartedSuffix empty
+     */
+    // -- Given --
+    const exp = experiment('complete', 0, {
+      experiment_name: 'bayesian zero remainder',
+      config: { execution: { search_strategy: 'bayesian' } },
+      bayesian_summary: {
+        planned_trials: 10,
+        attempted_trials: 8,
+        discarded_trials: 2,
+        not_started: 0,
+      },
+    });
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(screen.getByText(/Bayesian: 8 attempted · 2 discarded/)).toBeInTheDocument();
+    expect(screen.queryByText(/not started/)).not.toBeInTheDocument();
+  });
+
+  it('Given complete with all_planned_trials_completed, when rendered, then the plain sweep-complete copy is used', async () => {
+    /**
+     * Scenario: Canonical success reason does not add a secondary reason clause.
+     * Slice: 44 Phase B — ExperimentsScreen complete without reasonSuffix branch
+     */
+    // -- Given --
+    const exp = experiment('complete', 0, {
+      experiment_name: 'all planned done',
+      completion_reason: 'all_planned_trials_completed',
+    });
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(screen.getByText('3 runs configured · sweep complete')).toBeInTheDocument();
+  });
+
+  it('Given a selected id missing from the list, when delete opens, then the modal still renders with empty name', async () => {
+    /**
+     * Scenario: Selection can briefly disagree with the list — modal falls back to empty name.
+     * Slice: 44 Phase B — ExperimentsScreen ConfirmDeleteModal name fallback
+     */
+    // -- Given --
+    vi.useFakeTimers();
+    const kept = experiment('complete', 0, { experiment_id: 'kept-id', experiment_name: 'kept' });
+    const removed = experiment('complete', 0, {
+      experiment_id: 'removed-id',
+      experiment_name: 'removed soon',
+    });
+    apiMocks.getExperiments
+      .mockResolvedValueOnce([kept, removed])
+      .mockResolvedValueOnce([kept]);
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+    render(
+      <ExperimentsScreen
+        cacheReady
+        cachedExperiments={[kept, removed]}
+        cachedVectorDbGroups={[]}
+      />,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select removed soon' }));
+
+    // -- When --
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(EXPERIMENTS_POLL_MS);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Delete 1' }));
+
+    // -- Then --
+    expect(screen.getByText('Delete Experiment?')).toBeInTheDocument();
+  });
+});

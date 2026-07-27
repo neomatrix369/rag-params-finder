@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Frontend coverage mop-up** (Slice 44 Phase B follow-on) — expanded GWT coverage for `ExperimentsScreen`, `ExperimentDetailScreen`, `ExperimentControlButtons`, and `devLog` so former near-miss modules stay ≥ the 95/90 floor; suite **252** tests / **20** files; measured ≈98.21% / 92.89% / 99.7% / 99.61% (**VERIFIED**).
 - **Permanent `mongodb` code default** (DECISIONS #130 Won't) — dual-backend remains operator-select (`STORAGE_BACKEND=postgres` / `--postgres-*`); there is no planned flip of the documented/code default. Operator and agent docs, `.env.example`, and `docker-compose.yml` comments aligned.
 - **Local DB ops parity** — shared `wait_for_postgres_local_healthy` + `postgres reset` hints; `scripts/health-check.sh` probes the active `/healthz` backend **and** any present Atlas Local / pgvector containers; operator docs (QUICKSTART Path D, postgres-setup native-dev, troubleshooting, local-environment, architecture) aligned with Mongo lifecycle UX.
 - **`STORAGE_BACKEND=mongodb` canonical token** — default and health/docs/CI use `mongodb` (matches YAML `database_provider: mongodb`); legacy `STORAGE_BACKEND=mongo` still accepted and normalized. Operator guides (postgres-setup, configuration, troubleshooting, CLI health examples) updated.

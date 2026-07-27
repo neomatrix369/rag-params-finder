@@ -1475,3 +1475,103 @@ describe('ExperimentDetailScreen duration formatting edge cases', () => {
     expect(screen.getByText('—', { selector: 'div.text-2xl, div.text-lg' })).toBeInTheDocument();
   });
 });
+
+describe('ExperimentDetailScreen stall and post-control polling', () => {
+  beforeEach(() => {
+    resetAllApiMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('Given a stalled no-seed hydrate, when the stall threshold elapses, then Still waiting appears', async () => {
+    /**
+     * Scenario: Slow detail hydrate surfaces stall feed copy.
+     * Slice: 44 Phase B — ExperimentDetailScreen createStallWatcher onWarning
+     */
+    // -- Given --
+    vi.useFakeTimers();
+    apiMocks.getExperimentWithProgress.mockImplementationOnce(
+      () => new Promise<DetailFixture>(() => undefined),
+    );
+    render(
+      <ExperimentDetailScreen experimentId="detail-stall" onBack={vi.fn()} onExplore={vi.fn()} />,
+    );
+    expect(screen.getByText('Loading experiment detail')).toBeInTheDocument();
+
+    // -- When --
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    // -- Then --
+    expect(screen.getByText(/Still waiting/)).toBeInTheDocument();
+  });
+
+  it('Given a pending hydrate, when the screen unmounts before settle, then resolve is a no-op', async () => {
+    /**
+     * Scenario: Late hydrate after unmount is dropped by aliveRef.
+     * Slice: 44 Phase B — ExperimentDetailScreen hydrate aliveRef guard
+     */
+    // -- Given --
+    const fixture = detailFixture('complete', [Phase.COMPLETE]);
+    let resolveLate: (value: DetailFixture) => void = () => undefined;
+    apiMocks.getExperimentWithProgress.mockImplementationOnce(
+      () =>
+        new Promise<DetailFixture>((resolve) => {
+          resolveLate = resolve;
+        }),
+    );
+    const { unmount } = render(
+      <ExperimentDetailScreen experimentId={fixture.experiment_id} onBack={vi.fn()} onExplore={vi.fn()} />,
+    );
+
+    // -- When --
+    unmount();
+    await act(async () => {
+      resolveLate(fixture);
+    });
+
+    // -- Then --
+    expect(apiMocks.getExperimentWithProgress).toHaveBeenCalledTimes(1);
+  });
+
+  it('Given a paused experiment, when Resume succeeds and status is running, then detail polling restarts', async () => {
+    /**
+     * Scenario: refreshDetailAfterControl restarts poll when refreshed status is still running.
+     * Slice: 44 Phase B — ExperimentDetailScreen refreshDetailAfterControl running branch
+     */
+    // -- Given --
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const pausedFixture = detailFixture('paused', [Phase.INTERRUPTED]);
+    const runningFixture = detailFixture('running', [Phase.QUERYING], {
+      experiment_id: pausedFixture.experiment_id,
+      experiment_name: pausedFixture.experiment_name,
+    });
+    apiMocks.getExperiment
+      .mockResolvedValueOnce(pausedFixture)
+      .mockResolvedValueOnce(runningFixture);
+    apiMocks.resumeExperiment.mockResolvedValue({ status: 'running', message: 'ok' });
+    apiMocks.getExperimentDbStats.mockResolvedValue(dbStatsResponse(pausedFixture));
+    render(
+      <ExperimentDetailScreen
+        experimentId={pausedFixture.experiment_id}
+        initialExperiment={pausedFixture}
+        initialDbStats={dbStats(pausedFixture)}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledTimes(1));
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: /^Resume$/ }));
+
+    // -- Then --
+    await waitFor(() => expect(apiMocks.resumeExperiment).toHaveBeenCalledWith(pausedFixture.experiment_id));
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole('button', { name: /^Pause$/ })).toBeInTheDocument();
+  });
+});
