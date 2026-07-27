@@ -2,6 +2,12 @@
 # Python dependency audit — ignores transitive ML stack vulns tracked for upgrade.
 # Fixable direct deps are upgraded via [tool.uv] override-dependencies in pyproject.toml.
 #
+# SCA waiver parity (same congruent-lock blockers):
+#   .trivyignore  — Trivy container/image scan
+#   .meterian     — Meterian nightly + local security-scan.sh
+#   this script   — pip-audit in quality-gates / CI dependency-audit
+# Unblock conditions: docs/plan/TRAIL.md § Deferred Work.
+#
 # Usage: ./scripts/pip-audit.sh
 
 set -e
@@ -14,7 +20,7 @@ cd "$ROOT"
 # Model IDs are validated against server/core/model_registry.py; arbitrary model repositories are rejected.
 # PYSEC-2026-2286: patched torch has no macOS x86_64 wheel; retain the last supported wheel only there.
 # PYSEC-2026-2290: LightGlue-only path is unused; patched transformers requires the deferred ST 4+ upgrade.
-# aim — no upstream fix available yet (CVE-2025-5321, CVE-2025-51464).
+# aim — no installable fixed release (CVE-2025-5321, CVE-2025-51464; PyPI aim 4.0.x yanked).
 # langchain/langsmith/langgraph — fix requires langsmith>=0.8.18 which needs websockets>=15,
 #   but sie-sdk pins websockets<15; blocked on sie-sdk upgrading its websockets constraint.
 ML_IGNORE=(

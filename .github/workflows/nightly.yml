@@ -104,6 +104,7 @@ jobs:
   # Not a Java project — do not rely on auto-detect; pin scanners explicitly.
   # Docs: https://docs.meterian.io/the-client/command-line-parameters/selecting-scanners.md
   #       https://docs.meterian.io/the-client/command-line-parameters/producing-reports.md
+  # Exclusions: root `.meterian` (CVE/library waivers; Trivy parity — see that file + .trivyignore).
   # Reports: HTML + JUnit + SARIF + SBOM (CycloneDX + Meterian CSV) for OSS.
   # JSON/PDF analysis reports need enterprise — skip those.
   # Meterian SBOM archived here for vendor comparison with the anchore sbom job.
