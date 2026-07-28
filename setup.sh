@@ -10,7 +10,7 @@ if [[ "${1:-}" == "--manual" ]]; then
   echo "Manual setup:"
   echo "  uv venv && source .venv/bin/activate"
   echo "  uv pip install -e \".[dev]\""
-  echo "  bash scripts/install-git-hooks.sh"
+  echo "  bash scripts/ci/install-git-hooks.sh"
   echo "  cd frontend && npm install && cd .."
   echo "  cp .env.example .env   # set MONGODB_URI"
   echo ""

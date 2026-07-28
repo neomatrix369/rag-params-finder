@@ -4,7 +4,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 
 **Repo entry:** [README.md](../README.md) · **Fastest run:** [QUICKSTART.md](../QUICKSTART.md)
 
-**Maintainers:** slice status and decision log live in [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) (updated 2026-07-27).
+**Maintainers:** slice status and decision log live in [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) (updated 2026-07-28). Specs are flat `SLICE-*.md` today; numbered theme folders `01`–`07` are **DECIDED** (#162) and land under Slice 40 Should — [SLICE-40](./plan/slices/SLICE-40-DOCS-PLAN-SLICES-SSOT.md).
 
 > **Who is this for?** Same personas as [README → Who is this for?](../README.md#who-is-this-for) — this page is the **doc map**; the README is the project entry.
 
@@ -48,10 +48,10 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | Doc | What it covers |
 |-----|----------------|
 | [contributor-guide/architecture.md](./contributor-guide/architecture.md) | Two-process design, modules, data flow, collections |
-| [contributor-guide/module-theme-map.md](./contributor-guide/module-theme-map.md) | Behavior \| Feature \| Function theme map + hotspot separation proposals |
+| [contributor-guide/module-theme-map.md](./contributor-guide/module-theme-map.md) | Behavior \| Feature \| Function theme map + Slice 45 layout status |
 | [contributor-guide/development.md](./contributor-guide/development.md) | Dev loop, quality gates, Docker, slice playbook |
 | [contributor-guide/extending.md](./contributor-guide/extending.md) | New models, chunkers, retrieval methods, API endpoints |
-| [contributor-guide/release-process.md](./contributor-guide/release-process.md) | Versioning, `scripts/release.sh`, CHANGELOG |
+| [contributor-guide/release-process.md](./contributor-guide/release-process.md) | Versioning, `scripts/release/release.sh`, CHANGELOG |
 | [contributor-guide/local-environment.md](./contributor-guide/local-environment.md) | Private/machine-specific Atlas and Voyage notes |
 
 ---
@@ -65,7 +65,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | [adr/ADR-003-mongodb-atlas-vector-store.md](./adr/ADR-003-mongodb-atlas-vector-store.md) | MongoDB Atlas as vector store (**Superseded** by ADR-004; Mongo still supported) |
 | [adr/ADR-004-postgresql-pgvector-vector-store.md](./adr/ADR-004-postgresql-pgvector-vector-store.md) | Dual-backend: Postgres/pgvector (Supabase) **and** MongoDB |
 | [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) | Slice status, decision log, forward roadmap |
-| [plan/slices/SLICE-*.md](./plan/slices/) | Per-slice specs (acceptance criteria, verification) |
+| [plan/slices/SLICE-*.md](./plan/slices/) | Per-slice specs (acceptance criteria, verification); theme folders `01`–`07` pending Slice 40 (#162) |
 
 ---
 
@@ -90,7 +90,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | Atlas vector + text search indexes | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) |
 | Example YAML configs | `configs/mongodb/` and `configs/supabase/` (mirrored stems; shared `configs/questions.example.json`) |
 | Run on Postgres/pgvector (local or Supabase-hosted) | [user-guide/postgres-setup.md](./user-guide/postgres-setup.md) · `./start-services.sh --postgres-local` |
-| Quality gates before commit | [contributor-guide/development.md](./contributor-guide/development.md) · `./scripts/quality-gates.sh` |
+| Quality gates before commit | [contributor-guide/development.md](./contributor-guide/development.md) · `./scripts/ci/quality-gates.sh` |
 | Docker server + dashboard | [plan/slices/SLICE-14-DOCKER-COMPOSE.md](./plan/slices/SLICE-14-DOCKER-COMPOSE.md) |
 | SIE (BGE-M3) Docker setup | [user-guide/sie-setup.md](./user-guide/sie-setup.md) |
 | Continue an in-flight slice |  [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) + matching `plan/slices/SLICE-XX-*.md` |

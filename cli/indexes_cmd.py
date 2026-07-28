@@ -15,8 +15,8 @@ from server.core.search_index_plan import (
     POSTGRES_VECTOR_EXTENSION,
     required_postgres_catalog_indexes,
 )
-from server.db.atlas import get_database
-from server.db.indexes import (
+from server.db.mongo.atlas import get_database
+from server.db.mongo.indexes import (
     M0_SEARCH_INDEX_LIMIT,
     SearchIndexInfo,
     ensure_indexes,

@@ -55,7 +55,7 @@ def live_postgres_pool() -> Iterator[None]:
 @pytest.fixture
 def postgres_storage(live_postgres_pool: None) -> Iterator[object]:
     """Live PostgresStorageBackend bound to RAG_TEST_DATABASE_URL."""
-    from server.db.postgres_store import PostgresStorageBackend
+    from server.db.postgres.postgres_store import PostgresStorageBackend
     from server.settings import settings
 
     reason = postgres_skip_reason()
@@ -78,7 +78,7 @@ def postgres_storage(live_postgres_pool: None) -> Iterator[object]:
 @pytest.fixture
 def mongo_storage() -> Iterator[object]:
     """Live MongoStorageBackend bound to RAG_TEST_MONGODB_URI."""
-    from server.db.mongo_store import MongoStorageBackend
+    from server.db.mongo.mongo_store import MongoStorageBackend
     from server.settings import settings
 
     reason = mongo_skip_reason()

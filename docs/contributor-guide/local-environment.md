@@ -55,7 +55,7 @@ export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 
 Schema / indexes come from `server/db/schema.sql` on first pool open (no Atlas UI). Hosted Supabase: `--postgres-cloud` + `DATABASE_URL` / `SUPABASE_URI` — [Path B](../user-guide/postgres-setup.md#path-b--hosted-supabase).
 
-Dual-container smoke: `./scripts/health-check.sh` probes whichever of Atlas Local / pgvector is present.
+Dual-container smoke: `./scripts/docker/health-check.sh` probes whichever of Atlas Local / pgvector is present.
 
 ### Connection String Format
 
@@ -125,7 +125,7 @@ Env vars (see [`.env.example`](../../.env.example) for full comments):
 SIE_ENABLED=true
 SIE_ENDPOINT=https://your-sie-gateway.example.com   # or http://localhost:8720 for local Docker
 SIE_API_KEY=your_gateway_token                      # omit when gateway has no auth
-AIM_REPO=./.aim                                     # optional — Aim UI via ./scripts/aim-ui.sh
+AIM_REPO=./.aim                                     # optional — Aim UI via ./scripts/docker/aim-ui.sh
 ```
 
 Example sweep: `rag-params-finder run --config configs/mongodb/example-sie.yaml`

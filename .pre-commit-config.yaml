@@ -1,19 +1,19 @@
 # Maturity: Serious — mirrors CI checks that are fast enough for local runs.
 # Principle: one tool per concern, every tool earns its seconds.
-# Intentionally excluded from pre-commit (run via scripts/quality-gates.sh):
+# Intentionally excluded from pre-commit (run via scripts/ci/quality-gates.sh):
 #   pytest+coverage, pip-audit, npm audit
-# Repo lint (shellcheck, actionlint, markdownlint): also in CI via scripts/repo-lint.sh
+# Repo lint (shellcheck, actionlint, markdownlint): also in CI via scripts/ci/repo-lint.sh
 #
 # Install (commit + push hooks):
 #   uv pip install -e ".[dev]"
 #   pre-commit install --hook-type pre-commit --hook-type pre-push
-#   # or: bash scripts/install-git-hooks.sh
+#   # or: bash scripts/ci/install-git-hooks.sh
 # Run all (commit stage):  pre-commit run --all-files
 # Run push stage only:     pre-commit run pre-push-gates --hook-stage pre-push
 # Run fast hook stack on commit by default; pre-push hooks are explicit.
 default_stages: [pre-commit]
-# Full gates (before PR):  ./scripts/quality-gates.sh
-# Full + hygiene sweep:    ./scripts/quality-gates.sh --full
+# Full gates (before PR):  ./scripts/ci/quality-gates.sh
+# Full + hygiene sweep:    ./scripts/ci/quality-gates.sh --full
 
 repos:
 
@@ -135,7 +135,7 @@ repos:
     hooks:
       - id: pre-push-gates
         name: pre-push gates (coverage + audits + vitest)
-        entry: bash scripts/pre-push-gates.sh
+        entry: bash scripts/ci/pre-push-gates.sh
         language: system
         pass_filenames: false
         always_run: true

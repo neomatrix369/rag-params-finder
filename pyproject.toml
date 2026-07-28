@@ -96,28 +96,31 @@ markers = [
 
 [tool.coverage.run]
 source = [
-    "server/core/search_index_plan.py",
-    "server/core/search_index_guard.py",
+    "server/core/guards/search_index_plan.py",
+    "server/core/guards/search_index_guard.py",
     "server/core/results_analyzer.py",
     "server/models/config.py",
-    "server/core/sie_embedder.py",
+    "server/core/embedding/sie_embedder.py",
     "server/core/aim_logger.py",
-    "server/core/embedder_factory.py",
+    "server/core/embedding/embedder_factory.py",
 ]
 branch = true
 
 [tool.coverage.report]
 show_missing = true
 # Combined Cover safety net. Quartet floors (95/90/n/a/95) enforced by
-# scripts/check_backend_coverage_floors.py after JSON report — DECISIONS #142.
+# scripts/ci/check_backend_coverage_floors.py after JSON report — DECISIONS #142.
 fail_under = 95
 precision = 1
 
-# Shared with frontend/vite.config.ts coverage.thresholds (functions n/a here).
+# Shared with frontend/vite.config.ts coverage.thresholds (DECISIONS #142).
+# ``functions`` is FE-only (Vitest); coverage.py does not measure it — still
+# declared here so scripts/ci/check_coverage_threshold_drift.py can lock FE↔pyproject.
 [tool.rag_params_finder.coverage_thresholds]
 statements = 95
 branches = 90
 lines = 95
+functions = 95
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]

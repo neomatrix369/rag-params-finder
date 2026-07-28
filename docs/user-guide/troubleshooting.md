@@ -128,7 +128,7 @@ On **M10+**, the server attempts programmatic creation when slots are available;
 
 **Symptom**: with `STORAGE_BACKEND=postgres`, submit returns **422** naming missing `chunks_*` indexes or the `vector` extension.
 
-**Cause**: Postgres has no Atlas-style quota or Admin API — indexes are declared in [`server/db/schema.sql`](../../server/db/schema.sql) and applied when the connection pool first opens. Preflight only **introspects** the catalog, so a 422 here means bootstrap did not complete (wrong database, insufficient privileges, or a partially applied schema).
+**Cause**: Postgres has no Atlas-style quota or Admin API — indexes are declared in [`server/db/postgres/schema.sql`](../../server/db/schema.sql) and applied when the connection pool first opens. Preflight only **introspects** the catalog, so a 422 here means bootstrap did not complete (wrong database, insufficient privileges, or a partially applied schema).
 
 **Required catalog objects**:
 
@@ -485,7 +485,7 @@ Use this section when `STORAGE_BACKEND=postgres` (local `./start-services.sh --p
 
 **Fix**:
 1. Start local pgvector: `./start-services.sh --postgres-local` (or container-only: `./start-services.sh postgres start`)
-2. Confirm health: `./start-services.sh postgres status` (or `./scripts/health-check.sh`)
+2. Confirm health: `./start-services.sh postgres status` (or `./scripts/docker/health-check.sh`)
 3. Host CLI / native server: `export STORAGE_BACKEND=postgres` and `export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder`
 4. Confirm `GET http://localhost:8001/healthz` reports `"storage_backend": "postgres"` and postgres status `ok`
 
@@ -513,7 +513,7 @@ so `schema.sql` re-runs on first pool open.
 
 **Cause**: Schema is applied when the Postgres pool opens (first storage I/O), not during Mongo-style Atlas index bootstrap. If the server never opened a pool against this database, tables are missing.
 
-**Fix**: Hit any storage endpoint (or submit a sweep) after setting `DATABASE_URL`. Or run the live integration tests: `RAG_REQUIRE_POSTGRES=1 pytest tests/test_postgres_store_integration.py -q`.
+**Fix**: Hit any storage endpoint (or submit a sweep) after setting `DATABASE_URL`. Or run the live integration tests: `RAG_REQUIRE_POSTGRES=1 pytest tests/server/db/test_postgres_store_integration.py -q`.
 
 ---
 

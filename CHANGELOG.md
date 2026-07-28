@@ -5,7 +5,7 @@ All notable changes to **rag-params-finder** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-**For contributors**: Update this file **during development**, not at release time. Add entries under `## [Unreleased]` as you work. When creating a release, `./scripts/release.sh` will prompt you to move items to the new version section.
+**For contributors**: Update this file **during development**, not at release time. Add entries under `## [Unreleased]` as you work. When creating a release, `./scripts/release/release.sh` will prompt you to move items to the new version section.
 
 ---
 
@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Module theme map** (Slice 44 Should §3) — Behavior | Feature | Function taxonomy and ranked folder-separation proposals for five flat hotspots ([module-theme-map.md](docs/contributor-guide/module-theme-map.md)); filesystem moves deferred to [SLICE-45](docs/plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md) (**PROPOSED**).
+- **Module theme map** (Slice 44 Should §3) — Behavior | Feature | Function taxonomy for five flat hotspots ([module-theme-map.md](docs/contributor-guide/module-theme-map.md)); Slice 45 landed all five hotspot moves (**IMPLEMENTED**; gate evidence [slice-45.json](docs/plan/gate-evidence/slice-45.json)).
 - **Frontend coverage gate** (Slice 44 Must Phase A+B) — `quality-gates.sh` / `pre-push-gates.sh` run `npm run test:coverage`; CI frontend runs `test:ci`; Vitest v8 thresholds with `all: true` (product floor **95/90/95/95** — DECISIONS #142) (**VERIFIED**).
 - **Slice 38 COMPLETE — Cutover + ADR-004** — Dual-backend Postgres/pgvector (Supabase) + Mongo accepted ([ADR-004](docs/adr/ADR-004-postgresql-pgvector-vector-store.md); [ADR-003](docs/adr/ADR-003-mongodb-atlas-vector-store.md) superseded). Local comparison VERIFIED ([slice-38-quality-comparison.md](docs/plan/gate-evidence/slice-38-quality-comparison.md): 120-run twins; QUERYING latency ≤2× PASS; rank overlap informational under #129). **No default flip** (#130 Won't) — code default stays `mongodb`; engines independently selectable. Gate evidence: [slice-38.json](docs/plan/gate-evidence/slice-38.json).
 - **Local/cloud parity + low-friction switching** (Slice 37) — four-flag `./start-services.sh --{mongodb|postgres}-{local|cloud}` (legacy `--local`/`--postgres`/`-l`/`-p` flag aliases **removed** — they now fail as generic unknown options; env `RAG_LOCAL_ATLAS`/`RAG_LOCAL_POSTGRES` still map with a notice); pre-commit/CI shellcheck now covers root `start-services.sh` as well as `scripts/**/*.sh`; bare start respects `.env` `STORAGE_BACKEND`; compose profiles `mongodb-local`/`postgres-local` (aliases `local-atlas`/`local-postgres`); `database_provider: supabase` → `postgres` + warning; `vector_db_id` = `storage_mode:<host>`; `POST /experiments` rejects config↔server engine mismatch with HTTP 422 **before** index/SIE preflight and persists `storage_mode`; postgres lifecycle `start|stop|reset|status`; optional `SUPABASE_URI` alias for `DATABASE_URL` (canonical `DATABASE_URL` wins when both set); Path B Session-mode / pause runbook verified against live hosted Supabase (`storage_mode=postgres-cloud`). See [postgres-setup.md](docs/user-guide/postgres-setup.md), [configuration.md → Engine × Location](docs/user-guide/configuration.md#-environment-variables-env), [troubleshooting → Config engine mismatch](docs/user-guide/troubleshooting.md#-config-engine-mismatch-database_provider--storage_backend)
@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Slice 14 Docker Compose** — `./start-services.sh`, `stop-services.sh`, `setup.sh`; `docker-compose.yml` + `docker-compose.dev.yml`; server/frontend Dockerfiles; `/healthz` MongoDB ping; `scripts/health-check.sh`
 - **Contributor docs:** Optional `code-review-graph` MCP guidance in [Development Guide](docs/contributor-guide/development.md) and README Contributing section (not required for end users)
 - **Agent docs:** Graph-first exploration workflow in [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md)
-- **Slice 20 toolchain hardening** — unified `./scripts/quality-gates.sh` mirroring CI; `check_integrity.py`, `pip-audit.sh`
+- **Slice 20 toolchain hardening** — unified `./scripts/ci/quality-gates.sh` mirroring CI; `check_integrity.py`, `pip-audit.sh`
 - **CI:** scoped 80% coverage gate, ESLint, bandit SAST, pip-audit, gitleaks secrets scan job
 - **Repo lint:** shellcheck (`scripts/*.sh`), actionlint (GitHub Actions), markdownlint (`.markdownlint.json`) in pre-commit, `scripts/repo-lint.sh`, and CI `repo-lint` job
 - **Pre-push hook:** fast gates on every `git push` (`scripts/pre-push-gates.sh` → `quality-gates.sh --quick`: pytest, frontend verify, gitleaks; via `install-git-hooks.sh`)
@@ -45,8 +45,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Slice 45 Could leftovers** — FE Scenario/Slice narrative docstrings on shared primitive suites; `scripts/ci/check_coverage_threshold_drift.py` locks Vitest thresholds to `[tool.rag_params_finder.coverage_thresholds]` (incl. `functions=95`); BE GWT-on-touch markers + Slice tags on moved/split suites (DECISIONS #161).
+- **Docs sync (Slice 45)** — theme map + architecture/development/CLAUDE/AGENTS/docs index reflect IMPLEMENTED hotspots 1–5; flat `scripts/*` shims deprecate toward `scripts/{ci,docker,release,security}/`.
+- **Slice 45 (scripts theme folders)** — moved ops scripts into `scripts/ci/`, `scripts/docker/`, `scripts/release/`, `scripts/security/` (DECISIONS #159); `lib/` unchanged.
+- **Slice 45 (phase 1 skateboard)** — moved preflight/health modules into `server/core/guards/` (`search_index_plan`, `search_index_guard`, `sie_guard`, `config_backend_guard`, `health_check`). Coverage/gate `--cov` paths updated to `server.core.guards.*`.
+- **Slice 45 (pipeline package)** — moved `orchestrator`, `executors`, `experiment_control`, `startup_reconciliation` into `server/core/pipeline/`; production imports use canonical paths; shim aliases keep `patch("server.core.orchestrator.*")` working.
+- **Slice 45 (orchestrator SLAP)** — extracted `server/core/pipeline/search.py` (retriever search helpers) and `signatures.py` (resume/skip param signatures); phase/status + Bayesian bodies stay in `orchestrator.py` so mega-suite `patch("server.core.orchestrator.get_storage_backend")` keeps working.
+- **Slice 45 (embedding + retrieval packages)** — moved embedders/`rate_limiter` into `server/core/embedding/` and Mongo/Postgres retrievers into `server/core/retrieval/`; `sys.modules` shims keep `patch("server.core.sie_embedder.*")` / `retriever_mongo.*` working.
+- **Slice 45 (rerank package)** — moved `reranker` + `local_reranker` into `server/core/rerank/`; shim aliases keep old import/patch paths working.
+- **Slice 45 (db theme packages)** — moved ports/factory into `server/db/ports/`, Mongo adapters into `server/db/mongo/`, Postgres adapters + `schema.sql` into `server/db/postgres/`; shim aliases at old `server.db.*` paths.
+- **Slice 45 (fat-surface slim)** — extracted Bayesian/stale-status helpers to `server/api/experiments_lifecycle.py` (`experiments.py` 553→388) and CLI watch/summary presentation to `cli/display.py` (`cli/main.py` 519→246).
+- **Slice 45 (FE shared test helpers)** — `frontend/src/test/helpers/{experiments,vectorDbStats,explore,experimentDetail}.ts`; screen + stats suites compose builders (DECISIONS #158).
+- **Slice 45 (FE components folder split)** — moved screens/chrome/experiment/stats (+ co-located tests); `App.tsx` imports and Vitest mocks updated (DECISIONS #157).
+- **Slice 45 (FE screen SLAP)** — extracted `hooks/useExperimentDetail`, `components/experimentDetail/*`, `experimentList/labels`, `explore/ExplorePanels` (+ duration helpers on `experimentDetailProgress`); screen line counts Detail 1615→986, Experiments 764→670, Explorer 1131→426 (DECISIONS #156).
+- **Slice 45 (FE shared primitives)** — extracted `components/chrome/Pagination`, `components/stats/StatTile`+`StatRow`, `utils/feedEntries.appendFeedEntry`, `utils/completionReason.completionReasonLabel`; screens/stats panels compose them (DECISIONS #155).
+- **Slice 45 (tests mirror + mega-suite split)** — flat `tests/test_*.py` mirrored under `tests/server/{core,db,api,models}/`, `tests/cli/`, `tests/scripts/`; `test_slice16_parallel_sweep.py` (~2296) split into focused `tests/server/core/pipeline/` modules + `tests/helpers/pipeline_sweep.py`.
 - **Nightly Meterian OSS path** — `nightly.yml` Meterian job uses `oss: true` (no `METERIAN_API_TOKEN`), pins scanners to Python + Node (`cli_args`), and archives `meterian-<run>` artifacts (HTML, JUnit, SARIF, CycloneDX + CSV SBOM) for comparison with Anchore (**IMPLEMENTED**; not yet observed on a green nightly run).
-- **Shared coverage floors 95/90/95/95** (DECISIONS #142) — FE Vitest **95/90/95/95**; BE **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` (stmts/br/lines from coverage JSON; functions n/a on coverage.py). Gap tests raised TOTAL ≈97.7%.
+- **Shared coverage floors 95/90/95/95** (DECISIONS #142) — FE Vitest **95/90/95/95**; BE **95/90/n/a/95** via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` (stmts/br/lines from coverage JSON; functions n/a on coverage.py). Gap tests raised TOTAL ≈97.7%.
 - **Fair coverage metric floors** (DECISIONS #141) — FE **95/90/95/95**; BE interim policy 92/85 with `fail_under=90` — **superseded for BE by #142**.
 - **Uniform coverage floor ≥90%** (DECISIONS #140) — backend unit scoped gate `--cov-fail-under` / `fail_under` **80→90**; FE briefly aligned to flat 90 before #141. Postgres `retriever_postgres` CI module gate stays **≥95%**.
 - **Frontend coverage mop-up** (Slice 44 Phase B follow-on) — expanded GWT coverage for `ExperimentsScreen`, `ExperimentDetailScreen`, `ExperimentControlButtons`, and `devLog`; suite **252** tests / **20** files; measured ≈98.21% / 92.89% / 99.7% / 99.61% (**VERIFIED**).
@@ -55,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`STORAGE_BACKEND=mongodb` canonical token** — default and health/docs/CI use `mongodb` (matches YAML `database_provider: mongodb`); legacy `STORAGE_BACKEND=mongo` still accepted and normalized. Operator guides (postgres-setup, configuration, troubleshooting, CLI health examples) updated.
 - **Postgres/Supabase operator docs parity** — `postgres-setup.md` mirrors Mongo/SIE scaffolding (env tables, Path B, diagnostics); Supabase clarified as hosted Postgres under `STORAGE_BACKEND=postgres` + canonical `DATABASE_URL` (optional `SUPABASE_URI` alias added in Slice 37); empty-state dashboard offers both `configs/mongodb/` and `configs/supabase/` examples.
 - **CLI `indexes` on Postgres** — `indexes list|reset` exits not-applicable when `STORAGE_BACKEND` is not mongodb (no Atlas/`MONGODB_URI` surprise).
-- **Unit vs live test split** — `quality-gates.sh` / CI backend / `pre-push-gates.sh` exclude live Mongo/Postgres suites (`tests/contract/`, `tests/test_postgres_*.py`, `-m "not integration"`); live coverage stays in `postgres-integration` and `mongo-integration` jobs. Session-scoped Postgres pool + schema advisory lock avoid DDL deadlocks when live suites do run interleaved.
+- **Unit vs live test split** — `quality-gates.sh` / CI backend / `pre-push-gates.sh` exclude live Mongo/Postgres suites (`tests/contract/`, `tests/server/db/test_postgres_*.py`, `-m "not integration"`); live coverage stays in `postgres-integration` and `mongo-integration` jobs. Session-scoped Postgres pool + schema advisory lock avoid DDL deadlocks when live suites do run interleaved.
 - **MongoDB/Postgres boundary hygiene** — rename agnostic `mongo_*` API helpers to port verbs; `retriever.py` → `retriever_mongo.py`; MongoDB-only docstring markers; settings `ensure_storage_ready()`; ops/UI copy no longer assumes Atlas on `--postgres`
 - **Example configs split by backend** — YAML examples live under `configs/mongodb/` and `configs/supabase/` with mirrored stems (`example-local.yaml`, `example-voyage.yaml`, `example-sie.yaml`, parallel/bayesian/unified variants). Shared queries remain at `configs/questions.example.json`. Supabase configs use `database_provider: supabase`; dense, sparse, and hybrid retrieval are available on both backends (Slice 35).
 - **Slice 39 — Demo-ready dashboard polish** — result-led experiment cards, lifecycle-first detail hierarchy, shared responsive visual tokens, visible focus treatment, WCAG AA contrast, and reduced-motion support; API calls, controls, routing, and polling contracts remain unchanged
@@ -64,6 +79,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pre-push hook** (2026-05-28): replaced `pre-commit run --all-files` on push with `quality-gates.sh --quick` so push runs pytest and frontend verify, not only lint hooks
 - Upgraded urllib3, starlette, idna, langchain-core via uv dependency overrides
 - Pre-commit: gitleaks config, frontend lint hook, bandit hook (`uv run bandit … -ll`, aligned with CI)
+
+### Deprecated
+
+- **`server.core.{search_index_plan,search_index_guard,sie_guard,config_backend_guard,health_check}`** — shim re-exports remain for one release; prefer `server.core.guards.<module>`. Removal trigger: next minor after this notice (DECISIONS #146/#147).
+- **`server.core.{orchestrator,executors,experiment_control,startup_reconciliation}`** — shim module aliases remain for one release; prefer `server.core.pipeline.<module>` (DECISIONS #148).
+- **`server.core.{embedder,local_embedder,sie_embedder,embedder_factory,rate_limiter}`** — shim aliases; prefer `server.core.embedding.<module>` (DECISIONS #150).
+- **`server.core.{retriever_mongo,retriever_postgres}`** — shim aliases; prefer `server.core.retrieval.<module>` (DECISIONS #150).
+- **`server.core.{reranker,local_reranker}`** — shim aliases; prefer `server.core.rerank.<module>` (DECISIONS #151).
+- **`server.db.{storage,retriever_backend,store_factory,stats_common,atlas,mongodb_uri,mongo_store,mongo_stats,indexes,postgres_*}`** — shim aliases; prefer `server.db.{ports,mongo,postgres}.*` (DECISIONS #152). Former flat `server.db.postgres` is the **package** (pool helpers re-exported on `__init__`); there is no `server/db/postgres.py` shim.
+- **Flat `scripts/*.sh` / `scripts/check_*.py` / `scripts/bump_version.py`** — thin shims remain for one minor; prefer `scripts/{ci,docker,release,security}/<name>` (DECISIONS #159). Removal trigger: next minor after this notice (same window as server shims).
 
 ### Fixed
 

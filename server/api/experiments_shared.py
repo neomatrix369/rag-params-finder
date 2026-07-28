@@ -6,7 +6,7 @@ async endpoints. Keeping I/O here isolates blocking work into threadpool tasks.
 All persistent data access delegates to the StorageBackend port via store_factory.
 """
 
-from server.db.store_factory import get_storage_backend
+from server.db.ports.store_factory import get_storage_backend
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)

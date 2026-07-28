@@ -32,7 +32,7 @@ def mongo_reachable(uri: str = TEST_MONGODB_URI) -> bool:
     try:
         from pymongo import MongoClient
 
-        from server.db.mongodb_uri import mongo_client_kwargs
+        from server.db.mongo.mongodb_uri import mongo_client_kwargs
 
         client = MongoClient(uri, serverSelectionTimeoutMS=3000, **mongo_client_kwargs(uri))
         try:
@@ -80,7 +80,7 @@ def mongo_skip_reason(uri: str = TEST_MONGODB_URI) -> str | None:
 
 def reset_mongo_client() -> None:
     """Drop the cached MongoClient so the next call picks up settings.mongodb_uri."""
-    import server.db.atlas as atlas
+    import server.db.mongo.atlas as atlas
 
     if atlas._client is not None:
         atlas._client.close()

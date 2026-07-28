@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from server.db.storage import StorageBackend
+from server.db.ports.storage import StorageBackend
 from server.models.enums import ExperimentStatus
 from tests.helpers.storage_live import CONTRACT_EXP_ID, CONTRACT_RUN_ID
 
@@ -106,6 +106,13 @@ class TestStorageBackendContractShould:
         self, storage: StorageBackend
     ) -> None:
         """
+        Scenario: given experiment when inserted then round trip preserves identity.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Insert + find_experiment_by_id returns the same experiment_id.
         Slice: storage-backend-contract
 
@@ -129,6 +136,13 @@ class TestStorageBackendContractShould:
         self, storage: StorageBackend
     ) -> None:
         """
+        Scenario: given experiment with run when find with runs then runs list present.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: find_experiment_with_runs embeds the run documents.
         Slice: storage-backend-contract
 
@@ -151,6 +165,13 @@ class TestStorageBackendContractShould:
     def test_given_queued_run_when_phase_updated_then_new_phase_readable(
         self, storage: StorageBackend
     ) -> None:
+        """
+        Scenario: given queued run when phase updated then new phase readable.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: update_run_phase persists phase and error fields.
         Slice: storage-backend-contract
@@ -181,6 +202,13 @@ class TestStorageBackendContractShould:
     def test_given_experiment_with_children_when_cascade_deleted_then_counts_match(
         self, storage: StorageBackend
     ) -> None:
+        """
+        Scenario: given experiment with children when cascade deleted then counts match.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: delete_experiment_data removes experiment, runs, chunks, results.
         Slice: storage-backend-contract
@@ -216,6 +244,13 @@ class TestStorageBackendContractShould:
         self, storage: StorageBackend
     ) -> None:
         """
+        Scenario: given running experiment when listed then carries id for reconciliation.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: find_running_experiments returns docs with _id for boot reconciliation.
         Slice: storage-backend-contract
 
@@ -237,6 +272,13 @@ class TestStorageBackendContractShould:
     def test_given_populated_experiment_when_db_stats_then_required_keys_present(
         self, storage: StorageBackend
     ) -> None:
+        """
+        Scenario: given populated experiment when db stats then required keys present.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: get_experiment_db_stats returns the documented key set.
         Slice: storage-backend-contract

@@ -58,14 +58,14 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
 | 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
 | 39 — Demo-ready dashboard polish | ✅ COMPLETE | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, network, and component verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
-| 40 — Documentation Plan/Slices SSOT alignment | 📋 PLANNED | ~1 h | Clarify `docs/plan` vs `docs/plan/slices` roles; keep `docs/plan/slices/PROGRESS.md` as the status SSOT |
+| 40 — Documentation Plan/Slices SSOT alignment | 📋 PLANNED | ~2–3 h | Plan vs slices boundary + numbered theme folders `01`–`07` (#162); `PROGRESS.md` flat SSOT; `git mv` Should — [`SLICE-40-DOCS-PLAN-SLICES-SSOT.md`](SLICE-40-DOCS-PLAN-SLICES-SSOT.md) |
 | 41A — Bayesian Search: Simple Functional | ✅ COMPLETE | ~2.5 h | All ACs verified; trial_log, CLI Bayesian summary, and test rigour added in closure pass (2026-07-23); 217 tests green |
 | 41B — Bayesian Search: Numeric Improvements | 📋 PLANNED | ~2–3 h | Unlocked: `bayesian.parallelism` (constant liar, ≤4 workers), `padding` as third numeric dimension, `n_trials` formula, 3-condition stopping loop, 41A embedding-parallelism gap fix — [`SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`](SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) |
 | 41C — Bayesian Search: Extended | 📋 PLANNED | ~3–4 h | All questions resolved (A1 SQLite, A2 waived, A4 N=20, D3 sweep_summary keys, D7 RandomConfig); blocked only on 41B ✅: study persistence, categorical axes, random search, dashboard card, default promotion — [`SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md`](SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md) |
 | 42 — Docker Build Optimisation | ✅ COMPLETE | ~2–3 h | Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime (62 MB); CI docker-build job (non-blocking, path-scoped) — [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
 | 43 — Supabase example-config verification | ✅ COMPLETE | ~1–2 h | **Could** — 16/16 local Postgres smoke runs complete; operator docs distinguish `STORAGE_BACKEND` from `database_provider` and explain env asymmetry — [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) |
 | 44 — Frontend coverage + gate summary | ✅ COMPLETE | Phase A+B + #142 | FE **95/90/95/95**; BE **95/90/n/a/95** (`fail_under` + JSON floor checker) — DECISIONS #142 — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) · [`gate-evidence/slice-44.json`](../gate-evidence/slice-44.json) |
-| 45 — Module theme separation + FE/BE craft | 📋 PLANNED | ~16–24 h | **Could** — folder moves + FE/BE Code Complete backlog (orchestrator SLAP, fat API/CLI, mega-suites, FE primitives/screens); no contract changes — [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) |
+| 45 — Module theme separation + FE/BE craft | ✅ COMPLETE | ~16–24 h | Hotspots 1–5 **IMPLEMENTED**; FE/BE craft + scripts themes; Could leftovers #161; floors green; mutation #160; evidence [`slice-45.json`](../gate-evidence/slice-45.json) — [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) · [PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130) |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
 
@@ -103,7 +103,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 31 | Should | 📋 PLANNED | — | Experiment list filter |
 | 43 | Could | ✅ COMPLETE | 35 (soft: 37) | Supabase config live smoke + operator QoL — hosted smoke remains optional and is owned by 37 |
 | 39 | Should | ✅ COMPLETE | — | Demo-ready list/detail journey; lifecycle component coverage and clean implementation history verified |
-| 40 | Should | 📋 PLANNED | — | Clarify `docs/plan` vs `docs/plan/slices` roles; status SSOT remains here |
+| 40 | Should | 📋 PLANNED | — | Plan vs slices SSOT + theme folders `01`–`07` (#162); status SSOT remains flat here |
 | 41A | Could | ✅ COMPLETE | 16 | All ACs closed; trial_log in bayesian_summary; CLI Trial History table; 10 new tests + parametrize refactor (13 total); 183 total tests green |
 | 41B | Could | 📦 PARKED | 41A + owner data | Parallelism, categorical axes, study persistence, random search — open after 41A ships and production evidence exists; spec: [`SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`](SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) |
 | 42 | Should | ✅ COMPLETE | none | Docker Build Optimisation — multi-stage builds, cache mounts, nginx runtime; [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
@@ -693,10 +693,16 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-28 | 45 | Scripts theme folders (`ci`/`docker`/`release`/`security`) + flat shims — DECISIONS #159 | Leave scripts flat / delete shims immediately |
+| 2026-07-28 | 45 | FE shared test helpers (`frontend/src/test/helpers/*`) — DECISIONS #158 | Leave duplicated builders / invent factories only for new tests |
+| 2026-07-28 | 45 | FE components folder split (`screens`/`chrome`/`experiment`/`stats`) — DECISIONS #157 | Leave flat components/ / move screens only |
+| 2026-07-28 | 45 | FE screen SLAP extracts (detail hook + chrome, list labels, explore panels) — DECISIONS #156 | Folder-move screens first / leave god screens |
+| 2026-07-28 | 45 | FE shared primitives extracted (Pagination/StatTile/feed/completionReason) — DECISIONS #155 | Defer until after components folder split / leave Rule-of-3 copies |
+| 2026-07-28 | 45 | Mirror `tests/` under server/cli/scripts + split Slice 16 mega-suite; `repo_root_from()` for nested path depth — DECISIONS #154 | Keep flat tests / invent `tests/unit/` only |
 | 2026-07-27 | 44 | Coverage floor: Before-Check lines 50.18% → after Should ~64.75%; thresholds ratcheted to lines≥64 / branches≥58 / functions≥61 / statements≥62 — DECISIONS #138; mutation waived | Invent floor / keep ungated bare vitest |
-| 2026-07-27 | 45 | Park BE Code Complete craft debt on Slice 45 Should/Could (§1b: orchestrator SLAP, fat API/CLI, mega-suites; Won't: merge dual backends / whole-tree 100% / local mutation) — estimate ~16–24 h with FE | Leave orchestrator god module untracked / invent Slice 45B |
+| 2026-07-27 | 45 | Land `core/guards/` first with shim re-exports; retarget test patches to canonical paths | Keep sys.modules alias / big-bang rewrite all server.core imports |
 | 2026-07-27 | 45 | Park FE Code Complete craft debt on Slice 45 Should/Could (shared UI primitives, screen SLAP, shared test helpers; Won't: higher floors / TanStack / mutation) — expand estimate (later raised with BE) | Bundle into Slice 44 coverage PR / invent Slice 44B |
-| 2026-07-27 | coverage | Shared FE+BE floors **#142** — FE 95/90/95/95; BE **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` (TOTAL ≈97.7%) | Keep BE at 90 / soft 92/85 policy |
+| 2026-07-27 | coverage | Shared FE+BE floors **#142** — FE 95/90/95/95; BE **95/90/n/a/95** via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` (TOTAL ≈97.7%) | Keep BE at 90 / soft 92/85 policy |
 | 2026-07-27 | coverage | Fair floors **#141** — FE 95/90/95/95; BE fail_under=90 + policy 92/85/n/a/90 | Keep flat FE 90 / invent BE branch≥90 without tests |
 | 2026-07-27 | coverage | Uniform **≥90%** product floor — BE `--cov-fail-under=90` + FE thresholds 90/90/90/90 (DECISIONS #140); postgres module gate stays 95 | Keep FE 95 / BE 80 asymmetry |
 | 2026-07-27 | 44 | Phase B reopen: FE gate → **≥95%** lines/stmts/funcs + **≥90%** branches (option 1; reopen 44 not 44B) — DECISIONS #139 | Keep Phase A 64% as permanent bar / new Slice 44B |
@@ -857,6 +863,9 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-27 | 14 | Docker Compose (AIE7-adapted) | 2-service stack (no local vector DB); host CLI; prod default + `docker-compose.dev.yml`; `/healthz` MongoDB ping; `hf_cache` volume |
 | 2026-05-27 | 14 | Dev overlay vs Compose profiles | `docker-compose.dev.yml` merge (not named profiles) — avoids port conflicts between prod/dev frontends |
 | 2026-05-27 | 20 | Pre-push (superseded 2026-05-28) | Was `pre-commit --all-files` on push — replaced by `quality-gates.sh --quick` for pytest + frontend verify |
+| 2026-07-28 | 45 | Close Slice 45 — gate-evidence + mutation waive #160 | Must+Should+scripts Could verified; optional FE docstring / drift-guard / BE GWT Could deferred; PR #130 |
+| 2026-07-28 | 45 | Land Slice 45 Could leftovers (#161) | FE Scenario/Slice docstrings; coverage threshold drift guard; BE GWT-on-touch on moved suites |
+| 2026-07-28 | 40 | Slice theme folders numbered by delivery wave (#162) | Specs → `01-core-pipeline` … `07-quality-craft`; PROGRESS + gate-evidence stay flat; no date folders; keep 32/32C/32B together |
 
 ---
 
@@ -932,7 +941,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | 31 — Experiment list filter | Spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) — status dropdown + name/ID search above experiments table | Should | ~2 h |
 | 43 — Supabase config verification | Spec: [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) — live smoke of supabase examples; `STORAGE_BACKEND` vs YAML provider docs; hosted short-config guidance | Could | ~1–2 h |
 | 44 — Frontend coverage gate | Spec: [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) — Must: embed coverage table/floor in quality-gates + pre-push + CI (**VERIFIED**); Should: FE tests + structure taxonomy (§3) — ✅ COMPLETE 2026-07-27 | Should | ~3–4 h |
-| 45 — Module theme separation + FE/BE craft | Spec: [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) — ranked folder moves + FE craft §4b + BE craft §1b (orchestrator SLAP, fat surfaces, mega-suites); depends on Slice 44 taxonomy + #142 floors | Could | ~16–24 h |
+| ~~45 — Module theme separation + FE/BE craft~~ | Spec: [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) — hotspots 1–5 + FE/BE craft + scripts themes; mutation #160 — ✅ COMPLETE 2026-07-28 · [`slice-45.json`](../gate-evidence/slice-45.json) · [PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130) | Could | ✅ Done |
 
 ---
 
@@ -953,8 +962,8 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 **Release workflow**:
 ```bash
 # After marking slice complete in this file:
-./scripts/release.sh minor    # For slice completion or new feature
-./scripts/release.sh patch     # For bug fixes or polish
+./scripts/release/release.sh minor    # For slice completion or new feature
+./scripts/release/release.sh patch     # For bug fixes or polish
 
 # The script will:
 # 1. Bump version in pyproject.toml, frontend/package.json
@@ -1040,10 +1049,10 @@ Use this when resuming a session mid-slice:
 ```
 [ ] Read the Skill Execution Log above — last skill run tells you where to resume
 [ ] Read docs/plan/slices/PROGRESS.md — note current slice and last known state
-[ ] Git hooks installed: bash scripts/install-git-hooks.sh (once per machine)
+[ ] Git hooks installed: bash scripts/ci/install-git-hooks.sh (once per machine)
 [ ] Run quality gates to confirm no regressions:
-      ./scripts/quality-gates.sh          # full CI mirror before PR
-      # git push runs ./scripts/pre-push-gates.sh (full gates) when hooks installed
+      ./scripts/ci/quality-gates.sh          # full CI mirror before PR
+      # git push runs ./scripts/ci/pre-push-gates.sh (full gates) when hooks installed
 [ ] Check git status — any uncommitted changes?
 [ ] Read the current slice spec in docs/plan/slices/SLICE-XX-*.md
 [ ] Resume from the last incomplete acceptance criterion

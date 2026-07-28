@@ -79,7 +79,7 @@ services:
       start_period: 30s
 
   # Aim experiment UI — opt-in: docker compose --profile aim up -d aim-ui
-  # Or: ./scripts/aim-ui.sh
+  # Or: ./scripts/docker/aim-ui.sh
   aim-ui:
     profiles: ["aim"]
     image: ${SERVER_IMAGE_NAME:-rag-params-finder-server}

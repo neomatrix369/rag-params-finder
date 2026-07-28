@@ -131,7 +131,7 @@ cd frontend && npm run dev
   — expect `"storage_backend": "postgres"`, `"storage_mode": "postgres-local"`, and `"postgres": "ok"`
   (hosted Supabase reports `"storage_mode": "postgres-cloud"`)
 - Readiness: `curl -sS http://127.0.0.1:8001/experiments`
-- Dual-container smoke (optional): `./scripts/health-check.sh` — also probes Atlas Local if that container is present
+- Dual-container smoke (optional): `./scripts/docker/health-check.sh` — also probes Atlas Local if that container is present
 
 `/healthz` can return success while `/experiments` still fails; run both before
 judging the stack operational.
@@ -253,7 +253,7 @@ skip; unit gates for `--postgres-cloud` `ensure_env` (no `MONGODB_URI`) still ap
 ## Schema
 
 Unlike the Atlas path, **there is no manual index step.** The server applies
-[`server/db/schema.sql`](../../server/db/schema.sql) on every boot, idempotently,
+[`server/db/postgres/schema.sql`](../../server/db/schema.sql) on every boot, idempotently,
 so tables, foreign keys, and indexes appear on first start.
 
 | Table | Holds | Notes |

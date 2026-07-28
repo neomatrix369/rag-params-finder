@@ -19,7 +19,7 @@ Two-process architecture: config submission (CLI) is separate from execution (Se
 # Setup
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
-bash scripts/install-git-hooks.sh   # commit + pre-push hooks
+bash scripts/ci/install-git-hooks.sh   # commit + pre-push hooks
 
 # Run server
 uvicorn server.main:app --reload --port 8001
@@ -32,8 +32,8 @@ uv run mypy server/ cli/
 uv run pytest --tb=short -q
 
 # All quality gates (mirrors CI — repo lint + backend + frontend + audits)
-./scripts/quality-gates.sh
-bash scripts/repo-lint.sh   # shell + workflows + Markdown only
+./scripts/ci/quality-gates.sh
+bash scripts/ci/repo-lint.sh   # shell + workflows + Markdown only
 ```
 
 ### Frontend (Node.js 22+)
@@ -57,7 +57,7 @@ npm run build
 RAG_MONGODB_LOCAL=1 ./start-services.sh  # same as --mongodb-local via env var
 ./start-services.sh mongodb [start|stop|reset|status]  # manage local Atlas container standalone
 ./start-services.sh postgres [start|stop|reset|status]  # manage local pgvector container standalone
-./scripts/health-check.sh
+./scripts/docker/health-check.sh
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build  # dev HMR
 ```
 
@@ -96,83 +96,87 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 
 | File | Purpose |
 |---|---|
-| `docs/contributor-guide/module-theme-map.md` | Behavior \| Feature \| Function theme map + ranked hotspot separations (Slice 44 §3); moves → Slice 45 |
+| `docs/contributor-guide/module-theme-map.md` | Behavior \| Feature \| Function theme map + Slice 45 layout status (hotspots 1–5 IMPLEMENTED) |
+| `scripts/ci/` | Quality gates, repo lint, hooks install, pip-audit, coverage floor + threshold-drift checkers |
+| `scripts/docker/` | health-check, aim-ui, docker-cleanup/build-context |
+| `scripts/release/` | `release.sh` + bump/GitHub helpers |
+| `scripts/security/` | `security-scan.sh` |
 | `server/main.py` | FastAPI app entry; lifespan ensures DB indexes + orphan reconciliation |
 | `server/settings.py` | Centralized pydantic-settings config (`storage_backend`: `mongodb` default permanently — DECISIONS #130 — or `postgres`) |
-| `server/db/storage.py` | `StorageBackend` Protocol — experiment/run/chunk/result CRUD + cascade + reconciliation |
-| `server/db/retriever_backend.py` | `RetrieverBackend` Protocol — dense/sparse/hybrid search port |
-| `server/db/mongo_store.py` | Mongo adapters for both ports (Atlas / Atlas Local) |
-| `server/db/mongo_stats.py` | Stats / explore / vector-db helpers (delegated by `MongoStorageBackend`) |
-| `server/db/stats_common.py` | Backend-agnostic db-stats assembly shared by Mongo and Postgres |
-| `server/db/postgres.py` | Postgres pool, idempotent `schema.sql` bootstrap, query helpers |
-| `server/db/postgres_uri.py` | Supabase vs local-pgvector detection; TLS only for hosted; `postgres_storage_mode()` → `postgres-local` \| `postgres-cloud` |
-| `server/db/postgres_docs.py` | Document ↔ row mapping (promoted columns + `doc` JSONB) |
-| `server/db/postgres_store.py` | Postgres `StorageBackend` impl (Supabase / local pgvector) |
-| `server/db/postgres_stats.py` | Postgres stats / explore helpers (delegated by `PostgresStorageBackend`) |
-| `server/db/schema.sql` | Postgres DDL — 4 tables, FK cascade, `embedding_384` / `embedding_1024` |
-| `server/db/store_factory.py` | `get_storage_backend()` / `get_retriever_backend()` from settings |
-| `server/core/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
-| `server/core/search_index_plan.py` | Pure logic: required Atlas indexes from config + capacity assessment; required Postgres catalog objects (`vector` extension, HNSW/GIN names) |
-| `server/core/search_index_guard.py` | Backend-aware preflight — Atlas snapshot + ensure_indexes retry, or Postgres catalog introspection; raises on mismatch (HTTP 422) |
-| `server/core/health_check.py` | `/healthz` storage ping + `resolve_storage_mode()` four-value compound; Postgres error remediation substring |
-| `server/core/config_backend_guard.py` | Config↔server engine mismatch 422 (before index/SIE preflight) |
+| `server/db/ports/storage.py` | `StorageBackend` Protocol — experiment/run/chunk/result CRUD + cascade + reconciliation |
+| `server/db/ports/retriever_backend.py` | `RetrieverBackend` Protocol — dense/sparse/hybrid search port |
+| `server/db/mongo/mongo_store.py` | Mongo adapters for both ports (Atlas / Atlas Local) |
+| `server/db/mongo/mongo_stats.py` | Stats / explore / vector-db helpers (delegated by `MongoStorageBackend`) |
+| `server/db/ports/stats_common.py` | Backend-agnostic db-stats assembly shared by Mongo and Postgres |
+| `server/db/postgres/postgres.py` | Postgres pool, idempotent `schema.sql` bootstrap, query helpers |
+| `server/db/postgres/postgres_uri.py` | Supabase vs local-pgvector detection; TLS only for hosted; `postgres_storage_mode()` → `postgres-local` \| `postgres-cloud` |
+| `server/db/postgres/postgres_docs.py` | Document ↔ row mapping (promoted columns + `doc` JSONB) |
+| `server/db/postgres/postgres_store.py` | Postgres `StorageBackend` impl (Supabase / local pgvector) |
+| `server/db/postgres/postgres_stats.py` | Postgres stats / explore helpers (delegated by `PostgresStorageBackend`) |
+| `server/db/postgres/schema.sql` | Postgres DDL — 4 tables, FK cascade, `embedding_384` / `embedding_1024` |
+| `server/db/ports/store_factory.py` | `get_storage_backend()` / `get_retriever_backend()` from settings |
+| `server/core/pipeline/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
+| `server/core/guards/search_index_plan.py` | Pure logic: required Atlas indexes from config + capacity assessment; required Postgres catalog objects (`vector` extension, HNSW/GIN names) |
+| `server/core/guards/search_index_guard.py` | Backend-aware preflight — Atlas snapshot + ensure_indexes retry, or Postgres catalog introspection; raises on mismatch (HTTP 422) |
+| `server/core/guards/health_check.py` | `/healthz` storage ping + `resolve_storage_mode()` four-value compound; Postgres error remediation substring |
+| `server/core/guards/config_backend_guard.py` | Config↔server engine mismatch 422 (before index/SIE preflight) |
 | `scripts/lib/storage_mode.sh` | Four-flag `(db_type, location)` resolver for `start-services.sh` |
-| `server/core/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
-| `server/db/mongodb_uri.py` | Cloud vs local URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`); `mongodb_storage_mode()` → `mongodb-local` \| `mongodb-cloud` |
+| `server/core/pipeline/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
+| `server/db/mongo/mongodb_uri.py` | Cloud vs local URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`); `mongodb_storage_mode()` → `mongodb-local` \| `mongodb-cloud` |
 | `server/core/atlas_storage.py` | Atlas Admin API cluster quota + tier specs (`resolve_tier_specs`); shared-tier storage fallbacks |
 | `server/core/model_registry.py` | Embedding + reranking model catalog |
-| `server/core/embedder_factory.py` | Provider dispatch factory; `get_embedder(provider)` returns `(embed_docs_fn, embed_query_fn)` — add new providers here, not in orchestrator |
-| `server/core/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting; provider dispatch removed to `embedder_factory.py` |
-| `server/core/local_embedder.py` | sentence-transformers embedding (lazy-load) |
-| `server/core/sie_embedder.py` | SIE embeddings (BGE-M3, Stella-v5, SPLADE-v3) via remote gateway or optional self-hosted Docker |
-| `server/core/sie_guard.py` | SIE preflight guard — verifies `SIE_ENABLED` and gateway reachability before SIE embedding sweeps |
+| `server/core/embedding/embedder_factory.py` | Provider dispatch factory; `get_embedder(provider)` returns `(embed_docs_fn, embed_query_fn)` — add new providers here, not in orchestrator |
+| `server/core/embedding/embedder.py` | Voyage embedding client; `voyage-context-3` uses contextualized API with segment splitting; provider dispatch removed to `embedder_factory.py` |
+| `server/core/embedding/local_embedder.py` | sentence-transformers embedding (lazy-load) |
+| `server/core/embedding/sie_embedder.py` | SIE embeddings (BGE-M3, Stella-v5, SPLADE-v3) via remote gateway or optional self-hosted Docker |
+| `server/core/guards/sie_guard.py` | SIE preflight guard — verifies `SIE_ENABLED` and gateway reachability before SIE embedding sweeps |
 | `server/core/aim_logger.py` | Aim experiment run logging wrapper; `AimLogger.log_run()` — no-op if Aim init fails |
-| `scripts/aim-ui.sh` | Start Aim UI on :43800 via Docker (shared `./.aim` repo with server) |
+| `scripts/docker/aim-ui.sh` | Start Aim UI on :43800 via Docker (shared `./.aim` repo with server) |
 | `scripts/lib/compose.sh` | Shared Docker Compose helpers + local/cloud MongoDB URI constants; `start-services.sh mongodb` subcommands |
 | `server/api/sweep.py` | `POST /api/v1/sweep` (ranked results, SIE vs voyage baseline) + `GET /api/v1/best-config` |
-| `server/core/reranker.py` | Voyage reranking client |
-| `server/core/local_reranker.py` | CrossEncoder reranking (lazy-load) |
-| `server/core/retriever_mongo.py` | Atlas Vector Search (dense/sparse/hybrid) — Mongo-only |
-| `server/core/retriever_postgres.py` | pgvector dense + tsvector sparse + RRF hybrid; Atlas-scale dense scores; mandatory `embedding_model` filter |
+| `server/core/rerank/reranker.py` | Voyage reranking client |
+| `server/core/rerank/local_reranker.py` | CrossEncoder reranking (lazy-load) |
+| `server/core/retrieval/retriever_mongo.py` | Atlas Vector Search (dense/sparse/hybrid) — Mongo-only |
+| `server/core/retrieval/retriever_postgres.py` | pgvector dense + tsvector sparse + RRF hybrid; Atlas-scale dense scores; mandatory `embedding_model` filter |
 | `server/models/config.py` | Pydantic experiment config + provider validators |
 | `server/models/enums.py` | ChunkingMethod, RetrievalMethod, Phase |
 | `server/api/experiments.py` | Experiments CRUD, results/explore, db-stats, pause, resume, cancel, delete |
+| `server/api/experiments_lifecycle.py` | Bayesian summary + stale RUNNING reconciliation helpers (Slice 45) |
 | `server/api/experiments_shared.py` | Thin API helpers — delegates all I/O to `StorageBackend` via store_factory |
-| `server/db/indexes.py` | Collection + search index creation; cluster-wide index listing |
+| `server/db/mongo/indexes.py` | Collection + search index creation; cluster-wide index listing |
 | `cli/main.py` | Typer app (`run`, `cancel`, `pause`, `resume`, `delete`, `indexes`, `version`) |
+| `cli/display.py` | CLI live watch table + experiment summary panel (Slice 45) |
 | `cli/indexes_cmd.py` | `indexes list` (Atlas or Postgres catalog) and `indexes reset` (Atlas-only) subcommands |
 | `cli/config_loader.py` | YAML parser + model registry validation |
 | `cli/api_client.py` | HTTP client to server (POST /experiments, DELETE, etc.) |
 | `frontend/src/App.tsx` | Root component (screen routing) |
-| `frontend/src/components/DashboardShell.tsx` | Shared header and navigation wrapper |
-| `frontend/src/components/AppPageChrome.tsx` | Shared page wrapper (title, back button, actions) |
-| `frontend/src/components/LoadingFeedbackPanel.tsx` | Network loading progress panel with byte-level tracking |
-| `frontend/src/components/ExperimentProgressCard.tsx` | Reusable experiment progress card with circular indicator |
-| `frontend/src/components/PollingIndicator.tsx` | Subtle "Syncing..." badge during background polls |
-| `frontend/src/components/ConfirmDeleteModal.tsx` | Delete confirmation modal with experiment details and stats |
-| `frontend/src/components/ExperimentControlButtons.tsx` | Pause, resume, cancel buttons on detail screen |
-| `frontend/src/components/ExperimentsScreen.tsx` | Experiments list with collapsible rows, vector DB stats, delete |
-| `frontend/src/components/ExperimentDetailScreen.tsx` | Detail view with overview metrics, outcome banners, runs table |
-| `frontend/src/components/VectorDbStatsPanel.tsx` | Cluster-grouped storage stats panel |
-| `frontend/src/components/CollapsibleCard.tsx` | Reusable collapsible section (localStorage persistence) |
+| `frontend/src/components/screens/` | Feature screens (`Experiments`, `Detail`, `SearchExplorer`) + co-located tests |
+| `frontend/src/components/chrome/` | Shell chrome (`DashboardShell`, `AppPageChrome`, `Pagination`, `CollapsibleCard`, …) |
+| `frontend/src/components/experiment/` | Experiment controls/progress/modals + detail chrome |
+| `frontend/src/components/stats/` | Vector DB stats panels + `StatTile`/`StatRow` |
+| `frontend/src/hooks/useExperimentDetail.ts` | Detail hydrate/poll/db-stats controller (Slice 45) |
+| `frontend/src/test/helpers/` | Shared Vitest builders (`experiments`, `vectorDbStats`, `explore`, `experimentDetail`) |
+| `frontend/src/components/explore/ExplorePanels.tsx` | Search Explorer tabs + sidebar panels |
 | `frontend/src/utils/experimentStatus.ts` | Run outcome summarization + terminal status helpers |
+| `frontend/src/utils/completionReason.ts` | Shared `completion_reason` → label mapping |
+| `frontend/src/utils/feedEntries.ts` | Shared loading-feed append helper |
 | `frontend/src/types/index.ts` | Hand-mirrored TypeScript types from Python models |
 | `frontend/src/services/apiClient.ts` | Fetch wrapper (all server API calls, including DELETE) |
 | `frontend/src/services/fetchWithProgress.ts` | ReadableStream-based fetch with progress tracking |
 | `frontend/src/utils/devLog.ts` | Dev-only scoped console helpers (stripped from production builds) |
 | `server/utils/scope_log.py` | Option A scoped log format for server and CLI |
-| `tests/test_search_index_plan.py` | Search index requirement + capacity scenario tests |
-| `tests/test_search_index_guard.py` | Preflight guard tests (mocked I/O) |
-| `tests/test_postgres_store_integration.py` | Postgres CRUD/cascade/stats against live pgvector (skips without a DB) |
+| `tests/server/core/guards/test_search_index_plan.py` | Search index requirement + capacity scenario tests |
+| `tests/server/core/guards/test_search_index_guard.py` | Preflight guard tests (mocked I/O) |
+| `tests/server/db/test_postgres_store_integration.py` | Postgres CRUD/cascade/stats against live pgvector (skips without a DB) |
 
 ## Provider System
 
 **Two independent provider settings**:
 - `embedding.provider`: "local", "voyage", or "sie"
-  - Local → `server/core/local_embedder.py` → `all-MiniLM-L6-v2` (384-dim)
-  - Voyage → `server/core/embedder.py` → all models in `EMBEDDING_MODELS` with `provider: voyage` (1024-dim; `voyage-context-3` uses `contextualized_embed()` with automatic segment splitting for long documents)
-  - SIE → `server/core/sie_embedder.py` → BGE-M3, Stella-v5 (1024-dim dense), SPLADE-v3 (30522-dim sparse); **opt-in** — remote gateway via `SIE_ENDPOINT` + `SIE_API_KEY` (no Docker), or self-hosted Docker fallback (`docs/user-guide/sie-setup.md`)
-  - Dispatch: `server/core/embedder_factory.py` — `get_embedder(provider)` returns the right functions; orchestrator never does if/elif on provider
+  - Local → `server/core/embedding/local_embedder.py` → `all-MiniLM-L6-v2` (384-dim)
+  - Voyage → `server/core/embedding/embedder.py` → all models in `EMBEDDING_MODELS` with `provider: voyage` (1024-dim; `voyage-context-3` uses `contextualized_embed()` with automatic segment splitting for long documents)
+  - SIE → `server/core/embedding/sie_embedder.py` → BGE-M3, Stella-v5 (1024-dim dense), SPLADE-v3 (30522-dim sparse); **opt-in** — remote gateway via `SIE_ENDPOINT` + `SIE_API_KEY` (no Docker), or self-hosted Docker fallback (`docs/user-guide/sie-setup.md`)
+  - Dispatch: `server/core/embedding/embedder_factory.py` — `get_embedder(provider)` returns the right functions; orchestrator never does if/elif on provider
 - **`retrieval.retrievers`** (unified format):
   - Each list entry is one sweep dimension — one retriever per run
   - Traditional: `{type: dense|sparse|hybrid}` — no provider/model needed
@@ -210,7 +214,7 @@ Provider/model must match — registry in `model_registry.py` validates at confi
 ```
 [ ] Read docs/plan/slices/PROGRESS.md — confirm current state and which slice is next
 [ ] Read or create the slice spec in docs/plan/slices/SLICE-XX-*.md
-[ ] bash scripts/install-git-hooks.sh (once per machine — commit + pre-push checks)
+[ ] bash scripts/ci/install-git-hooks.sh (once per machine — commit + pre-push checks)
 [ ] Run all quality gates — confirm zero regressions before starting
 [ ] Note the exact acceptance criteria — these are the exit conditions
 ```
@@ -224,22 +228,22 @@ Record every non-obvious choice in `docs/plan/slices/PROGRESS.md` → Decision L
 ### Verify-all commands (run before each commit)
 ```bash
 # One command — mirrors CI (repo lint is step 1; unit-tier pytest only)
-./scripts/quality-gates.sh
+./scripts/ci/quality-gates.sh
 
 # Repo lint only (shell + workflows + Markdown)
-bash scripts/repo-lint.sh
+bash scripts/ci/repo-lint.sh
 
 # Or individually (same unit ignores as quality-gates / CI backend):
 uv run ruff check .
 uv run mypy server/ cli/
 uv run pytest --tb=short -q \
   --ignore=tests/contract \
-  --ignore=tests/test_postgres_store_integration.py \
-  --ignore=tests/test_postgres_dense_retrieval.py \
-  --ignore=tests/test_postgres_sparse_hybrid.py \
+  --ignore=tests/server/db/test_postgres_store_integration.py \
+  --ignore=tests/server/db/test_postgres_dense_retrieval.py \
+  --ignore=tests/server/db/test_postgres_sparse_hybrid.py \
   -m "not integration" \
-  --cov=server.core.search_index_plan \
-  --cov=server.core.search_index_guard --cov=server.core.results_analyzer \
+  --cov=server.core.guards.search_index_plan \
+  --cov=server.core.guards.search_index_guard --cov=server.core.results_analyzer \
   --cov=server.models.config --cov-fail-under=95
 cd frontend && npm run lint && npm run test && npm run typecheck && npm run build
 ```
@@ -247,40 +251,41 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 ### Post-slice checklist
 ```
 [ ] All acceptance criteria checked ✅
-[ ] Quality gates pass (zero regressions) — ./scripts/quality-gates.sh; git push runs pre-push-gates (full local gates) when hooks installed
+[ ] Quality gates pass (zero regressions) — ./scripts/ci/quality-gates.sh; git push runs pre-push-gates (full local gates) when hooks installed
 [ ] Slice status updated in docs/plan/slices/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
-[ ] Consider release: ./scripts/release.sh minor (slices/features) or patch (fixes/polish)
+[ ] Consider release: ./scripts/release/release.sh minor (slices/features) or patch (fixes/polish)
     See PROGRESS.md § Release Cadence for guidance
 ```
 
 ## Quality Gates Baseline
 
-**Unified script:** `./scripts/quality-gates.sh` (mirrors CI — 11 steps including repo lint)
+**Unified script:** `./scripts/ci/quality-gates.sh` (mirrors CI — 11 steps including repo lint)
 
-**Git hooks** (after `bash scripts/install-git-hooks.sh`):
+**Git hooks** (after `bash scripts/ci/install-git-hooks.sh`):
 - **commit** → pre-commit (hygiene, gitleaks, repo lint, ruff, dmypy, bandit, eslint, tsc --noEmit, testmon fast-tests on changed modules)
-- **push** → push-specific only (`./scripts/pre-push-gates.sh` — full pytest+coverage, vite build, vitest, pip-audit, npm audit; no duplicate of commit checks)
+- **push** → push-specific only (`./scripts/ci/pre-push-gates.sh` — full pytest+coverage, vite build, vitest, pip-audit, npm audit; no duplicate of commit checks)
 
 **Repo lint** (2026-05-27):
-- `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
+- `bash scripts/ci/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
 
 **Repo lint** shellcheck scope: `start-services.sh` + `scripts/**/*.sh` (pre-commit `files: ^(start-services\.sh|scripts/.*\.sh)$`).
 
-**Backend** (2026-07-26 — unit tier):
+**Backend** (2026-07-28 — unit tier):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **335** tests; BE floors **95/90/n/a/95** (stmts/br/fn/lines) via `fail_under=95` + `scripts/check_backend_coverage_floors.py` — DECISIONS #142; no `MONGODB_URI` required
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **338** tests; BE floors **95/90/n/a/95** (stmts/br/fn/lines) via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` — DECISIONS #142; no `MONGODB_URI` required
+- FE/BE threshold lock: `scripts/ci/check_coverage_threshold_drift.py` asserts Vitest `coverage.thresholds` match `[tool.rag_params_finder.coverage_thresholds]` (incl. `functions=95`) — DECISIONS #161
 
-**Frontend** (2026-07-27 — Slice 44 + shared floors #142):
+**Frontend** (2026-07-28 — Slice 45 COMPLETE + floors #142):
 - `npm run lint` → 0 errors (eslint + security plugin)
-- `npm run test` → **252** tests across **20** files (Vitest + React Testing Library)
-- `npm run test:coverage` / `test:ci` → v8 thresholds **95/90/95/95** stmts/br/fn/lines (`all: true`; DECISIONS #142); measured ≈98.21% / 92.89% / 99.7% / 99.61% — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
+- `npm run test` → **261** tests across **24** files (Vitest + React Testing Library)
+- `npm run test:coverage` / `test:ci` → v8 thresholds **95/90/95/95** stmts/br/fn/lines (`all: true`; DECISIONS #142); measured ≈98.4% / 93.11% / 100% / 99.69% — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
 - `npm run typecheck` → 0 errors
-- `npm run build` → ✓ built in ~4s, 49 modules
+- `npm run build` → ✓ built in ~4s
 - `npm audit --audit-level=high` → 0 high vulnerabilities
-- Theme map + Slice 45 move stub — Slice 44 Should §3 (**IMPLEMENTED**); see [`docs/contributor-guide/module-theme-map.md`](docs/contributor-guide/module-theme-map.md)
+- Theme map + Slice 45 layout — hotspots 1–5 **IMPLEMENTED** (incl. `scripts/{ci,docker,release,security}/`); Gate Status ✅ — [`docs/plan/gate-evidence/slice-45.json`](docs/plan/gate-evidence/slice-45.json)
 
 ## Release Process
 
@@ -289,16 +294,16 @@ See [docs/contributor-guide/release-process.md](docs/contributor-guide/release-p
 **Quick reference**:
 ```bash
 # Create a new release (minor version bump for new slices/features)
-./scripts/release.sh minor
+./scripts/release/release.sh minor
 
 # Create a patch release (bug fixes, polish)
-./scripts/release.sh patch
+./scripts/release/release.sh patch
 
 # Check current version
 rag-params-finder version
 ```
 
-The project follows [Semantic Versioning](https://semver.org/). Release automation via `scripts/release.sh` handles version updates, CHANGELOG.md updates, git tagging, and optional GitHub release creation.
+The project follows [Semantic Versioning](https://semver.org/). Release automation via `scripts/release/release.sh` handles version updates, CHANGELOG.md updates, git tagging, and optional GitHub release creation.
 
 ## Further Reading
 
@@ -307,7 +312,7 @@ The project follows [Semantic Versioning](https://semver.org/). Release automati
 | `docs/user-guide/getting-started.md` | End users | Setup, first experiment |
 | `docs/user-guide/configuration.md` | End users | Full config reference |
 | `docs/contributor-guide/architecture.md` | Contributors | System design, modules, data flow |
-| `docs/contributor-guide/module-theme-map.md` | Contributors / agents | Behavior \| Feature \| Function taxonomy; Slice 45 move proposals |
+| `docs/contributor-guide/module-theme-map.md` | Contributors / agents | Behavior \| Feature \| Function taxonomy; Slice 45 layout status (hotspots 1–5 IMPLEMENTED) |
 | `docs/contributor-guide/extending.md` | Contributors | Adding models, chunkers, endpoints |
 | `docs/contributor-guide/development.md` | Contributors | Dev loop, quality gates |
 | `docs/contributor-guide/release-process.md` | Contributors | Creating releases, versioning strategy |

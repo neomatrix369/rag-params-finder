@@ -94,7 +94,7 @@ FastAPI Server
 
 ## 📁 Module Map
 
-Theme tags (Behavior | Feature | Function) and ranked folder-separation proposals: [`module-theme-map.md`](module-theme-map.md). Moves execute in [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md) — not in Slice 44.
+Theme tags (Behavior | Feature | Function) and folder layout status: [`module-theme-map.md`](module-theme-map.md). Slice 45 hotspots 1–5 **IMPLEMENTED** (incl. `scripts/{ci,docker,release,security}/`; flat shims for one minor) — [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md).
 
 ```
 rag-params-finder/
@@ -102,91 +102,65 @@ rag-params-finder/
 │   ├── main.py              # FastAPI app entry; lifespan: indexes + orphan reconciliation
 │   ├── settings.py          # Centralized pydantic-settings config
 │   ├── api/
-│   │   ├── experiments.py   # CRUD, explore, db-stats, pause, resume, cancel, delete
+│   │   ├── experiments.py   # CRUD, explore, db-stats, pause, resume, cancel, delete (façade)
+│   │   ├── experiments_lifecycle.py  # Bayesian/stale-status helpers (Slice 45)
 │   │   ├── experiments_shared.py  # StorageBackend helpers (threadpool I/O) incl. db-stats
 │   │   ├── sweep.py         # POST /api/v1/sweep, GET /api/v1/best-config (Tier 1 ranked sweep)
 │   │   └── runs.py          # GET /runs/{id}/status
 │   ├── core/
-│   │   ├── orchestrator.py  # run_sweep(), resume_sweep(), run_single() pipeline; index preflight
-│   │   ├── embedder_factory.py  # get_embedder(provider) — voyage | local | sie dispatch
-│   │   ├── sie_embedder.py  # SIE embeddings (BGE-M3, Stella-v5, SPLADE-v3)
-│   │   ├── sie_guard.py     # SIE preflight — SIE_ENABLED + gateway reachability
-│   │   ├── aim_logger.py    # Aim experiment run logging (no-op on init failure)
-│   │   ├── executors.py     # SWEEP_EXECUTOR + HEAVY_READ_EXECUTOR (isolate long work from API pool)
-│   │   ├── search_index_plan.py  # required Atlas indexes + Postgres catalog objects (pure)
-│   │   ├── search_index_guard.py # Atlas snapshot + ensure retry | Postgres catalog introspection; SearchIndexMismatchError
-│   │   ├── health_check.py  # /healthz storage ping; resolve_storage_mode() four-value compound
-│   │   ├── startup_reconciliation.py  # fix stale running experiments on boot
-│   │   ├── atlas_storage.py # Atlas Admin API quota + dbStats footprint
-│   │   ├── pdf_parser.py    # pypdf text extraction
-│   │   ├── query_loader.py  # persona JSON → Query dataclass list
-│   │   ├── model_registry.py  # embedding + reranking model catalog
-│   │   ├── embedder.py      # Voyage embed(); voyage-context-3 → contextualized_embed + segment split
-│   │   ├── local_embedder.py  # sentence-transformers embedding (lazy-load, cached)
-│   │   ├── reranker.py      # Voyage reranking client
-│   │   ├── local_reranker.py  # CrossEncoder reranking (lazy-load, cached)
-│   │   ├── retriever_mongo.py  # Atlas Vector Search (dense/sparse/hybrid) — Mongo-only
-│   │   ├── retriever_postgres.py  # pgvector dense + tsvector sparse + RRF hybrid
-│   │   ├── results_analyzer.py  # aggregates scores, min-max normalization
-│   │   └── chunkers/
-│   │       ├── recursive.py # LangChain RecursiveCharacterTextSplitter
-│   │       ├── fixed.py     # fixed-size character windows
-│   │       ├── token.py     # tiktoken-based
-│   │       ├── sentence.py  # NLTK sentence tokenizer
-│   │       └── semantic.py  # embedding-similarity sentence grouping
-│   ├── models/
-│   │   ├── enums.py         # ChunkingMethod, RetrievalMethod, Phase
-│   │   ├── config.py        # Pydantic experiment config + provider validators
-│   │   ├── status.py        # RunStatus model
-│   │   └── results.py       # QueryResult, SearchResult, Chunk
+│   │   ├── pipeline/        # orchestrator, executors, experiment_control, search, signatures, …
+│   │   ├── embedding/       # voyage/local/SIE embedders + factory + rate_limiter
+│   │   ├── rerank/          # voyage + local CrossEncoder
+│   │   ├── retrieval/       # retriever_mongo, retriever_postgres
+│   │   ├── guards/          # search_index_*, sie_guard, config_backend_guard, health_check
+│   │   ├── chunkers/        # fixed / recursive / token / sentence / semantic
+│   │   ├── data_loader.py   # ingest (keep-at-core)
+│   │   ├── query_loader.py  # queries file/URL loader (keep-at-core)
+│   │   ├── model_registry.py
+│   │   ├── results_analyzer.py
+│   │   ├── aim_logger.py
+│   │   └── atlas_storage.py
+│   ├── models/              # Pydantic schemas and enums
+│   ├── utils/
 │   └── db/
-│       ├── storage.py           # StorageBackend Protocol (CRUD / cascade / reconciliation)
-│       ├── retriever_backend.py # RetrieverBackend Protocol (dense/sparse/hybrid)
-│       ├── mongo_store.py       # Mongo adapters for both ports (CRUD / search)
-│       ├── mongo_stats.py       # Stats / explore / vector-db helpers (delegated by mongo_store)
-│       ├── store_factory.py     # get_storage_backend() / get_retriever_backend()
-│       ├── atlas.py             # MongoDB connection singleton (TLS for cloud URIs only)
-│       ├── mongodb_uri.py       # is_atlas_uri(), parse_atlas_cluster_name(), mongodb_storage_mode()
-│       ├── indexes.py           # collection + search index creation; bootstrap_indexes() on local URI
-│       ├── postgres.py          # pgvector pool + schema bootstrap; hnsw.iterative_scan per connection
-│       ├── postgres_store.py    # Postgres adapters for both ports (CRUD / dense search)
-│       ├── postgres_stats.py    # Stats / explore helpers (delegated by postgres_store)
-│       ├── postgres_docs.py     # document ↔ row mapping; vector column per embedding width
-│       ├── postgres_uri.py      # Supabase vs local detection; TLS defaults; postgres_storage_mode()
-│       ├── stats_common.py      # backend-agnostic stats maths shared by both adapters
-│       └── schema.sql           # Postgres DDL — tables, FK cascade, HNSW indexes (idempotent)
+│       ├── ports/           # StorageBackend, RetrieverBackend, store_factory, stats_common
+│       ├── mongo/           # Atlas / local Mongo adapters + indexes
+│       └── postgres/        # pgvector adapters + schema.sql
 ├── cli/
-│   ├── main.py              # Typer app (run, cancel, pause, resume, delete, indexes, version)
-│   ├── indexes_cmd.py       # indexes list | reset subcommands
-│   ├── config_loader.py     # YAML parser + model registry validation
-│   └── api_client.py        # HTTP client to server
+│   ├── main.py              # Typer app (façade)
+│   ├── display.py           # watch/summary presentation (Slice 45)
+│   ├── indexes_cmd.py
+│   ├── config_loader.py
+│   └── api_client.py
 ├── tests/
-│   ├── test_search_index_plan.py   # index requirement + capacity scenarios
-│   ├── test_search_index_guard.py  # preflight guard, both backends (mocked I/O)
-│   └── test_storage_mode.py        # four-value storage_mode classification
+│   ├── server/              # mirrored unit suites (core/db/api/models)
+│   ├── cli/
+│   ├── scripts/
+│   ├── contract/
+│   ├── helpers/
+│   └── conftest.py
+├── scripts/
+│   ├── ci/                  # quality-gates, repo-lint, hooks, pip-audit, floors
+│   ├── docker/              # health-check, aim-ui, cleanup, wait-experiment
+│   ├── release/             # release.sh + bump / GitHub helpers
+│   ├── security/            # security-scan
+│   └── lib/                 # shared compose helpers
 └── frontend/src/
-    ├── App.tsx              # root component (screen routing)
+    ├── App.tsx
     ├── components/
-    │   ├── DashboardShell.tsx          # shared dashboard shell (header, nav)
-    │   ├── AppPageChrome.tsx           # shared page chrome wrapper
-    │   ├── LoadingFeedbackPanel.tsx    # network loading progress (byte-level, activity feed)
-    │   ├── ExperimentProgressCard.tsx  # experiment progress card (circular indicator, reusable)
-    │   ├── PollingIndicator.tsx        # subtle "Syncing..." indicator during polls
-    │   ├── ConfirmDeleteModal.tsx      # delete confirmation modal with experiment details
-    │   ├── ExperimentControlButtons.tsx  # pause / resume / cancel on detail screen
-    │   ├── CollapsibleCard.tsx         # reusable collapsible section (localStorage state)
-    │   ├── VectorDbStatsPanel.tsx      # cluster-grouped storage stats (experiments list)
-    │   ├── ExperimentVectorDbStatsCard.tsx  # per-experiment db-stats on detail screen
-    │   ├── ExperimentsScreen.tsx       # list view (collapsible rows, vector DB stats, delete)
-    │   ├── ExperimentDetailScreen.tsx  # overview metrics, outcome banners, runs table
-    │   └── SearchExplorerScreen.tsx    # results analysis (ranked configs, per-query, paginated)
+    │   ├── screens/         # Experiments, Detail, SearchExplorer (+ tests)
+    │   ├── chrome/          # shell, pagination, polling, loading, collapsible
+    │   ├── experiment/      # controls, progress, delete modal, detail chrome
+    │   ├── explore/         # Search Explorer panels
+    │   └── stats/           # vector DB stats + StatTile/Row
+    ├── hooks/
+    │   └── useExperimentDetail.ts
+    ├── test/helpers/        # shared Vitest builders
     ├── services/
-    │   ├── apiClient.ts       # fetch wrapper (all server API calls)
-    │   └── fetchWithProgress.ts  # streamed fetch with byte-level progress tracking
+    │   ├── apiClient.ts
+    │   └── fetchWithProgress.ts
     ├── utils/
-    │   ├── experimentStatus.ts   # terminal/running helpers + summarizeExperimentRuns()
-    │   └── experimentDbStats.ts  # db-stats response normalizers
-    └── types/index.ts         # hand-mirrored TypeScript types from Python models
+    └── types/index.ts
 ```
 
 ---
@@ -213,16 +187,17 @@ Each run progresses through phases tracked in the `run_status` collection:
 Three embedding providers routed via `embedder_factory.get_embedder(provider)` — the orchestrator never branches on provider directly.
 
 **Embedding provider** (`embedding.provider`):
-- `local` → `server/core/local_embedder.py` → sentence-transformers `all-MiniLM-L6-v2` (384-dim)
-- `voyage` → `server/core/embedder.py` → Voyage AI API (1024-dim); `voyage-context-3` uses `contextualized_embed()` with per-document segment splitting (32K-token window)
-- `sie` → `server/core/sie_embedder.py` → BGE-M3, Stella-v5 (1024-dim dense), SPLADE-v3 (30522-dim sparse); preflight via `sie_guard.py`; see [SIE setup](../user-guide/sie-setup.md)
+- `local` → `server/core/embedding/local_embedder.py` → sentence-transformers `all-MiniLM-L6-v2` (384-dim)
+- `voyage` → `server/core/embedding/embedder.py` → Voyage AI API (1024-dim); `voyage-context-3` uses `contextualized_embed()` with per-document segment splitting (32K-token window)
+- `sie` → `server/core/embedding/sie_embedder.py` → BGE-M3, Stella-v5 (1024-dim dense), SPLADE-v3 (30522-dim sparse); preflight via `server/core/guards/sie_guard.py`; see [SIE setup](../user-guide/sie-setup.md)
+- Dispatch: `server/core/embedding/embedder_factory.py` — orchestrator never branches on provider
 
 **Retrieval configuration** (`retrieval.retrievers`):
 - List of retriever types to sweep — each entry becomes one run (never combined)
 - Traditional: `{type: dense|sparse|hybrid}` — no provider/model needed
 - Rerankers: `{type: reranker|cross_encoder, provider: local|voyage, model: ...}`
-  - `provider: local` → `server/core/local_reranker.py` → CrossEncoder `cross-encoder/ms-marco-MiniLM-L-6-v2`
-  - `provider: voyage` → `server/core/reranker.py` → Voyage AI rerank API
+  - `provider: local` → `server/core/rerank/local_reranker.py` → CrossEncoder `cross-encoder/ms-marco-MiniLM-L-6-v2`
+  - `provider: voyage` → `server/core/rerank/reranker.py` → Voyage AI rerank API
   - Reranker runs fetch dense candidates internally before reranking
 - Old format (`methods` + `retrieval_provider`/`retrieval_model`) auto-migrates to `retrievers` via Pydantic validator
 
@@ -241,7 +216,7 @@ Two deployment modes share identical query syntax (`$vectorSearch`, `$search`):
 | **Atlas cloud** | `mongodb+srv://...` | Manual in Atlas UI on M0/M2/M5; server preflights on submit |
 | **Atlas Local (Docker)** | `mongodb://localhost:27017/...?directConnection=true` | `bootstrap_indexes()` on server boot — no UI steps |
 
-Detection: `server/db/mongodb_uri.py` (`is_atlas_uri`). TLS enabled only for cloud URIs (`server/db/atlas.py`). Docker: `./start-services.sh --mongodb-local` or `RAG_MONGODB_LOCAL=1`. See [MongoDB Setup](../user-guide/mongodb-setup.md).
+Detection: `server/db/mongo/mongodb_uri.py` (`is_atlas_uri`). TLS enabled only for cloud URIs (`server/db/mongo/atlas.py`). Docker: `./start-services.sh --mongodb-local` or `RAG_MONGODB_LOCAL=1`. See [MongoDB Setup](../user-guide/mongodb-setup.md).
 
 ---
 
@@ -253,7 +228,7 @@ alias `mongo` normalizes to `mongodb`). **One backend**, two deployments: local 
 (`./start-services.sh --postgres-local`) or **Supabase-hosted Postgres** (same adapter;
 cloud `DATABASE_URL`). Example YAMLs live under `configs/supabase/` — that folder
 name is not a second storage backend. Schema:
-[`server/db/schema.sql`](../../server/db/schema.sql).
+[`server/db/postgres/schema.sql`](../../server/db/schema.sql).
 Operator setup: [Postgres Setup](../user-guide/postgres-setup.md).
 
 ### Dense retrieval — HNSW and `iterative_scan`

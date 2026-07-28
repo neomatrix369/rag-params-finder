@@ -6,8 +6,8 @@ set -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# shellcheck source=scripts/docker-cleanup.sh
-source ./scripts/docker-cleanup.sh
+# shellcheck source=scripts/docker/docker-cleanup.sh
+source ./scripts/docker/docker-cleanup.sh
 # shellcheck source=scripts/lib/compose.sh
 source ./scripts/lib/compose.sh
 

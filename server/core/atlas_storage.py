@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from server.db.mongodb_uri import is_atlas_uri, parse_atlas_cluster_name
+from server.db.mongo.mongodb_uri import is_atlas_uri, parse_atlas_cluster_name
 from server.settings import settings
 from server.utils.logger import get_logger
 

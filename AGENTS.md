@@ -7,13 +7,13 @@ Agent session entry point for `rag-params-finder`.
 1. Read [`CLAUDE.md`](CLAUDE.md) — project overview, architecture, commands, quality gates, and slice playbook.
 2. Read [`docs/README.md`](docs/README.md) — documentation map by persona and topic.
 3. Read [`docs/plan/slices/PROGRESS.md`](docs/plan/slices/PROGRESS.md) — current slice status, forward roadmap, and interrupt recovery checklist.
-4. If exploring module layout / folder themes: read [`docs/contributor-guide/module-theme-map.md`](docs/contributor-guide/module-theme-map.md) (moves are Slice 45 — do not relocate packages until that slice executes).
+4. If exploring module layout / folder themes: read [`docs/contributor-guide/module-theme-map.md`](docs/contributor-guide/module-theme-map.md) (Slice 45 hotspots 1–5 **IMPLEMENTED**; prefer `scripts/ci|docker|release|security/` over flat shim paths).
 5. If continuing a slice: read the slice spec in [`docs/plan/slices/`](docs/plan/slices/).
 6. If starting a new slice: check the forward roadmap in `docs/plan/slices/PROGRESS.md` and create a spec before writing code.
 
 ## Key rules
 
-- Run quality gates before and after every change; install hooks with `bash scripts/install-git-hooks.sh` (commit + pre-push checks — see `CLAUDE.md` → Quality Gates Baseline).
+- Run quality gates before and after every change; install hooks with `bash scripts/ci/install-git-hooks.sh` (commit + pre-push checks — see `CLAUDE.md` → Quality Gates Baseline).
 - Follow the slice execution playbook in `CLAUDE.md` → Slice Execution Playbook.
 - Secrets (`VOYAGE_API_KEY`, `MONGODB_URI`, `DATABASE_URL`, `SUPABASE_URI`) stay server-side — never in CLI configs or committed files.
 - Storage backend: `STORAGE_BACKEND=mongodb` (default, permanent — DECISIONS #130 Won't flip) or `postgres`. Legacy `mongo` normalizes to `mongodb`. YAML `database_provider` is a label only. Postgres URI: canonical `DATABASE_URL`; optional `SUPABASE_URI` alias when `DATABASE_URL` unset — see `docs/user-guide/postgres-setup.md`.
@@ -23,12 +23,12 @@ Agent session entry point for `rag-params-finder`.
 
 ```bash
 # Quality gates (mirrors CI — run before every commit)
-./scripts/quality-gates.sh              # full CI mirror (repo lint + backend + frontend + audits)
-bash scripts/repo-lint.sh               # shellcheck + actionlint + markdownlint only
-./scripts/pre-push-gates.sh             # full local gates on push (quality-gates.sh default mode)
-./scripts/quality-gates.sh --quick      # fast local subset (pytest no coverage + no scoped SCA/audit); not used by pre-push by default
-./scripts/quality-gates.sh --full       # + local gitleaks + pre-commit all-files
-python scripts/check_integrity.py       # unit tests + import smoke
+./scripts/ci/quality-gates.sh              # full CI mirror (repo lint + backend + frontend + audits)
+bash scripts/ci/repo-lint.sh               # shellcheck + actionlint + markdownlint only
+./scripts/ci/pre-push-gates.sh             # full local gates on push (quality-gates.sh default mode)
+./scripts/ci/quality-gates.sh --quick      # fast local subset (pytest no coverage + no scoped SCA/audit); not used by pre-push by default
+./scripts/ci/quality-gates.sh --full       # + local gitleaks + pre-commit all-files
+python scripts/ci/check_integrity.py       # unit tests + import smoke
 
 # Docker (server + dashboard; CLI on host)
 ./start-services.sh                            # prod profile → :8001, :5374 (Atlas cloud)
@@ -37,7 +37,7 @@ python scripts/check_integrity.py       # unit tests + import smoke
 ./start-services.sh --postgres-cloud           # + hosted Supabase (DATABASE_URL or SUPABASE_URI; no MONGODB_URI)
 ./start-services.sh mongodb start|stop|reset|status  # MongoDB container only
 ./start-services.sh postgres start|stop|reset|status # Postgres container only
-./scripts/health-check.sh
+./scripts/docker/health-check.sh
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 # Backend
@@ -50,9 +50,9 @@ rag-params-finder resume <experiment-id>  # continue paused sweep
 rag-params-finder indexes list            # Atlas: known vs unknown | Postgres: catalog PRESENT vs MISSING
 rag-params-finder indexes reset           # Atlas only — drop unknown indexes + ensure required
 rag-params-finder indexes reset --all     # Atlas only — drop all chunks search indexes + recreate
-./scripts/aim-ui.sh                       # Aim experiment UI → http://localhost:43800
+./scripts/docker/aim-ui.sh                       # Aim experiment UI → http://localhost:43800
 uv pip install -e ".[dev]"
-bash scripts/install-git-hooks.sh          # essential checks on commit (staged) and push (all files)
+bash scripts/ci/install-git-hooks.sh          # essential checks on commit (staged) and push (all files)
 
 # Frontend
 cd frontend && npm run dev                     # start dashboard → http://localhost:5374

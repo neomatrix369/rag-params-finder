@@ -17,7 +17,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from server.core.aim_logger import AimLogger
-from server.core.embedder_factory import get_embedder
+from server.core.embedding.embedder_factory import get_embedder
 from server.settings import settings
 from server.utils.logger import get_logger
 

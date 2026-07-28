@@ -1,0 +1,108 @@
+{
+  "slice": 45,
+  "gate_status": "PASSED",
+  "verified_at": "2026-07-28",
+  "verifier": "slice-workflow",
+  "branch": "slice/45-module-theme-separation",
+  "head": "be4a0d6",
+  "pr": "https://github.com/neomatrix369/rag-params-finder/pull/130",
+  "phases": {
+    "must_core_db": {
+      "status": "PASSED",
+      "note": "server/core/{guards,pipeline,embedding,retrieval,rerank}/; server/db/{ports,mongo,postgres}/; shim aliases for one release"
+    },
+    "should_fe_be_craft": {
+      "status": "PASSED",
+      "note": "FE primitives + SLAP + folder split + test/helpers; BE pipeline SLAP (search/signatures) + fat-surface slim; tests mirror + slice16 mega-suite split"
+    },
+    "could_scripts": {
+      "status": "PASSED",
+      "decision": "DECISIONS #159",
+      "note": "scripts/{ci,docker,release,security}/ + flat shims; lib/ unchanged"
+    }
+  },
+  "quality_gates": {
+    "command": "./scripts/ci/quality-gates.sh",
+    "exit_code": 0,
+    "measured_at": "2026-07-28T01:00:00Z",
+    "backend": {
+      "tests": 338,
+      "total_cover": 97.74,
+      "statements": 98.6,
+      "branches": 95.21,
+      "lines": 98.6,
+      "floors": "95/90/n/a/95",
+      "decision": "DECISIONS #142",
+      "note": "+3 drift-guard unit tests vs pre-#161 baseline of 335"
+    },
+    "frontend": {
+      "tests": 261,
+      "test_files": 24,
+      "statements": 98.4,
+      "branches": 93.11,
+      "functions": 100.0,
+      "lines": 99.69,
+      "floors": "95/90/95/95",
+      "decision": "DECISIONS #142"
+    },
+    "coverage_threshold_drift": {
+      "command": "python scripts/ci/check_coverage_threshold_drift.py",
+      "result": "OK (statements=95, branches=90, lines=95 functions=95)",
+      "decision": "DECISIONS #161"
+    }
+  },
+  "runtime_smoke": {
+    "version": {
+      "command": "uv run rag-params-finder version",
+      "result": "0.11.0"
+    },
+    "healthz": {
+      "url": "http://localhost:8001/healthz",
+      "result": {"ok": true, "storage_backend": "postgres", "storage_mode": "postgres-local", "postgres": "ok"}
+    }
+  },
+  "mutation_testing": {
+    "status": "waived",
+    "decision": "DECISIONS #160",
+    "rationale": "Structural theme moves + craft extracts; no new non-trivial pure retrieval/storage algorithm; product floors green; nightly Stryker carries mutation signal (#128/#101/#95/#138)"
+  },
+  "reexport_lifecycle": {
+    "changelog_deprecated": true,
+    "decisions": ["#146", "#147", "#148", "#150", "#151", "#152", "#159"],
+    "removal_trigger": "next minor after Deprecated notice"
+  },
+  "gwt_mapping": {
+    "note": "Characterization relocation — Slice 16 scenarios retained under tests/server/core/pipeline/; mirrored suites under tests/server|cli|scripts/",
+    "pipeline_suite_dir": "tests/server/core/pipeline/",
+    "helpers": "tests/helpers/pipeline_sweep.py",
+    "fe_helpers": "frontend/src/test/helpers/"
+  },
+  "deferred_could": [],
+  "could_leftovers": {
+    "decision": "DECISIONS #161",
+    "status": "PASSED",
+    "items": [
+      "FE Scenario/Slice narrative docstrings on shared primitive suites",
+      "scripts/ci/check_coverage_threshold_drift.py (+ quality-gates / pre-push / CI)",
+      "BE GWT-on-touch markers + Slice tags on moved/split suites"
+    ]
+  },
+  "review": {
+    "agent": "nw-software-crafter-reviewer",
+    "iteration_1": {
+      "verdict": "NEEDS_REVISION",
+      "review_id": "630fe7f6-4ba0-44ea-ba84-d2e0790ecdd1",
+      "scope": "close-out_readiness",
+      "note": "Implementation merge-worthy; COMPLETE blocked on missing slice-45.json, mutation waive, tracker IN PROGRESS, stale After-Check, scripts Deprecated"
+    },
+    "iteration_2": {
+      "verdict": "APPROVED",
+      "note": "Close-out artifacts applied: slice-45.json, DECISIONS #160, After-Checks ticked, PROGRESS/Gate Status COMPLETE, scripts Deprecated bullet"
+    },
+    "iteration_3": {
+      "verdict": "APPROVED",
+      "note": "Evidence refreshed post-#161: head be4a0d6, BE 338 tests, drift guard recorded"
+    }
+  },
+  "lifecycle": "VERIFIED / PASSED — Must + Should + scripts Could + Could leftovers #161; mutation waived #160; evidence head be4a0d6"
+}
