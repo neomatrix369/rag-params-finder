@@ -7,17 +7,13 @@
  */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { ExperimentDbStatsSummary } from '../../types';
+import { dbStatsSummary } from '../../test/helpers/experimentDetail';
 import ExperimentVectorDbStatsCard from './ExperimentVectorDbStatsCard';
 
-function stats(overrides: Partial<ExperimentDbStatsSummary> = {}): ExperimentDbStatsSummary {
-  return {
-    experiment_id: 'exp-vdb',
-    experiment_name: 'vdb demo',
-    status: 'complete',
-    created_at: '2026-07-27T00:00:00Z',
-    database_provider: 'mongodb',
-    collection_name: 'chunks',
+function stats(
+  overrides: Parameters<typeof dbStatsSummary>[0] = {},
+): ReturnType<typeof dbStatsSummary> {
+  return dbStatsSummary({
     cluster_host: 'localhost:27017',
     total_chunks: 100,
     unique_documents: 2,
@@ -40,7 +36,7 @@ function stats(overrides: Partial<ExperimentDbStatsSummary> = {}): ExperimentDbS
       results: 2,
     })),
     ...overrides,
-  };
+  });
 }
 
 describe('ExperimentVectorDbStatsCard', () => {

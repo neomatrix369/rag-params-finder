@@ -7,14 +7,13 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DETAIL_POLL_MS, VECTOR_DB_STATS_POLL_MS } from '../../constants';
 import {
-  ChunkingMethod,
-  Phase,
-  RetrievalMethod,
-  type Experiment,
-  type ExperimentDbStatsSummary,
-  type ExperimentStatus,
-  type RunStatus,
-} from '../../types';
+  dbStats,
+  dbStatsResponse,
+  detailFixture,
+  run,
+  type DetailFixture,
+} from '../../test/helpers/experimentDetail';
+import { Phase, type ExperimentStatus } from '../../types';
 import ExperimentDetailScreen from './ExperimentDetailScreen';
 import { calculateProgressMetrics } from '../experiment/experimentDetailProgress';
 
@@ -35,8 +34,6 @@ vi.mock('../../services/apiClient', async () => {
   return { ...actual, ...apiMocks };
 });
 
-type DetailFixture = Experiment & { runs: RunStatus[] };
-
 type ActionVisibility = {
   pause: boolean;
   cancel: boolean;
@@ -54,80 +51,6 @@ type LifecycleCase = {
   nextStep: string;
   actions: ActionVisibility;
 };
-
-function run(
-  experimentId: string,
-  index: number,
-  phase: Phase,
-  overrides: Partial<RunStatus> = {},
-): RunStatus {
-  return {
-    run_id: `${experimentId}-run-${index}`,
-    experiment_id: experimentId,
-    phase,
-    database_provider: 'mongodb',
-    embedding_provider: 'local',
-    embedding_model: 'test-embedding',
-    chunking_method: ChunkingMethod.RECURSIVE,
-    chunk_size: 512,
-    overlap: 50,
-    created_at: '2026-07-18T12:00:00Z',
-    updated_at: '2026-07-18T12:01:00Z',
-    elapsed_ms: 60_000,
-    retrieval_method: RetrievalMethod.DENSE,
-    ...overrides,
-  };
-}
-
-function detailFixture(
-  status: ExperimentStatus,
-  phases: Phase[],
-  overrides: Partial<DetailFixture> = {},
-): DetailFixture {
-  const experimentId = `detail-${status}`;
-  const base: DetailFixture = {
-    experiment_id: experimentId,
-    experiment_name: `${status} detail sweep`,
-    config: {},
-    created_at: '2026-07-18T12:00:00Z',
-    status,
-    run_count: 3,
-    runs: phases.map((phase, index) => run(experimentId, index, phase)),
-  };
-  return { ...base, ...overrides };
-}
-
-function dbStats(fixture: DetailFixture): ExperimentDbStatsSummary {
-  return {
-    experiment_id: fixture.experiment_id,
-    experiment_name: fixture.experiment_name,
-    status: fixture.status,
-    created_at: fixture.created_at,
-    database_provider: 'mongodb',
-    collection_name: 'chunks',
-    cluster_host: null,
-    total_chunks: 0,
-    unique_documents: 0,
-    embedding_models: [],
-    embedding_dimensions: [],
-    index_names: [],
-    retrieval_methods: [],
-    chunking_methods: [],
-    chunking_breakdown: {},
-    estimated_storage_mb: 0,
-    estimated_embedding_mb: 0,
-    estimated_metadata_mb: 0,
-    runs_with_data: 0,
-    avg_chunks_per_run: 0,
-    total_results: 0,
-    unique_queries: 0,
-    run_breakdown: [],
-  };
-}
-
-function dbStatsResponse(fixture: DetailFixture): { db_stats: ExperimentDbStatsSummary } {
-  return { db_stats: dbStats(fixture) };
-}
 
 function resetAllApiMocks() {
   apiMocks.getExperiment.mockReset();

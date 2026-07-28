@@ -5,17 +5,15 @@
  */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { VectorDbStatsGroup } from '../../types';
+import { vectorDbGroup } from '../../test/helpers/vectorDbStats';
 import VectorDbStatsPanel from './VectorDbStatsPanel';
 
-function group(overrides: Partial<VectorDbStatsGroup> = {}): VectorDbStatsGroup {
-  return {
+function group(
+  overrides: Parameters<typeof vectorDbGroup>[0] = {},
+): ReturnType<typeof vectorDbGroup> {
+  return vectorDbGroup({
     vector_db_id: 'vdb-1',
-    database_provider: 'mongodb',
-    collection_name: 'chunks',
     cluster_host: 'cluster0.example.mongodb.net',
-    index_names: ['vector_index_1024'],
-    embedding_dimensions: [1024],
     totals: {
       experiment_count: 2,
       total_chunks: 1000,
@@ -27,9 +25,8 @@ function group(overrides: Partial<VectorDbStatsGroup> = {}): VectorDbStatsGroup 
       database_storage_limit_mb: 512,
       database_free_mb: 472,
     },
-    experiments: [],
     ...overrides,
-  };
+  });
 }
 
 describe('VectorDbStatsPanel', () => {

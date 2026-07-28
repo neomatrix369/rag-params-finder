@@ -693,6 +693,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-28 | 45 | FE shared test helpers (`frontend/src/test/helpers/*`) — DECISIONS #158 | Leave duplicated builders / invent factories only for new tests |
 | 2026-07-28 | 45 | FE components folder split (`screens`/`chrome`/`experiment`/`stats`) — DECISIONS #157 | Leave flat components/ / move screens only |
 | 2026-07-28 | 45 | FE screen SLAP extracts (detail hook + chrome, list labels, explore panels) — DECISIONS #156 | Folder-move screens first / leave god screens |
 | 2026-07-28 | 45 | FE shared primitives extracted (Pagination/StatTile/feed/completionReason) — DECISIONS #155 | Defer until after components folder split / leave Rule-of-3 copies |

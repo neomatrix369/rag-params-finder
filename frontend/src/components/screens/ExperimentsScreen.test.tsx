@@ -10,6 +10,8 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EXPERIMENTS_POLL_MS, VECTOR_DB_STATS_POLL_MS } from '../../constants';
+import { experiment } from '../../test/helpers/experiments';
+import { vectorDbGroup } from '../../test/helpers/vectorDbStats';
 import type { Experiment, VectorDbStatsGroup } from '../../types';
 import ExperimentsScreen from './ExperimentsScreen';
 
@@ -29,23 +31,6 @@ vi.mock('../../services/apiClient', async () => {
   );
   return { ...actual, ...apiMocks };
 });
-
-function experiment(
-  status: Experiment['status'],
-  failedCount = 0,
-  overrides: Partial<Experiment> = {},
-): Experiment {
-  return {
-    experiment_id: `experiment-${status}`,
-    experiment_name: `${status} sweep`,
-    config: {},
-    created_at: '2026-07-18T12:00:00Z',
-    status,
-    run_count: 3,
-    failed_count: failedCount,
-    ...overrides,
-  };
-}
 
 const lifecycleExperiments = [
   experiment('running'),
@@ -67,27 +52,6 @@ const lifecycleExperiments = [
     },
   }),
 ];
-
-function vectorDbGroup(overrides: Partial<VectorDbStatsGroup> = {}): VectorDbStatsGroup {
-  return {
-    vector_db_id: 'mongodb::chunks',
-    database_provider: 'mongodb',
-    collection_name: 'chunks',
-    cluster_host: null,
-    index_names: ['vector_index_1024'],
-    embedding_dimensions: [1024],
-    totals: {
-      experiment_count: 1,
-      total_chunks: 120,
-      total_results: 42,
-      estimated_storage_mb: 5,
-      estimated_embedding_mb: 4,
-      estimated_metadata_mb: 1,
-    },
-    experiments: [],
-    ...overrides,
-  };
-}
 
 function renderedRowPresentation(experimentName: string) {
   const openExperiment = screen.getByText(experimentName, { exact: true }).closest('button');

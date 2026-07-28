@@ -9,6 +9,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EXPLORE_POLL_MS } from '../../constants';
 import type { ExperimentProgressCallback } from '../../services/apiClient';
+import { buildConfig, buildDetailedResult } from '../../test/helpers/explore';
 import type { DetailedResult, Experiment, ExploreResponse, RankedConfig } from '../../types';
 import SearchExplorerScreen from './SearchExplorerScreen';
 
@@ -25,57 +26,7 @@ vi.mock('../../services/apiClient', async () => {
   return { ...actual, ...apiMocks };
 });
 
-const RETRIEVAL_METHODS = ['dense', 'sparse', 'hybrid'] as const;
-const CHUNKING_METHODS = ['fixed', 'recursive', 'token', 'sentence', 'semantic'];
-const EMBEDDING_MODELS = ['voyage-3.5-lite', 'voyage-3.5', 'all-MiniLM-L6-v2'];
-const CHUNK_SIZES = [256, 512, 768, 1024];
-const OVERLAPS = [20, 50, 80];
-const PADDINGS = [0, 10, 20];
 const TIED_MAX_SCORE = 92;
-
-function buildConfig(rank: number, overrides: Partial<RankedConfig> = {}): RankedConfig {
-  const idx = rank - 1;
-  return {
-    rank,
-    database_provider: 'mongodb',
-    embedding_provider: 'voyage',
-    embedding_model: EMBEDDING_MODELS[idx % EMBEDDING_MODELS.length],
-    chunking_method: CHUNKING_METHODS[idx % CHUNKING_METHODS.length],
-    chunk_size: CHUNK_SIZES[idx % CHUNK_SIZES.length],
-    overlap: OVERLAPS[idx % OVERLAPS.length],
-    padding: PADDINGS[idx % PADDINGS.length],
-    max_score: Math.max(10, 90 - idx * 3),
-    avg_score: Math.max(5, 80 - idx * 3),
-    query_avg_score: Math.max(5, 82 - idx * 3),
-    result_count: 5 + idx,
-    retrieval_method: RETRIEVAL_METHODS[idx % RETRIEVAL_METHODS.length],
-    retrieval_provider: idx % 2 === 0 ? 'local' : 'voyage',
-    ...overrides,
-  };
-}
-
-function buildDetailedResult(rank: number, overrides: Partial<DetailedResult> = {}): DetailedResult {
-  const idx = rank - 1;
-  return {
-    rank,
-    score: Math.max(10, 95 - idx * 4),
-    raw_score: Math.max(0.1, 0.95 - idx * 0.04),
-    database_provider: 'mongodb',
-    embedding_provider: 'voyage',
-    embedding_model: EMBEDDING_MODELS[idx % EMBEDDING_MODELS.length],
-    chunking_method: CHUNKING_METHODS[idx % CHUNKING_METHODS.length],
-    chunk_size: CHUNK_SIZES[idx % CHUNK_SIZES.length],
-    overlap: OVERLAPS[idx % OVERLAPS.length],
-    padding: PADDINGS[idx % PADDINGS.length],
-    chunk_text: `Chunk text for result ${rank}. Short filler content for this result.`,
-    query_text: `Sample query number ${rank}?`,
-    run_id: `run-${rank}`,
-    dense_score: Math.max(0.1, 0.9 - idx * 0.03),
-    retrieval_method: RETRIEVAL_METHODS[idx % RETRIEVAL_METHODS.length],
-    retrieval_provider: idx % 2 === 0 ? 'local' : 'voyage',
-    ...overrides,
-  };
-}
 
 const LONG_CHUNK_TEXT =
   'Alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike november oscar papa quebec romeo sierra tango uniform victor whiskey.';

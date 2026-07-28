@@ -345,7 +345,7 @@ Scenario: Mega-suite split preserves behaviour
 - [ ] `docs/plan/gate-evidence/slice-45.json` written
 - [ ] Optional smoke: `./scripts/quality-gates.sh` + `rag-params-finder version` / healthz `storage_mode` unchanged
 - [x] FE craft phases: shared primitives have tests; no duplicate Pagination/StatTile/Feed helpers left in screens; FE **95/90/95/95** still green
-- [ ] FE craft phases: shared `test/helpers` used by moved/shrunk suites; Decision Log notes pre→post screen line counts
+- [x] FE craft phases: shared `test/helpers` used by moved/shrunk suites; Decision Log notes pre→post screen line counts (#156) + helpers (#158)
 - [x] BE craft phases: orchestrator/pipeline split green; Protocols + factories unchanged; BE **95/90/n/a/95** still green; Decision Log notes pre→post orchestrator line counts
 - [x] BE craft phases (when claimed): mega-suite split or fat-surface slim landed without intentional coverage loss
 - [x] FE craft phases (when claimed): screen SLAP extracts landed; Decision Log notes pre→post screen line counts (Detail 1615→986, Experiments 764→670, Explorer 1131→426)
@@ -371,7 +371,7 @@ One hotspot / one craft theme per PR when possible.
 
 ## Gate Status
 
-🔨 IN PROGRESS — Must moves + steps 1–7 done (through **FE components folder split**). Next: FE shared test helpers and/or `scripts/` Could.
+🔨 IN PROGRESS — Must moves + steps 1–8 done (through **FE shared test helpers**). Next: `scripts/` Could and/or gate-evidence + slice close.
 
 ## Remediation pass (2026-07-27)
 
