@@ -4,7 +4,7 @@
   "verified_at": "2026-07-28",
   "verifier": "slice-workflow",
   "branch": "slice/45-module-theme-separation",
-  "head": "42da136",
+  "head": "be4a0d6",
   "pr": "https://github.com/neomatrix369/rag-params-finder/pull/130",
   "phases": {
     "must_core_db": {
@@ -24,15 +24,16 @@
   "quality_gates": {
     "command": "./scripts/ci/quality-gates.sh",
     "exit_code": 0,
-    "measured_at": "2026-07-28T00:44:00Z",
+    "measured_at": "2026-07-28T01:00:00Z",
     "backend": {
-      "tests": 335,
+      "tests": 338,
       "total_cover": 97.74,
       "statements": 98.6,
       "branches": 95.21,
       "lines": 98.6,
       "floors": "95/90/n/a/95",
-      "decision": "DECISIONS #142"
+      "decision": "DECISIONS #142",
+      "note": "+3 drift-guard unit tests vs pre-#161 baseline of 335"
     },
     "frontend": {
       "tests": 261,
@@ -43,6 +44,11 @@
       "lines": 99.69,
       "floors": "95/90/95/95",
       "decision": "DECISIONS #142"
+    },
+    "coverage_threshold_drift": {
+      "command": "python scripts/ci/check_coverage_threshold_drift.py",
+      "result": "OK (statements=95, branches=90, lines=95 functions=95)",
+      "decision": "DECISIONS #161"
     }
   },
   "runtime_smoke": {
@@ -92,7 +98,11 @@
     "iteration_2": {
       "verdict": "APPROVED",
       "note": "Close-out artifacts applied: slice-45.json, DECISIONS #160, After-Checks ticked, PROGRESS/Gate Status COMPLETE, scripts Deprecated bullet"
+    },
+    "iteration_3": {
+      "verdict": "APPROVED",
+      "note": "Evidence refreshed post-#161: head be4a0d6, BE 338 tests, drift guard recorded"
     }
   },
-  "lifecycle": "VERIFIED / PASSED — Must + Should + scripts Could + Could leftovers #161; mutation waived #160"
+  "lifecycle": "VERIFIED / PASSED — Must + Should + scripts Could + Could leftovers #161; mutation waived #160; evidence head be4a0d6"
 }

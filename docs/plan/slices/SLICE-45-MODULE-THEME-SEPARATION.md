@@ -334,7 +334,7 @@ Scenario: Mega-suite split preserves behaviour
 
 ## After-Checks [GATE]
 
-- [x] At least Must items for chosen phase(s) landed with green gates — **VERIFIED 2026-07-28** `./scripts/ci/quality-gates.sh` exit 0 (HEAD `42da136`+)
+- [x] At least Must items for chosen phase(s) landed with green gates — **VERIFIED 2026-07-28** `./scripts/ci/quality-gates.sh` exit 0 (HEAD `be4a0d6`)
 - [x] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first, §2); essential error paths covered (90–100% of clauses) — characterization suites relocated under `tests/server|cli|scripts/`; Slice 16 scenarios retained under `tests/server/core/pipeline/`
 - [x] Branch coverage: product floors stay green (FE **95/90/95/95**, BE **95/90/n/a/95** — DECISIONS #142); tool fail_under configured; whole-tree 100% branch Won't (§12 — test-writing-craft-quality.mdc) — measured BE 98.60/95.21/98.60; FE 98.4/93.11/100/99.69
 - [x] Mutation testing run if slice adds non-trivial pure logic: survival budget met; else waive with Decision Log row (§23 / #128 pattern) — **waived** DECISIONS #160 (nightly CI)
