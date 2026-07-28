@@ -97,7 +97,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | File | Purpose |
 |---|---|
 | `docs/contributor-guide/module-theme-map.md` | Behavior \| Feature \| Function theme map + Slice 45 layout status (hotspots 1–5 IMPLEMENTED) |
-| `scripts/ci/` | Quality gates, repo lint, hooks install, pip-audit, coverage floor checker |
+| `scripts/ci/` | Quality gates, repo lint, hooks install, pip-audit, coverage floor + threshold-drift checkers |
 | `scripts/docker/` | health-check, aim-ui, docker-cleanup/build-context |
 | `scripts/release/` | `release.sh` + bump/GitHub helpers |
 | `scripts/security/` | `security-scan.sh` |
@@ -272,20 +272,20 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 
 **Repo lint** shellcheck scope: `start-services.sh` + `scripts/**/*.sh` (pre-commit `files: ^(start-services\.sh|scripts/.*\.sh)$`).
 
-**Backend** (2026-07-26 — unit tier):
+**Backend** (2026-07-28 — unit tier):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **335** tests; BE floors **95/90/n/a/95** (stmts/br/fn/lines) via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` — DECISIONS #142; no `MONGODB_URI` required
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **338** tests; BE floors **95/90/n/a/95** (stmts/br/fn/lines) via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` — DECISIONS #142; no `MONGODB_URI` required
 - FE/BE threshold lock: `scripts/ci/check_coverage_threshold_drift.py` asserts Vitest `coverage.thresholds` match `[tool.rag_params_finder.coverage_thresholds]` (incl. `functions=95`) — DECISIONS #161
 
-**Frontend** (2026-07-28 — Slice 45 shared primitives + Slice 44 floors #142):
+**Frontend** (2026-07-28 — Slice 45 COMPLETE + floors #142):
 - `npm run lint` → 0 errors (eslint + security plugin)
 - `npm run test` → **261** tests across **24** files (Vitest + React Testing Library)
-- `npm run test:coverage` / `test:ci` → v8 thresholds **95/90/95/95** stmts/br/fn/lines (`all: true`; DECISIONS #142); measured ≈98.4% / 93.11% / 100% / 99.68% — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
+- `npm run test:coverage` / `test:ci` → v8 thresholds **95/90/95/95** stmts/br/fn/lines (`all: true`; DECISIONS #142); measured ≈98.4% / 93.11% / 100% / 99.69% — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s
 - `npm audit --audit-level=high` → 0 high vulnerabilities
-- Theme map + Slice 45 layout — hotspots 1–5 **IMPLEMENTED** (incl. `scripts/{ci,docker,release,security}/`) — see [`docs/contributor-guide/module-theme-map.md`](docs/contributor-guide/module-theme-map.md)
+- Theme map + Slice 45 layout — hotspots 1–5 **IMPLEMENTED** (incl. `scripts/{ci,docker,release,security}/`); Gate Status ✅ — [`docs/plan/gate-evidence/slice-45.json`](docs/plan/gate-evidence/slice-45.json)
 
 ## Release Process
 

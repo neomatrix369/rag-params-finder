@@ -1,4 +1,4 @@
-# Handoff — 2026-07-27
+# Handoff — 2026-07-28
 
 ## Where We Are
 
@@ -6,9 +6,9 @@
 
 **ADR-004 Accepted**; local comparison VERIFIED; CI dual-backend ✅; mutation waived (#128). **No default flip** (#130 Won't) — code default stays `mongodb` permanently; backends independently selectable (#129).
 
-**44** ✅ COMPLETE on `slice/44-frontend-coverage-gate` — **#142**: FE **95/90/95/95**; BE **95/90/n/a/95** (`fail_under=95` + `scripts/check_backend_coverage_floors.py`); measured FE ≈98.21 / 92.89 / 99.7 / 99.61; BE stmts ≈98.6 / br ≈95.2 / TOTAL ≈97.7; **252** FE / **335** BE unit tests (**VERIFIED**).
+**44** ✅ COMPLETE on `slice/44-frontend-coverage-gate` — **#142**: FE **95/90/95/95**; BE **95/90/n/a/95** (`fail_under=95` + `scripts/ci/check_backend_coverage_floors.py`); measured FE ≈98.4 / 93.11 / 100 / 99.69; BE stmts ≈98.6 / br ≈95.2 / TOTAL ≈97.7; **261** FE / **338** BE unit tests (**VERIFIED**).
 
-**45** 📋 PLANNED — module theme separation + FE/BE Code Complete craft (§1b orchestrator/API/CLI/mega-suites; §4b FE primitives/screens); architect APPROVED (#137) for moves — ready for phased execution (~16–24 h).
+**45** ✅ COMPLETE on `slice/45-module-theme-separation` ([PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130)) — hotspots 1–5 **IMPLEMENTED**; FE/BE craft; scripts themes; Could leftovers #161 (docstrings, coverage drift guard, GWT-on-touch); mutation #160; evidence [`slice-45.json`](gate-evidence/slice-45.json).
 
 ## What's Done
 
@@ -17,15 +17,14 @@
 - `slice-38-quality-comparison.md` — both 120-run twins; latency ≤2× PASS; overlap informational (#129)
 - `slice-38.json` — `gate_status: PASSED`; default-flip gate removed (#130)
 - Slice 44 + #142: FE **95/90/95/95**; BE **95/90/n/a/95** via fail_under + JSON floor checker; gate-evidence PASSED
-- Slice 44 §3 taxonomy: [`module-theme-map.md`](../contributor-guide/module-theme-map.md), [`SLICE-45-MODULE-THEME-SEPARATION.md`](slices/SLICE-45-MODULE-THEME-SEPARATION.md) (IDE canvas optional / not in-repo)
+- Slice 44 §3 taxonomy: [`module-theme-map.md`](../contributor-guide/module-theme-map.md)
+- Slice 45: theme packages + craft + scripts folders; [`SLICE-45-MODULE-THEME-SEPARATION.md`](slices/SLICE-45-MODULE-THEME-SEPARATION.md); Gate Status ✅
 
 ## What's Next
 
-1. Merge [PR #121](https://github.com/neomatrix369/rag-params-finder/pull/121) (Slice 44 + #142) when review-ready
-2. Slice **45** — phase 1: `server/core/` move **+** orchestrator SLAP into `pipeline/`, **or** FE primitives-first; see [`SLICE-45`](slices/SLICE-45-MODULE-THEME-SEPARATION.md) §1b / §4b + execution order
-3. Merge [PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118) when ready (if still open)
-4. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 if prioritized
-5. Commit Slice 45 spec expands (FE + BE craft backlogs) if still local-only
+1. Merge [PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130) (Slice 45) when review-ready
+2. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 if prioritized
+3. Forward-roadmap Could/Should items (export, SSE, recovery, etc.) per [`PROGRESS.md`](slices/PROGRESS.md)
 
 ## Key decisions locked
 
@@ -55,3 +54,6 @@
 | 140 | Uniform overall ≥90% (BE fail_under=90; FE briefly 90/90/90/90) — superseded by #141/#142 |
 | 141 | Fair floors: FE **95/90/95/95**; BE policy briefly 92/85 — superseded by #142 |
 | 142 | FE **95/90/95/95**; BE **95/90/n/a/95** via `fail_under=95` + `check_backend_coverage_floors.py` |
+| 159 | `scripts/{ci,docker,release,security}/` + flat shims for one minor |
+| 160 | Slice 45 mutation waived to nightly CI |
+| 161 | FE↔pyproject coverage drift guard + FE docstring / BE GWT-on-touch Could leftovers |

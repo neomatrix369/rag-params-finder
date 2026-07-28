@@ -156,10 +156,11 @@ bash scripts/ci/pip-audit.sh
 
 **SCA suppressions** (congruent-lock blockers only — each entry documents blocker, compensating control, unblock): root [`.meterian`](../../.meterian) (Meterian nightly + local `scripts/security/security-scan.sh --meterian`) · [`.trivyignore`](../../.trivyignore) (Trivy image/container) · [`scripts/ci/pip-audit.sh`](../../scripts/ci/pip-audit.sh) ignores. Deferred unblock work: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) § Deferred Work.
 
-**Baseline (as of 2026-07-27)** — unit tier, same ignores as CI `backend`:
+**Baseline (as of 2026-07-28)** — unit tier, same ignores as CI `backend`:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (unit ignores + `-m "not integration"`) → **335** tests; BE floors **95/90/n/a/95** via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` — DECISIONS #142
+- `pytest` (unit ignores + `-m "not integration"`) → **338** tests; BE floors **95/90/n/a/95** via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` — DECISIONS #142
+- FE/BE threshold lock: `scripts/ci/check_coverage_threshold_drift.py` (Vitest ↔ pyproject, incl. `functions=95`) — DECISIONS #161
 
 **Backend coverage floor failed?** `fail_under=95` fails on combined Cover; the JSON checker then enforces statements ≥95, branches ≥90, lines ≥95 (functions n/a). Read `scripts/ci/check_backend_coverage_floors.py` stderr for which metric missed. Add unit tests (see `tests/server/models/test_coverage_floor_gaps.py` pattern) or intentionally ratchet floors in `pyproject.toml` `[tool.rag_params_finder.coverage_thresholds]` + Decision Log — never lower silently.
 
@@ -187,7 +188,7 @@ npm run build
 npm audit --audit-level=high
 ```
 
-**Baseline (as of 2026-07-27 — Slice 44 Phase B)**:
+**Baseline (as of 2026-07-28 — Slice 45 COMPLETE)**:
 - `npm run lint` → 0 errors
 - `npm run test` → **261** tests across **24** files (Vitest + React Testing Library)
 - `npm run test:coverage` → statements/functions/lines **≥95%**, branches **≥90%** (`coverage.thresholds` + `all: true`; DECISIONS #142); measured ≈98.4% / 93.11% / 100% / 99.69%
@@ -195,7 +196,7 @@ npm audit --audit-level=high
 - `npm run typecheck` → 0 errors
 - `npm run build` → built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
-- Module theme map (Behavior \| Feature \| Function) — Slice 44 taxonomy **IMPLEMENTED**; Slice 45 folder moves hotspots 1–5 **IMPLEMENTED** (`scripts/{ci,docker,release,security}/`): [`module-theme-map.md`](module-theme-map.md) · [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md)
+- Module theme map (Behavior \| Feature \| Function) — Slice 44 taxonomy **IMPLEMENTED**; Slice 45 folder moves hotspots 1–5 **IMPLEMENTED** (`scripts/{ci,docker,release,security}/`): [`module-theme-map.md`](module-theme-map.md) · [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md) · [`slice-45.json`](../plan/gate-evidence/slice-45.json)
 
 **Coverage floor failed?** Read the v8 text table printed by `npm run test:coverage` (or CI `test:ci`). Vitest exits non-zero when any metric is below `coverage.thresholds` in `frontend/vite.config.ts`. Fix by adding tests for uncovered lines listed in the table, or intentionally ratchet the floor in the same PR with a Decision Log row explaining why (never lower silently).
 ### Repo lint (shell, workflows, Markdown)
