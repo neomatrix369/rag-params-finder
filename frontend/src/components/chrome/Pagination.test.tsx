@@ -9,6 +9,13 @@ import Pagination from './Pagination';
 
 describe('Pagination', () => {
   it('Given a multi-page list, when Next and per-page change, then callbacks fire', () => {
+    /**
+     * Scenario: Multi-page Pagination fires next/page-size callbacks.
+     * Slice: 45 — FE shared primitives (Pagination).
+     * Given 40 items at 10 per page on page 1,
+     * When Next is clicked and per-page changes to 25,
+     * Then onPageChange(2) and onItemsPerPageChange(25) fire.
+     */
     // -- Given --
     const onPageChange = vi.fn();
     const onItemsPerPageChange = vi.fn();
@@ -32,6 +39,13 @@ describe('Pagination', () => {
   });
 
   it('Given the first page, when Previous is clicked, then it stays disabled', () => {
+    /**
+     * Scenario: Previous stays disabled on the first page.
+     * Slice: 45 — FE shared primitives (Pagination).
+     * Given page 1 of a short list,
+     * When Previous is inspected,
+     * Then the button is disabled.
+     */
     // -- Given --
     render(
       <Pagination

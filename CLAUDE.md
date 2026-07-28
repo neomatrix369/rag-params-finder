@@ -276,6 +276,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
 - `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **335** tests; BE floors **95/90/n/a/95** (stmts/br/fn/lines) via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` — DECISIONS #142; no `MONGODB_URI` required
+- FE/BE threshold lock: `scripts/ci/check_coverage_threshold_drift.py` asserts Vitest `coverage.thresholds` match `[tool.rag_params_finder.coverage_thresholds]` (incl. `functions=95`) — DECISIONS #161
 
 **Frontend** (2026-07-28 — Slice 45 shared primitives + Slice 44 floors #142):
 - `npm run lint` → 0 errors (eslint + security plugin)

@@ -9,6 +9,13 @@ import StatTile from './StatTile';
 
 describe('StatTile', () => {
   it('Given comfortable density, when rendered, then label and value appear', () => {
+    /**
+     * Scenario: Comfortable StatTile shows label, value, and hint.
+     * Slice: 45 — FE shared primitives (StatTile).
+     * Given label Chunks, value 12, and a hint,
+     * When rendered at default density,
+     * Then label, value, and hint are visible.
+     */
     // -- Given / When --
     render(<StatTile label="Chunks" value={12} hint="across runs" />);
     // -- Then --
@@ -18,6 +25,13 @@ describe('StatTile', () => {
   });
 
   it('Given compact density, when rendered without hint, then only label and value appear', () => {
+    /**
+     * Scenario: Compact StatTile omits hint when none is provided.
+     * Slice: 45 — FE shared primitives (StatTile).
+     * Given compact density without a hint,
+     * When rendered,
+     * Then only label and value appear.
+     */
     // -- Given / When --
     render(<StatTile label="Runs" value="3" density="compact" />);
     // -- Then --

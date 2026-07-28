@@ -48,11 +48,16 @@ _BAYESIAN_CONFIG = {
 def test_create_experiment_reports_bayesian_n_trials_as_run_count() -> None:
     """
     Scenario: POST /experiments for bayesian config reports planned Bayesian count.
+    Slice: 45 — GWT-on-touch (module theme separation)
 
     Given a valid bayesian configuration with chunk_size × overlap search space
     When create request is submitted
     Then run_count reflects the capped bayesian run count.
+
     """
+    ### Given
+    ### When
+    ### Then
     with (
         patch("server.api.experiments.validate_experiment_search_indexes"),
         patch("server.api.experiments.validate_sie_readiness"),
@@ -70,11 +75,16 @@ def test_create_experiment_reports_bayesian_n_trials_as_run_count() -> None:
 def test_resume_bayesian_experiment_returns_409() -> None:
     """
     Scenario: POST /experiments/{id}/resume rejects bayesian experiments.
+    Slice: 45 — GWT-on-touch (module theme separation)
 
     Given a persisted bayesian experiment marked PAUSED
     When resume endpoint is called
     Then HTTP 409 is returned with a non-empty message.
+
     """
+    ### Given
+    ### When
+    ### Then
     experiment_doc = {
         "_id": "exp-bayesian",
         "status": "paused",
@@ -96,12 +106,17 @@ def test_resume_bayesian_experiment_returns_409() -> None:
 def test_detail_bayesian_experiment_populates_progress_summary_when_missing() -> None:
     """
     Scenario: GET /experiments/{id} exposes Bayesian summary even before finalization.
+    Slice: 45 — GWT-on-touch (module theme separation)
 
     Given a running Bayesian experiment without persisted summary metadata
     And run rows exist for partial progress
     When detail is requested
     Then response includes a normalized `bayesian_summary` with attempts and not-started.
+
     """
+    ### Given
+    ### When
+    ### Then
     experiment_doc = {
         "_id": "exp-bayesian-summary",
         "experiment_id": "exp-bayesian-summary",
@@ -141,11 +156,16 @@ def test_detail_bayesian_experiment_populates_progress_summary_when_missing() ->
 def test_detail_bayesian_experiment_passes_through_trial_log() -> None:
     """
     Scenario: GET /experiments/{id} passes trial_log from bayesian_summary to client.
+    Slice: 45 — GWT-on-touch (module theme separation)
 
     Given a completed Bayesian experiment with a stored trial_log in its bayesian_summary
     When the detail endpoint is queried
     Then the response includes trial_log with the correct entry structure.
+
     """
+    ### Given
+    ### When
+    ### Then
     experiment_doc = {
         "_id": "exp-bayesian-trial-log",
         "experiment_id": "exp-bayesian-trial-log",
@@ -202,12 +222,17 @@ def test_detail_bayesian_experiment_passes_through_trial_log() -> None:
 def test_detail_partial_bayesian_experiment_populates_summary_from_runs() -> None:
     """
     Scenario: GET /experiments/{id} includes Bayesian summary for partial runs.
+    Slice: 45 — GWT-on-touch (module theme separation)
 
     Given a partially completed Bayesian experiment
     And the document has no stored bayesian_summary
     When the detail endpoint is queried
     Then summary is derived from the observed run rows.
+
     """
+    ### Given
+    ### When
+    ### Then
     experiment_doc = {
         "_id": "exp-bayesian-partial",
         "experiment_id": "exp-bayesian-partial",

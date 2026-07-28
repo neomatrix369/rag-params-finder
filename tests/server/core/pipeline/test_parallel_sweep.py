@@ -45,6 +45,13 @@ class TestSlice16ParallelSweep:
         mock_compute_final_status: MagicMock,
     ) -> None:
         """
+        Scenario: runs up to parallelism limit.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: parallelism=4 schedules bounded workers
 
         Given an experiment with 8 run parameter sets
@@ -97,6 +104,13 @@ class TestSlice16ParallelSweep:
         mock_compute_final_status: MagicMock,
     ) -> None:
         """
+        Scenario: on error continue does not abort scheduler.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: on_error=continue schedules all work after a failure
 
         Given 4 run parameter sets and on_error=continue
@@ -141,6 +155,13 @@ class TestSlice16ParallelSweep:
         mock_compute_final_status: MagicMock,
     ) -> None:
         """
+        Scenario: on error stop blocks new scheduling.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: on_error=stop only drains currently submitted workers
 
         Given 4 run parameter sets and on_error=stop
@@ -179,6 +200,13 @@ class TestSlice16ParallelSweep:
         mock_expand_sweep: MagicMock,
     ) -> None:
         """
+        Scenario: cancelled before run start skips run submission.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: cancellation before run starts is terminal
 
         Given check_control reports ExperimentCancelledError during preflight
@@ -214,6 +242,13 @@ class TestSlice16ParallelSweep:
         mock_compute_final_status: MagicMock,
         mock_check_control: MagicMock,
     ) -> None:
+        """
+        Scenario: cancelled after some runs only drains inflight workers.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: cancellation during sweep stops new scheduling and keeps inflight runs
 
@@ -260,6 +295,13 @@ class TestSlice16ParallelSweep:
         mock_run_sweep_inner: MagicMock,
     ) -> None:
         """
+        Scenario: search index preflight failure marks experiment failed.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: search-index preflight failures transition experiment to FAILED
 
         Given run_sweep
@@ -301,6 +343,13 @@ class TestSlice16ParallelSweep:
         mock_expand_sweep: MagicMock,
     ) -> None:
         """
+        Scenario: infra error marks status as failed.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: SIEUnavailableError during a run forces FAILED status
 
         Given a run throws SIEUnavailableError
@@ -330,6 +379,13 @@ class TestSlice16ParallelSweep:
         mock_completed_signatures: MagicMock,
         mock_run_sweep_inner: MagicMock,
     ) -> None:
+        """
+        Scenario: resume sweep passes completed signatures.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: resume_sweep forwards completed run signatures to _run_sweep_inner
 
@@ -372,6 +428,13 @@ class TestSlice16ParallelSweep:
         mock_run_sweep_inner: MagicMock,
         mock_run_bayesian_inner: MagicMock,
     ) -> None:
+        """
+        Scenario: run sweep dispatches bayesian and grid paths.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: run_sweep dispatches by execution.search_strategy.
 

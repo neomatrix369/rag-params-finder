@@ -113,11 +113,14 @@ show_missing = true
 fail_under = 95
 precision = 1
 
-# Shared with frontend/vite.config.ts coverage.thresholds (functions n/a here).
+# Shared with frontend/vite.config.ts coverage.thresholds (DECISIONS #142).
+# ``functions`` is FE-only (Vitest); coverage.py does not measure it — still
+# declared here so scripts/ci/check_coverage_threshold_drift.py can lock FE↔pyproject.
 [tool.rag_params_finder.coverage_thresholds]
 statements = 95
 branches = 90
 lines = 95
+functions = 95
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]

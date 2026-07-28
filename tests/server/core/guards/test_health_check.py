@@ -170,6 +170,13 @@ class TestStorageHealthShould:
         self,
     ) -> None:
         """
+        Scenario: given postgres backend when storage health then does not require mongo.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: A Postgres stack is healthy without a Mongo ping.
         Slice: postgres-aware-healthz
 
@@ -206,6 +213,13 @@ class TestStorageHealthShould:
         self,
     ) -> None:
         """
+        Scenario: given postgres backend unreachable when storage health then not ok.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Unreachable pgvector fails the health gate.
         Slice: postgres-aware-healthz
 
@@ -235,6 +249,13 @@ class TestStorageHealthShould:
     def test_given_mongo_backend_when_storage_health_then_uses_mongodb_probe(
         self,
     ) -> None:
+        """
+        Scenario: given mongo backend when storage health then uses mongodb probe.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: The default Mongo backend keeps its existing probe.
         Slice: postgres-aware-healthz
@@ -266,6 +287,13 @@ class TestStorageHealthShould:
         postgres_probe.assert_not_called()
 
     def test_given_mongo_skipped_when_storage_health_then_still_ok(self) -> None:
+        """
+        Scenario: given mongo skipped when storage health then still ok.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Unset MONGODB_URI still allows process liveness on Mongo mode.
         Slice: postgres-aware-healthz

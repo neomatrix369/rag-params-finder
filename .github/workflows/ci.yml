@@ -184,6 +184,7 @@ jobs:
             --cov-report=json:.reports/coverage-backend-unit.json \
             --cov-fail-under=95
           python scripts/ci/check_backend_coverage_floors.py .reports/coverage-backend-unit.json
+          python scripts/ci/check_coverage_threshold_drift.py
 
   postgres-integration:
     name: Postgres integration (pgvector)

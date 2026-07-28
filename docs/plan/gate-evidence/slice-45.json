@@ -71,11 +71,16 @@
     "helpers": "tests/helpers/pipeline_sweep.py",
     "fe_helpers": "frontend/src/test/helpers/"
   },
-  "deferred_could": [
-    "FE docstring leftovers",
-    "FE↔pyproject coverage threshold drift guard",
-    "BE GWT-on-touch migration for untouched suites"
-  ],
+  "deferred_could": [],
+  "could_leftovers": {
+    "decision": "DECISIONS #161",
+    "status": "PASSED",
+    "items": [
+      "FE Scenario/Slice narrative docstrings on shared primitive suites",
+      "scripts/ci/check_coverage_threshold_drift.py (+ quality-gates / pre-push / CI)",
+      "BE GWT-on-touch markers + Slice tags on moved/split suites"
+    ]
+  },
   "review": {
     "agent": "nw-software-crafter-reviewer",
     "iteration_1": {
@@ -89,5 +94,5 @@
       "note": "Close-out artifacts applied: slice-45.json, DECISIONS #160, After-Checks ticked, PROGRESS/Gate Status COMPLETE, scripts Deprecated bullet"
     }
   },
-  "lifecycle": "VERIFIED / PASSED — Must + Should + scripts Could; mutation waived #160; optional Could leftovers deferred"
+  "lifecycle": "VERIFIED / PASSED — Must + Should + scripts Could + Could leftovers #161; mutation waived #160"
 }

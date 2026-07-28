@@ -52,6 +52,13 @@ def _local_sparse_config() -> ExperimentConfig:
 
 
 def test_validate_raises_when_indexes_missing_and_no_slots() -> None:
+    """
+    Scenario: validate raises when indexes missing and no slots.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     config = _local_sparse_config()
     blocked = SearchIndexSnapshot(
         chunks_ready=frozenset(),
@@ -73,6 +80,13 @@ def test_validate_raises_when_indexes_missing_and_no_slots() -> None:
 
 
 def test_validate_attempts_ensure_when_slots_available() -> None:
+    """
+    Scenario: validate attempts ensure when slots available.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     config = _local_sparse_config()
     before = SearchIndexSnapshot(
         chunks_ready=frozenset({"vector_index_384"}),
@@ -107,7 +121,14 @@ def test_validate_attempts_ensure_when_slots_available() -> None:
 
 
 def test_validate_reconciles_surplus_indexes_before_ensure() -> None:
-    """Auto-drop surplus vector_index_384 so vector_index_1024 can be created."""
+    """
+    Scenario: validate reconciles surplus indexes before ensure.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    Auto-drop surplus vector_index_384 so vector_index_1024 can be created.
+    """
+    ### Given
+    ### When
+    ### Then
     config = ExperimentConfig(
         experiment_name="sie-reconcile",
         data_paths=["./data"],
@@ -188,6 +209,13 @@ class TestCollectSearchIndexSnapshot:
 
     def test_ready_and_building_rows_are_bucketed_correctly(self) -> None:
         """
+        Scenario: ready and building rows are bucketed correctly.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: mix of READY and building rows on the chunks collection.
 
         Given two index rows — one READY, one PENDING — for the target database/collection
@@ -217,6 +245,13 @@ class TestCollectSearchIndexSnapshot:
         assert snapshot.unknown_count == 0
 
     def test_rows_for_other_databases_are_excluded(self) -> None:
+        """
+        Scenario: rows for other databases are excluded.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: cluster rows from a different database are filtered out.
 
@@ -251,6 +286,13 @@ class TestCollectSearchIndexSnapshot:
 
     def test_lowercase_ready_status_is_treated_as_ready(self) -> None:
         """
+        Scenario: lowercase ready status is treated as ready.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Atlas occasionally returns lowercase "ready" status string.
 
         Given a row whose status is the lowercase string "ready"
@@ -274,6 +316,13 @@ class TestCollectSearchIndexSnapshot:
         assert "vector_index_384" in snapshot.chunks_ready
 
     def test_unknown_rows_increment_unknown_count(self) -> None:
+        """
+        Scenario: unknown rows increment unknown count.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: unknown (unrecognised) cluster indexes are counted but not bucketed.
 
@@ -303,6 +352,13 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
     """validate_experiment_search_indexes sub-paths not covered by the original four tests."""
 
     def test_already_satisfied_returns_immediately_without_reconcile(self) -> None:
+        """
+        Scenario: already satisfied returns immediately without reconcile.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: initial snapshot already satisfies requirements — no repair needed.
 
@@ -335,6 +391,13 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
         reconcile_mock.assert_not_called()
 
     def test_reconcile_satisfies_returns_before_ensure(self) -> None:
+        """
+        Scenario: reconcile satisfies returns before ensure.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: reconcile frees a slot and re-snapshot shows all indexes ready.
 
@@ -379,6 +442,13 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
         ensure_mock.assert_not_called()
 
     def test_prune_unknown_indexes_when_missing_exceeds_available_slots(self) -> None:
+        """
+        Scenario: prune unknown indexes when missing exceeds available slots.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: cluster is at capacity with unknowns blocking creation.
 
@@ -436,6 +506,13 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
 
     def test_prune_returns_empty_skips_re_snapshot_and_falls_through_to_ensure(self) -> None:
         """
+        Scenario: prune returns empty skips re snapshot and falls through to ensure.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: missing > slots but prune finds nothing to drop — falls through to ensure.
 
         Given a cluster at capacity and prune_unknown_search_indexes returns []
@@ -470,6 +547,13 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
                         validate_experiment_search_indexes(config)
 
     def test_raises_when_ensure_does_not_satisfy_requirements(self) -> None:
+        """
+        Scenario: raises when ensure does not satisfy requirements.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: ensure runs but indexes are still not ready afterward.
 
@@ -510,6 +594,13 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
 
 
 def test_validate_rejects_splade_before_reconcile() -> None:
+    """
+    Scenario: validate rejects splade before reconcile.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     config = ExperimentConfig(
         experiment_name="splade-blocked",
         data_paths=["./data"],
@@ -533,6 +624,13 @@ class TestPreflightBackendScopeShould:
     def test_given_postgres_backend_when_catalog_ok_then_satisfied_without_atlas(
         self,
     ) -> None:
+        """
+        Scenario: given postgres backend when catalog ok then satisfied without atlas.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Healthy Postgres schema passes preflight without Atlas I/O.
         Slice: slice-36-postgres-preflight-stats
@@ -584,6 +682,13 @@ class TestPreflightBackendScopeShould:
         self,
     ) -> None:
         """
+        Scenario: given postgres backend when indexes missing then raises without atlas.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Missing HNSW/GIN on Postgres fails preflight with Postgres remediation.
         Slice: slice-36-postgres-preflight-stats
 
@@ -628,6 +733,13 @@ class TestPreflightBackendScopeShould:
     def test_given_mongo_backend_when_validated_then_atlas_is_still_inspected(
         self,
     ) -> None:
+        """
+        Scenario: given mongo backend when validated then atlas is still inspected.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: The default backend keeps its preflight behaviour.
         Slice: slice-34-postgres-dense-retrieval

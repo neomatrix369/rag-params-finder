@@ -172,6 +172,13 @@ class TestPostgresSparseSearchShould:
         self, keyword_corpus: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given distinctive tokens when sparse searched then match ranks first.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Sparse search returns keyword matches ahead of unrelated text.
         Slice: slice-35-postgres-sparse-hybrid
 
@@ -195,6 +202,13 @@ class TestPostgresSparseSearchShould:
         self, keyword_corpus: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given rival model same text when sparse searched then only asked model.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: embedding_model filter isolates keyword hits across models.
         Slice: slice-35-postgres-sparse-hybrid
 
@@ -216,6 +230,13 @@ class TestPostgresSparseSearchShould:
         self, keyword_corpus: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given empty embedding model when sparse searched then raises.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Empty embedding_model is rejected before SQL.
         Slice: slice-35-postgres-sparse-hybrid
 
@@ -234,6 +255,13 @@ class TestPostgresHybridSearchShould:
     def test_given_divergent_rank_lists_when_hybrid_then_order_differs_from_pure(
         self, fusion_corpus: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given divergent rank lists when hybrid then order differs from pure.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Hybrid uses RRF fusion of dense and sparse candidate sets.
         Slice: slice-35-postgres-sparse-hybrid
@@ -271,6 +299,13 @@ class TestPostgresHybridSearchShould:
         self, fusion_corpus: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given hybrid without embedding when dispatched then raises.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Hybrid requires a query embedding.
         Slice: slice-35-postgres-sparse-hybrid
 
@@ -291,6 +326,13 @@ class TestPostgresSparseHybridDispatcherShould:
     def test_given_sparse_method_when_dispatched_then_returns_sparse_results(
         self, keyword_corpus: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given sparse method when dispatched then returns sparse results.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Dispatcher routes SPARSE to sparse_search.
         Slice: slice-35-postgres-sparse-hybrid
@@ -317,6 +359,13 @@ class TestPostgresSparseHybridDispatcherShould:
     def test_given_hybrid_method_when_dispatched_then_returns_hybrid_results(
         self, fusion_corpus: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given hybrid method when dispatched then returns hybrid results.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Dispatcher routes HYBRID to hybrid_search.
         Slice: slice-35-postgres-sparse-hybrid
@@ -348,6 +397,13 @@ class TestPostgresSparseHybridFailureShould:
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
         """
+        Scenario: given sparse query failure when searched then context is logged and raised.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: A sparse SQL error surfaces with experiment and model ids.
         Slice: slice-35-postgres-sparse-hybrid
 
@@ -375,6 +431,13 @@ class TestPostgresSparseHybridFailureShould:
     def test_given_hybrid_query_failure_when_searched_then_context_is_logged_and_raised(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
+        """
+        Scenario: given hybrid query failure when searched then context is logged and raised.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: A hybrid SQL error surfaces with experiment, model, and column.
         Slice: slice-35-postgres-sparse-hybrid

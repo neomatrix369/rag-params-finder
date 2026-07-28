@@ -8,6 +8,13 @@ import { appendFeedEntry } from './feedEntries';
 
 describe('appendFeedEntry', () => {
   it('Given an empty feed, when a line is appended, then the feed gains one unique entry', () => {
+    /**
+     * Scenario: Appending to an empty feed creates one unique entry.
+     * Slice: 45 — FE shared primitives (appendFeedEntry).
+     * Given an empty feed,
+     * When a default line is appended,
+     * Then length is 1 with a unique id.
+     */
     // -- Given --
     const prev: ReturnType<typeof appendFeedEntry> = [];
     // -- When --
@@ -20,6 +27,13 @@ describe('appendFeedEntry', () => {
   });
 
   it('Given an existing feed, when a warning is appended, then previous entries are preserved', () => {
+    /**
+     * Scenario: Append preserves prior feed entries and variants.
+     * Slice: 45 — FE shared primitives (appendFeedEntry).
+     * Given a one-entry feed,
+     * When a warning line is appended,
+     * Then both entries remain with distinct ids.
+     */
     // -- Given --
     const prev = appendFeedEntry([], 'first', 'default');
     // -- When --

@@ -38,10 +38,15 @@ class TestEmbedderFactoryRouting:
 
     def test_get_embedder_voyage_returns_callable_pair(self):
         """
+        Scenario: get embedder voyage returns callable pair.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given provider="voyage"
         When get_embedder("voyage") is called
         Then a (embed_docs_fn, embed_query_fn) tuple is returned, both callable.
         """
+        ### Given
+        ### When
+        ### Then
         voyage_mock = _make_voyage_mock()
         with patch.dict("sys.modules", {"server.core.embedding.embedder": voyage_mock}):
             import importlib
@@ -56,10 +61,15 @@ class TestEmbedderFactoryRouting:
 
     def test_get_embedder_local_returns_callable_pair(self):
         """
+        Scenario: get embedder local returns callable pair.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given provider="local"
         When get_embedder("local") is called
         Then a (embed_docs_fn, embed_query_fn) tuple is returned, both callable.
         """
+        ### Given
+        ### When
+        ### Then
         local_mock = _make_local_mock()
         with patch.dict("sys.modules", {"server.core.embedding.local_embedder": local_mock}):
             import importlib
@@ -74,10 +84,15 @@ class TestEmbedderFactoryRouting:
 
     def test_get_embedder_sie_returns_callable_pair(self):
         """
+        Scenario: get embedder sie returns callable pair.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given provider="sie"
         When get_embedder("sie") is called
         Then a (embed_docs_fn, embed_query_fn) tuple is returned, both callable.
         """
+        ### Given
+        ### When
+        ### Then
         sie_mock = _make_sie_mock()
         with patch.dict("sys.modules", {"server.core.embedding.sie_embedder": sie_mock}):
             import importlib
@@ -92,10 +107,15 @@ class TestEmbedderFactoryRouting:
 
     def test_get_embedder_unknown_provider_raises_value_error(self):
         """
+        Scenario: get embedder unknown provider raises value error.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given provider="unknown_provider"
         When get_embedder("unknown_provider") is called
         Then a ValueError is raised.
         """
+        ### Given
+        ### When
+        ### Then
         from server.core.embedding.embedder_factory import get_embedder
 
         with pytest.raises(ValueError, match="unknown_provider"):
@@ -103,9 +123,14 @@ class TestEmbedderFactoryRouting:
 
     def test_get_embedder_voyage_delegates_to_voyage_module(self):
         """
+        Scenario: get embedder voyage delegates to voyage module.
+        Slice: 45 — GWT-on-touch (module theme separation)
         When provider="voyage", the returned embed_docs function
         is embed_documents_voyage from server.core.embedding.embedder.
         """
+        ### Given
+        ### When
+        ### Then
         voyage_mock = _make_voyage_mock()
         with patch.dict("sys.modules", {"server.core.embedding.embedder": voyage_mock}):
             import importlib
@@ -119,9 +144,14 @@ class TestEmbedderFactoryRouting:
 
     def test_get_embedder_sie_delegates_to_sie_module(self):
         """
+        Scenario: get embedder sie delegates to sie module.
+        Slice: 45 — GWT-on-touch (module theme separation)
         When provider="sie", the returned embed_docs function
         is embed_documents_sie from server.core.embedding.sie_embedder.
         """
+        ### Given
+        ### When
+        ### Then
         sie_mock = _make_sie_mock()
         with patch.dict("sys.modules", {"server.core.embedding.sie_embedder": sie_mock}):
             import importlib

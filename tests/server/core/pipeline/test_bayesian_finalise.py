@@ -35,11 +35,16 @@ def test_finalise_bayesian_experiment_persists_summary(
 ) -> None:
     """
     Scenario: _finalise_bayesian_experiment stores Bayesian metadata in experiment docs
+    Slice: 45 — GWT-on-touch (module theme separation)
 
     Given bayesian completion with successful runs only
     When finalization runs
     Then run_count, grid_equivalent_count, and bayesian_summary are persisted.
+
     """
+    ### Given
+    ### When
+    ### Then
     config = _slice_config(parallelism=1)
     config.execution.search_strategy = "bayesian"
     config.execution.bayesian.n_trials = 4
@@ -102,13 +107,18 @@ def test_finalise_bayesian_experiment_promotes_no_failure_partial_to_complete(
 ) -> None:
     """
     Scenario: _finalise_bayesian_experiment treats a partial Bayesian run with no
+    Slice: 45 — GWT-on-touch (module theme separation)
     failures as complete
 
     Given attempted Bayesian trials are fewer than planned and none failed
     When finalization runs
     Then status is complete and the summary preserves the discarded/not-started split
     in summary metadata.
+
     """
+    ### Given
+    ### When
+    ### Then
     config = _slice_config(parallelism=1)
     config.execution.search_strategy = "bayesian"
     config.execution.bayesian.n_trials = 5
@@ -151,11 +161,16 @@ def test_compute_final_status_complete_and_partial_states(
 ) -> None:
     """
     Scenario: _compute_final_status resolves COMPLETE and PARTIAL
+    Slice: 45 — GWT-on-touch (module theme separation)
 
     Given run docs with successful and mixed outcomes
     When final status is computed for multiple expectations
     Then each branch returns the expected status.
+
     """
+    ### Given
+    ### When
+    ### Then
     # Given
     mock_get_storage_backend.return_value.find_run_statuses.return_value = [
         {"phase": ExperimentStatus.COMPLETE.value},
@@ -183,11 +198,16 @@ def test_compute_final_status_failed_when_no_runs_complete(
 ) -> None:
     """
     Scenario: _compute_final_status resolves FAILED for all-failed runs
+    Slice: 45 — GWT-on-touch (module theme separation)
 
     Given all run docs failed
     When final status is computed
     Then status is FAILED with expected failed count.
+
     """
+    ### Given
+    ### When
+    ### Then
     # Given
     mock_get_storage_backend.return_value.find_run_statuses.return_value = [
         {"phase": ExperimentStatus.FAILED.value},

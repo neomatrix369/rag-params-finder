@@ -80,6 +80,13 @@ class TestMongoStorageBackendShould:
         self,
     ) -> None:
         """
+        Scenario: given experiment with related docs when deleted then returns all counts.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Cascade delete removes experiment, runs, chunks, and results.
         Slice: mongo-store-acceptance / cascade-delete
 
@@ -116,6 +123,13 @@ class TestMongoStorageBackendShould:
         self,
     ) -> None:
         """
+        Scenario: given missing experiment when explore loaded then returns none and empty lists.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Explore source for unknown experiment yields empty payload.
         Slice: mongo-store-acceptance / explore
 
@@ -137,6 +151,13 @@ class TestMongoStorageBackendShould:
     def test_given_experiment_with_results_when_explore_loaded_then_returns_full_tuple(
         self,
     ) -> None:
+        """
+        Scenario: given experiment with results when explore loaded then returns full tuple.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Explore source loads experiment, results, and run statuses.
         Slice: mongo-store-acceptance / explore
@@ -172,6 +193,13 @@ class TestMongoStorageBackendShould:
 
     def test_given_cancelled_experiment_when_checked_then_is_cancelled_true(self) -> None:
         """
+        Scenario: given cancelled experiment when checked then is cancelled true.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Cancellation flag reflects cancelled experiment status.
         Slice: mongo-store-acceptance / lifecycle
 
@@ -194,6 +222,13 @@ class TestMongoStorageBackendShould:
         assert actual is True, "cancelled experiment must report is_cancelled=True"
 
     def test_given_running_experiment_when_checked_then_is_cancelled_false(self) -> None:
+        """
+        Scenario: given running experiment when checked then is cancelled false.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Non-cancelled status does not report as cancelled.
         Slice: mongo-store-acceptance / lifecycle
@@ -219,6 +254,13 @@ class TestMongoStorageBackendShould:
     def test_given_experiment_id_when_lifecycle_marks_applied_then_status_updates_issued(
         self,
     ) -> None:
+        """
+        Scenario: given experiment id when lifecycle marks applied then status updates issued.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Pause / cancel / resume marks write the expected status fields.
         Slice: mongo-store-acceptance / lifecycle
@@ -252,6 +294,13 @@ class TestMongoStorageBackendShould:
         self,
     ) -> None:
         """
+        Scenario: given experiment with runs when fetched then runs attached sorted.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Experiment detail includes sorted run statuses.
         Slice: mongo-store-acceptance / lifecycle
 
@@ -281,6 +330,13 @@ class TestMongoStorageBackendShould:
         self,
     ) -> None:
         """
+        Scenario: given missing experiment when fetched with runs then returns none.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Missing experiment yields None without querying runs further.
         Slice: mongo-store-acceptance / lifecycle
 
@@ -302,6 +358,13 @@ class TestMongoStorageBackendShould:
     # ── Run interrupt / chunks guards ─────────────────────────────────────────
 
     def test_given_empty_run_ids_when_mark_interrupted_then_no_update_issued(self) -> None:
+        """
+        Scenario: given empty run ids when mark interrupted then no update issued.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Interrupt with empty run list is a no-op.
         Slice: mongo-store-acceptance / run-interrupt
@@ -328,6 +391,13 @@ class TestMongoStorageBackendShould:
     def test_given_run_ids_when_mark_interrupted_then_phase_set_to_interrupted(
         self,
     ) -> None:
+        """
+        Scenario: given run ids when mark interrupted then phase set to interrupted.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Interrupt marks listed runs as interrupted with error message.
         Slice: mongo-store-acceptance / run-interrupt
@@ -358,6 +428,13 @@ class TestMongoStorageBackendShould:
 
     def test_given_empty_docs_when_insert_chunks_then_no_insert_many(self) -> None:
         """
+        Scenario: given empty docs when insert chunks then no insert many.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Empty chunk batch does not call insert_many.
         Slice: mongo-store-acceptance / chunks
 
@@ -377,6 +454,13 @@ class TestMongoStorageBackendShould:
         collections["chunks"].insert_many.assert_not_called()
 
     def test_given_chunk_docs_when_inserted_then_insert_many_called(self) -> None:
+        """
+        Scenario: given chunk docs when inserted then insert many called.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Non-empty chunk batch is written via insert_many.
         Slice: mongo-store-acceptance / chunks
@@ -402,6 +486,13 @@ class TestMongoStorageBackendShould:
     def test_given_experiment_with_chunks_and_sparse_retrieval_when_stats_then_includes_text_index(
         self,
     ) -> None:
+        """
+        Scenario: sparse retrieval experiment stats include text index.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Db stats assemble chunk/result metrics and text index for sparse.
         Slice: mongo-store-acceptance / db-stats
@@ -459,6 +550,13 @@ class TestMongoStorageBackendShould:
 
     def test_given_stats_compute_failure_when_requested_then_reraises(self) -> None:
         """
+        Scenario: given stats compute failure when requested then reraises.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Db-stats failure is logged and re-raised to the caller.
         Slice: mongo-store-acceptance / db-stats
 
@@ -484,6 +582,13 @@ class TestMongoStorageBackendShould:
     def test_given_experiments_when_grouped_stats_then_aggregates_totals_and_cluster_storage(
         self,
     ) -> None:
+        """
+        Scenario: given experiments when grouped stats then aggregates totals and cluster storage.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Grouped vector-db stats merge per-experiment rows and cluster quota.
         Slice: mongo-store-acceptance / grouped-stats
@@ -605,6 +710,13 @@ class TestMongoStorageBackendShould:
 
     def test_given_grouped_stats_failure_when_requested_then_reraises(self) -> None:
         """
+        Scenario: given grouped stats failure when requested then reraises.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Grouped-stats failure is logged and re-raised.
         Slice: mongo-store-acceptance / grouped-stats
 
@@ -631,6 +743,13 @@ class TestMongoStorageBackendShould:
     def test_given_docs_when_basic_crud_called_then_collection_ops_dispatched(
         self,
     ) -> None:
+        """
+        Scenario: given docs when basic crud called then collection ops dispatched.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Thin CRUD methods dispatch to the correct collection operations.
         Slice: mongo-store-acceptance / crud
@@ -722,6 +841,13 @@ class TestMongoStorageBackendShould:
     def test_given_repeated_accessor_calls_when_fetched_then_same_singleton_returned(
         self,
     ) -> None:
+        """
+        Scenario: given repeated accessor calls when fetched then same singleton returned.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Storage and retriever accessors memoize a single instance.
         Slice: mongo-store-acceptance / singletons

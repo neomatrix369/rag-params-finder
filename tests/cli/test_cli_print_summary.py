@@ -79,6 +79,13 @@ class TestPrintSummaryBayesianSection:
 
     def test_grid_experiment_has_no_bayesian_section(self) -> None:
         """
+        Scenario: grid experiment has no bayesian section.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: non-Bayesian experiment output contains no Bayesian header.
 
         Given a completed grid experiment
@@ -96,6 +103,13 @@ class TestPrintSummaryBayesianSection:
         assert "Trial History" not in output
 
     def test_bayesian_experiment_shows_full_summary(self) -> None:
+        """
+        Scenario: bayesian experiment shows full summary.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Bayesian experiment output renders strategy header, trial counts,
         best config with formatted score, and Trial History table.
@@ -134,6 +148,13 @@ class TestPrintSummaryBayesianSection:
     )
     def test_trial_log_entry_gets_correct_state_markup(self, state: str, expected_tag: str) -> None:
         """
+        Scenario: trial log entry gets correct state markup.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: each trial state is wrapped in its corresponding Rich markup tag.
 
         Given a Bayesian experiment with a single trial_log entry in <state>
@@ -157,6 +178,13 @@ class TestPrintSummaryBayesianSection:
 
     def test_bayesian_experiment_no_trial_log_skips_history_section(self) -> None:
         """
+        Scenario: bayesian experiment no trial log skips history section.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: missing trial_log omits Trial History section entirely.
 
         Given a Bayesian experiment whose bayesian_summary has no trial_log key
@@ -177,6 +205,13 @@ class TestPrintSummaryBayesianSection:
     # -- AT-15 ----------------------------------------------------------------
 
     def test_bayesian_experiment_zero_discarded_omits_discarded_line(self) -> None:
+        """
+        Scenario: bayesian experiment zero discarded omits discarded line.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Zero discarded trials — no "Discarded" line in CLI output.
 
@@ -199,6 +234,13 @@ class TestPrintSummaryBayesianSection:
 
     def test_bayesian_experiment_no_best_score_omits_best_line(self) -> None:
         """
+        Scenario: bayesian experiment no best score omits best line.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: No best_query_avg_score — no "Best:" line in CLI output.
 
         Given a Bayesian experiment where bayesian_summary has no best_query_avg_score
@@ -219,6 +261,13 @@ class TestPrintSummaryBayesianSection:
     # -- AT-17 ----------------------------------------------------------------
 
     def test_trial_log_unknown_state_renders_without_markup_tag(self) -> None:
+        """
+        Scenario: trial log unknown state renders without markup tag.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Unknown trial state falls back to unstyled text — no markup tag.
 

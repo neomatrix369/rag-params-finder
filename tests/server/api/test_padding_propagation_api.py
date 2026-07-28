@@ -70,6 +70,13 @@ class TestPaddingExploreApiSmoke:
     def test_explore_returns_two_ranked_configs_when_runs_differ_only_by_padding(
         self, experiments_client: TestClient
     ) -> None:
+        """
+        Scenario: explore returns two ranked configs when runs differ only by padding.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         experiment_doc = {
             "experiment_id": "exp-padding-smoke",
             "experiment_name": "padding-smoke",
@@ -96,6 +103,13 @@ class TestPaddingExperimentDetailApiSmoke:
     def test_experiment_detail_includes_padding_on_each_run(
         self, experiments_client: TestClient
     ) -> None:
+        """
+        Scenario: experiment detail includes padding on each run.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         experiment = {
             "experiment_id": "exp-padding-smoke",
             "experiment_name": "padding-smoke",

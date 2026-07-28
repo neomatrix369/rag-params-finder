@@ -44,6 +44,13 @@ def _minimal_config(**overrides: object) -> ExperimentConfig:
 class TestNormalizeDatabaseProviderShould:
     def test_given_supabase_when_normalized_then_postgres(self) -> None:
         """
+        Scenario: given supabase when normalized then postgres.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Deprecated supabase label becomes postgres engine.
         Slice: 37 — provider normalize
 
@@ -58,6 +65,13 @@ class TestNormalizeDatabaseProviderShould:
         assert actual == "postgres", "supabase must normalize to postgres"
 
     def test_given_supabase_yaml_when_config_loaded_then_provider_is_postgres(self) -> None:
+        """
+        Scenario: given supabase yaml when config loaded then provider is postgres.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: ExperimentConfig accepts supabase input but stores postgres.
         Slice: 37 — provider normalize
@@ -83,6 +97,13 @@ class TestNormalizeDatabaseProviderShould:
 class TestConfigBackendGuardShould:
     def test_given_matching_engines_when_validated_then_no_error(self) -> None:
         """
+        Scenario: given matching engines when validated then no error.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Matching config and server engines pass.
         Slice: 37 — config↔server 422
 
@@ -99,6 +120,13 @@ class TestConfigBackendGuardShould:
             validate_config_backend_match(config)
 
     def test_given_mismatch_when_validated_then_raises_before_index_wording(self) -> None:
+        """
+        Scenario: given mismatch when validated then raises before index wording.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Engine mismatch yields remediation distinct from catalog 422.
         Slice: 37 — config↔server 422
@@ -137,6 +165,13 @@ class TestConfigBackendGuardShould:
 
     def test_given_template_inputs_when_formatted_then_matches_slice_shape(self) -> None:
         """
+        Scenario: given template inputs when formatted then matches slice shape.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Canonical 422 template fills engine/mode/paths.
         Slice: 37 — config↔server 422
 
@@ -164,6 +199,13 @@ class TestConfigBackendGuardShould:
 class TestVectorDbGroupKeyShould:
     def test_given_storage_mode_when_keyed_then_uses_mode_not_provider(self) -> None:
         """
+        Scenario: given storage mode when keyed then uses mode not provider.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: vector_db_id is storage_mode:host.
         Slice: 37 — stats identity
 
@@ -179,6 +221,13 @@ class TestVectorDbGroupKeyShould:
 
     def test_given_legacy_supabase_label_when_normalized_then_postgres(self) -> None:
         """
+        Scenario: given legacy supabase label when normalized then postgres.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Stats never emit supabase as database_provider.
         Slice: 37 — stats identity
 
@@ -193,6 +242,13 @@ class TestVectorDbGroupKeyShould:
         assert actual == "postgres"
 
     def test_given_persisted_mode_when_resolved_then_prefers_experiment_doc(self) -> None:
+        """
+        Scenario: given persisted mode when resolved then prefers experiment doc.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Grouping prefers persisted experiment storage_mode.
         Slice: 37 — persist storage_mode

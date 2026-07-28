@@ -14,6 +14,13 @@ from server.db.mongo.indexes import (
 
 
 def test_known_search_index_names_includes_splade_vector_index() -> None:
+    """
+    Scenario: known search index names includes splade vector index.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     # given / when
     names = known_search_index_names()
 
@@ -23,6 +30,13 @@ def test_known_search_index_names_includes_splade_vector_index() -> None:
 
 
 def test_build_vector_index_model_splade_v3_has_30522_dimensions() -> None:
+    """
+    Scenario: build vector index model splade v3 has 30522 dimensions.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     # given
     model = _build_vector_index_model("vector_index_30522", 30522)
     fields = model.document["definition"]["fields"]
@@ -43,11 +57,25 @@ def test_build_vector_index_model_splade_v3_has_30522_dimensions() -> None:
 
 
 def test_vector_index_configs_includes_all_managed_dimensions() -> None:
+    """
+    Scenario: vector index configs includes all managed dimensions.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     dims = {cfg["dimensions"] for cfg in VECTOR_INDEX_CONFIGS}
     assert dims == {384, 1024, 30522}
 
 
 def test_create_text_search_index_includes_run_id_token_field() -> None:
+    """
+    Scenario: create text search index includes run id token field.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     with (
         patch("server.db.mongo.indexes.get_collection") as get_collection,
         patch("server.db.mongo.indexes._wait_for_indexes_ready", return_value=True),

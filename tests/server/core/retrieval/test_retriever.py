@@ -40,6 +40,13 @@ class TestRetrieverRunScopedFilters:
     """Each sweep run must query only its own stored chunks."""
 
     def test_dense_search_filters_by_run_id(self, mock_aggregate: MagicMock) -> None:
+        """
+        Scenario: dense search filters by run id.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         dense_search(
             query_embedding=[0.1, 0.2],
             experiment_id="exp-1",
@@ -53,6 +60,13 @@ class TestRetrieverRunScopedFilters:
         assert vector_filter["run_id"] == {"$eq": "run-a"}
 
     def test_sparse_search_filters_by_run_id(self, mock_aggregate: MagicMock) -> None:
+        """
+        Scenario: sparse search filters by run id.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         sparse_search(
             query_text="What is the Pell Grant?",
             experiment_id="exp-1",
@@ -71,6 +85,13 @@ class TestSparseSearchRetry:
     """Sparse search retries when Atlas Search index lags behind chunk inserts."""
 
     def test_sparse_search_retries_until_hits(self, mock_aggregate: MagicMock) -> None:
+        """
+        Scenario: sparse search retries until hits.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         mock_aggregate.side_effect = [[], [_sparse_hit_doc()]]
 
         with patch("server.core.retriever_mongo.time.sleep") as mock_sleep:
@@ -90,6 +111,13 @@ class TestSparseSearchRetry:
     def test_sparse_search_exhausts_retries_when_index_stays_empty(
         self, mock_aggregate: MagicMock
     ) -> None:
+        """
+        Scenario: sparse search exhausts retries when index stays empty.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         mock_aggregate.return_value = []
 
         with patch("server.core.retriever_mongo.time.sleep") as mock_sleep:
@@ -116,6 +144,13 @@ class TestHybridSearchRunScoped:
         mock_dense: MagicMock,
         mock_sparse: MagicMock,
     ) -> None:
+        """
+        Scenario: hybrid search passes run id to dense and sparse.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         mock_dense.return_value = []
         mock_sparse.return_value = []
 
@@ -140,6 +175,13 @@ class TestHybridSearchRunScoped:
         mock_dense: MagicMock,
         mock_sparse: MagicMock,
     ) -> None:
+        """
+        Scenario: hybrid search merges dense and sparse with rrf.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         from server.models.results import Chunk, SearchResult
 
         shared = SearchResult(
@@ -204,6 +246,13 @@ class TestSearchDispatcher:
 
     @patch("server.core.retriever_mongo.dense_search")
     def test_search_dense_passes_run_id(self, mock_dense: MagicMock) -> None:
+        """
+        Scenario: search dense passes run id.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         mock_dense.return_value = []
 
         search(
@@ -220,6 +269,13 @@ class TestSearchDispatcher:
 
     @patch("server.core.retriever_mongo.sparse_search")
     def test_search_sparse_passes_run_id(self, mock_sparse: MagicMock) -> None:
+        """
+        Scenario: search sparse passes run id.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         mock_sparse.return_value = []
 
         search(
@@ -235,6 +291,13 @@ class TestSearchDispatcher:
 
     @patch("server.core.retriever_mongo.hybrid_search")
     def test_search_hybrid_passes_run_id(self, mock_hybrid: MagicMock) -> None:
+        """
+        Scenario: search hybrid passes run id.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         mock_hybrid.return_value = []
 
         search(
@@ -252,6 +315,13 @@ class TestSearchDispatcher:
         )
 
     def test_search_dense_requires_query_embedding(self) -> None:
+        """
+        Scenario: search dense requires query embedding.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         with pytest.raises(ValueError, match="query_embedding is required"):
             search(
                 RetrievalMethod.DENSE,

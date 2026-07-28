@@ -74,6 +74,7 @@ if [[ "$BACKEND_CHANGED" -gt 0 ]]; then
     --cov-report=json:.reports/coverage-backend-unit.json \
     --cov-fail-under=95
   uv run python scripts/ci/check_backend_coverage_floors.py .reports/coverage-backend-unit.json
+  uv run python scripts/ci/check_coverage_threshold_drift.py
 else
   echo "   Skipped (no backend changes in this push)"
 fi

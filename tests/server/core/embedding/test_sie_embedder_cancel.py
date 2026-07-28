@@ -15,10 +15,15 @@ class TestSIEEmbedderCancelCheck:
 
     def test_embed_documents_invokes_cancel_check_per_batch(self):
         """
+        Scenario: embed documents invokes cancel check per batch.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given 300 texts (3 SIE batches)
         When embed_documents_sie runs with cancel_check
         Then cancel_check is invoked before each batch encode.
         """
+        ### Given
+        ### When
+        ### Then
         calls = 0
 
         def cancel_check() -> None:
@@ -43,10 +48,15 @@ class TestSIEEmbedderCancelCheck:
 
     def test_embed_documents_propagates_cancel_check_exception(self):
         """
+        Scenario: embed documents propagates cancel check exception.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given cancel_check raises ExperimentCancelledError
         When embed_documents_sie runs
         Then the cancellation propagates without wrapping.
         """
+        ### Given
+        ### When
+        ### Then
 
         def cancel_check() -> None:
             raise ExperimentCancelledError("cancelled")

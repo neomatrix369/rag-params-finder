@@ -50,6 +50,13 @@ class TestMongoStoreAdapterShould:
         self,
     ) -> None:
         """
+        Scenario: given mongo storage adapter when checked then satisfies storage backend protocol.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Storage backend abstracts all data I/O via Protocol.
         Slice: slice-32-storage-backend-protocol
 
@@ -70,6 +77,13 @@ class TestMongoStoreAdapterShould:
         self,
     ) -> None:
         """
+        Scenario: mongo retriever adapter satisfies RetrieverBackend protocol.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Retrieval flows through RetrieverBackend.
         Slice: slice-32-storage-backend-protocol
 
@@ -89,6 +103,13 @@ class TestMongoStoreAdapterShould:
     def test_given_mongo_retriever_when_search_called_then_dispatches_to_core_retriever(
         self,
     ) -> None:
+        """
+        Scenario: given mongo retriever when search called then dispatches to core retriever.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: RetrieverBackend delegates search to existing Mongo retriever helpers.
         Slice: slice-32-storage-backend-protocol
@@ -124,6 +145,13 @@ class TestMongoStoreAdapterShould:
     def test_given_orchestrator_and_api_modules_when_parsed_then_no_direct_atlas_imports(
         self,
     ) -> None:
+        """
+        Scenario: given orchestrator and api modules when parsed then no direct atlas imports.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Call sites depend on ports — never on server.db.mongo.atlas.
         Slice: slice-32-storage-backend-protocol

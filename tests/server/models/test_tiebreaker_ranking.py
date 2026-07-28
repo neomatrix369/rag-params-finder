@@ -12,7 +12,14 @@ from server.core.results_analyzer import analyze_results
 
 
 def test_tiebreaker_when_multiple_configs_have_same_max_score():
-    """Verify tiebreaker logic when configs tie on max score."""
+    """
+    Scenario: tiebreaker when multiple configs have same max score.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    Verify tiebreaker logic when configs tie on max score.
+    """
+    ### Given
+    ### When
+    ### Then
     # Setup: 3 configs with 100% max score but different avg scores and chunk sizes
     run_statuses = [
         {
@@ -101,7 +108,14 @@ def test_tiebreaker_when_multiple_configs_have_same_max_score():
 
 
 def test_no_tied_count_when_unique_max_scores():
-    """When configs have different max scores, tied_count should reflect only #1."""
+    """
+    Scenario: no tied count when unique max scores.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    When configs have different max scores, tied_count should reflect only #1.
+    """
+    ### Given
+    ### When
+    ### Then
     run_statuses = [
         {
             "run_id": "run1",
@@ -152,11 +166,17 @@ def test_no_tied_count_when_unique_max_scores():
 
 
 def test_weighted_avg_vs_unweighted_avg():
-    """Verify weighted (query-level) avg differs from unweighted (chunk-level) avg.
+    """
+    Scenario: weighted avg vs unweighted avg.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    Verify weighted (query-level) avg differs from unweighted (chunk-level) avg.
 
     When one query returns more chunks than another, the weighted avg should
     give each query equal weight, while unweighted avg gives each chunk equal weight.
     """
+    ### Given
+    ### When
+    ### Then
     run_statuses = [
         {
             "run_id": "run1",
@@ -224,7 +244,14 @@ def test_weighted_avg_vs_unweighted_avg():
 
 
 def test_same_padding_collapses_to_one_ranked_config():
-    """Runs that differ only by run_id but share padding merge into one config."""
+    """
+    Scenario: same padding collapses to one ranked config.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    Runs that differ only by run_id but share padding merge into one config.
+    """
+    ### Given
+    ### When
+    ### Then
     run_statuses = [
         {
             "run_id": "run-a",
@@ -274,7 +301,14 @@ def test_same_padding_collapses_to_one_ranked_config():
 
 
 def test_padding_distinguishes_ranked_configs():
-    """Two runs identical except padding produce two distinct ranked configs."""
+    """
+    Scenario: padding distinguishes ranked configs.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    Two runs identical except padding produce two distinct ranked configs.
+    """
+    ### Given
+    ### When
+    ### Then
     run_statuses = [
         {
             "run_id": "run-padding-0",

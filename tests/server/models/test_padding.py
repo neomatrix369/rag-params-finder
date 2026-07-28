@@ -24,36 +24,85 @@ from server.models.enums import ChunkingMethod, RetrieverType
 
 
 def test_zero_padding_is_noop() -> None:
+    """
+    Scenario: zero padding is noop.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     chunks = ["a", "bb", "ccc"]
     assert _apply_padding(chunks, 0) == chunks
 
 
 def test_negative_padding_is_noop() -> None:
+    """
+    Scenario: negative padding is noop.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     chunks = ["a", "bb", "ccc"]
     assert _apply_padding(chunks, -5) == chunks
 
 
 def test_single_chunk_unchanged() -> None:
+    """
+    Scenario: single chunk unchanged.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     assert _apply_padding(["short"], 100) == ["short"]
 
 
 def test_empty_list_unchanged() -> None:
+    """
+    Scenario: empty list unchanged.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     assert _apply_padding([], 10) == []
 
 
 def test_undersized_chunks_merge_forward_to_threshold() -> None:
+    """
+    Scenario: undersized chunks merge forward to threshold.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     # "aaa" + " " + "bbb" = 7 chars → meets threshold.
     chunks = ["aaa", "bbb", "ccc", "ddd"]
     assert _apply_padding(chunks, 7) == ["aaa bbb", "ccc ddd"]
 
 
 def test_trailing_remainder_attaches_to_last_chunk() -> None:
+    """
+    Scenario: trailing remainder attaches to last chunk.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     # "ee" never reaches threshold and has nothing after it → folded into prev.
     chunks = ["aaaa", "bbbb", "ee"]
     assert _apply_padding(chunks, 4) == ["aaaa", "bbbb ee"]
 
 
 def test_chunks_already_above_threshold_unchanged() -> None:
+    """
+    Scenario: chunks already above threshold unchanged.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     chunks = ["aaaaaa", "bbbbbb"]
     assert _apply_padding(chunks, 4) == chunks
 
@@ -77,6 +126,13 @@ def _config_with_paddings(paddings: list[int]) -> ExperimentConfig:
 
 
 def test_padding_default_adds_single_zero_run() -> None:
+    """
+    Scenario: padding default adds single zero run.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     # Default ChunkParams has paddings=[0]: one run, padding 0.
     config = _config_with_paddings([0])
     runs = expand_sweep(config)
@@ -85,6 +141,13 @@ def test_padding_default_adds_single_zero_run() -> None:
 
 
 def test_padding_is_a_swept_dimension() -> None:
+    """
+    Scenario: padding is a swept dimension.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     config = _config_with_paddings([0, 100, 200])
     runs = expand_sweep(config)
     assert len(runs) == 3
@@ -92,6 +155,13 @@ def test_padding_is_a_swept_dimension() -> None:
 
 
 def test_padding_exceeds_chunk_size_emits_warning() -> None:
+    """
+    Scenario: padding exceeds chunk size emits warning.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     with pytest.warns(
         UserWarning,
         match=r"paddings \[300\] exceed min chunk_size 256",

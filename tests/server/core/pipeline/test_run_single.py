@@ -51,11 +51,16 @@ def test_run_single_happy_path_executes_pipeline(
 ) -> None:
     """
     Scenario: _run_single performs normal pipeline for a runnable configuration
+    Slice: 45 — GWT-on-touch (module theme separation)
 
     Given a successful dense run configuration
     When _run_single executes
     Then run_status, chunk docs, and query results are persisted.
+
     """
+    ### Given
+    ### When
+    ### Then
     # Given
     storage = _fake_storage_backend()
     mock_get_storage_backend.return_value = storage
@@ -120,7 +125,11 @@ def test_run_single_reranker_path_executes_pipeline(
 ) -> None:
     """
     Scenario: _run_single executes reranker retrieval branch.
+    Slice: 45 — GWT-on-touch (module theme separation)
     """
+    ### Given
+    ### When
+    ### Then
     storage = _fake_storage_backend()
     mock_get_storage_backend.return_value = storage
     mock_check_control.return_value = None
@@ -168,7 +177,11 @@ def test_run_single_failure_updates_failed_phase(
 ) -> None:
     """
     Scenario: _run_single failure branch updates FAILED phase.
+    Slice: 45 — GWT-on-touch (module theme separation)
     """
+    ### Given
+    ### When
+    ### Then
     storage = _fake_storage_backend()
     mock_get_storage_backend.return_value = storage
     mock_check_control.return_value = None
@@ -205,7 +218,11 @@ def test_run_sweep_paused_stops_new_scheduling_marking_paused(
 ) -> None:
     """
     Scenario: _run_sweep_inner switches to PAUSED if ExperimentPausedError occurs.
+    Slice: 45 — GWT-on-touch (module theme separation)
     """
+    ### Given
+    ### When
+    ### Then
     mock_get_storage_backend.return_value = _fake_storage_backend()
     mock_expand_sweep.return_value = [_run_param() for _ in range(4)]
     mock_validate_sie_readiness.return_value = None
@@ -228,7 +245,11 @@ def test_run_single_records_empty_parse_and_chunk(
 ) -> None:
     """
     Scenario: _run_single logs and continues when parse/chunking are empty.
+    Slice: 45 — GWT-on-touch (module theme separation)
     """
+    ### Given
+    ### When
+    ### Then
     storage = _fake_storage_backend()
     mock_get_storage_backend.return_value = storage
     mock_update_phase.side_effect = lambda run_id, phase, error_message=None: None
@@ -278,7 +299,11 @@ def test_run_single_interrupted_state_updates(
 ) -> None:
     """
     Scenario: _run_single maps check_control cancellation into INTERRUPTED phase.
+    Slice: 45 — GWT-on-touch (module theme separation)
     """
+    ### Given
+    ### When
+    ### Then
     storage = _fake_storage_backend()
     mock_get_storage_backend.return_value = storage
     mock_check_control.side_effect = [None, ExperimentCancelledError("cancelled")]
@@ -307,7 +332,11 @@ def test_log_failed_run_summary_logs_warning(
 ) -> None:
     """
     Scenario: _log_failed_run_summary emits a warning containing top failures.
+    Slice: 45 — GWT-on-touch (module theme separation)
     """
+    ### Given
+    ### When
+    ### Then
     mock_get_storage_backend.return_value.find_runs_by_phase.return_value = [
         {
             "run_id": "run-a",
@@ -334,11 +363,16 @@ def test_update_phase_marks_complete_and_cleanses_runtime_state(
 ) -> None:
     """
     Scenario: _update_phase updates run_status and clears start-time tracking
+    Slice: 45 — GWT-on-touch (module theme separation)
 
     Given a run reaches terminal phase
     When _update_phase is invoked
     Then update payload includes terminal clean-up metadata.
+
     """
+    ### Given
+    ### When
+    ### Then
     storage = _fake_storage_backend()
     mock_get_storage_backend.return_value = storage
     _update_phase("run-terminal", Phase.COMPLETE)

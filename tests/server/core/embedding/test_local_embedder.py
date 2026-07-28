@@ -24,10 +24,15 @@ class _FakeEmbedding:
 
 def test_local_embedding_caps_threads_when_parallelism_gt1() -> None:
     """
+    Scenario: local embedding caps threads when parallelism gt1.
+    Slice: 45 — GWT-on-touch (module theme separation)
     Given parallelism > 1 and a multi-core host
     When embed_documents_local encodes documents
     Then torch.set_num_threads is set to a shared budget.
     """
+    ### Given
+    ### When
+    ### Then
     texts = ["chunk one", "chunk two", "chunk three"]
     fake_model = MagicMock()
     fake_model.encode.return_value = [
@@ -56,10 +61,15 @@ def test_local_embedding_caps_threads_when_parallelism_gt1() -> None:
 
 def test_local_embedding_no_thread_override_when_parallelism_is_one() -> None:
     """
+    Scenario: local embedding no thread override when parallelism is one.
+    Slice: 45 — GWT-on-touch (module theme separation)
     Given parallelism=1
     When embed_documents_local is called
     Then torch.set_num_threads is not forced.
     """
+    ### Given
+    ### When
+    ### Then
     fake_model = MagicMock()
     fake_model.encode.return_value = [
         _FakeEmbedding([0.1, 0.2]),

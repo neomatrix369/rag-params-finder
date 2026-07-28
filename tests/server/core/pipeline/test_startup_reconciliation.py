@@ -20,6 +20,13 @@ class TestStartupReconciliationShould:
         self,
     ) -> None:
         """
+        Scenario: given running postgres experiment when reconciled then marks interrupted.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Orphan RUNNING experiment with in-flight run becomes PARTIAL.
         Slice: 37 — boot reconciliation (Postgres path via StorageBackend)
 
@@ -68,6 +75,13 @@ class TestStartupReconciliationShould:
         assert kwargs["completion_reason"] == "interrupted_before_completion"
 
     def test_given_no_running_experiments_when_reconciled_then_returns_zero(self) -> None:
+        """
+        Scenario: given no running experiments when reconciled then returns zero.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Clean boot with no orphans is a no-op.
         Slice: 37 — boot reconciliation

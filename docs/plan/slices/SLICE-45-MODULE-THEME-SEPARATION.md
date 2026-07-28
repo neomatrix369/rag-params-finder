@@ -3,7 +3,7 @@
 > Scenario: Brownfield + Growing Requirement (Flow D) | MoSCoW: Could
 
 **Target time:** ~16–24 h (phased by hotspot + FE/BE craft; do not land all phases in one commit)
-**Status:** 🔨 IN PROGRESS
+**Status:** ✅ COMPLETE
 **Depends on:** Slice 44 taxonomy Should artifacts **IMPLEMENTED** — [`module-theme-map.md`](../../contributor-guide/module-theme-map.md) present with B/F/F tags; canvas published; this stub present. Slice 44 coverage Must + shared floors #142 **COMPLETE** (FE/BE product floors gated).
 **Non-blocking:** Structural hygiene + FE/BE construction quality — does not gate PCTO / migration Must slices.
 
@@ -371,7 +371,7 @@ One hotspot / one craft theme per PR when possible.
 
 ## Gate Status
 
-✅ COMPLETE — Must + Should + scripts Could landed; After-Checks closed 2026-07-28; evidence [`slice-45.json`](../gate-evidence/slice-45.json); mutation waived #160; nw-software-crafter-reviewer close-out **APPROVED** after evidence artifacts. Optional Could leftovers (FE docstring gaps, FE↔pyproject drift guard, BE GWT-on-touch) remain non-blocking.
+✅ COMPLETE — Must + Should + scripts Could + deferred Could leftovers (#161: FE docstrings, coverage drift guard, BE GWT-on-touch) landed; After-Checks closed 2026-07-28; evidence [`slice-45.json`](../gate-evidence/slice-45.json); mutation waived #160; nw-software-crafter-reviewer close-out **APPROVED**.
 
 ## Remediation pass (2026-07-27)
 

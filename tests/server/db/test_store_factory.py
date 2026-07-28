@@ -24,6 +24,13 @@ class TestStoreFactoryShould:
         self,
     ) -> None:
         """
+        Scenario: given mongo default when get storage backend then returns mongo adapter.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Default backend remains Mongo.
         Slice: slice-32-storage-backend-protocol
 
@@ -54,6 +61,13 @@ class TestStoreFactoryShould:
     def test_given_storage_backend_mongo_when_get_retriever_backend_then_returns_mongo_adapter(
         self,
     ) -> None:
+        """
+        Scenario: given storage backend mongo when get retriever backend then returns mongo adapter.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Default retriever backend remains Mongo.
         Slice: slice-32-storage-backend-protocol
@@ -86,6 +100,13 @@ class TestStoreFactoryShould:
         self,
     ) -> None:
         """
+        Scenario: given legacy mongo alias when get storage backend then returns mongo adapter.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Legacy STORAGE_BACKEND=mongo still selects MongoDB.
         Slice: naming consistency — mongodb canonical token
 
@@ -117,6 +138,13 @@ class TestStoreFactoryShould:
         self,
     ) -> None:
         """
+        Scenario: given mongo without uri when get storage backend then raises value error.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Factory fails closed when MONGODB_URI is missing.
         Slice: slice-32-storage-backend-protocol
 
@@ -135,6 +163,13 @@ class TestStoreFactoryShould:
     def test_given_postgres_without_url_when_get_storage_backend_then_raises_value_error(
         self,
     ) -> None:
+        """
+        Scenario: given postgres without url when get storage backend then raises value error.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Factory fails closed when DATABASE_URL is missing.
         Slice: 43 — Supabase/Postgres operator parity
@@ -155,6 +190,13 @@ class TestStoreFactoryShould:
         self,
     ) -> None:
         """
+        Scenario: given storage backend redis when get storage backend then raises value error.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Factory rejects unknown backend.
         Slice: slice-32-storage-backend-protocol
 
@@ -173,6 +215,13 @@ class TestStoreFactoryShould:
         self,
     ) -> None:
         """
+        Scenario: given storage backend redis when get retriever backend then raises value error.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Factory rejects unknown backend for retriever path.
         Slice: slice-32-storage-backend-protocol
 
@@ -190,6 +239,13 @@ class TestStoreFactoryShould:
     def test_given_storage_backend_postgres_when_get_storage_backend_then_returns_pg_adapter(
         self,
     ) -> None:
+        """
+        Scenario: given storage backend postgres when get storage backend then returns pg adapter.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Postgres selects the pgvector StorageBackend adapter.
         Slice: slice-33-postgres-schema-crud
@@ -222,6 +278,13 @@ class TestStoreFactoryShould:
         self,
     ) -> None:
         """
+        Scenario: given storage backend postgres when get retriever backend then returns pg adapter.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Postgres selects the pgvector RetrieverBackend adapter.
         Slice: slice-34-postgres-dense-retrieval
 
@@ -252,6 +315,13 @@ class TestStoreFactoryShould:
     def test_given_postgres_retriever_when_sparse_search_then_routes_to_sparse_search(
         self,
     ) -> None:
+        """
+        Scenario: given postgres retriever when sparse search then routes to sparse search.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Postgres retriever dispatches sparse to the Slice 35 path.
         Slice: slice-35-postgres-sparse-hybrid

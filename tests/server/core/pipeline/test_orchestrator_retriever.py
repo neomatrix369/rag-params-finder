@@ -37,6 +37,13 @@ def test_search_traditional_retriever_passes_run_id(
     mock_get_retriever_backend: MagicMock,
     retriever_type: RetrieverType,
 ) -> None:
+    """
+    Scenario: search traditional retriever passes run id.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     mock_search = mock_get_retriever_backend.return_value.search
     mock_search.return_value = []
 
@@ -63,6 +70,13 @@ def test_search_reranker_retriever_passes_run_id_to_dense_prefetch(
     mock_rerank: MagicMock,
     _mock_update_phase: MagicMock,
 ) -> None:
+    """
+    Scenario: search reranker retriever passes run id to dense prefetch.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     mock_search = mock_get_retriever_backend.return_value.search
     mock_search.return_value = [_dense_candidate()]
     mock_rerank.return_value = []

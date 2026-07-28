@@ -131,6 +131,13 @@ class TestPostgresDenseSearchShould:
         self, two_model_corpus: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given same width rival model when searched then only the asked model returns.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: The embedding_model filter isolates models that share a column.
         Slice: slice-34-postgres-dense-retrieval
 
@@ -156,6 +163,13 @@ class TestPostgresDenseSearchShould:
         self, two_model_corpus: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given missing embedding model when searched then raises before any sql.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: An omitted embedding_model is rejected, never treated as "all models".
         Slice: slice-34-postgres-dense-retrieval
 
@@ -170,6 +184,13 @@ class TestPostgresDenseSearchShould:
     def test_given_chunks_in_another_run_when_searched_then_only_this_run_returns(
         self, two_model_corpus: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given chunks in another run when searched then only this run returns.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Runs are isolated, so one sweep row cannot borrow another's chunks.
         Slice: slice-34-postgres-dense-retrieval
@@ -190,6 +211,13 @@ class TestPostgresDenseSearchShould:
         self, two_model_corpus: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given 384 dim query against 1024 dim model when searched then no hits.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Query width picks its own vector column, so mismatched widths miss.
         Slice: slice-34-postgres-dense-retrieval
 
@@ -208,6 +236,13 @@ class TestPostgresDenseSearchShould:
     def test_given_1024_dim_query_when_searched_then_the_1024_column_is_used(
         self, two_model_corpus: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given 1024 dim query when searched then the 1024 column is used.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: The 1024-dim path resolves its own column and returns its own rows.
         Slice: slice-34-postgres-dense-retrieval
@@ -229,6 +264,13 @@ class TestPostgresDenseSearchShould:
         self, two_model_corpus: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given unsupported width when searched then raises naming slice 35.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: A sparse-width query fails loudly rather than querying nothing.
         Slice: slice-34-postgres-dense-retrieval
 
@@ -245,6 +287,13 @@ class TestPostgresDenseSearchShould:
     def test_given_similar_and_orthogonal_chunks_when_searched_then_ranked_by_similarity(
         self, two_model_corpus: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given similar and orthogonal chunks when searched then ranked by similarity.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Results come back ordered best-first with sequential ranks.
         Slice: slice-34-postgres-dense-retrieval
@@ -267,6 +316,13 @@ class TestPostgresDenseSearchShould:
     def test_given_exact_and_orthogonal_matches_when_scored_then_matches_atlas_scale(
         self, two_model_corpus: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given exact and orthogonal matches when scored then matches atlas scale.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Scores use Atlas's (1 + cosine) / 2 scale, not raw pgvector distance.
         Slice: slice-34-postgres-dense-retrieval
@@ -295,6 +351,13 @@ class TestPostgresDenseSearchShould:
         self, two_model_corpus: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given top k smaller than corpus when searched then limit is applied.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: top_k caps the result count.
         Slice: slice-34-postgres-dense-retrieval
 
@@ -313,6 +376,13 @@ class TestPostgresDenseSearchShould:
     def test_given_unknown_experiment_when_searched_then_returns_no_hits(
         self, two_model_corpus: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given unknown experiment when searched then returns no hits.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: An unknown experiment yields nothing rather than erroring.
         Slice: slice-34-postgres-dense-retrieval
@@ -368,6 +438,13 @@ class TestPostgresDenseRecallShould:
         self, wide_corpus: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given more matches than top k when searched then exactly top k return.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: A capped search fills every requested slot.
         Slice: slice-34-postgres-dense-retrieval
 
@@ -388,6 +465,13 @@ class TestPostgresDenseRecallShould:
     def test_given_top_k_covering_corpus_when_searched_then_every_match_returns(
         self, wide_corpus: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given top k covering corpus when searched then every match returns.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Full recall — no matching chunk is ever dropped.
         Slice: slice-34-postgres-dense-retrieval
@@ -411,6 +495,13 @@ class TestPostgresDenseRecallShould:
         self, wide_corpus: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given pooled connection when inspected then iterative scan is strict.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Every pooled connection has HNSW iterative scan switched on.
         Slice: slice-34-postgres-dense-retrieval
 
@@ -428,6 +519,13 @@ class TestPostgresDenseRecallShould:
     def test_given_hnsw_forced_when_searched_then_recall_is_still_complete(
         self, wide_corpus: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given hnsw forced when searched then recall is still complete.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Recall survives even when the planner is pushed onto HNSW.
         Slice: slice-34-postgres-dense-retrieval
@@ -469,6 +567,13 @@ class TestPostgresDenseRecallShould:
         self, wide_corpus: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given wide corpus when searched then scores decrease monotonically.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Ordering is exact, best-first, with no approximation artefacts.
         Slice: slice-34-postgres-dense-retrieval
 
@@ -494,6 +599,13 @@ class TestPostgresSearchDispatcherShould:
     def test_given_dense_method_when_dispatched_then_dense_results_return(
         self, two_model_corpus: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given dense method when dispatched then dense results return.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: RetrievalMethod.DENSE reaches the pgvector dense path.
         Slice: slice-34-postgres-dense-retrieval
@@ -521,6 +633,13 @@ class TestPostgresSearchDispatcherShould:
         self, two_model_corpus: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given dense method without embedding when dispatched then raises.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Dense search cannot proceed without a query vector.
         Slice: slice-34-postgres-dense-retrieval
 
@@ -543,6 +662,13 @@ class TestPostgresSearchDispatcherShould:
         self, two_model_corpus: PostgresStorageBackend, method: RetrievalMethod
     ) -> None:
         """
+        Scenario: given sparse or hybrid when dispatched then does not raise not implemented.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Sparse and hybrid are implemented on Postgres (Slice 35).
         Slice: slice-34-postgres-dense-retrieval (dispatcher smoke)
 
@@ -563,6 +689,13 @@ class TestPostgresSearchDispatcherShould:
     def test_given_unrecognised_method_when_dispatched_then_raises_value_error(
         self,
     ) -> None:
+        """
+        Scenario: given unrecognised method when dispatched then raises value error.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: An unrecognised retrieval method is rejected, not ignored.
         Slice: slice-34-postgres-dense-retrieval
@@ -591,6 +724,13 @@ class TestPostgresDenseFailureShould:
     def test_given_query_failure_when_searched_then_context_is_logged_and_raised(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
+        """
+        Scenario: given query failure when searched then context is logged and raised.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: A database error surfaces with the identifiers needed to debug it.
         Slice: slice-34-postgres-dense-retrieval

@@ -39,6 +39,13 @@ def _database_providers(config_dir: Path) -> set[str]:
 class TestExampleSieConfig:
     def test_given_sie_yaml_when_load_config_then_provider_and_models_valid(self) -> None:
         """
+        Scenario: given sie yaml when load config then provider and models valid.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: The MongoDB SIE example declares valid SIE models.
         Slice: SIE config validation
 
@@ -60,6 +67,13 @@ class TestExampleSieConfig:
 
     def test_given_sie_yaml_when_expand_sweep_then_yields_eighty_runs(self) -> None:
         """
+        Scenario: given sie yaml when expand sweep then yields eighty runs.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: The SIE example expands to its documented sweep size.
         Slice: SIE config validation
 
@@ -80,6 +94,13 @@ class TestExampleSieConfig:
         )
 
     def test_given_sie_yaml_when_required_search_indexes_then_vector_and_text(self) -> None:
+        """
+        Scenario: given sie yaml when required search indexes then vector and text.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: MongoDB SIE sweeps request their required Atlas indexes.
         Slice: SIE config validation
@@ -108,6 +129,13 @@ class TestBackendExampleParity:
         self,
     ) -> None:
         """
+        Scenario: given backend config directories when compared then examples are mirrored.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: MongoDB and Supabase/Postgres offer matching example entry points.
         Slice: 43 — Supabase/Postgres operator parity
 
@@ -125,6 +153,13 @@ class TestBackendExampleParity:
         )
 
     def test_given_mirrored_examples_when_expanded_then_run_counts_match(self) -> None:
+        """
+        Scenario: given mirrored examples when expanded then run counts match.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Twin configs expand to the same sweep size.
         Slice: 43 — Supabase/Postgres operator parity
@@ -160,6 +195,13 @@ class TestBackendExampleParity:
         config_dir: Path,
         expected_provider: str,
     ) -> None:
+        """
+        Scenario: given backend examples when loaded then provider labels match directory.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Each backend example directory uses a consistent engine label.
         Slice: 37 — supabase YAML normalizes to postgres

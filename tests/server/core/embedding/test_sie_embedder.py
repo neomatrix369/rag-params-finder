@@ -18,10 +18,15 @@ class TestSIEEmbedderDenseEmbedding:
 
     def test_embed_documents_returns_1024_dim_vectors(self):
         """
+        Scenario: embed documents returns 1024 dim vectors.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given SIE_ENDPOINT is http://localhost:8720
         When embed_documents_sie(["test query"], "bge-m3") is called
         Then a list containing one 1024-dim float vector is returned.
         """
+        ### Given
+        ### When
+        ### Then
         mock_result = [{"dense": np.zeros(1024, dtype=np.float32)}]
         with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
             mock_client_cls.return_value.encode.return_value = mock_result
@@ -36,10 +41,15 @@ class TestSIEEmbedderDenseEmbedding:
 
     def test_embed_query_returns_1024_dim_vector(self):
         """
+        Scenario: embed query returns 1024 dim vector.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given SIE_ENDPOINT is http://localhost:8720
         When embed_query_sie("test query", "bge-m3") is called
         Then a 1024-dim float vector is returned.
         """
+        ### Given
+        ### When
+        ### Then
         mock_result = [{"dense": np.zeros(1024, dtype=np.float32)}]
         with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
             mock_client_cls.return_value.encode.return_value = mock_result
@@ -53,9 +63,14 @@ class TestSIEEmbedderDenseEmbedding:
 
     def test_embed_documents_batch(self):
         """
+        Scenario: embed documents batch.
+        Slice: 45 — GWT-on-touch (module theme separation)
         When embed_documents_sie is called with multiple texts
         Then a vector per text is returned.
         """
+        ### Given
+        ### When
+        ### Then
         batch_size = 3
         mock_result = [{"dense": np.zeros(1024, dtype=np.float32)} for _ in range(batch_size)]
         with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
@@ -72,9 +87,14 @@ class TestSIEEmbedderDenseEmbedding:
 
     def test_embed_documents_shards_large_batches(self):
         """
+        Scenario: embed documents shards large batches.
+        Slice: 45 — GWT-on-touch (module theme separation)
         When embed_documents_sie is called with more texts than the SIE queue limit
         Then encode is invoked in multiple smaller batches and all vectors are returned.
         """
+        ### Given
+        ### When
+        ### Then
         total = 300
         batch_size = 128
         expected_batches = (total + batch_size - 1) // batch_size
@@ -96,10 +116,15 @@ class TestSIEEmbedderDenseEmbedding:
 
     def test_embed_documents_respects_sie_in_flight_limit(self):
         """
+        Scenario: embed documents respects sie in flight limit.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given multiple concurrent encode calls and SIE in-flight limit = 1
         When embed_documents_sie is called across many threads
         Then active encode calls never exceed the configured cap.
         """
+        ### Given
+        ### When
+        ### Then
         from server.core import sie_embedder
 
         active = 0
@@ -140,10 +165,15 @@ class TestSIEEmbedderDenseEmbedding:
 
     def test_get_client_passes_endpoint_and_api_key(self):
         """
+        Scenario: get client passes endpoint and api key.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given SIE_ENDPOINT and SIE_API_KEY are configured
         When embed_documents_sie is called
         Then SIEClient is constructed with endpoint and api_key.
         """
+        ### Given
+        ### When
+        ### Then
         mock_result = [{"dense": np.zeros(1024, dtype=np.float32)}]
         mock_settings = MagicMock(
             sie_endpoint="https://sie.example.com",
@@ -170,10 +200,15 @@ class TestSIEEmbedderFallback:
 
     def test_embed_documents_raises_runtime_error_on_connection_failure(self):
         """
+        Scenario: embed documents raises runtime error on connection failure.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given SIEClient cannot connect to http://localhost:8720
         When embed_documents_sie is called
         Then a SIEUnavailableError is raised with message containing "SIE unreachable".
         """
+        ### Given
+        ### When
+        ### Then
         with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
             mock_client_cls.return_value.encode.side_effect = Exception("Connection refused")
 
@@ -184,10 +219,15 @@ class TestSIEEmbedderFallback:
 
     def test_embed_documents_retries_on_503_like_errors(self, monkeypatch: pytest.MonkeyPatch):
         """
+        Scenario: embed documents retries on 503 like errors.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given SIE encode returns transient 503 errors
         When embed_documents_sie is called
         Then requests are retried and eventually succeed.
         """
+        ### Given
+        ### When
+        ### Then
         attempts = 0
 
         def _encode_side_effect(*_args: object, **_kwargs: object) -> list[dict]:
@@ -212,10 +252,15 @@ class TestSIEEmbedderFallback:
         self, monkeypatch: pytest.MonkeyPatch
     ):
         """
+        Scenario: embed documents retries on 429 with retry after header.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given SIE encode returns 429 with Retry-After
         When embed_documents_sie is called
         Then it retries after the hinted delay and eventually succeeds.
         """
+        ### Given
+        ### When
+        ### Then
         attempts = 0
         sleep_calls: list[float] = []
 
@@ -246,10 +291,15 @@ class TestSIEEmbedderFallback:
 
     def test_embed_documents_does_not_retry_non_retryable_errors(self):
         """
+        Scenario: embed documents does not retry non retryable errors.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given SIE encode raises a non-retryable error
         When embed_documents_sie is called
         Then the call fails without retrying.
         """
+        ### Given
+        ### When
+        ### Then
         with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
             mock_client_cls.return_value.encode.side_effect = Exception("Connection refused")
 
@@ -260,10 +310,15 @@ class TestSIEEmbedderFallback:
 
     def test_embed_query_raises_runtime_error_on_connection_failure(self):
         """
+        Scenario: embed query raises runtime error on connection failure.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given SIEClient cannot connect to http://localhost:8720
         When embed_query_sie is called
         Then a SIEUnavailableError is raised with message containing "SIE unreachable".
         """
+        ### Given
+        ### When
+        ### Then
         with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
             mock_client_cls.return_value.encode.side_effect = Exception("Connection refused")
 

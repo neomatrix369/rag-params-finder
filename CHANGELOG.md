@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Slice 45 Could leftovers** — FE Scenario/Slice narrative docstrings on shared primitive suites; `scripts/ci/check_coverage_threshold_drift.py` locks Vitest thresholds to `[tool.rag_params_finder.coverage_thresholds]` (incl. `functions=95`); BE GWT-on-touch markers + Slice tags on moved/split suites (DECISIONS #161).
 - **Docs sync (Slice 45)** — theme map + architecture/development/CLAUDE/AGENTS/docs index reflect IMPLEMENTED hotspots 1–5; flat `scripts/*` shims deprecate toward `scripts/{ci,docker,release,security}/`.
 - **Slice 45 (scripts theme folders)** — moved ops scripts into `scripts/ci/`, `scripts/docker/`, `scripts/release/`, `scripts/security/` (DECISIONS #159); `lib/` unchanged.
 - **Slice 45 (phase 1 skateboard)** — moved preflight/health modules into `server/core/guards/` (`search_index_plan`, `search_index_guard`, `sie_guard`, `config_backend_guard`, `health_check`). Coverage/gate `--cov` paths updated to `server.core.guards.*`.

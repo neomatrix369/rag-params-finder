@@ -34,7 +34,11 @@ from tests.helpers.pipeline_sweep import _run_param
 def test_search_traditional_retriever_embeds_when_needed() -> None:
     """
     Scenario: _search_traditional_retriever computes query embedding for dense/hybrid retrieval.
+    Slice: 45 — GWT-on-touch (module theme separation)
     """
+    ### Given
+    ### When
+    ### Then
     with patch("server.core.pipeline.search.get_retriever_backend") as mock_get_retriever_backend:
         mock_retriever_search = mock_get_retriever_backend.return_value.search
         mock_retriever_search.return_value = []
@@ -66,7 +70,11 @@ def test_search_traditional_retriever_embeds_when_needed() -> None:
 def test_search_reranker_retriever_rejects_missing_provider_or_model() -> None:
     """
     Scenario: _search_reranker_retriever validates reranker configuration.
+    Slice: 45 — GWT-on-touch (module theme separation)
     """
+    ### Given
+    ### When
+    ### Then
     cfg_missing = SimpleNamespace(type=RetrieverType.RERANKER, provider=None, model=None)
     with pytest.raises(ValueError):
         _search_reranker_retriever(
@@ -88,7 +96,11 @@ def test_search_reranker_retriever_no_candidates_logs_warning(
 ) -> None:
     """
     Scenario: _search_reranker_retriever returns empty list when no dense candidates are found.
+    Slice: 45 — GWT-on-touch (module theme separation)
     """
+    ### Given
+    ### When
+    ### Then
     mock_search_traditional.return_value = ([], None)
 
     cfg = RetrieverConfig(
@@ -113,7 +125,11 @@ def test_search_reranker_retriever_no_candidates_logs_warning(
 def test_completed_param_signatures_extracts_phase_fields() -> None:
     """
     Scenario: _completed_param_signatures builds signatures from complete run documents.
+    Slice: 45 — GWT-on-touch (module theme separation)
     """
+    ### Given
+    ### When
+    ### Then
     runs = [
         {
             "database_provider": "mongodb",
@@ -139,7 +155,11 @@ def test_completed_param_signatures_extracts_phase_fields() -> None:
 def test_stored_enum_value_and_run_doc_signature() -> None:
     """
     Scenario: storage helpers normalize enum and plain values for signatures.
+    Slice: 45 — GWT-on-touch (module theme separation)
     """
+    ### Given
+    ### When
+    ### Then
     assert _stored_enum_value(ChunkingMethod.RECURSIVE) == "recursive"
     assert _stored_enum_value("plain") == "plain"
     assert _stored_enum_value(None) == ""
@@ -162,11 +182,16 @@ def test_stored_enum_value_and_run_doc_signature() -> None:
 def test_primary_retriever_with_empty_retrievers_raises() -> None:
     """
     Scenario: _primary_retriever validates retriever presence
+    Slice: 45 — GWT-on-touch (module theme separation)
 
     Given run params with an empty retrievers list
     When _primary_retriever is called
     Then ValueError is raised.
+
     """
+    ### Given
+    ### When
+    ### Then
     # Given
     params = _run_param().model_copy()
     params.retrievers = []

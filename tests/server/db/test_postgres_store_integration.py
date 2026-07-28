@@ -126,6 +126,13 @@ class TestPostgresExperimentCrudShould:
         self, store: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given experiment with nested fields when read back then doc matches.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Promoted columns and the JSONB remainder recombine into one document.
         Slice: slice-33-postgres-schema-crud
 
@@ -154,6 +161,13 @@ class TestPostgresExperimentCrudShould:
         self, store: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given experiment when found by id then id field is present.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Boot reconciliation reads doc["_id"], so the adapter synthesises it.
         Slice: slice-33-postgres-schema-crud
 
@@ -177,6 +191,13 @@ class TestPostgresExperimentCrudShould:
     def test_given_partial_update_when_applied_then_untouched_jsonb_keys_survive(
         self, store: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given partial update when applied then untouched jsonb keys survive.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: A partial update merges into the JSONB blob instead of replacing it.
         Slice: slice-33-postgres-schema-crud
@@ -206,6 +227,13 @@ class TestPostgresExperimentCrudShould:
         self, store: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given running experiment when cancelled then status and flag agree.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Cancellation is visible to the orchestrator's cancel check.
         Slice: slice-33-postgres-schema-crud
 
@@ -232,6 +260,13 @@ class TestPostgresConnectionShould:
     def test_given_local_container_when_schema_bootstrapped_twice_then_idempotent(
         self, store: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given local container when schema bootstrapped twice then idempotent.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Boot-time DDL is safe to re-apply on every server start.
         Slice: slice-33-postgres-schema-crud
@@ -264,6 +299,13 @@ class TestPostgresConnectionShould:
         self, store: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given string experiment id when round tripped then exact string returns.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: The external experiment_id contract is unchanged by Postgres.
         Slice: slice-33-postgres-schema-crud
 
@@ -289,6 +331,13 @@ class TestPostgresRunStatusShould:
     def test_given_queued_run_when_phase_updated_then_phase_and_error_persist(
         self, store: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given queued run when phase updated then phase and error persist.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: update_run_phase writes the promoted column and the JSONB extras.
         Slice: slice-33-postgres-schema-crud
@@ -322,6 +371,13 @@ class TestPostgresRunStatusShould:
         self, store: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given runs in phases when counted and listed then only phase matches return.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Phase filters drive the dashboard's failed-run panel.
         Slice: slice-33-postgres-schema-crud
 
@@ -349,6 +405,13 @@ class TestPostgresRunStatusShould:
     def test_given_running_runs_when_marked_interrupted_then_all_ids_transition(
         self, store: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given running runs when marked interrupted then all ids transition.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Boot reconciliation interrupts every orphaned run in one statement.
         Slice: slice-33-postgres-schema-crud
@@ -379,6 +442,13 @@ class TestPostgresRunStatusShould:
         self, store: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given no run ids when marked interrupted then nothing changes.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: An empty interrupt list must not degenerate into a mass update.
         Slice: slice-33-postgres-schema-crud
 
@@ -404,6 +474,13 @@ class TestPostgresChunksShould:
     def test_given_384_and_1024_chunks_when_inserted_then_each_lands_in_its_column(
         self, store: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given 384 and 1024 chunks when inserted then each lands in its column.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: One chunks table holds both supported embedding widths.
         Slice: slice-33-postgres-schema-crud
@@ -437,6 +514,13 @@ class TestPostgresChunksShould:
         self, store: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given unsupported dimension when inserted then raises with guidance.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: SPLADE-width vectors fail loudly rather than being silently dropped.
         Slice: slice-33-postgres-schema-crud
 
@@ -455,6 +539,13 @@ class TestPostgresChunksShould:
     def test_given_no_chunks_when_inserted_then_no_statement_runs(
         self, store: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given no chunks when inserted then no statement runs.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: An empty parse result must not error.
         Slice: slice-33-postgres-schema-crud
@@ -479,6 +570,13 @@ class TestPostgresCascadeDeleteShould:
     def test_given_experiment_with_children_when_deleted_then_counts_cover_all_tables(
         self, store: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given experiment with children when deleted then counts cover all tables.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Cascade delete reports per-table counts like the Mongo adapter.
         Slice: slice-33-postgres-schema-crud
@@ -514,6 +612,13 @@ class TestPostgresCascadeDeleteShould:
         self, store: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given experiment deleted directly when children queried then fk cascaded.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: The schema's ON DELETE CASCADE is real, not just adapter bookkeeping.
         Slice: slice-33-postgres-schema-crud
 
@@ -548,6 +653,13 @@ class TestPostgresStatsShould:
     def test_given_experiment_with_data_when_db_stats_computed_then_counts_are_reported(
         self, store: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given experiment with data when db stats computed then counts are reported.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Per-experiment db stats aggregate chunks and results.
         Slice: slice-33-postgres-schema-crud
@@ -586,6 +698,13 @@ class TestPostgresStatsShould:
         self, store: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given experiment when explore source loaded then three parts return.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: The Search Explorer's source tuple survives the Postgres mapping.
         Slice: slice-33-postgres-schema-crud
 
@@ -618,6 +737,13 @@ class TestPostgresStatsShould:
         self, store: PostgresStorageBackend
     ) -> None:
         """
+        Scenario: given unknown experiment when explore source loaded then empty tuple.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: An unknown id yields the documented empty shape, not an error.
         Slice: slice-33-postgres-schema-crud
 
@@ -634,6 +760,13 @@ class TestPostgresStatsShould:
     def test_given_experiments_when_grouped_stats_computed_then_group_totals_accumulate(
         self, store: PostgresStorageBackend
     ) -> None:
+        """
+        Scenario: given experiments when grouped stats computed then group totals accumulate.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Grouped vector-db stats carry the cluster capacity block.
         Slice: slice-33-postgres-schema-crud

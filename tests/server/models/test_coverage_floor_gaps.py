@@ -105,6 +105,7 @@ def test_given_empty_inputs_when_analyze_then_best_params_is_none() -> None:
     """
     Scenario: Empty explorer input yields no best_params (tied_count branch skipped).
     Slice: 44 — BE coverage floor parity
+
     """
     # -- Given / When --
     out = analyze_results([], [])
@@ -129,6 +130,7 @@ def test_given_empty_required_when_collect_postgres_snapshot_then_empty_ready() 
     """
     Scenario: collect_postgres_index_snapshot short-circuits when required is empty.
     Slice: 44 — BE coverage floor parity
+
     """
     # -- Given / When --
     snap = collect_postgres_index_snapshot(frozenset())
@@ -186,6 +188,7 @@ def test_normalize_database_provider_aliases() -> None:
     """
     Scenario: supabase→postgres and mongo→mongodb aliases.
     Slice: 44 — BE coverage floor parity
+
     """
     # -- Given / When / Then --
     assert normalize_database_provider("supabase") == "postgres"
@@ -197,6 +200,7 @@ def test_retrieval_config_rejects_unknown_reranker_model() -> None:
     """
     Scenario: Old-format retrieval_model must be a known reranker.
     Slice: 44 — BE coverage floor parity
+
     """
     # -- Given / When / Then --
     with pytest.raises(ValueError, match="Unknown reranker model"):
@@ -207,6 +211,7 @@ def test_experiment_config_warns_on_supabase_database_provider() -> None:
     """
     Scenario: database_provider supabase normalizes and emits DeprecationWarning.
     Slice: 44 — BE coverage floor parity
+
     """
     # -- Given / When / Then --
     with warnings.catch_warnings(record=True) as caught:
@@ -231,6 +236,7 @@ def test_bayesian_requires_single_padding() -> None:
     """
     Scenario: Bayesian search rejects multi-value paddings.
     Slice: 44 — BE coverage floor parity
+
     """
     # -- Given / When / Then --
     with pytest.raises(ValueError, match="paddings"):

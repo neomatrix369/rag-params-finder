@@ -32,6 +32,13 @@ def _minimal_config(retrievers: list[RetrieverConfig]) -> ExperimentConfig:
 
 
 def test_each_retriever_creates_separate_run_with_single_entry() -> None:
+    """
+    Scenario: each retriever creates separate run with single entry.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     config = _minimal_config(
         [
             RetrieverConfig(type=RetrieverType.DENSE),
@@ -57,6 +64,13 @@ def test_each_retriever_creates_separate_run_with_single_entry() -> None:
 
 
 def test_reranker_run_does_not_include_dense_in_retrievers_list() -> None:
+    """
+    Scenario: reranker run does not include dense in retrievers list.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     config = _minimal_config(
         [
             RetrieverConfig(
@@ -76,6 +90,13 @@ def test_reranker_run_does_not_include_dense_in_retrievers_list() -> None:
 
 
 def test_old_config_format_migrates_to_separate_sweep_entries() -> None:
+    """
+    Scenario: old config format migrates to separate sweep entries.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     config = ExperimentConfig(
         experiment_name="legacy",
         data_paths=["./input_data/pdfs/sample.pdf"],
@@ -106,6 +127,13 @@ def test_old_config_format_migrates_to_separate_sweep_entries() -> None:
 
 
 def test_bayesian_requires_fixed_embedding_model() -> None:
+    """
+    Scenario: bayesian requires fixed embedding model.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     with pytest.raises(ValidationError):
         ExperimentConfig(
             experiment_name="invalid-bayes-embedding",
@@ -128,6 +156,13 @@ def test_bayesian_requires_fixed_embedding_model() -> None:
     ["chunking_methods", "retrievers"],
 )
 def test_bayesian_requires_single_fixed_nonchunk_axes(invalid_field: str) -> None:
+    """
+    Scenario: bayesian requires single fixed nonchunk axes.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     kwargs = {
         "experiment_name": "invalid-bayes-" + invalid_field,
         "data_paths": ["./input_data/pdfs/sample.pdf"],
@@ -159,6 +194,13 @@ def test_bayesian_requires_single_fixed_nonchunk_axes(invalid_field: str) -> Non
 
 
 def test_bayesian_accepts_fixed_axes_with_chunking_ranges() -> None:
+    """
+    Scenario: bayesian accepts fixed axes with chunking ranges.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     config = ExperimentConfig(
         experiment_name="valid-bayes",
         data_paths=["./input_data/pdfs/sample.pdf"],

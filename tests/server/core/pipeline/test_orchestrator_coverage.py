@@ -37,6 +37,13 @@ class TestMakeTrialLogEntry:
 
     def test_returns_dict_with_all_fields_for_completed_trial(self) -> None:
         """
+        Scenario: returns dict with all fields for completed trial.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: completed trial produces a dict with chunk_size, overlap, state, score.
 
         Given a RunParams for a completed trial and a score
@@ -55,6 +62,13 @@ class TestMakeTrialLogEntry:
         assert entry == {"chunk_size": 256, "overlap": 32, "state": "completed", "score": 0.85}
 
     def test_returns_none_score_for_pruned_trial(self) -> None:
+        """
+        Scenario: returns none score for pruned trial.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: pruned trial has no score — score field is None.
 
@@ -95,6 +109,13 @@ class TestExecuteSweepErrorHandlers:
         self, mock_inner, mock_fail, mock_reg, mock_unreg
     ) -> None:
         """
+        Scenario: search index mismatch error returns preflight failure.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: inner sweep raises SearchIndexMismatchError — preflight failure returned.
 
         Given _run_sweep_inner raises SearchIndexMismatchError
@@ -119,6 +140,13 @@ class TestExecuteSweepErrorHandlers:
     def test_sie_unavailable_error_returns_preflight_failure(
         self, mock_inner, mock_fail, mock_reg, mock_unreg
     ) -> None:
+        """
+        Scenario: sie unavailable error returns preflight failure.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: inner sweep raises SIEUnavailableError — preflight failure returned.
 
@@ -145,6 +173,13 @@ class TestBayesianTrialToRunParams:
     """
 
     def test_extracts_chunk_size_and_overlap_from_trial_suggestions(self) -> None:
+        """
+        Scenario: extracts chunk size and overlap from trial suggestions.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: trial suggestions are wired into RunParams.
 
@@ -188,6 +223,13 @@ class TestRunSweepInnerEarlyCancel:
         self, mock_cancelled, mock_idx, mock_sie
     ) -> None:
         """
+        Scenario: returns cancelled without running any runs.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: experiment was cancelled before sweep started.
 
         Given _experiment_cancelled_in_db returns True
@@ -217,6 +259,13 @@ class TestLogFailedRunSummaryTruncation:
 
     @patch("server.core.orchestrator.get_storage_backend")
     def test_appends_more_suffix_when_failures_exceed_ten(self, mock_get_storage_backend) -> None:
+        """
+        Scenario: appends more suffix when failures exceed ten.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: 12 failed runs — summary shows 10 entries then '+2 more'.
 
@@ -267,6 +316,13 @@ class TestFinaliseByesianExperimentAllTrialsFailedPromotion:
     def test_partial_with_all_trials_failed_is_promoted_to_failed(
         self, mock_compute, mock_count, mock_log, mock_get_storage_backend
     ) -> None:
+        """
+        Scenario: partial with all trials failed is promoted to failed.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: _compute_final_status returns PARTIAL but failed_count equals planned_trials.
 

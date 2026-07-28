@@ -24,6 +24,13 @@ class TestIndexesCmdBackendGuardShould:
         self,
     ) -> None:
         """
+        Scenario: given postgres backend when indexes list then lists catalog.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
+        """
         Scenario: Postgres stacks list HNSW/GIN presence without Atlas I/O.
         Slice: slice-36-postgres-preflight-stats
 
@@ -66,6 +73,13 @@ class TestIndexesCmdBackendGuardShould:
     def test_given_postgres_backend_when_indexes_reset_then_exits_without_atlas(
         self,
     ) -> None:
+        """
+        Scenario: given postgres backend when indexes reset then exits without atlas.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         """
         Scenario: Postgres stacks do not open Atlas for index reset.
         Slice: slice-36-postgres-preflight-stats

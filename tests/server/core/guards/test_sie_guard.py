@@ -38,10 +38,15 @@ class TestSIEGuardPreflight:
 
     def test_skips_check_for_non_sie_provider(self):
         """
+        Scenario: skips check for non sie provider.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given an experiment with provider local
         When validate_sie_readiness is called
         Then no error is raised without probing SIE.
         """
+        ### Given
+        ### When
+        ### Then
         config = ExperimentConfig(
             experiment_name="test-local",
             data_paths=["./data"],
@@ -62,10 +67,15 @@ class TestSIEGuardPreflight:
 
     def test_raises_when_sie_disabled_in_env(self):
         """
+        Scenario: raises when sie disabled in env.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given provider sie but SIE_ENABLED=false
         When validate_sie_readiness is called
         Then SIEUnavailableError is raised mentioning SIE_ENABLED.
         """
+        ### Given
+        ### When
+        ### Then
         config = _sie_config()
         mock_settings = MagicMock(
             sie_enabled=False, sie_endpoint="http://localhost:8720", sie_api_key=""
@@ -77,10 +87,15 @@ class TestSIEGuardPreflight:
 
     def test_raises_when_sie_container_unreachable(self):
         """
+        Scenario: raises when sie container unreachable.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given provider sie, SIE_ENABLED=true, and /healthz probe fails
         When validate_sie_readiness is called
         Then SIEUnavailableError is raised mentioning unreachable.
         """
+        ### Given
+        ### When
+        ### Then
         config = _sie_config()
         mock_settings = MagicMock(
             sie_enabled=True, sie_endpoint="http://localhost:8720", sie_api_key=""
@@ -95,10 +110,15 @@ class TestSIEGuardPreflight:
 
     def test_passes_when_sie_enabled_and_reachable(self):
         """
+        Scenario: passes when sie enabled and reachable.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given provider sie, SIE_ENABLED=true, and /healthz returns 200
         When validate_sie_readiness is called
         Then no error is raised.
         """
+        ### Given
+        ### When
+        ### Then
         config = _sie_config()
         mock_settings = MagicMock(
             sie_enabled=True, sie_endpoint="http://localhost:8720", sie_api_key=""
@@ -112,10 +132,15 @@ class TestSIEGuardPreflight:
 
     def test_probe_sends_bearer_token_when_api_key_configured(self):
         """
+        Scenario: probe sends bearer token when api key configured.
+        Slice: 45 — GWT-on-touch (module theme separation)
         Given SIE_API_KEY is set
         When probe_sie_reachable is called
         Then the health probe includes Authorization Bearer header.
         """
+        ### Given
+        ### When
+        ### Then
         mock_settings = MagicMock(
             sie_endpoint="https://sie.example.com",
             sie_api_key="secret-token",

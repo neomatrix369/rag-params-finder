@@ -69,16 +69,37 @@ def _snapshot(
 
 class TestRequiredSearchIndexes:
     def test_dense_only_local_needs_single_vector_index(self) -> None:
+        """
+        Scenario: dense only local needs single vector index.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         config = _config(retrieval_methods=[RetrievalMethod.DENSE])
         assert required_search_indexes(config) == frozenset({"vector_index_384"})
 
     def test_sparse_local_needs_vector_and_text_indexes(self) -> None:
+        """
+        Scenario: sparse local needs vector and text indexes.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         config = _config(retrieval_methods=[RetrievalMethod.SPARSE])
         assert required_search_indexes(config) == frozenset(
             {"vector_index_384", TEXT_SEARCH_INDEX_NAME}
         )
 
     def test_hybrid_voyage_needs_vector_and_text_indexes(self) -> None:
+        """
+        Scenario: hybrid voyage needs vector and text indexes.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         config = _config(
             provider="voyage",
             models=["voyage-3.5-lite"],
@@ -89,6 +110,13 @@ class TestRequiredSearchIndexes:
         )
 
     def test_multiple_models_same_dimension_deduplicate_vector_index(self) -> None:
+        """
+        Scenario: multiple models same dimension deduplicate vector index.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         config = _config(
             models=["all-MiniLM-L6-v2", "all-MiniLM-L6-v2"],
             retrieval_methods=[RetrievalMethod.DENSE, RetrievalMethod.SPARSE],
@@ -101,12 +129,26 @@ class TestRequiredSearchIndexes:
 
 class TestValidateVectorIndexFeasibility:
     def test_given_oversized_vector_index_when_validated_then_returns_error(self) -> None:
+        """
+        Scenario: given oversized vector index when validated then returns error.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         message = validate_vector_index_feasibility(frozenset({"vector_index_30522"}))
         assert message is not None
         assert "4096" in message
         assert "vector_index_30522" in message
 
     def test_given_m0_footprint_when_validated_then_no_error(self) -> None:
+        """
+        Scenario: given m0 footprint when validated then no error.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        """
+        ### Given
+        ### When
+        ### Then
         required = frozenset({"vector_index_1024", TEXT_SEARCH_INDEX_NAME})
         assert validate_vector_index_feasibility(required) is None
 
@@ -214,6 +256,13 @@ def test_assess_search_index_readiness_scenarios(
     expect_satisfied: bool,
     reason_fragment: str | None,
 ) -> None:
+    """
+    Scenario: assess search index readiness scenarios.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     assessment = assess_search_index_readiness(required=required, snapshot=snapshot)
     assert assessment.is_satisfied is expect_satisfied, scenario
     if reason_fragment:
@@ -222,6 +271,13 @@ def test_assess_search_index_readiness_scenarios(
 
 
 def test_format_mismatch_message_includes_reset_hint_for_unknown_indexes() -> None:
+    """
+    Scenario: format mismatch message includes reset hint for unknown indexes.
+    Slice: 45 — GWT-on-touch (module theme separation)
+    """
+    ### Given
+    ### When
+    ### Then
     assessment = SearchIndexAssessment(
         required=frozenset({"vector_index_384", TEXT_SEARCH_INDEX_NAME}),
         present_ready=frozenset({"vector_index_384"}),
