@@ -3,7 +3,7 @@
 > Scenario: Brownfield + Growing Requirement (Flow D) | MoSCoW: Should
 
 **Target time:** ~3–4 h · **Estimated Pomos:** `3–4` — coverage Must (~2 Pomos) + FE Should tests + structure taxonomy Should (~1–2 Pomos)
-**Status:** ✅ COMPLETE — Phase A + Phase B + ✅ APPROVED (2026-07-27 nw-software-crafter-reviewer)
+**Status:** ✅ COMPLETE — Phase A + Phase B + ✅ APPROVED (2026-07-27 nw-software-crafter-reviewer). **Residual §4 IMPLEMENTED** (narrow mutate + ignoreStatic/StringLiteral + concurrency/progress + pin + timeout 90 + artifact@v5) — Nightly finish **VERIFIED** pending `workflow_dispatch` run URL (DECISIONS #163).
 **Depends on:** none (external slices); requires existing frontend test harness (Vitest + `@vitest/coverage-v8` already in `frontend/`)
 **Non-blocking / non-urgent:** Pure CI-hygiene parity — does not gate any backend / PCTO slice.
 
@@ -218,6 +218,33 @@ Taxonomy artifacts were **pre-published** on 2026-07-27 as planning SSOT (`modul
 | **Feature** | Product capability | experiments CRUD, sweep, embed/rerank providers, Search Explorer screens |
 | **Function** | Layer / utility / ops | ports/factory, models, utils, quality-gates scripts, types |
 
+### 4. Nightly Stryker timed out after suite growth (Must residual — DECISIONS #163)
+
+**Cause (VERIFIED):** Slice 44 Phase B / PR [#121](https://github.com/neomatrix369/rag-params-finder/pull/121) expanded Vitest from **16** tests / 3 files → **~252** tests. Nightly Stryker still mutates all `src/**/*.{ts,tsx}` (~3770 mutants, `concurrency: 2`, `timeout-minutes: 60`). Post-merge Nightly jobs cancel at 1h with no `frontend/reports/mutation/` artifact ([run 30329826459](https://github.com/neomatrix369/rag-params-finder/actions/runs/30329826459/job/90182449893)). Last success (~24m) was on pre-#121 SHA with 16 dry-run tests.
+
+Mutation was waived locally (#138) to nightly; this residual restores that nightly signal without inventing screen mutation (Slice 45 Won't / #160).
+
+**Acceptance**
+
+#### Must
+- [x] Narrow `frontend/stryker.config.js` `mutate` to pure logic only: `src/utils/**/*.ts`, `src/services/**/*.ts`, `src/hooks/**/*.ts` (exclude screens/components/chrome/types/main) — local dry-run: **9 files / 868 mutants** (was ~24 / ~3770)
+- [ ] Nightly `workflow_dispatch` (or next cron): Stryker finishes **without** GHA 1h cancel; `mutation-node-*` artifact present (**VERIFIED** with run URL)
+
+#### Should
+- [x] JS equivalent of ignoreConstants/stringLiterals: `ignoreStatic: true` + `mutator.excludedMutations: ['StringLiteral']` (StrykerJS; .NET option names do not apply)
+- [x] Raise `concurrency` to 4; add `progress` reporter for CI visibility
+- [x] Note in `docs/contributor-guide/development.md`: Nightly mutate scope = utils/services/hooks
+
+#### Could
+- [x] Raise `mutation-tests-node` `timeout-minutes` to 90 (safety net only — not a substitute for Must)
+- [x] Pin `@stryker-mutator/core` + `@stryker-mutator/vitest-runner` at **9.6.1** in `frontend/package.json` (Nightly uses `npm ci` only)
+
+#### Won't / NIT
+- [x] **Won't:** Restore full-tree mutate of screens/components
+- [x] **NIT:** `actions/upload-artifact@v4` → `@v5` on `mutation-tests-node` only
+
+**Files:** `frontend/stryker.config.js`, `.github/workflows/nightly.yml`, optionally `frontend/package.json` + `development.md`
+
 ---
 
 ## Before-Checks [GATE]
@@ -277,7 +304,8 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 - [x] Product coverage floor enforced via `coverage.thresholds` / BE `fail_under` (shared **95/90/95/95** aim — DECISIONS #142); whole-tree literal 100% branch **Won’t**
 - [x] **Shared FE metric floors (DECISIONS #142)** — `frontend/vite.config.ts` `coverage.thresholds` = statements **≥95**, branches **≥90**, functions **≥95**, lines **≥95**. Verify: `cd frontend && npm run test:coverage` exits 0 (reference: 98.21 / 92.89 / 99.7 / 99.61)
 - [x] **Shared BE metric floors (DECISIONS #142)** — **95/90/n/a/95** (stmts/br/fn/lines): `fail_under=95` plus `scripts/check_backend_coverage_floors.py` on JSON report (pyproject `[tool.rag_params_finder.coverage_thresholds]`). Functions n/a on coverage.py. Verify: unit pytest + checker exits 0 (reference stmts ≈98.6% / br ≈95.2% / TOTAL ≈97.7%). Postgres `retriever_postgres` module gate **≥95%** remains separate
-- [x] Mutation testing: run if non-trivial pure logic added; else waiver row in Decision Log (§23)
+- [x] Mutation testing: run if non-trivial pure logic added; else waiver row in Decision Log (§23) — **local waive #138**; nightly broken by suite growth → residual §4 / #163
+- [x] Residual §4 Nightly Stryker budget restored in config/workflow (**IMPLEMENTED** 2026-07-28); Nightly artifact **VERIFIED** pending run URL
 - [x] Docs updated (14-row audit below)
 - [x] `docs/plan/gate-evidence/slice-44.json` written (`fair_metric_floors` / `shared_metric_floors` + #142)
 - [x] Troubleshooting note for “coverage floor failed” (how to read v8 table / raise floor) in `development.md` or troubleshooting — **Recommended**

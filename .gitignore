@@ -88,4 +88,5 @@ docs/ideate-prompts/
 .test-results/
 .reports/
 meterian-reports/
+frontend/reports/
 .playwright-mcp/

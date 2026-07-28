@@ -178,9 +178,9 @@
       "production_import_moves": false
     },
     "mutation_testing": {
-      "status": "waived",
-      "rationale": "CI-hygiene slice; coverage expansion is mostly UI/component GWT — DECISIONS #138/#139"
+      "status": "residual_4_implemented_nightly_verify_pending",
+      "rationale": "Local Stryker waived for CI-hygiene Phase A/B (#138/#139). Residual §4 / DECISIONS #163 IMPLEMENTED 2026-07-28: mutate utils/services/hooks only (9 files / 868 mutants; 642 tested w/ ignoreStatic); ignoreStatic + exclude StringLiteral; concurrency 4; pin 9.6.1; Nightly timeout 90 + artifact@v5. Local full run Done in 7m49s (~64.7% score). Nightly finish + mutation-node artifact VERIFIED pending workflow_dispatch/cron URL."
     }
   },
-  "lifecycle": "VERIFIED / PASSED — Phase A + Phase B + mop-up + shared floors #142 (FE 95/90/95/95; BE 95/90/n/a/95 via fail_under + JSON checker)"
+  "lifecycle": "VERIFIED / PASSED — Phase A + Phase B + mop-up + shared floors #142 (FE 95/90/95/95; BE 95/90/n/a/95 via fail_under + JSON checker); Residual §4 Nightly Stryker IMPLEMENTED (#163; Nightly artifact VERIFIED pending)"
 }
