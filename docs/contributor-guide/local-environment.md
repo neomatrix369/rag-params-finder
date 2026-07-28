@@ -53,7 +53,7 @@ export STORAGE_BACKEND=postgres
 export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 ```
 
-Schema / indexes come from `server/db/schema.sql` on first pool open (no Atlas UI). Hosted Supabase: `--postgres-cloud` + `DATABASE_URL` / `SUPABASE_URI` — [Path B](../user-guide/postgres-setup.md#path-b--hosted-supabase).
+Schema / indexes come from `server/db/postgres/schema.sql` on first pool open (no Atlas UI). Hosted Supabase: `--postgres-cloud` + `DATABASE_URL` / `SUPABASE_URI` — [Path B](../user-guide/postgres-setup.md#path-b--hosted-supabase).
 
 Dual-container smoke: `./scripts/docker/health-check.sh` probes whichever of Atlas Local / pgvector is present.
 
@@ -171,7 +171,7 @@ RECOVER_ON_BOOT=false
 LOG_LEVEL=INFO   # DEBUG for verbose output
 ```
 
-Slice 10 *(planned)* documents CLI/API **retry** of failed/interrupted runs: [`SLICE-10-RUN-RECOVERY.md`](../plan/slices/SLICE-10-RUN-RECOVERY.md). **Boot status reconciliation** (fix stale `running` experiments) is already implemented in `server/core/startup_reconciliation.py`.
+Slice 10 *(planned)* documents CLI/API **retry** of failed/interrupted runs: [`SLICE-10-RUN-RECOVERY.md`](../plan/slices/01-core-pipeline/SLICE-10-RUN-RECOVERY.md). **Boot status reconciliation** (fix stale `running` experiments) is already implemented in `server/core/startup_reconciliation.py`.
 
 **Never commit `.env` to git** — it is in `.gitignore`.
 

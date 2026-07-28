@@ -24,7 +24,7 @@
 
 - **Critical issues**: 0
 - **Accuracy (user-facing CLI/config)**: ~98% (2026-05-23 baseline still valid)
-- **See also**: `docs/contributor-guide/development.md`, `docs/plan/slices/SLICE-21-SIE-SKATEBOARD.md`
+- **See also**: `docs/contributor-guide/development.md`, `docs/plan/slices/04-sie/SLICE-21-SIE-SKATEBOARD.md`
 
 **2026-06-29 supplement** (Slice 21 SIE + doc sync pass):
 
@@ -313,13 +313,13 @@ When the server restarts, any experiments left in `running` status are automatic
 **Current behavior**:
 - Setting is loaded and stored in experiment metadata
 - No actual auto-retry happens on boot
-- Planned for **Slice 10** (see `docs/plan/slices/SLICE-10-RUN-RECOVERY.md`)
+- Planned for **Slice 10** (see `docs/plan/slices/01-core-pipeline/SLICE-10-RUN-RECOVERY.md`)
 
 **Documentation accuracy**: ✅ **Correct** — `.env.example` explicitly states:
 ```bash
 # Optional — echoed in experiment metadata / dashboard ("Recover on Boot").
 # Boot-time auto-retry is not implemented yet. Planned semantics (Slice 10):
-#   docs/plan/slices/SLICE-10-RUN-RECOVERY.md — INTERRUPTED runs only on boot, not all FAILED.
+#   docs/plan/slices/01-core-pipeline/SLICE-10-RUN-RECOVERY.md — INTERRUPTED runs only on boot, not all FAILED.
 RECOVER_ON_BOOT=false
 ```
 

@@ -146,7 +146,7 @@ services:
   # Local Postgres + pgvector — opt-in: ./start-services.sh --postgres-local
   # Canonical profile matches storage_mode; local-postgres is a deprecated alias.
   # Stands in for hosted Supabase so the Postgres backend can be developed and
-  # tested without a cloud account. The server applies server/db/schema.sql on boot.
+  # tested without a cloud account. The server applies server/db/postgres/schema.sql on boot.
   # CLI on host: export DATABASE_URL from scripts/lib/compose.sh (RAG_LOCAL_DATABASE_URL_HOST)
   postgres-local:
     profiles: ["postgres-local", "local-postgres"]

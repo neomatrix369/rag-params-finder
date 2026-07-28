@@ -176,7 +176,7 @@ Known Atlas index names: `vector_index_384`, `vector_index_1024`, `vector_index_
 
 **Not implemented yet.** When shipped, this command will re-execute only runs in **FAILED** *(and optionally **INTERRUPTED**)* phase for an existing experiment, scrubbing stale `chunks` / `results` for those `run_id`s and leaving **COMPLETE** runs untouched. Config comes from the stored experiment document — no YAML trimming required.
 
-Spec and acceptance criteria: [`../plan/slices/SLICE-10-RUN-RECOVERY.md`](../plan/slices/SLICE-10-RUN-RECOVERY.md).
+Spec and acceptance criteria: [`SLICE-10-RUN-RECOVERY.md`](../plan/slices/01-core-pipeline/SLICE-10-RUN-RECOVERY.md).
 
 ---
 

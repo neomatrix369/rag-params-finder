@@ -128,7 +128,7 @@ On **M10+**, the server attempts programmatic creation when slots are available;
 
 **Symptom**: with `STORAGE_BACKEND=postgres`, submit returns **422** naming missing `chunks_*` indexes or the `vector` extension.
 
-**Cause**: Postgres has no Atlas-style quota or Admin API — indexes are declared in [`server/db/postgres/schema.sql`](../../server/db/schema.sql) and applied when the connection pool first opens. Preflight only **introspects** the catalog, so a 422 here means bootstrap did not complete (wrong database, insufficient privileges, or a partially applied schema).
+**Cause**: Postgres has no Atlas-style quota or Admin API — indexes are declared in [`server/db/postgres/schema.sql`](../../server/db/postgres/schema.sql) and applied when the connection pool first opens. Preflight only **introspects** the catalog, so a 422 here means bootstrap did not complete (wrong database, insufficient privileges, or a partially applied schema).
 
 **Required catalog objects**:
 
@@ -416,7 +416,7 @@ docker compose logs frontend --tail 50
 ./stop-services.sh    # option 1: standard stop (keeps hf_cache volume)
 ```
 
-Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md).
+Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md).
 
 ---
 
@@ -437,7 +437,7 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md).
 | `ATLAS_GROUP_ID` | No | — | 24-char Atlas **project** ID (from cloud.mongodb.com URL) |
 | `ATLAS_CLUSTER_NAME` | No | *(from URI)* | Cluster name for tier/quota lookup; parsed from `MONGODB_URI` host if omitted |
 | `MONGODB_STORAGE_LIMIT_MB` | No | `0` | Manual cluster quota override (MB). `0` = try Atlas API; omit quota/tier UI if unavailable |
-| `RECOVER_ON_BOOT` | No | `false` | Stored in experiment metadata for the dashboard. **Status reconciliation on boot always runs.** Automatic **retry** of interrupted runs is not implemented yet ([Slice 10](../plan/slices/SLICE-10-RUN-RECOVERY.md)). |
+| `RECOVER_ON_BOOT` | No | `false` | Stored in experiment metadata for the dashboard. **Status reconciliation on boot always runs.** Automatic **retry** of interrupted runs is not implemented yet ([Slice 10](../plan/slices/01-core-pipeline/SLICE-10-RUN-RECOVERY.md)). |
 | `LOG_LEVEL` | No | `INFO` | Logging verbosity (`DEBUG` for verbose output) |
 
 ---

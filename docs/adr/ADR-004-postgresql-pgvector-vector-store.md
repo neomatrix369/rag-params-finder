@@ -85,6 +85,6 @@ Mongo is **not** deleted. Dual-backend is intentional through cutover and beyond
 ## References
 
 - PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
-- Slice: [`docs/plan/slices/SLICE-38-CUTOVER-ADR-004.md`](../plan/slices/SLICE-38-CUTOVER-ADR-004.md)
+- Slice: [`docs/plan/slices/05-storage/SLICE-38-CUTOVER-ADR-004.md`](../plan/slices/05-storage/SLICE-38-CUTOVER-ADR-004.md)
 - Operator: [`docs/user-guide/postgres-setup.md`](../user-guide/postgres-setup.md), [`docs/user-guide/mongodb-setup.md`](../user-guide/mongodb-setup.md)
 - Prior ADR: [`ADR-003`](ADR-003-mongodb-atlas-vector-store.md)

@@ -88,7 +88,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 **Non-interactive:** `NONINTERACTIVE=1 ./start-services.sh` (fails fast on missing/placeholder `.env`).
 
-Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md). Troubleshooting: [user-guide/troubleshooting.md](../user-guide/troubleshooting.md#-docker).
+Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md). Troubleshooting: [user-guide/troubleshooting.md](../user-guide/troubleshooting.md#-docker).
 
 ---
 
@@ -196,7 +196,7 @@ npm audit --audit-level=high
 - `npm run typecheck` → 0 errors
 - `npm run build` → built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
-- Module theme map (Behavior \| Feature \| Function) — Slice 44 taxonomy **IMPLEMENTED**; Slice 45 folder moves hotspots 1–5 **IMPLEMENTED** (`scripts/{ci,docker,release,security}/`): [`module-theme-map.md`](module-theme-map.md) · [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md) · [`slice-45.json`](../plan/gate-evidence/slice-45.json)
+- Module theme map (Behavior \| Feature \| Function) — Slice 44 taxonomy **IMPLEMENTED**; Slice 45 folder moves hotspots 1–5 **IMPLEMENTED** (`scripts/{ci,docker,release,security}/`): [`module-theme-map.md`](module-theme-map.md) · [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md) · [`slice-45.json`](../plan/gate-evidence/slice-45.json)
 
 **Coverage floor failed?** Read the v8 text table printed by `npm run test:coverage` (or CI `test:ci`). Vitest exits non-zero when any metric is below `coverage.thresholds` in `frontend/vite.config.ts`. Fix by adding tests for uncovered lines listed in the table, or intentionally ratchet the floor in the same PR with a Decision Log row explaining why (never lower silently).
 ### Repo lint (shell, workflows, Markdown)
@@ -350,7 +350,7 @@ rag-params-finder/
 │   ├── user-guide/      # End-user documentation
 │   ├── contributor-guide/ # This directory
 │   ├── adr/             # Architecture Decision Records
-│   ├── plan/slices/     # Slice specs + PROGRESS.md (status, roadmap)
+│   ├── plan/slices/     # Theme folders 01–07 + PROGRESS.md (flat status SSOT) + README index
 │   ├── _internal/       # Gap tracker, audits, Graphiti exports
 │   └── README.md        # Documentation index (doc map)
 └── .github/workflows/   # CI (see § CI — repo-lint, backend, frontend, secrets)
@@ -364,7 +364,7 @@ rag-params-finder/
 
 ```
 [ ] Read docs/plan/slices/PROGRESS.md — confirm current state and which slice is next
-[ ] Read or create the slice spec in docs/plan/slices/SLICE-XX-*.md
+[ ] Read or create the slice spec in docs/plan/slices/0N-<theme>/SLICE-XX-*.md
 [ ] bash scripts/ci/install-git-hooks.sh (once per machine if not already installed)
 [ ] Run all quality gates — confirm zero regressions before starting
 [ ] Note the exact acceptance criteria — these are the exit conditions
@@ -482,4 +482,5 @@ Please open an issue before starting work on large features to discuss the appro
 - [Release Process](release-process.md) — creating releases, versioning strategy, when to release
 - [AGENTS.md](../../AGENTS.md) · [CLAUDE.md](../../CLAUDE.md) — agent entry points (incl. optional code-review-graph MCP)
 - [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.md) — slice status, decision log, forward roadmap
+- [docs/plan/slices/README.md](../plan/slices/README.md) — theme folder index (`01`–`07`)
 - [docs/README.md](../README.md) — documentation index by persona and topic

@@ -115,7 +115,7 @@ rag-params-finder indexes reset --all       # drop all chunks indexes + recreate
 The server **preflights search indexes** on Mongo when you submit a sweep: it derives required index names from your YAML (embedding dimensions + sparse/hybrid retrieval), checks cluster capacity, and rejects the experiment with **HTTP 422** if indexes are missing or quota is exhausted — before any embedding work starts.
 
 On **Postgres**, schema and HNSW/GIN indexes are applied automatically from
-[`schema.sql`](../../server/db/schema.sql) — no Atlas UI step and no `indexes` CLI.
+[`schema.sql`](../../server/db/postgres/schema.sql) — no Atlas UI step and no `indexes` CLI.
 See [Postgres Setup → Schema](postgres-setup.md#schema).
 
 ---

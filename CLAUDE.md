@@ -70,7 +70,7 @@ Backend switching — only the start command changes:
 | Local pgvector | `STORAGE_BACKEND=postgres` + `DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder` |
 | Hosted Supabase | `STORAGE_BACKEND=postgres` + `DATABASE_URL` (or optional `SUPABASE_URI` alias) — Session-mode pooler |
 
-Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/SLICE-14-DOCKER-COMPOSE.md`, `docs/user-guide/mongodb-setup.md`, and `docs/user-guide/postgres-setup.md`.
+Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md`, `docs/user-guide/mongodb-setup.md`, and `docs/user-guide/postgres-setup.md`.
 
 ### CLI
 
@@ -213,7 +213,7 @@ Provider/model must match — registry in `model_registry.py` validates at confi
 ### Pre-slice checklist
 ```
 [ ] Read docs/plan/slices/PROGRESS.md — confirm current state and which slice is next
-[ ] Read or create the slice spec in docs/plan/slices/SLICE-XX-*.md
+[ ] Read or create the slice spec in docs/plan/slices/0N-<theme>/SLICE-XX-*.md
 [ ] bash scripts/ci/install-git-hooks.sh (once per machine — commit + pre-push checks)
 [ ] Run all quality gates — confirm zero regressions before starting
 [ ] Note the exact acceptance criteria — these are the exit conditions
@@ -317,6 +317,7 @@ The project follows [Semantic Versioning](https://semver.org/). Release automati
 | `docs/contributor-guide/development.md` | Contributors | Dev loop, quality gates |
 | `docs/contributor-guide/release-process.md` | Contributors | Creating releases, versioning strategy |
 | `docs/plan/slices/PROGRESS.md` | Agents | Slice status, decision log, roadmap |
+| `docs/plan/slices/README.md` | Agents / contributors | Theme folder index (`01`–`07`); specs under `0N-<theme>/` (#162) |
 | `docs/README.md` | All | Documentation index (personas, topics, tasks) |
 | `docs/adr/` | All | Architecture Decision Records |
 

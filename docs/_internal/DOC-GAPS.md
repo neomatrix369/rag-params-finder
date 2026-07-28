@@ -70,13 +70,13 @@ Each item below is a concrete, actionable doc gap. Check the box when done and r
 
 **Priority**: Medium (process clarity for future contributors / sessions)
 
-- [x] Refresh `docs/plan/slices/SLICE-01-SKATEBOARD.md` (status → ✅ COMPLETE, path fixed to `example-local.yaml`, acceptance criteria checked)
+- [x] Refresh `docs/plan/slices/01-core-pipeline/SLICE-01-SKATEBOARD.md` (status → ✅ COMPLETE, path fixed to `example-local.yaml`, acceptance criteria checked)
 - [x] Add slice spec files for slices that were delivered but have no standalone doc:
-  - [x] `docs/plan/slices/SLICE-02-RERANK.md`
-  - [x] `docs/plan/slices/SLICE-03-SWEEP-EXPANSION.md`
-  - [x] `docs/plan/slices/SLICE-04-LIVE-STATUS.md`
-  - [x] `docs/plan/slices/SLICE-05-PERSONA-QUERIES.md`
-  - [x] `docs/plan/slices/SLICE-07-LOCAL-MODELS.md`
+  - [x] `docs/plan/slices/01-core-pipeline/SLICE-02-RERANK.md`
+  - [x] `docs/plan/slices/01-core-pipeline/SLICE-03-SWEEP-EXPANSION.md`
+  - [x] `docs/plan/slices/01-core-pipeline/SLICE-04-LIVE-STATUS.md`
+  - [x] `docs/plan/slices/01-core-pipeline/SLICE-05-PERSONA-QUERIES.md`
+  - [x] `docs/plan/slices/01-core-pipeline/SLICE-07-LOCAL-MODELS.md`
 
 **Reference**: pre-rag has a standalone spec file per slice (`SLICE-07-SLIDING-WINDOW.md`, etc.).
 
