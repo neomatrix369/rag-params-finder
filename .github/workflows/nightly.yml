@@ -252,7 +252,7 @@ jobs:
         run: npm ci
 
       - name: Python dependency audit
-        run: bash scripts/pip-audit.sh
+        run: bash scripts/ci/pip-audit.sh
 
       - name: Frontend security audit
         run: npm --prefix frontend audit --audit-level=high

@@ -693,6 +693,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-28 | 45 | Scripts theme folders (`ci`/`docker`/`release`/`security`) + flat shims — DECISIONS #159 | Leave scripts flat / delete shims immediately |
 | 2026-07-28 | 45 | FE shared test helpers (`frontend/src/test/helpers/*`) — DECISIONS #158 | Leave duplicated builders / invent factories only for new tests |
 | 2026-07-28 | 45 | FE components folder split (`screens`/`chrome`/`experiment`/`stats`) — DECISIONS #157 | Leave flat components/ / move screens only |
 | 2026-07-28 | 45 | FE screen SLAP extracts (detail hook + chrome, list labels, explore panels) — DECISIONS #156 | Folder-move screens first / leave god screens |
@@ -701,7 +702,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-07-27 | 44 | Coverage floor: Before-Check lines 50.18% → after Should ~64.75%; thresholds ratcheted to lines≥64 / branches≥58 / functions≥61 / statements≥62 — DECISIONS #138; mutation waived | Invent floor / keep ungated bare vitest |
 | 2026-07-27 | 45 | Land `core/guards/` first with shim re-exports; retarget test patches to canonical paths | Keep sys.modules alias / big-bang rewrite all server.core imports |
 | 2026-07-27 | 45 | Park FE Code Complete craft debt on Slice 45 Should/Could (shared UI primitives, screen SLAP, shared test helpers; Won't: higher floors / TanStack / mutation) — expand estimate (later raised with BE) | Bundle into Slice 44 coverage PR / invent Slice 44B |
-| 2026-07-27 | coverage | Shared FE+BE floors **#142** — FE 95/90/95/95; BE **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` (TOTAL ≈97.7%) | Keep BE at 90 / soft 92/85 policy |
+| 2026-07-27 | coverage | Shared FE+BE floors **#142** — FE 95/90/95/95; BE **95/90/n/a/95** via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` (TOTAL ≈97.7%) | Keep BE at 90 / soft 92/85 policy |
 | 2026-07-27 | coverage | Fair floors **#141** — FE 95/90/95/95; BE fail_under=90 + policy 92/85/n/a/90 | Keep flat FE 90 / invent BE branch≥90 without tests |
 | 2026-07-27 | coverage | Uniform **≥90%** product floor — BE `--cov-fail-under=90` + FE thresholds 90/90/90/90 (DECISIONS #140); postgres module gate stays 95 | Keep FE 95 / BE 80 asymmetry |
 | 2026-07-27 | 44 | Phase B reopen: FE gate → **≥95%** lines/stmts/funcs + **≥90%** branches (option 1; reopen 44 not 44B) — DECISIONS #139 | Keep Phase A 64% as permanent bar / new Slice 44B |
@@ -958,8 +959,8 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 **Release workflow**:
 ```bash
 # After marking slice complete in this file:
-./scripts/release.sh minor    # For slice completion or new feature
-./scripts/release.sh patch     # For bug fixes or polish
+./scripts/release/release.sh minor    # For slice completion or new feature
+./scripts/release/release.sh patch     # For bug fixes or polish
 
 # The script will:
 # 1. Bump version in pyproject.toml, frontend/package.json
@@ -1045,10 +1046,10 @@ Use this when resuming a session mid-slice:
 ```
 [ ] Read the Skill Execution Log above — last skill run tells you where to resume
 [ ] Read docs/plan/slices/PROGRESS.md — note current slice and last known state
-[ ] Git hooks installed: bash scripts/install-git-hooks.sh (once per machine)
+[ ] Git hooks installed: bash scripts/ci/install-git-hooks.sh (once per machine)
 [ ] Run quality gates to confirm no regressions:
-      ./scripts/quality-gates.sh          # full CI mirror before PR
-      # git push runs ./scripts/pre-push-gates.sh (full gates) when hooks installed
+      ./scripts/ci/quality-gates.sh          # full CI mirror before PR
+      # git push runs ./scripts/ci/pre-push-gates.sh (full gates) when hooks installed
 [ ] Check git status — any uncommitted changes?
 [ ] Read the current slice spec in docs/plan/slices/SLICE-XX-*.md
 [ ] Resume from the last incomplete acceptance criterion

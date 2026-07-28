@@ -270,7 +270,7 @@ Full setup: [postgres-setup.md](docs/user-guide/postgres-setup.md).
 ## Verify the stack
 
 ```bash
-./scripts/health-check.sh        # /healthz active backend + any local Mongo/Postgres containers + dashboard
+./scripts/docker/health-check.sh        # /healthz active backend + any local Mongo/Postgres containers + dashboard
 curl -s http://localhost:8001/healthz | python3 -m json.tool
 ```
 

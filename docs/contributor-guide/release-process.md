@@ -42,8 +42,8 @@ Create a new release when:
 ### 1. Complete the work
 
 - Finish slice implementation
-- Git hooks installed: `bash scripts/install-git-hooks.sh`
-- All quality gates pass: `./scripts/quality-gates.sh` (full CI mirror; `git push` runs essential pre-commit hooks when installed)
+- Git hooks installed: `bash scripts/ci/install-git-hooks.sh`
+- All quality gates pass: `./scripts/ci/quality-gates.sh` (full CI mirror; `git push` runs essential pre-commit hooks when installed)
 - Update `docs/plan/slices/PROGRESS.md` to mark slice complete
 - Commit work with clear messages
 
@@ -70,13 +70,13 @@ Move appropriate items from `## [Unreleased]` to the new version.
 
 ```bash
 # For a new slice (feature)
-./scripts/release.sh minor
+./scripts/release/release.sh minor
 
 # For polish/enhancement
-./scripts/release.sh patch
+./scripts/release/release.sh patch
 
 # For breaking change (rare)
-./scripts/release.sh major
+./scripts/release/release.sh major
 ```
 
 The script will:
@@ -110,7 +110,7 @@ For urgent fixes to a released version:
 
 3. Run release script:
    ```bash
-   ./scripts/release.sh patch
+   ./scripts/release/release.sh patch
    ```
 
 4. Merge back to main:
@@ -233,14 +233,14 @@ Semantic version bumper (used by `release.sh`):
 ./scripts/bump_version.py 0.11.0 major  # → 1.0.0
 ```
 
-### `scripts/release.sh`
+### `scripts/release/release.sh`
 
 Full release workflow:
 
 ```bash
-./scripts/release.sh minor  # Bump minor version
-./scripts/release.sh patch  # Bump patch version
-./scripts/release.sh major  # Bump major version (rare)
+./scripts/release/release.sh minor  # Bump minor version
+./scripts/release/release.sh patch  # Bump patch version
+./scripts/release/release.sh major  # Bump major version (rare)
 ```
 
 ### `scripts/create_github_releases.sh`

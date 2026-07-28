@@ -5,7 +5,7 @@ All notable changes to **rag-params-finder** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-**For contributors**: Update this file **during development**, not at release time. Add entries under `## [Unreleased]` as you work. When creating a release, `./scripts/release.sh` will prompt you to move items to the new version section.
+**For contributors**: Update this file **during development**, not at release time. Add entries under `## [Unreleased]` as you work. When creating a release, `./scripts/release/release.sh` will prompt you to move items to the new version section.
 
 ---
 
@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Slice 14 Docker Compose** — `./start-services.sh`, `stop-services.sh`, `setup.sh`; `docker-compose.yml` + `docker-compose.dev.yml`; server/frontend Dockerfiles; `/healthz` MongoDB ping; `scripts/health-check.sh`
 - **Contributor docs:** Optional `code-review-graph` MCP guidance in [Development Guide](docs/contributor-guide/development.md) and README Contributing section (not required for end users)
 - **Agent docs:** Graph-first exploration workflow in [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md)
-- **Slice 20 toolchain hardening** — unified `./scripts/quality-gates.sh` mirroring CI; `check_integrity.py`, `pip-audit.sh`
+- **Slice 20 toolchain hardening** — unified `./scripts/ci/quality-gates.sh` mirroring CI; `check_integrity.py`, `pip-audit.sh`
 - **CI:** scoped 80% coverage gate, ESLint, bandit SAST, pip-audit, gitleaks secrets scan job
 - **Repo lint:** shellcheck (`scripts/*.sh`), actionlint (GitHub Actions), markdownlint (`.markdownlint.json`) in pre-commit, `scripts/repo-lint.sh`, and CI `repo-lint` job
 - **Pre-push hook:** fast gates on every `git push` (`scripts/pre-push-gates.sh` → `quality-gates.sh --quick`: pytest, frontend verify, gitleaks; via `install-git-hooks.sh`)
@@ -45,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Docs sync (Slice 45)** — theme map + architecture/development/CLAUDE/AGENTS/docs index reflect IMPLEMENTED hotspots 1–5; flat `scripts/*` shims deprecate toward `scripts/{ci,docker,release,security}/`.
+- **Slice 45 (scripts theme folders)** — moved ops scripts into `scripts/ci/`, `scripts/docker/`, `scripts/release/`, `scripts/security/` (DECISIONS #159); `lib/` unchanged.
 - **Slice 45 (phase 1 skateboard)** — moved preflight/health modules into `server/core/guards/` (`search_index_plan`, `search_index_guard`, `sie_guard`, `config_backend_guard`, `health_check`). Coverage/gate `--cov` paths updated to `server.core.guards.*`.
 - **Slice 45 (pipeline package)** — moved `orchestrator`, `executors`, `experiment_control`, `startup_reconciliation` into `server/core/pipeline/`; production imports use canonical paths; shim aliases keep `patch("server.core.orchestrator.*")` working.
 - **Slice 45 (orchestrator SLAP)** — extracted `server/core/pipeline/search.py` (retriever search helpers) and `signatures.py` (resume/skip param signatures); phase/status + Bayesian bodies stay in `orchestrator.py` so mega-suite `patch("server.core.orchestrator.get_storage_backend")` keeps working.
@@ -58,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Slice 45 (FE shared primitives)** — extracted `components/chrome/Pagination`, `components/stats/StatTile`+`StatRow`, `utils/feedEntries.appendFeedEntry`, `utils/completionReason.completionReasonLabel`; screens/stats panels compose them (DECISIONS #155).
 - **Slice 45 (tests mirror + mega-suite split)** — flat `tests/test_*.py` mirrored under `tests/server/{core,db,api,models}/`, `tests/cli/`, `tests/scripts/`; `test_slice16_parallel_sweep.py` (~2296) split into focused `tests/server/core/pipeline/` modules + `tests/helpers/pipeline_sweep.py`.
 - **Nightly Meterian OSS path** — `nightly.yml` Meterian job uses `oss: true` (no `METERIAN_API_TOKEN`), pins scanners to Python + Node (`cli_args`), and archives `meterian-<run>` artifacts (HTML, JUnit, SARIF, CycloneDX + CSV SBOM) for comparison with Anchore (**IMPLEMENTED**; not yet observed on a green nightly run).
-- **Shared coverage floors 95/90/95/95** (DECISIONS #142) — FE Vitest **95/90/95/95**; BE **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` (stmts/br/lines from coverage JSON; functions n/a on coverage.py). Gap tests raised TOTAL ≈97.7%.
+- **Shared coverage floors 95/90/95/95** (DECISIONS #142) — FE Vitest **95/90/95/95**; BE **95/90/n/a/95** via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` (stmts/br/lines from coverage JSON; functions n/a on coverage.py). Gap tests raised TOTAL ≈97.7%.
 - **Fair coverage metric floors** (DECISIONS #141) — FE **95/90/95/95**; BE interim policy 92/85 with `fail_under=90` — **superseded for BE by #142**.
 - **Uniform coverage floor ≥90%** (DECISIONS #140) — backend unit scoped gate `--cov-fail-under` / `fail_under` **80→90**; FE briefly aligned to flat 90 before #141. Postgres `retriever_postgres` CI module gate stays **≥95%**.
 - **Frontend coverage mop-up** (Slice 44 Phase B follow-on) — expanded GWT coverage for `ExperimentsScreen`, `ExperimentDetailScreen`, `ExperimentControlButtons`, and `devLog`; suite **252** tests / **20** files; measured ≈98.21% / 92.89% / 99.7% / 99.61% (**VERIFIED**).

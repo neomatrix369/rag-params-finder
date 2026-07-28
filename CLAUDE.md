@@ -19,7 +19,7 @@ Two-process architecture: config submission (CLI) is separate from execution (Se
 # Setup
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
-bash scripts/install-git-hooks.sh   # commit + pre-push hooks
+bash scripts/ci/install-git-hooks.sh   # commit + pre-push hooks
 
 # Run server
 uvicorn server.main:app --reload --port 8001
@@ -32,8 +32,8 @@ uv run mypy server/ cli/
 uv run pytest --tb=short -q
 
 # All quality gates (mirrors CI — repo lint + backend + frontend + audits)
-./scripts/quality-gates.sh
-bash scripts/repo-lint.sh   # shell + workflows + Markdown only
+./scripts/ci/quality-gates.sh
+bash scripts/ci/repo-lint.sh   # shell + workflows + Markdown only
 ```
 
 ### Frontend (Node.js 22+)
@@ -57,7 +57,7 @@ npm run build
 RAG_MONGODB_LOCAL=1 ./start-services.sh  # same as --mongodb-local via env var
 ./start-services.sh mongodb [start|stop|reset|status]  # manage local Atlas container standalone
 ./start-services.sh postgres [start|stop|reset|status]  # manage local pgvector container standalone
-./scripts/health-check.sh
+./scripts/docker/health-check.sh
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build  # dev HMR
 ```
 
@@ -96,7 +96,11 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 
 | File | Purpose |
 |---|---|
-| `docs/contributor-guide/module-theme-map.md` | Behavior \| Feature \| Function theme map + ranked hotspot separations (Slice 44 §3); moves → Slice 45 |
+| `docs/contributor-guide/module-theme-map.md` | Behavior \| Feature \| Function theme map + Slice 45 layout status (hotspots 1–5 IMPLEMENTED) |
+| `scripts/ci/` | Quality gates, repo lint, hooks install, pip-audit, coverage floor checker |
+| `scripts/docker/` | health-check, aim-ui, docker-cleanup/build-context |
+| `scripts/release/` | `release.sh` + bump/GitHub helpers |
+| `scripts/security/` | `security-scan.sh` |
 | `server/main.py` | FastAPI app entry; lifespan ensures DB indexes + orphan reconciliation |
 | `server/settings.py` | Centralized pydantic-settings config (`storage_backend`: `mongodb` default permanently — DECISIONS #130 — or `postgres`) |
 | `server/db/ports/storage.py` | `StorageBackend` Protocol — experiment/run/chunk/result CRUD + cascade + reconciliation |
@@ -127,7 +131,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/embedding/sie_embedder.py` | SIE embeddings (BGE-M3, Stella-v5, SPLADE-v3) via remote gateway or optional self-hosted Docker |
 | `server/core/guards/sie_guard.py` | SIE preflight guard — verifies `SIE_ENABLED` and gateway reachability before SIE embedding sweeps |
 | `server/core/aim_logger.py` | Aim experiment run logging wrapper; `AimLogger.log_run()` — no-op if Aim init fails |
-| `scripts/aim-ui.sh` | Start Aim UI on :43800 via Docker (shared `./.aim` repo with server) |
+| `scripts/docker/aim-ui.sh` | Start Aim UI on :43800 via Docker (shared `./.aim` repo with server) |
 | `scripts/lib/compose.sh` | Shared Docker Compose helpers + local/cloud MongoDB URI constants; `start-services.sh mongodb` subcommands |
 | `server/api/sweep.py` | `POST /api/v1/sweep` (ranked results, SIE vs voyage baseline) + `GET /api/v1/best-config` |
 | `server/core/rerank/reranker.py` | Voyage reranking client |
@@ -151,6 +155,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `frontend/src/components/experiment/` | Experiment controls/progress/modals + detail chrome |
 | `frontend/src/components/stats/` | Vector DB stats panels + `StatTile`/`StatRow` |
 | `frontend/src/hooks/useExperimentDetail.ts` | Detail hydrate/poll/db-stats controller (Slice 45) |
+| `frontend/src/test/helpers/` | Shared Vitest builders (`experiments`, `vectorDbStats`, `explore`, `experimentDetail`) |
 | `frontend/src/components/explore/ExplorePanels.tsx` | Search Explorer tabs + sidebar panels |
 | `frontend/src/utils/experimentStatus.ts` | Run outcome summarization + terminal status helpers |
 | `frontend/src/utils/completionReason.ts` | Shared `completion_reason` → label mapping |
@@ -209,7 +214,7 @@ Provider/model must match — registry in `model_registry.py` validates at confi
 ```
 [ ] Read docs/plan/slices/PROGRESS.md — confirm current state and which slice is next
 [ ] Read or create the slice spec in docs/plan/slices/SLICE-XX-*.md
-[ ] bash scripts/install-git-hooks.sh (once per machine — commit + pre-push checks)
+[ ] bash scripts/ci/install-git-hooks.sh (once per machine — commit + pre-push checks)
 [ ] Run all quality gates — confirm zero regressions before starting
 [ ] Note the exact acceptance criteria — these are the exit conditions
 ```
@@ -223,10 +228,10 @@ Record every non-obvious choice in `docs/plan/slices/PROGRESS.md` → Decision L
 ### Verify-all commands (run before each commit)
 ```bash
 # One command — mirrors CI (repo lint is step 1; unit-tier pytest only)
-./scripts/quality-gates.sh
+./scripts/ci/quality-gates.sh
 
 # Repo lint only (shell + workflows + Markdown)
-bash scripts/repo-lint.sh
+bash scripts/ci/repo-lint.sh
 
 # Or individually (same unit ignores as quality-gates / CI backend):
 uv run ruff check .
@@ -246,31 +251,31 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 ### Post-slice checklist
 ```
 [ ] All acceptance criteria checked ✅
-[ ] Quality gates pass (zero regressions) — ./scripts/quality-gates.sh; git push runs pre-push-gates (full local gates) when hooks installed
+[ ] Quality gates pass (zero regressions) — ./scripts/ci/quality-gates.sh; git push runs pre-push-gates (full local gates) when hooks installed
 [ ] Slice status updated in docs/plan/slices/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
-[ ] Consider release: ./scripts/release.sh minor (slices/features) or patch (fixes/polish)
+[ ] Consider release: ./scripts/release/release.sh minor (slices/features) or patch (fixes/polish)
     See PROGRESS.md § Release Cadence for guidance
 ```
 
 ## Quality Gates Baseline
 
-**Unified script:** `./scripts/quality-gates.sh` (mirrors CI — 11 steps including repo lint)
+**Unified script:** `./scripts/ci/quality-gates.sh` (mirrors CI — 11 steps including repo lint)
 
-**Git hooks** (after `bash scripts/install-git-hooks.sh`):
+**Git hooks** (after `bash scripts/ci/install-git-hooks.sh`):
 - **commit** → pre-commit (hygiene, gitleaks, repo lint, ruff, dmypy, bandit, eslint, tsc --noEmit, testmon fast-tests on changed modules)
-- **push** → push-specific only (`./scripts/pre-push-gates.sh` — full pytest+coverage, vite build, vitest, pip-audit, npm audit; no duplicate of commit checks)
+- **push** → push-specific only (`./scripts/ci/pre-push-gates.sh` — full pytest+coverage, vite build, vitest, pip-audit, npm audit; no duplicate of commit checks)
 
 **Repo lint** (2026-05-27):
-- `bash scripts/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
+- `bash scripts/ci/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
 
 **Repo lint** shellcheck scope: `start-services.sh` + `scripts/**/*.sh` (pre-commit `files: ^(start-services\.sh|scripts/.*\.sh)$`).
 
 **Backend** (2026-07-26 — unit tier):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **335** tests; BE floors **95/90/n/a/95** (stmts/br/fn/lines) via `fail_under=95` + `scripts/check_backend_coverage_floors.py` — DECISIONS #142; no `MONGODB_URI` required
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **335** tests; BE floors **95/90/n/a/95** (stmts/br/fn/lines) via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` — DECISIONS #142; no `MONGODB_URI` required
 
 **Frontend** (2026-07-28 — Slice 45 shared primitives + Slice 44 floors #142):
 - `npm run lint` → 0 errors (eslint + security plugin)
@@ -279,7 +284,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s
 - `npm audit --audit-level=high` → 0 high vulnerabilities
-- Theme map + Slice 45 primitives (`chrome/Pagination`, `stats/StatTile`) — see [`docs/contributor-guide/module-theme-map.md`](docs/contributor-guide/module-theme-map.md)
+- Theme map + Slice 45 layout — hotspots 1–5 **IMPLEMENTED** (incl. `scripts/{ci,docker,release,security}/`) — see [`docs/contributor-guide/module-theme-map.md`](docs/contributor-guide/module-theme-map.md)
 
 ## Release Process
 
@@ -288,16 +293,16 @@ See [docs/contributor-guide/release-process.md](docs/contributor-guide/release-p
 **Quick reference**:
 ```bash
 # Create a new release (minor version bump for new slices/features)
-./scripts/release.sh minor
+./scripts/release/release.sh minor
 
 # Create a patch release (bug fixes, polish)
-./scripts/release.sh patch
+./scripts/release/release.sh patch
 
 # Check current version
 rag-params-finder version
 ```
 
-The project follows [Semantic Versioning](https://semver.org/). Release automation via `scripts/release.sh` handles version updates, CHANGELOG.md updates, git tagging, and optional GitHub release creation.
+The project follows [Semantic Versioning](https://semver.org/). Release automation via `scripts/release/release.sh` handles version updates, CHANGELOG.md updates, git tagging, and optional GitHub release creation.
 
 ## Further Reading
 
@@ -306,7 +311,7 @@ The project follows [Semantic Versioning](https://semver.org/). Release automati
 | `docs/user-guide/getting-started.md` | End users | Setup, first experiment |
 | `docs/user-guide/configuration.md` | End users | Full config reference |
 | `docs/contributor-guide/architecture.md` | Contributors | System design, modules, data flow |
-| `docs/contributor-guide/module-theme-map.md` | Contributors / agents | Behavior \| Feature \| Function taxonomy; Slice 45 move proposals |
+| `docs/contributor-guide/module-theme-map.md` | Contributors / agents | Behavior \| Feature \| Function taxonomy; Slice 45 layout status (hotspots 1–5 IMPLEMENTED) |
 | `docs/contributor-guide/extending.md` | Contributors | Adding models, chunkers, endpoints |
 | `docs/contributor-guide/development.md` | Contributors | Dev loop, quality gates |
 | `docs/contributor-guide/release-process.md` | Contributors | Creating releases, versioning strategy |

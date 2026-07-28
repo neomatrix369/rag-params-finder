@@ -10,10 +10,10 @@ set -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# shellcheck source=scripts/docker-cleanup.sh
-source ./scripts/docker-cleanup.sh
-# shellcheck source=scripts/docker-build-context.sh
-source ./scripts/docker-build-context.sh
+# shellcheck source=scripts/docker/docker-cleanup.sh
+source ./scripts/docker/docker-cleanup.sh
+# shellcheck source=scripts/docker/docker-build-context.sh
+source ./scripts/docker/docker-build-context.sh
 # shellcheck source=scripts/lib/compose.sh
 source ./scripts/lib/compose.sh
 # shellcheck source=scripts/lib/storage_mode.sh
@@ -432,8 +432,8 @@ fi
 echo "Waiting for services to become healthy..."
 sleep 15
 
-if [[ -x ./scripts/health-check.sh ]]; then
-  if ! ./scripts/health-check.sh; then
+if [[ -x ./scripts/docker/health-check.sh ]]; then
+  if ! ./scripts/docker/health-check.sh; then
     print_unhealthy_server_hint
     exit 1
   fi
@@ -498,7 +498,7 @@ else
   echo "  CLI sweep: rag-params-finder run --config configs/mongodb/example-sie.yaml"
 fi
 echo ""
-echo "Aim UI:      ./scripts/aim-ui.sh  → http://localhost:43800 (experiment runs in ./.aim)"
+echo "Aim UI:      ./scripts/docker/aim-ui.sh  → http://localhost:43800 (experiment runs in ./.aim)"
 echo ""
 echo "Dev stack:   RAG_DEV_STACK=1 ./start-services.sh [--mongodb-local|--postgres-local]"
 echo "Force build: ./start-services.sh --force-build [--mongodb-local|--postgres-local]"

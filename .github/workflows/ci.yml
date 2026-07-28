@@ -183,7 +183,7 @@ jobs:
             --cov-report=term-missing \
             --cov-report=json:.reports/coverage-backend-unit.json \
             --cov-fail-under=95
-          python scripts/check_backend_coverage_floors.py .reports/coverage-backend-unit.json
+          python scripts/ci/check_backend_coverage_floors.py .reports/coverage-backend-unit.json
 
   postgres-integration:
     name: Postgres integration (pgvector)
@@ -361,7 +361,7 @@ jobs:
         run: npm ci
 
       - name: Python dependency audit
-        run: bash scripts/pip-audit.sh
+        run: bash scripts/ci/pip-audit.sh
 
       - name: Frontend security audit
         run: npm --prefix frontend audit --audit-level=high

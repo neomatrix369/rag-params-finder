@@ -109,7 +109,7 @@ branch = true
 [tool.coverage.report]
 show_missing = true
 # Combined Cover safety net. Quartet floors (95/90/n/a/95) enforced by
-# scripts/check_backend_coverage_floors.py after JSON report — DECISIONS #142.
+# scripts/ci/check_backend_coverage_floors.py after JSON report — DECISIONS #142.
 fail_under = 95
 precision = 1
 

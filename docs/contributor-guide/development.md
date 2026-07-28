@@ -26,7 +26,7 @@ uv venv --python 3.12
 uv sync --extra dev
 
 # Git hooks: essential checks on commit (staged) and push (whole repo)
-bash scripts/install-git-hooks.sh
+bash scripts/ci/install-git-hooks.sh
 
 # Start the server
 uvicorn server.main:app --reload --port 8001
@@ -67,7 +67,7 @@ One-command stack for server + dashboard (MongoDB Atlas stays external). The **C
 cp .env.example .env
 ./start-services.sh              # prod: built frontend + uvicorn (ports 8001, 5374)
 ./start-services.sh --force-build # rebuild images even when source unchanged
-./scripts/health-check.sh        # smoke: /healthz active backend + any local Mongo/Postgres containers + frontend
+./scripts/docker/health-check.sh        # smoke: /healthz active backend + any local Mongo/Postgres containers + frontend
 
 # Host CLI (install once: uv pip install -e .)
 rag-params-finder run --config configs/mongodb/example-local.yaml
@@ -108,11 +108,13 @@ Run all gates before committing. All must pass with zero regressions.
 **One command (mirrors CI exactly):**
 
 ```bash
-./scripts/quality-gates.sh              # full CI mirror (default)
-./scripts/quality-gates.sh --quick      # fast local subset (pytest no coverage, no scoped SCA/audit)
-./scripts/pre-push-gates.sh             # push-specific gates only (pytest+cov, vite build, vitest, audits)
-./scripts/quality-gates.sh --full       # CI mirror + local gitleaks + pre-commit all-files
+./scripts/ci/quality-gates.sh              # full CI mirror (default)
+./scripts/ci/quality-gates.sh --quick      # fast local subset (pytest no coverage, no scoped SCA/audit)
+./scripts/ci/pre-push-gates.sh             # push-specific gates only (pytest+cov, vite build, vitest, audits)
+./scripts/ci/quality-gates.sh --full       # CI mirror + local gitleaks + pre-commit all-files
 ```
+
+Prefer `scripts/{ci,docker,release,security}/` paths above. Flat `scripts/*.sh` shims still work for one minor (DECISIONS #159).
 
 Backend pytest in those scripts is the **unit tier**: it ignores live Mongo/Postgres suites
 (`tests/contract/`, `tests/server/db/test_postgres_*.py`) and uses `-m "not integration"`. Live DB
@@ -124,8 +126,8 @@ must not open a storage backend when run rows are already on the payload.
 **Integrity check (unit tests + import smoke):**
 
 ```bash
-python scripts/check_integrity.py
-python scripts/check_integrity.py --full   # + quality-gates + pre-commit
+python scripts/ci/check_integrity.py
+python scripts/ci/check_integrity.py --full   # + quality-gates + pre-commit
 ```
 
 ### Backend
@@ -148,18 +150,18 @@ uv run pytest --tb=short -q \
   --cov=server.core.embedding.embedder_factory \
   --cov-fail-under=95
 
-# Python dependency audit (ML transitive vulns tracked — see scripts/pip-audit.sh)
-bash scripts/pip-audit.sh
+# Python dependency audit (ML transitive vulns tracked — see scripts/ci/pip-audit.sh)
+bash scripts/ci/pip-audit.sh
 ```
 
-**SCA suppressions** (congruent-lock blockers only — each entry documents blocker, compensating control, unblock): root [`.meterian`](../../.meterian) (Meterian nightly + local `security-scan.sh --meterian`) · [`.trivyignore`](../../.trivyignore) (Trivy image/container) · [`scripts/pip-audit.sh`](../../scripts/pip-audit.sh) ignores. Deferred unblock work: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) § Deferred Work.
+**SCA suppressions** (congruent-lock blockers only — each entry documents blocker, compensating control, unblock): root [`.meterian`](../../.meterian) (Meterian nightly + local `scripts/security/security-scan.sh --meterian`) · [`.trivyignore`](../../.trivyignore) (Trivy image/container) · [`scripts/ci/pip-audit.sh`](../../scripts/ci/pip-audit.sh) ignores. Deferred unblock work: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) § Deferred Work.
 
 **Baseline (as of 2026-07-27)** — unit tier, same ignores as CI `backend`:
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (unit ignores + `-m "not integration"`) → **335** tests; BE floors **95/90/n/a/95** via `fail_under=95` + `scripts/check_backend_coverage_floors.py` — DECISIONS #142
+- `pytest` (unit ignores + `-m "not integration"`) → **335** tests; BE floors **95/90/n/a/95** via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` — DECISIONS #142
 
-**Backend coverage floor failed?** `fail_under=95` fails on combined Cover; the JSON checker then enforces statements ≥95, branches ≥90, lines ≥95 (functions n/a). Read `scripts/check_backend_coverage_floors.py` stderr for which metric missed. Add unit tests (see `tests/server/models/test_coverage_floor_gaps.py` pattern) or intentionally ratchet floors in `pyproject.toml` `[tool.rag_params_finder.coverage_thresholds]` + Decision Log — never lower silently.
+**Backend coverage floor failed?** `fail_under=95` fails on combined Cover; the JSON checker then enforces statements ≥95, branches ≥90, lines ≥95 (functions n/a). Read `scripts/ci/check_backend_coverage_floors.py` stderr for which metric missed. Add unit tests (see `tests/server/models/test_coverage_floor_gaps.py` pattern) or intentionally ratchet floors in `pyproject.toml` `[tool.rag_params_finder.coverage_thresholds]` + Decision Log — never lower silently.
 
 ### Frontend
 
@@ -187,19 +189,19 @@ npm audit --audit-level=high
 
 **Baseline (as of 2026-07-27 — Slice 44 Phase B)**:
 - `npm run lint` → 0 errors
-- `npm run test` → **252** tests across **20** files (Vitest + React Testing Library)
-- `npm run test:coverage` → statements/functions/lines **≥95%**, branches **≥90%** (`coverage.thresholds` + `all: true`; DECISIONS #142); measured ≈98.21% / 92.89% / 99.7% / 99.61%
-- Local `quality-gates.sh` / `pre-push-gates.sh` invoke `test:coverage`; CI frontend job invokes `test:ci` (**VERIFIED**)
+- `npm run test` → **261** tests across **24** files (Vitest + React Testing Library)
+- `npm run test:coverage` → statements/functions/lines **≥95%**, branches **≥90%** (`coverage.thresholds` + `all: true`; DECISIONS #142); measured ≈98.4% / 93.11% / 100% / 99.69%
+- Local `quality-gates.sh` / `scripts/ci/pre-push-gates.sh` invoke `test:coverage`; CI frontend job invokes `test:ci` (**VERIFIED**)
 - `npm run typecheck` → 0 errors
 - `npm run build` → built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities
-- Module theme map (Behavior \| Feature \| Function) + ranked separation proposals — Slice 44 Should §3 (**IMPLEMENTED**): [`module-theme-map.md`](module-theme-map.md); folder moves deferred to [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md) (**PROPOSED**)
+- Module theme map (Behavior \| Feature \| Function) — Slice 44 taxonomy **IMPLEMENTED**; Slice 45 folder moves hotspots 1–5 **IMPLEMENTED** (`scripts/{ci,docker,release,security}/`): [`module-theme-map.md`](module-theme-map.md) · [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md)
 
 **Coverage floor failed?** Read the v8 text table printed by `npm run test:coverage` (or CI `test:ci`). Vitest exits non-zero when any metric is below `coverage.thresholds` in `frontend/vite.config.ts`. Fix by adding tests for uncovered lines listed in the table, or intentionally ratchet the floor in the same PR with a Decision Log row explaining why (never lower silently).
 ### Repo lint (shell, workflows, Markdown)
 
 ```bash
-bash scripts/repo-lint.sh
+bash scripts/ci/repo-lint.sh
 # or individually via pre-commit:
 pre-commit run shellcheck --all-files
 pre-commit run actionlint --all-files
@@ -212,13 +214,13 @@ pre-commit run markdownlint --all-files
 | **Actionlint** | `.github/workflows/*.yml` | — |
 | **Markdownlint** | `*.md` (excludes `.claude/`) | `.markdownlint.json` |
 
-Runs in CI (`repo-lint` job), `./scripts/quality-gates.sh`, and pre-commit.
+Runs in CI (`repo-lint` job), `./scripts/ci/quality-gates.sh`, and pre-commit.
 
 ### Git hooks (commit + push)
 
 ```bash
 uv pip install -e ".[dev]"
-bash scripts/install-git-hooks.sh
+bash scripts/ci/install-git-hooks.sh
 # equivalent:
 # pre-commit install --hook-type pre-commit --hook-type pre-push
 ```
@@ -226,13 +228,13 @@ bash scripts/install-git-hooks.sh
 | Hook | When | What runs |
 |------|------|-----------|
 | **pre-commit** | `git commit` | Static checks on **staged** files — no duplication with push (see list below) |
-| **pre-push** | `git push` | Push-specific only: `./scripts/pre-push-gates.sh` (checks that commit cannot provide) |
+| **pre-push** | `git push` | Push-specific only: `./scripts/ci/pre-push-gates.sh` (checks that commit cannot provide) |
 
 **Pre-commit** (staged files): hygiene hooks, gitleaks, shellcheck, actionlint (~620 ms via managed binary), markdownlint, bandit, ruff + format, **dmypy** daemon (~0.5 s warm, ~60 s first run), frontend eslint + **tsc --noEmit** when `frontend/` is touched, testmon fast-tests on changed Python modules.
 
 **Pre-push** (push-specific — zero overlap with commit): full **pytest + coverage** (80% gate, runs only when `server/`, `cli/`, `tests/`, `pyproject.toml`, or `uv.lock` changed — mirrors `ci.yml` `backend` path filter), **vite build**, vitest component tests (frontend-changed only), pip-audit (lockfile-changed), npm audit (lockfile-changed).
 
-**Not on push**: `./scripts/quality-gates.sh --full` adds a repo-wide pre-commit all-files sweep and deeper security scans; routine push uses only push-specific gates.
+**Not on push**: `./scripts/ci/quality-gates.sh --full` adds a repo-wide pre-commit all-files sweep and deeper security scans; routine push uses only push-specific gates.
 
 Emergency bypass (use sparingly): `git push --no-verify`
 
@@ -240,13 +242,13 @@ Test push hook without pushing:
 
 ```bash
 pre-commit run pre-push-gates --hook-stage pre-push
-# or: ./scripts/pre-push-gates.sh
+# or: ./scripts/ci/pre-push-gates.sh
 ```
 
 **Push did not run checks?** Git only runs hooks that exist under `.git/hooks/`. A plain `pre-commit install` (no `--hook-type pre-push`) installs **commit** only. After pulling hook changes, re-run:
 
 ```bash
-bash scripts/install-git-hooks.sh
+bash scripts/ci/install-git-hooks.sh
 test -x .git/hooks/pre-push && echo "pre-push hook OK"
 ```
 
@@ -257,13 +259,13 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 | `git commit` | **pre-commit** — hygiene, gitleaks, repo lint, ruff, dmypy, bandit, eslint, tsc --noEmit, testmon fast-tests (changed modules) |
 | `git push` | **pre-push** — pytest+coverage (backend-changed only), vite build, vitest, pip-audit, npm audit (zero overlap with commit) |
 | PR or push to `main` | **GitHub Actions** — CI (repo-lint, backend, frontend, secrets, dependency-audit jobs) + nightly 02:00 UTC (mutmut, Stryker, TruffleHog, SBOM/CycloneDX, Meterian OSS SCA, container scan, Chalk) |
-| Manual | `./scripts/quality-gates.sh` — full local mirror of CI before opening a PR |
+| Manual | `./scripts/ci/quality-gates.sh` — full local mirror of CI before opening a PR |
 
 ---
 
 ## 🧪 Testing Strategy
 
-**Fast unit tier** (`tests/`, run in CI `backend` job and `./scripts/quality-gates.sh`):
+**Fast unit tier** (`tests/`, run in CI `backend` job and `./scripts/ci/quality-gates.sh`):
 
 Excludes live storage suites (`--ignore=tests/contract` and `tests/server/db/test_postgres_*.py`,
 `-m "not integration"`). That keeps the unit job free of shared-DB races when a local
@@ -295,7 +297,7 @@ contract + dense/sparse suites interleaved.
 Locally: `./start-services.sh --postgres-local` and/or `--mongodb-local`, then run the live paths
 explicitly (or rely on CI). Without those services, mongo/postgres contract params skip.
 
-**Run Postgres live suites locally** (not part of `./scripts/quality-gates.sh` / the CI
+**Run Postgres live suites locally** (not part of `./scripts/ci/quality-gates.sh` / the CI
 unit job — those ignore live suites):
 
 ```bash
@@ -332,11 +334,13 @@ rag-params-finder/
 │   ├── api/             # Thin route handlers
 │   ├── core/            # Business logic: orchestration, chunking, embedding, retrieval
 │   ├── models/          # Pydantic schemas and enums
-│   └── db/              # Atlas connection singleton + index helpers
+│   └── db/              # ports/ + mongo/ + postgres/ (+ flat shims)
 ├── cli/                 # Python CLI client (thin — delegates to server)
 ├── frontend/            # React dashboard (observe + pause/resume/cancel/delete)
 │   └── src/
-│       ├── components/  # ExperimentsScreen, ExperimentDetailScreen, SearchExplorerScreen
+│       ├── components/  # screens/ chrome/ experiment/ explore/ stats/
+│       ├── hooks/       # useExperimentDetail
+│       ├── test/helpers/  # shared Vitest builders
 │       ├── services/    # apiClient.ts — all fetch calls
 │       └── types/       # Hand-mirrored TypeScript types from Python models
 ├── configs/             # Example YAML configs and queries files
@@ -360,7 +364,7 @@ rag-params-finder/
 ```
 [ ] Read docs/plan/slices/PROGRESS.md — confirm current state and which slice is next
 [ ] Read or create the slice spec in docs/plan/slices/SLICE-XX-*.md
-[ ] bash scripts/install-git-hooks.sh (once per machine if not already installed)
+[ ] bash scripts/ci/install-git-hooks.sh (once per machine if not already installed)
 [ ] Run all quality gates — confirm zero regressions before starting
 [ ] Note the exact acceptance criteria — these are the exit conditions
 ```
@@ -377,11 +381,11 @@ Record every non-obvious choice in `docs/plan/slices/PROGRESS.md` → Decision L
 
 ```
 [ ] All acceptance criteria checked ✅
-[ ] Quality gates pass — ./scripts/quality-gates.sh; git push exercised full local gates (`pre-push-gates.sh`)
+[ ] Quality gates pass — ./scripts/ci/quality-gates.sh; git push exercised full local gates (`scripts/ci/pre-push-gates.sh`)
 [ ] Slice status updated in docs/plan/slices/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
-[ ] Consider release: ./scripts/release.sh minor (slices/features) or patch (fixes/polish)
+[ ] Consider release: ./scripts/release/release.sh minor (slices/features) or patch (fixes/polish)
     See docs/plan/slices/PROGRESS.md § Release Cadence for guidance
 ```
 
@@ -409,11 +413,11 @@ GitHub Actions has two workflows (see `.github/workflows/`):
 **nightly.yml** — every night 02:00 UTC (T4 deep checks):
 `mutmut` (Python mutation) · `Stryker` (Node mutation) · `TruffleHog` (full git history) · `anchore/sbom-action` (CycloneDX SBOM artifact) · Trivy license compliance · **Meterian** SCA + license (`oss: true`, no `METERIAN_API_TOKEN`; scanners pinned to Python + Node via `--enabled-scanners=python,nodejs`; archives `meterian-<run>`: HTML, JUnit, SARIF, `sbom.cdx.json`, `sbom.csv` for vendor comparison with Anchore; security exclusions in root [`.meterian`](../../.meterian) — Trivy image parity is [`.trivyignore`](../../.trivyignore)) · container scan (Dockerfile-gated) · Chalk provenance · dependency-audit · full-secrets-scan
 
-Local `./scripts/security-scan.sh --meterian` still uses the Docker CLI path and remains token-gated (`METERIAN_API_TOKEN`) — that is separate from the nightly GHA OSS job. Both paths honor `.meterian` when the file is present at the repo root.
+Local `./scripts/security/security-scan.sh --meterian` still uses the Docker CLI path and remains token-gated (`METERIAN_API_TOKEN`) — that is separate from the nightly GHA OSS job. Both paths honor `.meterian` when the file is present at the repo root.
 
 Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabot.yml`).
 
-**Local mirrors:** `./scripts/quality-gates.sh` (full, before PR). **`git push`** runs `./scripts/pre-push-gates.sh` when hooks are installed. `--full` adds pre-commit all-files sweep.
+**Local mirrors:** `./scripts/ci/quality-gates.sh` (full, before PR). **`git push`** runs `./scripts/ci/pre-push-gates.sh` when hooks are installed. `--full` adds pre-commit all-files sweep.
 
 ---
 

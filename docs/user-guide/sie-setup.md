@@ -719,7 +719,7 @@ Host `aim up` may fail on macOS with `cryptography` / OpenSSL errors
 (`symbol not found: _BIO_ADDR_free`). Use the Docker helper instead:
 
 ```bash
-./scripts/aim-ui.sh
+./scripts/docker/aim-ui.sh
 # → http://localhost:43800
 ```
 
@@ -727,7 +727,7 @@ The script starts the `aim-ui` Compose profile, bind-mounts `./.aim` (shared wit
 server container), and migrates existing runs from the server container on first use.
 
 ```bash
-./scripts/aim-ui.sh --stop   # stop the UI container
+./scripts/docker/aim-ui.sh --stop   # stop the UI container
 ```
 
 ### Verify logging
@@ -742,7 +742,7 @@ curl -X POST http://localhost:8001/api/v1/sweep \
 python3 -c "import sqlite3; c=sqlite3.connect('.aim/run_metadata.sqlite'); print(c.execute('SELECT count(*) FROM run').fetchone()[0])"
 ```
 
-Open http://localhost:43800 after `./scripts/aim-ui.sh` — you should see runs with
+Open http://localhost:43800 after `./scripts/docker/aim-ui.sh` — you should see runs with
 `model_name`, `model_source`, `retrieval_method`, `score`, `topic`, and `experiment_id`.
 
 ---

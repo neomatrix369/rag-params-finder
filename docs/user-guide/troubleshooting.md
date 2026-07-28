@@ -485,7 +485,7 @@ Use this section when `STORAGE_BACKEND=postgres` (local `./start-services.sh --p
 
 **Fix**:
 1. Start local pgvector: `./start-services.sh --postgres-local` (or container-only: `./start-services.sh postgres start`)
-2. Confirm health: `./start-services.sh postgres status` (or `./scripts/health-check.sh`)
+2. Confirm health: `./start-services.sh postgres status` (or `./scripts/docker/health-check.sh`)
 3. Host CLI / native server: `export STORAGE_BACKEND=postgres` and `export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder`
 4. Confirm `GET http://localhost:8001/healthz` reports `"storage_backend": "postgres"` and postgres status `ok`
 

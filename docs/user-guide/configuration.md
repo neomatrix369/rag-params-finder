@@ -483,7 +483,7 @@ SIE_ENABLED=false
 # SIE_ENDPOINT=http://host.docker.internal:8720   # server in Docker, SIE on host
 # HF_TOKEN=hf_...   # Docker path only — HuggingFace token for container model downloads
 
-# Aim experiment tracking (OPTIONAL — UI via ./scripts/aim-ui.sh)
+# Aim experiment tracking (OPTIONAL — UI via ./scripts/docker/aim-ui.sh)
 # AIM_REPO=.aim      # Docker sets /app/.aim automatically
 
 # MongoDB /healthz ping timeout (ms) — keep below Docker healthcheck (10s)
@@ -557,7 +557,7 @@ Query avg prevents high-scoring queries with many results from hiding poorly-per
 | `SIE_ENDPOINT` | `http://localhost:8720` | **Where** to connect — remote gateway URL or local Docker (`host.docker.internal:8720` when server is in Docker) |
 | `SIE_API_KEY` | — | **Auth** — Bearer token when gateway requires it; usually empty for local Docker |
 | `HF_TOKEN` | — | HuggingFace token for **self-hosted Docker only** — not used when pointing at a remote gateway |
-| `AIM_REPO` | `.aim` | Path to Aim experiment repo (Docker: `/app/.aim`; UI: `./scripts/aim-ui.sh`) |
+| `AIM_REPO` | `.aim` | Path to Aim experiment repo (Docker: `/app/.aim`; UI: `./scripts/docker/aim-ui.sh`) |
 | `HEALTH_CHECK_MONGODB_TIMEOUT_MS` | `5000` | MongoDB ping timeout for `/healthz` (ms) |
 
 **When to customize**:

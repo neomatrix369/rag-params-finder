@@ -322,7 +322,7 @@ Scenario: Mega-suite split preserves behaviour
 - [x] Confirm [`module-theme-map.md`](../../contributor-guide/module-theme-map.md) lists five hotspots (**IMPLEMENTED** taxonomy §3) — verified 2026-07-27 (core, db, components, tests, scripts)
 - [x] Slice 44 theme map + this stub reviewed; Reuse Analysis table accepted — architect APPROVED iter2 (#145); Declared Imports + forbidden-roots present
 - [x] Branch `slice/45-module-theme-separation` created
-- [x] Baseline `./scripts/quality-gates.sh` green before first move (includes FE/BE #142 floors) — **VERIFIED 2026-07-27** exit 0 on branch `slice/45-module-theme-separation`
+- [x] Baseline `./scripts/ci/quality-gates.sh` green before first move (includes FE/BE #142 floors) — **VERIFIED 2026-07-27** exit 0 on branch `slice/45-module-theme-separation`
 - [x] Run blast-radius `rg` commands above; record caller list in PR body — **2026-07-27 baseline:** `server.core` ≈**112** import match-lines (top: `test_sie_embedder` 12, `orchestrator` 11, `experiments` 9); `server.db` ≈**67**; FE `components/` imports concentrated in `App.tsx` (3)
 - [x] Audit CLI import points (`cli/indexes_cmd.py`, `cli/main.py`, …) for the hotspot being moved — `indexes_cmd` → `search_index_guard` / `search_index_plan` / `db.atlas` / `db.indexes`; `config_loader` → `model_registry` (stays at `core/` top-level)
 - [x] Choose phase 1 hotspot — **`server/core/` + orchestrator SLAP**; first PR skateboard = **`core/guards/`** move (CLI + preflight touchpoints) then **`pipeline/`** extract from `orchestrator.py` (not all of `core/` in one PR)
@@ -338,12 +338,12 @@ Scenario: Mega-suite split preserves behaviour
 - [ ] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first, §2); essential error paths covered (90–100% of clauses)
 - [ ] Branch coverage: product floors stay green (FE **95/90/95/95**, BE **95/90/n/a/95** — DECISIONS #142); tool fail_under configured; whole-tree 100% branch Won't (§12 — test-writing-craft-quality.mdc)
 - [ ] Mutation testing run if slice adds non-trivial pure logic: survival budget met; else waive with Decision Log row (§23 / #128 pattern)
-- [ ] `module-theme-map.md` updated to IMPLEMENTED paths (or note SUPERSEDED proposals)
+- [x] `module-theme-map.md` updated to IMPLEMENTED paths (or note SUPERSEDED proposals) — sync-docs 2026-07-28; hotspot 5 `scripts/` remains PROPOSED
 - [x] CLAUDE.md Key Files paths updated
 - [x] CHANGELOG Unreleased — internal layout note (+ FE/BE craft notes when primitives/pipeline land)
 - [ ] If re-exports used: CHANGELOG Deprecated + Decision Log row with version window + removal trigger
 - [ ] `docs/plan/gate-evidence/slice-45.json` written
-- [ ] Optional smoke: `./scripts/quality-gates.sh` + `rag-params-finder version` / healthz `storage_mode` unchanged
+- [ ] Optional smoke: `./scripts/ci/quality-gates.sh` + `rag-params-finder version` / healthz `storage_mode` unchanged
 - [x] FE craft phases: shared primitives have tests; no duplicate Pagination/StatTile/Feed helpers left in screens; FE **95/90/95/95** still green
 - [x] FE craft phases: shared `test/helpers` used by moved/shrunk suites; Decision Log notes pre→post screen line counts (#156) + helpers (#158)
 - [x] BE craft phases: orchestrator/pipeline split green; Protocols + factories unchanged; BE **95/90/n/a/95** still green; Decision Log notes pre→post orchestrator line counts
@@ -371,7 +371,7 @@ One hotspot / one craft theme per PR when possible.
 
 ## Gate Status
 
-🔨 IN PROGRESS — Must moves + steps 1–8 done (through **FE shared test helpers**). Next: `scripts/` Could and/or gate-evidence + slice close.
+🔨 IN PROGRESS — Must moves + steps 1–9 done (through **scripts/** theme folders). Next: gate-evidence + slice close / optional FE docstring leftovers.
 
 ## Remediation pass (2026-07-27)
 

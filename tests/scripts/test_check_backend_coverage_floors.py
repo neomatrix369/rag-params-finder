@@ -2,7 +2,7 @@
 
 Author: Cursor agent
 Created: 2026-07-27
-Scope: scripts/check_backend_coverage_floors.py pure helpers
+Scope: scripts/ci/check_backend_coverage_floors.py pure helpers
 """
 
 from __future__ import annotations

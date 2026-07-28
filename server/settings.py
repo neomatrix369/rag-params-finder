@@ -84,7 +84,7 @@ class Settings(BaseSettings):
 
     # Aim experiment tracking — path to the .aim repo directory (created on first log).
     # Docker: bind-mount ./.aim → /app/.aim and set AIM_REPO=/app/.aim.
-    # UI: ./scripts/aim-ui.sh (Docker — host `aim up` may fail on macOS OpenSSL).
+    # UI: ./scripts/docker/aim-ui.sh (Docker — host `aim up` may fail on macOS OpenSSL).
     aim_repo: str = ".aim"
 
     # Tiebreaker metric for ranking configurations when max_score is tied.
