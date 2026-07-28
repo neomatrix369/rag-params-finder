@@ -18,7 +18,7 @@
   - `tests/test_mongo_store_acceptance.py` — extend/verify until branch coverage target met
   - `tests/test_store_factory.py`, `tests/test_mongo_store_adapter.py` — keep green
   - `docs/plan/gate-evidence/slice-32.json`, `docs/plan/gate-evidence/slice-32B.json`
-  - `docs/plan/slices/SLICE-32-STORAGE-BACKEND-PROTOCOL.md` — parent After-Checks synced
+  - `docs/plan/slices/05-storage/SLICE-32-STORAGE-BACKEND-PROTOCOL.md` — parent After-Checks synced
   - `docs/plan/slices/PROGRESS.md`, `docs/plan/TRAIL.md` — 32 + 32B → ✅ COMPLETE
 - Exit criteria: Coverage target met or exclusions documented; mutation run or waiver logged; full quality gates green; `/nw-review` APPROVED; parent Slice 32 marked COMPLETE
 - Commit pattern: `test(slice-32b): …` / `docs(slice-32b): close gate — progress + evidence`

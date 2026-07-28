@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
     if settings.recover_on_boot:
         logger.info(
             "boot — RECOVER_ON_BOOT enabled; automatic retry not implemented "
-            "(see docs/plan/slices/SLICE-10-RUN-RECOVERY.md)"
+            "(see docs/plan/slices/01-core-pipeline/SLICE-10-RUN-RECOVERY.md)"
         )
     logger.info("boot OK — server ready")
     yield

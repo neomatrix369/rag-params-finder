@@ -99,7 +99,7 @@ Threshold set to **80%** (`--cov-fail-under=80` in CI and quality-gates).
 | `.gitattributes` | Line endings + lockfile diff hygiene |
 | `.github/dependabot.yml` | Weekly pip/npm/actions updates |
 | `frontend/.eslintrc.cjs` | ESLint + security plugin |
-| `docs/plan/slices/SLICE-20-TOOLCHAIN-HARDENING.md` | This spec |
+| `docs/plan/slices/03-platform/SLICE-20-TOOLCHAIN-HARDENING.md` | This spec |
 | `scripts/repo-lint.sh` | Shell + workflow + Markdown linters (pre-commit wrappers) |
 | `scripts/install-git-hooks.sh` | Installs pre-commit + pre-push hooks |
 | `.markdownlint.json` | Pragmatic Markdown rules for existing docs |

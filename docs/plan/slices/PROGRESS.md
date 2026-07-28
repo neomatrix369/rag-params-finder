@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-28 (Slice 44 Residual §4 **IMPLEMENTED** — Nightly Stryker narrow mutate; local ~8m; Nightly VERIFIED pending)
-**Current**: **45** ✅ · **44** ✅ Residual §4 **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending) · **40** 📋 (theme folders #162). Migration track: **38** ✅; formal gate-closure debt **32** / **32C** / **32B** / **33**. Then **22** · **28** · **41B**. Deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-28 (Slice 40 ✅ COMPLETE — theme folders `01`–`07` + README #162; [`slice-40.json`](../gate-evidence/slice-40.json))
+**Current**: **40** ✅. **45** ✅ · **44** ✅ Residual §4 **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending). Migration track: **38** ✅; formal gate-closure debt **32** / **32C** / **32B** / **33**. Then **22** · **28** · **41B**. Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -28,46 +28,50 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | — — Dashboard polling + API responsiveness | ✅ COMPLETE | ~1 h | `executors.py` thread pools; list 2 s / stats 60 s / explore 15 s polls; batched db-stats; anti-jitter `PollingIndicator` |
 | — — Kimchi embedding provider | 🔀 BRANCH | ~2 h | Full CAST integration on `tessl-hackathon-kimchi-integration`; **main** has `kimchi` in `Provider` type only (no registry models / embedder yet) — v0.8.0 release notes are historical |
 | — — Unit pytest suite | ✅ COMPLETE | ~1 h | **26 tests** at Slice 20 baseline (now **58** — see `development.md`) |
-| 18 — Unified retriever config | ✅ COMPLETE | ~4–6 h | Unified "retrievers" group (traditional search + rerankers); auto-migrate old format; multi-reranker chains; see [`SLICE-18-UNIFIED-RETRIEVER-CONFIG.md`](SLICE-18-UNIFIED-RETRIEVER-CONFIG.md) |
-| 10 — Run recovery (retry) | 🔨 PARTIAL | ~1–2 h | Boot reconciliation ✅; retry CLI/API remaining — [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) |
+| 18 — Unified retriever config | ✅ COMPLETE | ~4–6 h | Unified "retrievers" group (traditional search + rerankers); auto-migrate old format; multi-reranker chains; see [`SLICE-18-UNIFIED-RETRIEVER-CONFIG.md`](01-core-pipeline/SLICE-18-UNIFIED-RETRIEVER-CONFIG.md) |
+| 10 — Run recovery (retry) | 🔨 PARTIAL | ~1–2 h | Boot reconciliation ✅; retry CLI/API remaining — [`SLICE-10-RUN-RECOVERY.md`](01-core-pipeline/SLICE-10-RUN-RECOVERY.md) |
 | 11 — Search Explorer enhancements | 📋 PLANNED | ~45 min | Viz + query filter; soft dep **30**; export → Slice 28 |
-| 28 — Results export (CSV/JSONL) | 📋 PLANNED | ~1.5 h | Contributor [@cschanhniem](https://github.com/cschanhniem) — [issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49) author/assignee · [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) |
-| 29 — Padding cross-cutting propagation | ✅ COMPLETE | ~2 h | `_run_config_key()` + API + TS types + UI — spec: [`SLICE-29-PADDING-PROPAGATION.md`](SLICE-29-PADDING-PROPAGATION.md) |
-| 16 — Parallel sweep execution | ✅ COMPLETE | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md) |
-| 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | `quality-gates.sh`, `repo-lint.sh`, `pre-push-gates.sh` (full gates on push), `install-git-hooks.sh`, coverage CI, ESLint, bandit, pip-audit, gitleaks, dependabot — includes CI path-filter + audit-secrets split follow-up in `SLICE-20-TOOLCHAIN-HARDENING.md` — [`SLICE-20-TOOLCHAIN-HARDENING.md`](SLICE-20-TOOLCHAIN-HARDENING.md) |
-| 14 — Docker Compose | ✅ COMPLETE | ~2–3 h | `./start-services.sh`, prod + `docker-compose.dev.yml`, Atlas `/healthz` — [`SLICE-14-DOCKER-COMPOSE.md`](SLICE-14-DOCKER-COMPOSE.md) |
+| 28 — Results export (CSV/JSONL) | 📋 PLANNED | ~1.5 h | Contributor [@cschanhniem](https://github.com/cschanhniem) — [issue #49](https://github.com/neomatrix369/rag-params-finder/issues/49) author/assignee · [`SLICE-28-RESULTS-EXPORT.md`](02-dashboard/SLICE-28-RESULTS-EXPORT.md) |
+| 29 — Padding cross-cutting propagation | ✅ COMPLETE | ~2 h | `_run_config_key()` + API + TS types + UI — spec: [`SLICE-29-PADDING-PROPAGATION.md`](01-core-pipeline/SLICE-29-PADDING-PROPAGATION.md) |
+| 16 — Parallel sweep execution | ✅ COMPLETE | ~2–4 h | Bounded concurrent `_run_single`; see [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](01-core-pipeline/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
+| 20 — Toolchain hardening | ✅ COMPLETE | ~2–3 h | `quality-gates.sh`, `repo-lint.sh`, `pre-push-gates.sh` (full gates on push), `install-git-hooks.sh`, coverage CI, ESLint, bandit, pip-audit, gitleaks, dependabot — includes CI path-filter + audit-secrets split follow-up in `SLICE-20-TOOLCHAIN-HARDENING.md` — [`SLICE-20-TOOLCHAIN-HARDENING.md`](03-platform/SLICE-20-TOOLCHAIN-HARDENING.md) |
+| 14 — Docker Compose | ✅ COMPLETE | ~2–3 h | `./start-services.sh`, prod + `docker-compose.dev.yml`, Atlas `/healthz` — [`SLICE-14-DOCKER-COMPOSE.md`](03-platform/SLICE-14-DOCKER-COMPOSE.md) |
 | ~~15 — CI/CD~~ | ✅ (via 20) | — | Superseded by Slice 20 — CI + `quality-gates.sh` + git hooks |
-| 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); caller-supplied corpus (`corpus: list[str]`); Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`SLICE-21-SIE-SKATEBOARD.md`](SLICE-21-SIE-SKATEBOARD.md) |
-| 24 — Port standardisation | ✅ COMPLETE | ~1 h | Unique static ports: frontend 5173→5374 (avoids Vite default), SIE 8080→8720 (avoids Jenkins/Tomcat/etc.); backend 8001 unchanged — spec: [`SLICE-24-PORT-STANDARDISATION.md`](SLICE-24-PORT-STANDARDISATION.md) |
-| 25 — Atlas Local Dev Mode | ✅ COMPLETE | ~1 h | `mongodb-atlas-local` Docker image as opt-in local backend; `local-atlas` compose profile; auto-provision all search indexes on boot for local URI; eliminates M0 512 MB ceiling for local dev — spec: [`SLICE-25-ATLAS-LOCAL.md`](SLICE-25-ATLAS-LOCAL.md) |
-| 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | Shipped as `--local`; now `--mongodb-local`; `mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](SLICE-25B-ATLAS-SWITCHING.md) |
-| 22 — SIE Scooter | 📋 PLANNED | ~3 h | SIE reranking + SPLADE sparse + `GET /api/v1/best-config` — Must — **after Slice 38** — spec: [`SLICE-22-SIE-SCOOTER.md`](SLICE-22-SIE-SCOOTER.md) |
-| 23 — SIE Bicycle | 📋 PLANNED | ~3 h | Ollama + Tier 2–3 retrieval + Evidently AI (Could, post-hackathon) — spec: [`SLICE-23-SIE-BICYCLE.md`](SLICE-23-SIE-BICYCLE.md) |
-| 26 — Local MongoDB smooth-path docs | 📦 DEFERRED | ~1 h | Re-scope after Postgres cutover — [`SLICE-26-LOCAL-MONGODB-DOCS.md`](SLICE-26-LOCAL-MONGODB-DOCS.md) |
-| 27 — MongoDB mode indicator | 📦 DEFERRED | ~2 h | Absorbed into Slice 36 as four-value `storage_mode` (`mongodb\|postgres` × `local\|cloud`) — [`SLICE-27-MONGODB-MODE-INDICATOR.md`](SLICE-27-MONGODB-MODE-INDICATOR.md) |
-| 19 — Atlas storage quota guard | 📦 DEFERRED | ~3–5 h | Atlas-specific; Postgres stats in Slice 36 — [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) |
-| 32 — Storage Backend Protocol | 🔨 IN PROGRESS | ~3–4 h | Storage + Retriever ports; Mongo adapter — [`SLICE-32-STORAGE-BACKEND-PROTOCOL.md`](SLICE-32-STORAGE-BACKEND-PROTOCOL.md) · [PR #110](https://github.com/neomatrix369/rag-params-finder/pull/110) |
-| 32C — Storage Protocol Review Remediation | 📋 PLANNED | ~2–3 h | Craft split, port schemas, index deferral, checklist hygiene — [`SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md`](SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md) |
-| 32B — Storage Protocol Gate Closure | 📋 PLANNED | ~1–2 h | Coverage, mutation/waiver, full gates, nw-review, COMPLETE — [`SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md`](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) |
-| 33 — Postgres schema + CRUD | 🔨 IN PROGRESS | ~4–6 h | Pool, schema, cascade, local Path A (shipped `--postgres` → `--postgres-local` in 37), 19 live tests, CI job — hosted DX deferred to 37 — [`SLICE-33-POSTGRES-SCHEMA-CRUD.md`](SLICE-33-POSTGRES-SCHEMA-CRUD.md) |
-| 34 — Postgres dense retrieval | ✅ COMPLETE | ~3–4 h | pgvector dense + embedding_model filter; Atlas-scale scores; HNSW iterative_scan; mode/hosted DX handed to 36–37 — [`SLICE-34-POSTGRES-DENSE-RETRIEVAL.md`](SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) |
-| 35 — Postgres sparse + hybrid | ✅ COMPLETE | ~4–5 h | tsvector + RRF + Supabase-mode copy hygiene; equivalence CONDITIONAL → 38 — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
-| 36 — Preflight + stats + storage_mode | ✅ COMPLETE | ~3–4 h | Catalog preflight 422 + four-value `storage_mode`; live smoke `postgres-local`; mutation waived #101 — [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](SLICE-36-POSTGRES-PREFLIGHT-STATS.md) |
-| 37 — Local/cloud parity + low-friction switch | ✅ COMPLETE | ~3–4 h | Four-flag grid + config↔server 422 + supabase normalize + live `postgres-local`/`postgres-cloud` smoke; `SUPABASE_URI` alias; removed `--local`/`--postgres` flags — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) · [`gate-evidence/slice-37.json`](../gate-evidence/slice-37.json) |
-| 38 — Cutover + ADR-004 | ✅ COMPLETE | ~3–4 h | ADR-004 Accepted; local comparison VERIFIED; independent backends #129; **no default flip** (#130 Won't) — [`SLICE-38-CUTOVER-ADR-004.md`](SLICE-38-CUTOVER-ADR-004.md) · [`gate-evidence/slice-38.json`](../gate-evidence/slice-38.json) |
-| 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) |
-| 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) |
-| 39 — Demo-ready dashboard polish | ✅ COMPLETE | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, network, and component verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
-| 40 — Documentation Plan/Slices SSOT alignment | 📋 PLANNED | ~2–3 h | Plan vs slices boundary + numbered theme folders `01`–`07` (#162); `PROGRESS.md` flat SSOT; `git mv` Should — [`SLICE-40-DOCS-PLAN-SLICES-SSOT.md`](SLICE-40-DOCS-PLAN-SLICES-SSOT.md) |
+| 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); caller-supplied corpus (`corpus: list[str]`); Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`SLICE-21-SIE-SKATEBOARD.md`](04-sie/SLICE-21-SIE-SKATEBOARD.md) |
+| 24 — Port standardisation | ✅ COMPLETE | ~1 h | Unique static ports: frontend 5173→5374 (avoids Vite default), SIE 8080→8720 (avoids Jenkins/Tomcat/etc.); backend 8001 unchanged — spec: [`SLICE-24-PORT-STANDARDISATION.md`](03-platform/SLICE-24-PORT-STANDARDISATION.md) |
+| 25 — Atlas Local Dev Mode | ✅ COMPLETE | ~1 h | `mongodb-atlas-local` Docker image as opt-in local backend; `local-atlas` compose profile; auto-provision all search indexes on boot for local URI; eliminates M0 512 MB ceiling for local dev — spec: [`SLICE-25-ATLAS-LOCAL.md`](03-platform/SLICE-25-ATLAS-LOCAL.md) |
+| 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | Shipped as `--local`; now `--mongodb-local`; `mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](03-platform/SLICE-25B-ATLAS-SWITCHING.md) |
+| 22 — SIE Scooter | 📋 PLANNED | ~3 h | SIE reranking + SPLADE sparse + `GET /api/v1/best-config` — Must — **after Slice 38** — spec: [`SLICE-22-SIE-SCOOTER.md`](04-sie/SLICE-22-SIE-SCOOTER.md) |
+| 23 — SIE Bicycle | 📋 PLANNED | ~3 h | Ollama + Tier 2–3 retrieval + Evidently AI (Could, post-hackathon) — spec: [`SLICE-23-SIE-BICYCLE.md`](04-sie/SLICE-23-SIE-BICYCLE.md) |
+| 26 — Local MongoDB smooth-path docs | 📦 DEFERRED | ~1 h | Re-scope after Postgres cutover — [`SLICE-26-LOCAL-MONGODB-DOCS.md`](05-storage/SLICE-26-LOCAL-MONGODB-DOCS.md) |
+| 27 — MongoDB mode indicator | 📦 DEFERRED | ~2 h | Absorbed into Slice 36 as four-value `storage_mode` (`mongodb\|postgres` × `local\|cloud`) — [`SLICE-27-MONGODB-MODE-INDICATOR.md`](05-storage/SLICE-27-MONGODB-MODE-INDICATOR.md) |
+| 19 — Atlas storage quota guard | 📦 DEFERRED | ~3–5 h | Atlas-specific; Postgres stats in Slice 36 — [`SLICE-19-STORAGE-QUOTA-GUARD.md`](05-storage/SLICE-19-STORAGE-QUOTA-GUARD.md) |
+| 32 — Storage Backend Protocol | 🔨 IN PROGRESS | ~3–4 h | Storage + Retriever ports; Mongo adapter — [`SLICE-32-STORAGE-BACKEND-PROTOCOL.md`](05-storage/SLICE-32-STORAGE-BACKEND-PROTOCOL.md) · [PR #110](https://github.com/neomatrix369/rag-params-finder/pull/110) |
+| 32C — Storage Protocol Review Remediation | 📋 PLANNED | ~2–3 h | Craft split, port schemas, index deferral, checklist hygiene — [`SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md`](05-storage/SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md) |
+| 32B — Storage Protocol Gate Closure | 📋 PLANNED | ~1–2 h | Coverage, mutation/waiver, full gates, nw-review, COMPLETE — [`SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md`](05-storage/SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) |
+| 33 — Postgres schema + CRUD | 🔨 IN PROGRESS | ~4–6 h | Pool, schema, cascade, local Path A (shipped `--postgres` → `--postgres-local` in 37), 19 live tests, CI job — hosted DX deferred to 37 — [`SLICE-33-POSTGRES-SCHEMA-CRUD.md`](05-storage/SLICE-33-POSTGRES-SCHEMA-CRUD.md) |
+| 34 — Postgres dense retrieval | ✅ COMPLETE | ~3–4 h | pgvector dense + embedding_model filter; Atlas-scale scores; HNSW iterative_scan; mode/hosted DX handed to 36–37 — [`SLICE-34-POSTGRES-DENSE-RETRIEVAL.md`](05-storage/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) |
+| 35 — Postgres sparse + hybrid | ✅ COMPLETE | ~4–5 h | tsvector + RRF + Supabase-mode copy hygiene; equivalence CONDITIONAL → 38 — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](05-storage/SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
+| 36 — Preflight + stats + storage_mode | ✅ COMPLETE | ~3–4 h | Catalog preflight 422 + four-value `storage_mode`; live smoke `postgres-local`; mutation waived #101 — [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](05-storage/SLICE-36-POSTGRES-PREFLIGHT-STATS.md) |
+| 37 — Local/cloud parity + low-friction switch | ✅ COMPLETE | ~3–4 h | Four-flag grid + config↔server 422 + supabase normalize + live `postgres-local`/`postgres-cloud` smoke; `SUPABASE_URI` alias; removed `--local`/`--postgres` flags — [`SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md`](05-storage/SLICE-37-POSTGRES-LOCAL-CLOUD-PARITY.md) · [`gate-evidence/slice-37.json`](../gate-evidence/slice-37.json) |
+| 38 — Cutover + ADR-004 | ✅ COMPLETE | ~3–4 h | ADR-004 Accepted; local comparison VERIFIED; independent backends #129; **no default flip** (#130 Won't) — [`SLICE-38-CUTOVER-ADR-004.md`](05-storage/SLICE-38-CUTOVER-ADR-004.md) · [`gate-evidence/slice-38.json`](../gate-evidence/slice-38.json) |
+| 30 — Search Explorer UX | 📋 PLANNED | ~2 h | Tab latency, zero-score noise, BM25 labels, VDB card — Could — spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](02-dashboard/SLICE-30-SEARCH-EXPLORER-UX.md) |
+| 31 — Experiment list filter | 📋 PLANNED | ~2 h | Status dropdown + name/ID search — Should — spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](02-dashboard/SLICE-31-EXPERIMENT-LIST-FILTER.md) |
+| 39 — Demo-ready dashboard polish | ✅ COMPLETE | ≤2 h | Results-led list/detail journey; 390/1440 responsive, WCAG, keyboard, lifecycle, network, and component verification — [`SLICE-39-DEMO-READY-DASHBOARD-POLISH.md`](02-dashboard/SLICE-39-DEMO-READY-DASHBOARD-POLISH.md) |
+| 40 — Documentation Plan/Slices SSOT alignment | ✅ COMPLETE | ~2–3 h | Theme folders `01`–`07` + README (#162); `PROGRESS.md` flat SSOT — [`SLICE-40-DOCS-PLAN-SLICES-SSOT.md`](07-quality-craft/SLICE-40-DOCS-PLAN-SLICES-SSOT.md) · [`README.md`](README.md) · [`slice-40.json`](../gate-evidence/slice-40.json) |
 | 41A — Bayesian Search: Simple Functional | ✅ COMPLETE | ~2.5 h | All ACs verified; trial_log, CLI Bayesian summary, and test rigour added in closure pass (2026-07-23); 217 tests green |
-| 41B — Bayesian Search: Numeric Improvements | 📋 PLANNED | ~2–3 h | Unlocked: `bayesian.parallelism` (constant liar, ≤4 workers), `padding` as third numeric dimension, `n_trials` formula, 3-condition stopping loop, 41A embedding-parallelism gap fix — [`SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`](SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) |
-| 41C — Bayesian Search: Extended | 📋 PLANNED | ~3–4 h | All questions resolved (A1 SQLite, A2 waived, A4 N=20, D3 sweep_summary keys, D7 RandomConfig); blocked only on 41B ✅: study persistence, categorical axes, random search, dashboard card, default promotion — [`SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md`](SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md) |
+| 41B — Bayesian Search: Numeric Improvements | 📋 PLANNED | ~2–3 h | Unlocked: `bayesian.parallelism` (constant liar, ≤4 workers), `padding` as third numeric dimension, `n_trials` formula, 3-condition stopping loop, 41A embedding-parallelism gap fix — [`SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`](06-bayesian/SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) |
+| 41C — Bayesian Search: Extended | 📋 PLANNED | ~3–4 h | All questions resolved (A1 SQLite, A2 waived, A4 N=20, D3 sweep_summary keys, D7 RandomConfig); blocked only on 41B ✅: study persistence, categorical axes, random search, dashboard card, default promotion — [`SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md`](06-bayesian/SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md) |
 | 42 — Docker Build Optimisation | ✅ COMPLETE | ~2–3 h | Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime (62 MB); CI docker-build job (non-blocking, path-scoped) — [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
-| 43 — Supabase example-config verification | ✅ COMPLETE | ~1–2 h | **Could** — 16/16 local Postgres smoke runs complete; operator docs distinguish `STORAGE_BACKEND` from `database_provider` and explain env asymmetry — [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) |
-| 44 — Frontend coverage + gate summary | ✅ COMPLETE | Phase A+B + #142 | FE **95/90/95/95**; BE **95/90/n/a/95** — DECISIONS #142 — Residual §4 Nightly Stryker **IMPLEMENTED** (#163; Nightly VERIFIED pending) — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) · [`gate-evidence/slice-44.json`](../gate-evidence/slice-44.json) |
-| 45 — Module theme separation + FE/BE craft | ✅ COMPLETE | ~16–24 h | Hotspots 1–5 **IMPLEMENTED**; FE/BE craft + scripts themes; Could leftovers #161; floors green; mutation #160; evidence [`slice-45.json`](../gate-evidence/slice-45.json) — [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) · [PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130) |
+| 43 — Supabase example-config verification | ✅ COMPLETE | ~1–2 h | **Could** — 16/16 local Postgres smoke runs complete; operator docs distinguish `STORAGE_BACKEND` from `database_provider` and explain env asymmetry — [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](05-storage/SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) |
+| 44 — Frontend coverage + gate summary | ✅ COMPLETE | Phase A+B + #142 | FE **95/90/95/95**; BE **95/90/n/a/95** — DECISIONS #142 — Residual §4 Nightly Stryker **IMPLEMENTED** (#163; Nightly VERIFIED pending) — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](07-quality-craft/SLICE-44-FRONTEND-COVERAGE-GATE.md) · [`gate-evidence/slice-44.json`](../gate-evidence/slice-44.json) |
+| 45 — Module theme separation + FE/BE craft | ✅ COMPLETE | ~16–24 h | Hotspots 1–5 **IMPLEMENTED**; FE/BE craft + scripts themes; Could leftovers #161; floors green; mutation #160; evidence [`slice-45.json`](../gate-evidence/slice-45.json) — [`SLICE-45-MODULE-THEME-SEPARATION.md`](07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md) · [PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130) |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
+
+## By theme (index)
+
+See [`README.md`](README.md) for the numbered theme map. Specs live under `0N-<theme>/`; this file stays flat as status SSOT.
 
 ---
 
@@ -103,9 +107,9 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 31 | Should | 📋 PLANNED | — | Experiment list filter |
 | 43 | Could | ✅ COMPLETE | 35 (soft: 37) | Supabase config live smoke + operator QoL — hosted smoke remains optional and is owned by 37 |
 | 39 | Should | ✅ COMPLETE | — | Demo-ready list/detail journey; lifecycle component coverage and clean implementation history verified |
-| 40 | Should | 📋 PLANNED | — | Plan vs slices SSOT + theme folders `01`–`07` (#162); status SSOT remains flat here |
+| 40 | Should | ✅ COMPLETE | — | Plan vs slices SSOT + theme folders `01`–`07` (#162); status SSOT remains flat here |
 | 41A | Could | ✅ COMPLETE | 16 | All ACs closed; trial_log in bayesian_summary; CLI Trial History table; 10 new tests + parametrize refactor (13 total); 183 total tests green |
-| 41B | Could | 📦 PARKED | 41A + owner data | Parallelism, categorical axes, study persistence, random search — open after 41A ships and production evidence exists; spec: [`SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`](SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) |
+| 41B | Could | 📦 PARKED | 41A + owner data | Parallelism, categorical axes, study persistence, random search — open after 41A ships and production evidence exists; spec: [`SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md`](06-bayesian/SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) |
 | 42 | Should | ✅ COMPLETE | none | Docker Build Optimisation — multi-stage builds, cache mounts, nginx runtime; [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
 
 **Execution order**: 21 → 25 → 25B → 29 → 39 (done) → **32 → 32C → 32B → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10
@@ -117,7 +121,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | Date | Item | Outcome |
 |------|------|---------|
 | 2026-07-28 | Slice 44 Residual §4 Nightly Stryker **IMPLEMENTED** (#163) | Narrow mutate to utils/services/hooks (9 files / 868 mutants; 642 tested w/ ignoreStatic); `ignoreStatic` + exclude `StringLiteral`; concurrency 4; progress; pin 9.6.1; timeout 90; artifact@v5. Local full run **Done in 7m49s**, score ~64.7%. Nightly artifact **VERIFIED** pending `workflow_dispatch` URL. |
-| 2026-07-28 | Slice 44 residual §4 — Nightly Stryker 1h timeout (#163) | Slice 44 PR #121 grew FE dry-run 16→252 tests; Nightly Stryker (~3770 mutants) cancels at GHA 1h with no artifact ([run 30329826459](https://github.com/neomatrix369/rag-params-finder/actions/runs/30329826459/job/90182449893)). Todos on [`SLICE-44`](SLICE-44-FRONTEND-COVERAGE-GATE.md) Residual §4: Must narrow mutate; Should ignore*/concurrency/progress; Could timeout/pin; NIT upload-artifact@v5. **PROPOSED** → later **IMPLEMENTED**. |
+| 2026-07-28 | Slice 44 residual §4 — Nightly Stryker 1h timeout (#163) | Slice 44 PR #121 grew FE dry-run 16→252 tests; Nightly Stryker (~3770 mutants) cancels at GHA 1h with no artifact ([run 30329826459](https://github.com/neomatrix369/rag-params-finder/actions/runs/30329826459/job/90182449893)). Todos on [`SLICE-44`](07-quality-craft/SLICE-44-FRONTEND-COVERAGE-GATE.md) Residual §4: Must narrow mutate; Should ignore*/concurrency/progress; Could timeout/pin; NIT upload-artifact@v5. **PROPOSED** → later **IMPLEMENTED**. |
 | 2026-07-27 | Meterian `.meterian` exclusions (chore/project-hygiene) | Added root `.meterian` (CVE + langsmith library waivers) for findings with no congruent lock fix — aim 4.x yanked, langchainjs CVE mis-attributed to Python, transformers blocked on ST&lt;4, langsmith≥0.8.18 blocked on sie-sdk websockets&lt;15. Parity with `.trivyignore` / `pip-audit.sh`. Docs: `development.md` + `nightly.yml` comment. **IMPLEMENTED**; **VERIFIED** pending next Meterian nightly/`workflow_dispatch`. |
 | 2026-07-27 | Meterian nightly OSS + stack pin + artifacts (chore/project-hygiene) | Fixed GHA wiring: `oss: true` (public MIT; no token), `cli_args` (was invalid `meterian-args`), dropped `setup-java`, pinned `--enabled-scanners=python,nodejs` + `--scan-java=false`, archives `meterian-<run>` (HTML/JUnit/SARIF + `sbom.cdx.json`/`sbom.csv`). `meterian-reports/` gitignored. Local `security-scan.sh --meterian` remains Docker CLI + token-gated. **IMPLEMENTED** in `nightly.yml`; **VERIFIED** pending a successful nightly/`workflow_dispatch` run. |
 | 2026-07-26 | Configs split: `configs/mongodb/` + `configs/supabase/` | Example YAMLs reorganised by backend with mirrored stems; shared `questions.example.json` at `configs/`. Docs/CLI/agent entry points + `test_config_examples.py` updated. Supabase twins use `database_provider: supabase`; sparse/hybrid still Slice 35. |
@@ -230,7 +234,7 @@ End-to-end pipeline working with one chunker (RECURSIVE), one embedding model (v
 - `configs/questions.example.json`
 
 **Docs**:
-- `docs/plan/slices/SLICE-01-SKATEBOARD.md`
+- `docs/plan/slices/01-core-pipeline/SLICE-01-SKATEBOARD.md`
 - `docs/ARCHITECTURE.md` (brief)
 
 ### Quick-Win Cuts
@@ -258,7 +262,7 @@ cd frontend && npm run dev
 
 **Foundation** (7):
 - pyproject.toml, .env.example, .gitignore, README.md
-- docs/plan/slices/PROGRESS.md, docs/ARCHITECTURE.md, docs/plan/slices/SLICE-01-SKATEBOARD.md
+- docs/plan/slices/PROGRESS.md, docs/ARCHITECTURE.md, docs/plan/slices/01-core-pipeline/SLICE-01-SKATEBOARD.md
 
 **Server** (20):
 - server/{__init__.py, main.py, utils/logger.py}
@@ -346,7 +350,7 @@ Cartesian product expansion: one YAML config with N models × M methods × P siz
 | Decision | Why |
 |---|---|
 | `expand_sweep()` as pure function on config | Testable without side effects; called both in API (preview count) and orchestrator (execute) |
-| Bounded in-process parallelism implemented | `execution.parallelism` now caps concurrent sweep runs (default 1, max 16); see [Slice 16](SLICE-16-PARALLEL-SWEEP-RUNS.md) |
+| Bounded in-process parallelism implemented | `execution.parallelism` now caps concurrent sweep runs (default 1, max 16); see [Slice 16](01-core-pipeline/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
 | `run_sweep()` + `run_single()` split | Single Responsibility — sweep management vs pipeline execution |
 | `on_error: continue/stop` | Allows partial completion without losing all results |
 | `partial` status for mixed outcomes | Distinguishes "some failed" from "all failed" or "all complete" |
@@ -683,7 +687,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 ## Deferred
 
-- Parallel sweep concurrency *(Slice 16 — [`docs/plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md))*
+- Parallel sweep concurrency *(Slice 16 — [`docs/plan/slices/01-core-pipeline/SLICE-16-PARALLEL-SWEEP-RUNS.md`](01-core-pipeline/SLICE-16-PARALLEL-SWEEP-RUNS.md))*
 - All SHOULD/COULD slices
 - Error handling (basic only in Slice 1)
 - Logging structure (prints for now)
@@ -695,6 +699,8 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-28 | 40 | Theme folders COMPLETE — gate evidence PASSED; nw-review APPROVED | Leave IN PROGRESS after Should landing |
+| 2026-07-28 | 40 | Theme folders `01`–`07` + README via `git mv` (#162) — Should landed | Leave flat catalog / nest PROGRESS |
 | 2026-07-28 | 45 | Scripts theme folders (`ci`/`docker`/`release`/`security`) + flat shims — DECISIONS #159 | Leave scripts flat / delete shims immediately |
 | 2026-07-28 | 45 | FE shared test helpers (`frontend/src/test/helpers/*`) — DECISIONS #158 | Leave duplicated builders / invent factories only for new tests |
 | 2026-07-28 | 45 | FE components folder split (`screens`/`chrome`/`experiment`/`stats`) — DECISIONS #157 | Leave flat components/ / move screens only |
@@ -811,8 +817,8 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-17 | 6 | sparse/hybrid require text_search_index | Atlas $search is the BM25 engine; full-text + vector indexes can coexist on same collection |
 | 2026-05-17 | 6 | query_embedding optional in search() dispatcher | Avoids embedding API call for sparse retrieval runs |
 | 2026-05-17 | — | Reorganise configs: 1 file per DB×provider | Replaced 7 single-purpose example files with `example-mongodb-local.yaml` and `example-mongodb-voyage.yaml`; each covers all embedding models, all chunking methods, and all retrieval methods for that DB+provider |
-| 2026-05-17 | — | Slice 16 spec for parallel sweep runs | Formalized deferred work: bounded in-process parallelism vs Celery; honor `execution.parallelism`; specs in [`docs/plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md) |
-| 2026-05-17 | 10 | Slice 10 spec for run recovery | In-place retry for FAILED runs (`--include-interrupted` optional); reuse `run_id`; delete stale `chunks`/`results` for that run only; config from Mongo `experiments.config`; boot recovery scoped to INTERRUPTED only; spec in [`docs/plan/slices/SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) |
+| 2026-05-17 | — | Slice 16 spec for parallel sweep runs | Formalized deferred work: bounded in-process parallelism vs Celery; honor `execution.parallelism`; specs in [`docs/plan/slices/01-core-pipeline/SLICE-16-PARALLEL-SWEEP-RUNS.md`](01-core-pipeline/SLICE-16-PARALLEL-SWEEP-RUNS.md) |
+| 2026-05-17 | 10 | Slice 10 spec for run recovery | In-place retry for FAILED runs (`--include-interrupted` optional); reuse `run_id`; delete stale `chunks`/`results` for that run only; config from Mongo `experiments.config`; boot recovery scoped to INTERRUPTED only; spec in [`docs/plan/slices/01-core-pipeline/SLICE-10-RUN-RECOVERY.md`](01-core-pipeline/SLICE-10-RUN-RECOVERY.md) |
 | 2026-05-17 | 8 | Dual loading indicators (panel + polling badge) | Full LoadingFeedbackPanel for initial loads provides detailed progress; subtle PollingIndicator for background refreshes avoids visual noise |
 | 2026-05-17 | 8 | fetchWithProgress with ReadableStream | Byte-level progress via `response.body.getReader()` enables real-time progress bars; better UX than spinners for large payloads |
 | 2026-05-17 | 8 | Shared DashboardShell + AppPageChrome components | Unified header/nav/layout across all screens; DRY principle, consistent UX, easier to maintain |
@@ -839,7 +845,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-23 | 18 | Unified retriever configuration | Treat all retrieval strategies (dense/sparse/hybrid + rerankers) as unified `retrievers` list for sweep expansion |
 | 2026-05-23 | 18 | Auto-migrate old retrieval config format | Pydantic `@model_validator` converts `methods` + `retrieval_provider`/`retrieval_model` to separate `retrievers` sweep entries |
 | 2026-05-23 | 18 | Maintain old fields indefinitely | Keep `retrieval_method`, `retrieval_provider`, `retrieval_model` in DB — synthesized from single retriever for backward compat |
-| 2026-05-23 | 19 | Slice 19 spec for storage quota guard | M0 hit 515/512 MB; writes blocked (cancel/delete deadlock); `dbStats` understated cluster usage; mirror search-index preflight pattern — spec in [`SLICE-19-STORAGE-QUOTA-GUARD.md`](SLICE-19-STORAGE-QUOTA-GUARD.md) |
+| 2026-05-23 | 19 | Slice 19 spec for storage quota guard | M0 hit 515/512 MB; writes blocked (cancel/delete deadlock); `dbStats` understated cluster usage; mirror search-index preflight pattern — spec in [`SLICE-19-STORAGE-QUOTA-GUARD.md`](05-storage/SLICE-19-STORAGE-QUOTA-GUARD.md) |
 | 2026-05-27 | 20 | Docs synced to toolchain + test reality | pytest count corrected (was 39); Kimchi on integration branch only; `quality-gates.sh` in interrupt recovery; CI/bandit/gitleaks documented |
 | 2026-05-27 | 20 | Repo lint in CI + pre-commit | shellcheck (`scripts/*.sh`), actionlint, markdownlint; `scripts/repo-lint.sh`; pragmatic `.markdownlint.json`; CI `repo-lint` job (4 jobs total) |
 | 2026-05-28 | — | Docs navigation (playgroup-style) | Root `QUICKSTART.md`; `docs/README.md` index; `PROGRESS.md` lives under `docs/plan/slices/` beside slice specs |
@@ -867,7 +873,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-27 | 20 | Pre-push (superseded 2026-05-28) | Was `pre-commit --all-files` on push — replaced by `quality-gates.sh --quick` for pytest + frontend verify |
 | 2026-07-28 | 45 | Close Slice 45 — gate-evidence + mutation waive #160 | Must+Should+scripts Could verified; optional FE docstring / drift-guard / BE GWT Could deferred; PR #130 |
 | 2026-07-28 | 45 | Land Slice 45 Could leftovers (#161) | FE Scenario/Slice docstrings; coverage threshold drift guard; BE GWT-on-touch on moved suites |
-| 2026-07-28 | 44 | Nightly Stryker residual after suite growth (#163) | Narrow mutate to utils/services/hooks; StrykerJS `ignoreStatic` + exclude `StringLiteral`; concurrency+progress; timeout 90 + pin 9.6.1; NIT artifact@v5 — restores #138/#160 nightly signal; Won't full-screen mutate. Owned on SLICE-44 Residual §4 (not a new slice). **IMPLEMENTED** locally (~8m); Nightly VERIFIED pending |
+| 2026-07-28 | 44 | Nightly Stryker residual after suite growth (#163) | Narrow mutate to utils/services/hooks; ignoreConstants/stringLiterals; concurrency+progress; optional timeout/pin; NIT artifact@v5 — restores #138/#160 nightly signal; Won't full-screen mutate. Owned on SLICE-44 Residual §4 (not a new slice) |
 | 2026-07-28 | 40 | Slice theme folders numbered by delivery wave (#162) | Specs → `01-core-pipeline` … `07-quality-craft`; PROGRESS + gate-evidence stay flat; no date folders; keep 32/32C/32B together |
 ---
 
@@ -927,9 +933,9 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | ~~6 — Additional chunkers~~ | ~~Implement fixed, token, sentence, semantic~~ | ~~Should~~ | ✅ Done |
 | ~~8 — SPARSE/HYBRID retrieval~~ | ~~BM25 + hybrid RRF via Atlas FTS~~ | ~~Should~~ | ✅ Done (merged into Slice 6) |
 | 9 — Search Explorer dashboard | Best-params card, ranked configs, per-query results view | Should | ~30 min |
-| 10 — Run recovery | Spec: [`SLICE-10-RUN-RECOVERY.md`](SLICE-10-RUN-RECOVERY.md) — `recover` CLI + `POST /experiments/{id}/recover`; per-`run_id` scrub + retry (**FAILED** default; **INTERRUPTED** opt-in); **`RECOVER_ON_BOOT`** retries **INTERRUPTED** only *(not all FAILED)* | Could | ~1–2 h |
+| 10 — Run recovery | Spec: [`SLICE-10-RUN-RECOVERY.md`](01-core-pipeline/SLICE-10-RUN-RECOVERY.md) — `recover` CLI + `POST /experiments/{id}/recover`; per-`run_id` scrub + retry (**FAILED** default; **INTERRUPTED** opt-in); **`RECOVER_ON_BOOT`** retries **INTERRUPTED** only *(not all FAILED)* | Could | ~1–2 h |
 | 11 — Dashboard-triggered runs | Submit experiments from the React UI, not just CLI | Could | ~45 min |
-| 28 — Results export | Spec: [`SLICE-28-RESULTS-EXPORT.md`](SLICE-28-RESULTS-EXPORT.md) — CSV/JSONL download; [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | **Must** | 📋 PLANNED — @cschanhniem (~1.5 h) |
+| 28 — Results export | Spec: [`SLICE-28-RESULTS-EXPORT.md`](02-dashboard/SLICE-28-RESULTS-EXPORT.md) — CSV/JSONL download; [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | **Must** | 📋 PLANNED — @cschanhniem (~1.5 h) |
 | 32–38 — Supabase/pgvector | Dual-backend Protocol → Postgres cutover + ADR-004 — [`PRD`](../plan/PRD-supabase-pgvector-migration.md) | **Must** | 📋 PLANNED — core team next |
 | 12 — SSE live updates | Replace 2 s polling with Server-Sent Events | Could | ~20 min |
 | 13 — Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` | Could | ~15 min |
@@ -939,11 +945,11 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | ~~14 — Docker Compose~~ | ~~One-command local setup~~ | — | ✅ Delivered in Slice 14 |
 | ~~15 — CI/CD~~ | ~~GitHub Actions~~ | — | ✅ Delivered in Slice 20 |
 | 16 — Parallel sweep (`parallelism` > 1) | Bounded concurrent `_run_single` (+ optional Celery upgrade path); Atlas/Voyage-rate-limit aware | Should | ~2–4 h |
-| 30 — Search Explorer UX fixes | Spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) — tab switch latency, zero-score noise, BM25 score labels, VDB card default-expanded | Could | ~2 h |
-| 31 — Experiment list filter | Spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) — status dropdown + name/ID search above experiments table | Should | ~2 h |
-| 43 — Supabase config verification | Spec: [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) — live smoke of supabase examples; `STORAGE_BACKEND` vs YAML provider docs; hosted short-config guidance | Could | ~1–2 h |
-| 44 — Frontend coverage gate | Spec: [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) — Must: embed coverage table/floor in quality-gates + pre-push + CI (**VERIFIED**); Should: FE tests + structure taxonomy (§3) — ✅ COMPLETE 2026-07-27; Residual §4 Nightly Stryker **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending) | Should | ✅ + residual IMPL |
-| ~~45 — Module theme separation + FE/BE craft~~ | Spec: [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) — hotspots 1–5 + FE/BE craft + scripts themes; mutation #160 — ✅ COMPLETE 2026-07-28 · [`slice-45.json`](../gate-evidence/slice-45.json) · [PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130) | Could | ✅ Done |
+| 30 — Search Explorer UX fixes | Spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](02-dashboard/SLICE-30-SEARCH-EXPLORER-UX.md) — tab switch latency, zero-score noise, BM25 score labels, VDB card default-expanded | Could | ~2 h |
+| 31 — Experiment list filter | Spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](02-dashboard/SLICE-31-EXPERIMENT-LIST-FILTER.md) — status dropdown + name/ID search above experiments table | Should | ~2 h |
+| 43 — Supabase config verification | Spec: [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](05-storage/SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) — live smoke of supabase examples; `STORAGE_BACKEND` vs YAML provider docs; hosted short-config guidance | Could | ~1–2 h |
+| 44 — Frontend coverage gate | Spec: [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](07-quality-craft/SLICE-44-FRONTEND-COVERAGE-GATE.md) — Must: embed coverage table/floor in quality-gates + pre-push + CI (**VERIFIED**); Should: FE tests + structure taxonomy (§3) — ✅ COMPLETE 2026-07-27; Residual §4 Nightly Stryker **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending) | Should | ✅ + residual IMPL |
+| ~~45 — Module theme separation + FE/BE craft~~ | Spec: [`SLICE-45-MODULE-THEME-SEPARATION.md`](07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md) — hotspots 1–5 + FE/BE craft + scripts themes; mutation #160 — ✅ COMPLETE 2026-07-28 · [`slice-45.json`](../gate-evidence/slice-45.json) · [PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130) | Could | ✅ Done |
 
 ---
 
@@ -1057,7 +1063,7 @@ Use this when resuming a session mid-slice:
       ./scripts/ci/quality-gates.sh          # full CI mirror before PR
       # git push runs ./scripts/ci/pre-push-gates.sh (full gates) when hooks installed
 [ ] Check git status — any uncommitted changes?
-[ ] Read the current slice spec in docs/plan/slices/SLICE-XX-*.md
+[ ] Read the current slice spec in docs/plan/slices/0N-<theme>/SLICE-XX-*.md (see README.md theme index)
 [ ] Resume from the last incomplete acceptance criterion
 [ ] Verify after every change before moving to the next criterion
 ```

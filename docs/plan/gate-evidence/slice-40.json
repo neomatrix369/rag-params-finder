@@ -1,0 +1,76 @@
+{
+  "slice": 40,
+  "gate_status": "PASSED",
+  "verified_at": "2026-07-28",
+  "verifier": "verify-slice",
+  "branch": "slice/40-documentation-ssot-alignment",
+  "head_at_verify": "a5cabf4",
+  "decision": "DECISIONS #162",
+  "nw_review": {
+    "agent": "nw-documentarist-reviewer",
+    "verdict": "APPROVED",
+    "blocking": 0,
+    "date": "2026-07-28"
+  },
+  "phases": {
+    "must_boundary_ssot": {
+      "status": "PASSED",
+      "note": "plan vs slices boundary documented; PROGRESS.md sole flat status SSOT; #162 recorded"
+    },
+    "should_theme_folders": {
+      "status": "PASSED",
+      "note": "43 specs git mv into 01–07; README theme index; living links rewritten; gate-evidence stays flat"
+    },
+    "could_by_theme_index": {
+      "status": "PASSED",
+      "note": "PROGRESS.md short By theme section linking to README (no duplicate notes)"
+    }
+  },
+  "layout": {
+    "flat_slice_at_root": 0,
+    "themed_specs": 43,
+    "themes": [
+      "01-core-pipeline",
+      "02-dashboard",
+      "03-platform",
+      "04-sie",
+      "05-storage",
+      "06-bayesian",
+      "07-quality-craft"
+    ],
+    "progress_path": "docs/plan/slices/PROGRESS.md",
+    "readme_path": "docs/plan/slices/README.md",
+    "gate_evidence_layout": "flat"
+  },
+  "quality_gates": {
+    "command": "bash scripts/ci/repo-lint.sh",
+    "exit_code": 0,
+    "measured_at": "2026-07-28T09:23:00Z",
+    "note": "Docs-only slice — repo-lint (shellcheck + actionlint + markdownlint) is the required gate; product pytest/FE floors N/A"
+  },
+  "runtime_smoke": {
+    "status": "not_applicable",
+    "rationale": "Planning/docs slice — no product entry-point behavior change (server/main.py comment path only)"
+  },
+  "mutation_testing": {
+    "status": "not_applicable",
+    "rationale": "No product test suite / no runtime algorithm"
+  },
+  "link_checks": {
+    "progress_broken_theme_links": 0,
+    "trail_broken_theme_links": 0,
+    "stale_pending_entry_point_claims": 0
+  },
+  "wonts_honored": [
+    "PROGRESS not nested in theme",
+    "no date-named theme folders",
+    "32/32C/32B kept under 05-storage",
+    "slice IDs unchanged in filenames",
+    "gate-evidence remains flat",
+    "migration order 32→38 unchanged"
+  ],
+  "acceptance_criteria": {
+    "passed": 7,
+    "required": 7
+  }
+}

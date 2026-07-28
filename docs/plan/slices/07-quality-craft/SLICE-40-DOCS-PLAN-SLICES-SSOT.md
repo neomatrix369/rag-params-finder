@@ -1,6 +1,6 @@
 # Slice 40 — Documentation Plan/Slices SSOT Alignment
 
-**Status**: 📋 PLANNED
+**Status**: ✅ COMPLETE
 
 **MoSCoW**: Should (boundary + theme index); folder moves are part of this slice’s Should once taxonomy is locked (#162)
 
@@ -12,16 +12,18 @@
 
 **Decision**: DECISIONS **#162**
 
+**Gate evidence**: [`docs/plan/gate-evidence/slice-40.json`](../../gate-evidence/slice-40.json)
+
 ## Problem
 
-The repository has both:
+**Previously**, the repository had both:
 
 - `docs/plan/*` (planning artifacts, policy, and process records), and
-- `docs/plan/slices/*` (per-slice specs plus the SSOT `PROGRESS.md` progress tracker).
+- `docs/plan/slices/*` (per-slice specs plus the SSOT `PROGRESS.md` progress tracker),
 
-There is still occasional confusion between these folders. As the slice catalog grew (~40 specs), a flat `SLICE-*.md` directory also became hard to scan by delivery wave.
+with occasional confusion between these folders. As the slice catalog grew (~40 specs), a flat `SLICE-*.md` directory also became hard to scan by delivery wave.
 
-This slice removes ambiguity by documenting the role boundary **and** clustering specs into numbered theme folders that reflect the order themes were delivered.
+**Now**, ownership is explicit and specs cluster under numbered theme folders `01`–`07` that reflect delivery-wave order (see [`README.md`](../README.md)).
 
 ## Goal
 
@@ -81,7 +83,7 @@ docs/plan/gate-evidence/      # flat by slice id (unchanged)
 - [x] `DECISIONS.md` records #162 (boundary + numbered themes + Won’ts).
 - [x] `PROGRESS.md` Quick Status + Plan Track mention theme folders / #162; Decision Log row added.
 - [x] `TRAIL.md` Slice 40 row notes theme clustering (#162); migration path `32 → … → 38` unchanged.
-- [ ] **Should:** `README.md` theme index exists; specs live under `0N-<theme>/` via `git mv`; living links resolve.
+- [x] **Should:** `README.md` theme index exists; specs live under `0N-<theme>/` via `git mv`; living links resolve.
 - [x] No runtime code changes (planning artifacts only for skateboard step 1).
 - [x] Gate evidence paths stay `docs/plan/gate-evidence/slice-N.json` (flat) — unchanged; move still Won’t.
 
@@ -134,7 +136,7 @@ Scenario: Planner migration path remains stable
 
 | Path | Role |
 |------|------|
-| `docs/plan/slices/SLICE-40-DOCS-PLAN-SLICES-SSOT.md` | This spec (moves into `07-quality-craft/` with peers) |
+| `docs/plan/slices/07-quality-craft/SLICE-40-DOCS-PLAN-SLICES-SSOT.md` | This spec (moves into `07-quality-craft/` with peers) |
 | `docs/plan/DECISIONS.md` | #162 |
 | `docs/plan/slices/PROGRESS.md` | Status notes + Decision Log |
 | `docs/plan/TRAIL.md` | Slice 40 row + link paths after move |
@@ -147,15 +149,67 @@ Scenario: Planner migration path remains stable
 - [x] Slice is planning-only and does not require runtime code changes
 - [x] `TRAIL.md` row for this slice exists with status `📋 PLANNED`
 - [x] `slices/PROGRESS.md` contains a Quick Status row for this slice with `📋 PLANNED`
-- [x] Theme map + Won’ts recorded as DECISIONS #162 (**DECIDED**; folder moves still **PROPOSED** until Should lands)
+- [x] Theme map + Won’ts recorded as DECISIONS #162 (**DECIDED**; folder moves **IMPLEMENTED**)
 
 ## After-Checks [GATE]
 
-- [ ] Theme folders + README exist; every `SLICE-*.md` (except none left flat except PROGRESS/README) lives under `0N-*`
-- [ ] Living links from TRAIL / PROGRESS / HANDOFF / agent entry points resolve
-- [ ] `PROGRESS.md` still sole status SSOT at flat path
-- [ ] `gate-evidence/` unchanged layout
-- [ ] Migration execution order in TRAIL unchanged
-- [ ] Spec / GWT coverage: planning artifacts reviewed against acceptance criteria (no product test suite — N/A runtime mutation)
-- [ ] `bash scripts/ci/repo-lint.sh` passes (markdown)
-- [ ] nw-review (docs/planning) when ready to mark COMPLETE
+- [x] Theme folders + README exist; every `SLICE-*.md` (except none left flat except PROGRESS/README) lives under `0N-*`
+- [x] Living links from TRAIL / PROGRESS / HANDOFF / agent entry points resolve
+- [x] `PROGRESS.md` still sole status SSOT at flat path
+- [x] `gate-evidence/` unchanged layout
+- [x] Migration execution order in TRAIL unchanged
+- [x] Spec / GWT coverage: planning artifacts reviewed against acceptance criteria (no product test suite — N/A runtime mutation)
+- [x] `bash scripts/ci/repo-lint.sh` passes (markdown)
+- [x] nw-review (docs/planning) — APPROVED 2026-07-28; blocking=0; see Review section below
+- [x] `docs/plan/gate-evidence/slice-40.json` — `gate_status: PASSED` (verify-slice 2026-07-28)
+
+## Gate Status
+
+✅ **COMPLETE** — Should theme folders + SSOT boundary landed; nw-review APPROVED; gate evidence PASSED.
+
+---
+
+## Review
+
+**Date**: 2026-07-28
+**Reviewer**: nw-documentarist-reviewer
+**Verdict**: **APPROVED**
+**Blocking Issues**: 0
+**Summary**: Implementation complete and correct. All 43 specs moved into themed folders `01–07` via git-preserved `git mv`; PROGRESS.md and README.md both accurately updated with theme index and navigational boundaries; DECISIONS.md #162 recorded; living links rewritten across all entry points; SSOT integrity maintained (flat PROGRESS, no nested status tracker). Diataxis fit of README is Reference (task-oriented task finder), Boundary is Tutorial (how PROGRESS and specs live together). Minor praise: execution was precise, link rewrites systematic, spec honesty about AC checklist matching implementation (all checkboxes reflect actual landing).
+
+**Praise**
+- ✅ **Methodical link rewrite**: every reference to `SLICE-NN` in PROGRESS, docs/README, TRAIL, HANDOFF, AGENTS, CLAUDE updated to `0N-<theme>/SLICE-NN` with no typos (spot-checked >20); git history preserved by using `git mv`.
+- ✅ **README.md captures Diataxis exactly**: "Finding a slice" section is a Navigation/How-To hybrid; "Boundary" section is prescriptive Tutorial; clean, actionable.
+- ✅ **AC checklist has zero false-positive marks**: each `[x]` corresponds to verifiable artifact (folders exist, README exists, PROGRESS has theme mention + Decision Log row, TRAIL row updated, no flat specs left, gate-evidence flat as Won't).
+
+**Recommendations** (all low/informational)
+- No blocking issues detected.
+- No high-severity issues detected.
+- All Won'ts honored (gate-evidence flat, PROGRESS flat, no date folders, storage family 32/32C/32B together, migration order 32→38 unchanged).
+- Suggestion (INFORMATIONAL): spec itself still contains Problem prose referencing "flat `SLICE-*.md` directory" (lines 17–24) and "as the slice catalog grew (~40 specs)" — this reads as historical narrative of the problem that was just solved. Not a gate failure, but consider a brief editorial pass: "**Previously**: flat…; **Now**: numbered theme folders…" to clarify this is a closure note, not current state. (Minor polish — does not block COMPLETE.)
+
+**Evidence**
+- Flat specs count: 0 left at `docs/plan/slices/` root (`find` confirms).
+- Themed specs: 43 total distributed `01-core-pipeline`(10) + `02-dashboard`(5) + `03-platform`(6) + `04-sie`(3) + `05-storage`(13) + `06-bayesian`(3) + `07-quality-craft`(3) = 43 ✓
+- Stale flat refs in docs/: 0 detected in contributor-guide (`grep -r "SLICE-" … | wc -l`).
+- Decision #162 in DECISIONS.md: line 165, recorded 2026-07-28, captures theme clustering + Won'ts.
+- PROGRESS.md updates: Quick Status line updated; "By theme" index section added; all ~40 spec links in the table rewritten to themed paths.
+- TRAIL.md: Slice 40 row links updated; migration order 32→38 preserved.
+- HANDOFF.md: Slice 40 status updated; #162 referenced.
+- `docs/README.md` diff: 4 link references updated, Maintainers status changed from "DECIDED" to "IMPLEMENTED", agent row updated, table row synced.
+- Gate evidence: `docs/plan/gate-evidence/` remains flat; unchanged layout.
+
+**Diataxis / Documentation Fit**
+- **slices/README.md**: Reference (task finder) + brief Tutorial (boundary rules). Correct fit for artifact. ✓
+- **SLICE-40 spec itself**: Planning artifact (proposal + boundary doc hybrid). Fit is appropriate for approval.
+- **No second SSOT**: PROGRESS.md remains sole status tracker; no nested `PROGRESS-by-theme.md` or duplicate tracking. ✓
+
+**Spec vs. Implementation Alignment**
+- All AC checkboxes ✓ correspond to artifacts on disk.
+- GWT scenarios all satisfied:
+  1. Canonical status tracker obvious → PROGRESS.md remains at flat path ✓
+  2. Theme numbers show wave order → folder sort order `01–07` ✓
+  3. Status SSOT not nested → PROGRESS at `docs/plan/slices/PROGRESS.md` not `0N-*/` ✓
+  4. Storage family together → 32, 32C, 32B all in `05-storage/` ✓
+  5. Boundary preserved → `docs/plan/` and `docs/plan/slices/` roles remain distinct ✓
+  6. Migration path stable → TRAIL.md `32 → … → 38` order unchanged ✓

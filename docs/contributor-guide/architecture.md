@@ -94,7 +94,7 @@ FastAPI Server
 
 ## 📁 Module Map
 
-Theme tags (Behavior | Feature | Function) and folder layout status: [`module-theme-map.md`](module-theme-map.md). Slice 45 hotspots 1–5 **IMPLEMENTED** (incl. `scripts/{ci,docker,release,security}/`; flat shims for one minor) — [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md).
+Theme tags (Behavior | Feature | Function) and folder layout status: [`module-theme-map.md`](module-theme-map.md). Slice 45 hotspots 1–5 **IMPLEMENTED** (incl. `scripts/{ci,docker,release,security}/`; flat shims for one minor) — [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md).
 
 ```
 rag-params-finder/
@@ -280,7 +280,7 @@ See `docs/adr/` for Architecture Decision Records:
 
 | Decision | Rationale |
 |---|---|
-| FastAPI `BackgroundTasks` (not Celery) | No queue infrastructure needed while sweep runs execute with bounded in-process concurrency *(see [`SLICE-16`](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) for hardening path)* |
+| FastAPI `BackgroundTasks` (not Celery) | No queue infrastructure needed while sweep runs execute with bounded in-process concurrency *(see [`SLICE-16`](../plan/slices/01-core-pipeline/SLICE-16-PARALLEL-SWEEP-RUNS.md) for hardening path)* |
 | Hand-mirrored TypeScript types | No codegen tooling (typeshare/quicktype); 5 types + 3 enums is manageable manually |
 | Separate vector indexes per dimension | Atlas requires exact `numDimensions` — `vector_index_1024` (Voyage) and `vector_index_384` (local) coexist on the same collection |
 | Lazy-load + cache for local models | First run downloads from HuggingFace; subsequent runs instant — avoids blocking server startup |
@@ -320,7 +320,7 @@ See `docs/adr/` for Architecture Decision Records:
 | DB container only | `./start-services.sh mongodb\|postgres start\|stop\|reset\|status` | Native server/frontend on host |
 | Docker (dev profile) | `docker compose --profile dev up` | Bind mounts + HMR |
 
-Atlas / Postgres connection strings and API keys live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md), [MongoDB Setup](../user-guide/mongodb-setup.md), and [Postgres Setup](../user-guide/postgres-setup.md).
+Atlas / Postgres connection strings and API keys live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md), [MongoDB Setup](../user-guide/mongodb-setup.md), and [Postgres Setup](../user-guide/postgres-setup.md).
 
 ---
 
@@ -328,9 +328,9 @@ Atlas / Postgres connection strings and API keys live in `.env` on the host (mou
 
 | Enhancement | Notes |
 |---|---|
-| Run recovery (retry failed / interrupted runs) | **Reconciliation on boot** ✅ — status fix only. **Retry** planned as [Slice 10](../plan/slices/SLICE-10-RUN-RECOVERY.md): `recover` CLI + API; **`RECOVER_ON_BOOT`** = retry **INTERRUPTED** only |
+| Run recovery (retry failed / interrupted runs) | **Reconciliation on boot** ✅ — status fix only. **Retry** planned as [Slice 10](../plan/slices/01-core-pipeline/SLICE-10-RUN-RECOVERY.md): `recover` CLI + API; **`RECOVER_ON_BOOT`** = retry **INTERRUPTED** only |
 | SSE live updates | Replace 2-second polling with Server-Sent Events |
-| Parallel sweep (`execution.parallelism` > 1) | Implemented in [Slice 16 — Parallel Sweep Runs](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md) with a bounded in-process pool; **Celery + Redis** remains optional for future scale/fairness needs |
+| Parallel sweep (`execution.parallelism` > 1) | Implemented in [Slice 16 — Parallel Sweep Runs](../plan/slices/01-core-pipeline/SLICE-16-PARALLEL-SWEEP-RUNS.md) with a bounded in-process pool; **Celery + Redis** remains optional for future scale/fairness needs |
 | Dashboard-triggered runs | Submit experiments from the React UI, not just CLI |
 | Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` |
 

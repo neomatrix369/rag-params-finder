@@ -95,7 +95,7 @@ execution:
 - **Local runtime note**: set `parallelism` based on available cores and desired utilization (for example, with 8 cores and `parallelism=4`, each local embedding worker runs with ~2 intra-op threads).
 - **Voyage / remote providers**: larger parallelism can hit external RPM/TPM quotas; for that path, use cautious values and dedicated throttling (not part of this slice).
 - **SIE**: transient retry protection is in-process in this demo path (e.g., `503`, `429`, and `rate-limit` style failures), with `Retry-After` honored where available. SIE requests remain capped in-process to avoid runaway fan-out.
-- **Slice 16 implemented**: **[Slice 16 — Parallel Sweep Runs](../plan/slices/SLICE-16-PARALLEL-SWEEP-RUNS.md)** adds bounded concurrent `_run_single` scheduling with current `on_error` and cancellation semantics; optional queue-based rollout remains out of scope.
+- **Slice 16 implemented**: **[Slice 16 — Parallel Sweep Runs](../plan/slices/01-core-pipeline/SLICE-16-PARALLEL-SWEEP-RUNS.md)** adds bounded concurrent `_run_single` scheduling with current `on_error` and cancellation semantics; optional queue-based rollout remains out of scope.
 
 ### Bayesian sweep strategy (`execution.search_strategy`)
 
@@ -380,7 +380,7 @@ rag-params-finder run --config configs/mongodb/example-sie.yaml
 
 To **continue an incomplete sweep** without re-submitting YAML, pause and resume the same experiment (CLI or dashboard) — completed parameter combinations are skipped automatically.
 
-To **re-run only failed combinations inside an existing experiment** *(same `experiment_id`, keep successful runs)*, see the planned workflow in [`../plan/slices/SLICE-10-RUN-RECOVERY.md`](../plan/slices/SLICE-10-RUN-RECOVERY.md) — today this requires manual YAML reshaping, pause/resume for not-yet-started combos, or a new submit.
+To **re-run only failed combinations inside an existing experiment** *(same `experiment_id`, keep successful runs)*, see the planned workflow in [`SLICE-10-RUN-RECOVERY.md`](../plan/slices/01-core-pipeline/SLICE-10-RUN-RECOVERY.md) — today this requires manual YAML reshaping, pause/resume for not-yet-started combos, or a new submit.
 
 ---
 

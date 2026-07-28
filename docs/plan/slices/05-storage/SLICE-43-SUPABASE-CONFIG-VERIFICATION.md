@@ -8,7 +8,7 @@
 
 **Origin:** 2026-07-26 sanity check of `configs/supabase/` twins derived from `configs/mongodb/` — configs load/expand/parity ✅; residual risks recorded here. Extended same day with operator FAQ (“Supabase equivalent of `MONGODB_URI`?” → env naming asymmetry, §3) and by collating deferred/open items from PR bodies [#109](https://github.com/neomatrix369/rag-params-finder/pull/109)–[#113](https://github.com/neomatrix369/rag-params-finder/pull/113) (bodies only; provenance in *PR-body source index*).
 
-**Planning quality lens (2026-07-26):** 9/10 pass. Fail = check 3 (SLAP) — the frontend-coverage item was a different abstraction level and has been spun out to [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md). Duplications removed (old §6a ↔ §§1–5; old §6b ↔ §7). **MoSCoW note:** the slice priority is *Could* relative to the 36–38 migration track, but §1 (recorded live supabase smoke) is this slice’s definition-of-done, not optional.
+**Planning quality lens (2026-07-26):** 9/10 pass. Fail = check 3 (SLAP) — the frontend-coverage item was a different abstraction level and has been spun out to [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](../07-quality-craft/SLICE-44-FRONTEND-COVERAGE-GATE.md). Duplications removed (old §6a ↔ §§1–5; old §6b ↔ §7). **MoSCoW note:** the slice priority is *Could* relative to the 36–38 migration track, but §1 (recorded live supabase smoke) is this slice’s definition-of-done, not optional.
 
 > **SUPERSEDED (2026-07-26, Slice 37 / DECISIONS #107):** claims below that there is
 > **no** `SUPABASE_URI` are historical. Current truth: `DATABASE_URL` remains
@@ -222,7 +222,7 @@ Scenario: Docs warn about HNSW truncated top-k
 
 The frontend test-coverage / gate-embedding residual that briefly lived here was **SLAP-flagged** (not Supabase-specific, different abstraction level) and spun into its own slice:
 
-→ **[`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md)** (Should) — frontend coverage tests + coverage table/floor in pre-push & CI.
+→ **[`SLICE-44-FRONTEND-COVERAGE-GATE.md`](../07-quality-craft/SLICE-44-FRONTEND-COVERAGE-GATE.md)** (Should) — frontend coverage tests + coverage table/floor in pre-push & CI.
 
 Nothing else in Slice 43 depends on it.
 

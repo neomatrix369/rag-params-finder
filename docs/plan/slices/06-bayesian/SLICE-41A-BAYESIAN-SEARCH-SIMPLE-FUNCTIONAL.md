@@ -228,7 +228,7 @@ Scenario: Bayesian run ends without failures despite incomplete attempts
 - `frontend/src/components/ExperimentsScreen.tsx`
 - `frontend/src/components/ExperimentDetailScreen.test.tsx`
 - `frontend/src/components/ExperimentsScreen.test.tsx`
-- `docs/plan/slices/SLICE-41A-BAYESIAN-SEARCH-SIMPLE-FUNCTIONAL.md` (new)
+- `docs/plan/slices/06-bayesian/SLICE-41A-BAYESIAN-SEARCH-SIMPLE-FUNCTIONAL.md` (new)
 - `pyproject.toml`
 
 ## After-Checks [GATE] — VERIFIED 2026-07-23

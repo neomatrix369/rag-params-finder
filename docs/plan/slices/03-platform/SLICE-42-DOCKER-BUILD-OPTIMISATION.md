@@ -138,7 +138,7 @@ This slice has no pytest-testable units (pure Dockerfile/CI YAML changes). Verif
 1. **Red**: Note current `docker build` output (no CACHED for torch after source change — reproduce the problem once to confirm).
 2. **Green**: Apply Must changes; verify GWT Must-1, Must-2, Must-3 with actual `docker build` output showing CACHED layers.
 3. **Should**: Apply Should changes; verify GWT Should-4 through Should-9.
-4. **Regress**: Run `./scripts/quality-gates.sh`; run `./start-services.sh && ./scripts/health-check.sh`. Verify all SLICE-14 acceptance criteria pass (see `docs/plan/slices/SLICE-14-DOCKER-COMPOSE.md`).
+4. **Regress**: Run `./scripts/quality-gates.sh`; run `./start-services.sh && ./scripts/health-check.sh`. Verify all SLICE-14 acceptance criteria pass (see `docs/plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md`).
 
 ---
 
@@ -149,7 +149,7 @@ This slice has no pytest-testable units (pure Dockerfile/CI YAML changes). Verif
 - [ ] **GWT Must-3**: Build after `frontend/src/App.tsx` change → `npm ci` shows `CACHED`
 - [ ] **GWT Should-4**: `docker run --rm <server-image> which gcc` exits non-zero
 - [ ] **GWT Should-5**: Frontend runtime image has no `node_modules`; `docker images` shows size reduction (target: nginx:alpine image <100MB vs. ~300MB+ node:22-alpine + node_modules)
-- [ ] **GWT Should-6**: `./start-services.sh && ./scripts/health-check.sh` pass; all SLICE-14 ACs unmodified (see `docs/plan/slices/SLICE-14-DOCKER-COMPOSE.md`)
+- [ ] **GWT Should-6**: `./start-services.sh && ./scripts/health-check.sh` pass; all SLICE-14 ACs unmodified (see `docs/plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md`)
 - [ ] **GWT Should-7**: Docs-only PR → `docker-build` job absent from CI run
 - [ ] **GWT Should-8**: Docker-touching PR → `docker-build` job passes
 - [ ] **GWT Should-9**: Second CI run on same branch → measurably faster (GHA cache hit logged)
@@ -188,4 +188,4 @@ This slice has no pytest-testable units (pure Dockerfile/CI YAML changes). Verif
 
 ✅ COMPLETE — all Must GWTs VERIFIED locally; Should-8/9 VERIFIED via CI run 30147718492 (all 3 Dockerfile matrix jobs pass); dependency-audit green (postcss + brace-expansion patched); PR #107 open. See `docs/plan/slices/PROGRESS.md` Decision Log for implementation decisions.
 
-Frontend test coverage + coverage-embedded summary (follow-up) → [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md).
+Frontend test coverage + coverage-embedded summary (follow-up) → [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](../07-quality-craft/SLICE-44-FRONTEND-COVERAGE-GATE.md).

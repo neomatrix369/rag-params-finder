@@ -19,7 +19,7 @@
   - `server/db/store_factory.py` — hoist or document lazy imports (`no-inline-imports`)
   - `server/db/mongo_store.py` — thin CRUD adapter after split
   - `server/db/mongo_stats.py` — NEW: stats/explore helpers extracted from `mongo_store`
-  - `docs/plan/slices/SLICE-32-STORAGE-BACKEND-PROTOCOL.md` — dedupe After-Checks; index-seam decision note
+  - `docs/plan/slices/05-storage/SLICE-32-STORAGE-BACKEND-PROTOCOL.md` — dedupe After-Checks; index-seam decision note
   - `docs/plan/DECISIONS.md` / `docs/plan/slices/PROGRESS.md` Decision Log — index deferral + craft decisions
   - `tests/test_store_factory.py`, `tests/test_mongo_store_adapter.py` — stay green; import path updates only
   - `tests/test_mongo_store_acceptance.py` — commit/wire if in scope (see Before-Checks defaults)

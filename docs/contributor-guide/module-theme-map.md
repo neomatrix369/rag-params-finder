@@ -1,7 +1,7 @@
 # Module theme map
 
 > Behavior | Feature | Function taxonomy for `rag-params-finder`.
-> Taxonomy from Slice 44 Should audit (2026-07-27). **All five ranked hotspot folder moves are IMPLEMENTED** on Slice 45 (thin compatibility shims remain at old `scripts/*.sh` paths for one minor). Spec: [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md).
+> Taxonomy from Slice 44 Should audit (2026-07-27). **All five ranked hotspot folder moves are IMPLEMENTED** on Slice 45 (thin compatibility shims remain at old `scripts/*.sh` paths for one minor). Spec: [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md).
 > Optional IDE canvas name: `project-structure-taxonomy.canvas.tsx` (not required in-repo).
 
 ## Theme labels
@@ -116,6 +116,6 @@ Mild (optional later): `server/api/` → `experiments/` vs `sweep/`.
 ## Related
 
 - Module tree detail: [`architecture.md`](architecture.md) → Module Map
-- Slice 44 (taxonomy Should + coverage Must): [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](../plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md)
-- Slice 45 (execute moves + FE/BE craft): [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md)
+- Slice 44 (taxonomy Should + coverage Must): [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](../plan/slices/07-quality-craft/SLICE-44-FRONTEND-COVERAGE-GATE.md)
+- Slice 45 (execute moves + FE/BE craft): [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md)
 - DECISIONS #135 — audit+proposal in 44; moves owned by 45

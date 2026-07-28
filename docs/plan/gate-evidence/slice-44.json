@@ -75,7 +75,7 @@
         "uv run pytest … --cov-fail-under=95 --cov-report=json:.reports/coverage-backend-unit.json",
         "uv run python scripts/check_backend_coverage_floors.py .reports/coverage-backend-unit.json"
       ],
-      "slice_spec": "docs/plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md § After-Checks shared FE/BE metric floors (#142)"
+      "slice_spec": "docs/plan/slices/07-quality-craft/SLICE-44-FRONTEND-COVERAGE-GATE.md § After-Checks shared FE/BE metric floors (#142)"
     }
   },
   "review": {
@@ -174,7 +174,7 @@
     "taxonomy_should_3": {
       "module_theme_map": "docs/contributor-guide/module-theme-map.md",
       "canvas": "not shipped in-repo — theme map is SSOT; optional IDE canvas only",
-      "slice_45_stub": "docs/plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md",
+      "slice_45_stub": "docs/plan/slices/07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md",
       "production_import_moves": false
     },
     "mutation_testing": {

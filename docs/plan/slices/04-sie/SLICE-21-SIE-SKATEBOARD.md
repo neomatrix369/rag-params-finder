@@ -1,4 +1,4 @@
-<!-- file: docs/plan/slices/SLICE-21-SIE-SKATEBOARD.md -->
+<!-- file: docs/plan/slices/04-sie/SLICE-21-SIE-SKATEBOARD.md -->
 
 ## Slice Workflow Header
 

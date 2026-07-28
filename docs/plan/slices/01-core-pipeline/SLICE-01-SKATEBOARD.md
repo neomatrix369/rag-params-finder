@@ -189,4 +189,4 @@ bash scripts/install-git-hooks.sh   # once — essential checks on commit and pu
 ./scripts/quality-gates.sh          # full CI mirror before opening a PR
 ```
 
-See [`development.md`](../contributor-guide/development.md) § Git hooks and [`SLICE-20-TOOLCHAIN-HARDENING.md`](./SLICE-20-TOOLCHAIN-HARDENING.md).
+See [`development.md`](../contributor-guide/development.md) § Git hooks and [`SLICE-20-TOOLCHAIN-HARDENING.md`](../03-platform/SLICE-20-TOOLCHAIN-HARDENING.md).

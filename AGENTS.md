@@ -8,7 +8,7 @@ Agent session entry point for `rag-params-finder`.
 2. Read [`docs/README.md`](docs/README.md) — documentation map by persona and topic.
 3. Read [`docs/plan/slices/PROGRESS.md`](docs/plan/slices/PROGRESS.md) — current slice status, forward roadmap, and interrupt recovery checklist.
 4. If exploring module layout / folder themes: read [`docs/contributor-guide/module-theme-map.md`](docs/contributor-guide/module-theme-map.md) (Slice 45 hotspots 1–5 **IMPLEMENTED**; prefer `scripts/ci|docker|release|security/` over flat shim paths).
-5. If continuing a slice: read the slice spec in [`docs/plan/slices/`](docs/plan/slices/).
+5. If continuing a slice: read the slice spec under [`docs/plan/slices/`](docs/plan/slices/) (`0N-<theme>/` — see [README](docs/plan/slices/README.md)).
 6. If starting a new slice: check the forward roadmap in `docs/plan/slices/PROGRESS.md` and create a spec before writing code.
 
 ## Key rules

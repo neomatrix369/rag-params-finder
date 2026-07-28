@@ -91,7 +91,7 @@ This is a **CI-hygiene infrastructure slice** (non-user-facing, per DECISIONS #1
   - `CLAUDE.md` / `docs/contributor-guide/development.md` — FE+BE baseline + floor note
   - `docs/contributor-guide/module-theme-map.md` — Behavior | Feature | Function SSOT (taxonomy Should)
   - Canvas: optional IDE canvas `project-structure-taxonomy.canvas.tsx` (not required in-repo; theme map is SSOT)
-  - `docs/plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md` — follow-on move proposal stub (PLANNED; not executed here)
+  - `docs/plan/slices/07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md` — follow-on move proposal stub (PLANNED; not executed here)
 - Exit criteria: FE+BE gates enforce shared product floors (FE **95/90/95/95**, BE **95/90/n/a/95**); coverage tables print; theme map + Slice 45 stub published with **no** production import-path changes for taxonomy.
 - Commit pattern: `test(slice-44): add frontend coverage floor and embed report in gate` (+ optional `docs(slice-44): publish module theme map and Slice 45 stub`)
 
@@ -354,7 +354,7 @@ On PASS: write gate evidence → `docs/plan/gate-evidence/slice-44.json` (note a
 | `CLAUDE.md` / `development.md` / CHANGELOG / DECISIONS / PROGRESS / HANDOFF | docs | baselines + #138–#142 + mop-up / checker |
 | `docs/plan/gate-evidence/slice-44.json` | docs | gate evidence (Phase A + B + mop-up + #142) |
 | `docs/contributor-guide/module-theme-map.md` | docs | Theme SSOT (§3) |
-| `docs/plan/slices/SLICE-45-MODULE-THEME-SEPARATION.md` | docs | Follow-on move proposal |
+| `docs/plan/slices/07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md` | docs | Follow-on move proposal |
 
 ## Session Metrics
 

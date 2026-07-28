@@ -10,6 +10,8 @@
 
 **45** ✅ COMPLETE on `slice/45-module-theme-separation` ([PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130)) — hotspots 1–5 **IMPLEMENTED**; FE/BE craft; scripts themes; Could leftovers #161 (docstrings, coverage drift guard, GWT-on-touch); mutation #160; evidence [`slice-45.json`](gate-evidence/slice-45.json).
 
+**40** ✅ COMPLETE on `slice/40-documentation-ssot-alignment` — theme folders `01`–`07` + [`slices/README.md`](slices/README.md) **IMPLEMENTED** (#162); living links rewritten; nw-review APPROVED; [`slice-40.json`](gate-evidence/slice-40.json) PASSED.
+
 ## What's Done
 
 - Remediations #114–#119, image pins #120–#121, Postgres ops parity #122, dual health-check #123, sync-docs #124
@@ -18,14 +20,13 @@
 - `slice-38.json` — `gate_status: PASSED`; default-flip gate removed (#130)
 - Slice 44 + #142: FE **95/90/95/95**; BE **95/90/n/a/95** via fail_under + JSON floor checker; gate-evidence PASSED
 - Slice 44 §3 taxonomy: [`module-theme-map.md`](../contributor-guide/module-theme-map.md)
-- Slice 45: theme packages + craft + scripts folders; [`SLICE-45-MODULE-THEME-SEPARATION.md`](slices/SLICE-45-MODULE-THEME-SEPARATION.md); Gate Status ✅
+- Slice 45: theme packages + craft + scripts folders; [`SLICE-45-MODULE-THEME-SEPARATION.md`](slices/07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md); Gate Status ✅
 
 ## What's Next
 
-1. Confirm Slice **44 Residual §4** Nightly finish + `mutation-node-*` artifact via `workflow_dispatch`/cron (**VERIFIED** run URL) — config already **IMPLEMENTED**
-2. Slice **40** — theme folders `01`–`07` + plan/slices SSOT (#162) when prioritized
-3. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 if prioritized
-4. Forward-roadmap Could/Should items (export, SSE, recovery, etc.) per [`PROGRESS.md`](slices/PROGRESS.md)
+1. Confirm Slice **44 Residual §4** Nightly finish + `mutation-node-*` artifact via `workflow_dispatch`/cron (**VERIFIED** run URL)
+2. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 if prioritized
+3. Forward-roadmap Could/Should items (export, SSE, recovery, etc.) per [`PROGRESS.md`](slices/PROGRESS.md) — next Must feature track: **22**
 
 ## Key decisions locked
 

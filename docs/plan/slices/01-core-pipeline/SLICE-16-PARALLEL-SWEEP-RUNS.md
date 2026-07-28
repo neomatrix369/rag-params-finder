@@ -141,12 +141,12 @@ See [`development.md`](../contributor-guide/development.md) § Git hooks.
 ## See Also
 
 - `docs/plan/slices/PROGRESS.md` — roadmap row for this slice
-- [`SLICE-03-SWEEP-EXPANSION.md`](./SLICE-03-SWEEP-EXPANSION.md) — baseline sequential behavior
+- [`SLICE-03-SWEEP-EXPANSION.md`](SLICE-03-SWEEP-EXPANSION.md) — baseline sequential behavior
 - [`../contributor-guide/architecture.md`](../contributor-guide/architecture.md) — BackgroundTasks vs future Celery narrative
 
 ## Addendum — 16B Embedding Concurrency Fix (In Place)
 
-**Parent slice:** [SLICE-16-PARALLEL-SWEEP-RUNS.md](./SLICE-16-PARALLEL-SWEEP-RUNS.md)
+**Parent slice:** [SLICE-16-PARALLEL-SWEEP-RUNS.md](SLICE-16-PARALLEL-SWEEP-RUNS.md)
 **Status:** ✅ COMPLETE
 **MoSCoW:** Must *(parallelism as shipped delivers no throughput gain on the primary supported path — local embeddings — and silently fails on the SIE path under load)*
 **Target time:** 1–1.5 h
@@ -224,5 +224,5 @@ Slice 16's own acceptance criteria require retry/backoff for transient failures.
 
 ### See Also
 
-- Parent slice: [SLICE-16-PARALLEL-SWEEP-RUNS.md](./SLICE-16-PARALLEL-SWEEP-RUNS.md)
+- Parent slice: [SLICE-16-PARALLEL-SWEEP-RUNS.md](SLICE-16-PARALLEL-SWEEP-RUNS.md)
 - `server/core/local_embedder.py`, `server/core/sie_embedder.py`, `server/core/orchestrator.py`
