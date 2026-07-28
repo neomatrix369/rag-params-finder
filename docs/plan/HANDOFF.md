@@ -23,8 +23,9 @@
 ## What's Next
 
 1. Merge [PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130) (Slice 45) when review-ready
-2. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 if prioritized
-3. Forward-roadmap Could/Should items (export, SSE, recovery, etc.) per [`PROGRESS.md`](slices/PROGRESS.md)
+2. Slice **40** — theme folders `01`–`07` + plan/slices SSOT (#162) when prioritized
+3. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 if prioritized
+4. Forward-roadmap Could/Should items (export, SSE, recovery, etc.) per [`PROGRESS.md`](slices/PROGRESS.md)
 
 ## Key decisions locked
 
@@ -57,3 +58,4 @@
 | 159 | `scripts/{ci,docker,release,security}/` + flat shims for one minor |
 | 160 | Slice 45 mutation waived to nightly CI |
 | 161 | FE↔pyproject coverage drift guard + FE docstring / BE GWT-on-touch Could leftovers |
+| 162 | Slice specs → numbered theme folders `01`–`07` (delivery wave); PROGRESS + gate-evidence stay flat (Slice 40) |

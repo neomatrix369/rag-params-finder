@@ -4,7 +4,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 
 **Repo entry:** [README.md](../README.md) · **Fastest run:** [QUICKSTART.md](../QUICKSTART.md)
 
-**Maintainers:** slice status and decision log live in [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) (updated 2026-07-27).
+**Maintainers:** slice status and decision log live in [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) (updated 2026-07-28). Specs are flat `SLICE-*.md` today; numbered theme folders `01`–`07` are **DECIDED** (#162) and land under Slice 40 Should — [SLICE-40](./plan/slices/SLICE-40-DOCS-PLAN-SLICES-SSOT.md).
 
 > **Who is this for?** Same personas as [README → Who is this for?](../README.md#who-is-this-for) — this page is the **doc map**; the README is the project entry.
 
@@ -65,7 +65,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | [adr/ADR-003-mongodb-atlas-vector-store.md](./adr/ADR-003-mongodb-atlas-vector-store.md) | MongoDB Atlas as vector store (**Superseded** by ADR-004; Mongo still supported) |
 | [adr/ADR-004-postgresql-pgvector-vector-store.md](./adr/ADR-004-postgresql-pgvector-vector-store.md) | Dual-backend: Postgres/pgvector (Supabase) **and** MongoDB |
 | [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) | Slice status, decision log, forward roadmap |
-| [plan/slices/SLICE-*.md](./plan/slices/) | Per-slice specs (acceptance criteria, verification) |
+| [plan/slices/SLICE-*.md](./plan/slices/) | Per-slice specs (acceptance criteria, verification); theme folders `01`–`07` pending Slice 40 (#162) |
 
 ---
 
