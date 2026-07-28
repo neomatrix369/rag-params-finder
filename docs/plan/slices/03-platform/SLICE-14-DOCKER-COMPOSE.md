@@ -9,11 +9,11 @@
 
 ## Goal
 
-One command (`./start-services.sh`) starts the **FastAPI server** and **React dashboard** in Docker. MongoDB Atlas and secrets stay in `.env` on the host (not baked into images). The **CLI runs on the host** and talks to `http://localhost:8001` ([ADR-001](../adr/ADR-001-two-process-architecture.md)).
+One command (`./start-services.sh`) starts the **FastAPI server** and **React dashboard** in Docker. MongoDB Atlas and secrets stay in `.env` on the host (not baked into images). The **CLI runs on the host** and talks to `http://localhost:8001` ([ADR-001](../../../adr/ADR-001-two-process-architecture.md)).
 
 ## Non-goals
 
-- No Qdrant or local MongoDB container ([ADR-003](../adr/ADR-003-mongodb-atlas-vector-store.md))
+- No Qdrant or local MongoDB container ([ADR-003](../../../adr/ADR-003-mongodb-atlas-vector-store.md))
 - No Celery / Redis
 - No in-container CLI by default
 - Does not replace the manual `uvicorn` + `npm run dev` loop (still documented)
@@ -82,7 +82,7 @@ flowchart TB
 
 ## Acceptance criteria
 
-- [x] With valid `.env` and Atlas indexes ([mongodb-setup](../user-guide/mongodb-setup.md)), `./start-services.sh` exits 0 and prints :8001 and :5374 URLs
+- [x] With valid `.env` and Atlas indexes ([mongodb-setup](../../../user-guide/mongodb-setup.md)), `./start-services.sh` exits 0 and prints :8001 and :5374 URLs
 - [x] `curl -f http://localhost:8001/healthz` returns `{"ok": true, "mongodb": "ok"}`
 - [x] `./scripts/health-check.sh` passes
 - [x] Dashboard at `http://localhost:5374` loads; `GET /experiments` works

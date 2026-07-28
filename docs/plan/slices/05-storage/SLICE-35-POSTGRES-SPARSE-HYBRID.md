@@ -4,7 +4,7 @@
 **Target time:** ~4–5 h
 **Status:** 🔨 IN PROGRESS
 **Depends on:** 34
-**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md) §5.1.2–5.1.3, §7 SPLADE risk
+**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../../PRD-supabase-pgvector-migration.md) §5.1.2–5.1.3, §7 SPLADE risk
 
 ---
 

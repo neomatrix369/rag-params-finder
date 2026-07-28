@@ -74,7 +74,7 @@ Scenario: GET /api/v1/best-config returns 404 when no history exists
 - [ ] Slice 32 StorageBackend + RetrieverBackend Protocol merged to current branch
 - [ ] All history and best-config queries use StorageBackend — no direct `server.db.atlas` or `mongo_store` imports in sweep/history code
 - [ ] Branch `slice/22-sie-scooter` created from latest `main` (Slice 21 ✅; prefer after Slice 38 — see escape hatch in TRAIL)
-- [ ] SIE Docker running; BGE-M3 encode probe returns HTTP 200 — see [SIE Provider Setup](../user-guide/sie-setup.md)
+- [ ] SIE Docker running; BGE-M3 encode probe returns HTTP 200 — see [SIE Provider Setup](../../../user-guide/sie-setup.md)
 - [ ] `./scripts/quality-gates.sh` passes
 
 > **Soft dep on Slice 38:** If cutover delays, implement via Protocol so Postgres porting is isolated to adapters, not Slice 22 code.

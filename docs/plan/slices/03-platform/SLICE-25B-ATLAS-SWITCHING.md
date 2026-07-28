@@ -33,7 +33,7 @@ After Slice 25 the local Atlas container worked, but switching required:
 - [x] `--local` skips the cloud Atlas URI validation in `.env` (server URI from `RAG_SERVER_MONGODB_URI`)
 - [x] Port 27017 is included in the port-conflict check when `--local` is active
 - [x] `./scripts/quality-gates.sh` passes — 0 ruff / mypy / pytest regressions
-- [x] [`docs/user-guide/mongodb-setup.md`](../user-guide/mongodb-setup.md) documents switching + URI detection
+- [x] [`docs/user-guide/mongodb-setup.md`](../../../user-guide/mongodb-setup.md) documents switching + URI detection
 
 ---
 

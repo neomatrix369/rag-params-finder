@@ -54,7 +54,7 @@ Recovery should **reuse the same `run_id`** for a retried run so dashboards, URL
 - [ ] **Config source**: use the **`config`** object on the `experiments` document *(already persisted at submit time in `POST /experiments`)* — do not require the original YAML file on disk for recovery.
 - [ ] **Experiment aggregate**: after recovery job finishes, recompute `status`, `failed_count`, and `completed_at` on the experiment document to reflect the updated run outcomes.
 - [ ] **Concurrency**: recovery runs **sequentially** unless [Slice 16](SLICE-16-PARALLEL-SWEEP-RUNS.md) is complete — then honor `execution.parallelism` for the recovery batch *(documented ordering)*.
-- [ ] **Docs**: update [CLI Reference](../user-guide/cli-reference.md), [Troubleshooting](../user-guide/troubleshooting.md) (`RECOVER_ON_BOOT`), and [Configuration](../user-guide/configuration.md) *(cross-link: recovery vs YAML subset)*.
+- [ ] **Docs**: update [CLI Reference](../../../user-guide/cli-reference.md), [Troubleshooting](../../../user-guide/troubleshooting.md) (`RECOVER_ON_BOOT`), and [Configuration](../../../user-guide/configuration.md) *(cross-link: recovery vs YAML subset)*.
 
 ---
 
@@ -124,12 +124,12 @@ bash scripts/install-git-hooks.sh   # once — essential checks on commit and pu
 ./scripts/quality-gates.sh          # full CI mirror before PR
 ```
 
-See [`development.md`](../contributor-guide/development.md) § Git hooks and § When checks run.
+See [`development.md`](../../../contributor-guide/development.md) § Git hooks and § When checks run.
 
 ---
 
 ## See Also
 
-- [`docs/plan/slices/PROGRESS.md`](./PROGRESS.md) — roadmap
+- [`docs/plan/slices/PROGRESS.md`](../PROGRESS.md) — roadmap
 - [`SLICE-03-SWEEP-EXPANSION.md`](SLICE-03-SWEEP-EXPANSION.md) — sweep expansion
 - [`SLICE-16-PARALLEL-SWEEP-RUNS.md`](SLICE-16-PARALLEL-SWEEP-RUNS.md) — parallelism vs recovery

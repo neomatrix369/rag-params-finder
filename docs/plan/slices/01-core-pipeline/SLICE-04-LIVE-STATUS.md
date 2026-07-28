@@ -63,4 +63,4 @@ bash scripts/install-git-hooks.sh
 ./scripts/quality-gates.sh
 ```
 
-See [`development.md`](../contributor-guide/development.md) § Git hooks.
+See [`development.md`](../../../contributor-guide/development.md) § Git hooks.

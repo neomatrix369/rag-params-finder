@@ -5,7 +5,7 @@
 **Status:** ✅ COMPLETE
 **Depends on:** 36
 **Branch:** `slice/37-postgres-local-cloud-parity`
-**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md)
+**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../../PRD-supabase-pgvector-migration.md)
 
 > Atlas Local (25/25B) analogue for **operator DX**. Local pgvector compose already shipped in Slice 33 (`--postgres`). This slice owns the symmetric flag vocabulary, hosted Supabase start without Mongo URI, config↔server consistency, lifecycle subcommands, Path B docs, and **least-friction Mongo ↔ Postgres switching**.
 >

@@ -127,7 +127,7 @@ Follows the pattern of Slice 14 (introduced the Docker stack) and Slice 20/40 (C
 - [ ] `./scripts/quality-gates.sh` passes (zero regressions baseline)
 - [ ] `docker buildx version` ≥ 0.10 (BuildKit cache mounts require Buildx; already default on Docker Desktop)
 - [ ] **Spike**: run `uv sync --frozen --no-install-project` in a throwaway container with only `pyproject.toml` + `uv.lock` present (no source files). Confirm exit 0 and all deps resolve before finalising deps-stage Dockerfile syntax. (`uv pip install --no-deps -e .` is an editable-install variant and will fail without project source — use `uv sync` only.)
-- [ ] Read `SLICE-14-DOCKER-COMPOSE.md` acceptance criteria — ensure none are broken by the Dockerfile changes
+- [ ] Read [`SLICE-14-DOCKER-COMPOSE.md`](SLICE-14-DOCKER-COMPOSE.md) acceptance criteria — ensure none are broken by the Dockerfile changes
 
 ---
 

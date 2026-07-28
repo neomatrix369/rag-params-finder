@@ -205,8 +205,8 @@ Taxonomy artifacts were **pre-published** on 2026-07-27 as planning SSOT (`modul
 | `scripts/` | 16 | `ci/`, `docker/`, `release/`, `security/` (+ keep `lib/`) |
 
 **Acceptance**
-- [x] [`docs/contributor-guide/module-theme-map.md`](../../contributor-guide/module-theme-map.md) lists major trees with Behavior \| Feature \| Function tags
-- [x] Interactive canvas was planned as `project-structure-taxonomy.canvas.tsx` — **not shipped in-repo**; theme map SSOT is [`module-theme-map.md`](../../contributor-guide/module-theme-map.md) (DECISIONS #135)
+- [x] [`docs/contributor-guide/module-theme-map.md`](../../../contributor-guide/module-theme-map.md) lists major trees with Behavior \| Feature \| Function tags
+- [x] Interactive canvas was planned as `project-structure-taxonomy.canvas.tsx` — **not shipped in-repo**; theme map SSOT is [`module-theme-map.md`](../../../contributor-guide/module-theme-map.md) (DECISIONS #135)
 - [x] [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) exists as 📋 PLANNED with concrete move tables
 - [x] No production import paths changed for taxonomy in this planning pass (DECISIONS #135)
 

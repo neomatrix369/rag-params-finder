@@ -21,7 +21,7 @@ Add `mongodb/mongodb-atlas-local` Docker image as an opt-in local backend so dev
 - [x] Host CLI works: `MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true`
 - [x] `atlas_storage.py` gracefully returns `None` quota (existing `is_atlas_uri()` guard — no code change needed)
 - [x] `./scripts/quality-gates.sh` passes — 0 ruff / mypy / pytest regressions
-- [x] [`docs/user-guide/mongodb-setup.md`](../user-guide/mongodb-setup.md) documents local Atlas path
+- [x] [`docs/user-guide/mongodb-setup.md`](../../../user-guide/mongodb-setup.md) documents local Atlas path
 
 ---
 

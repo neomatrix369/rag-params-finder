@@ -4,7 +4,7 @@
 **Target time:** ~3–4 h
 **Status:** ✅ COMPLETE
 **Depends on:** 33 (implementation: schema + store + local profile — not tracker PASSED)
-**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md) §5.1.1, §6.3, §6.5
+**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../../PRD-supabase-pgvector-migration.md) §5.1.1, §6.3, §6.5
 
 ---
 
@@ -15,7 +15,7 @@
 - Files (shipped):
   - `server/core/retriever_postgres.py` — dense path + dispatcher
   - `server/db/postgres_store.py` — `PostgresRetrieverBackend` delegates to dense search
-  - `server/db/schema.sql` — HNSW indexes on `embedding_384` / `embedding_1024`
+  - `server/db/postgres/schema.sql` — HNSW indexes on `embedding_384` / `embedding_1024`
   - `server/db/postgres.py` — `hnsw.iterative_scan = strict_order` on every pooled connection
   - `server/core/search_index_guard.py` / `search_index_plan.py` — Atlas preflight short-circuit for non-mongo
   - `server/core/health_check.py` / `server/main.py` — backend-aware `/healthz` (`storage_backend`, not mode)

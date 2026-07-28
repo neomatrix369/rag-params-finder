@@ -228,7 +228,7 @@ alias `mongo` normalizes to `mongodb`). **One backend**, two deployments: local 
 (`./start-services.sh --postgres-local`) or **Supabase-hosted Postgres** (same adapter;
 cloud `DATABASE_URL`). Example YAMLs live under `configs/supabase/` — that folder
 name is not a second storage backend. Schema:
-[`server/db/postgres/schema.sql`](../../server/db/schema.sql).
+[`server/db/postgres/schema.sql`](../../server/db/postgres/schema.sql).
 Operator setup: [Postgres Setup](../user-guide/postgres-setup.md).
 
 ### Dense retrieval — HNSW and `iterative_scan`

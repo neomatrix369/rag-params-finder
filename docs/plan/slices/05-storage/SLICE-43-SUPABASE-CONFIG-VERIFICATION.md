@@ -13,7 +13,7 @@
 > **SUPERSEDED (2026-07-26, Slice 37 / DECISIONS #107):** claims below that there is
 > **no** `SUPABASE_URI` are historical. Current truth: `DATABASE_URL` remains
 > canonical; `SUPABASE_URI` is an optional alias when `DATABASE_URL` is unset.
-> Live hosted Path B smoke is recorded in [`gate-evidence/slice-37.json`](../gate-evidence/slice-37.json).
+> Live hosted Path B smoke is recorded in [`gate-evidence/slice-37.json`](../../gate-evidence/slice-37.json).
 
 ---
 
@@ -79,7 +79,7 @@ Static checks passed; no observed end-to-end sweep of a **supabase** example aga
   `rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml`
   *(historical note: checklist originally said `--postgres`; that short flag was removed in Slice 37)*
   (16 runs — dense · sparse · hybrid · cross_encoder, local embeddings)
-- [x] Gate evidence note (command, date, experiment id / outcome) under `docs/plan/gate-evidence/` or PROGRESS Decision Log — **VERIFIED** 2026-07-26: [`slice-43.json`](../gate-evidence/slice-43.json), experiment `dd107437-be69-4d62-a549-003b743ed841`, 16/16 complete
+- [x] Gate evidence note (command, date, experiment id / outcome) under `docs/plan/gate-evidence/` or PROGRESS Decision Log — **VERIFIED** 2026-07-26: [`slice-43.json`](../../gate-evidence/slice-43.json), experiment `dd107437-be69-4d62-a549-003b743ed841`, 16/16 complete
 - [ ] Optional stretch: same config (or smoke twin) against hosted Supabase `DATABASE_URL` — **superseded by residuals §Parked from Slice 38** (full hosted quality matrix, not just smoke)
 
 ### 2. Backend switch is env, not YAML

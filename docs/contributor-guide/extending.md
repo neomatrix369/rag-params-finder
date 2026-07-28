@@ -57,7 +57,7 @@ For most new models of an existing provider, no changes to the factory are neede
 - **Mongo/Atlas:** a new dimension size requires a new Atlas vector index. See
   [MongoDB Setup → step 6](../user-guide/mongodb-setup.md#6-create-search-indexes-m0--required-before-sweep).
 - **Postgres:** add a nullable `embedding_<dims>` column + HNSW index in
-  [`server/db/postgres/schema.sql`](../../server/db/schema.sql) (idempotent on boot). See
+  [`server/db/postgres/schema.sql`](../../server/db/postgres/schema.sql) (idempotent on boot). See
   [Postgres Setup → Schema](../user-guide/postgres-setup.md#schema).
 
 ### 5. Update the example configs

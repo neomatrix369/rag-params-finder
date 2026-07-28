@@ -134,7 +134,7 @@ bash scripts/install-git-hooks.sh
 ./scripts/quality-gates.sh
 ```
 
-See [`development.md`](../contributor-guide/development.md) § Git hooks.
+See [`development.md`](../../../contributor-guide/development.md) § Git hooks.
 
 ---
 
@@ -142,7 +142,7 @@ See [`development.md`](../contributor-guide/development.md) § Git hooks.
 
 - `docs/plan/slices/PROGRESS.md` — roadmap row for this slice
 - [`SLICE-03-SWEEP-EXPANSION.md`](SLICE-03-SWEEP-EXPANSION.md) — baseline sequential behavior
-- [`../contributor-guide/architecture.md`](../contributor-guide/architecture.md) — BackgroundTasks vs future Celery narrative
+- [`../contributor-guide/architecture.md`](../../../contributor-guide/architecture.md) — BackgroundTasks vs future Celery narrative
 
 ## Addendum — 16B Embedding Concurrency Fix (In Place)
 

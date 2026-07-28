@@ -3,7 +3,7 @@
 **Last Updated**: 2026-07-28 (Slice 40 ✅ COMPLETE — theme folders `01`–`07` + README #162; [`slice-40.json`](../gate-evidence/slice-40.json))
 **Current**: **40** ✅. **45** ✅ · **44** ✅ Residual §4 **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending). Migration track: **38** ✅; formal gate-closure debt **32** / **32C** / **32B** / **33**. Then **22** · **28** · **41B**. Deferred Mongo QoL **26/27/19**
 
-PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
+PCTO plan context: [`docs/plan/TRAIL.md`](../TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md)
 
 ---
 
@@ -40,7 +40,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 21 — SIE Skateboard | ✅ COMPLETE | ~4–6 h | SIE embeddings (BGE-M3, Stella-v5); caller-supplied corpus (`corpus: list[str]`); Aim logging; `POST /api/v1/sweep`; enhanced `/health`; `embedder_factory.py` dispatch — spec: [`SLICE-21-SIE-SKATEBOARD.md`](04-sie/SLICE-21-SIE-SKATEBOARD.md) |
 | 24 — Port standardisation | ✅ COMPLETE | ~1 h | Unique static ports: frontend 5173→5374 (avoids Vite default), SIE 8080→8720 (avoids Jenkins/Tomcat/etc.); backend 8001 unchanged — spec: [`SLICE-24-PORT-STANDARDISATION.md`](03-platform/SLICE-24-PORT-STANDARDISATION.md) |
 | 25 — Atlas Local Dev Mode | ✅ COMPLETE | ~1 h | `mongodb-atlas-local` Docker image as opt-in local backend; `local-atlas` compose profile; auto-provision all search indexes on boot for local URI; eliminates M0 512 MB ceiling for local dev — spec: [`SLICE-25-ATLAS-LOCAL.md`](03-platform/SLICE-25-ATLAS-LOCAL.md) |
-| 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | Shipped as `--local`; now `--mongodb-local`; `mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](03-platform/SLICE-25B-ATLAS-SWITCHING.md) |
+| 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | Shipped as `--local`; now `--mongodb-local`; `mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](03-platform/SLICE-25B-ATLAS-SWITCHING.md) |
 | 22 — SIE Scooter | 📋 PLANNED | ~3 h | SIE reranking + SPLADE sparse + `GET /api/v1/best-config` — Must — **after Slice 38** — spec: [`SLICE-22-SIE-SCOOTER.md`](04-sie/SLICE-22-SIE-SCOOTER.md) |
 | 23 — SIE Bicycle | 📋 PLANNED | ~3 h | Ollama + Tier 2–3 retrieval + Evidently AI (Could, post-hackathon) — spec: [`SLICE-23-SIE-BICYCLE.md`](04-sie/SLICE-23-SIE-BICYCLE.md) |
 | 26 — Local MongoDB smooth-path docs | 📦 DEFERRED | ~1 h | Re-scope after Postgres cutover — [`SLICE-26-LOCAL-MONGODB-DOCS.md`](05-storage/SLICE-26-LOCAL-MONGODB-DOCS.md) |
@@ -77,7 +77,7 @@ See [`README.md`](README.md) for the numbered theme map. Specs live under `0N-<t
 
 ## Plan Track (PCTO + storage migration)
 
-Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/`](../plan/gate-evidence/). PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md).
+Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/`](../gate-evidence/). PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md).
 
 | Slice | MoSCoW | Status | Depends on | Notes |
 |-------|--------|--------|------------|-------|
@@ -936,7 +936,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | 10 — Run recovery | Spec: [`SLICE-10-RUN-RECOVERY.md`](01-core-pipeline/SLICE-10-RUN-RECOVERY.md) — `recover` CLI + `POST /experiments/{id}/recover`; per-`run_id` scrub + retry (**FAILED** default; **INTERRUPTED** opt-in); **`RECOVER_ON_BOOT`** retries **INTERRUPTED** only *(not all FAILED)* | Could | ~1–2 h |
 | 11 — Dashboard-triggered runs | Submit experiments from the React UI, not just CLI | Could | ~45 min |
 | 28 — Results export | Spec: [`SLICE-28-RESULTS-EXPORT.md`](02-dashboard/SLICE-28-RESULTS-EXPORT.md) — CSV/JSONL download; [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | **Must** | 📋 PLANNED — @cschanhniem (~1.5 h) |
-| 32–38 — Supabase/pgvector | Dual-backend Protocol → Postgres cutover + ADR-004 — [`PRD`](../plan/PRD-supabase-pgvector-migration.md) | **Must** | 📋 PLANNED — core team next |
+| 32–38 — Supabase/pgvector | Dual-backend Protocol → Postgres cutover + ADR-004 — [`PRD`](../PRD-supabase-pgvector-migration.md) | **Must** | 📋 PLANNED — core team next |
 | 12 — SSE live updates | Replace 2 s polling with Server-Sent Events | Could | ~20 min |
 | 13 — Experiment cleanup CLI | `rag-params-finder cleanup --older-than 30d` | Could | ~15 min |
 | 19 — Storage quota guard | Atlas M0 guard — **📦 DEFERRED**; Postgres stats in Slice 36 | Should | deferred |
@@ -955,7 +955,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 
 ## Release Cadence
 
-**Current version**: v0.11.0 ([CHANGELOG.md](../../CHANGELOG.md))
+**Current version**: v0.11.0 ([CHANGELOG.md](../../../CHANGELOG.md))
 
 **Versioning strategy**: [Semantic Versioning](https://semver.org/) with hybrid approach:
 - **Minor** (0.x.0) — Major slice completion, new features, provider additions
@@ -980,7 +980,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 # 4. Optionally push and create GitHub release
 ```
 
-**See**: [docs/contributor-guide/release-process.md](../contributor-guide/release-process.md) for complete workflow.
+**See**: [docs/contributor-guide/release-process.md](../../contributor-guide/release-process.md) for complete workflow.
 
 **Reminder**: Update CHANGELOG.md **during** development, not at release time. Move items from `## [Unreleased]` to the new version section when ready.
 

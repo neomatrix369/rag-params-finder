@@ -53,7 +53,7 @@ export STORAGE_BACKEND=postgres
 export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 ```
 
-Schema / indexes come from `server/db/schema.sql` on first pool open (no Atlas UI). Hosted Supabase: `--postgres-cloud` + `DATABASE_URL` / `SUPABASE_URI` — [Path B](../user-guide/postgres-setup.md#path-b--hosted-supabase).
+Schema / indexes come from `server/db/postgres/schema.sql` on first pool open (no Atlas UI). Hosted Supabase: `--postgres-cloud` + `DATABASE_URL` / `SUPABASE_URI` — [Path B](../user-guide/postgres-setup.md#path-b--hosted-supabase).
 
 Dual-container smoke: `./scripts/docker/health-check.sh` probes whichever of Atlas Local / pgvector is present.
 

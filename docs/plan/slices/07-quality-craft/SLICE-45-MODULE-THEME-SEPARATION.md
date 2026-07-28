@@ -4,7 +4,7 @@
 
 **Target time:** ~16–24 h (phased by hotspot + FE/BE craft; do not land all phases in one commit)
 **Status:** ✅ COMPLETE
-**Depends on:** Slice 44 taxonomy Should artifacts **IMPLEMENTED** — [`module-theme-map.md`](../../contributor-guide/module-theme-map.md) present with B/F/F tags; canvas published; this stub present. Slice 44 coverage Must + shared floors #142 **COMPLETE** (FE/BE product floors gated).
+**Depends on:** Slice 44 taxonomy Should artifacts **IMPLEMENTED** — [`module-theme-map.md`](../../../contributor-guide/module-theme-map.md) present with B/F/F tags; canvas published; this stub present. Slice 44 coverage Must + shared floors #142 **COMPLETE** (FE/BE product floors gated).
 **Non-blocking:** Structural hygiene + FE/BE construction quality — does not gate PCTO / migration Must slices.
 
 **Origin:** Spun from Slice 44 Should audit on 2026-07-27 (DECISIONS #135). Slice 44 publishes proposals only; **this slice owns filesystem moves and import rewrites**.
@@ -319,7 +319,7 @@ Scenario: Mega-suite split preserves behaviour
 
 ## Before-Checks [GATE]
 
-- [x] Confirm [`module-theme-map.md`](../../contributor-guide/module-theme-map.md) lists five hotspots (**IMPLEMENTED** taxonomy §3) — verified 2026-07-27 (core, db, components, tests, scripts)
+- [x] Confirm [`module-theme-map.md`](../../../contributor-guide/module-theme-map.md) lists five hotspots (**IMPLEMENTED** taxonomy §3) — verified 2026-07-27 (core, db, components, tests, scripts)
 - [x] Slice 44 theme map + this stub reviewed; Reuse Analysis table accepted — architect APPROVED iter2 (#145); Declared Imports + forbidden-roots present
 - [x] Branch `slice/45-module-theme-separation` created
 - [x] Baseline `./scripts/ci/quality-gates.sh` green before first move (includes FE/BE #142 floors) — **VERIFIED 2026-07-27** exit 0 on branch `slice/45-module-theme-separation`
@@ -371,7 +371,7 @@ One hotspot / one craft theme per PR when possible.
 
 ## Gate Status
 
-✅ COMPLETE — Must + Should + scripts Could + deferred Could leftovers (#161: FE docstrings, coverage drift guard, BE GWT-on-touch) landed; After-Checks closed 2026-07-28; evidence [`slice-45.json`](../gate-evidence/slice-45.json); mutation waived #160; nw-software-crafter-reviewer close-out **APPROVED**.
+✅ COMPLETE — Must + Should + scripts Could + deferred Could leftovers (#161: FE docstrings, coverage drift guard, BE GWT-on-touch) landed; After-Checks closed 2026-07-28; evidence [`slice-45.json`](../../gate-evidence/slice-45.json); mutation waived #160; nw-software-crafter-reviewer close-out **APPROVED**.
 
 ## Remediation pass (2026-07-27)
 
@@ -402,7 +402,7 @@ Re-approve only if Must Python move tables change; FE/BE Should/Could addenda do
 
 ## Related
 
-- [`module-theme-map.md`](../../contributor-guide/module-theme-map.md)
+- [`module-theme-map.md`](../../../contributor-guide/module-theme-map.md)
 - [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) §3 + nw-review APPROVED
 - DECISIONS #135, #137, #142 (#129 dual-backend independence)
 - PR #121 (Slice 44 delivery)

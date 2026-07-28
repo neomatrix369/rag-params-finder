@@ -6,7 +6,7 @@
 **Depends on:** 37
 **Branch:** `slice/38-cutover-adr-004`
 **PR:** https://github.com/neomatrix369/rag-params-finder/pull/118
-**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md) §6.6, §9
+**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../../PRD-supabase-pgvector-migration.md) §6.6, §9
 
 > **Closed 2026-07-26:** ADR-004 Accepted · local comparison VERIFIED · CI dual-backend recorded · **no default flip** (DECISIONS #130 Won't) — code default stays `mongodb`; backends independently selectable (#129).
 

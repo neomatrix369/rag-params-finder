@@ -102,7 +102,7 @@ Scenario: example-mongodb-sie.yaml loads and expands sweep for SIE provider
 - [ ] Branch `slice/21-sie-skateboard` created from latest `main` and checked out
 - [ ] Conventional Commits format confirmed: `feat(sie): ...` — write WHY not WHAT; no Co-authored-by
 - [ ] Previous slice gate status is PASSED (Slice 20 — Toolchain hardening ✅)
-- [ ] SIE Docker running — see [SIE Provider Setup](../user-guide/sie-setup.md) for the canonical `docker run` command, warm-up polling, and known log messages (503 encode, disk-cache WARNING)
+- [ ] SIE Docker running — see [SIE Provider Setup](../../../user-guide/sie-setup.md) for the canonical `docker run` command, warm-up polling, and known log messages (503 encode, disk-cache WARNING)
 - [ ] SIE **model ready** (not just `/healthz`): encode probe returns HTTP 200 — `curl -sf -o /dev/null -X POST http://localhost:8720/v1/encode/BAAI/bge-m3 -H "Content-Type: application/json" -d '{"items":[{"text":"probe"}]}'`
 - [ ] `HF_TOKEN` present in `.env`
 - [ ] All existing quality gates pass: `./scripts/quality-gates.sh`

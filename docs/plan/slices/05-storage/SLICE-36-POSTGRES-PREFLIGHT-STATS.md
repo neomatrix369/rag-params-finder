@@ -4,7 +4,7 @@
 **Target time:** ~3–4 h
 **Status:** ✅ COMPLETE
 **Depends on:** 35
-**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md)
+**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../../PRD-supabase-pgvector-migration.md)
 
 > Absorbs deferred Slice 27 (Mongo cloud vs local indicator) into a **four-value** `storage_mode` that mirrors the operator flag vocabulary from Slice 37.
 
@@ -77,7 +77,7 @@ An operator who sees `postgres-cloud` on the badge knows the exact flag that wil
 
 ## Preflight behaviour (Postgres-native, not Atlas Admin API)
 
-Indexes come from [`schema.sql`](../../../server/db/schema.sql) at pool bootstrap. Preflight **introspects** required HNSW/GIN and returns 422 only when DDL/extension is missing or wrong — not an Atlas quota/create/reconcile dance.
+Indexes come from [`schema.sql`](../../../../server/db/postgres/schema.sql) at pool bootstrap. Preflight **introspects** required HNSW/GIN and returns 422 only when DDL/extension is missing or wrong — not an Atlas quota/create/reconcile dance.
 
 **Module decision (DECISIONS #83 option A):** extend `search_index_guard.py` + `search_index_plan.py` for a Postgres branch — do **not** create `postgres_index_guard.py` or an IndexBackend Protocol in this slice.
 

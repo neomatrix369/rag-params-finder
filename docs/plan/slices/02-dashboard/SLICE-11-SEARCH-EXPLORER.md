@@ -5,7 +5,7 @@
 **MoSCoW**: Could
 **Depends on**: none *(soft: Slice **30** UX baseline recommended — see execution order)*
 **Estimated time**: ~30–45 min
-**Execution order**: After **30** (UX fixes) and **31** (list filter); see [`TRAIL.md`](../plan/TRAIL.md)
+**Execution order**: After **30** (UX fixes) and **31** (list filter); see [`TRAIL.md`](../../TRAIL.md)
 
 ## Scope boundary
 

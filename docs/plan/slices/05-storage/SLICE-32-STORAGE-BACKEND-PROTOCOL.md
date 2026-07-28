@@ -5,7 +5,7 @@
 **Status:** 🔨 IN PROGRESS (implementation on branch; craft remediation → [Slice 32C](SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md); verification gates → [Slice 32B](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md))
 **Depends on:** none
 **Unblocks:** Slice 32C (review remediation) → Slice 32B (gate closure) → Slice 33
-**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
+**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../../PRD-supabase-pgvector-migration.md)
 **PR:** [#110](https://github.com/neomatrix369/rag-params-finder/pull/110)
 
 ---

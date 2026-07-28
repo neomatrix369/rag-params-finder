@@ -4,7 +4,7 @@
 **Target time:** ~4–6 h
 **Status:** 🔨 IN PROGRESS
 **Depends on:** 32B
-**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md)
+**PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../../PRD-supabase-pgvector-migration.md)
 
 > **Naming:** Supabase is hosted Postgres. This slice implements the Postgres/pgvector layer that Supabase runs in production and Docker pgvector runs locally (Path A). Hosted Path B operator DX lands in Slice 37.
 
@@ -21,7 +21,7 @@
   - `server/db/postgres_store.py` — `StorageBackend` impl
   - `server/db/postgres_stats.py` — stats / explore helpers (partial; Slice 36 extends)
   - `server/db/stats_common.py` — backend-agnostic db-stats assembly
-  - `server/db/schema.sql` — experiments, run_status, chunks, results + HNSW indexes
+  - `server/db/postgres/schema.sql` — experiments, run_status, chunks, results + HNSW indexes
   - `server/db/store_factory.py` — returns Postgres adapters when `STORAGE_BACKEND=postgres`
   - `pyproject.toml` — `psycopg[binary]`; keep pymongo
   - `docker-compose.yml` — `postgres-local` service under `local-postgres` profile
@@ -48,7 +48,7 @@ Ship Postgres/pgvector schema and CRUD for experiments, run_status, chunks, and 
 |---|---|
 | Local one-command | `./start-services.sh --postgres` (alias; Slice 37 renames to `--postgres-local`) |
 | Cloud / hosted | Out of scope — Slice 37 |
-| Docs | [`postgres-setup.md`](../../user-guide/postgres-setup.md) Path A; Path B expanded in 37 |
+| Docs | [`postgres-setup.md`](../../../user-guide/postgres-setup.md) Path A; Path B expanded in 37 |
 | Example config | `configs/supabase/example-local.yaml` (not `example-supabase-local.yaml`) |
 
 ---
@@ -124,7 +124,7 @@ Scenario: External experiment_id preserved
 - [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors
 - [x] Mongo backend still green (dual-backend regression) — full suite passes
 - [x] Local pgvector profile documented for manual smoke —
-      [`docs/user-guide/postgres-setup.md`](../../user-guide/postgres-setup.md) Path A
+      [`docs/user-guide/postgres-setup.md`](../../../user-guide/postgres-setup.md) Path A
 - [x] `.env.example` documents `STORAGE_BACKEND` + `DATABASE_URL`
 - [x] `./scripts/quality-gates.sh` passes
 - [x] Doc audit: `.env.example`, `configuration.md` env vars, new `postgres-setup.md`

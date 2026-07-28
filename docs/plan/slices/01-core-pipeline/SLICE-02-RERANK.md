@@ -56,4 +56,4 @@ bash scripts/install-git-hooks.sh   # once — essential checks on commit and pu
 ./scripts/quality-gates.sh          # full mirror before PR
 ```
 
-See [`development.md`](../contributor-guide/development.md) § Git hooks.
+See [`development.md`](../../../contributor-guide/development.md) § Git hooks.

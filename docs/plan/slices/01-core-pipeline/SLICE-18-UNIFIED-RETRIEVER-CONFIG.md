@@ -95,7 +95,7 @@ retrieval:
 
 ### Quality Gates
 - [ ] `bash scripts/install-git-hooks.sh` run on dev machine (commit + pre-push hooks)
-- [ ] `./scripts/quality-gates.sh` passes (full CI mirror before PR — see [`development.md`](../contributor-guide/development.md))
+- [ ] `./scripts/quality-gates.sh` passes (full CI mirror before PR — see [`development.md`](../../../contributor-guide/development.md))
 - [ ] `git push` succeeds with pre-push hook (`pre-push-gates.sh`) or run `./scripts/quality-gates.sh --quick` manually
 
 ### Manual Verification
