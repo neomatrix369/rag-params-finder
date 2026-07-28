@@ -96,7 +96,7 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/SLICE-14-DOCKER-COMPOSE.md). T
 
 Run all gates before committing. All must pass with zero regressions.
 
-**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit`, `docker-build`, `license-check`, `container-scan` (eight jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM/CycloneDX, Meterian OSS SCA + archived reports, container scan, Chalk provenance, dependency-audit, full-secrets-scan — every night 02:00 UTC, also manually triggerable via `workflow_dispatch`).
+**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit`, `docker-build`, `license-check`, `container-scan` (eight jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM/CycloneDX, Meterian OSS SCA + archived reports, container scan, Chalk provenance, dependency-audit, full-secrets-scan — every night 02:00 UTC, also manually triggerable via `workflow_dispatch`). **Note:** Node Stryker currently times out after Slice 44 suite growth — see Nightly Stryker residual below / Slice 44 Residual §4 (#163).
 
 | Layer | Tools |
 |-------|--------|
@@ -413,6 +413,8 @@ GitHub Actions has two workflows (see `.github/workflows/`):
 
 **nightly.yml** — every night 02:00 UTC (T4 deep checks):
 `mutmut` (Python mutation) · `Stryker` (Node mutation) · `TruffleHog` (full git history) · `anchore/sbom-action` (CycloneDX SBOM artifact) · Trivy license compliance · **Meterian** SCA + license (`oss: true`, no `METERIAN_API_TOKEN`; scanners pinned to Python + Node via `--enabled-scanners=python,nodejs`; archives `meterian-<run>`: HTML, JUnit, SARIF, `sbom.cdx.json`, `sbom.csv` for vendor comparison with Anchore; security exclusions in root [`.meterian`](../../.meterian) — Trivy image parity is [`.trivyignore`](../../.trivyignore)) · container scan (Dockerfile-gated) · Chalk provenance · dependency-audit · full-secrets-scan
+
+**Nightly Stryker (Node) — known residual (Slice 44 §4 / DECISIONS #163):** After Slice 44 raised the FE suite (~16 → ~252 dry-run tests), full-tree `mutate` (~3770 mutants) exceeds the job’s 60‑minute GHA limit — jobs cancel with no `frontend/reports/mutation/` artifact ([example run](https://github.com/neomatrix369/rag-params-finder/actions/runs/30329826459/job/90182449893)). **DECIDED** fix (not yet **IMPLEMENTED**): narrow mutate to `utils` / `services` / `hooks`, plus ignoreConstants/stringLiterals and concurrency — see [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](../plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md) Residual §4. Do not treat a green Nightly badge as proof that Node mutation reports uploaded.
 
 Local `./scripts/security/security-scan.sh --meterian` still uses the Docker CLI path and remains token-gated (`METERIAN_API_TOKEN`) — that is separate from the nightly GHA OSS job. Both paths honor `.meterian` when the file is present at the repo root.
 

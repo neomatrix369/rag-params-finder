@@ -178,9 +178,9 @@
       "production_import_moves": false
     },
     "mutation_testing": {
-      "status": "waived",
-      "rationale": "CI-hygiene slice; coverage expansion is mostly UI/component GWT — DECISIONS #138/#139"
+      "status": "waived_local_with_nightly_residual",
+      "rationale": "Local Stryker waived for CI-hygiene slice (#138/#139). Nightly was intended to carry FE mutation signal; after Slice 44 suite growth, Nightly Node Stryker cancels at GHA 1h (RESEARCH 2026-07-28 run 30329826459). Residual §4 / DECISIONS #163 DECIDED — narrow mutate — not yet IMPLEMENTED."
     }
   },
-  "lifecycle": "VERIFIED / PASSED — Phase A + Phase B + mop-up + shared floors #142 (FE 95/90/95/95; BE 95/90/n/a/95 via fail_under + JSON checker)"
+  "lifecycle": "VERIFIED / PASSED — Phase A + Phase B + mop-up + shared floors #142 (FE 95/90/95/95; BE 95/90/n/a/95 via fail_under + JSON checker); Residual §4 Nightly Stryker OPEN (#163)"
 }

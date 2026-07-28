@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-27 (Slice 44 ✅ + fair FE/BE coverage floors — DECISIONS #141)
-**Current**: Active migration: **38** 🔨 cutover + ADR-004 (partial — remediations/pins/ADR/CI done; Postgres twin comparison running). **37** ✅ local/cloud parity. Parallel track: **32** 🔨 / **32C** 📋 / **32B** 📋 · **33** 🔨. Then **22** · **28** · **41B**. **36** ✅. **43** ✅. **44** ✅. Deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-28 (Slice 44 residual §4 — Nightly Stryker after suite growth; #163)
+**Current**: **45** ✅ · **44** ✅ with **residual §4 open** (Nightly Stryker #163) · **40** 📋 (theme folders #162). Migration track: **38** ✅; formal gate-closure debt **32** / **32C** / **32B** / **33**. Then **22** · **28** · **41B**. Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../plan/GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../plan/PRD-supabase-pgvector-migration.md)
 
@@ -64,7 +64,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) · Gap analysis: [`d
 | 41C — Bayesian Search: Extended | 📋 PLANNED | ~3–4 h | All questions resolved (A1 SQLite, A2 waived, A4 N=20, D3 sweep_summary keys, D7 RandomConfig); blocked only on 41B ✅: study persistence, categorical axes, random search, dashboard card, default promotion — [`SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md`](SLICE-41C-BAYESIAN-SEARCH-EXTENDED.md) |
 | 42 — Docker Build Optimisation | ✅ COMPLETE | ~2–3 h | Multi-stage server/frontend Dockerfiles; BuildKit cache mounts; nginx:alpine runtime (62 MB); CI docker-build job (non-blocking, path-scoped) — [PR #107](https://github.com/neomatrix369/rag-params-finder/pull/107) |
 | 43 — Supabase example-config verification | ✅ COMPLETE | ~1–2 h | **Could** — 16/16 local Postgres smoke runs complete; operator docs distinguish `STORAGE_BACKEND` from `database_provider` and explain env asymmetry — [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) |
-| 44 — Frontend coverage + gate summary | ✅ COMPLETE | Phase A+B + #142 | FE **95/90/95/95**; BE **95/90/n/a/95** (`fail_under` + JSON floor checker) — DECISIONS #142 — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) · [`gate-evidence/slice-44.json`](../gate-evidence/slice-44.json) |
+| 44 — Frontend coverage + gate summary | ✅ COMPLETE | Phase A+B + #142 | FE **95/90/95/95**; BE **95/90/n/a/95** (`fail_under` + JSON floor checker) — DECISIONS #142 — **Residual §4 open** Nightly Stryker (#163) — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) · [`gate-evidence/slice-44.json`](../gate-evidence/slice-44.json) |
 | 45 — Module theme separation + FE/BE craft | ✅ COMPLETE | ~16–24 h | Hotspots 1–5 **IMPLEMENTED**; FE/BE craft + scripts themes; Could leftovers #161; floors green; mutation #160; evidence [`slice-45.json`](../gate-evidence/slice-45.json) — [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) · [PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130) |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
@@ -116,6 +116,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 
 | Date | Item | Outcome |
 |------|------|---------|
+| 2026-07-28 | Slice 44 residual §4 — Nightly Stryker 1h timeout (#163) | Slice 44 PR #121 grew FE dry-run 16→252 tests; Nightly Stryker (~3770 mutants) cancels at GHA 1h with no artifact ([run 30329826459](https://github.com/neomatrix369/rag-params-finder/actions/runs/30329826459/job/90182449893)). Todos on [`SLICE-44`](SLICE-44-FRONTEND-COVERAGE-GATE.md) Residual §4: Must narrow mutate; Should ignore*/concurrency/progress; Could timeout/pin; NIT upload-artifact@v5. **PROPOSED**. |
 | 2026-07-27 | Meterian `.meterian` exclusions (chore/project-hygiene) | Added root `.meterian` (CVE + langsmith library waivers) for findings with no congruent lock fix — aim 4.x yanked, langchainjs CVE mis-attributed to Python, transformers blocked on ST&lt;4, langsmith≥0.8.18 blocked on sie-sdk websockets&lt;15. Parity with `.trivyignore` / `pip-audit.sh`. Docs: `development.md` + `nightly.yml` comment. **IMPLEMENTED**; **VERIFIED** pending next Meterian nightly/`workflow_dispatch`. |
 | 2026-07-27 | Meterian nightly OSS + stack pin + artifacts (chore/project-hygiene) | Fixed GHA wiring: `oss: true` (public MIT; no token), `cli_args` (was invalid `meterian-args`), dropped `setup-java`, pinned `--enabled-scanners=python,nodejs` + `--scan-java=false`, archives `meterian-<run>` (HTML/JUnit/SARIF + `sbom.cdx.json`/`sbom.csv`). `meterian-reports/` gitignored. Local `security-scan.sh --meterian` remains Docker CLI + token-gated. **IMPLEMENTED** in `nightly.yml`; **VERIFIED** pending a successful nightly/`workflow_dispatch` run. |
 | 2026-07-26 | Configs split: `configs/mongodb/` + `configs/supabase/` | Example YAMLs reorganised by backend with mirrored stems; shared `questions.example.json` at `configs/`. Docs/CLI/agent entry points + `test_config_examples.py` updated. Supabase twins use `database_provider: supabase`; sparse/hybrid still Slice 35. |
@@ -865,8 +866,8 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-05-27 | 20 | Pre-push (superseded 2026-05-28) | Was `pre-commit --all-files` on push — replaced by `quality-gates.sh --quick` for pytest + frontend verify |
 | 2026-07-28 | 45 | Close Slice 45 — gate-evidence + mutation waive #160 | Must+Should+scripts Could verified; optional FE docstring / drift-guard / BE GWT Could deferred; PR #130 |
 | 2026-07-28 | 45 | Land Slice 45 Could leftovers (#161) | FE Scenario/Slice docstrings; coverage threshold drift guard; BE GWT-on-touch on moved suites |
+| 2026-07-28 | 44 | Nightly Stryker residual after suite growth (#163) | Narrow mutate to utils/services/hooks; ignoreConstants/stringLiterals; concurrency+progress; optional timeout/pin; NIT artifact@v5 — restores #138/#160 nightly signal; Won't full-screen mutate. Owned on SLICE-44 Residual §4 (not a new slice) |
 | 2026-07-28 | 40 | Slice theme folders numbered by delivery wave (#162) | Specs → `01-core-pipeline` … `07-quality-craft`; PROGRESS + gate-evidence stay flat; no date folders; keep 32/32C/32B together |
-
 ---
 
 ## Blockers & Issues
@@ -940,7 +941,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | 30 — Search Explorer UX fixes | Spec: [`SLICE-30-SEARCH-EXPLORER-UX.md`](SLICE-30-SEARCH-EXPLORER-UX.md) — tab switch latency, zero-score noise, BM25 score labels, VDB card default-expanded | Could | ~2 h |
 | 31 — Experiment list filter | Spec: [`SLICE-31-EXPERIMENT-LIST-FILTER.md`](SLICE-31-EXPERIMENT-LIST-FILTER.md) — status dropdown + name/ID search above experiments table | Should | ~2 h |
 | 43 — Supabase config verification | Spec: [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) — live smoke of supabase examples; `STORAGE_BACKEND` vs YAML provider docs; hosted short-config guidance | Could | ~1–2 h |
-| 44 — Frontend coverage gate | Spec: [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) — Must: embed coverage table/floor in quality-gates + pre-push + CI (**VERIFIED**); Should: FE tests + structure taxonomy (§3) — ✅ COMPLETE 2026-07-27 | Should | ~3–4 h |
+| 44 — Frontend coverage gate | Spec: [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](SLICE-44-FRONTEND-COVERAGE-GATE.md) — Must: embed coverage table/floor in quality-gates + pre-push + CI (**VERIFIED**); Should: FE tests + structure taxonomy (§3) — ✅ COMPLETE 2026-07-27; **Residual §4 open** Nightly Stryker after suite growth (#163) | Should | ✅ + residual |
 | ~~45 — Module theme separation + FE/BE craft~~ | Spec: [`SLICE-45-MODULE-THEME-SEPARATION.md`](SLICE-45-MODULE-THEME-SEPARATION.md) — hotspots 1–5 + FE/BE craft + scripts themes; mutation #160 — ✅ COMPLETE 2026-07-28 · [`slice-45.json`](../gate-evidence/slice-45.json) · [PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130) | Could | ✅ Done |
 
 ---
@@ -984,6 +985,7 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-07-28 | main | /sync-docs | 44 Residual §4 / #163 | APPLIED | Feature-delta for documented Nightly Stryker timeout: `development.md` honest residual note; CHANGELOG Unreleased Changed (**DECIDED**, not IMPLEMENTED); `slice-44.json` mutation + lifecycle residual; HANDOFF Where We Are. Trackers (PROGRESS/TRAIL/DECISIONS/SLICE-44) already had §4. No user-guide. CLAUDE.md Nightly claims absent — no change. |
 | 2026-07-27 | chore/project-hygiene | /sync-docs | Meterian `.meterian` exclusions | APPLIED | Feature-delta sync: `.meterian` already present; corrected stale `.trivyignore` langsmith blocker (sie-sdk websockets&lt;15; SUPERSEDES “core pre-release”); TRAIL deferred rows for ST4/transformers, langsmith, aim; `development.md` SCA suppressions triad; `pip-audit.sh` + `security-scan.sh` (`-w /workspace`) parity comments; CHANGELOG Security + TRAIL link. No user-guide. Evidence **IMPLEMENTED**; **VERIFIED** pending Meterian nightly. |
 | 2026-07-27 | chore/project-hygiene | (manual) | Meterian `.meterian` exclusions | APPLIED | Root `.meterian` + `nightly.yml` comment + `development.md` pointer + PROGRESS/CHANGELOG. Waives aim CVE-2025-51464/5321, langchain CVE-2024-7774, transformers CVE-2026-4372/5241/1839, langsmith 0.8.0 (GHSA-f4xh). **IMPLEMENTED**; **VERIFIED** pending Meterian nightly. |
 | 2026-07-27 | chore/project-hygiene | /sync-docs | Meterian nightly OSS + artifacts | APPLIED | `development.md`: nightly Meterian described as OSS (`oss: true`), Python/Node pin, archived reports + dual SBOM; local script still token-gated. `PROGRESS.md`: maintenance + decision rows (SUPERSEDES API-key-gated / no-artifacts). `CHANGELOG` Unreleased Changed. No user-guide changes (CI internals). Evidence: **IMPLEMENTED** in `nightly.yml`; not **VERIFIED** until a nightly run succeeds. |

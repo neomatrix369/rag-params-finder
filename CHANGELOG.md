@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Nightly Stryker residual documented** (Slice 44 Residual §4 / DECISIONS #163) — Node mutation job cancels at the GHA 1h limit after Slice 44 suite growth (~16 → ~252 dry-run tests); full-tree mutate still ~3770 mutants. Fix direction **DECIDED** (narrow mutate to utils/services/hooks + ignore*/concurrency); not yet **IMPLEMENTED**. Tracker: [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](docs/plan/slices/SLICE-44-FRONTEND-COVERAGE-GATE.md) Residual §4; contributor note in [`development.md`](docs/contributor-guide/development.md).
 - **Slice 45 Could leftovers** — FE Scenario/Slice narrative docstrings on shared primitive suites; `scripts/ci/check_coverage_threshold_drift.py` locks Vitest thresholds to `[tool.rag_params_finder.coverage_thresholds]` (incl. `functions=95`); BE GWT-on-touch markers + Slice tags on moved/split suites (DECISIONS #161).
 - **Docs sync (Slice 45)** — theme map + architecture/development/CLAUDE/AGENTS/docs index reflect IMPLEMENTED hotspots 1–5; flat `scripts/*` shims deprecate toward `scripts/{ci,docker,release,security}/`.
 - **Slice 45 (scripts theme folders)** — moved ops scripts into `scripts/ci/`, `scripts/docker/`, `scripts/release/`, `scripts/security/` (DECISIONS #159); `lib/` unchanged.

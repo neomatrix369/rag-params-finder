@@ -6,7 +6,7 @@
 
 **ADR-004 Accepted**; local comparison VERIFIED; CI dual-backend ✅; mutation waived (#128). **No default flip** (#130 Won't) — code default stays `mongodb` permanently; backends independently selectable (#129).
 
-**44** ✅ COMPLETE on `slice/44-frontend-coverage-gate` — **#142**: FE **95/90/95/95**; BE **95/90/n/a/95** (`fail_under=95` + `scripts/ci/check_backend_coverage_floors.py`); measured FE ≈98.4 / 93.11 / 100 / 99.69; BE stmts ≈98.6 / br ≈95.2 / TOTAL ≈97.7; **261** FE / **338** BE unit tests (**VERIFIED**).
+**44** ✅ COMPLETE on `slice/44-frontend-coverage-gate` — **#142**: FE **95/90/95/95**; BE **95/90/n/a/95** (`fail_under=95` + `scripts/ci/check_backend_coverage_floors.py`); measured FE ≈98.4 / 93.11 / 100 / 99.69; BE stmts ≈98.6 / br ≈95.2 / TOTAL ≈97.7; **261** FE / **338** BE unit tests (**VERIFIED**). **Residual §4 open** — Nightly Stryker 1h timeout after suite growth (#163; **DECIDED**, not **IMPLEMENTED**).
 
 **45** ✅ COMPLETE on `slice/45-module-theme-separation` ([PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130)) — hotspots 1–5 **IMPLEMENTED**; FE/BE craft; scripts themes; Could leftovers #161 (docstrings, coverage drift guard, GWT-on-touch); mutation #160; evidence [`slice-45.json`](gate-evidence/slice-45.json).
 
@@ -22,7 +22,7 @@
 
 ## What's Next
 
-1. Merge [PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130) (Slice 45) when review-ready
+1. Slice **44 Residual §4** — Nightly Stryker budget (#163): narrow mutate + ignore* + concurrency after suite growth timed out at 1h ([run 30329826459](https://github.com/neomatrix369/rag-params-finder/actions/runs/30329826459/job/90182449893)) — [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](slices/SLICE-44-FRONTEND-COVERAGE-GATE.md) § Residual 4
 2. Slice **40** — theme folders `01`–`07` + plan/slices SSOT (#162) when prioritized
 3. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 if prioritized
 4. Forward-roadmap Could/Should items (export, SSE, recovery, etc.) per [`PROGRESS.md`](slices/PROGRESS.md)
@@ -59,3 +59,4 @@
 | 160 | Slice 45 mutation waived to nightly CI |
 | 161 | FE↔pyproject coverage drift guard + FE docstring / BE GWT-on-touch Could leftovers |
 | 162 | Slice specs → numbered theme folders `01`–`07` (delivery wave); PROGRESS + gate-evidence stay flat (Slice 40) |
+| 163 | Slice 44 Residual §4 — Nightly Stryker after suite growth (narrow mutate to utils/services/hooks) |
