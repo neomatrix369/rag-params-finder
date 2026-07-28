@@ -387,6 +387,7 @@ Record every non-obvious choice in `docs/plan/slices/PROGRESS.md` → Decision L
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
 [ ] Consider release: ./scripts/release/release.sh minor (slices/features) or patch (fixes/polish)
+    Creates release/vX.Y.Z + PR — never push the bump to main; tag after merge
     See docs/plan/slices/PROGRESS.md § Release Cadence for guidance
 ```
 

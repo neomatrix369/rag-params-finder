@@ -256,6 +256,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 [ ] Decisions logged in PROGRESS.md Decision Log
 [ ] Committed with a short, specific message
 [ ] Consider release: ./scripts/release/release.sh minor (slices/features) or patch (fixes/polish)
+    Creates release/vX.Y.Z + PR — never push the bump to main; tag after merge
     See PROGRESS.md § Release Cadence for guidance
 ```
 
@@ -293,17 +294,17 @@ See [docs/contributor-guide/release-process.md](docs/contributor-guide/release-p
 
 **Quick reference**:
 ```bash
-# Create a new release (minor version bump for new slices/features)
+# From clean main — creates release/vX.Y.Z, opens PR (does not push main)
 ./scripts/release/release.sh minor
 
-# Create a patch release (bug fixes, polish)
+# Patch release (bug fixes, polish)
 ./scripts/release/release.sh patch
 
-# Check current version
+# After the PR merges: tag + GitHub release on main (see release-process.md §4)
 rag-params-finder version
 ```
 
-The project follows [Semantic Versioning](https://semver.org/). Release automation via `scripts/release/release.sh` handles version updates, CHANGELOG.md updates, git tagging, and optional GitHub release creation.
+The project follows [Semantic Versioning](https://semver.org/). `scripts/release/release.sh` bumps versions on a `release/vX.Y.Z` branch and opens a PR to `main`; tag and GitHub release happen **after** merge. Never push a version bump directly to `main`.
 
 ## Further Reading
 

@@ -39,6 +39,8 @@ Create a new release when:
 
 ## Creating a Release
 
+**Hard rule**: never push a version bump directly to `main`. Always cut a `release/vX.Y.Z` branch, open a PR, merge, then tag + GitHub release on `main`. The repo’s Active **Protect-main-branch** ruleset requires a pull request before merging (and blocks force-pushes / deletions).
+
 ### 1. Complete the work
 
 - Finish slice implementation
@@ -46,13 +48,16 @@ Create a new release when:
 - All quality gates pass: `./scripts/ci/quality-gates.sh` (full CI mirror; `git push` runs essential pre-commit hooks when installed)
 - Update `docs/plan/slices/PROGRESS.md` to mark slice complete
 - Commit work with clear messages
+- Start from a clean, up-to-date `main`: `git checkout main && git pull origin main`
 
 ### 2. Update CHANGELOG.md
 
-Add new section under `## [Unreleased]`:
+On the release branch (the script creates it), promote `## [Unreleased]` to a dated version section:
 
 ```markdown
-## [0.12.0] - YYYY-MM-DD
+## [Unreleased]
+
+## [0.13.0] - YYYY-MM-DD
 
 ### Added
 - Feature description (what it does, why it matters)
@@ -64,7 +69,7 @@ Add new section under `## [Unreleased]`:
 - What bugs were fixed
 ```
 
-Move appropriate items from `## [Unreleased]` to the new version.
+Also refresh **Current version** under Release Cadence in `docs/plan/slices/PROGRESS.md`.
 
 ### 3. Run the release script
 
@@ -80,20 +85,30 @@ Move appropriate items from `## [Unreleased]` to the new version.
 ```
 
 The script will:
-1. Calculate next version
-2. Update `pyproject.toml`, `frontend/package.json`
-3. Prompt you to verify CHANGELOG.md
-4. Create commit: "chore: Bump version to X.Y.Z"
-5. Create annotated git tag with CHANGELOG excerpt
-6. Ask permission to push
-7. Optionally create GitHub release (if `gh` CLI installed)
+1. Require clean `main`
+2. Create branch `release/vX.Y.Z` (never bumps on `main`)
+3. Calculate next version and update `pyproject.toml`, `frontend/package.json`
+4. Prompt you to verify CHANGELOG.md (+ PROGRESS cadence)
+5. Create commit: `chore: Bump version to X.Y.Z` on the release branch
+6. Ask permission to push the **branch** and open a PR to `main` (does **not** push `main`)
 
-### 4. Verify the release
+### 4. After the PR merges
+
+On updated `main`:
+
+```bash
+git checkout main && git pull origin main
+git tag -a "vX.Y.Z" -m "Release X.Y.Z"
+git push origin "vX.Y.Z"
+gh release create "vX.Y.Z" --title "vX.Y.Z" --notes "$(awk '/^## \[X.Y.Z\]/{p=1} p{if(/^## \[/ && !/^## \[X.Y.Z\]/){exit} print}' CHANGELOG.md)"
+```
+
+### 5. Verify the release
 
 Check:
 - GitHub releases: `https://github.com/neomatrix369/rag-params-finder/releases`
 - Git tags: `git tag -l`
-- CLI version: `rag-params-finder version` (should show new version)
+- CLI version: `.venv/bin/rag-params-finder version` (should show new version)
 
 ---
 
@@ -113,12 +128,7 @@ For urgent fixes to a released version:
    ./scripts/release/release.sh patch
    ```
 
-4. Merge back to main:
-   ```bash
-   git checkout main
-   git merge hotfix/0.11.1
-   git push origin main
-   ```
+4. Open a PR from the hotfix branch into `main` (do not push the bump straight to `main`). After merge, tag + GitHub release as in §4 above.
 
 ---
 
@@ -223,32 +233,34 @@ This auto-generates release notes from commits between tags.
 
 ## Scripts Reference
 
-### `scripts/bump_version.py`
+### `scripts/release/bump_version.py`
 
 Semantic version bumper (used by `release.sh`):
 
 ```bash
-./scripts/bump_version.py 0.11.0 minor  # → 0.12.0
-./scripts/bump_version.py 0.11.0 patch  # → 0.11.1
-./scripts/bump_version.py 0.11.0 major  # → 1.0.0
+./scripts/release/bump_version.py 0.12.0 minor  # → 0.13.0
+./scripts/release/bump_version.py 0.12.0 patch  # → 0.12.1
+./scripts/release/bump_version.py 0.12.0 major  # → 1.0.0
 ```
 
 ### `scripts/release/release.sh`
 
-Full release workflow:
+Full release workflow (branch + PR; never pushes the bump to `main`):
 
 ```bash
-./scripts/release/release.sh minor  # Bump minor version
-./scripts/release/release.sh patch  # Bump patch version
-./scripts/release/release.sh major  # Bump major version (rare)
+./scripts/release/release.sh minor  # Create release/vX.Y.Z + PR
+./scripts/release/release.sh patch  # Same for patch
+./scripts/release/release.sh major  # Same for major (rare)
 ```
 
-### `scripts/create_github_releases.sh`
+After the PR merges, tag and create the GitHub release on `main` (see §4 above).
+
+### `scripts/release/create_github_releases.sh`
 
 Batch create GitHub releases for all tags (used for retrospective releases):
 
 ```bash
-./scripts/create_github_releases.sh
+./scripts/release/create_github_releases.sh
 ```
 
 Requires `gh` CLI authenticated (`gh auth login`).
