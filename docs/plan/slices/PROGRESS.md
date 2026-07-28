@@ -955,7 +955,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 
 ## Release Cadence
 
-**Current version**: v0.11.0 ([CHANGELOG.md](../../../CHANGELOG.md))
+**Current version**: v0.12.0 ([CHANGELOG.md](../../../CHANGELOG.md))
 
 **Versioning strategy**: [Semantic Versioning](https://semver.org/) with hybrid approach:
 - **Minor** (0.x.0) — Major slice completion, new features, provider additions

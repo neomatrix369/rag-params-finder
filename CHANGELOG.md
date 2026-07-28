@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-28
+
 ### Added
 
 - **Module theme map** (Slice 44 Should §3) — Behavior | Feature | Function taxonomy for five flat hotspots ([module-theme-map.md](docs/contributor-guide/module-theme-map.md)); Slice 45 landed all five hotspot moves (**IMPLEMENTED**; gate evidence [slice-45.json](docs/plan/gate-evidence/slice-45.json)).
