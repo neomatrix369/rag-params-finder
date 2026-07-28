@@ -348,6 +348,7 @@ Scenario: Mega-suite split preserves behaviour
 - [ ] FE craft phases: shared `test/helpers` used by moved/shrunk suites; Decision Log notes pre→post screen line counts
 - [x] BE craft phases: orchestrator/pipeline split green; Protocols + factories unchanged; BE **95/90/n/a/95** still green; Decision Log notes pre→post orchestrator line counts
 - [x] BE craft phases (when claimed): mega-suite split or fat-surface slim landed without intentional coverage loss
+- [x] FE craft phases (when claimed): screen SLAP extracts landed; Decision Log notes pre→post screen line counts (Detail 1615→986, Experiments 764→670, Explorer 1131→426)
 
 ---
 
@@ -370,7 +371,7 @@ One hotspot / one craft theme per PR when possible.
 
 ## Gate Status
 
-🔨 IN PROGRESS — Must moves + steps 1–5 done (BE theme packages, fat-surface, tests mirror, **FE shared primitives**). Next: FE screen SLAP extracts.
+🔨 IN PROGRESS — Must moves + steps 1–6 done (through **FE screen SLAP**). Next: FE components folder split + co-located tests.
 
 ## Remediation pass (2026-07-27)
 

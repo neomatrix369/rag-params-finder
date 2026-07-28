@@ -153,6 +153,9 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `frontend/src/components/PollingIndicator.tsx` | Subtle "Syncing..." badge during background polls |
 | `frontend/src/components/ConfirmDeleteModal.tsx` | Delete confirmation modal with experiment details and stats |
 | `frontend/src/components/ExperimentControlButtons.tsx` | Pause, resume, cancel buttons on detail screen |
+| `frontend/src/hooks/useExperimentDetail.ts` | Detail hydrate/poll/db-stats controller (Slice 45) |
+| `frontend/src/components/experimentDetail/` | Detail presentational chrome (StatusBadge, StatCard, …) |
+| `frontend/src/components/explore/ExplorePanels.tsx` | Search Explorer tabs + sidebar panels |
 | `frontend/src/components/chrome/Pagination.tsx` | Shared list/detail/explorer pagination chrome (Slice 45) |
 | `frontend/src/components/stats/StatTile.tsx` | Shared vector-DB metric tile (+ `StatRow`) |
 | `frontend/src/components/ExperimentsScreen.tsx` | Experiments list with collapsible rows, vector DB stats, delete |
