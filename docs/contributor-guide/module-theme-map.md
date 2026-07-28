@@ -26,7 +26,7 @@ Apply tags at **repo → package → folder** level (not every file).
 | `server/models/` | Function | Domain schemas — coherent, no split proposed |
 | `server/utils/` | Function | Cross-cutting logging/metadata — coherent |
 | `cli/` | Feature + Function | Small Typer app — optional later `commands/` |
-| `frontend/src/components/` | Feature + Function | **Hotspot** — screens + chrome + stats; Slice 45 shared `chrome/Pagination`, `stats/StatTile` |
+| `frontend/src/components/` | Feature + Function | **Hotspot** — Split (Slice 45): `screens/`, `chrome/`, `experiment/`, `stats/` (+ `explore/`) |
 | `frontend/src/services/` | Function + Behavior | HTTP / progress fetch |
 | `frontend/src/utils/` | Function | Status / labels helpers |
 | `frontend/src/types/` | Function | TS mirrors of Python models |

@@ -7,16 +7,16 @@
  * - Enhanced runs table with color-coded badges
  * - Success/failure panels with large visual feedback
  */
-import { DETAIL_POLL_MS } from '../constants';
-import AppPageChrome from './AppPageChrome';
-import DashboardShell from './DashboardShell';
-import LoadingFeedbackPanel from './LoadingFeedbackPanel';
-import ExperimentProgressCard from './ExperimentProgressCard';
-import ExperimentVectorDbStatsCard from './ExperimentVectorDbStatsCard';
-import ExperimentControlButtons from './ExperimentControlButtons';
-import ConfirmDeleteModal from './ConfirmDeleteModal';
-import CollapsibleCard from './CollapsibleCard';
-import Pagination from './chrome/Pagination';
+import { DETAIL_POLL_MS } from '../../constants';
+import AppPageChrome from '../chrome/AppPageChrome';
+import DashboardShell from '../chrome/DashboardShell';
+import LoadingFeedbackPanel from '../chrome/LoadingFeedbackPanel';
+import ExperimentProgressCard from '../experiment/ExperimentProgressCard';
+import ExperimentVectorDbStatsCard from '../stats/ExperimentVectorDbStatsCard';
+import ExperimentControlButtons from '../experiment/ExperimentControlButtons';
+import ConfirmDeleteModal from '../experiment/ConfirmDeleteModal';
+import CollapsibleCard from '../chrome/CollapsibleCard';
+import Pagination from '../chrome/Pagination';
 import {
   detailIcons as icons,
   DimensionBadge,
@@ -25,23 +25,23 @@ import {
   ProgressSubtitle,
   StatCard,
   StatusBadge,
-} from './experimentDetail';
-import { formatDurationFromRuns } from './experimentDetailProgress';
-import { useExperimentDetail } from '../hooks/useExperimentDetail';
-import { Phase, Experiment } from '../types';
-import type { ExperimentDbStatsSummary } from '../types';
+} from '../experiment/experimentDetail';
+import { formatDurationFromRuns } from '../experiment/experimentDetailProgress';
+import { useExperimentDetail } from '../../hooks/useExperimentDetail';
+import { Phase, Experiment } from '../../types';
+import type { ExperimentDbStatsSummary } from '../../types';
 import {
   displayDatabaseProvider,
   experimentHydratingBlurb,
-} from '../utils/storageLabels';
+} from '../../utils/storageLabels';
 import {
   displayRetrievers,
   isPausedExperimentStatus,
   isRunningExperimentStatus,
   isTerminalExperimentStatus,
   summarizeExperimentRuns,
-} from '../utils/experimentStatus';
-import { completionReasonLabel } from '../utils/completionReason';
+} from '../../utils/experimentStatus';
+import { completionReasonLabel } from '../../utils/completionReason';
 
 export default function ExperimentDetailScreen({
   experimentId,

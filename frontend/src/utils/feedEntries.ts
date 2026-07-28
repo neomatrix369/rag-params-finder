@@ -1,4 +1,4 @@
-import type { FeedEntry } from '../components/LoadingFeedbackPanel';
+import type { FeedEntry } from '../components/chrome/LoadingFeedbackPanel';
 
 let feedSeq = 0;
 

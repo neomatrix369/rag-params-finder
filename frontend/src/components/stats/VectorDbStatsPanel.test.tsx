@@ -5,7 +5,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { VectorDbStatsGroup } from '../types';
+import type { VectorDbStatsGroup } from '../../types';
 import VectorDbStatsPanel from './VectorDbStatsPanel';
 
 function group(overrides: Partial<VectorDbStatsGroup> = {}): VectorDbStatsGroup {

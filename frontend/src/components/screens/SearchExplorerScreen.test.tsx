@@ -7,9 +7,9 @@
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { EXPLORE_POLL_MS } from '../constants';
-import type { ExperimentProgressCallback } from '../services/apiClient';
-import type { DetailedResult, Experiment, ExploreResponse, RankedConfig } from '../types';
+import { EXPLORE_POLL_MS } from '../../constants';
+import type { ExperimentProgressCallback } from '../../services/apiClient';
+import type { DetailedResult, Experiment, ExploreResponse, RankedConfig } from '../../types';
 import SearchExplorerScreen from './SearchExplorerScreen';
 
 const apiMocks = vi.hoisted(() => ({
@@ -18,9 +18,9 @@ const apiMocks = vi.hoisted(() => ({
   getExperimentExploreWithProgress: vi.fn(),
 }));
 
-vi.mock('../services/apiClient', async () => {
-  const actual = await vi.importActual<typeof import('../services/apiClient')>(
-    '../services/apiClient',
+vi.mock('../../services/apiClient', async () => {
+  const actual = await vi.importActual<typeof import('../../services/apiClient')>(
+    '../../services/apiClient',
   );
   return { ...actual, ...apiMocks };
 });

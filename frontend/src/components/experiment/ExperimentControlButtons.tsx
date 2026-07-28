@@ -3,13 +3,13 @@ import {
   cancelExperiment,
   pauseExperiment,
   resumeExperiment,
-} from '../services/apiClient';
-import type { ExperimentStatus } from '../types';
+} from '../../services/apiClient';
+import type { ExperimentStatus } from '../../types';
 import {
   isPausedExperimentStatus,
   isRunningExperimentStatus,
-} from '../utils/experimentStatus';
-import { devInfo, devWarn } from '../utils/devLog';
+} from '../../utils/experimentStatus';
+import { devInfo, devWarn } from '../../utils/devLog';
 
 type ControlTone = 'light' | 'dark';
 type ControlSize = 'sm' | 'md';

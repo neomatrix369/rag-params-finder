@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { APP_FOOTNOTE_SUMMARY, APP_NAME, APP_READ_ONLY_NOTE, APP_TAGLINE } from '../constants';
+import { APP_FOOTNOTE_SUMMARY, APP_NAME, APP_READ_ONLY_NOTE, APP_TAGLINE } from '../../constants';
 
 /** canvas: warm page treatment · darkFrame: shared ink application frame */
 export type ChromeTone = 'canvas' | 'darkFrame';

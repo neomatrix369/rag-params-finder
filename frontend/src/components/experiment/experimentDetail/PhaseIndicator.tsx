@@ -1,4 +1,4 @@
-import { Phase } from '../../types';
+import { Phase } from '../../../types';
 import { PHASE_ORDER } from './types';
 
 export default function PhaseIndicator({ current }: { current: Phase }) {

@@ -13,9 +13,9 @@ const apiMocks = vi.hoisted(() => ({
   cancelExperiment: vi.fn(),
 }));
 
-vi.mock('../services/apiClient', async () => {
-  const actual = await vi.importActual<typeof import('../services/apiClient')>(
-    '../services/apiClient',
+vi.mock('../../services/apiClient', async () => {
+  const actual = await vi.importActual<typeof import('../../services/apiClient')>(
+    '../../services/apiClient',
   );
   return { ...actual, ...apiMocks };
 });

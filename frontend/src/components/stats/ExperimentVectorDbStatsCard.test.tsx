@@ -7,7 +7,7 @@
  */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { ExperimentDbStatsSummary } from '../types';
+import type { ExperimentDbStatsSummary } from '../../types';
 import ExperimentVectorDbStatsCard from './ExperimentVectorDbStatsCard';
 
 function stats(overrides: Partial<ExperimentDbStatsSummary> = {}): ExperimentDbStatsSummary {

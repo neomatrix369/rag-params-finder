@@ -1,5 +1,5 @@
-import type { Experiment, ExperimentDbStatsSummary, VectorDbStatsGroup } from '../../types';
-import { completionReasonLabel } from '../../utils/completionReason';
+import type { Experiment, ExperimentDbStatsSummary, VectorDbStatsGroup } from '../../../types';
+import { completionReasonLabel } from '../../../utils/completionReason';
 
 export function statusBadgeClass(status: Experiment['status']): string {
   if (status === 'complete') return 'border-emerald-200 bg-emerald-50 text-emerald-800';

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { devInfo } from './utils/devLog';
-import ExperimentsScreen from './components/ExperimentsScreen';
-import ExperimentDetailScreen from './components/ExperimentDetailScreen';
-import SearchExplorerScreen from './components/SearchExplorerScreen';
+import ExperimentsScreen from './components/screens/ExperimentsScreen';
+import ExperimentDetailScreen from './components/screens/ExperimentDetailScreen';
+import SearchExplorerScreen from './components/screens/SearchExplorerScreen';
 import type { Experiment, ExperimentDbStatsSummary, VectorDbStatsGroup } from './types';
 import { findDbStatsInGroups } from './utils/experimentDbStats';
 

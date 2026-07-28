@@ -10,8 +10,8 @@ import {
   LOADING_STALL_REPEAT_MS,
   VECTOR_DB_STATS_POLL_MS,
 } from '../constants';
-import type { FeedEntry } from '../components/LoadingFeedbackPanel';
-import type { ExperimentDetail } from '../components/experimentDetail/types';
+import type { FeedEntry } from '../components/chrome/LoadingFeedbackPanel';
+import type { ExperimentDetail } from '../components/experiment/experimentDetail/types';
 import {
   deleteExperiment,
   getExperiment,

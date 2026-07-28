@@ -68,7 +68,7 @@ const mockVectorDbGroups: VectorDbStatsGroup[] = [
   },
 ];
 
-vi.mock('./components/ExperimentsScreen', () => ({
+vi.mock('./components/screens/ExperimentsScreen', () => ({
   default: ({
     onSelect,
     onCacheUpdate,
@@ -93,7 +93,7 @@ vi.mock('./components/ExperimentsScreen', () => ({
   ),
 }));
 
-vi.mock('./components/ExperimentDetailScreen', () => ({
+vi.mock('./components/screens/ExperimentDetailScreen', () => ({
   default: ({
     experimentId,
     initialDbStats,
@@ -114,7 +114,7 @@ vi.mock('./components/ExperimentDetailScreen', () => ({
   ),
 }));
 
-vi.mock('./components/SearchExplorerScreen', () => ({
+vi.mock('./components/screens/SearchExplorerScreen', () => ({
   default: ({ experimentId, onBack }: { experimentId: string; onBack: () => void }) => (
     <div>
       <p>Explorer Screen Stub — {experimentId}</p>

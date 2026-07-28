@@ -1,14 +1,14 @@
-import CollapsibleCard from './CollapsibleCard';
-import StatRow from './stats/StatRow';
-import StatTile from './stats/StatTile';
-import type { VectorDbStatsGroup } from '../types';
+import CollapsibleCard from '../chrome/CollapsibleCard';
+import StatRow from './StatRow';
+import StatTile from './StatTile';
+import type { VectorDbStatsGroup } from '../../types';
 import {
   clusterHostLabel,
   clusterSectionTitle,
   collectionOrTableLabel,
   storageQuotaHint,
   sweepWriteHint,
-} from '../utils/storageLabels';
+} from '../../utils/storageLabels';
 
 function groupLabel(group: VectorDbStatsGroup): string {
   if (group.cluster_host) return group.cluster_host;

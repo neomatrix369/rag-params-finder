@@ -1,13 +1,13 @@
-import CollapsibleCard from './CollapsibleCard';
+import CollapsibleCard from '../chrome/CollapsibleCard';
 import type { ReactNode } from 'react';
-import StatRow from './stats/StatRow';
-import StatTile from './stats/StatTile';
-import type { ExperimentDbStatsSummary } from '../types';
+import StatRow from './StatRow';
+import StatTile from './StatTile';
+import type { ExperimentDbStatsSummary } from '../../types';
 import {
   clusterHostLabel,
   clusterSectionTitle,
   collectionOrTableLabel,
-} from '../utils/storageLabels';
+} from '../../utils/storageLabels';
 
 type ExperimentVectorDbStatsCardProps = {
   experimentId: string;

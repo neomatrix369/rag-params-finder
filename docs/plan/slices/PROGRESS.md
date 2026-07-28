@@ -693,6 +693,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-28 | 45 | FE components folder split (`screens`/`chrome`/`experiment`/`stats`) — DECISIONS #157 | Leave flat components/ / move screens only |
 | 2026-07-28 | 45 | FE screen SLAP extracts (detail hook + chrome, list labels, explore panels) — DECISIONS #156 | Folder-move screens first / leave god screens |
 | 2026-07-28 | 45 | FE shared primitives extracted (Pagination/StatTile/feed/completionReason) — DECISIONS #155 | Defer until after components folder split / leave Rule-of-3 copies |
 | 2026-07-28 | 45 | Mirror `tests/` under server/cli/scripts + split Slice 16 mega-suite; `repo_root_from()` for nested path depth — DECISIONS #154 | Keep flat tests / invent `tests/unit/` only |

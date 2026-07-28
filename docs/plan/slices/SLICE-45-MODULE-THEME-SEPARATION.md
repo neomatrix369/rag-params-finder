@@ -371,7 +371,7 @@ One hotspot / one craft theme per PR when possible.
 
 ## Gate Status
 
-🔨 IN PROGRESS — Must moves + steps 1–6 done (through **FE screen SLAP**). Next: FE components folder split + co-located tests.
+🔨 IN PROGRESS — Must moves + steps 1–7 done (through **FE components folder split**). Next: FE shared test helpers and/or `scripts/` Could.
 
 ## Remediation pass (2026-07-27)
 

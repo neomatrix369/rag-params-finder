@@ -5,7 +5,7 @@
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DETAIL_POLL_MS, VECTOR_DB_STATS_POLL_MS } from '../constants';
+import { DETAIL_POLL_MS, VECTOR_DB_STATS_POLL_MS } from '../../constants';
 import {
   ChunkingMethod,
   Phase,
@@ -14,9 +14,9 @@ import {
   type ExperimentDbStatsSummary,
   type ExperimentStatus,
   type RunStatus,
-} from '../types';
+} from '../../types';
 import ExperimentDetailScreen from './ExperimentDetailScreen';
-import { calculateProgressMetrics } from './experimentDetailProgress';
+import { calculateProgressMetrics } from '../experiment/experimentDetailProgress';
 
 const apiMocks = vi.hoisted(() => ({
   getExperiment: vi.fn(),
@@ -28,9 +28,9 @@ const apiMocks = vi.hoisted(() => ({
   cancelExperiment: vi.fn(),
 }));
 
-vi.mock('../services/apiClient', async () => {
-  const actual = await vi.importActual<typeof import('../services/apiClient')>(
-    '../services/apiClient',
+vi.mock('../../services/apiClient', async () => {
+  const actual = await vi.importActual<typeof import('../../services/apiClient')>(
+    '../../services/apiClient',
   );
   return { ...actual, ...apiMocks };
 });

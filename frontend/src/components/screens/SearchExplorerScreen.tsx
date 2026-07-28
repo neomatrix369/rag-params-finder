@@ -4,31 +4,31 @@ import {
   EXPLORE_POLL_MS,
   LOADING_STALL_AFTER_MS,
   LOADING_STALL_REPEAT_MS,
-} from '../constants';
-import AppPageChrome from './AppPageChrome';
-import DashboardShell from './DashboardShell';
-import LoadingFeedbackPanel from './LoadingFeedbackPanel';
-import PollingIndicator from './PollingIndicator';
-import type { FeedEntry } from './LoadingFeedbackPanel';
+} from '../../constants';
+import AppPageChrome from '../chrome/AppPageChrome';
+import DashboardShell from '../chrome/DashboardShell';
+import LoadingFeedbackPanel from '../chrome/LoadingFeedbackPanel';
+import PollingIndicator from '../chrome/PollingIndicator';
+import type { FeedEntry } from '../chrome/LoadingFeedbackPanel';
 import {
   getExperiment,
   getExperimentExplore,
   getExperimentExploreWithProgress,
   type ExperimentProgressCallback,
-} from '../services/apiClient';
-import { createStallWatcher, formatBytes, type FetchProgressUpdate } from '../services/fetchWithProgress';
-import type { ExploreResponse } from '../types';
-import { appendFeedEntry } from '../utils/feedEntries';
-import { devInfo, devInfoThrottled, devWarn } from '../utils/devLog';
+} from '../../services/apiClient';
+import { createStallWatcher, formatBytes, type FetchProgressUpdate } from '../../services/fetchWithProgress';
+import type { ExploreResponse } from '../../types';
+import { appendFeedEntry } from '../../utils/feedEntries';
+import { devInfo, devInfoThrottled, devWarn } from '../../utils/devLog';
 import {
   explorerFetchFeedText,
   explorerPayloadHint,
-} from '../utils/storageLabels';
+} from '../../utils/storageLabels';
 import {
   ConfigSidebar,
   DetailedResultsTab,
   HyperparametersTab,
-} from './explore/ExplorePanels';
+} from '../explore/ExplorePanels';
 
 type Tab = 'hyperparameters' | 'detailed';
 

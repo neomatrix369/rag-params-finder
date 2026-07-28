@@ -1,5 +1,5 @@
-import type { EnvParams, ExperimentStatus, RunStatus, SweepSummary } from '../../types';
-import { Phase } from '../../types';
+import type { EnvParams, ExperimentStatus, RunStatus, SweepSummary } from '../../../types';
+import { Phase } from '../../../types';
 
 export interface ExperimentDetail {
   experiment_id: string;

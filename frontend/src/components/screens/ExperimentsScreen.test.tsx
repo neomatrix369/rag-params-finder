@@ -9,8 +9,8 @@
  */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { EXPERIMENTS_POLL_MS, VECTOR_DB_STATS_POLL_MS } from '../constants';
-import type { Experiment, VectorDbStatsGroup } from '../types';
+import { EXPERIMENTS_POLL_MS, VECTOR_DB_STATS_POLL_MS } from '../../constants';
+import type { Experiment, VectorDbStatsGroup } from '../../types';
 import ExperimentsScreen from './ExperimentsScreen';
 
 const apiMocks = vi.hoisted(() => ({
@@ -23,9 +23,9 @@ const apiMocks = vi.hoisted(() => ({
   cancelExperiment: vi.fn(),
 }));
 
-vi.mock('../services/apiClient', async () => {
-  const actual = await vi.importActual<typeof import('../services/apiClient')>(
-    '../services/apiClient',
+vi.mock('../../services/apiClient', async () => {
+  const actual = await vi.importActual<typeof import('../../services/apiClient')>(
+    '../../services/apiClient',
   );
   return { ...actual, ...apiMocks };
 });

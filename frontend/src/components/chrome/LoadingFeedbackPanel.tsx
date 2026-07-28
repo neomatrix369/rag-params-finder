@@ -1,5 +1,5 @@
-import { formatBytes } from '../services/fetchWithProgress';
-import { waitingForFirstByteHint } from '../utils/storageLabels';
+import { formatBytes } from '../../services/fetchWithProgress';
+import { waitingForFirstByteHint } from '../../utils/storageLabels';
 
 /** Single line in the faux-agent activity log */
 export type FeedEntry = {

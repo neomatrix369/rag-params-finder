@@ -5,29 +5,29 @@ import {
   LOADING_STALL_AFTER_MS,
   LOADING_STALL_REPEAT_MS,
   VECTOR_DB_STATS_POLL_MS,
-} from '../constants';
-import AppPageChrome from './AppPageChrome';
-import DashboardShell from './DashboardShell';
-import LoadingFeedbackPanel, { type FeedEntry } from './LoadingFeedbackPanel';
-import PollingIndicator from './PollingIndicator';
-import ConfirmDeleteModal from './ConfirmDeleteModal';
-import ExperimentControlButtons from './ExperimentControlButtons';
-import VectorDbStatsPanel from './VectorDbStatsPanel';
-import ExperimentVectorDbStatsCard from './ExperimentVectorDbStatsCard';
-import Pagination from './chrome/Pagination';
-import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
-import { deleteExperiment, getExperiments, getExperimentsWithProgress, getVectorDbStatsGrouped } from '../services/apiClient';
-import { Experiment, VectorDbStatsGroup } from '../types';
-import { appendFeedEntry } from '../utils/feedEntries';
-import { devInfo, devInfoThrottled, devWarn } from '../utils/devLog';
-import { isPausedExperimentStatus, isRunningExperimentStatus } from '../utils/experimentStatus';
+} from '../../constants';
+import AppPageChrome from '../chrome/AppPageChrome';
+import DashboardShell from '../chrome/DashboardShell';
+import LoadingFeedbackPanel, { type FeedEntry } from '../chrome/LoadingFeedbackPanel';
+import PollingIndicator from '../chrome/PollingIndicator';
+import ConfirmDeleteModal from '../experiment/ConfirmDeleteModal';
+import ExperimentControlButtons from '../experiment/ExperimentControlButtons';
+import VectorDbStatsPanel from '../stats/VectorDbStatsPanel';
+import ExperimentVectorDbStatsCard from '../stats/ExperimentVectorDbStatsCard';
+import Pagination from '../chrome/Pagination';
+import { createStallWatcher, type FetchProgressUpdate } from '../../services/fetchWithProgress';
+import { deleteExperiment, getExperiments, getExperimentsWithProgress, getVectorDbStatsGrouped } from '../../services/apiClient';
+import { Experiment, VectorDbStatsGroup } from '../../types';
+import { appendFeedEntry } from '../../utils/feedEntries';
+import { devInfo, devInfoThrottled, devWarn } from '../../utils/devLog';
+import { isPausedExperimentStatus, isRunningExperimentStatus } from '../../utils/experimentStatus';
 import {
   experimentOutcomeLabel,
   experimentStatsMap,
   shouldShowLoadingPanel,
   statusBadgeClass,
   statusEdgeClass,
-} from './experimentList/labels';
+} from '../experiment/experimentList/labels';
 
 function ArrowRightIcon() {
   return (
