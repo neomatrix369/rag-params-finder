@@ -344,9 +344,9 @@ Scenario: Mega-suite split preserves behaviour
 - [ ] If re-exports used: CHANGELOG Deprecated + Decision Log row with version window + removal trigger
 - [ ] `docs/plan/gate-evidence/slice-45.json` written
 - [ ] Optional smoke: `./scripts/quality-gates.sh` + `rag-params-finder version` / healthz `storage_mode` unchanged
-- [ ] FE craft phases: shared primitives have tests; no duplicate Pagination/StatTile/Feed helpers left in screens; FE **95/90/95/95** still green
+- [x] FE craft phases: shared primitives have tests; no duplicate Pagination/StatTile/Feed helpers left in screens; FE **95/90/95/95** still green
 - [ ] FE craft phases: shared `test/helpers` used by moved/shrunk suites; Decision Log notes pre→post screen line counts
-- [ ] BE craft phases: orchestrator/pipeline split green; Protocols + factories unchanged; BE **95/90/n/a/95** still green; Decision Log notes pre→post orchestrator line counts
+- [x] BE craft phases: orchestrator/pipeline split green; Protocols + factories unchanged; BE **95/90/n/a/95** still green; Decision Log notes pre→post orchestrator line counts
 - [x] BE craft phases (when claimed): mega-suite split or fat-surface slim landed without intentional coverage loss
 
 ---
@@ -370,7 +370,7 @@ One hotspot / one craft theme per PR when possible.
 
 ## Gate Status
 
-🔨 IN PROGRESS — Must filesystem moves + steps 1–4 done (`guards/` / `pipeline/` / `embedding|retrieval|rerank` / `db/{ports,mongo,postgres}` / fat-surface slim / **tests mirror + mega-suite split**). Next: FE shared primitives.
+🔨 IN PROGRESS — Must moves + steps 1–5 done (BE theme packages, fat-surface, tests mirror, **FE shared primitives**). Next: FE screen SLAP extracts.
 
 ## Remediation pass (2026-07-27)
 

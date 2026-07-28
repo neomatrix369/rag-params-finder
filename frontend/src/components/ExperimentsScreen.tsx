@@ -14,18 +14,14 @@ import ConfirmDeleteModal from './ConfirmDeleteModal';
 import ExperimentControlButtons from './ExperimentControlButtons';
 import VectorDbStatsPanel from './VectorDbStatsPanel';
 import ExperimentVectorDbStatsCard from './ExperimentVectorDbStatsCard';
+import Pagination from './chrome/Pagination';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
 import { deleteExperiment, getExperiments, getExperimentsWithProgress, getVectorDbStatsGrouped } from '../services/apiClient';
 import { Experiment, ExperimentDbStatsSummary, VectorDbStatsGroup } from '../types';
+import { completionReasonLabel } from '../utils/completionReason';
+import { appendFeedEntry } from '../utils/feedEntries';
 import { devInfo, devInfoThrottled, devWarn } from '../utils/devLog';
 import { isPausedExperimentStatus, isRunningExperimentStatus } from '../utils/experimentStatus';
-
-let feedSeq = 0;
-
-function appendFeed(prev: FeedEntry[], text: string, variant: FeedEntry['variant']): FeedEntry[] {
-  feedSeq += 1;
-  return [...prev, { id: `${Date.now()}-${feedSeq}`, text, variant }];
-}
 
 function ArrowRightIcon() {
   return (
@@ -40,74 +36,6 @@ function TrashIcon() {
     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
       <path d="M4.5 6h11M8 3.5h4M6.5 6l.6 10h5.8l.6-10M8.5 8.5v5M11.5 8.5v5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
-  );
-}
-
-function Pagination({
-  currentPage,
-  totalItems,
-  itemsPerPage,
-  onPageChange,
-  onItemsPerPageChange,
-}: {
-  currentPage: number;
-  totalItems: number;
-  itemsPerPage: number;
-  onPageChange: (page: number) => void;
-  onItemsPerPageChange: (items: number) => void;
-}) {
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
-
-  return (
-    <div className="flex flex-col gap-3 border-t border-line bg-canvas px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-        <span className="text-sm text-muted">
-          Showing <span className="font-medium">{startItem}</span> to{' '}
-          <span className="font-medium">{endItem}</span> of{' '}
-          <span className="font-medium">{totalItems}</span>
-        </span>
-        <div className="flex items-center gap-2">
-          <label htmlFor="experiments-per-page" className="text-sm text-muted">
-            Per page:
-          </label>
-          <select
-            id="experiments-per-page"
-            value={itemsPerPage}
-            onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-            className="min-h-11 rounded-lg border border-line bg-paper px-3 text-sm text-ink"
-          >
-            <option value={10}>10</option>
-            <option value={15}>15</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-          </select>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="min-h-11 rounded-lg border border-line bg-paper px-3 text-sm font-semibold text-ink hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Previous
-        </button>
-        <span className="text-sm text-muted">
-          Page <span className="font-medium">{currentPage}</span> of{' '}
-          <span className="font-medium">{totalPages}</span>
-        </span>
-        <button
-          type="button"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="min-h-11 rounded-lg border border-line bg-paper px-3 text-sm font-semibold text-ink hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Next
-        </button>
-      </div>
-    </div>
   );
 }
 
@@ -159,38 +87,6 @@ function resolveSearchStrategy(experiment: Experiment): 'grid' | 'bayesian' {
     return searchStrategy;
   }
   return 'grid';
-}
-
-const COMPLETION_REASONS: Record<string, string> = {
-  all_planned_trials_completed: 'all planned trials completed',
-  completed_with_sampling_shortfall: 'completed with sampling shortfall',
-  all_trials_failed: 'all trials failed',
-  partial_failures: 'partial with failures',
-  interrupted_before_completion: 'interrupted before completion',
-  cancelled_by_user: 'cancelled by user',
-  paused_by_user: 'paused by user',
-  incomplete_before_completion: 'incomplete before completion',
-  incomplete_with_zero_runs: 'incomplete before completion',
-  incomplete_without_runs: 'incomplete before completion',
-  reconciled_from_orphaned_run: 'reconciled from orphaned run',
-  partial_with_failures: 'partial with failures',
-  partial_outcomes: 'partial outcomes',
-  mixed_outcomes: 'mixed outcomes',
-  mixed_failures: 'mixed failures',
-  infrastructure_error: 'infrastructure error',
-  paused_or_interrupted_before_completion: 'interrupted before completion',
-  completed_with_shortfall: 'completed with sampling shortfall',
-  resolved_stale_running: 'reconciled from stale running state',
-  incomplete_by_partial_outcomes: 'incomplete outcome',
-  cancelled_before_attempt: 'cancelled before attempts',
-};
-
-function completionReasonLabel(reason?: string | null): string {
-  if (!reason) return 'completion state recorded';
-  if (Object.prototype.hasOwnProperty.call(COMPLETION_REASONS, reason)) {
-    return COMPLETION_REASONS[reason as keyof typeof COMPLETION_REASONS];
-  }
-  return reason.replace(/_/g, ' ');
 }
 
 function experimentOutcomeLabel(experiment: Experiment): string {
@@ -419,7 +315,7 @@ export default function ExperimentsScreen({
       alive: () => aliveRef.current,
       afterMs: LOADING_STALL_AFTER_MS,
       repeatMs: LOADING_STALL_REPEAT_MS,
-      onWarning: (text) => setFeed((f) => appendFeed(f, text, 'warning')),
+      onWarning: (text) => setFeed((f) => appendFeedEntry(f, text, 'warning')),
     });
 
     function startPollTimers() {
@@ -506,7 +402,7 @@ export default function ExperimentsScreen({
           return;
         }
         const variant = u.variant === 'warning' ? 'warning' : 'default';
-        setFeed((f) => appendFeed(f, u.text, variant));
+        setFeed((f) => appendFeedEntry(f, u.text, variant));
       };
 
       try {
@@ -515,7 +411,7 @@ export default function ExperimentsScreen({
         if (!aliveRef.current) return;
         setExperiments(data);
         setError(null);
-        setFeed((f) => appendFeed(f, 'Experiments loaded — vector DB stats loading above.', 'default'));
+        setFeed((f) => appendFeedEntry(f, 'Experiments loaded — vector DB stats loading above.', 'default'));
         devInfo('ExperimentsScreen', `list load OK — ${data.length} experiment(s)`);
         void loadVectorDbStats();
       } catch (err) {
@@ -525,7 +421,7 @@ export default function ExperimentsScreen({
         const msg = err instanceof Error ? err.message : 'Failed to load experiments';
         devWarn('ExperimentsScreen', `list load failed — ${msg}`);
         setError(msg);
-        setFeed((f) => appendFeed(f, `Failed: ${msg}`, 'warning'));
+        setFeed((f) => appendFeedEntry(f, `Failed: ${msg}`, 'warning'));
       } finally {
         stall.stop();
         if (aliveRef.current) {
@@ -826,6 +722,7 @@ export default function ExperimentsScreen({
                   itemsPerPage={itemsPerPage}
                   onPageChange={setCurrentPage}
                   onItemsPerPageChange={handleItemsPerPageChange}
+                  selectId="experiments-per-page"
                 />
               </div>
             </>

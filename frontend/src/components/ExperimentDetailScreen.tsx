@@ -50,42 +50,9 @@ import {
   calculateProgressMetrics,
   formatTimeWithUnits,
 } from './experimentDetailProgress';
-
-let detailFeedSeq = 0;
-
-function appendDetailFeed(prev: FeedEntry[], text: string, variant: FeedEntry['variant']): FeedEntry[] {
-  detailFeedSeq += 1;
-  return [...prev, { id: `${Date.now()}-${detailFeedSeq}`, text, variant }];
-}
-
-const COMPLETION_REASONS = {
-  all_planned_trials_completed: 'all planned trials completed',
-  completed_with_sampling_shortfall: 'completed with sampling shortfall',
-  interrupted_before_completion: 'interrupted before completion',
-  cancelled_by_user: 'cancelled by user',
-  paused_by_user: 'paused by user',
-  all_trials_failed: 'all trials failed',
-  partial_failures: 'partial with failures',
-  partial_with_failures: 'partial with failures',
-  partial_outcomes: 'partial outcomes',
-  mixed_outcomes: 'mixed outcomes',
-  mixed_failures: 'mixed failures',
-  infrastructure_error: 'infrastructure error',
-  paused_or_interrupted_before_completion: 'interrupted before completion',
-  incomplete_before_completion: 'incomplete before completion',
-  incomplete_with_zero_runs: 'incomplete before completion',
-  incomplete_without_runs: 'incomplete before completion',
-  reconciled_from_orphaned_run: 'reconciled from orphaned run',
-  resolved_stale_running: 'reconciled from stale running state',
-  cancelled_before_attempt: 'cancelled before attempts',
-  completed_with_shortfall: 'completed with sampling shortfall',
-  incomplete_by_partial_outcomes: 'incomplete outcome',
-} as const;
-
-function completionReasonLabel(reason?: string | null): string {
-  if (!reason) return 'completion state recorded';
-  return COMPLETION_REASONS[reason as keyof typeof COMPLETION_REASONS] ?? reason.replace(/_/g, ' ');
-}
+import Pagination from './chrome/Pagination';
+import { appendFeedEntry } from '../utils/feedEntries';
+import { completionReasonLabel } from '../utils/completionReason';
 
 // Icon components (minimal SVG)
 const icons = {
@@ -210,74 +177,6 @@ const PHASE_ORDER: Phase[] = [
   Phase.QUEUED, Phase.PARSING, Phase.CHUNKING, Phase.EMBEDDING,
   Phase.STORING, Phase.QUERYING, Phase.RERANKING, Phase.COMPLETE,
 ];
-
-function Pagination({
-  currentPage,
-  totalItems,
-  itemsPerPage,
-  onPageChange,
-  onItemsPerPageChange,
-}: {
-  currentPage: number;
-  totalItems: number;
-  itemsPerPage: number;
-  onPageChange: (page: number) => void;
-  onItemsPerPageChange: (items: number) => void;
-}) {
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
-
-  return (
-    <div className="flex flex-col gap-3 border-t border-line bg-canvas px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-        <span className="text-sm text-muted">
-          Showing <span className="font-medium">{startItem}</span> to{' '}
-          <span className="font-medium">{endItem}</span> of{' '}
-          <span className="font-medium">{totalItems}</span>
-        </span>
-        <div className="flex items-center gap-2">
-          <label htmlFor="runs-per-page" className="text-sm text-muted">
-            Per page:
-          </label>
-          <select
-            id="runs-per-page"
-            value={itemsPerPage}
-            onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-            className="min-h-11 rounded-lg border border-line bg-paper px-3 text-sm text-ink"
-          >
-            <option value={10}>10</option>
-            <option value={15}>15</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-          </select>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="min-h-11 rounded-lg border border-line bg-paper px-3 text-sm font-semibold text-ink hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Previous
-        </button>
-        <span className="text-sm text-muted">
-          Page <span className="font-medium">{currentPage}</span> of{' '}
-          <span className="font-medium">{totalPages}</span>
-        </span>
-        <button
-          type="button"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="min-h-11 rounded-lg border border-line bg-paper px-3 text-sm font-semibold text-ink hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Next
-        </button>
-      </div>
-    </div>
-  );
-}
 
 function PhaseIndicator({ current }: { current: Phase }) {
   const currentIdx = PHASE_ORDER.indexOf(current);
@@ -685,7 +584,7 @@ export default function ExperimentDetailScreen({
       alive: () => aliveRef.current,
       afterMs: LOADING_STALL_AFTER_MS,
       repeatMs: LOADING_STALL_REPEAT_MS,
-      onWarning: (text) => setLoadFeed((f) => appendDetailFeed(f, text, 'warning')),
+      onWarning: (text) => setLoadFeed((f) => appendFeedEntry(f, text, 'warning')),
     });
 
     const applyProg: ExperimentProgressCallback = (u: FetchProgressUpdate) => {
@@ -696,7 +595,7 @@ export default function ExperimentDetailScreen({
         return;
       }
       setLoadFeed((f) =>
-        appendDetailFeed(f, u.text, u.variant === 'warning' ? 'warning' : 'default'),
+        appendFeedEntry(f, u.text, u.variant === 'warning' ? 'warning' : 'default'),
       );
     };
 
@@ -747,7 +646,7 @@ export default function ExperimentDetailScreen({
           `hydrate OK — ${experimentId.slice(0, 8)}… status=${loaded.status}, ${runRows} run row(s)`,
         );
         setLoadFeed((f) =>
-          appendDetailFeed(
+          appendFeedEntry(
             f,
             isRunningExperimentStatus(loaded.status, loadedCompletedAt)
               ? 'Run rows loaded — live polling while experiment is running.'
@@ -763,7 +662,7 @@ export default function ExperimentDetailScreen({
           err instanceof Error ? err.message : 'Failed to load experiment';
         devWarn('ExperimentDetailScreen', `hydrate failed — ${experimentId.slice(0, 8)}… — ${msg}`);
         setError(msg);
-        setLoadFeed((f) => appendDetailFeed(f, `Failed: ${msg}`, 'warning'));
+        setLoadFeed((f) => appendFeedEntry(f, `Failed: ${msg}`, 'warning'));
       } finally {
         stall.stop();
         if (aliveRef.current) {
@@ -1488,6 +1387,7 @@ export default function ExperimentDetailScreen({
                 itemsPerPage={runsItemsPerPage}
                 onPageChange={setRunsCurrentPage}
                 onItemsPerPageChange={handleRunsItemsPerPageChange}
+                selectId="runs-per-page"
               />
             </section>
           );

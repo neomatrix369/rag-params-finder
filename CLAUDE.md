@@ -153,11 +153,15 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `frontend/src/components/PollingIndicator.tsx` | Subtle "Syncing..." badge during background polls |
 | `frontend/src/components/ConfirmDeleteModal.tsx` | Delete confirmation modal with experiment details and stats |
 | `frontend/src/components/ExperimentControlButtons.tsx` | Pause, resume, cancel buttons on detail screen |
+| `frontend/src/components/chrome/Pagination.tsx` | Shared list/detail/explorer pagination chrome (Slice 45) |
+| `frontend/src/components/stats/StatTile.tsx` | Shared vector-DB metric tile (+ `StatRow`) |
 | `frontend/src/components/ExperimentsScreen.tsx` | Experiments list with collapsible rows, vector DB stats, delete |
 | `frontend/src/components/ExperimentDetailScreen.tsx` | Detail view with overview metrics, outcome banners, runs table |
 | `frontend/src/components/VectorDbStatsPanel.tsx` | Cluster-grouped storage stats panel |
 | `frontend/src/components/CollapsibleCard.tsx` | Reusable collapsible section (localStorage persistence) |
 | `frontend/src/utils/experimentStatus.ts` | Run outcome summarization + terminal status helpers |
+| `frontend/src/utils/completionReason.ts` | Shared `completion_reason` → label mapping |
+| `frontend/src/utils/feedEntries.ts` | Shared loading-feed append helper |
 | `frontend/src/types/index.ts` | Hand-mirrored TypeScript types from Python models |
 | `frontend/src/services/apiClient.ts` | Fetch wrapper (all server API calls, including DELETE) |
 | `frontend/src/services/fetchWithProgress.ts` | ReadableStream-based fetch with progress tracking |
@@ -275,14 +279,14 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 - `mypy server/ cli/` → 0 errors
 - `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **335** tests; BE floors **95/90/n/a/95** (stmts/br/fn/lines) via `fail_under=95` + `scripts/check_backend_coverage_floors.py` — DECISIONS #142; no `MONGODB_URI` required
 
-**Frontend** (2026-07-27 — Slice 44 + shared floors #142):
+**Frontend** (2026-07-28 — Slice 45 shared primitives + Slice 44 floors #142):
 - `npm run lint` → 0 errors (eslint + security plugin)
-- `npm run test` → **252** tests across **20** files (Vitest + React Testing Library)
-- `npm run test:coverage` / `test:ci` → v8 thresholds **95/90/95/95** stmts/br/fn/lines (`all: true`; DECISIONS #142); measured ≈98.21% / 92.89% / 99.7% / 99.61% — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
+- `npm run test` → **261** tests across **24** files (Vitest + React Testing Library)
+- `npm run test:coverage` / `test:ci` → v8 thresholds **95/90/95/95** stmts/br/fn/lines (`all: true`; DECISIONS #142); measured ≈98.4% / 93.11% / 100% / 99.68% — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
 - `npm run typecheck` → 0 errors
-- `npm run build` → ✓ built in ~4s, 49 modules
+- `npm run build` → ✓ built in ~4s
 - `npm audit --audit-level=high` → 0 high vulnerabilities
-- Theme map + Slice 45 move stub — Slice 44 Should §3 (**IMPLEMENTED**); see [`docs/contributor-guide/module-theme-map.md`](docs/contributor-guide/module-theme-map.md)
+- Theme map + Slice 45 primitives (`chrome/Pagination`, `stats/StatTile`) — see [`docs/contributor-guide/module-theme-map.md`](docs/contributor-guide/module-theme-map.md)
 
 ## Release Process
 

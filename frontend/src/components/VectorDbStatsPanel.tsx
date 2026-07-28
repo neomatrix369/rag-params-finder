@@ -1,4 +1,6 @@
 import CollapsibleCard from './CollapsibleCard';
+import StatRow from './stats/StatRow';
+import StatTile from './stats/StatTile';
 import type { VectorDbStatsGroup } from '../types';
 import {
   clusterHostLabel,
@@ -156,19 +158,19 @@ export default function VectorDbStatsPanel({
                   {clusterSectionTitle(group.database_provider)}
                 </div>
                 <div className="space-y-1 text-sm">
-                  <Row label="Provider" value={group.database_provider} />
-                  <Row
+                  <StatRow label="Provider" value={group.database_provider} />
+                  <StatRow
                     label={collectionOrTableLabel(group.database_provider)}
                     value={group.collection_name}
                     mono
                   />
-                  <Row
+                  <StatRow
                     label={clusterHostLabel(group.database_provider)}
                     value={group.cluster_host ?? '—'}
                     mono
                   />
                   {(group.totals.cluster_tier || group.totals.cluster_tier_type) && (
-                    <Row
+                    <StatRow
                       label={group.totals.cluster_tier ? 'Tier' : 'Deployment'}
                       value={
                         group.totals.cluster_tier
@@ -182,13 +184,13 @@ export default function VectorDbStatsPanel({
                     />
                   )}
                   {group.totals.cluster_provider && (
-                    <Row
+                    <StatRow
                       label="Cloud"
                       value={`${group.totals.cluster_provider}${group.totals.cluster_region ? ` · ${group.totals.cluster_region}` : ''}`}
                     />
                   )}
                   {group.totals.database_storage_limit_mb != null && (
-                    <Row
+                    <StatRow
                       label="Cluster quota"
                       value={`${group.totals.database_storage_limit_mb} MB`}
                     />
@@ -216,33 +218,6 @@ export default function VectorDbStatsPanel({
           </CollapsibleCard>
         </div>
       ))}
-    </div>
-  );
-}
-
-function StatTile({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string | number;
-  hint?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-indigo-200 bg-white p-4">
-      <div className="mb-1 text-xs uppercase tracking-wider text-slate-500">{label}</div>
-      <div className="text-2xl font-bold text-indigo-600">{value}</div>
-      {hint ? <div className="mt-1 text-xs text-slate-500">{hint}</div> : null}
-    </div>
-  );
-}
-
-function Row({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <span className="text-slate-600">{label}</span>
-      <span className={`font-medium text-slate-900 ${mono ? 'font-mono text-xs' : ''}`}>{value}</span>
     </div>
   );
 }

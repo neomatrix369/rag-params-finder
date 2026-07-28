@@ -18,22 +18,17 @@ import {
 } from '../services/apiClient';
 import { createStallWatcher, formatBytes, type FetchProgressUpdate } from '../services/fetchWithProgress';
 import { DetailedResult, ExploreResponse, RankedConfig } from '../types';
+import { appendFeedEntry } from '../utils/feedEntries';
 import { devInfo, devInfoThrottled, devWarn } from '../utils/devLog';
 import {
   displayDatabaseProvider,
   explorerFetchFeedText,
   explorerPayloadHint,
 } from '../utils/storageLabels';
-
-let xfSeq = 0;
+import Pagination from './chrome/Pagination';
 
 function formatChunkDimensions(config: { chunk_size: number; overlap: number; padding?: number }): string {
   return `${config.chunk_size}/${config.overlap}/${config.padding ?? 0}`;
-}
-
-function xfAppend(prev: FeedEntry[], text: string, variant: FeedEntry['variant']): FeedEntry[] {
-  xfSeq += 1;
-  return [...prev, { id: `${Date.now()}-${xfSeq}`, text, variant }];
 }
 
 type Tab = 'hyperparameters' | 'detailed';
@@ -252,72 +247,6 @@ function ConfigCard({ config, badge, annotation }: {
             <div className="font-medium text-slate-500">{config.avg_score}%</div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function Pagination({
-  currentPage,
-  totalItems,
-  itemsPerPage,
-  onPageChange,
-  onItemsPerPageChange,
-}: {
-  currentPage: number;
-  totalItems: number;
-  itemsPerPage: number;
-  onPageChange: (page: number) => void;
-  onItemsPerPageChange: (items: number) => void;
-}) {
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
-
-  return (
-    <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200">
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-slate-600">
-          Showing <span className="font-medium">{startItem}</span> to{' '}
-          <span className="font-medium">{endItem}</span> of{' '}
-          <span className="font-medium">{totalItems}</span>
-        </span>
-        <div className="flex items-center gap-2">
-          <label htmlFor="items-per-page" className="text-sm text-slate-600">
-            Per page:
-          </label>
-          <select
-            id="items-per-page"
-            value={itemsPerPage}
-            onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-            className="rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          >
-            <option value={10}>10</option>
-            <option value={15}>15</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-          </select>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
-        >
-          Previous
-        </button>
-        <span className="text-sm text-slate-600">
-          Page <span className="font-medium">{currentPage}</span> of{' '}
-          <span className="font-medium">{totalPages}</span>
-        </span>
-        <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
-        >
-          Next
-        </button>
       </div>
     </div>
   );
@@ -587,6 +516,7 @@ function HyperparametersTab({ data }: { data: ExploreResponse }) {
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={handleItemsPerPageChange}
+            selectId="explorer-hyperparams-per-page"
           />
         </div>
       )}
@@ -714,6 +644,7 @@ function DetailedResultsTab({ results }: { results: DetailedResult[] }) {
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
           onItemsPerPageChange={handleItemsPerPageChange}
+          selectId="explorer-detailed-per-page"
         />
       </div>
     </div>
@@ -853,7 +784,7 @@ export default function SearchExplorerScreen({
       alive: () => aliveRef.current,
       afterMs: LOADING_STALL_AFTER_MS,
       repeatMs: LOADING_STALL_REPEAT_MS,
-      onWarning: (text) => setFeed((f) => xfAppend(f, text, 'warning')),
+      onWarning: (text) => setFeed((f) => appendFeedEntry(f, text, 'warning')),
     });
 
     const applyProg: ExperimentProgressCallback = (u: FetchProgressUpdate) => {
@@ -863,7 +794,7 @@ export default function SearchExplorerScreen({
         setTotalBytes(u.totalBytes);
         return;
       }
-      setFeed((f) => xfAppend(f, u.text, u.variant === 'warning' ? 'warning' : 'default'));
+      setFeed((f) => appendFeedEntry(f, u.text, u.variant === 'warning' ? 'warning' : 'default'));
     };
 
     async function fetchExplore() {
@@ -878,7 +809,7 @@ export default function SearchExplorerScreen({
         setFeed([{ id: 'x0', text: explorerFetchFeedText(), variant: 'default' }]);
       } else {
         setFeed((f) =>
-          xfAppend(
+          appendFeedEntry(
             f,
             `Refreshing explorer${selectedQuery ? ' (filtered query)' : ''}…`,
             'default',
@@ -896,7 +827,7 @@ export default function SearchExplorerScreen({
         );
         stall.stop();
         if (!aliveRef.current) return;
-        setFeed((f) => xfAppend(f, 'Explorer snapshot ready.', 'default'));
+        setFeed((f) => appendFeedEntry(f, 'Explorer snapshot ready.', 'default'));
         setData(payload);
         devInfo(
           'SearchExplorerScreen',
@@ -915,7 +846,7 @@ export default function SearchExplorerScreen({
           err instanceof Error ? err.message : 'Failed to fetch experiment explore data';
         devWarn('SearchExplorerScreen', `hydrate failed — ${experimentId.slice(0, 8)}… — ${msg}`);
         setError(msg);
-        setFeed((f) => xfAppend(f, `Failed: ${msg}`, 'warning'));
+        setFeed((f) => appendFeedEntry(f, `Failed: ${msg}`, 'warning'));
       } finally {
         stall.stop();
         if (aliveRef.current) setLoading(false);

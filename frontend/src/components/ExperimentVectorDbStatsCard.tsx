@@ -1,5 +1,7 @@
 import CollapsibleCard from './CollapsibleCard';
 import type { ReactNode } from 'react';
+import StatRow from './stats/StatRow';
+import StatTile from './stats/StatTile';
 import type { ExperimentDbStatsSummary } from '../types';
 import {
   clusterHostLabel,
@@ -53,32 +55,35 @@ export default function ExperimentVectorDbStatsCard({
         }
       >
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatTile label="Chunks" value={stats.total_chunks.toLocaleString()} />
-          <StatTile label="Query Results" value={stats.total_results.toLocaleString()} />
+          <StatTile label="Chunks" value={stats.total_chunks.toLocaleString()} density="compact" />
+          <StatTile label="Query Results" value={stats.total_results.toLocaleString()} density="compact" />
           <StatTile
             label="Storage (Est.)"
             value={`${stats.estimated_storage_mb} MB`}
             hint={`${stats.estimated_embedding_mb} MB vectors · ${stats.estimated_metadata_mb} MB meta`}
+            density="compact"
           />
-          <StatTile label="Runs with Data" value={stats.runs_with_data} />
+          <StatTile label="Runs with Data" value={stats.runs_with_data} density="compact" />
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <InfoPanel title={clusterSectionTitle(stats.database_provider)}>
-            <Row label="Provider" value={stats.database_provider} />
-            <Row
+            <StatRow label="Provider" value={stats.database_provider} density="compact" />
+            <StatRow
               label={collectionOrTableLabel(stats.database_provider)}
               value={stats.collection_name}
               mono
+              density="compact"
             />
-            <Row
+            <StatRow
               label={clusterHostLabel(stats.database_provider)}
               value={stats.cluster_host ?? '—'}
               mono
+              density="compact"
             />
-            <Row label="Source documents" value={String(stats.unique_documents)} />
-            <Row label="Unique queries" value={String(stats.unique_queries)} />
-            <Row label="Avg chunks / run" value={String(stats.avg_chunks_per_run)} />
+            <StatRow label="Source documents" value={String(stats.unique_documents)} density="compact" />
+            <StatRow label="Unique queries" value={String(stats.unique_queries)} density="compact" />
+            <StatRow label="Avg chunks / run" value={String(stats.avg_chunks_per_run)} density="compact" />
           </InfoPanel>
 
           <InfoPanel title="Embeddings & Indexes">
@@ -177,38 +182,11 @@ export default function ExperimentVectorDbStatsCard({
   );
 }
 
-function StatTile({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string | number;
-  hint?: string;
-}) {
-  return (
-    <div className="rounded-md border border-indigo-100 bg-white/90 px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wider text-slate-500">{label}</div>
-      <div className="text-lg font-bold text-indigo-600">{value}</div>
-      {hint ? <div className="mt-0.5 text-[10px] leading-snug text-slate-500">{hint}</div> : null}
-    </div>
-  );
-}
-
 function InfoPanel({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="rounded-md border border-indigo-100 bg-white/90 p-3">
       <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">{title}</div>
       <div className="space-y-1">{children}</div>
-    </div>
-  );
-}
-
-function Row({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="flex justify-between gap-3 text-xs">
-      <span className="text-slate-600">{label}</span>
-      <span className={`font-medium text-slate-900 ${mono ? 'font-mono text-[11px]' : ''}`}>{value}</span>
     </div>
   );
 }
