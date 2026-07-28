@@ -174,11 +174,11 @@ This project follows [Semantic Versioning](https://semver.org/):
 - **MINOR** (0.x.0) — New features, completed slices (backward compatible)
 - **PATCH** (0.0.x) — Bug fixes, polish, enhancements
 
-**Current version:** v0.11.0 ([CHANGELOG.md](CHANGELOG.md))
+**Current version:** v0.12.0 ([CHANGELOG.md](CHANGELOG.md))
 
-**Release history:** [15 releases on GitHub](https://github.com/neomatrix369/rag-params-finder/releases) documenting development from v0.0.1 (initial skeleton) through v0.11.0 (weighted averaging)
+**Release history:** [GitHub Releases](https://github.com/neomatrix369/rag-params-finder/releases) from v0.0.1 through v0.12.0 (dual-backend Postgres, module theme separation, coverage floors, and more)
 
-**For contributors:** See [Release Process](docs/contributor-guide/release-process.md) for how to create new releases
+**For contributors:** See [Release Process](docs/contributor-guide/release-process.md) — cut `release/vX.Y.Z` + PR; never push a version bump directly to `main`.
 
 ---
 

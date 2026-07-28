@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Release via branch + PR** — `./scripts/release/release.sh` creates `release/vX.Y.Z`, commits the bump there, and opens a PR to `main` (never pushes the bump directly). Tag + GitHub release after merge. Aligns with GitHub ruleset **Require a pull request before merging** on `main` (**IMPLEMENTED**; **VERIFIED** via Active Protect-main-branch ruleset).
+
 ## [0.12.0] - 2026-07-28
 
 ### Added

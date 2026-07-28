@@ -1836,7 +1836,7 @@ wheels = [
 
 [[package]]
 name = "rag-params-finder"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "." }
 dependencies = [
     { name = "aim", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'linux'" },

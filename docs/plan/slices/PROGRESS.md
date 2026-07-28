@@ -699,6 +699,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-28 | release | Future releases: `release/vX.Y.Z` branch + PR to main; never push version bump directly to main; tag + `gh release` only after merge | Direct-to-main push on v0.12.0; prefer reviewable release PR |
 | 2026-07-28 | 40 | Theme folders COMPLETE — gate evidence PASSED; nw-review APPROVED | Leave IN PROGRESS after Should landing |
 | 2026-07-28 | 40 | Theme folders `01`–`07` + README via `git mv` (#162) — Should landed | Leave flat catalog / nest PROGRESS |
 | 2026-07-28 | 45 | Scripts theme folders (`ci`/`docker`/`release`/`security`) + flat shims — DECISIONS #159 | Leave scripts flat / delete shims immediately |
@@ -967,17 +968,18 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 - ✅ **After polish sprints** — Dashboard UX improvements, scoped logging, etc.
 - ❌ **Not for every commit** — Bundle related changes; release when value is deliverable
 
-**Release workflow**:
+**Release workflow** (branch + PR — **never** push a version bump directly to `main`):
 ```bash
-# After marking slice complete in this file:
+# After marking slice complete; start from clean main:
 ./scripts/release/release.sh minor    # For slice completion or new feature
 ./scripts/release/release.sh patch     # For bug fixes or polish
 
 # The script will:
-# 1. Bump version in pyproject.toml, frontend/package.json
-# 2. Prompt for CHANGELOG.md update
-# 3. Create annotated git tag with changelog excerpt
-# 4. Optionally push and create GitHub release
+# 1. Create release/vX.Y.Z from main
+# 2. Bump version in pyproject.toml, frontend/package.json
+# 3. Prompt for CHANGELOG.md update
+# 4. Commit on the release branch; push branch + open PR to main
+# After PR merge: tag vX.Y.Z on main + gh release create
 ```
 
 **See**: [docs/contributor-guide/release-process.md](../../contributor-guide/release-process.md) for complete workflow.
@@ -992,6 +994,7 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-07-28 | main (WIP) | /sync-docs | release branch+PR | APPLIED | Feature-delta: CLAUDE/README/development + release-process Scripts ref + CHANGELOG Unreleased Changed; Protect-main-branch PR-required noted. release.sh + PROGRESS already updated. User-guide N/A. Evidence **IMPLEMENTED** (script/docs); ruleset PR-required **VERIFIED** (Active Protect-main-branch). |
 | 2026-07-28 | main | /sync-docs | 44 Residual §4 / #163 | APPLIED | Feature-delta for documented Nightly Stryker timeout: `development.md` honest residual note; CHANGELOG Unreleased Changed (**DECIDED**, not IMPLEMENTED); `slice-44.json` mutation + lifecycle residual; HANDOFF Where We Are. Trackers (PROGRESS/TRAIL/DECISIONS/SLICE-44) already had §4. No user-guide. CLAUDE.md Nightly claims absent — no change. |
 | 2026-07-27 | chore/project-hygiene | /sync-docs | Meterian `.meterian` exclusions | APPLIED | Feature-delta sync: `.meterian` already present; corrected stale `.trivyignore` langsmith blocker (sie-sdk websockets&lt;15; SUPERSEDES “core pre-release”); TRAIL deferred rows for ST4/transformers, langsmith, aim; `development.md` SCA suppressions triad; `pip-audit.sh` + `security-scan.sh` (`-w /workspace`) parity comments; CHANGELOG Security + TRAIL link. No user-guide. Evidence **IMPLEMENTED**; **VERIFIED** pending Meterian nightly. |
 | 2026-07-27 | chore/project-hygiene | (manual) | Meterian `.meterian` exclusions | APPLIED | Root `.meterian` + `nightly.yml` comment + `development.md` pointer + PROGRESS/CHANGELOG. Waives aim CVE-2025-51464/5321, langchain CVE-2024-7774, transformers CVE-2026-4372/5241/1839, langsmith 0.8.0 (GHSA-f4xh). **IMPLEMENTED**; **VERIFIED** pending Meterian nightly. |
