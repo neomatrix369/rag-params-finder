@@ -146,21 +146,12 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `cli/config_loader.py` | YAML parser + model registry validation |
 | `cli/api_client.py` | HTTP client to server (POST /experiments, DELETE, etc.) |
 | `frontend/src/App.tsx` | Root component (screen routing) |
-| `frontend/src/components/DashboardShell.tsx` | Shared header and navigation wrapper |
-| `frontend/src/components/AppPageChrome.tsx` | Shared page wrapper (title, back button, actions) |
-| `frontend/src/components/LoadingFeedbackPanel.tsx` | Network loading progress panel with byte-level tracking |
-| `frontend/src/components/ExperimentProgressCard.tsx` | Reusable experiment progress card with circular indicator |
-| `frontend/src/components/PollingIndicator.tsx` | Subtle "Syncing..." badge during background polls |
-| `frontend/src/components/ConfirmDeleteModal.tsx` | Delete confirmation modal with experiment details and stats |
-| `frontend/src/components/ExperimentControlButtons.tsx` | Pause, resume, cancel buttons on detail screen |
 | `frontend/src/components/screens/` | Feature screens (`Experiments`, `Detail`, `SearchExplorer`) + co-located tests |
-| `frontend/src/components/chrome/` | Shell chrome (`DashboardShell`, `AppPageChrome`, `Pagination`, …) |
+| `frontend/src/components/chrome/` | Shell chrome (`DashboardShell`, `AppPageChrome`, `Pagination`, `CollapsibleCard`, …) |
 | `frontend/src/components/experiment/` | Experiment controls/progress/modals + detail chrome |
 | `frontend/src/components/stats/` | Vector DB stats panels + `StatTile`/`StatRow` |
 | `frontend/src/hooks/useExperimentDetail.ts` | Detail hydrate/poll/db-stats controller (Slice 45) |
 | `frontend/src/components/explore/ExplorePanels.tsx` | Search Explorer tabs + sidebar panels |
-| `frontend/src/components/chrome/Pagination.tsx` | Shared list/detail/explorer pagination chrome (Slice 45) |
-| `frontend/src/components/CollapsibleCard.tsx` | Reusable collapsible section (localStorage persistence) |
 | `frontend/src/utils/experimentStatus.ts` | Run outcome summarization + terminal status helpers |
 | `frontend/src/utils/completionReason.ts` | Shared `completion_reason` → label mapping |
 | `frontend/src/utils/feedEntries.ts` | Shared loading-feed append helper |
