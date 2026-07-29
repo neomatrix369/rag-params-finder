@@ -412,6 +412,7 @@ class TestPostgresDenseRecallShould:
     """
 
     _CORPUS_SIZE = 60
+    _CORPUS_BASE_DIM = 300
 
     @pytest.fixture
     def wide_corpus(self, store: PostgresStorageBackend) -> PostgresStorageBackend:
@@ -424,11 +425,23 @@ class TestPostgresDenseRecallShould:
         store.insert_run_status({"run_id": _RUN_A, "experiment_id": _EXP_ID, "phase": "complete"})
 
         docs = [
-            _chunk(f"a-{i:03d}", _RUN_A, _MODEL_A, _unit_vector(384, i), index=i)
+            _chunk(
+                f"a-{i:03d}",
+                _RUN_A,
+                _MODEL_A,
+                _unit_vector(384, self._CORPUS_BASE_DIM + i),
+                index=i,
+            )
             for i in range(self._CORPUS_SIZE)
         ]
         docs += [
-            _chunk(f"twin-{i:03d}", _RUN_A, _MODEL_A_TWIN, _unit_vector(384, i), index=i)
+            _chunk(
+                f"twin-{i:03d}",
+                _RUN_A,
+                _MODEL_A_TWIN,
+                _unit_vector(384, self._CORPUS_BASE_DIM + i),
+                index=i,
+            )
             for i in range(self._CORPUS_SIZE)
         ]
         store.insert_chunks(docs)
@@ -455,7 +468,7 @@ class TestPostgresDenseRecallShould:
         """
         ### Given / When
         actual = retriever_postgres.dense_search(
-            _unit_vector(384, 0), _EXP_ID, _MODEL_A, _RUN_A, top_k=20
+            _unit_vector(384, self._CORPUS_BASE_DIM), _EXP_ID, _MODEL_A, _RUN_A, top_k=20
         )
 
         ### Then
@@ -485,7 +498,11 @@ class TestPostgresDenseRecallShould:
 
         ### When
         actual = retriever_postgres.dense_search(
-            _unit_vector(384, 0), _EXP_ID, _MODEL_A, _RUN_A, top_k=self._CORPUS_SIZE
+            _unit_vector(384, self._CORPUS_BASE_DIM),
+            _EXP_ID,
+            _MODEL_A,
+            _RUN_A,
+            top_k=self._CORPUS_SIZE,
         )
 
         ### Then
@@ -548,7 +565,7 @@ class TestPostgresDenseRecallShould:
                 cur.execute(
                     forced_plan_sql,
                     {
-                        "query": Vector(_unit_vector(384, 0)),
+                        "query": Vector(_unit_vector(384, self._CORPUS_BASE_DIM)),
                         "experiment_id": _EXP_ID,
                         "embedding_model": _MODEL_A,
                         "run_id": _RUN_A,
@@ -584,7 +601,7 @@ class TestPostgresDenseRecallShould:
         """
         ### Given / When
         actual = retriever_postgres.dense_search(
-            _unit_vector(384, 7), _EXP_ID, _MODEL_A, _RUN_A, top_k=30
+            _unit_vector(384, self._CORPUS_BASE_DIM + 7), _EXP_ID, _MODEL_A, _RUN_A, top_k=30
         )
 
         ### Then
