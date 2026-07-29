@@ -16,11 +16,11 @@ Model split — Planning: claude-opus-4-8 · Execution: claude-sonnet-4-6
 
 ## Next Wave Checkpoint (post Slice 22)
 
-Slice **22** ✅ COMPLETE on `slice/22-sie-scooter` (`9805de8`). Informational — not a gate:
+Slice **22** ✅ COMPLETE on `slice/22-sie-scooter` (`9805de8` + `383541b`; `/verify-slice` **VERIFIED**). Informational — not a gate:
 
 | Option | Action |
 |--------|--------|
-| **A (recommended)** | PR + merge Slice 22; optional live SIE smoke (`POST /api/v1/sweep` → `GET /api/v1/best-config?task=`) |
+| **A (recommended)** | Confirm create-pr draft → merge Slice 22; optional live SIE smoke (`POST /api/v1/sweep` → `GET /api/v1/best-config?task=`) |
 | **B** | Close formal **32B** gate debt (parallel Protocol tracker hygiene) |
 | **C** | Slice **28** results export (external) or forward Could/Should per PROGRESS |
 

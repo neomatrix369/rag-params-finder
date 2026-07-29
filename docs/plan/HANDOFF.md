@@ -2,7 +2,7 @@
 
 ## Where We Are
 
-**22** ✅ COMPLETE on branch [`slice/22-sie-scooter`](https://github.com/neomatrix369/rag-params-finder) — commit `9805de8` (`feat(sie): persist sweep history and ship best-config lookup`). Spec: [`slices/04-sie/SLICE-22-SIE-SCOOTER.md`](slices/04-sie/SLICE-22-SIE-SCOOTER.md). Evidence: **IMPLEMENTED** (SIE score path, StorageBackend history, `GET /api/v1/best-config`); unit tests **VERIFIED**; live SIE smoke optional After-Check.
+**22** ✅ COMPLETE on branch [`slice/22-sie-scooter`](https://github.com/neomatrix369/rag-params-finder) — `9805de8` (feat) + `383541b` (hermetic tests + docs sync). Spec: [`slices/04-sie/SLICE-22-SIE-SCOOTER.md`](slices/04-sie/SLICE-22-SIE-SCOOTER.md). Evidence: **VERIFIED** at unit/API-mock boundary (`/verify-slice` COMPLETE); live SIE smoke optional After-Check only.
 
 **38** ✅ COMPLETE ([PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118)). ADR-004 Accepted; no default flip (#130). Protocol on main — formal **32 / 32C / 32B / 33** tracker debt remains **parallel**.
 
@@ -14,11 +14,11 @@
 - ADR-004 Accepted / ADR-003 Superseded (#127); Slice 38 comparison VERIFIED; default-flip Won't (#130)
 - Slice 44 / 45 / 40 COMPLETE (floors, theme packages, theme folders)
 - **2026-07-29:** Slice 22 plan refresh — theme-folder file paths, SPLADE narrow (registry already present), persist-via-StorageBackend for best-config, Protocol-on-main Before-Checks (#166–#169)
-- **2026-07-29:** Slice 22 executed — `bge-reranker` via SIE score; Tier-1 sweep history as `experiment_type=tier1_sweep`; `GET /api/v1/best-config?task=`; SPLADE sparse-only Tier-1 assert; docs sync (`/sync-docs`)
+- **2026-07-29:** Slice 22 executed — `bge-reranker` via SIE score; Tier-1 sweep history as `experiment_type=tier1_sweep`; `GET /api/v1/best-config?task=`; SPLADE sparse-only Tier-1 assert; docs sync; hermetic sweep-test patch; `/verify-slice` COMPLETE
 
 ## What's Next
 
-1. Open PR for `slice/22-sie-scooter` (review + merge); optional live SIE smoke of sweep → best-config
+1. Confirm create-pr draft (`yes`) and merge `slice/22-sie-scooter`; optional live SIE smoke of sweep → best-config
 2. Confirm Slice **44 Residual §4** Nightly `mutation-node-*` artifact (**VERIFIED** run URL)
 3. Formal gate-closure debt **32 / 32B / 32C / 33** if prioritized
 4. Slice **28** (external — @cschanhniem / #49) · forward Could/Should per [`PROGRESS.md`](slices/PROGRESS.md)

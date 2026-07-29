@@ -4,7 +4,7 @@
 **MoSCoW**: Must (PCTO)
 **Depends on**: 21 ✅, **32** Protocol on main (IMPLEMENTED — formal 32B gate debt parallel), **38** ✅ soft (cutover COMPLETE)
 
-> **Executed 2026-07-29** on `slice/22-sie-scooter` (`9805de8`). Plan refresh Path A + `/nw-execute` — DECISIONS #166–#170.
+> **Executed 2026-07-29** on `slice/22-sie-scooter` (`9805de8` feat + `383541b` hermetic/docs follow-up). Plan refresh Path A + `/nw-execute` — DECISIONS #166–#170. `/verify-slice` **COMPLETE** (unit/API-mock **VERIFIED**).
 
 ## Slice Workflow Header
 
@@ -125,7 +125,7 @@ Scenario: GET /api/v1/best-config returns 404 when no history exists
 - [ ] Self-review + `/code-review` + `/clean-commit` + PR on `slice/22-sie-scooter`
 
 ### Gate Status
-✅ COMPLETE (**IMPLEMENTED**; unit **VERIFIED** 2026-07-29 — `9805de8`; live SIE smoke + PR remaining)
+✅ COMPLETE — `/verify-slice` **COMPLETE** 2026-07-29 (**VERIFIED** at unit/API-mock boundary: 17/17 targeted tests; quality-gates + pre-push green). Commits `9805de8` + `383541b`. Optional live SIE smoke remains After-Check only; PR open is process next step (branch pushed).
 
 ### Expected Outcomes
 - SIE reranking (BGE-reranker) available as Tier 2 reranker option in sweep configs

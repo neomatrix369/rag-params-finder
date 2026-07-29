@@ -92,4 +92,4 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 | Export | CSV/JSONL download | Not implemented | **Yes** | Slice 28 |
 | All Slice 21 items | SIE + sweep + Aim | Implemented + tested | **No** | — |
 
-**Result**: Soft cutover (38) ✅. PCTO Slice **22** ✅ COMPLETE (**IMPLEMENTED**; unit **VERIFIED**). Critical remaining Must: Slice **28** export. Formal 32B gate debt stays parallel.
+**Result**: Soft cutover (38) ✅. PCTO Slice **22** ✅ COMPLETE (`/verify-slice` **VERIFIED** at unit/API-mock boundary; optional live SIE After-Check only). Critical remaining Must: Slice **28** export. Formal 32B gate debt stays parallel.
