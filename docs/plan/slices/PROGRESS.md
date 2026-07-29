@@ -120,6 +120,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 
 | Date | Item | Outcome |
 |------|------|---------|
+| 2026-07-29 | Doc technology badges (slice/22-sie-scooter) | Meterian live security/stability/licensing on README + `development.md` (+ stability on `release-process.md`); toolchain strip + stack parity badges across entry/user/contributor guides; CHANGELOG Unreleased Changed. Commit `a56bf87`. **IMPLEMENTED** (markdown + Meterian SVG HTTP 200); GitHub render **VERIFIED** when README viewed on origin. |
 | 2026-07-28 | Slice 44 Residual §4 Nightly Stryker **IMPLEMENTED** (#163) | Narrow mutate to utils/services/hooks (9 files / 868 mutants; 642 tested w/ ignoreStatic); `ignoreStatic` + exclude `StringLiteral`; concurrency 4; progress; pin 9.6.1; timeout 90; artifact@v5. Local full run **Done in 7m49s**, score ~64.7%. Nightly artifact **VERIFIED** pending `workflow_dispatch` URL. |
 | 2026-07-28 | Slice 44 residual §4 — Nightly Stryker 1h timeout (#163) | Slice 44 PR #121 grew FE dry-run 16→252 tests; Nightly Stryker (~3770 mutants) cancels at GHA 1h with no artifact ([run 30329826459](https://github.com/neomatrix369/rag-params-finder/actions/runs/30329826459/job/90182449893)). Todos on [`SLICE-44`](07-quality-craft/SLICE-44-FRONTEND-COVERAGE-GATE.md) Residual §4: Must narrow mutate; Should ignore*/concurrency/progress; Could timeout/pin; NIT upload-artifact@v5. **PROPOSED** → later **IMPLEMENTED**. |
 | 2026-07-27 | Meterian `.meterian` exclusions (chore/project-hygiene) | Added root `.meterian` (CVE + langsmith library waivers) for findings with no congruent lock fix — aim 4.x yanked, langchainjs CVE mis-attributed to Python, transformers blocked on ST&lt;4, langsmith≥0.8.18 blocked on sie-sdk websockets&lt;15. Parity with `.trivyignore` / `pip-audit.sh`. Docs: `development.md` + `nightly.yml` comment. **IMPLEMENTED**; **VERIFIED** pending next Meterian nightly/`workflow_dispatch`. |
@@ -878,6 +879,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-07-28 | 45 | Close Slice 45 — gate-evidence + mutation waive #160 | Must+Should+scripts Could verified; optional FE docstring / drift-guard / BE GWT Could deferred; PR #130 |
 | 2026-07-28 | 45 | Land Slice 45 Could leftovers (#161) | FE Scenario/Slice docstrings; coverage threshold drift guard; BE GWT-on-touch on moved suites |
 | 2026-07-28 | 44 | Nightly Stryker residual after suite growth (#163) | Narrow mutate to utils/services/hooks; ignoreConstants/stringLiterals; concurrency+progress; optional timeout/pin; NIT artifact@v5 — restores #138/#160 nightly signal; Won't full-screen mutate. Owned on SLICE-44 Residual §4 (not a new slice) |
+| 2026-07-29 | chore | Doc technology badges on entry docs | Surface Meterian security/stability/licensing + toolchain/stack shields so README/guides match nightly SCA posture (`a56bf87`). ADRs / module-theme-map / ARCHITECTURE redirect intentionally skipped. |
 | 2026-07-28 | 40 | Slice theme folders numbered by delivery wave (#162) | Specs → `01-core-pipeline` … `07-quality-craft`; PROGRESS + gate-evidence stay flat; no date folders; keep 32/32C/32B together |
 ---
 
@@ -997,6 +999,7 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-07-29 | slice/22-sie-scooter | /sync-docs | Doc technology badges | APPLIED | Tracker-only after `a56bf87`: PROGRESS maintenance + decision + skill log. Entry/user/contributor guides + CHANGELOG already matched (feature commit). CLAUDE/AGENTS/TRAIL/GAP/ADRs NO_CHANGE. Evidence **IMPLEMENTED**; Meterian badge endpoints HTTP 200 observed earlier in session. |
 | 2026-07-29 | slice/22-sie-scooter | /sync-docs | Slice 22 post-verify | APPLIED | Tracker-only: HANDOFF + SLICE-22 Gate Status + PROGRESS header/skill log now cite `/verify-slice` COMPLETE + `383541b`. User-guide/CLAUDE/CHANGELOG NO_CHANGE (already matched shipped API). Evidence **VERIFIED** (unit/API-mock); live SIE optional; PR confirm pending. |
 | 2026-07-29 | slice/22-sie-scooter | /verify-slice | Slice 22 | COMPLETE | Re-run after hermetic fix: 6/6 exit criteria PASS; 17/17 targeted tests; docs current; live SIE NOT_APPLICABLE. |
 | 2026-07-29 | slice/22-sie-scooter | /verify-slice follow-up | Slice 22 PARTIAL→fix | APPLIED | Hermetic fix: patch `server.api.sweep.get_embedder` in `test_sweep_endpoint.py`; align GWT to shipped `best_config`/`history_count`; strengthen best-config assertions; 17/17 targeted tests green. |

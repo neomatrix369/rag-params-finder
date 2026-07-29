@@ -15,6 +15,7 @@
 - Slice 44 / 45 / 40 COMPLETE (floors, theme packages, theme folders)
 - **2026-07-29:** Slice 22 plan refresh — theme-folder file paths, SPLADE narrow (registry already present), persist-via-StorageBackend for best-config, Protocol-on-main Before-Checks (#166–#169)
 - **2026-07-29:** Slice 22 executed — `bge-reranker` via SIE score; Tier-1 sweep history as `experiment_type=tier1_sweep`; `GET /api/v1/best-config?task=`; SPLADE sparse-only Tier-1 assert; docs sync; hermetic sweep-test patch; `/verify-slice` COMPLETE
+- **2026-07-29:** Doc technology badges — Meterian live scores + toolchain/stack shields across README and guides (`a56bf87`)
 
 ## What's Next
 
