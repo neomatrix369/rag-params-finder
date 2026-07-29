@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Doc technology badges** — Meterian live security/stability/licensing badges on README + development guide (+ stability on release-process); security toolchain strip (Trivy, gitleaks, TruffleHog, pip-audit, bandit, CycloneDX, Chalk, Dependabot, mutmut, Stryker, Semgrep, OSV) on development.md; stack parity badges (Voyage, sentence-transformers, Docker, Node 22, Postgres/Supabase, Typer/Rich, Aim, Optuna, Stella/SPLADE/HF) across user/contributor guides, QUICKSTART, and docs index (**IMPLEMENTED**).
+
 - **Release via branch + PR** — `./scripts/release/release.sh` creates `release/vX.Y.Z`, commits the bump there, and opens a PR to `main` (never pushes the bump directly). Tag + GitHub release after merge. Aligns with GitHub ruleset **Require a pull request before merging** on `main` (**IMPLEMENTED**; **VERIFIED** via Active Protect-main-branch ruleset).
 
 ## [0.12.0] - 2026-07-28

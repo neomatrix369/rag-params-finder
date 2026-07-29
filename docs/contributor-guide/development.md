@@ -1,13 +1,36 @@
 # Development Guide
 
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=nodedotjs&logoColor=white)
 ![uv](https://img.shields.io/badge/uv-package_manager-DE5FE9?logoColor=white)
 ![ruff](https://img.shields.io/badge/ruff-linter-D7FF64?logoColor=black)
 ![mypy](https://img.shields.io/badge/mypy-type_checker-2A6DB2?logoColor=white)
+![pytest](https://img.shields.io/badge/pytest-0A9EDC?logo=pytest&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-6E9F18?logo=vitest&logoColor=white)
+![ESLint](https://img.shields.io/badge/ESLint-4B32C3?logo=eslint&logoColor=white)
+![pre-commit](https://img.shields.io/badge/pre--commit-hooks-FAB040)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+
+![Trivy](https://img.shields.io/badge/Trivy-SCA-1904DA?logo=aquasecurity&logoColor=white)
+![gitleaks](https://img.shields.io/badge/gitleaks-secrets-1E2327)
+![TruffleHog](https://img.shields.io/badge/TruffleHog-verified_secrets-EC5212)
+![pip-audit](https://img.shields.io/badge/pip--audit-SCA-3776AB?logo=python&logoColor=white)
+![bandit](https://img.shields.io/badge/bandit-SAST-yellow)
+![CycloneDX](https://img.shields.io/badge/SBOM-CycloneDX-0A5277)
+![Chalk](https://img.shields.io/badge/Chalk-provenance-6B46C1)
+![Dependabot](https://img.shields.io/badge/Dependabot-025E8C?logo=dependabot&logoColor=white)
+![mutmut](https://img.shields.io/badge/mutmut-mutation-3776AB)
+![Stryker](https://img.shields.io/badge/Stryker-mutation-E74C3C)
+![Semgrep](https://img.shields.io/badge/Semgrep-SAST-1B2A4A)
+![OSV-Scanner](https://img.shields.io/badge/OSV--Scanner-SCA-4285F4?logo=google&logoColor=white)
+
 [![CI](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/ci.yml)
 [![Nightly](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/nightly.yml?branch=main&label=Nightly&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/nightly.yml)
 [![Code Review Graph](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/code-review-graph.yml?branch=main&label=Code+Review+Graph&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/code-review-graph.yml)
+[![security status](https://www.meterian.com/badge/gh/neomatrix369/rag-params-finder/security)](https://www.meterian.com/report/gh/neomatrix369/rag-params-finder)
+[![stability status](https://www.meterian.com/badge/gh/neomatrix369/rag-params-finder/stability)](https://www.meterian.com/report/gh/neomatrix369/rag-params-finder)
+[![licensing status](https://www.meterian.com/badge/gh/neomatrix369/rag-params-finder/licensing)](https://www.meterian.com/report/gh/neomatrix369/rag-params-finder)
 
 Dev environment setup, quality gates, testing strategy, and the slice workflow for contributors.
 

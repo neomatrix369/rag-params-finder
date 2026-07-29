@@ -3,6 +3,10 @@
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 ![Docker](https://img.shields.io/badge/Docker-optional-2496ED?logo=docker&logoColor=white)
 ![BGE-M3](https://img.shields.io/badge/BGE--M3-1024--dim-orange)
+![Stella-v5](https://img.shields.io/badge/Stella--v5-1024--dim-purple)
+![SPLADE-v3](https://img.shields.io/badge/SPLADE--v3-sparse-green)
+![Hugging Face](https://img.shields.io/badge/Hugging_Face-FFD21E?logo=huggingface&logoColor=black)
+![Aim](https://img.shields.io/badge/Aim-experiment_tracking-00B4D8)
 
 The **SIE (Superlinked Inference Engine)** provider runs open-source embedding models
 (BGE-M3, Stella-v5, SPLADE-v3) via any SIE-compatible HTTP endpoint.
