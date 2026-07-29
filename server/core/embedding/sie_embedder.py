@@ -22,7 +22,7 @@ from typing import Any, cast
 
 from sie_sdk import SIEClient  # type: ignore[import-untyped]
 
-from server.core.model_registry import get_model_info
+from server.core.model_registry import get_model_info, get_reranker_info
 from server.core.pipeline.experiment_control import ExperimentCancelledError, ExperimentPausedError
 from server.core.sie_guard import SIEUnavailableError
 from server.settings import settings
@@ -64,6 +64,12 @@ def _resolve_sie_model_name(model_id: str) -> str:
     HuggingFace IDs (e.g. "BAAI/bge-m3") in the huggingface_id field.
     """
     info = get_model_info(model_id)
+    return info["huggingface_id"] or model_id
+
+
+def _resolve_sie_reranker_name(model_id: str) -> str:
+    """Return the full HuggingFace reranker name for the SIE SDK call."""
+    info = get_reranker_info(model_id)
     return info["huggingface_id"] or model_id
 
 
@@ -137,6 +143,23 @@ def _to_float_vector(raw: object) -> list[float]:
     raise TypeError(f"Expected vector-like object, got {type(raw)!r}")
 
 
+def _to_float_scores(raw: object) -> list[float]:
+    if isinstance(raw, list):
+        scores: list[float] = []
+        for item in raw:
+            if isinstance(item, dict):
+                score = item.get("score") or item.get("relevance_score")
+            else:
+                score = getattr(item, "score", None)
+                if score is None:
+                    score = getattr(item, "relevance_score", None)
+            if score is None:
+                raise TypeError(f"Expected score-like object, got {type(item)!r}")
+            scores.append(float(score))
+        return scores
+    raise TypeError(f"Expected score list, got {type(raw)!r}")
+
+
 def embed_documents_sie(
     texts: list[str],
     model_id: str,
@@ -190,6 +213,25 @@ def embed_documents_sie(
         raise
     except Exception as exc:
         raise SIEUnavailableError(f"SIE unreachable or encode failed: {exc}") from exc
+
+
+def score_documents_sie(query: str, documents: list[str], model_id: str) -> list[float]:
+    """Score query-document pairs through the SIE reranking endpoint."""
+    if not documents:
+        return []
+
+    sie_model = _resolve_sie_reranker_name(model_id)
+    logger.debug("SIE rerank score — model=%s docs=%d", sie_model, len(documents))
+    try:
+        client = _get_client()
+        raw_scores = client.score(sie_model, query, documents)
+        scores = _to_float_scores(raw_scores)
+        logger.debug("SIE rerank OK — scores=%d", len(scores))
+        return scores
+    except (ExperimentCancelledError, ExperimentPausedError):
+        raise
+    except Exception as exc:
+        raise RuntimeError(f"SIE unreachable or score failed: {exc}") from exc
 
 
 def embed_query_sie(text: str, model_id: str) -> list[float]:

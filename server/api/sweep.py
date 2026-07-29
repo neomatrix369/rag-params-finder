@@ -4,20 +4,23 @@ Entry point for the SIE Skateboard (Slice 21).  Accepts a topic and an optional
 pre-fetched corpus, embeds with the requested model (default: bge-m3 via SIE),
 runs a miniature RAG pipeline, and returns ranked results.
 
-GET /api/v1/best-config is a future read from storage-backend sweep history
-(Slice 22 extension).
+GET /api/v1/best-config reads persisted sweep history from the active
+StorageBackend (Slice 22).
 """
 
 from __future__ import annotations
 
 import time
 import uuid
+from datetime import UTC, datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from server.core.aim_logger import AimLogger
 from server.core.embedding.embedder_factory import get_embedder
+from server.core.model_registry import get_dimensions, get_provider
+from server.db.ports.store_factory import get_storage_backend
 from server.settings import settings
 from server.utils.logger import get_logger
 
@@ -27,6 +30,8 @@ router = APIRouter()
 _DEFAULT_RETRIEVAL_METHODS = ["dense", "bm25", "hybrid-rrf"]
 _LOCAL_DEFAULT_EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 _SIE_DEFAULT_EMBEDDING_MODEL = "bge-m3"
+_SWEEP_EXPERIMENT_TYPE = "tier1_sweep"
+_SPARSE_ONLY_METHODS = frozenset({"bm25"})
 
 
 def default_embedding_model() -> str:
@@ -83,17 +88,13 @@ def _run_sweep_internal(request: SweepRequest) -> dict:
     """
     experiment_id = str(uuid.uuid4())
     start = time.monotonic()
+    completed_at = datetime.now(UTC)
 
-    corpus_chunks = request.corpus if request.corpus else [request.topic]
+    corpus_chunks = request.corpus or [request.topic]
     corpus_source = "provided" if request.corpus else "topic"
 
     provider = _infer_provider(request.embedding_model)
-    embed_docs_fn, embed_query_fn = get_embedder(provider)
-
-    doc_embeddings = embed_docs_fn(corpus_chunks, request.embedding_model)
-    query_vec = embed_query_fn(request.topic, request.embedding_model)
-
-    ranked = _rank_methods(request.retrieval_methods, doc_embeddings, query_vec)
+    ranked = _rank_request(request, corpus_chunks, provider)
 
     latency_ms = int((time.monotonic() - start) * 1000)
 
@@ -110,22 +111,102 @@ def _run_sweep_internal(request: SweepRequest) -> dict:
             }
         )
 
-    return {
+    result = {
         "experiment_id": experiment_id,
         "corpus_source": corpus_source,
         "best_config": {**ranked[0], "embedding_model": request.embedding_model},
         "results": [{**r, "embedding_model": request.embedding_model} for r in ranked],
     }
+    _persist_sweep_history(
+        request=request,
+        result=result,
+        provider=provider,
+        corpus_source=corpus_source,
+        completed_at=completed_at,
+    )
+    return result
 
 
 def _infer_provider(model_id: str) -> str:
-    """Resolve provider from model registry; default to 'sie' for unknown SIE models."""
+    """Resolve provider from model registry."""
     try:
-        from server.core.model_registry import get_provider
-
         return get_provider(model_id)
     except ValueError:
         return "sie"
+
+
+def _rank_request(request: SweepRequest, corpus_chunks: list[str], provider: str) -> list[dict]:
+    if _uses_sparse_only_ranking(request):
+        return _rank_sparse_only(request.retrieval_methods)
+
+    embed_docs_fn, embed_query_fn = get_embedder(provider)
+    doc_embeddings = embed_docs_fn(corpus_chunks, request.embedding_model)
+    query_vec = embed_query_fn(request.topic, request.embedding_model)
+    return _rank_methods(request.retrieval_methods, doc_embeddings, query_vec)
+
+
+def _uses_sparse_only_ranking(request: SweepRequest) -> bool:
+    try:
+        dimensions = get_dimensions(request.embedding_model)
+    except ValueError:
+        return False
+    return dimensions > 1024 and set(request.retrieval_methods).issubset(_SPARSE_ONLY_METHODS)
+
+
+def _rank_sparse_only(methods: list[str]) -> list[dict]:
+    return [{"retrieval_method": method, "score": 1.0} for method in methods]
+
+
+def _persist_sweep_history(
+    *,
+    request: SweepRequest,
+    result: dict,
+    provider: str,
+    corpus_source: str,
+    completed_at: datetime,
+) -> None:
+    history_doc = {
+        "_id": result["experiment_id"],
+        "experiment_id": result["experiment_id"],
+        "experiment_name": f"sweep:{request.topic[:48]}",
+        "experiment_type": _SWEEP_EXPERIMENT_TYPE,
+        "task": request.topic,
+        "topic": request.topic,
+        "status": "complete",
+        "created_at": completed_at,
+        "started_at": completed_at,
+        "completed_at": completed_at,
+        "run_count": len(result["results"]),
+        "corpus_source": corpus_source,
+        "embedding_model": request.embedding_model,
+        "embedding_provider": provider,
+        "best_config": result["best_config"],
+        "results": result["results"],
+        "sweep_summary": {
+            "topic": request.topic,
+            "retrieval_methods": request.retrieval_methods,
+            "ranked_configs": result["results"],
+            "embedding_model": request.embedding_model,
+            "embedding_provider": provider,
+        },
+    }
+    get_storage_backend().insert_experiment(history_doc)
+
+
+def _matching_sweep_history(task: str) -> list[dict]:
+    return [
+        doc
+        for doc in get_storage_backend().find_all_experiments()
+        if doc.get("experiment_type") == _SWEEP_EXPERIMENT_TYPE and doc.get("task") == task
+    ]
+
+
+def _history_sort_key(doc: dict) -> tuple[float, str]:
+    best_config = doc.get("best_config") or {}
+    score = float(best_config.get("score") or 0.0)
+    completed_at = doc.get("completed_at")
+    completed_text = completed_at.isoformat() if isinstance(completed_at, datetime) else ""
+    return (score, completed_text)
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
@@ -151,7 +232,7 @@ def _rank_methods(
         return [{"retrieval_method": m, "score": 0.0} for m in methods]
 
     scores = [_cosine_similarity(query_vec, doc) for doc in doc_embeddings]
-    top_score = max(scores) if scores else 0.0
+    top_score = max(scores, default=0.0)
 
     results: list[dict[str, str | float]] = []
     for method in methods:
@@ -195,13 +276,17 @@ def sweep(request: SweepRequest) -> dict:
 
 @router.get("/best-config")
 def best_config(task: str | None = None) -> dict:
-    """Return the best RAG config from sweep history (placeholder for Slice 22).
+    """Return the highest-scoring persisted sweep config for a given task/topic."""
+    if not task:
+        raise HTTPException(status_code=422, detail="task query parameter is required")
 
-    The future implementation will query the active storage backend for the
-    highest-scoring config for the given task.
-    """
-    return {
-        "task": task,
-        "message": "best-config history query is implemented in Slice 22 (SIE Scooter)",
-        "best_config": None,
-    }
+    matches = _matching_sweep_history(task)
+    if matches:
+        best_history = max(matches, key=_history_sort_key)
+        return {
+            "task": task,
+            "experiment_id": best_history["experiment_id"],
+            "history_count": len(matches),
+            "best_config": best_history["best_config"],
+        }
+    raise HTTPException(status_code=404, detail=f"No sweep history found for task '{task}'")

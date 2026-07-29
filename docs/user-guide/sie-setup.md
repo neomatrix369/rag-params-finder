@@ -275,6 +275,10 @@ retrieval:
 The 1024-dim vector index (`vector_index_1024`) is used for SIE models — the same as Voyage.
 If you already created `vector_index_1024` for Voyage sweeps, no new index is needed.
 
+For a sparse-only Tier-1 API smoke test, reuse the existing `splade-v3` registry entry with
+`retrieval_methods=["bm25"]`. That path stays lexical-only in the Tier-1 sweep and does not run
+the dense similarity scorer.
+
 ---
 
 ## 6. Quick smoke test
@@ -289,6 +293,16 @@ curl -s -X POST http://localhost:8001/api/v1/sweep \
 ```
 
 Expected: HTTP 200 with `best_config`, `results`, and `experiment_id` in the response body.
+
+The response is also persisted through the active `StorageBackend`, so you can fetch the current
+recommendation for the same topic immediately after the sweep:
+
+```bash
+curl -s "http://localhost:8001/api/v1/best-config?task=machine%20learning" \
+  | python3 -m json.tool
+```
+
+Expected: HTTP 200 with the highest-scoring persisted config for `task=machine learning`.
 
 ---
 

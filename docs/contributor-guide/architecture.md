@@ -105,7 +105,7 @@ rag-params-finder/
 │   │   ├── experiments.py   # CRUD, explore, db-stats, pause, resume, cancel, delete (façade)
 │   │   ├── experiments_lifecycle.py  # Bayesian/stale-status helpers (Slice 45)
 │   │   ├── experiments_shared.py  # StorageBackend helpers (threadpool I/O) incl. db-stats
-│   │   ├── sweep.py         # POST /api/v1/sweep; GET /api/v1/best-config (placeholder — Slice 22)
+│   │   ├── sweep.py         # POST /api/v1/sweep; GET /api/v1/best-config (persisted sweep history)
 │   │   └── runs.py          # GET /runs/{id}/status
 │   ├── core/
 │   │   ├── pipeline/        # orchestrator, executors, experiment_control, search, signatures, …
