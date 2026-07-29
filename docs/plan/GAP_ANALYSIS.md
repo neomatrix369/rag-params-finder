@@ -1,7 +1,7 @@
 # Gap Analysis
-> ~2 min read · **Updated 2026-07-25** after enhanced-flow-planner continuation gap audit · **Gap bridge 2026-07-09** (planned/deferred spec ↔ TRAIL sync)
+> ~2 min read · **Updated 2026-07-29** after Slice 22 plan refresh (`/sync-docs`) · prior: enhanced-flow-planner continuation 2026-07-25 · Gap bridge 2026-07-09
 
-Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.md) · Migration PRD: [PRD-supabase-pgvector-migration.md](PRD-supabase-pgvector-migration.md)
+Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.md) · Migration PRD: [PRD-supabase-pgvector-migration.md](PRD-supabase-pgvector-migration.md) · Active Must: [SLICE-22](slices/04-sie/SLICE-22-SIE-SCOOTER.md) 🔨 plan refreshed
 
 ---
 
@@ -14,7 +14,7 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 | Aim experiment tracking | None | `aim_logger.py` (no-op on failure) | Slice 21 ✅ |
 | `POST /api/v1/sweep` | Missing | Live in `server/api/sweep.py` | Slice 21 ✅ |
 | SIE health check | MongoDB only | `/health` includes SIE status | Slice 21 ✅ |
-| Atlas M0 storage ceiling (local dev) | Blocker | `./start-services.sh --local` + auto indexes | Slice 25/25B ✅ |
+| Atlas M0 storage ceiling (local dev) | Blocker | `./start-services.sh --mongodb-local` + auto indexes | Slice 25/25B ✅ |
 | CI action upgrades (repo-lint, gitleaks) | Mixed v4/v2 | All jobs on checkout/setup-python v6; gitleaks v3 | PRs #36–#39 ✅ |
 | Migration decision | ADR-003 locked Atlas | Team approved Supabase/pgvector + dual-backend | PRD 2026-07-09 |
 | Slice 11 spec missing | TRAIL linked 404 | `SLICE-11-SEARCH-EXPLORER.md` created; scope bounded vs 28/30 | Gap bridge 2026-07-09 |
@@ -23,6 +23,12 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 | Docker build optimisation | Multi-stage builds, cache mounts, nginx runtime, CI job | Fully implemented (server + frontend Dockerfiles) | Slice 42 ✅ 2026-07-25 |
 | Project hygiene + nightly CI | Nightly T4 jobs, idempotent hooks, Chalk attestation, BACKEND_CHANGED | All merged to main (PRs #103–106) | Maintenance batch 2026-07-24 |
 | gate-evidence stubs (historical slices 1–9, 42) | All PASSED slices should have gate-evidence JSON | Stubs created; 42 now has real evidence, 1–9 inferred | plan-health-check AUTO-FIX 2026-07-25 |
+| Dual-backend storage Protocol | Mongo-only modules | `StorageBackend` + `RetrieverBackend` ports; Mongo + Postgres adapters on main | Slices 32–38 ✅ (formal 32B gate debt parallel) |
+| Dense/sparse/hybrid on Postgres | Atlas only | pgvector HNSW + tsvector + RRF | Slices 34–35 ✅ |
+| Index preflight / db-stats on Postgres | Atlas Admin only | Postgres catalog preflight + four-value `storage_mode` | Slice 36 ✅ |
+| Local + cloud Postgres DX | Atlas Local only | `--postgres-local` / `--postgres-cloud` + config↔server 422 | Slice 37 ✅ |
+| ADR-004 + quality comparison | ADR-003 only | ADR-004 Accepted; local comparison VERIFIED; **no default flip** (#130) | Slice 38 ✅ |
+| User/dev Postgres doc footprint | Mongo guides only | `postgres-setup.md` + operator parity | Slices 37–38 + sync-docs ✅ |
 
 ---
 
@@ -30,23 +36,16 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 
 | Area | PCTO / Roadmap Requirement | What Exists | Gap | Severity | Target |
 |------|---------------------------|-------------|-----|----------|--------|
-| Dual-backend storage | Protocol + Mongo/Postgres adapters | Mongo-only modules (`atlas.py`, retriever, indexes) | Extract Protocol; Postgres path | **Critical** (migration) | Slices 32–38 |
-| Dense/sparse/hybrid on Postgres | Parity with Atlas retrieval | Atlas `$vectorSearch` / `$search` only | pgvector + tsvector + RRF | **Critical** | 34–35 |
-| Index preflight / db-stats on Postgres | HTTP 422 + dashboard panels | Atlas Admin + search index guard | Postgres introspection + `pg_*` sizes | **Critical** | 36 |
-| Local + cloud Postgres DX | Mirror Atlas Local story | Atlas Local only | Docker pgvector + Supabase URI | **Critical** | 37 |
-| ADR-004 + quality comparison | Supersede ADR-003 | ADR-003 Accepted | Side-by-side + cutover docs | **Critical** | 38 |
-| User/dev doc footprint | Supabase setup parity with mongodb-setup | Mongo guides only | PRD §Documentation matrix; sync-docs at 37/38 | **Critical** | 32–38 |
-| Best-config lookup | `GET /api/v1/best-config?task=...` | Stub returns placeholder message | History query + recommendation logic | **Critical** (PCTO) | Slice 22 *(after 38)* |
-| SIE reranking | BGE-reranker via SIE `score` | Voyage + CrossEncoder only | SIE score path in `reranker.py` | Notable | Slice 22 |
-| SPLADE v3 sparse sweep | Full sparse retrieval via SIE | Registry + sparse index exist; sweep path incomplete | End-to-end + Postgres sparsevec gate | Notable | 35 + 22 |
+| Best-config lookup | `GET /api/v1/best-config?task=...` | Stub returns placeholder message | Persist Tier-1 sweep via StorageBackend + history aggregate | **Critical** (PCTO) | Slice 22 🔨 (**DECIDED** plan refresh 2026-07-29; soft dep 38 ✅) |
+| SIE reranking | BGE-reranker via SIE `score` | Voyage + CrossEncoder only (`server/core/rerank/`) | SIE score path in `rerank/reranker.py` | Notable | Slice 22 🔨 |
+| SPLADE v3 sparse sweep | Full sparse retrieval via SIE | Registry + `vector_index_30522` exist (Slice 21 foundation) | End-to-end sparse path assert in sweep | Notable | Slice 22 🔨 (narrow — do not re-add registry) |
 | Results export | CSV/JSONL download | JSON via `/results` and `/explore` only | Export endpoint + dashboard button | **Must** (#49) | Slice 28 |
-| MongoDB mode visibility | Cloud vs local indicator | URI detection exists | **Absorbed into Slice 36** (four-value `storage_mode`: `mongodb\|postgres` × `local\|cloud`) | Should | 36 |
 | Local MongoDB UX docs | Smooth onboarding | Unified `mongodb-setup.md` | **📦 DEFERRED** | Should | was 26 |
 | Storage quota guard (Atlas) | Cloud production safety | Boot reconciliation only | **📦 DEFERRED** — Postgres stats in 36 | Should | was 19 |
-| Parallel sweep | `parallelism > 1` | Sequential `BackgroundTasks` | Bounded concurrency | Should | Slice 16 |
 | Ollama + Tier 2–3 | HyDE, Multi-Query, etc. | None | Full retrieval tier expansion | Could | Slice 23 |
 | Evidently AI monitoring | Drift alerts | None | Integration | Could | Slice 23 |
 | MCP server | `get_rag_config` tool | None | **Won't this cycle** — use best-config HTTP | Won't | — |
+| Formal Protocol gate closure | Tracker COMPLETE for 32/32C/32B/33 | Protocol **IMPLEMENTED** on main; 38 ✅ | Coverage/mutation/nw-review close-out | Should (parallel) | 32B chain |
 
 ---
 
@@ -72,9 +71,11 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 | Dense/sparse/hybrid retrieval (Tier 1) on Mongo | ✅ | Atlas vector + FTS |
 | Orchestrator pipeline | ✅ | Provider dispatch via factory |
 | Docker Compose stack | ✅ | Prod + dev HMR; Postgres profile in 37 |
-| Docker build layering + CI validation | 📋 Slice 42 | Single-stage server image; wrong COPY order (PyTorch cache busted on source changes); no BuildKit cache mounts; frontend ships node_modules + vite preview; no CI Docker build job — tracked in SLICE-42-DOCKER-BUILD-OPTIMISATION.md |
-| CI / quality gates | ✅ | `./scripts/quality-gates.sh` |
+| Docker build layering + CI validation | ✅ | Multi-stage + BuildKit cache + nginx runtime; Slice 42 ✅ |
+| CI / quality gates | ✅ | `./scripts/ci/quality-gates.sh` |
 | Chunkers | ✅ | PRs #47/#48 |
+| Parallel sweep | ✅ | Slice 16 COMPLETE |
+| Dense/sparse/hybrid on Postgres | ✅ | Slices 34–35 |
 
 ---
 
@@ -82,11 +83,11 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 
 | Area | Spec says | Code does | Gap | Action |
 |------|-----------|-----------|-----|--------|
-| Storage backend | Dual Protocol + Postgres primary after 38 | Mongo only | **Yes** | 32–38 |
-| best-config | Returns recommendation from history | Stub only | **Yes** | Slice 22 |
-| SPLADE sparse sweep | Full open-source sparse | Index + registry ready; encode path partial | **Partial** | 35 + 22 |
-| SIE reranking | BGE-reranker scores | Voyage/CrossEncoder only | **Yes** | Slice 22 |
+| Storage backend | Dual Protocol; operator-selected engine (#130 no default flip) | Protocol + Mongo + Postgres adapters on main | **No** (formal 32B debt parallel) | — |
+| best-config | Returns recommendation from history | Stub only | **Yes** | Slice 22 🔨 |
+| SPLADE sparse sweep | End-to-end sparse path | Registry + index ready; sweep assert pending | **Partial** | Slice 22 🔨 |
+| SIE reranking | BGE-reranker scores | Voyage/CrossEncoder only | **Yes** | Slice 22 🔨 |
 | Export | CSV/JSONL download | Not implemented | **Yes** | Slice 28 |
 | All Slice 21 items | SIE + sweep + Aim | Implemented + tested | **No** | — |
 
-**Result**: Migration is the new critical path. PCTO Slice 22 remains Must but sequenced after cutover.
+**Result**: Soft cutover (38) is COMPLETE. Critical path is PCTO Slice **22** (plan refreshed **DECIDED** 2026-07-29 — await `/nw-execute`). Formal 32B gate debt is parallel, not a hard block.
