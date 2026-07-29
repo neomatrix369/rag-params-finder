@@ -133,8 +133,8 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/aim_logger.py` | Aim experiment run logging wrapper; `AimLogger.log_run()` — no-op if Aim init fails |
 | `scripts/docker/aim-ui.sh` | Start Aim UI on :43800 via Docker (shared `./.aim` repo with server) |
 | `scripts/lib/compose.sh` | Shared Docker Compose helpers + local/cloud MongoDB URI constants; `start-services.sh mongodb` subcommands |
-| `server/api/sweep.py` | `POST /api/v1/sweep` (ranked results, SIE vs voyage baseline) + `GET /api/v1/best-config` |
-| `server/core/rerank/reranker.py` | Voyage reranking client |
+| `server/api/sweep.py` | `POST /api/v1/sweep` (SIE vs voyage baseline) + `GET /api/v1/best-config` *(placeholder — Slice 22 DECIDED, not IMPLEMENTED)* |
+| `server/core/rerank/reranker.py` | Voyage + local CrossEncoder dispatch; SIE `score` path is Slice 22 |
 | `server/core/rerank/local_reranker.py` | CrossEncoder reranking (lazy-load) |
 | `server/core/retrieval/retriever_mongo.py` | Atlas Vector Search (dense/sparse/hybrid) — Mongo-only |
 | `server/core/retrieval/retriever_postgres.py` | pgvector dense + tsvector sparse + RRF hybrid; Atlas-scale dense scores; mandatory `embedding_model` filter |

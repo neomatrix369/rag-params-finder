@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-28 (Slice 40 ✅ COMPLETE — theme folders `01`–`07` + README #162; [`slice-40.json`](../gate-evidence/slice-40.json))
-**Current**: **40** ✅. **45** ✅ · **44** ✅ Residual §4 **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending). Migration track: **38** ✅; formal gate-closure debt **32** / **32C** / **32B** / **33**. Then **22** · **28** · **41B**. Deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-29 (Slice **22** 🔨 IN PROGRESS — plan refreshed; Protocol-on-main; await `/nw-execute`)
+**Current**: **22** 🔨 (SIE Scooter plan refresh). **40** ✅ · **45** ✅ · **44** ✅ Residual §4 **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending). Migration track: **38** ✅; formal gate-closure debt **32** / **32C** / **32B** / **33** (parallel — does not block 22). Then **28** · **41B**. Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md)
 
@@ -41,7 +41,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../TRAIL.md) · Gap analysis: [`docs/p
 | 24 — Port standardisation | ✅ COMPLETE | ~1 h | Unique static ports: frontend 5173→5374 (avoids Vite default), SIE 8080→8720 (avoids Jenkins/Tomcat/etc.); backend 8001 unchanged — spec: [`SLICE-24-PORT-STANDARDISATION.md`](03-platform/SLICE-24-PORT-STANDARDISATION.md) |
 | 25 — Atlas Local Dev Mode | ✅ COMPLETE | ~1 h | `mongodb-atlas-local` Docker image as opt-in local backend; `local-atlas` compose profile; auto-provision all search indexes on boot for local URI; eliminates M0 512 MB ceiling for local dev — spec: [`SLICE-25-ATLAS-LOCAL.md`](03-platform/SLICE-25-ATLAS-LOCAL.md) |
 | 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | Shipped as `--local`; now `--mongodb-local`; `mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](03-platform/SLICE-25B-ATLAS-SWITCHING.md) |
-| 22 — SIE Scooter | 📋 PLANNED | ~3 h | SIE reranking + SPLADE sparse + `GET /api/v1/best-config` — Must — **after Slice 38** — spec: [`SLICE-22-SIE-SCOOTER.md`](04-sie/SLICE-22-SIE-SCOOTER.md) |
+| 22 — SIE Scooter | 🔨 IN PROGRESS | ~3 h | SIE reranking + SPLADE sparse path + `GET /api/v1/best-config` — Must — plan refreshed 2026-07-29 (Protocol on main; 38 ✅) — spec: [`SLICE-22-SIE-SCOOTER.md`](04-sie/SLICE-22-SIE-SCOOTER.md) |
 | 23 — SIE Bicycle | 📋 PLANNED | ~3 h | Ollama + Tier 2–3 retrieval + Evidently AI (Could, post-hackathon) — spec: [`SLICE-23-SIE-BICYCLE.md`](04-sie/SLICE-23-SIE-BICYCLE.md) |
 | 26 — Local MongoDB smooth-path docs | 📦 DEFERRED | ~1 h | Re-scope after Postgres cutover — [`SLICE-26-LOCAL-MONGODB-DOCS.md`](05-storage/SLICE-26-LOCAL-MONGODB-DOCS.md) |
 | 27 — MongoDB mode indicator | 📦 DEFERRED | ~2 h | Absorbed into Slice 36 as four-value `storage_mode` (`mongodb\|postgres` × `local\|cloud`) — [`SLICE-27-MONGODB-MODE-INDICATOR.md`](05-storage/SLICE-27-MONGODB-MODE-INDICATOR.md) |
@@ -95,7 +95,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 37 | Must | ✅ COMPLETE | 36 | Supabase local/hosted parity |
 | 38 | Must | ✅ COMPLETE | 37 | ADR-004 + comparison; no default flip (#130) |
 | 28 | Must | 📋 PLANNED | — | External — @cschanhniem / #49 |
-| 22 | Must | 📋 PLANNED | 21, 32, 38 (soft) | SIE Scooter — hard dep 32 Protocol; soft 38 cutover |
+| 22 | Must | 🔨 IN PROGRESS | 21, 32 (Protocol on main), 38 ✅ | SIE Scooter — plan refreshed; 32B parallel debt |
 | 26 | Should | 📦 DEFERRED | 25B | Mongo docs — re-scope post-cutover |
 | 27 | Should | 📦 DEFERRED | — | Absorbed into Slice 36 four-value storage_mode (`mongodb\|postgres` × `local\|cloud`) |
 | 19 | Should | 📦 DEFERRED | — | Atlas quota — Postgres path in 36 |
@@ -699,6 +699,8 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 
 | Date | Slice | Decision | Why |
 |------|-------|----------|-----|
+| 2026-07-29 | 22 | Resume Slice 22 Path A — plan refreshed; Protocol on main; 32B parallel (#166–#170) | Next Must feature track; soft dep 38 ✅ |
+| 2026-07-29 | 22 | Persist sweep via StorageBackend; SPLADE narrow (registry exists); theme-folder paths | Align GWT to main HEAD seams |
 | 2026-07-28 | release | Future releases: `release/vX.Y.Z` branch + PR to main; never push version bump directly to main; tag + `gh release` only after merge | Direct-to-main push on v0.12.0; prefer reviewable release PR |
 | 2026-07-28 | 40 | Theme folders COMPLETE — gate evidence PASSED; nw-review APPROVED | Leave IN PROGRESS after Should landing |
 | 2026-07-28 | 40 | Theme folders `01`–`07` + README via `git mv` (#162) — Should landed | Leave flat catalog / nest PROGRESS |
@@ -994,6 +996,7 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-07-29 | main (WIP) | /sync-docs | Slice 22 plan refresh | APPLIED | Post-plan-delta: GAP_ANALYSIS closed 32–38 migration rows; Slice 22 remaining gaps + divergence Result → PCTO critical path. CLAUDE.md + architecture.md + cli-reference: best-config labeled placeholder **DECIDED** not IMPLEMENTED. Plan trackers already refreshed. sie-setup NO_CHANGE (POST `best_config` ≠ GET history). CHANGELOG NO_CHANGE. Evidence **DECIDED** (plan); stub still placeholder only. |
 | 2026-07-28 | main (WIP) | /sync-docs | release branch+PR | APPLIED | Feature-delta: CLAUDE/README/development + release-process Scripts ref + CHANGELOG Unreleased Changed; Protect-main-branch PR-required noted. release.sh + PROGRESS already updated. User-guide N/A. Evidence **IMPLEMENTED** (script/docs); ruleset PR-required **VERIFIED** (Active Protect-main-branch). |
 | 2026-07-28 | main | /sync-docs | 44 Residual §4 / #163 | APPLIED | Feature-delta for documented Nightly Stryker timeout: `development.md` honest residual note; CHANGELOG Unreleased Changed (**DECIDED**, not IMPLEMENTED); `slice-44.json` mutation + lifecycle residual; HANDOFF Where We Are. Trackers (PROGRESS/TRAIL/DECISIONS/SLICE-44) already had §4. No user-guide. CLAUDE.md Nightly claims absent — no change. |
 | 2026-07-27 | chore/project-hygiene | /sync-docs | Meterian `.meterian` exclusions | APPLIED | Feature-delta sync: `.meterian` already present; corrected stale `.trivyignore` langsmith blocker (sie-sdk websockets&lt;15; SUPERSEDES “core pre-release”); TRAIL deferred rows for ST4/transformers, langsmith, aim; `development.md` SCA suppressions triad; `pip-audit.sh` + `security-scan.sh` (`-w /workspace`) parity comments; CHANGELOG Security + TRAIL link. No user-guide. Evidence **IMPLEMENTED**; **VERIFIED** pending Meterian nightly. |

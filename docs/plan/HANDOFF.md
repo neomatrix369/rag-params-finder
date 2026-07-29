@@ -1,32 +1,26 @@
-# Handoff — 2026-07-28
+# Handoff — 2026-07-29
 
 ## Where We Are
 
-**38** ✅ COMPLETE on `slice/38-cutover-adr-004` ([PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118)).
+**22** 🔨 IN PROGRESS — SIE Scooter **plan refreshed** (enhanced-flow-planner Path A Resume). Spec: [`slices/04-sie/SLICE-22-SIE-SCOOTER.md`](slices/04-sie/SLICE-22-SIE-SCOOTER.md). Awaiting `/nw-execute` on branch `slice/22-sie-scooter`.
 
-**ADR-004 Accepted**; local comparison VERIFIED; CI dual-backend ✅; mutation waived (#128). **No default flip** (#130 Won't) — code default stays `mongodb` permanently; backends independently selectable (#129).
+**38** ✅ COMPLETE ([PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118)). ADR-004 Accepted; no default flip (#130). Protocol on main — formal **32 / 32C / 32B / 33** tracker debt remains **parallel** (does not block 22 — #166).
 
-**44** ✅ COMPLETE on `slice/44-frontend-coverage-gate` — **#142**: FE **95/90/95/95**; BE **95/90/n/a/95** (`fail_under=95` + `scripts/ci/check_backend_coverage_floors.py`); measured FE ≈98.4 / 93.11 / 100 / 99.69; BE stmts ≈98.6 / br ≈95.2 / TOTAL ≈97.7; **261** FE / **338** BE unit tests (**VERIFIED**). **Residual §4 IMPLEMENTED** (#163) — narrow Nightly mutate to utils/services/hooks; local Stryker **~8m**; Nightly artifact **VERIFIED** pending run URL.
-
-**45** ✅ COMPLETE on `slice/45-module-theme-separation` ([PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130)) — hotspots 1–5 **IMPLEMENTED**; FE/BE craft; scripts themes; Could leftovers #161 (docstrings, coverage drift guard, GWT-on-touch); mutation #160; evidence [`slice-45.json`](gate-evidence/slice-45.json).
-
-**40** ✅ COMPLETE on `slice/40-documentation-ssot-alignment` — theme folders `01`–`07` + [`slices/README.md`](slices/README.md) **IMPLEMENTED** (#162); living links rewritten; nw-review APPROVED; [`slice-40.json`](gate-evidence/slice-40.json) PASSED.
+**44** ✅ · **45** ✅ · **40** ✅ — coverage floors #142; theme moves; theme folders `01`–`07` (#162). Slice 44 Residual §4 Nightly artifact **VERIFIED** pending run URL (#163).
 
 ## What's Done
 
 - Remediations #114–#119, image pins #120–#121, Postgres ops parity #122, dual health-check #123, sync-docs #124
-- ADR-004 Accepted / ADR-003 Superseded (#127)
-- `slice-38-quality-comparison.md` — both 120-run twins; latency ≤2× PASS; overlap informational (#129)
-- `slice-38.json` — `gate_status: PASSED`; default-flip gate removed (#130)
-- Slice 44 + #142: FE **95/90/95/95**; BE **95/90/n/a/95** via fail_under + JSON floor checker; gate-evidence PASSED
-- Slice 44 §3 taxonomy: [`module-theme-map.md`](../contributor-guide/module-theme-map.md)
-- Slice 45: theme packages + craft + scripts folders; [`SLICE-45-MODULE-THEME-SEPARATION.md`](slices/07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md); Gate Status ✅
+- ADR-004 Accepted / ADR-003 Superseded (#127); Slice 38 comparison VERIFIED; default-flip Won't (#130)
+- Slice 44 / 45 / 40 COMPLETE (floors, theme packages, theme folders)
+- **2026-07-29:** Slice 22 plan refresh — theme-folder file paths, SPLADE narrow (registry already present), persist-via-StorageBackend for best-config, Protocol-on-main Before-Checks (#166–#169)
 
 ## What's Next
 
-1. Confirm Slice **44 Residual §4** Nightly finish + `mutation-node-*` artifact via `workflow_dispatch`/cron (**VERIFIED** run URL)
-2. Formal gate-closure debt on tracker rows 32 / 32B / 32C / 33 if prioritized
-3. Forward-roadmap Could/Should items (export, SSE, recovery, etc.) per [`PROGRESS.md`](slices/PROGRESS.md) — next Must feature track: **22**
+1. **`/nw-execute` Slice 22** on `slice/22-sie-scooter` — TDD: SIE score path → persist sweep → `GET /api/v1/best-config` → SPLADE sparse assert → quality gates
+2. Confirm Slice **44 Residual §4** Nightly `mutation-node-*` artifact (**VERIFIED** run URL)
+3. Formal gate-closure debt **32 / 32B / 32C / 33** if prioritized (parallel to 22)
+4. After 22 PASSED: Slice **28** (external) · forward Could/Should per [`PROGRESS.md`](slices/PROGRESS.md)
 
 ## Key decisions locked
 
@@ -61,3 +55,8 @@
 | 161 | FE↔pyproject coverage drift guard + FE docstring / BE GWT-on-touch Could leftovers |
 | 162 | Slice specs → numbered theme folders `01`–`07` (delivery wave); PROGRESS + gate-evidence stay flat (Slice 40) |
 | 163 | Slice 44 Residual §4 — Nightly Stryker after suite growth (narrow mutate to utils/services/hooks) |
+| 166 | Resume Slice 22 — Protocol on main; 32B parallel debt |
+| 167 | SPLADE registry/index = Slice 21 foundation; 22 wires/asserts only |
+| 168 | Persist Tier-1 sweep via StorageBackend for best-config history |
+| 169 | Slice 22 quality-lens 10/10 (plan refresh confirmed) |
+| 170 | Slice 22 skills: /tdd /verify-slice /nw-execute; models unchanged |
