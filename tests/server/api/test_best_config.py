@@ -185,9 +185,16 @@ def test_given_matching_history_when_get_best_config_then_highest_scoring_config
     assert body["experiment_id"] == "exp-high", (
         "Expected the highest-scoring history entry to be selected."
     )
+    assert body["history_count"] == 2, (
+        "Expected history_count to reflect all matching sweep history rows."
+    )
     assert body["best_config"]["retrieval_method"] == "hybrid-rrf", (
         "Expected best-config to expose the winning retrieval method."
     )
+    assert body["best_config"]["embedding_model"] == "bge-m3", (
+        "Expected best-config to expose the winning embedding model."
+    )
+    assert body["best_config"]["score"] == 0.83, "Expected best-config to expose the winning score."
 
 
 def test_given_no_matching_history_when_get_best_config_then_404_is_returned() -> None:

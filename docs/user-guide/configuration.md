@@ -209,6 +209,7 @@ Canonical list: `server/core/model_registry.py` (`EMBEDDING_MODELS`, `RERANKER_M
 | Model | Provider | Notes |
 |---|---|---|
 | `cross-encoder/ms-marco-MiniLM-L-6-v2` | `local` | ~23 MB, no API key |
+| `bge-reranker` | `sie` | SIE `score` primitive (`BAAI/bge-reranker-v2-m3`); needs `SIE_ENABLED` + reachable `SIE_ENDPOINT` — see [sie-setup.md](sie-setup.md) |
 | `rerank-2.5-lite` | `voyage` | Recommended — fastest |
 | `rerank-2.5` | `voyage` | Recommended — higher quality |
 | `rerank-2-lite` | `voyage` | Legacy |

@@ -40,8 +40,9 @@ def sweep_client():
     mock_embed_query = MagicMock(return_value=[0.15] * 1024)
 
     with (
+        # Patch the binding used by sweep.py (`from …embedder_factory import get_embedder`).
         patch(
-            "server.core.embedding.embedder_factory.get_embedder",
+            "server.api.sweep.get_embedder",
             return_value=(mock_embed_docs, mock_embed_query),
         ),
         patch("server.api.sweep.get_storage_backend", return_value=_FakeStorage()),

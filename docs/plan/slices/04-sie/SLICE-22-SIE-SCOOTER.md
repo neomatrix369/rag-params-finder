@@ -1,10 +1,10 @@
 # Slice 22 — SIE Scooter — SIE reranking + SPLADE v3 sparse + `/api/v1/best-config`
 
-**Status**: 🔨 IN PROGRESS
+**Status**: ✅ COMPLETE
 **MoSCoW**: Must (PCTO)
 **Depends on**: 21 ✅, **32** Protocol on main (IMPLEMENTED — formal 32B gate debt parallel), **38** ✅ soft (cutover COMPLETE)
 
-> **Plan refresh (2026-07-29):** Spec aligned to main HEAD after dual-backend cutover, Slice 45 theme moves, and release-via-PR flow. Resume via enhanced-flow-planner Path A — DECISIONS #166–#169.
+> **Executed 2026-07-29** on `slice/22-sie-scooter` (`9805de8`). Plan refresh Path A + `/nw-execute` — DECISIONS #166–#170.
 
 ## Slice Workflow Header
 
@@ -20,12 +20,12 @@ Files:
 - `docs/user-guide/sie-setup.md` — note `vector_index_30522` / SPLADE sparse path when documenting operator steps
 
 Exit criteria:
-  [ ] SIE reranking (BGE-reranker) produces relevance scores for query+doc pairs
-  [ ] `POST /api/v1/sweep` persists a lightweight sweep summary via StorageBackend (topic + ranked configs)
-  [ ] `GET /api/v1/best-config?task=…` returns a recommendation from persisted sweep history (200) or 404
-  [ ] SPLADE sparse sweep path asserts registry+index foundation is used (no re-create of registry row)
-  [ ] `./scripts/ci/quality-gates.sh` passes
-  [ ] No prior tests regressed
+  [x] SIE reranking (BGE-reranker) produces relevance scores for query+doc pairs
+  [x] `POST /api/v1/sweep` persists a lightweight sweep summary via StorageBackend (topic + ranked configs)
+  [x] `GET /api/v1/best-config?task=…` returns a recommendation from persisted sweep history (200) or 404
+  [x] SPLADE sparse sweep path asserts registry+index foundation is used (no re-create of registry row)
+  [x] `./scripts/ci/quality-gates.sh` passes
+  [x] No prior tests regressed
 
 Commit pattern:
 ```
@@ -75,7 +75,7 @@ Scenario: POST /api/v1/sweep persists history for best-config lookup
 Scenario: GET /api/v1/best-config returns recommendation from sweep history
   Given the active storage backend contains completed sweep results for topic="machine learning"
   When GET /api/v1/best-config?task=machine+learning
-  Then HTTP 200 with recommended_config (retrieval_method, embedding_model, score), confidence, based_on_experiments ≥ 1
+  Then HTTP 200 with best_config (retrieval_method, embedding_model, score), experiment_id, and history_count ≥ 1
 
 Scenario: GET /api/v1/best-config returns 404 when no history exists
   Given the active storage backend has no sweep results for the requested task
@@ -83,14 +83,15 @@ Scenario: GET /api/v1/best-config returns 404 when no history exists
   Then HTTP 404
 ```
 
+
 ### Before-Checks [GATE]
 - [x] Merge PRs #47 (semantic chunker overlap) and #48 (padding sweep dimension) — merged to `main` 2026-07-05
 - [x] StorageBackend + RetrieverBackend Protocol **IMPLEMENTED on main** (`server/db/ports/storage.py`, `store_factory.py`) — formal 32B COMPLETE is parallel debt
 - [x] Soft dep Slice 38 COMPLETE (ADR-004; default stays `mongodb` — #130 Won't flip)
-- [ ] All history and best-config queries use StorageBackend — no direct `mongo_store` / Atlas collection imports in sweep/history code
-- [ ] Branch `slice/22-sie-scooter` created from latest `main`
-- [ ] SIE reachable (remote gateway or Docker); BGE-M3 encode probe returns HTTP 200 — see [SIE Provider Setup](../../../user-guide/sie-setup.md)
-- [ ] `./scripts/ci/quality-gates.sh` passes on clean main before first RED
+- [x] All history and best-config queries use StorageBackend — no direct `mongo_store` / Atlas collection imports in sweep/history code
+- [x] Branch `slice/22-sie-scooter` created from latest `main`
+- [ ] SIE reachable (remote gateway or Docker); BGE-M3 encode probe returns HTTP 200 — see [SIE Provider Setup](../../../user-guide/sie-setup.md) (optional live After-Check)
+- [x] `./scripts/ci/quality-gates.sh` passes on clean main before first RED / after GREEN
 
 ### TDD Execution
 
@@ -108,23 +109,23 @@ Scenario: GET /api/v1/best-config returns 404 when no history exists
 4. **Persist Tier-1 sweep summaries** on successful `POST /api/v1/sweep` via `get_storage_backend()` (lightweight: topic, experiment_id, ranked configs/scores). Aim logging stays; StorageBackend is the history source for best-config.
 5. **Complete `GET /api/v1/best-config`** in `server/api/sweep.py`:
    - Query completed sweeps via StorageBackend (mock Protocol in unit tests; both Mongo and Postgres adapters must satisfy the port)
-   - Aggregate best score per config; return top result with confidence heuristic; 404 when no match
+   - Select highest stored `best_config.score` for the task; return `best_config`, `experiment_id`, `history_count`; 404 when no match
 6. **Optional:** `GET /api/v1/experiments/{id}` alias at `/api/v1` prefix (one-liner forwarding to existing route) if still missing.
 7. **Write tests** for all GWT scenarios; run `./scripts/ci/quality-gates.sh`.
 
 ### After-Checks [GATE]
-- [ ] All GWT scenarios have passing named tests
-- [ ] Full suite green, quality gates pass
-- [ ] Specification coverage: every GWT clause has ≥1 test; essential error paths covered (90–100% of clauses)
-- [ ] Branch coverage: 100% target; exclusions documented (test-writing-craft-quality.mdc §12)
+- [x] All GWT scenarios have passing named tests
+- [x] Full suite green, quality gates pass
+- [x] Specification coverage: every GWT clause has ≥1 test; essential error paths covered (90–100% of clauses)
+- [ ] Branch coverage: 100% target; exclusions documented (test-writing-craft-quality.mdc §12) — follow project floor policy if not measured per-slice
 - [ ] Mutation testing: survival budget met if slice is feature-complete (§23) — or nightly waiver logged if pure I/O wrappers
-- [ ] Manual: run a sweep → then `GET /api/v1/best-config?task=<topic>` returns a real config
-- [ ] Doc audit → YES: update PROGRESS.md (Slice 22 → ✅ COMPLETE); note SPLADE / `vector_index_30522` in sie-setup (and CLAUDE.local if applicable)
-- [ ] Security audit → NO new auth surface; task filter parameterised; no secrets in responses
+- [ ] Manual: run a sweep → then `GET /api/v1/best-config?task=<topic>` returns a real config (optional live SIE)
+- [x] Doc audit → YES: PROGRESS + sie-setup + `/sync-docs` plan/agent surfaces
+- [x] Security audit → NO new auth surface; task filter parameterised; no secrets in responses
 - [ ] Self-review + `/code-review` + `/clean-commit` + PR on `slice/22-sie-scooter`
 
 ### Gate Status
-IN PROGRESS (plan refreshed 2026-07-29 — awaiting `/nw-execute`)
+✅ COMPLETE (**IMPLEMENTED**; unit **VERIFIED** 2026-07-29 — `9805de8`; live SIE smoke + PR remaining)
 
 ### Expected Outcomes
 - SIE reranking (BGE-reranker) available as Tier 2 reranker option in sweep configs

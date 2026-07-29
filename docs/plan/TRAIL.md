@@ -14,17 +14,17 @@ Model split — Planning: claude-opus-4-8 · Execution: claude-sonnet-4-6
 
 **Slice 22 skill proposal (2026-07-29):** `/tdd` · `/verify-slice` · `/clean-commit` · `/project-hygiene` · `/divergence-check` · `/nw-execute` (primary execution path). Cursor rules: `software-craft.mdc`, `test-writing-*.mdc`, `security.md`, `git-github-best-practices.mdc`. No `/frontend-advisor` (no UI). MCP Won't (#8). Graphiti write on gate PASS → `rag-params-finder-flow-planner`.
 
-## Next Wave Checkpoint (Slice 22)
+## Next Wave Checkpoint (post Slice 22)
 
-Informational — not a gate. Recommended path after this plan refresh:
+Slice **22** ✅ COMPLETE on `slice/22-sie-scooter` (`9805de8`). Informational — not a gate:
 
 | Option | Action |
 |--------|--------|
-| **A (recommended)** | `/nw-execute` on Slice 22 — branch `slice/22-sie-scooter` from latest `main`; TDD score → persist → best-config → SPLADE assert → quality gates |
-| **B** | Close formal **32B** gate debt first, then execute 22 (optional; Protocol already on main) |
-| **C** | Defer execution; keep 22 🔨 IN PROGRESS as plan-only until SIE endpoint available |
+| **A (recommended)** | PR + merge Slice 22; optional live SIE smoke (`POST /api/v1/sweep` → `GET /api/v1/best-config?task=`) |
+| **B** | Close formal **32B** gate debt (parallel Protocol tracker hygiene) |
+| **C** | Slice **28** results export (external) or forward Could/Should per PROGRESS |
 
-Logged: DECISIONS #166–#170. User choice at execution time.
+Logged: DECISIONS #166–#170.
 
 ## Flow
 
@@ -53,7 +53,7 @@ Each PCTO / migration slice lives in its own file below. Specs live under `docs/
 | 44 | [../plan/slices/07-quality-craft/SLICE-44-FRONTEND-COVERAGE-GATE.md](../plan/slices/07-quality-craft/SLICE-44-FRONTEND-COVERAGE-GATE.md) | Frontend coverage + gate summary + structure taxonomy Should (theme map; moves → 45); review remediations #137; Residual §4 Nightly Stryker (#163) **IMPLEMENTED** | Should | ✅ COMPLETE (+ residual IMPL) | none (Vitest harness) | [#131](https://github.com/neomatrix369/rag-params-finder/pull/131) | ~3 min | 2026-07-28 |
 | 45 | [../plan/slices/07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md](../plan/slices/07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md) | Module theme separation — execute Behavior/Feature/Function folder moves; architect APPROVED post-#137 | Could | ✅ COMPLETE | 44 (taxonomy artifacts) | [#130](https://github.com/neomatrix369/rag-params-finder/pull/130) | ~2 min | 2026-07-28 |
 | 28 | [../plan/slices/02-dashboard/SLICE-28-RESULTS-EXPORT.md](../plan/slices/02-dashboard/SLICE-28-RESULTS-EXPORT.md) | Results export — CSV/JSONL download (issue #49; @cschanhniem) | Must | 📋 PLANNED | none | [#49](https://github.com/neomatrix369/rag-params-finder/issues/49) | ~3 min | 2026-07-06 |
-| 22 | [../plan/slices/04-sie/SLICE-22-SIE-SCOOTER.md](../plan/slices/04-sie/SLICE-22-SIE-SCOOTER.md) | SIE Scooter — reranking + SPLADE sparse path + `/api/v1/best-config` | Must | 🔨 IN PROGRESS | 21, 32 (Protocol on main), 38 ✅ | — | ~3 min | 2026-07-29 |
+| 22 | [../plan/slices/04-sie/SLICE-22-SIE-SCOOTER.md](../plan/slices/04-sie/SLICE-22-SIE-SCOOTER.md) | SIE Scooter — reranking + SPLADE sparse path + `/api/v1/best-config` | Must | ✅ COMPLETE | 21, 32 (Protocol on main), 38 ✅ | — | ~3 min | 2026-07-29 |
 | 26 | [../plan/slices/05-storage/SLICE-26-LOCAL-MONGODB-DOCS.md](../plan/slices/05-storage/SLICE-26-LOCAL-MONGODB-DOCS.md) | Local MongoDB: smooth path docs + script feedback | Should | 📦 DEFERRED | 25B | — | ~1.5 min | 2026-07-09 |
 | 27 | [../plan/slices/05-storage/SLICE-27-MONGODB-MODE-INDICATOR.md](../plan/slices/05-storage/SLICE-27-MONGODB-MODE-INDICATOR.md) | MongoDB mode indicator (cloud vs local) | Should | 📦 DEFERRED | 25B | — | ~2 min | 2026-07-09 |
 | 19 | [../plan/slices/05-storage/SLICE-19-STORAGE-QUOTA-GUARD.md](../plan/slices/05-storage/SLICE-19-STORAGE-QUOTA-GUARD.md) | Storage quota guard (cloud production) | Should | 📦 DEFERRED | none | — | — | 2026-07-09 |

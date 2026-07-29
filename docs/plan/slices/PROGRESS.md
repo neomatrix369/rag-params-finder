@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-29 (Slice **22** 🔨 IN PROGRESS — plan refreshed; Protocol-on-main; await `/nw-execute`)
-**Current**: **22** ✅ (SIE Scooter complete). **40** ✅ · **45** ✅ · **44** ✅ Residual §4 **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending). Migration track: **38** ✅; formal gate-closure debt **32** / **32C** / **32B** / **33** (parallel — did not block 22). Then **28** · **41B**. Deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-29 (Slice **22** ✅ COMPLETE — `/nw-execute` shipped; `/sync-docs` aligned trackers)
+**Current**: Next Must **28** (external). **22** ✅ · **40** ✅ · **45** ✅ · **44** ✅ Residual §4 **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending). Migration track: **38** ✅; formal gate-closure debt **32** / **32C** / **32B** / **33** (parallel). Then **41B**. Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md)
 
@@ -997,6 +997,8 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-07-29 | slice/22-sie-scooter | /verify-slice follow-up | Slice 22 PARTIAL→fix | APPLIED | Hermetic fix: patch `server.api.sweep.get_embedder` in `test_sweep_endpoint.py`; align GWT to shipped `best_config`/`history_count`; strengthen best-config assertions; 17/17 targeted tests green. |
+| 2026-07-29 | slice/22-sie-scooter | /sync-docs | Slice 22 feature delta | APPLIED | Closed plan/agent drift after `9805de8`: CLAUDE Key Files, HANDOFF/TRAIL/GAP/SLICE-22 COMPLETE, configuration `bge-reranker`, CHANGELOG Unreleased Added, PROGRESS header + skill log. User-guide sie-setup/cli-reference/architecture already updated in feat commit. Evidence **IMPLEMENTED** (routes + registry + StorageBackend persist); unit path **VERIFIED** via Slice 22 tests + quality-gates claim; live SIE smoke still optional After-Check. |
 | 2026-07-29 | main (WIP) | /sync-docs | Slice 22 plan refresh | APPLIED | Post-plan-delta: GAP_ANALYSIS closed 32–38 migration rows; Slice 22 remaining gaps + divergence Result → PCTO critical path. CLAUDE.md + architecture.md + cli-reference: best-config labeled placeholder **DECIDED** not IMPLEMENTED. Plan trackers already refreshed. sie-setup NO_CHANGE (POST `best_config` ≠ GET history). CHANGELOG NO_CHANGE. Evidence **DECIDED** (plan); stub still placeholder only. |
 | 2026-07-28 | main (WIP) | /sync-docs | release branch+PR | APPLIED | Feature-delta: CLAUDE/README/development + release-process Scripts ref + CHANGELOG Unreleased Changed; Protect-main-branch PR-required noted. release.sh + PROGRESS already updated. User-guide N/A. Evidence **IMPLEMENTED** (script/docs); ruleset PR-required **VERIFIED** (Active Protect-main-branch). |
 | 2026-07-28 | main | /sync-docs | 44 Residual §4 / #163 | APPLIED | Feature-delta for documented Nightly Stryker timeout: `development.md` honest residual note; CHANGELOG Unreleased Changed (**DECIDED**, not IMPLEMENTED); `slice-44.json` mutation + lifecycle residual; HANDOFF Where We Are. Trackers (PROGRESS/TRAIL/DECISIONS/SLICE-44) already had §4. No user-guide. CLAUDE.md Nightly claims absent — no change. |

@@ -270,6 +270,10 @@ retrieval:
   retrievers:
     - type: dense
     - type: hybrid
+    # Optional SIE reranker (Slice 22) — requires SIE_ENABLED + reachable gateway:
+    # - type: reranker
+    #   provider: sie
+    #   model: bge-reranker
 ```
 
 The 1024-dim vector index (`vector_index_1024`) is used for SIE models — the same as Voyage.
@@ -277,7 +281,8 @@ If you already created `vector_index_1024` for Voyage sweeps, no new index is ne
 
 For a sparse-only Tier-1 API smoke test, reuse the existing `splade-v3` registry entry with
 `retrieval_methods=["bm25"]`. That path stays lexical-only in the Tier-1 sweep and does not run
-the dense similarity scorer.
+the dense similarity scorer. For Mongo SPLADE dense vectors use `vector_index_30522` (already
+provisioned with Atlas Local; create manually on cloud Atlas if needed).
 
 ---
 
