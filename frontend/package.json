@@ -48,6 +48,7 @@
     "@rollup/rollup-darwin-x64": "4.60.4"
   },
   "overrides": {
-    "brace-expansion": "5.0.8"
+    "brace-expansion": "5.0.9",
+    "qs": "6.15.3"
   }
 }
