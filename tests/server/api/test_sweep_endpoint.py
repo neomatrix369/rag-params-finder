@@ -16,6 +16,14 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 
+class _FakeStorage:
+    def insert_experiment(self, _doc: dict) -> None:
+        return None
+
+    def find_all_experiments(self) -> list[dict]:
+        return []
+
+
 def _make_sweep_client() -> TestClient:
     """Minimal app — only the sweep router, no orchestrator or voyageai imports."""
     app = FastAPI()
@@ -32,10 +40,12 @@ def sweep_client():
     mock_embed_query = MagicMock(return_value=[0.15] * 1024)
 
     with (
+        # Patch the binding used by sweep.py (`from …embedder_factory import get_embedder`).
         patch(
-            "server.core.embedding.embedder_factory.get_embedder",
+            "server.api.sweep.get_embedder",
             return_value=(mock_embed_docs, mock_embed_query),
         ),
+        patch("server.api.sweep.get_storage_backend", return_value=_FakeStorage()),
         patch("server.api.sweep.AimLogger.log_run"),
     ):
         yield _make_sweep_client()

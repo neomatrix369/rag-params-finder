@@ -2,9 +2,11 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-E92063?logo=pydantic&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
 ![sentence-transformers](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
+![Optuna](https://img.shields.io/badge/Optuna-Bayesian-2C3E50)
 
 How to add new embedding models, chunking methods, retrieval methods, and API endpoints.
 

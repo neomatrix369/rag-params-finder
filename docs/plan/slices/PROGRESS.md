@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
-**Last Updated**: 2026-07-29 (Slice **22** 🔨 IN PROGRESS — plan refreshed; Protocol-on-main; await `/nw-execute`)
-**Current**: **22** 🔨 (SIE Scooter plan refresh). **40** ✅ · **45** ✅ · **44** ✅ Residual §4 **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending). Migration track: **38** ✅; formal gate-closure debt **32** / **32C** / **32B** / **33** (parallel — does not block 22). Then **28** · **41B**. Deferred Mongo QoL **26/27/19**
+**Last Updated**: 2026-07-29 (Slice **22** ✅ COMPLETE — `/verify-slice` VERIFIED; hermetic fix `383541b`; PR draft awaiting confirm)
+**Current**: Next Must **28** (external). **22** ✅ · **40** ✅ · **45** ✅ · **44** ✅ Residual §4 **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending). Migration track: **38** ✅; formal gate-closure debt **32** / **32C** / **32B** / **33** (parallel). Then **41B**. Deferred Mongo QoL **26/27/19**
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md)
 
@@ -41,7 +41,7 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../TRAIL.md) · Gap analysis: [`docs/p
 | 24 — Port standardisation | ✅ COMPLETE | ~1 h | Unique static ports: frontend 5173→5374 (avoids Vite default), SIE 8080→8720 (avoids Jenkins/Tomcat/etc.); backend 8001 unchanged — spec: [`SLICE-24-PORT-STANDARDISATION.md`](03-platform/SLICE-24-PORT-STANDARDISATION.md) |
 | 25 — Atlas Local Dev Mode | ✅ COMPLETE | ~1 h | `mongodb-atlas-local` Docker image as opt-in local backend; `local-atlas` compose profile; auto-provision all search indexes on boot for local URI; eliminates M0 512 MB ceiling for local dev — spec: [`SLICE-25-ATLAS-LOCAL.md`](03-platform/SLICE-25-ATLAS-LOCAL.md) |
 | 25B — Atlas Backend Switching | ✅ COMPLETE | ~1 h | Shipped as `--local`; now `--mongodb-local`; `mongodb start\|stop\|reset\|status`; unified [`mongodb-setup.md`](../../user-guide/mongodb-setup.md); `scripts/lib/compose.sh` + `server/db/mongodb_uri.py` — spec: [`SLICE-25B-ATLAS-SWITCHING.md`](03-platform/SLICE-25B-ATLAS-SWITCHING.md) |
-| 22 — SIE Scooter | 🔨 IN PROGRESS | ~3 h | SIE reranking + SPLADE sparse path + `GET /api/v1/best-config` — Must — plan refreshed 2026-07-29 (Protocol on main; 38 ✅) — spec: [`SLICE-22-SIE-SCOOTER.md`](04-sie/SLICE-22-SIE-SCOOTER.md) |
+| 22 — SIE Scooter | ✅ COMPLETE | ~3 h | SIE reranking + SPLADE sparse path + `GET /api/v1/best-config` — Must — persisted Tier-1 sweep history via StorageBackend, SIE reranker wired, SPLADE sparse-only Tier-1 path asserted, quality gates green — spec: [`SLICE-22-SIE-SCOOTER.md`](04-sie/SLICE-22-SIE-SCOOTER.md) |
 | 23 — SIE Bicycle | 📋 PLANNED | ~3 h | Ollama + Tier 2–3 retrieval + Evidently AI (Could, post-hackathon) — spec: [`SLICE-23-SIE-BICYCLE.md`](04-sie/SLICE-23-SIE-BICYCLE.md) |
 | 26 — Local MongoDB smooth-path docs | 📦 DEFERRED | ~1 h | Re-scope after Postgres cutover — [`SLICE-26-LOCAL-MONGODB-DOCS.md`](05-storage/SLICE-26-LOCAL-MONGODB-DOCS.md) |
 | 27 — MongoDB mode indicator | 📦 DEFERRED | ~2 h | Absorbed into Slice 36 as four-value `storage_mode` (`mongodb\|postgres` × `local\|cloud`) — [`SLICE-27-MONGODB-MODE-INDICATOR.md`](05-storage/SLICE-27-MONGODB-MODE-INDICATOR.md) |
@@ -95,7 +95,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 37 | Must | ✅ COMPLETE | 36 | Supabase local/hosted parity |
 | 38 | Must | ✅ COMPLETE | 37 | ADR-004 + comparison; no default flip (#130) |
 | 28 | Must | 📋 PLANNED | — | External — @cschanhniem / #49 |
-| 22 | Must | 🔨 IN PROGRESS | 21, 32 (Protocol on main), 38 ✅ | SIE Scooter — plan refreshed; 32B parallel debt |
+| 22 | Must | ✅ COMPLETE | 21, 32 (Protocol on main), 38 ✅ | SIE Scooter — SIE reranker + persisted best-config history shipped; 32B parallel debt stayed non-blocking |
 | 26 | Should | 📦 DEFERRED | 25B | Mongo docs — re-scope post-cutover |
 | 27 | Should | 📦 DEFERRED | — | Absorbed into Slice 36 four-value storage_mode (`mongodb\|postgres` × `local\|cloud`) |
 | 19 | Should | 📦 DEFERRED | — | Atlas quota — Postgres path in 36 |
@@ -120,6 +120,9 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 
 | Date | Item | Outcome |
 |------|------|---------|
+| 2026-08-06 | tier1_sweep filter — exclude from GET /experiments (slice/22-sie-scooter) | Internal sweep-history docs (`experiment_type=tier1_sweep`) were leaking into the standard experiments list; CLI display read nonexistent `sweep_summary.models/.chunking_methods` and frontend `SweepSummary` type was mismatched. Fixed in `list_all_experiment_docs()` (filter at the API call-site only; `_matching_sweep_history()` still sees all records). 3 unit tests added; 347 pytest green. Commit `3cc5435`. |
+| 2026-08-06 | Nightly CI security fixes (slice/22-sie-scooter) | Three Nightly jobs failing since 2026-08-03: Meterian SCA (`aiohttp` CVE-2026-69244 HIGH + CVE-2026-59881/CVE-2026-69243 MEDIUM; `cryptography` CVE-2026-69247 HIGH), Trivy container scan (same), frontend dependency audit (`brace-expansion` GHSA-rgw5-rvv9-x895 HIGH — previous override 5.0.8 still in vuln range; `qs` GHSA-q8mj-m7cp-5q26 MODERATE). Fixed: `uv lock --upgrade-package aiohttp cryptography` → 3.14.3 / 50.0.0; `package.json` override bumped to 5.0.9 + `qs` 6.15.3 added. Quality gates (347 pytest + 261 vitest + pre-push) **VERIFIED** green locally. Will resolve Nightly on merge to main. |
+| 2026-07-29 | Doc technology badges (slice/22-sie-scooter) | Meterian live security/stability/licensing on README + `development.md` (+ stability on `release-process.md`); toolchain strip + stack parity badges across entry/user/contributor guides; CHANGELOG Unreleased Changed. Commit `a56bf87`. **IMPLEMENTED** (markdown + Meterian SVG HTTP 200); GitHub render **VERIFIED** when README viewed on origin. |
 | 2026-07-28 | Slice 44 Residual §4 Nightly Stryker **IMPLEMENTED** (#163) | Narrow mutate to utils/services/hooks (9 files / 868 mutants; 642 tested w/ ignoreStatic); `ignoreStatic` + exclude `StringLiteral`; concurrency 4; progress; pin 9.6.1; timeout 90; artifact@v5. Local full run **Done in 7m49s**, score ~64.7%. Nightly artifact **VERIFIED** pending `workflow_dispatch` URL. |
 | 2026-07-28 | Slice 44 residual §4 — Nightly Stryker 1h timeout (#163) | Slice 44 PR #121 grew FE dry-run 16→252 tests; Nightly Stryker (~3770 mutants) cancels at GHA 1h with no artifact ([run 30329826459](https://github.com/neomatrix369/rag-params-finder/actions/runs/30329826459/job/90182449893)). Todos on [`SLICE-44`](07-quality-craft/SLICE-44-FRONTEND-COVERAGE-GATE.md) Residual §4: Must narrow mutate; Should ignore*/concurrency/progress; Could timeout/pin; NIT upload-artifact@v5. **PROPOSED** → later **IMPLEMENTED**. |
 | 2026-07-27 | Meterian `.meterian` exclusions (chore/project-hygiene) | Added root `.meterian` (CVE + langsmith library waivers) for findings with no congruent lock fix — aim 4.x yanked, langchainjs CVE mis-attributed to Python, transformers blocked on ST&lt;4, langsmith≥0.8.18 blocked on sie-sdk websockets&lt;15. Parity with `.trivyignore` / `pip-audit.sh`. Docs: `development.md` + `nightly.yml` comment. **IMPLEMENTED**; **VERIFIED** pending next Meterian nightly/`workflow_dispatch`. |
@@ -701,6 +704,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 |------|-------|----------|-----|
 | 2026-07-29 | 22 | Resume Slice 22 Path A — plan refreshed; Protocol on main; 32B parallel (#166–#170) | Next Must feature track; soft dep 38 ✅ |
 | 2026-07-29 | 22 | Persist sweep via StorageBackend; SPLADE narrow (registry exists); theme-folder paths | Align GWT to main HEAD seams |
+| 2026-07-29 | 22 | Store Tier-1 sweep history as StorageBackend experiment docs keyed by `experiment_type=tier1_sweep`; choose best-config by highest stored score for matching task | Reused the existing dual-backend port without adding a slice-specific storage protocol and kept `GET /api/v1/best-config` backend-agnostic |
 | 2026-07-28 | release | Future releases: `release/vX.Y.Z` branch + PR to main; never push version bump directly to main; tag + `gh release` only after merge | Direct-to-main push on v0.12.0; prefer reviewable release PR |
 | 2026-07-28 | 40 | Theme folders COMPLETE — gate evidence PASSED; nw-review APPROVED | Leave IN PROGRESS after Should landing |
 | 2026-07-28 | 40 | Theme folders `01`–`07` + README via `git mv` (#162) — Should landed | Leave flat catalog / nest PROGRESS |
@@ -877,6 +881,7 @@ Implement the 4 stubbed chunkers (fixed, token, sentence, semantic), add sparse/
 | 2026-07-28 | 45 | Close Slice 45 — gate-evidence + mutation waive #160 | Must+Should+scripts Could verified; optional FE docstring / drift-guard / BE GWT Could deferred; PR #130 |
 | 2026-07-28 | 45 | Land Slice 45 Could leftovers (#161) | FE Scenario/Slice docstrings; coverage threshold drift guard; BE GWT-on-touch on moved suites |
 | 2026-07-28 | 44 | Nightly Stryker residual after suite growth (#163) | Narrow mutate to utils/services/hooks; ignoreConstants/stringLiterals; concurrency+progress; optional timeout/pin; NIT artifact@v5 — restores #138/#160 nightly signal; Won't full-screen mutate. Owned on SLICE-44 Residual §4 (not a new slice) |
+| 2026-07-29 | chore | Doc technology badges on entry docs | Surface Meterian security/stability/licensing + toolchain/stack shields so README/guides match nightly SCA posture (`a56bf87`). ADRs / module-theme-map / ARCHITECTURE redirect intentionally skipped. |
 | 2026-07-28 | 40 | Slice theme folders numbered by delivery wave (#162) | Specs → `01-core-pipeline` … `07-quality-craft`; PROGRESS + gate-evidence stay flat; no date folders; keep 32/32C/32B together |
 ---
 
@@ -996,6 +1001,11 @@ Tracks skill runs across slices and sessions. Appended automatically by `/verify
 
 | Date | Branch | Skill | Slice | Outcome | Notes |
 |---|---|---|---|---|---|
+| 2026-07-29 | slice/22-sie-scooter | /sync-docs | Doc technology badges | APPLIED | Tracker-only after `a56bf87`: PROGRESS maintenance + decision + skill log. Entry/user/contributor guides + CHANGELOG already matched (feature commit). CLAUDE/AGENTS/TRAIL/GAP/ADRs NO_CHANGE. Evidence **IMPLEMENTED**; Meterian badge endpoints HTTP 200 observed earlier in session. |
+| 2026-07-29 | slice/22-sie-scooter | /sync-docs | Slice 22 post-verify | APPLIED | Tracker-only: HANDOFF + SLICE-22 Gate Status + PROGRESS header/skill log now cite `/verify-slice` COMPLETE + `383541b`. User-guide/CLAUDE/CHANGELOG NO_CHANGE (already matched shipped API). Evidence **VERIFIED** (unit/API-mock); live SIE optional; PR confirm pending. |
+| 2026-07-29 | slice/22-sie-scooter | /verify-slice | Slice 22 | COMPLETE | Re-run after hermetic fix: 6/6 exit criteria PASS; 17/17 targeted tests; docs current; live SIE NOT_APPLICABLE. |
+| 2026-07-29 | slice/22-sie-scooter | /verify-slice follow-up | Slice 22 PARTIAL→fix | APPLIED | Hermetic fix: patch `server.api.sweep.get_embedder` in `test_sweep_endpoint.py`; align GWT to shipped `best_config`/`history_count`; strengthen best-config assertions; 17/17 targeted tests green. |
+| 2026-07-29 | slice/22-sie-scooter | /sync-docs | Slice 22 feature delta | APPLIED | Closed plan/agent drift after `9805de8`: CLAUDE Key Files, HANDOFF/TRAIL/GAP/SLICE-22 COMPLETE, configuration `bge-reranker`, CHANGELOG Unreleased Added, PROGRESS header + skill log. User-guide sie-setup/cli-reference/architecture already updated in feat commit. Evidence **IMPLEMENTED** (routes + registry + StorageBackend persist); unit path **VERIFIED** via Slice 22 tests + quality-gates claim; live SIE smoke still optional After-Check. |
 | 2026-07-29 | main (WIP) | /sync-docs | Slice 22 plan refresh | APPLIED | Post-plan-delta: GAP_ANALYSIS closed 32–38 migration rows; Slice 22 remaining gaps + divergence Result → PCTO critical path. CLAUDE.md + architecture.md + cli-reference: best-config labeled placeholder **DECIDED** not IMPLEMENTED. Plan trackers already refreshed. sie-setup NO_CHANGE (POST `best_config` ≠ GET history). CHANGELOG NO_CHANGE. Evidence **DECIDED** (plan); stub still placeholder only. |
 | 2026-07-28 | main (WIP) | /sync-docs | release branch+PR | APPLIED | Feature-delta: CLAUDE/README/development + release-process Scripts ref + CHANGELOG Unreleased Changed; Protect-main-branch PR-required noted. release.sh + PROGRESS already updated. User-guide N/A. Evidence **IMPLEMENTED** (script/docs); ruleset PR-required **VERIFIED** (Active Protect-main-branch). |
 | 2026-07-28 | main | /sync-docs | 44 Residual §4 / #163 | APPLIED | Feature-delta for documented Nightly Stryker timeout: `development.md` honest residual note; CHANGELOG Unreleased Changed (**DECIDED**, not IMPLEMENTED); `slice-44.json` mutation + lifecycle residual; HANDOFF Where We Are. Trackers (PROGRESS/TRAIL/DECISIONS/SLICE-44) already had §4. No user-guide. CLAUDE.md Nightly claims absent — no change. |

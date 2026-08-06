@@ -1,10 +1,18 @@
 # Documentation index
 
+![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
+![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
+![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
+[![CI](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/ci.yml)
+
 All guides for **rag-params-finder**, organized by **who you are** and **what you want to do**.
 
 **Repo entry:** [README.md](../README.md) · **Fastest run:** [QUICKSTART.md](../QUICKSTART.md)
 
-**Maintainers:** slice status and decision log live in [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) (updated 2026-07-28). Specs live under numbered theme folders `01`–`07` (#162, **IMPLEMENTED**) — index: [plan/slices/README.md](./plan/slices/README.md); Slice 40: [SLICE-40](./plan/slices/07-quality-craft/SLICE-40-DOCS-PLAN-SLICES-SSOT.md).
+**Maintainers:** slice status and decision log live in [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) (updated 2026-07-29). Specs live under numbered theme folders `01`–`07` (#162, **IMPLEMENTED**) — index: [plan/slices/README.md](./plan/slices/README.md); Slice 40: [SLICE-40](./plan/slices/07-quality-craft/SLICE-40-DOCS-PLAN-SLICES-SSOT.md).
 
 > **Who is this for?** Same personas as [README → Who is this for?](../README.md#who-is-this-for) — this page is the **doc map**; the README is the project entry.
 

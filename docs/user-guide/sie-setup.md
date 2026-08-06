@@ -3,6 +3,10 @@
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 ![Docker](https://img.shields.io/badge/Docker-optional-2496ED?logo=docker&logoColor=white)
 ![BGE-M3](https://img.shields.io/badge/BGE--M3-1024--dim-orange)
+![Stella-v5](https://img.shields.io/badge/Stella--v5-1024--dim-purple)
+![SPLADE-v3](https://img.shields.io/badge/SPLADE--v3-sparse-green)
+![Hugging Face](https://img.shields.io/badge/Hugging_Face-FFD21E?logo=huggingface&logoColor=black)
+![Aim](https://img.shields.io/badge/Aim-experiment_tracking-00B4D8)
 
 The **SIE (Superlinked Inference Engine)** provider runs open-source embedding models
 (BGE-M3, Stella-v5, SPLADE-v3) via any SIE-compatible HTTP endpoint.
@@ -270,10 +274,19 @@ retrieval:
   retrievers:
     - type: dense
     - type: hybrid
+    # Optional SIE reranker (Slice 22) — requires SIE_ENABLED + reachable gateway:
+    # - type: reranker
+    #   provider: sie
+    #   model: bge-reranker
 ```
 
 The 1024-dim vector index (`vector_index_1024`) is used for SIE models — the same as Voyage.
 If you already created `vector_index_1024` for Voyage sweeps, no new index is needed.
+
+For a sparse-only Tier-1 API smoke test, reuse the existing `splade-v3` registry entry with
+`retrieval_methods=["bm25"]`. That path stays lexical-only in the Tier-1 sweep and does not run
+the dense similarity scorer. For Mongo SPLADE dense vectors use `vector_index_30522` (already
+provisioned with Atlas Local; create manually on cloud Atlas if needed).
 
 ---
 
@@ -289,6 +302,16 @@ curl -s -X POST http://localhost:8001/api/v1/sweep \
 ```
 
 Expected: HTTP 200 with `best_config`, `results`, and `experiment_id` in the response body.
+
+The response is also persisted through the active `StorageBackend`, so you can fetch the current
+recommendation for the same topic immediately after the sweep:
+
+```bash
+curl -s "http://localhost:8001/api/v1/best-config?task=machine%20learning" \
+  | python3 -m json.tool
+```
+
+Expected: HTTP 200 with the highest-scoring persisted config for `task=machine learning`.
 
 ---
 

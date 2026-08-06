@@ -1,7 +1,11 @@
 # CLI Reference
 
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
+![Typer](https://img.shields.io/badge/Typer-CLI-09A3D5)
+![Rich](https://img.shields.io/badge/Rich-terminal-FF0000)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
+![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 
 All `rag-params-finder` commands and flags. The server must be running at `SERVER_URL` (default: `http://localhost:8001`) for commands that call the API.
@@ -225,7 +229,7 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 
 **`POST /experiments` engine gate:** if normalized `database_provider` ≠ process `STORAGE_BACKEND`, the API returns **HTTP 422** with a `Config engine mismatch` remediation **before** search-index / SIE preflight. Catalog/index missing-object 422s are a separate message family (see [troubleshooting](troubleshooting.md#-config-engine-mismatch-database_provider--storage_backend)).
 | POST | `/api/v1/sweep` | Tier 1 ranked SIE vs Voyage sweep over caller-supplied corpus *(see [sie-setup.md](sie-setup.md))* |
-| GET | `/api/v1/best-config` | Best config from sweep history *(placeholder — Slice 22 🔨 plan refreshed **DECIDED**; history query not IMPLEMENTED)* |
+| GET | `/api/v1/best-config` | Best config from persisted Tier-1 sweep history for `task=<topic>` |
 | POST | `/experiments` | Submit an experiment sweep *(422 if search-index preflight fails)* |
 | GET | `/experiments` | List all experiments |
 | GET | `/experiments/vector-db-stats` | Cluster-grouped vector DB / storage stats for all experiments |

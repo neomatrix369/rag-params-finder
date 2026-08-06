@@ -133,8 +133,8 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/aim_logger.py` | Aim experiment run logging wrapper; `AimLogger.log_run()` — no-op if Aim init fails |
 | `scripts/docker/aim-ui.sh` | Start Aim UI on :43800 via Docker (shared `./.aim` repo with server) |
 | `scripts/lib/compose.sh` | Shared Docker Compose helpers + local/cloud MongoDB URI constants; `start-services.sh mongodb` subcommands |
-| `server/api/sweep.py` | `POST /api/v1/sweep` (SIE vs voyage baseline) + `GET /api/v1/best-config` *(placeholder — Slice 22 DECIDED, not IMPLEMENTED)* |
-| `server/core/rerank/reranker.py` | Voyage + local CrossEncoder dispatch; SIE `score` path is Slice 22 |
+| `server/api/sweep.py` | `POST /api/v1/sweep` (SIE vs voyage baseline; persists Tier-1 history via StorageBackend) + `GET /api/v1/best-config?task=` (Slice 22 **IMPLEMENTED**) |
+| `server/core/rerank/reranker.py` | Voyage + local CrossEncoder + SIE `score` dispatch (`bge-reranker`) |
 | `server/core/rerank/local_reranker.py` | CrossEncoder reranking (lazy-load) |
 | `server/core/retrieval/retriever_mongo.py` | Atlas Vector Search (dense/sparse/hybrid) — Mongo-only |
 | `server/core/retrieval/retriever_postgres.py` | pgvector dense + tsvector sparse + RRF hybrid; Atlas-scale dense scores; mandatory `embedding_model` filter |
@@ -276,7 +276,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 **Backend** (2026-07-28 — unit tier):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **338** tests; BE floors **95/90/n/a/95** (stmts/br/fn/lines) via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` — DECISIONS #142; no `MONGODB_URI` required
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **347** tests; BE floors **95/90/n/a/95** (stmts/br/fn/lines) via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` — DECISIONS #142; no `MONGODB_URI` required
 - FE/BE threshold lock: `scripts/ci/check_coverage_threshold_drift.py` asserts Vitest `coverage.thresholds` match `[tool.rag_params_finder.coverage_thresholds]` (incl. `functions=95`) — DECISIONS #161
 
 **Frontend** (2026-07-28 — Slice 45 COMPLETE + floors #142):

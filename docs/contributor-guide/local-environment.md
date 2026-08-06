@@ -2,9 +2,11 @@
 
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
 ![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
+![Aim](https://img.shields.io/badge/Aim-experiment_tracking-00B4D8)
 
 Internal notes for local setup, debugging, and maintenance. Not required for basic contribution — see [development.md](development.md) for the standard dev workflow.
 

@@ -1,7 +1,7 @@
 # Gap Analysis
-> ~2 min read · **Updated 2026-07-29** after Slice 22 plan refresh (`/sync-docs`) · prior: enhanced-flow-planner continuation 2026-07-25 · Gap bridge 2026-07-09
+> ~2 min read · **Updated 2026-07-29** after Slice 22 `/nw-execute` + `/sync-docs` · prior: Slice 22 plan refresh 2026-07-29 · Gap bridge 2026-07-09
 
-Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.md) · Migration PRD: [PRD-supabase-pgvector-migration.md](PRD-supabase-pgvector-migration.md) · Active Must: [SLICE-22](slices/04-sie/SLICE-22-SIE-SCOOTER.md) 🔨 plan refreshed
+Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.md) · Migration PRD: [PRD-supabase-pgvector-migration.md](PRD-supabase-pgvector-migration.md) · Active Must next: [SLICE-28](slices/02-dashboard/SLICE-28-RESULTS-EXPORT.md) (external)
 
 ---
 
@@ -29,6 +29,9 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 | Local + cloud Postgres DX | Atlas Local only | `--postgres-local` / `--postgres-cloud` + config↔server 422 | Slice 37 ✅ |
 | ADR-004 + quality comparison | ADR-003 only | ADR-004 Accepted; local comparison VERIFIED; **no default flip** (#130) | Slice 38 ✅ |
 | User/dev Postgres doc footprint | Mongo guides only | `postgres-setup.md` + operator parity | Slices 37–38 + sync-docs ✅ |
+| Best-config lookup | Stub placeholder | `GET /api/v1/best-config?task=` reads persisted Tier-1 history via StorageBackend | Slice 22 ✅ |
+| SIE reranking | Voyage + CrossEncoder only | `provider: sie` + `bge-reranker` via `SIEClient.score()` | Slice 22 ✅ |
+| SPLADE v3 sparse Tier-1 assert | Registry + index only | Sparse-only `bm25` Tier-1 path reuses `splade-v3` (no registry re-add) | Slice 22 ✅ |
 
 ---
 
@@ -36,9 +39,6 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 
 | Area | PCTO / Roadmap Requirement | What Exists | Gap | Severity | Target |
 |------|---------------------------|-------------|-----|----------|--------|
-| Best-config lookup | `GET /api/v1/best-config?task=...` | Stub returns placeholder message | Persist Tier-1 sweep via StorageBackend + history aggregate | **Critical** (PCTO) | Slice 22 🔨 (**DECIDED** plan refresh 2026-07-29; soft dep 38 ✅) |
-| SIE reranking | BGE-reranker via SIE `score` | Voyage + CrossEncoder only (`server/core/rerank/`) | SIE score path in `rerank/reranker.py` | Notable | Slice 22 🔨 |
-| SPLADE v3 sparse sweep | Full sparse retrieval via SIE | Registry + `vector_index_30522` exist (Slice 21 foundation) | End-to-end sparse path assert in sweep | Notable | Slice 22 🔨 (narrow — do not re-add registry) |
 | Results export | CSV/JSONL download | JSON via `/results` and `/explore` only | Export endpoint + dashboard button | **Must** (#49) | Slice 28 |
 | Local MongoDB UX docs | Smooth onboarding | Unified `mongodb-setup.md` | **📦 DEFERRED** | Should | was 26 |
 | Storage quota guard (Atlas) | Cloud production safety | Boot reconciliation only | **📦 DEFERRED** — Postgres stats in 36 | Should | was 19 |
@@ -46,6 +46,7 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 | Evidently AI monitoring | Drift alerts | None | Integration | Could | Slice 23 |
 | MCP server | `get_rag_config` tool | None | **Won't this cycle** — use best-config HTTP | Won't | — |
 | Formal Protocol gate closure | Tracker COMPLETE for 32/32C/32B/33 | Protocol **IMPLEMENTED** on main; 38 ✅ | Coverage/mutation/nw-review close-out | Should (parallel) | 32B chain |
+| Live SIE smoke (Slice 22 After-Check) | Manual sweep → best-config on real gateway | Unit/mocked path **VERIFIED** | Optional operator probe | Could | post-merge |
 
 ---
 
@@ -76,6 +77,7 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 | Chunkers | ✅ | PRs #47/#48 |
 | Parallel sweep | ✅ | Slice 16 COMPLETE |
 | Dense/sparse/hybrid on Postgres | ✅ | Slices 34–35 |
+| SIE Scooter (rerank + best-config + SPLADE assert) | ✅ | Slice 22 COMPLETE |
 
 ---
 
@@ -84,10 +86,10 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 | Area | Spec says | Code does | Gap | Action |
 |------|-----------|-----------|-----|--------|
 | Storage backend | Dual Protocol; operator-selected engine (#130 no default flip) | Protocol + Mongo + Postgres adapters on main | **No** (formal 32B debt parallel) | — |
-| best-config | Returns recommendation from history | Stub only | **Yes** | Slice 22 🔨 |
-| SPLADE sparse sweep | End-to-end sparse path | Registry + index ready; sweep assert pending | **Partial** | Slice 22 🔨 |
-| SIE reranking | BGE-reranker scores | Voyage/CrossEncoder only | **Yes** | Slice 22 🔨 |
+| best-config | Returns recommendation from history | `GET /api/v1/best-config?task=` → highest score / 404 | **No** | — |
+| SPLADE sparse sweep | End-to-end sparse path assert | Sparse-only Tier-1 `bm25` + existing registry | **No** (narrow Tier-1 assert) | — |
+| SIE reranking | BGE-reranker scores | `reranker.py` → `score_documents_sie` | **No** | — |
 | Export | CSV/JSONL download | Not implemented | **Yes** | Slice 28 |
 | All Slice 21 items | SIE + sweep + Aim | Implemented + tested | **No** | — |
 
-**Result**: Soft cutover (38) is COMPLETE. Critical path is PCTO Slice **22** (plan refreshed **DECIDED** 2026-07-29 — await `/nw-execute`). Formal 32B gate debt is parallel, not a hard block.
+**Result**: Soft cutover (38) ✅. PCTO Slice **22** ✅ COMPLETE (`/verify-slice` **VERIFIED** at unit/API-mock boundary; optional live SIE After-Check only). Critical remaining Must: Slice **28** export. Formal 32B gate debt stays parallel.

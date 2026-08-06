@@ -23,7 +23,7 @@ class EmbeddingModelInfo(TypedDict):
 
 
 class RerankerModelInfo(TypedDict):
-    provider: str  # "voyage" | "local"
+    provider: str  # "voyage" | "local" | "sie"
     huggingface_id: str | None
     description: str
 
@@ -183,6 +183,11 @@ RERANKER_MODELS: dict[str, RerankerModelInfo] = {
         "provider": "local",
         "huggingface_id": "cross-encoder/ms-marco-MiniLM-L-6-v2",
         "description": "Local cross-encoder reranker (~23MB, MS MARCO trained)",
+    },
+    "bge-reranker": {
+        "provider": "sie",
+        "huggingface_id": "BAAI/bge-reranker-v2-m3",
+        "description": "SIE-hosted BGE reranker for query-document scoring",
     },
 }
 

@@ -1,7 +1,9 @@
 # MongoDB Setup
 
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
+![sentence-transformers](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 
 **Essential, minimal steps** to run the example sweep commands on **Atlas Cloud** or **Atlas Local (Docker)**. Official vendor docs are linked; details you can skip are marked *optional*.

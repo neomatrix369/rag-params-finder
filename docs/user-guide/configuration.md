@@ -1,9 +1,12 @@
 # Configuration Reference
 
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
+![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
 ![sentence-transformers](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 
 All YAML fields, sweep expansion rules, and queries file format.
 
@@ -209,6 +212,7 @@ Canonical list: `server/core/model_registry.py` (`EMBEDDING_MODELS`, `RERANKER_M
 | Model | Provider | Notes |
 |---|---|---|
 | `cross-encoder/ms-marco-MiniLM-L-6-v2` | `local` | ~23 MB, no API key |
+| `bge-reranker` | `sie` | SIE `score` primitive (`BAAI/bge-reranker-v2-m3`); needs `SIE_ENABLED` + reachable `SIE_ENDPOINT` — see [sie-setup.md](sie-setup.md) |
 | `rerank-2.5-lite` | `voyage` | Recommended — fastest |
 | `rerank-2.5` | `voyage` | Recommended — higher quality |
 | `rerank-2-lite` | `voyage` | Legacy |

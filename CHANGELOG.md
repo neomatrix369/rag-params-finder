@@ -11,7 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Slice 22 — SIE Scooter** — SIE reranker `bge-reranker` via `SIEClient.score()`; `POST /api/v1/sweep` persists Tier-1 history through the active `StorageBackend` (`experiment_type=tier1_sweep`); `GET /api/v1/best-config?task=` returns the highest-scoring persisted config or **404**; SPLADE sparse-only Tier-1 path reuses existing `splade-v3` / `vector_index_30522` foundation. See [sie-setup.md](docs/user-guide/sie-setup.md) (**IMPLEMENTED**; unit tests **VERIFIED**; live SIE smoke optional).
+
+### Security
+
+- **Dependency bumps (Nightly CI fix)** — `aiohttp` 3.14.1 → 3.14.3 (CVE-2026-69244 HIGH + CVE-2026-59881/CVE-2026-69243 MEDIUM; out-of-bounds heap read + WebSocket request smuggling); `cryptography` 49.0.0 → 50.0.0 (CVE-2026-69247 HIGH). `frontend/package.json` override: `brace-expansion` 5.0.8 → 5.0.9 (GHSA-rgw5-rvv9-x895 HIGH; previous pin was still in the vulnerable 4.0.0–5.0.8 range); `qs` override pinned at 6.15.3 (GHSA-q8mj-m7cp-5q26 MODERATE). Resolves all three Nightly failures: Meterian SCA, Trivy container scan, and frontend dependency audit (**IMPLEMENTED**).
+
+### Fixed
+
+- **tier1_sweep records excluded from `GET /experiments`** — internal sweep-history bookkeeping documents (`experiment_type=tier1_sweep`) were leaking into the standard experiments list, causing CLI display to show empty sweep fields (`models`/`chunking_methods`/`chunk_sizes`/`overlaps` absent from the Tier-1 format) and frontend `SweepSummary` type mismatch. Filter added in `list_all_experiment_docs()` — the single API call-site — so `_matching_sweep_history()` still reaches all records for `GET /api/v1/best-config` (**IMPLEMENTED**; 3 unit tests **VERIFIED**).
+
 ### Changed
+
+- **Doc technology badges** — Meterian live security/stability/licensing badges on README + development guide (+ stability on release-process); security toolchain strip (Trivy, gitleaks, TruffleHog, pip-audit, bandit, CycloneDX, Chalk, Dependabot, mutmut, Stryker, Semgrep, OSV) on development.md; stack parity badges (Voyage, sentence-transformers, Docker, Node 22, Postgres/Supabase, Typer/Rich, Aim, Optuna, Stella/SPLADE/HF) across user/contributor guides, QUICKSTART, and docs index (**IMPLEMENTED**).
 
 - **Release via branch + PR** — `./scripts/release/release.sh` creates `release/vX.Y.Z`, commits the bump there, and opens a PR to `main` (never pushes the bump directly). Tag + GitHub release after merge. Aligns with GitHub ruleset **Require a pull request before merging** on `main` (**IMPLEMENTED**; **VERIFIED** via Active Protect-main-branch ruleset).
 

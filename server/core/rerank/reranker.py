@@ -1,5 +1,7 @@
 from server.core.embedding.embedder import get_client, get_limiter
 from server.core.embedding.rate_limiter import call_with_retry, estimate_tokens
+from server.core.embedding.sie_embedder import score_documents_sie
+from server.core.rerank.local_reranker import rerank_local
 from server.models.results import SearchResult
 from server.utils.logger import get_logger
 
@@ -13,15 +15,53 @@ def rerank_results(
     top_k: int,
     provider: str = "local",
 ) -> list[SearchResult]:
-    """Rerank search results, dispatching to local or Voyage based on provider."""
+    """Rerank search results, dispatching to local, SIE, or Voyage."""
     if not search_results:
         return []
 
     if provider == "local":
-        from server.core.rerank.local_reranker import rerank_local
-
         return rerank_local(query, search_results, model, top_k)
+    if provider == "sie":
+        return _rerank_sie(query, search_results, model, top_k)
     return _rerank_voyage(query, search_results, model, top_k)
+
+
+def _rerank_sie(
+    query: str,
+    search_results: list[SearchResult],
+    model: str,
+    top_k: int,
+) -> list[SearchResult]:
+    """Rerank search results using the SIE score primitive."""
+    logger.debug(
+        "sie rerank — candidates=%s model=%s top_k=%s",
+        len(search_results),
+        model,
+        top_k,
+    )
+
+    documents = [r.chunk.text for r in search_results]
+    scores = score_documents_sie(query, documents, model)
+    scored_indices = sorted(
+        enumerate(scores),
+        key=lambda item: item[1],
+        reverse=True,
+    )[:top_k]
+
+    reranked: list[SearchResult] = []
+    for rank, (orig_idx, score) in enumerate(scored_indices, start=1):
+        original = search_results[orig_idx]
+        reranked.append(
+            original.model_copy(
+                update={
+                    "rerank_score": float(score),
+                    "rank": rank,
+                }
+            )
+        )
+
+    logger.debug("sie rerank OK — returning %s hits", len(reranked))
+    return reranked
 
 
 def _rerank_voyage(
