@@ -11,9 +11,17 @@ from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Experiment types used internally (e.g. sweep history bookkeeping) that must not
+# appear in the user-facing experiments list.
+_INTERNAL_EXPERIMENT_TYPES = {"tier1_sweep"}
+
 
 def list_all_experiment_docs():
-    return get_storage_backend().find_all_experiments()
+    return [
+        doc
+        for doc in get_storage_backend().find_all_experiments()
+        if doc.get("experiment_type") not in _INTERNAL_EXPERIMENT_TYPES
+    ]
 
 
 def find_experiment_with_runs(experiment_id: str):
