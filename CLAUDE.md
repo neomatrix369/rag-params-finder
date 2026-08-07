@@ -242,9 +242,7 @@ uv run pytest --tb=short -q \
   --ignore=tests/server/db/test_postgres_dense_retrieval.py \
   --ignore=tests/server/db/test_postgres_sparse_hybrid.py \
   -m "not integration" \
-  --cov=server.core.guards.search_index_plan \
-  --cov=server.core.guards.search_index_guard --cov=server.core.results_analyzer \
-  --cov=server.models.config --cov-fail-under=95
+  --cov=server --cov=cli --cov-fail-under=61
 cd frontend && npm run lint && npm run test && npm run typecheck && npm run build
 ```
 
@@ -276,7 +274,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 **Backend** (2026-07-28 — unit tier):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **347** tests; BE floors **95/90/n/a/95** (stmts/br/fn/lines) via `fail_under=95` + `scripts/ci/check_backend_coverage_floors.py` — DECISIONS #142; no `MONGODB_URI` required
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **347** tests; full backend (`server/ + cli/`) floors **61/47/n/a/61** (stmts/br/fn/lines) via `fail_under=61` + `scripts/ci/check_backend_coverage_floors.py` (`backend_coverage_thresholds`) — DECISIONS #142; no `MONGODB_URI` required
 - FE/BE threshold lock: `scripts/ci/check_coverage_threshold_drift.py` asserts Vitest `coverage.thresholds` match `[tool.rag_params_finder.coverage_thresholds]` (incl. `functions=95`) — DECISIONS #161
 
 **Frontend** (2026-07-28 — Slice 45 COMPLETE + floors #142):

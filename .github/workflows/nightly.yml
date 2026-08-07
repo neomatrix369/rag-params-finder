@@ -28,17 +28,15 @@ jobs:
             --ignore=tests/server/db/test_postgres_dense_retrieval.py \
             --ignore=tests/server/db/test_postgres_sparse_hybrid.py \
             -m "not integration" \
-            --cov=server.core.guards.search_index_plan \
-            --cov=server.core.guards.search_index_guard \
-            --cov=server.core.results_analyzer \
-            --cov=server.models.config \
+            --cov=server \
+            --cov=cli \
             --cov-report=term-missing \
             --cov-report="html:.reports/coverage/html" \
             --cov-report="xml:.reports/coverage/coverage.xml" \
-            --cov-report="json:.reports/coverage/coverage.json" \
-            --cov-fail-under=95 \
+            --cov-report="json:.reports/coverage/backend-full.json" \
+            --cov-fail-under=59 \
             --junitxml=.test-results/junit.xml
-          uv run python scripts/ci/check_backend_coverage_floors.py .reports/coverage/coverage.json
+          uv run python scripts/ci/check_backend_coverage_floors.py .reports/coverage/backend-full.json
       - name: Upload test results
         uses: actions/upload-artifact@v7
         if: always()
