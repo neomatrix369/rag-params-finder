@@ -26,7 +26,7 @@ jobs:
           mutmut run --paths-to-mutate server/ cli/ || true
           mutmut results || true
           mutmut junitxml > mutation-results-python.xml || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: mutation-python-${{ github.run_number }}
@@ -84,7 +84,7 @@ jobs:
         with:
           format: cyclonedx-json
           output-file: sbom.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: sbom-${{ github.run_number }}
@@ -141,7 +141,7 @@ jobs:
             --report-sarif=meterian-reports/report.sarif
             --report-sbom=meterian-reports/sbom.cdx.json,meterian-reports/sbom.csv
       - name: Upload Meterian reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: meterian-${{ github.run_number }}
@@ -194,7 +194,7 @@ jobs:
           chalk docker build -f docker/server.Dockerfile -t chalk-attested-server:${{ github.sha }} .
       - name: Upload Chalk report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: chalk-report-${{ github.run_number }}
           path: ~/.local/chalk/chalk.log
