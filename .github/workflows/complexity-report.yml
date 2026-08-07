@@ -11,7 +11,7 @@ on:
       - '**/*.tsx'
       - 'scripts/ci/complexity-report.sh'
       - 'scripts/ci/write_complexity_summary.py'
-      - '**/eslint.complexity.config.js'
+      - '**/eslint.complexity.config.cjs'
       - 'pyproject.toml'
       - 'uv.lock'
       - '**/package.json'

@@ -2,7 +2,7 @@
 # Produce language-specific complexity evidence for local gates and pull requests.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REPORT_DIR="$ROOT/.reports/complexity"
 PYTHON_PATHS="${COMPLEXITY_PYTHON_PATHS:-server cli}"
 NODE_WORKSPACES="${COMPLEXITY_NODE_WORKSPACES:-frontend}"
@@ -23,16 +23,17 @@ printf '[]\n' >"$cli_report"
 for workspace in $NODE_WORKSPACES; do
   workspace_path="$ROOT/$workspace"
   [[ -f "$workspace_path/package.json" ]] || continue
-  [[ -f "$workspace_path/eslint.complexity.config.js" ]] || {
-    echo "Missing $workspace/eslint.complexity.config.js" >&2
+  [[ -f "$workspace_path/eslint.complexity.config.cjs" ]] || {
+    echo "Missing $workspace/eslint.complexity.config.cjs" >&2
     exit 2
   }
   echo "--- JavaScript/TypeScript complexity ($workspace) ---"
   workspace_report="$REPORT_DIR/node-${workspace//\//_}.json"
   (
     cd "$workspace_path"
-    npx eslint --config eslint.complexity.config.js --format json . \
-      --ignore-pattern node_modules --ignore-pattern dist --ignore-pattern coverage
+    # Exit code 1 = violations found (expected for reporting); allow it.
+    npx eslint --config eslint.complexity.config.cjs --format json . \
+      --ignore-pattern node_modules --ignore-pattern dist --ignore-pattern coverage || true
   ) >"$workspace_report"
   python3 - "$cli_report" "$workspace_report" <<'PY'
 import json
@@ -46,7 +47,7 @@ combined_path.write_text(json.dumps([*combined, *workspace]), encoding="utf-8")
 PY
 done
 
-python3 "$ROOT/scripts/ci/write_complexity_summary.py" \
+python3 "$(dirname "${BASH_SOURCE[0]}")/write_complexity_summary.py" \
   --python-report "$python_report" \
   --node-report "$cli_report" \
   --output "$REPORT_DIR/pr-body.md"
