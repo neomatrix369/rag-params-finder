@@ -1,0 +1,81 @@
+name: Complexity report
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.py'
+      - '**/*.js'
+      - '**/*.jsx'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - 'scripts/ci/complexity-report.sh'
+      - 'scripts/ci/write_complexity_summary.py'
+      - '**/eslint.complexity.config.js'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '**/package.json'
+      - '**/package-lock.json'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  report:
+    name: Complexity evidence
+    runs-on: ubuntu-latest
+    env:
+      # Python source dirs (space-separated); Node workspace dirs (space-separated).
+      COMPLEXITY_PYTHON_PATHS: server cli
+      COMPLEXITY_NODE_WORKSPACES: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: test ! -f pyproject.toml || uv sync --extra dev
+      - run: |
+          for workspace in $COMPLEXITY_NODE_WORKSPACES; do
+            test ! -f "$workspace/package.json" || (cd "$workspace" && npm ci)
+          done
+      - run: bash scripts/ci/complexity-report.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: complexity-${{ github.run_number }}
+          path: .reports/complexity/
+          retention-days: 14
+      - id: body
+        run: |
+          {
+            echo 'markdown<<EOF'
+            cat .reports/complexity/pr-body.md
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+      - name: Replace PR complexity section
+        if: github.event.pull_request.head.repo.fork == false
+        uses: actions/github-script@v7
+        env:
+          COMPLEXITY_MARKDOWN: ${{ steps.body.outputs.markdown }}
+        with:
+          script: |
+            const marker = /<!-- complexity-report:start -->[\s\S]*?<!-- complexity-report:end -->/;
+            const replacement = process.env.COMPLEXITY_MARKDOWN;
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner, repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+            const current = pr.body || '';
+            const body = marker.test(current)
+              ? current.replace(marker, replacement)
+              : `${current.trimEnd()}\n\n${replacement}`.trimStart();
+            await github.rest.pulls.update({
+              owner: context.repo.owner, repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number, body,
+            });

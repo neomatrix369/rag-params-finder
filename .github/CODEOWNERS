@@ -1,0 +1,9 @@
+# .github/CODEOWNERS
+# Syntax: <path pattern>   @<github-username>
+# Global fallback — replace @OWNER with actual GitHub username(s)
+*  @neomatrix369
+
+# Uncomment and customise as team grows:
+# .github/        @neomatrix369
+# docs/           @neomatrix369
+# scripts/        @neomatrix369
