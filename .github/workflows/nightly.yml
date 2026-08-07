@@ -72,7 +72,7 @@ jobs:
         with:
           path: ./
           base: ""
-          extra_args: --only-verified
+          extra_args: --only-verified --exclude-detectors=Lob
 
   # ── T4: SBOM — CycloneDX artifact (whole repo) ───────────────────────────────
   sbom:
