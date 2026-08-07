@@ -6,6 +6,120 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ── Nightly: full test suite + coverage — Python ─────────────────────────────
+  nightly-tests-python:
+    name: Python tests + coverage (nightly snapshot)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - run: uv pip install --system -e ".[dev]"
+      - run: mkdir -p .test-results .reports/coverage
+      - run: |
+          uv run pytest --tb=short -q \
+            --ignore=tests/contract \
+            --ignore=tests/server/db/test_postgres_store_integration.py \
+            --ignore=tests/server/db/test_postgres_dense_retrieval.py \
+            --ignore=tests/server/db/test_postgres_sparse_hybrid.py \
+            -m "not integration" \
+            --cov=server \
+            --cov=cli \
+            --cov-report=term-missing \
+            --cov-report="html:.reports/coverage/html" \
+            --cov-report="xml:.reports/coverage/coverage.xml" \
+            --cov-report="json:.reports/coverage/backend-full.json" \
+            --cov-fail-under=59 \
+            --junitxml=.test-results/junit.xml
+          uv run python scripts/ci/check_backend_coverage_floors.py .reports/coverage/backend-full.json
+      - name: Upload test results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: nightly-test-results-python-${{ github.run_number }}
+          path: .test-results/
+          retention-days: 30
+          if-no-files-found: warn
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: nightly-coverage-python-${{ github.run_number }}
+          path: .reports/coverage/
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ── Nightly: full test suite + coverage — Node ───────────────────────────────
+  nightly-tests-node:
+    name: Node tests + coverage (nightly snapshot)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: mkdir -p .test-results .reports/coverage
+      - run: npm run test:ci
+      - name: Upload test results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: nightly-test-results-node-${{ github.run_number }}
+          path: frontend/.test-results/
+          retention-days: 30
+          if-no-files-found: warn
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: nightly-coverage-node-${{ github.run_number }}
+          path: frontend/.reports/coverage/
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ── Nightly: complexity report ────────────────────────────────────────────────
+  nightly-complexity:
+    name: Complexity report (nightly snapshot)
+    runs-on: ubuntu-latest
+    env:
+      COMPLEXITY_PYTHON_PATHS: server cli
+      COMPLEXITY_NODE_WORKSPACES: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: uv pip install --system -e ".[dev]"
+      - run: (cd frontend && npm ci)
+      - run: bash scripts/complexity-report.sh
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: nightly-complexity-${{ github.run_number }}
+          path: .reports/complexity/
+          retention-days: 30
+          if-no-files-found: warn
+
   # ── T4: Mutation testing — Python (mutmut) ────────────────────────────────────
   mutation-tests-python:
     name: Mutation testing — Python (mutmut)
