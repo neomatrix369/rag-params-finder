@@ -124,7 +124,8 @@ def _embed_documents_voyage(
         )
         all_embeddings.extend(cast(list[list[float]], result.embeddings))
 
-    logger.info("embed OK — count=%s dim=%s", len(all_embeddings), len(all_embeddings[0]))
+    dim = len(all_embeddings[0]) if all_embeddings else 0
+    logger.info("embed OK — count=%s dim=%s", len(all_embeddings), dim)
     return all_embeddings
 
 

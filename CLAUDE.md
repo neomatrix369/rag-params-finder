@@ -98,6 +98,9 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 |---|---|
 | `docs/contributor-guide/module-theme-map.md` | Behavior \| Feature \| Function theme map + Slice 45 layout status (hotspots 1–5 IMPLEMENTED) |
 | `scripts/ci/` | Quality gates, repo lint, hooks install, pip-audit, coverage floor + threshold-drift checkers |
+| `scripts/ci/complexity-report.sh` | Radon (Python) + ESLint (TS/JS) complexity evidence; writes `.reports/complexity/pr-body.md` |
+| `scripts/ci/write_complexity_summary.py` | Renders anchored complexity PR-body section from Radon + ESLint JSON |
+| `scripts/ci/security-scan.sh` | Shim delegating to `scripts/security/security-scan.sh` (used by nightly CI) |
 | `scripts/docker/` | health-check, aim-ui, docker-cleanup/build-context |
 | `scripts/release/` | `release.sh` + bump/GitHub helpers |
 | `scripts/security/` | `security-scan.sh` |
@@ -242,7 +245,7 @@ uv run pytest --tb=short -q \
   --ignore=tests/server/db/test_postgres_dense_retrieval.py \
   --ignore=tests/server/db/test_postgres_sparse_hybrid.py \
   -m "not integration" \
-  --cov=server --cov=cli --cov-fail-under=61
+  --cov=server --cov=cli --cov-fail-under=70
 cd frontend && npm run lint && npm run test && npm run typecheck && npm run build
 ```
 
@@ -271,15 +274,15 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 
 **Repo lint** shellcheck scope: `start-services.sh` + `scripts/**/*.sh` (pre-commit `files: ^(start-services\.sh|scripts/.*\.sh)$`).
 
-**Backend** (2026-07-28 — unit tier):
+**Backend** (2026-08-07 — unit tier, full scope):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **347** tests; full backend (`server/ + cli/`) floors **61/47/n/a/61** (stmts/br/fn/lines) via `fail_under=61` + `scripts/ci/check_backend_coverage_floors.py` (`backend_coverage_thresholds`) — DECISIONS #142; no `MONGODB_URI` required
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **468** tests; full backend (`server/ + cli/`) floors **72/59/n/a/72** (stmts/br/fn/lines) via `fail_under=70` (combined 70.1%) + `scripts/ci/check_backend_coverage_floors.py` (`backend_coverage_thresholds`) — DECISIONS #142; no `MONGODB_URI` required
 - FE/BE threshold lock: `scripts/ci/check_coverage_threshold_drift.py` asserts Vitest `coverage.thresholds` match `[tool.rag_params_finder.coverage_thresholds]` (incl. `functions=95`) — DECISIONS #161
 
-**Frontend** (2026-07-28 — Slice 45 COMPLETE + floors #142):
+**Frontend** (2026-08-07 — Slice 45 COMPLETE + floors #142 + 3 gap scenarios):
 - `npm run lint` → 0 errors (eslint + security plugin)
-- `npm run test` → **261** tests across **24** files (Vitest + React Testing Library)
+- `npm run test` → **264** tests across **24** files (Vitest + React Testing Library)
 - `npm run test:coverage` / `test:ci` → v8 thresholds **95/90/95/95** stmts/br/fn/lines (`all: true`; DECISIONS #142); measured ≈98.4% / 93.11% / 100% / 99.69% — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s

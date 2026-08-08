@@ -34,7 +34,7 @@ jobs:
             --cov-report="html:.reports/coverage/html" \
             --cov-report="xml:.reports/coverage/coverage.xml" \
             --cov-report="json:.reports/coverage/backend-full.json" \
-            --cov-fail-under=59 \
+            --cov-fail-under=70 \
             --junitxml=.test-results/junit.xml
           uv run python scripts/ci/check_backend_coverage_floors.py .reports/coverage/backend-full.json
       - name: Upload test results

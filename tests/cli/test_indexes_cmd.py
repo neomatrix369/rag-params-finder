@@ -1,9 +1,8 @@
-"""
-Tests for cli.indexes_cmd.
+"""Verifies CLI index commands respect storage backend — Postgres catalog, Atlas reset only.
 
 Author: Mani Sarkar
 Created: 2026-07-26
-Scope: non-mongo STORAGE_BACKEND short-circuit for indexes list/reset
+Scope: cli/indexes_cmd.py — list and reset subcommands, unit, mocked search index adapters
 """
 
 from __future__ import annotations
@@ -18,27 +17,22 @@ from server.core.search_index_plan import SearchIndexSnapshot
 
 
 class TestIndexesCmdBackendGuardShould:
-    """Scenario: indexes list works on Postgres catalog; reset stays Atlas-only."""
+    """Verifies storage-backend-aware index commands — Postgres and Atlas switching."""
 
-    def test_given_postgres_backend_when_indexes_list_then_lists_catalog(
+    def test_indexes_list_command_uses_postgres_catalog_when_backend_is_postgres(
         self,
     ) -> None:
-        """
-        Scenario: given postgres backend when indexes list then lists catalog.
-        Slice: 45 — GWT-on-touch (module theme separation)
+        """Postgres backend skips Atlas APIs when listing search indexes.
+
+        Scenario: Postgres RAG backend lists vector search indexes from local catalog.
+        Slice: slice-36 — Postgres preflight and statistics
+
+        Given STORAGE_BACKEND is set to "postgres" with valid pgvector catalog
+        When the indexes list command runs
+        Then command calls Postgres catalog introspection (vector extension checks,
+        HNSW/GIN index presence) and does not invoke Atlas list APIs
         """
         ### Given
-        ### When
-        ### Then
-        """
-        Scenario: Postgres stacks list HNSW/GIN presence without Atlas I/O.
-        Slice: slice-36-postgres-preflight-stats
-
-        Given STORAGE_BACKEND=postgres and a catalog snapshot,
-        When indexes list runs,
-        Then it does not call Atlas list APIs.
-        """
-        ### Given / When
         required = frozenset(
             {
                 "chunks_embedding_384_hnsw",
@@ -53,6 +47,8 @@ class TestIndexesCmdBackendGuardShould:
             cluster_limit=3,
             unknown_count=0,
         )
+
+        ### When
         with (
             patch("cli.indexes_cmd.settings.storage_backend", "postgres"),
             patch("cli.indexes_cmd.list_cluster_search_indexes") as list_indexes,
@@ -70,25 +66,21 @@ class TestIndexesCmdBackendGuardShould:
         ### Then
         list_indexes.assert_not_called()
 
-    def test_given_postgres_backend_when_indexes_reset_then_exits_without_atlas(
+    def test_indexes_reset_command_exits_when_backend_is_postgres(
         self,
     ) -> None:
-        """
-        Scenario: given postgres backend when indexes reset then exits without atlas.
-        Slice: 45 — GWT-on-touch (module theme separation)
+        """Postgres backend does not support index reset — exits gracefully.
+
+        Scenario: Atlas-only index management commands block on non-Atlas backends.
+        Slice: slice-36 — Postgres preflight and statistics
+
+        Given STORAGE_BACKEND is set to "postgres"
+        When the indexes reset command is called
+        Then command exits with status 0 (informative exit, not error) and does not
+        call Atlas APIs or prune any indexes
         """
         ### Given
         ### When
-        ### Then
-        """
-        Scenario: Postgres stacks do not open Atlas for index reset.
-        Slice: slice-36-postgres-preflight-stats
-
-        Given STORAGE_BACKEND=postgres,
-        When indexes reset runs,
-        Then it exits as Atlas-only and never mutates Atlas indexes.
-        """
-        ### Given / When / Then
         with (
             patch("cli.indexes_cmd.settings.storage_backend", "postgres"),
             patch("cli.indexes_cmd.list_cluster_search_indexes") as list_indexes,

@@ -104,9 +104,9 @@ branch = true
 [tool.coverage.report]
 show_missing = true
 # Full backend floor — combined (statements+branches) as reported by coverage.py.
-# Baseline 2026-08-07: 59.1% combined. Per-metric floors (stmts/br/lines) are
-# enforced separately by check_backend_coverage_floors.py (61/47/61).
-fail_under = 59
+# Baseline 2026-08-07: 59.1% combined → raised 2026-08-07 to 70.1% after gap bridging.
+# Per-metric floors (stmts/br/lines) enforced by check_backend_coverage_floors.py (72/59/72).
+fail_under = 70
 precision = 1
 
 # FE-only thresholds — used by check_coverage_threshold_drift.py to lock
@@ -120,14 +120,14 @@ lines = 95
 functions = 95
 
 # Full backend per-metric floors (unit-tier, server/ + cli/).
-# Baseline 2026-08-07: statements=61.9%, branches=47.7%, lines=61.9%
-# (combined percent_covered = 59.1% — that is what --cov-fail-under uses).
+# Baseline 2026-08-07: statements=72.7%, branches=59.8%, lines=72.7%
+# (combined percent_covered = 70.1% — that is what --cov-fail-under uses).
 # Target: raise toward 95/90/95 as integration paths get unit tests.
 # Read by scripts/ci/check_backend_coverage_floors.py.
 [tool.rag_params_finder.backend_coverage_thresholds]
-statements = 61
-branches = 47
-lines = 61
+statements = 72
+branches = 59
+lines = 72
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]

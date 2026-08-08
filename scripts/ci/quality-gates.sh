@@ -104,7 +104,7 @@ uv run pytest --tb=short -q \
   --cov=cli \
   --cov-report=term-missing \
   --cov-report=json:.reports/coverage/backend-full.json \
-  --cov-fail-under=59
+  --cov-fail-under=70
 uv run python scripts/ci/check_backend_coverage_floors.py .reports/coverage/backend-full.json
 uv run python scripts/ci/check_coverage_threshold_drift.py
 

@@ -5,9 +5,9 @@ coverage.py only gates a single combined total via ``fail_under``. This script
 reads the coverage JSON report and fails unless the full-backend unit-tier floors
 are met:
 
-* statements ≥ 61%  (baseline 2026-08-07; target 95%)
-* branches   ≥ 47%  (baseline 2026-08-07; target 90%)
-* lines      ≥ 61%  (same denominator as statements)
+* statements ≥ 72%  (raised 2026-08-07 after gap bridging; target 95%)
+* branches   ≥ 59%  (raised 2026-08-07 after gap bridging; target 90%)
+* lines      ≥ 72%  (same denominator as statements)
 
 Functions are not measured by coverage.py (FE still enforces functions ≥ 95%).
 
@@ -29,9 +29,9 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_FLOORS: dict[str, float] = {
-    "statements": 61.0,
-    "branches": 47.0,
-    "lines": 61.0,
+    "statements": 72.0,
+    "branches": 59.0,
+    "lines": 72.0,
 }
 
 
