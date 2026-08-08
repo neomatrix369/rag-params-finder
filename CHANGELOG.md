@@ -17,13 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **pypdf 6.14.2 → 6.15.0** — fixes CVE-2026-71852 and CVE-2026-71870 found by `pip-audit` pre-push gate (**IMPLEMENTED**; `uv add "pypdf>=6.15.0"`).
+
 - **Dependency bumps (Nightly CI fix)** — `aiohttp` 3.14.1 → 3.14.3 (CVE-2026-69244 HIGH + CVE-2026-59881/CVE-2026-69243 MEDIUM; out-of-bounds heap read + WebSocket request smuggling); `cryptography` 49.0.0 → 50.0.0 (CVE-2026-69247 HIGH). `frontend/package.json` override: `brace-expansion` 5.0.8 → 5.0.9 (GHSA-rgw5-rvv9-x895 HIGH; previous pin was still in the vulnerable 4.0.0–5.0.8 range); `qs` override pinned at 6.15.3 (GHSA-q8mj-m7cp-5q26 MODERATE). Resolves all three Nightly failures: Meterian SCA, Trivy container scan, and frontend dependency audit (**IMPLEMENTED**).
 
 ### Fixed
 
+- **`embed_documents_voyage` empty-input crash** — `IndexError` on `all_embeddings[0]` when all batches returned empty; now guards with `dim = len(all_embeddings[0]) if all_embeddings else 0` (**IMPLEMENTED**; 1 regression test **VERIFIED**).
+
 - **tier1_sweep records excluded from `GET /experiments`** — internal sweep-history bookkeeping documents (`experiment_type=tier1_sweep`) were leaking into the standard experiments list, causing CLI display to show empty sweep fields (`models`/`chunking_methods`/`chunk_sizes`/`overlaps` absent from the Tier-1 format) and frontend `SweepSummary` type mismatch. Filter added in `list_all_experiment_docs()` — the single API call-site — so `_matching_sweep_history()` still reaches all records for `GET /api/v1/best-config` (**IMPLEMENTED**; 3 unit tests **VERIFIED**).
 
 ### Changed
+
+- **Backend coverage raised 59.1% → 70.1%** — 121 new unit tests (ATDD format) cover CLI HTTP client, CLI commands, Voyage embedder, rate limiter, Atlas storage quota, and MongoDB index creation/listing; test suite grows 347 → **468** tests; per-metric floors updated to 72/59/72 (stmts/br/lines); `--cov-fail-under` raised 59 → 70; gap analysis at `docs/plan/gate-evidence/test-gap-analysis-2026-08-07.md` (**VERIFIED** locally).
 
 - **Doc technology badges** — Meterian live security/stability/licensing badges on README + development guide (+ stability on release-process); security toolchain strip (Trivy, gitleaks, TruffleHog, pip-audit, bandit, CycloneDX, Chalk, Dependabot, mutmut, Stryker, Semgrep, OSV) on development.md; stack parity badges (Voyage, sentence-transformers, Docker, Node 22, Postgres/Supabase, Typer/Rich, Aim, Optuna, Stella/SPLADE/HF) across user/contributor guides, QUICKSTART, and docs index (**IMPLEMENTED**).
 
