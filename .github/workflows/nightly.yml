@@ -69,14 +69,13 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      - run: mkdir -p .test-results .reports/coverage
       - run: npm run test:ci
       - name: Upload test results
         uses: actions/upload-artifact@v7
         if: always()
         with:
           name: nightly-test-results-node-${{ github.run_number }}
-          path: frontend/.test-results/
+          path: .test-results/
           retention-days: 30
           if-no-files-found: warn
       - name: Upload coverage report
@@ -84,7 +83,7 @@ jobs:
         if: always()
         with:
           name: nightly-coverage-node-${{ github.run_number }}
-          path: frontend/.reports/coverage/
+          path: .reports/coverage/frontend/
           retention-days: 30
           if-no-files-found: warn
 
@@ -194,7 +193,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: anchore/sbom-action@v0.24.0
+      - uses: anchore/sbom-action@v0.25.0
         with:
           format: cyclonedx-json
           output-file: sbom.json

@@ -150,8 +150,8 @@ class TestDropSearchIndexAtShould:
         mock_db = MagicMock()
         mock_coll = MagicMock()
 
-        mock_client.__getitem__.side_effect = (
-            lambda name: mock_db if name == "rag_db" else mock_coll
+        mock_client.__getitem__.side_effect = lambda name: (
+            mock_db if name == "rag_db" else mock_coll
         )  # noqa: E501
         mock_db.__getitem__.return_value = mock_coll
 
