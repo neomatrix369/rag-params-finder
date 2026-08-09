@@ -263,16 +263,20 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 
 ## Quality Gates Baseline
 
-**Unified script:** `./scripts/ci/quality-gates.sh` (mirrors CI — 11 steps including repo lint)
+**Unified script:** `./scripts/ci/quality-gates.sh` (mirrors CI — 12 steps including repo lint + xenon)
 
 **Git hooks** (after `bash scripts/ci/install-git-hooks.sh`):
 - **commit** → pre-commit (hygiene, gitleaks, repo lint, ruff, dmypy, bandit, eslint, tsc --noEmit, testmon fast-tests on changed modules)
-- **push** → push-specific only (`./scripts/ci/pre-push-gates.sh` — full pytest+coverage, vite build, vitest, pip-audit, npm audit; no duplicate of commit checks)
+- **push** → push-specific only (`./scripts/ci/pre-push-gates.sh` — xenon complexity gate, full pytest+coverage, vite build, vitest, pip-audit, npm audit; no duplicate of commit checks)
 
 **Repo lint** (2026-05-27):
 - `bash scripts/ci/repo-lint.sh` → shellcheck + actionlint + markdownlint pass
 
 **Repo lint** shellcheck scope: `start-services.sh` + `scripts/**/*.sh` (pre-commit `files: ^(start-services\.sh|scripts/.*\.sh)$`).
+
+**Complexity gate** (2026-08-09 — baseline E/C/C, target B/A/A):
+- `xenon --max-absolute E --max-modules C --max-average C server/ cli/` → exits 0; wired in ci.yml, nightly.yml, quality-gates.sh, pre-push-gates.sh
+- Known violations blocking B/A/A: `orchestrator._run_sweep_inner` (CC=40), `experiments_lifecycle._normalize_stale_running_status` (CC=32) — tracked in Slice 47
 
 **Backend** (2026-08-07 — unit tier, full scope):
 - `ruff check .` → 0 errors

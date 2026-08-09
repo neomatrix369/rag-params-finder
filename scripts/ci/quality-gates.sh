@@ -58,6 +58,13 @@ echo ""
 echo "5/11 Backend SAST (bandit, medium+ severity)..."
 uv run bandit -c pyproject.toml -r server/ cli/ -q -ll
 
+echo ""
+echo "5b/11 Backend complexity (xenon — baseline E/C/C, target B/A/A)..."
+# Current floor: E/C/C (passes existing code). Tighten as violations are refactored.
+# Known violations blocking B/A/A: orchestrator._run_sweep_inner (E,CC=40),
+# experiments_lifecycle._normalize_stale_running_status (E,CC=32), plus D/C blocks.
+uv run xenon --max-absolute E --max-modules C --max-average C server/ cli/
+
 if [[ "${MODE}" == "quick" ]]; then
   echo ""
   echo "6/9 Backend unit tests (no coverage)..."
@@ -82,7 +89,7 @@ if [[ "${MODE}" == "quick" ]]; then
   fi
   echo ""
   echo "✅ Quick quality gates passed."
-  echo "   (repo lint, ruff, mypy, bandit, pytest, frontend lint+verify, gitleaks)"
+  echo "   (repo lint, ruff, mypy, bandit, xenon, pytest, frontend lint+verify, gitleaks)"
   echo "   Skipped: coverage, pip-audit, npm audit — run ./scripts/ci/quality-gates.sh before a PR."
   exit 0
 fi

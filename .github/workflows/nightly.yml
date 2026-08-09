@@ -20,6 +20,8 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
       - run: uv pip install --system -e ".[dev]"
+      - name: Complexity gate (xenon — baseline E/C/C, target B/A/A)
+        run: xenon --max-absolute E --max-modules C --max-average C server/ cli/
       - run: mkdir -p .test-results .reports/coverage
       - run: |
           uv run pytest --tb=short -q \

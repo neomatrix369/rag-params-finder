@@ -57,6 +57,14 @@ echo "=== Pre-push gates (push-specific checks) ==="
 unset STORAGE_BACKEND || true
 
 echo ""
+echo "0/3 Complexity gate (xenon — baseline E/C/C, target B/A/A)..."
+if [[ "$BACKEND_CHANGED" -gt 0 ]]; then
+  uv run xenon --max-absolute E --max-modules C --max-average C server/ cli/
+else
+  echo "   Skipped (no backend changes in this push)"
+fi
+
+echo ""
 echo "1/3 Full test suite + coverage..."
 if [[ "$BACKEND_CHANGED" -gt 0 ]]; then
   # Live Mongo/Postgres suites belong in dedicated CI jobs (see ci.yml).

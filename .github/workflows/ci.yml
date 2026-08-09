@@ -166,6 +166,11 @@ jobs:
       - name: SAST (bandit, medium+ severity)
         run: bandit -c pyproject.toml -r server/ cli/ -q -ll
 
+      - name: Complexity (xenon — baseline E/C/C, target B/A/A)
+        # Floor: E/C/C passes current code. Tighten as violations are refactored.
+        # Violations blocking B/A/A tracked in docs/plan/slices/PROGRESS.md.
+        run: xenon --max-absolute E --max-modules C --max-average C server/ cli/
+
       - name: Tests + coverage (unit tier — full backend)
         # Measures full server/ + cli/. Live Mongo/Postgres suites are excluded
         # (they run in the dedicated integration jobs); integration-only paths
