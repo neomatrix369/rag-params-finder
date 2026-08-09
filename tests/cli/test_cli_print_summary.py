@@ -1,10 +1,8 @@
-"""
+"""Verifies CLI experiment summary output — Bayesian trial history, best config, styling.
+
 Author: rag-params-finder contributors
 Created: 2026-07-23
-Scope: Unit tests for cli/display.py _print_summary — Bayesian summary and trial log output.
-
-Process note: tests written post-implementation (GREEN-first deviation from RED→GREEN).
-Coverage is equivalent but the ATDD RED phase was skipped for this closure pass.
+Scope: cli/display.py — _print_summary function, unit, mocked Rich console output
 """
 
 from __future__ import annotations
@@ -66,31 +64,22 @@ _BAYESIAN_DATA: dict = {
 
 
 class TestPrintSummaryBayesianSection:
-    """_print_summary renders Bayesian section only for bayesian strategy.
+    """Verifies conditional rendering of Bayesian trial-search summary metadata.
 
-    Seven tests cover seven distinct rendered scenarios of the Bayesian output:
-    (1) grid strategy — no Bayesian section at all,
-    (2) Bayesian strategy+counts line,
-    (3) best-config line with formatted score,
-    (4) Trial History table with per-state Rich markup applied (parametrized across 4 states),
-    (5) Trial History section absent when trial_log is missing.
-    Each scenario has a different conditional branch in _print_summary.
+    Covers: strategy-conditional section (Bayesian vs grid), trial-count formatting,
+    best-config line (parameters + score), trial-history table (including per-state styling),
+    and graceful fallback when optional fields are missing or unknown values present.
     """
 
-    def test_grid_experiment_has_no_bayesian_section(self) -> None:
-        """
-        Scenario: grid experiment has no bayesian section.
-        Slice: 45 — GWT-on-touch (module theme separation)
-        """
-        ### Given
-        ### When
-        ### Then
-        """
-        Scenario: non-Bayesian experiment output contains no Bayesian header.
+    def test_summary_output_omits_bayesian_section_for_grid_strategy(self) -> None:
+        """Grid-strategy experiments do not render Bayesian summary or trial history.
 
-        Given a completed grid experiment
-        When _print_summary is called
-        Then the output does not mention "Bayesian Search" or "Trial History".
+        Scenario: CLI summary hides Bayesian section when grid search is used.
+        Slice: 45 — CLI output formatting
+
+        Given a completed grid-search experiment
+        When the summary is rendered to the terminal
+        Then the output contains no "Bayesian Search" header or "Trial History" table
         """
         ### Given
         data = {**_BASE_DATA}
@@ -102,23 +91,19 @@ class TestPrintSummaryBayesianSection:
         assert "Bayesian Search" not in output
         assert "Trial History" not in output
 
-    def test_bayesian_experiment_shows_full_summary(self) -> None:
-        """
-        Scenario: bayesian experiment shows full summary.
-        Slice: 45 — GWT-on-touch (module theme separation)
-        """
-        ### Given
-        ### When
-        ### Then
-        """
-        Scenario: Bayesian experiment output renders strategy header, trial counts,
-        best config with formatted score, and Trial History table.
+    def test_summary_output_renders_bayesian_experiment_with_trial_history(
+        self,
+    ) -> None:
+        """Bayesian experiments show trial history, best config, formatted trial stats.
 
-        Given a completed Bayesian experiment with bayesian_summary and trial_log
-        When _print_summary is called
-        Then the output includes the strategy section, counts, best config line,
-        and the Trial History section header.
-        State-specific markup coverage is in test_trial_log_entry_gets_correct_state_markup.
+        Scenario: CLI summary displays full Bayesian sweep with state markup and config.
+        Slice: 45 — CLI output formatting
+
+        Given a completed Bayesian-search experiment with trial log and best-config
+        When the summary is rendered to the terminal
+        Then output includes strategy header, trial counts (attempted/planned),
+        grid-equivalent count, best-config line with chunk_size/overlap, score formatted
+        to 4 decimals, and Trial History table
         """
         ### Given
         data = {**_BAYESIAN_DATA}
@@ -126,11 +111,11 @@ class TestPrintSummaryBayesianSection:
         ### When
         output = _capture_print_summary(data)
 
-        ### Then — strategy header and counts
+        ### Then — Bayesian strategy header and trial counts
         assert "Bayesian Search" in output
         assert "4/4" in output  # attempted/planned
-        assert "6" in output  # grid_equivalent_count
-        ### Then — best config line
+        assert "6" in output  # grid_equivalent_count (equivalent single-parameter sweep size)
+        ### Then — best config line with parameters and score
         assert "chunk_size=512" in output
         assert "overlap=50" in output
         assert "0.8470" in output  # best_query_avg_score formatted to .4f
@@ -146,22 +131,19 @@ class TestPrintSummaryBayesianSection:
             ("interrupted", "[yellow]"),
         ],
     )
-    def test_trial_log_entry_gets_correct_state_markup(self, state: str, expected_tag: str) -> None:
-        """
-        Scenario: trial log entry gets correct state markup.
-        Slice: 45 — GWT-on-touch (module theme separation)
-        """
-        ### Given
-        ### When
-        ### Then
-        """
-        Scenario: each trial state is wrapped in its corresponding Rich markup tag.
+    def test_summary_output_applies_state_specific_styling_to_trial_entries(
+        self, state: str, expected_tag: str
+    ) -> None:
+        """Each trial log entry receives Rich markup styling for its termination state.
 
-        Given a Bayesian experiment with a single trial_log entry in <state>
-        When _print_summary is called
-        Then the output contains <expected_tag><state> as a literal tagged string
-        (markup=False console emits tags literally — removing the style mapping
-        entry in production would drop the tag and fail this assertion).
+        Scenario: Trial history marks outcomes (completed, pruned, failed, interrupted)
+        with distinct styling.
+        Slice: 45 — CLI output formatting
+
+        Given a Bayesian experiment with a single trial in <state>
+        When the summary renders the trial log
+        Then the trial state text is wrapped in the Rich markup tag (<expected_tag>)
+        — completed=[green], pruned=[dim], failed=[red], interrupted=[yellow]
         """
         ### Given
         data = copy.deepcopy(_BAYESIAN_DATA)
@@ -176,20 +158,16 @@ class TestPrintSummaryBayesianSection:
         ### Then
         assert f"{expected_tag}{state}" in output
 
-    def test_bayesian_experiment_no_trial_log_skips_history_section(self) -> None:
-        """
-        Scenario: bayesian experiment no trial log skips history section.
-        Slice: 45 — GWT-on-touch (module theme separation)
-        """
-        ### Given
-        ### When
-        ### Then
-        """
-        Scenario: missing trial_log omits Trial History section entirely.
+    def test_summary_output_omits_trial_history_when_trial_log_missing(self) -> None:
+        """Bayesian summary shown even when trial-by-trial history unavailable.
 
-        Given a Bayesian experiment whose bayesian_summary has no trial_log key
-        When _print_summary is called
-        Then the output includes the Bayesian section but not Trial History.
+        Scenario: Trial History table is conditional on trial_log data.
+        Slice: 45 — CLI output formatting
+
+        Given a Bayesian experiment with bayesian_summary but no trial_log array
+        When the summary is rendered
+        Then output shows Bayesian section (header, counts, best config) but not the
+        Trial History table
         """
         ### Given
         data = copy.deepcopy(_BAYESIAN_DATA)
@@ -202,22 +180,16 @@ class TestPrintSummaryBayesianSection:
         assert "Bayesian Search" in output
         assert "Trial History" not in output
 
-    # -- AT-15 ----------------------------------------------------------------
+    def test_summary_output_omits_discarded_trials_count_when_zero(self) -> None:
+        """Discarded-trials line shown only if count > 0.
 
-    def test_bayesian_experiment_zero_discarded_omits_discarded_line(self) -> None:
-        """
-        Scenario: bayesian experiment zero discarded omits discarded line.
-        Slice: 45 — GWT-on-touch (module theme separation)
-        """
-        ### Given
-        ### When
-        ### Then
-        """
-        Scenario: Zero discarded trials — no "Discarded" line in CLI output.
+        Scenario: Trial-discard metrics omitted when no trials were pruned.
+        Slice: 45 — CLI output formatting
 
         Given a Bayesian experiment where discarded_trials is 0
-        When _print_summary is called
-        Then the output contains the Bayesian section but no "Discarded" line.
+        When the summary is rendered
+        Then output includes Bayesian section header and counts but not a "Discarded"
+        line
         """
         ### Given
         data = copy.deepcopy(_BAYESIAN_DATA)
@@ -230,22 +202,15 @@ class TestPrintSummaryBayesianSection:
         assert "Bayesian Search" in output
         assert "Discarded" not in output
 
-    # -- AT-16 ----------------------------------------------------------------
+    def test_summary_output_omits_best_config_when_best_score_missing(self) -> None:
+        """Best-config line in summary is omitted when best_query_avg_score is not available.
 
-    def test_bayesian_experiment_no_best_score_omits_best_line(self) -> None:
-        """
-        Scenario: bayesian experiment no best score omits best line.
-        Slice: 45 — GWT-on-touch (module theme separation)
-        """
-        ### Given
-        ### When
-        ### Then
-        """
-        Scenario: No best_query_avg_score — no "Best:" line in CLI output.
+        Scenario: Best-performing configuration is only highlighted when trial scoring completed.
+        Slice: 45 — CLI output formatting
 
-        Given a Bayesian experiment where bayesian_summary has no best_query_avg_score
-        When _print_summary is called
-        Then the output contains the Bayesian section but no "Best:" line.
+        Given a Bayesian experiment where bayesian_summary lacks best_query_avg_score
+        When the summary is rendered
+        Then the output shows the Bayesian section but no "Best:" line
         """
         ### Given
         data = copy.deepcopy(_BAYESIAN_DATA)
@@ -258,22 +223,17 @@ class TestPrintSummaryBayesianSection:
         assert "Bayesian Search" in output
         assert "Best:" not in output
 
-    # -- AT-17 ----------------------------------------------------------------
+    def test_summary_output_renders_unknown_trial_state_without_styling(self) -> None:
+        """Unknown trial states rendered as plain text without Rich markup.
 
-    def test_trial_log_unknown_state_renders_without_markup_tag(self) -> None:
-        """
-        Scenario: trial log unknown state renders without markup tag.
-        Slice: 45 — GWT-on-touch (module theme separation)
-        """
-        ### Given
-        ### When
-        ### Then
-        """
-        Scenario: Unknown trial state falls back to unstyled text — no markup tag.
+        Scenario: Unrecognized trial outcome state falls back to unstyled text
+        (defensive against new states).
+        Slice: 45 — CLI output formatting
 
-        Given a Bayesian experiment with a trial_log entry in an unrecognised state
-        When _print_summary is called
-        Then the state text appears in output but is not prefixed by any Rich markup tag.
+        Given a Bayesian experiment with a trial in unrecognized state (e.g., "waiting")
+        When the summary is rendered
+        Then trial state text appears in output but not wrapped in Rich markup tag
+        ([green], [red], [dim], [yellow])
         """
         ### Given
         data = copy.deepcopy(_BAYESIAN_DATA)

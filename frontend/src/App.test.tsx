@@ -235,4 +235,23 @@ describe('App', () => {
     // -- Then --
     expect(screen.getByText('Experiments Screen Stub')).toBeInTheDocument();
   });
+
+  it('Given no cached vector db stats, when an experiment is opened, then the detail screen renders without broken layout', () => {
+    /**
+     * Scenario: Opening detail when db-stats is undefined (cache miss) does not crash the screen.
+     * Slice: 44 Phase B — App coverage (detail navigation with undefined initialDbStats).
+     * Given no populated vector db groups in cache,
+     * When an experiment is selected and opened,
+     * Then the detail screen stub renders with dbStats total_chunks as "none".
+     */
+    // -- Given --
+    render(<App />);
+
+    // -- When --
+    fireEvent.click(screen.getByText('Select Experiment'));
+
+    // -- Then --
+    expect(screen.getByText(`Detail Screen Stub — ${mockExperiment.experiment_id}`)).toBeInTheDocument();
+    expect(screen.getByText('dbStats total_chunks: none')).toBeInTheDocument();
+  });
 });

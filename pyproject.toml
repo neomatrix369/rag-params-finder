@@ -8,7 +8,7 @@ dependencies = [
     "uvicorn[standard]>=0.27.0",
     "pymongo>=4.6.1",
     "voyageai>=0.2.3",
-    "pypdf>=6.13.3",
+    "pypdf>=6.15.0",
     "langchain>=0.1.0",
     "langchain-text-splitters>=0.0.1",
     "tiktoken>=0.5.0",
@@ -95,32 +95,39 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = [
-    "server/core/guards/search_index_plan.py",
-    "server/core/guards/search_index_guard.py",
-    "server/core/results_analyzer.py",
-    "server/models/config.py",
-    "server/core/embedding/sie_embedder.py",
-    "server/core/aim_logger.py",
-    "server/core/embedding/embedder_factory.py",
-]
+# Full backend scope — all of server/ and cli/ (not selective modules).
+# Integration-only paths (Postgres/Mongo adapters, embedders) are exercised
+# by integration tests excluded from the unit tier, so full coverage lands ~62%.
+source = ["server", "cli"]
 branch = true
 
 [tool.coverage.report]
 show_missing = true
-# Combined Cover safety net. Quartet floors (95/90/n/a/95) enforced by
-# scripts/ci/check_backend_coverage_floors.py after JSON report — DECISIONS #142.
-fail_under = 95
+# Full backend floor — combined (statements+branches) as reported by coverage.py.
+# Baseline 2026-08-07: 59.1% combined → raised 2026-08-07 to 70.1% after gap bridging.
+# Per-metric floors (stmts/br/lines) enforced by check_backend_coverage_floors.py (72/59/72).
+fail_under = 70
 precision = 1
 
-# Shared with frontend/vite.config.ts coverage.thresholds (DECISIONS #142).
-# ``functions`` is FE-only (Vitest); coverage.py does not measure it — still
-# declared here so scripts/ci/check_coverage_threshold_drift.py can lock FE↔pyproject.
+# FE-only thresholds — used by check_coverage_threshold_drift.py to lock
+# frontend/vite.config.ts ↔ pyproject. Intentionally separate from BE floors
+# (FE measures all src/**; BE unit-tier ~62% due to excluded integration paths).
+# ``functions`` is Vitest-only; declared here for the drift check.
 [tool.rag_params_finder.coverage_thresholds]
 statements = 95
 branches = 90
 lines = 95
 functions = 95
+
+# Full backend per-metric floors (unit-tier, server/ + cli/).
+# Baseline 2026-08-07: statements=72.7%, branches=59.8%, lines=72.7%
+# (combined percent_covered = 70.1% — that is what --cov-fail-under uses).
+# Target: raise toward 95/90/95 as integration paths get unit tests.
+# Read by scripts/ci/check_backend_coverage_floors.py.
+[tool.rag_params_finder.backend_coverage_thresholds]
+statements = 72
+branches = 59
+lines = 72
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]

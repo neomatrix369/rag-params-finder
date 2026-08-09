@@ -525,6 +525,7 @@ describe('ExperimentsScreen bootstrap loading and error paths', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByText('cached sweep')).toBeInTheDocument();
   });
+
 });
 
 describe('ExperimentsScreen background polling', () => {
@@ -588,6 +589,34 @@ describe('ExperimentsScreen background polling', () => {
 
     // -- Then --
     expect(screen.getByRole('alert')).toHaveTextContent('poll connection reset');
+  });
+
+  it('Given a cached list with no server-detail error, when list poll fails with a plain error, then alert shows the error message', async () => {
+    /**
+     * Scenario: Error messages from any failed list poll are surfaced to the operator.
+     * Slice: 44 Phase B — ExperimentsScreen polling error variants.
+     * Given cache-ready with initial list,
+     * When getExperiments rejects with a message,
+     * Then the error banner displays that message.
+     */
+    // -- Given --
+    const initial = [experiment('complete', 0, { experiment_name: 'complete exp' })];
+    apiMocks.getExperiments
+      .mockResolvedValueOnce(initial)
+      .mockRejectedValueOnce(new Error('cluster temporarily unavailable'));
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
+    render(<ExperimentsScreen cacheReady cachedExperiments={initial} cachedVectorDbGroups={[]} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // -- When --
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(EXPERIMENTS_POLL_MS);
+    });
+
+    // -- Then --
+    expect(screen.getByRole('alert')).toHaveTextContent('cluster temporarily unavailable');
   });
 
   it('Given a cache-ready mount, when the vector-db stats poll interval elapses, then stats refresh silently', async () => {

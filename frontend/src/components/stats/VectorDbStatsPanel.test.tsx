@@ -225,4 +225,27 @@ describe('VectorDbStatsPanel', () => {
     expect(screen.getByText('shared')).toBeInTheDocument();
     expect(screen.getByText('GCP')).toBeInTheDocument();
   });
+
+  it('Given empty groups during a failed refresh, when error state arrives, then error message is shown', () => {
+    /**
+     * Scenario: A failed refresh clears cached groups and shows the error.
+     * Slice: 44 Phase B — VectorDbStatsPanel error during refresh.
+     * Given no groups (cleared during refresh),
+     * When error is set from a failed poll,
+     * Then the error message is shown and loading text is absent.
+     */
+    // -- Given / When --
+    render(
+      <VectorDbStatsPanel
+        groups={[]}
+        loading={false}
+        error="network timeout contacting vector database"
+      />,
+    );
+
+    // -- Then --
+    expect(screen.getByText('Could not load vector database stats')).toBeInTheDocument();
+    expect(screen.getByText('network timeout contacting vector database')).toBeInTheDocument();
+    expect(screen.queryByText(/Refreshing vector database stats/)).not.toBeInTheDocument();
+  });
 });

@@ -16,8 +16,11 @@
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 
-[![CI](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/ci.yml)
-[![Nightly](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/nightly.yml?branch=main&label=Nightly&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/nightly.yml)
+[![CI](https://github.com/neomatrix369/rag-params-finder/actions/workflows/ci.yml/badge.svg)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/ci.yml)
+[![Nightly](https://github.com/neomatrix369/rag-params-finder/actions/workflows/nightly.yml/badge.svg)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/nightly.yml)
+[![Complexity](https://github.com/neomatrix369/rag-params-finder/actions/workflows/complexity-report.yml/badge.svg)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/complexity-report.yml)
+<!-- coverage: add CODECOV_TOKEN to GitHub Secrets, then uncomment: -->
+<!-- [![Coverage](https://codecov.io/gh/neomatrix369/rag-params-finder/branch/main/graph/badge.svg)](https://codecov.io/gh/neomatrix369/rag-params-finder) -->
 [![Code Review Graph](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/code-review-graph.yml?branch=main&label=Code+Review+Graph&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/code-review-graph.yml)
 [![security status](https://www.meterian.com/badge/gh/neomatrix369/rag-params-finder/security)](https://www.meterian.com/report/gh/neomatrix369/rag-params-finder)
 [![stability status](https://www.meterian.com/badge/gh/neomatrix369/rag-params-finder/stability)](https://www.meterian.com/report/gh/neomatrix369/rag-params-finder)

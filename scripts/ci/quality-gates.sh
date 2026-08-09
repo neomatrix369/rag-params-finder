@@ -58,6 +58,13 @@ echo ""
 echo "5/11 Backend SAST (bandit, medium+ severity)..."
 uv run bandit -c pyproject.toml -r server/ cli/ -q -ll
 
+echo ""
+echo "5b/11 Backend complexity (xenon — baseline E/C/C, target B/A/A)..."
+# Current floor: E/C/C (passes existing code). Tighten as violations are refactored.
+# Known violations blocking B/A/A: orchestrator._run_sweep_inner (E,CC=40),
+# experiments_lifecycle._normalize_stale_running_status (E,CC=32), plus D/C blocks.
+uv run xenon --max-absolute E --max-modules C --max-average C server/ cli/
+
 if [[ "${MODE}" == "quick" ]]; then
   echo ""
   echo "6/9 Backend unit tests (no coverage)..."
@@ -82,29 +89,30 @@ if [[ "${MODE}" == "quick" ]]; then
   fi
   echo ""
   echo "✅ Quick quality gates passed."
-  echo "   (repo lint, ruff, mypy, bandit, pytest, frontend lint+verify, gitleaks)"
+  echo "   (repo lint, ruff, mypy, bandit, xenon, pytest, frontend lint+verify, gitleaks)"
   echo "   Skipped: coverage, pip-audit, npm audit — run ./scripts/ci/quality-gates.sh before a PR."
   exit 0
 fi
 
 echo ""
-echo "6/11 Backend tests + coverage..."
-# Live Mongo/Postgres suites run in dedicated CI jobs — keep the unit tier
-# free of shared-DB races (matches .github/workflows/ci.yml backend job).
+echo "6/11 Backend tests + coverage (full server/ + cli/, unit tier)..."
+# Measures full server/ + cli/. Live Mongo/Postgres suites excluded (they run
+# in dedicated CI integration jobs); integration-only paths explain ~61% floor.
+# Floor: 61% statements/lines, 47% branches — see pyproject.toml
+# [tool.rag_params_finder.backend_coverage_thresholds].
+mkdir -p .reports/coverage
 uv run pytest --tb=short -q \
   --ignore=tests/contract \
   --ignore=tests/server/db/test_postgres_store_integration.py \
   --ignore=tests/server/db/test_postgres_dense_retrieval.py \
   --ignore=tests/server/db/test_postgres_sparse_hybrid.py \
   -m "not integration" \
-  --cov=server.core.guards.search_index_plan \
-  --cov=server.core.guards.search_index_guard \
-  --cov=server.core.results_analyzer \
-  --cov=server.models.config \
+  --cov=server \
+  --cov=cli \
   --cov-report=term-missing \
-  --cov-report=json:.reports/coverage-backend-unit.json \
-  --cov-fail-under=95
-uv run python scripts/ci/check_backend_coverage_floors.py .reports/coverage-backend-unit.json
+  --cov-report=json:.reports/coverage/backend-full.json \
+  --cov-fail-under=70
+uv run python scripts/ci/check_backend_coverage_floors.py .reports/coverage/backend-full.json
 uv run python scripts/ci/check_coverage_threshold_drift.py
 
 echo ""
