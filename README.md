@@ -44,7 +44,7 @@ model × chunking method × retrieval method — stores the retrieval scores and
 shows you exactly which configuration performs best.
 **Before you write a single line of your RAG application.**
 
-**Jump to:** [Quickstart](QUICKSTART.md) | [Who is this for?](#who-is-this-for) | [Screenshots](#-screenshots) | [Key Features](#-key-features) | [Documentation](docs/README.md) | [Contributing](#-contributing)
+**Jump to:** [Quickstart](QUICKSTART.md) | [Who is this for?](#who-is-this-for) | [Screenshots](#-screenshots) | [Key Features](#-key-features) | [Documentation](docs/README.md) | [SIE ecosystem demos](https://neomatrix369.github.io/pages/projects.html#sie) | [Contributing](#-contributing)
 
 ## Why this matters
 
