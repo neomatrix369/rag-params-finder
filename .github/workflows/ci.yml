@@ -442,7 +442,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: License scan — block on HIGH/CRITICAL
-        uses: aquasecurity/trivy-action@v0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           exit-code: "1"
@@ -473,7 +473,7 @@ jobs:
           cache-from: type=gha
 
       - name: Scan image — HIGH/CRITICAL CVEs
-        uses: aquasecurity/trivy-action@v0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: scan-target:${{ github.sha }}
           exit-code: "1"
