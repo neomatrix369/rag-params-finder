@@ -27,7 +27,7 @@ repos:
       - id: check-toml
       - id: check-json
         # Vite/TS configs use comments (JSONC); not valid strict JSON.
-        exclude: ^frontend/tsconfig(\.(app|node))?\.json$
+        exclude: ^(frontend|dashboard)/tsconfig(\.(app|node))?\.json$
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ['--maxkb=1200']

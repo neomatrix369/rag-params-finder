@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Nightly T4 three-bucket cadence** — `.github/workflows/nightly.yml` schedules **A** daily (`0 2 * * *`: tests/coverage, complexity, TruffleHog, dep-audit, gitleaks), **B** Mondays (`0 2 * * 1`: SBOM, Meterian, container-scan, Chalk), **C** 1st+15th (`0 2 1,15 * *`: mutmut + Stryker); `workflow_dispatch` still runs all. Aligns with project-hygiene mixed nightly template (**IMPLEMENTED**; schedule **VERIFIED** pending next cron/`workflow_dispatch` observation).
+
 - **Backend coverage raised 59.1% → 70.1%** — 121 new unit tests (ATDD format) cover CLI HTTP client, CLI commands, Voyage embedder, rate limiter, Atlas storage quota, and MongoDB index creation/listing; test suite grows 347 → **468** tests; per-metric floors updated to 72/59/72 (stmts/br/lines); `--cov-fail-under` raised 59 → 70; gap analysis at `docs/plan/gate-evidence/test-gap-analysis-2026-08-07.md` (**VERIFIED** locally).
 
 - **Doc technology badges** — Meterian live security/stability/licensing badges on README + development guide (+ stability on release-process); security toolchain strip (Trivy, gitleaks, TruffleHog, pip-audit, bandit, CycloneDX, Chalk, Dependabot, mutmut, Stryker, Semgrep, OSV) on development.md; stack parity badges (Voyage, sentence-transformers, Docker, Node 22, Postgres/Supabase, Typer/Rich, Aim, Optuna, Stella/SPLADE/HF) across user/contributor guides, QUICKSTART, and docs index (**IMPLEMENTED**).
