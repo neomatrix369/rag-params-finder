@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Nightly #71 SCA (2026-09-10)** — `nltk` ≥3.10.3, `pypdf` ≥6.16.1 (→6.18.0), `pip` ≥26.2; waive deferred transformers `CVE-2026-9856` / `PYSEC-2026-3929` and nltk `CVE-2026-81726` scanner false-positive on fix version 3.10.3 across `.trivyignore` / `.meterian` / `pip-audit.sh` (**IMPLEMENTED**; local `pip-audit` **VERIFIED** exit 0). Targets Nightly Dependency audit + Trivy container scan (+ Meterian parity).
 
+- **PR #174 frontend audit** — `fast-uri` override `>=3.1.5` still allowed vulnerable 3.1.5 (HIGH GHSA-5jgf-p345-68v8 et al.); pin `3.1.7`. Also pin `qs` 6.16.0 and `postcss-selector-parser` 6.1.4 (**IMPLEMENTED**). Vitest 4.1.11 deferred — npm arborist `edgesOut` crash on this lockfile.
+
 - **pypdf 6.14.2 → 6.15.0** — fixes CVE-2026-71852 and CVE-2026-71870 found by `pip-audit` pre-push gate (**IMPLEMENTED**; `uv add "pypdf>=6.15.0"`).
 
 - **Dependency bumps (Nightly CI fix)** — `aiohttp` 3.14.1 → 3.14.3 (CVE-2026-69244 HIGH + CVE-2026-59881/CVE-2026-69243 MEDIUM; out-of-bounds heap read + WebSocket request smuggling); `cryptography` 49.0.0 → 50.0.0 (CVE-2026-69247 HIGH). `frontend/package.json` override: `brace-expansion` 5.0.8 → 5.0.9 (GHSA-rgw5-rvv9-x895 HIGH; previous pin was still in the vulnerable 4.0.0–5.0.8 range); `qs` override pinned at 6.15.3 (GHSA-q8mj-m7cp-5q26 MODERATE). Resolves all three Nightly failures: Meterian SCA, Trivy container scan, and frontend dependency audit (**IMPLEMENTED**).
