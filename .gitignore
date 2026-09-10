@@ -90,3 +90,4 @@ docs/ideate-prompts/
 meterian-reports/
 frontend/reports/
 .playwright-mcp/
+node_modules/

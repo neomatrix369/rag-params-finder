@@ -24,9 +24,10 @@ GHSA-f4xh-w4cj-qxq8
 
 # CVE-2026-4372 (transformers RCE — fix: >= 5.3.0)
 # CVE-2026-5241 (transformers arbitrary code execution — fix: >= 5.5.0)
-#   Package    : transformers < 5.5.0 (transitive via sentence-transformers)
-#   Fix        : transformers >= 5.5.0
-#   Why blocked: sentence-transformers 3.x (pinned < 4.0.0 in pyproject.toml line 23) is not
+# CVE-2026-9856 (transformers save_pretrained path traversal via chat_template keys — fix: >= 5.10.0)
+#   Package    : transformers < 5.10.0 (transitive via sentence-transformers)
+#   Fix        : transformers >= 5.10.0
+#   Why blocked: sentence-transformers 3.x (pinned < 4.0.0 in pyproject.toml) is not
 #                compatible with transformers 5.x. Forcing transformers >= 5.0.0 would break
 #                CrossEncoder and SentenceTransformer model loading.
 #                The < 4.0.0 pin is deliberate: sentence-transformers 4.x introduces a mypy
@@ -34,10 +35,21 @@ GHSA-f4xh-w4cj-qxq8
 #                (see TRAIL.md § Deferred Work: "sentence-transformers v4+").
 #   Compensating control: model IDs are validated against a fixed allowlist in
 #                         server/core/model_registry.py; arbitrary HuggingFace model IDs from
-#                         user input are rejected, narrowing the RCE attack surface significantly.
-#   Unblocked by: dedicated ML stack upgrade slice (sentence-transformers >= 4.0, transformers >= 5.5).
+#                         user input are rejected. We load allowlisted embed/rerank models only
+#                         and do not call save_pretrained on untrusted chat_template configs.
+#   Unblocked by: dedicated ML stack upgrade slice (sentence-transformers >= 4.0, transformers >= 5.10).
 CVE-2026-4372
 CVE-2026-5241
+CVE-2026-9856
+
+# CVE-2026-81726 (nltk pathsec model-artifact path traversal — OSV Fixed=3.10.3)
+#   Package    : nltk (direct; locked at >=3.10.3)
+#   Fix        : nltk >= 3.10.3 (OSV affected list ends at 3.10.2)
+#   Why listed : Advisory prose says "through 3.10.3"; some scanners still match the fix version.
+#                We ship 3.10.3+. App uses only sent_tokenize + punkt downloads — not
+#                TransitionParser / PerceptronTagger / maxent artifact path APIs.
+#   Unblocked by: remove when scanners stop flagging 3.10.3 (or nltk >3.10.3 clarifies range).
+CVE-2026-81726
 
 # CVE-2025-32434 (torch arbitrary code execution via torch.load — fix: >= 2.6.0)
 #   Package    : torch 2.2.2 (transitive via sentence-transformers)
