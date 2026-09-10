@@ -119,7 +119,7 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-CO
 
 Run all gates before committing. All must pass with zero regressions.
 
-**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit`, `docker-build`, `license-check`, `container-scan` (eight jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` (mutmut, Stryker, TruffleHog full, SBOM/CycloneDX, Meterian OSS SCA + archived reports, container scan, Chalk provenance, dependency-audit, full-secrets-scan — every night 02:00 UTC, also manually triggerable via `workflow_dispatch`). Node Stryker mutate scope = `frontend/src/{utils,services,hooks}` only (Slice 44 Residual §4 / #163).
+**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit`, `docker-build`, `license-check`, `container-scan` (eight jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` use **three cadence buckets** (also `workflow_dispatch` runs all): **A** daily 02:00 UTC — tests/coverage snapshots, complexity, TruffleHog full, dependency-audit, full-secrets-scan; **B** Mondays 02:00 UTC — SBOM/CycloneDX + Trivy license, Meterian OSS SCA, container scan, Chalk; **C** 1st+15th 02:00 UTC — mutmut + Stryker. Node Stryker mutate scope = `frontend/src/{utils,services,hooks}` only (Slice 44 Residual §4 / #163).
 
 | Layer | Tools |
 |-------|--------|
@@ -282,7 +282,7 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 |---------|-----------|
 | `git commit` | **pre-commit** — hygiene, gitleaks, repo lint, ruff, dmypy, bandit, eslint, tsc --noEmit, testmon fast-tests (changed modules) |
 | `git push` | **pre-push** — pytest+coverage (backend-changed only), vite build, vitest, pip-audit, npm audit (zero overlap with commit) |
-| PR or push to `main` | **GitHub Actions** — CI (repo-lint, backend, frontend, secrets, dependency-audit jobs) + nightly 02:00 UTC (mutmut, Stryker, TruffleHog, SBOM/CycloneDX, Meterian OSS SCA, container scan, Chalk) |
+| PR or push to `main` | **GitHub Actions** — CI (repo-lint, backend, frontend, secrets, dependency-audit jobs) + Nightly T4 buckets (A daily / B Mon / C 1st+15th — see § CI) |
 | Manual | `./scripts/ci/quality-gates.sh` — full local mirror of CI before opening a PR |
 
 ---
@@ -435,10 +435,15 @@ GitHub Actions has two workflows (see `.github/workflows/`):
 | **License check** | Trivy fs scan — blocks on HIGH/CRITICAL licenses; fires on deps changes |
 | **Container scan** | Trivy CVE scan of built server image — HIGH/CRITICAL; non-blocking; fires on Docker/backend/frontend changes |
 
-**nightly.yml** — every night 02:00 UTC (T4 deep checks):
-`mutmut` (Python mutation) · `Stryker` (Node mutation) · `TruffleHog` (full git history) · `anchore/sbom-action` (CycloneDX SBOM artifact) · Trivy license compliance · **Meterian** SCA + license (`oss: true`, no `METERIAN_API_TOKEN`; scanners pinned to Python + Node via `--enabled-scanners=python,nodejs`; archives `meterian-<run>`: HTML, JUnit, SARIF, `sbom.cdx.json`, `sbom.csv` for vendor comparison with Anchore; security exclusions in root [`.meterian`](../../.meterian) — Trivy image parity is [`.trivyignore`](../../.trivyignore)) · container scan (Dockerfile-gated) · Chalk provenance · dependency-audit · full-secrets-scan
+**nightly.yml** — T4 deep checks in three cadence buckets (`workflow_dispatch` runs all). Job `if:` compares `github.event.schedule` to the exact cron string.
 
-**Nightly Stryker (Node) — mutate scope (Slice 44 §4 / DECISIONS #163):** `frontend/stryker.config.js` mutates only `src/utils/**/*.ts`, `src/services/**/*.ts`, and `src/hooks/**/*.ts` (screens/components/chrome out of scope). Also: `ignoreStatic`, `excludedMutations: ['StringLiteral']`, `concurrency: 4`, `progress` reporter; packages pinned at `@stryker-mutator/{core,vitest-runner}@9.6.1`; job `timeout-minutes: 90`. Local dry-run: **9 files / 868 mutants** (was ~3770 full-tree). Nightly finish + `mutation-node-*` artifact still needs a green `workflow_dispatch`/cron run URL for **VERIFIED**.
+| Bucket | Cron (02:00 UTC) | Jobs |
+|--------|------------------|------|
+| **A — Light T4** | daily `0 2 * * *` | `nightly-tests-python` · `nightly-tests-node` · `nightly-complexity` · `trufflehog-full` · `dependency-audit` · `full-secrets-scan` |
+| **B — Supply chain** | Mondays `0 2 * * 1` | `sbom` (CycloneDX + Trivy license) · **Meterian** OSS SCA (`oss: true`; archives `meterian-<run>`; exclusions in [`.meterian`](../../.meterian); Trivy image parity [`.trivyignore`](../../.trivyignore)) · `container-scan` (Dockerfile-gated) · `chalk` |
+| **C — Mutation** | 1st + 15th `0 2 1,15 * *` | `mutation-tests-python` (mutmut, advisory `continue-on-error`) · `mutation-tests-node` (Stryker) |
+
+**Nightly Stryker (Node) — mutate scope (Slice 44 §4 / DECISIONS #163):** `frontend/stryker.config.js` mutates only `src/utils/**/*.ts`, `src/services/**/*.ts`, and `src/hooks/**/*.ts` (screens/components/chrome out of scope). Also: `ignoreStatic`, `excludedMutations: ['StringLiteral']`, `concurrency: 4`, `progress` reporter; packages pinned at `@stryker-mutator/{core,vitest-runner}@9.6.1`; job `timeout-minutes: 90`. Local dry-run: **9 files / 868 mutants** (was ~3770 full-tree). Bucket **C** / `workflow_dispatch` finish + `mutation-node-*` artifact still needs a green run URL for **VERIFIED**.
 
 Local `./scripts/security/security-scan.sh --meterian` still uses the Docker CLI path and remains token-gated (`METERIAN_API_TOKEN`) — that is separate from the nightly GHA OSS job. Both paths honor `.meterian` when the file is present at the repo root.
 
