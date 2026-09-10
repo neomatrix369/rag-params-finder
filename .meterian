@@ -31,6 +31,16 @@
           "cve": "CVE-2026-1839",
           "reason": "mitigated",
           "description": "transformers Trainer._load_rng_state torch.load without weights_only (fix in v5.0.0rc3+). We do not use Trainer or load untrusted rng_state.pth checkpoints; local embed/rerank uses SentenceTransformer/CrossEncoder on allowlisted model IDs only. Unblocked by: same ML stack upgrade as CVE-2026-4372."
+        },
+        {
+          "cve": "CVE-2026-9856",
+          "reason": "mitigated",
+          "description": "transformers save_pretrained path traversal via chat_template keys (fix >=5.10.0; GHSA-xrqw-3rrv-vx5w / PYSEC-2026-3929). Same ST<4 / transformers<5 lock as CVE-2026-4372. Compensating: model-registry allowlist; no save_pretrained of untrusted tokenizer/processor configs. Unblocked by: ML stack slice (sentence-transformers >=4, transformers >=5.10)."
+        },
+        {
+          "cve": "CVE-2026-81726",
+          "reason": "mitigated",
+          "description": "nltk pathsec model-artifact path traversal (GHSA-8mgp-746c-j5xp / PYSEC-2026-3740). OSV Fixed=3.10.3 and affected versions end at 3.10.2; we lock nltk>=3.10.3. Compensating: only sent_tokenize + punkt are used. Unblocked by: scanner range correction or nltk >3.10.3 clarifying the fixed bound."
         }
       ],
       "libraries": [

@@ -55,6 +55,13 @@ ML_IGNORE=(
   --ignore-vuln PYSEC-2026-2286  # torch — no patched macOS x86_64 wheel; allowlisted models only
   --ignore-vuln CVE-2025-32434   # torch 2.2.2 RCE via torch.load — blocked on ST<4 + macOS x86_64 wheel; allowlisted models only
   --ignore-vuln PYSEC-2026-2290  # transformers — unused LightGlue path; ST major upgrade required
+  --ignore-vuln PYSEC-2026-3929  # transformers save_pretrained path traversal (CVE-2026-9856); fix >=5.10 — ST major upgrade
+  --ignore-vuln GHSA-xrqw-3rrv-vx5w  # same as PYSEC-2026-3929 / CVE-2026-9856
+  --ignore-vuln CVE-2026-9856    # same transformers chat_template path traversal — ST major upgrade
+  # OSV Fixed=3.10.3 and affected list ends at 3.10.2; pip-audit still matches "through 3.10.3" prose.
+  --ignore-vuln PYSEC-2026-3740  # nltk pathsec model-artifact APIs — false positive on fix version 3.10.3
+  --ignore-vuln CVE-2026-81726   # alias of PYSEC-2026-3740
+  --ignore-vuln GHSA-8mgp-746c-j5xp  # alias of PYSEC-2026-3740
 )
 
 # Prefer the project venv whenever it exists. A bare `command -v python` is unsafe
