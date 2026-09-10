@@ -183,7 +183,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: trufflesecurity/trufflehog@v3.96.0
+      - uses: trufflesecurity/trufflehog@v3.97.1
         with:
           path: ./
           base: ""
