@@ -9,6 +9,9 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // Coverage + jsdom screen suites routinely exceed the 5s default under load.
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
     reporters: ['default', ['junit', { outputFile: '../.test-results/frontend-junit.xml' }]],
     coverage: {
       provider: 'v8',
