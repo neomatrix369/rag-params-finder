@@ -123,3 +123,9 @@ docker compose --profile local-atlas down
 3. Unset or restore the CLI URI.
 
 Local data is preserved in the `mongodb_local_data` Docker volume until you run `./start-services.sh mongodb reset`.
+
+## After-Checks [GATE]
+- [ ] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first, §2); essential error paths covered (90–100% of clauses)
+- [ ] Complexity evidence: policy `enforcing` (xenon E/C/C on `server/` `cli/` via `./scripts/ci/quality-gates.sh` / pre-push); local report `bash scripts/ci/complexity-report.sh` → `.reports/complexity/pr-body.md`; CI PR update replaces stable marker idempotently
+- [ ] Branch coverage: 100% target; tool configured with fail_under per project floors; exclusions documented (§12 — test-writing-craft-quality.mdc)
+- [ ] Mutation testing run if slice is feature-complete: survival budget met or nightly waiver logged (§23)

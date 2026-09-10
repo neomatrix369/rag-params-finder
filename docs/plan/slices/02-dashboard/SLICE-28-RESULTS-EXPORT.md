@@ -8,6 +8,28 @@
 **Flow**: Brownfield — small requirement on mature API (`/explore` + `results_analyzer.py`)
 **Execution order**: **32 → 33 → 34 → 35 → 36 → 37 → 38 → 22 → 28***(external)* → 31 → 30 → 16 → 11 → 23 → 10 *(26, 27, 19 deferred — see TRAIL)*
 
+## Session bootstrap
+> Re-read CLAUDE.md before starting — use values there, not hardcoded commands here.
+- **Runtime source**: → CLAUDE.md § Environment / Development Commands
+- **Test source**: → CLAUDE.md § Testing / Quality Gates Baseline
+- **Load first**: CLAUDE.md → docs/plan/invariants.md → this stub
+
+## Context
+> Read before any implementation. Do not rely on conversation history alone.
+- **Stage objective**: CSV/JSONL experiment results export endpoint (+ optional FE download) matching issue #49 columns — unblocks external contributor sharing of sweep outcomes without Atlas UI
+- **Depends on**: none (stable analyze_results path on main)
+- **Global invariants**: → `docs/plan/invariants.md`
+> Executor may diverge from plan if new evidence warrants — document deviations in PROGRESS.md before marking PASSED.
+
+## Non-goals
+> Out of scope for this slice — do not implement here.
+- Search Explorer visualization (Slice 11); chunk_text in default CSV
+
+## Output contract
+> Observable shape of completion (shape only — not exact file paths).
+- **Baseline**: note current TRAIL/PROGRESS status and `git status` before edits
+- Authenticated export returns correct rows/headers; docs mention export; FE Should if in scope
+
 ## Slice workflow
 
 **Outcome:** downloadable CSV/JSONL of analyzed sweep results (scores match Search Explorer)
@@ -167,6 +189,15 @@ Scenario: dashboard download
   Given user is on experiment detail for e1 with results
   When  user clicks Export CSV
   Then  browser saves e1-results.csv
+
+Scenario: invalid format parameter returns 422
+  When  GET /experiments/e1/export?format=xlsx
+  Then  response status is 422 with error naming allowed formats (csv, jsonl)
+
+Scenario: CSV header matches issue #49 columns
+  Given experiment e1 has stored results
+  When  GET /experiments/e1/export?format=csv
+  Then  CSV first row matches the Must column set in this stub / issue #49
 ```
 
 ## Before-Checks [GATE]
@@ -179,6 +210,7 @@ Scenario: dashboard download
 
 - [ ] `./scripts/quality-gates.sh` pass
 - [ ] Specification coverage: every GWT clause has ≥1 test; essential error paths covered (90–100% of clauses)
+- [ ] Complexity evidence: policy `enforcing` (xenon E/C/C on `server/` `cli/` via `./scripts/ci/quality-gates.sh` / pre-push); local report `bash scripts/ci/complexity-report.sh` → `.reports/complexity/pr-body.md`; CI PR update replaces stable marker idempotently
 - [ ] Branch coverage: 100% target; exclusions documented (test-writing-craft-quality.mdc §12)
 - [ ] Mutation testing: survival budget met if slice is feature-complete (§23)
 - [ ] Manual: run local experiment → Export CSV → open in spreadsheet
@@ -194,3 +226,10 @@ Scenario: dashboard download
 ## Relation to Slice 11
 
 Slice 11 (*Search Explorer enhancements*) listed “export results” as one of several items. **Slice 28** implements export only (issue #49) as a shippable vertical slice; Slice 11 scope shrinks to visualization + filtering.
+
+### Closing Gates
+- [ ] `nw-at-completeness-check` — AT completeness audit (slice close gate #8)
+- [ ] `nw-software-crafter-reviewer` — code quality + TDD discipline review (slice close gate #9)
+- [ ] `nw-solution-architect-reviewer` + `nw-system-designer-reviewer` — data flow review (gate #9, parallel, for slices with runtime data flow changes)
+- [ ] `nw-gate-evidence-validator` — all 9 gate-evidence conditions pass
+- [ ] `/verify-slice` — holistic evidence verdict COMPLETE (final closing gate)

@@ -305,7 +305,8 @@ describe('ExperimentsScreen selection and bulk delete', () => {
 
     // -- Then --
     await waitFor(() => expect(apiMocks.deleteExperiment).toHaveBeenCalledWith('experiment-complete-a'));
-    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledTimes(2));
+    // Mount + post-delete refresh (≥2). Background poll may add another call under load.
+    await waitFor(() => expect(apiMocks.getExperiments.mock.calls.length).toBeGreaterThanOrEqual(2));
     expect(screen.queryByText('Delete Experiment?')).not.toBeInTheDocument();
     expect(screen.queryByText(/experiment selected/)).not.toBeInTheDocument();
   });

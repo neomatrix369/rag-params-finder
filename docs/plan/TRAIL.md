@@ -10,7 +10,81 @@
 
 Routing: Brownfield + Growing Requirement (Flow D) · Chosen: 2026-07-02 · Source: health-check-inferred · Reconfirmed: 2026-07-09 (Supabase PRD Add path)
 
-Model split — Planning: claude-opus-4-8 · Execution: claude-sonnet-4-6
+Model split — Planning: claude-opus-4-8 · Execution: claude-sonnet-5
+
+<!-- harness-scout output -->
+```yaml
+# planning (detect_confirm) — profile: high/low/"planning session"/interactive (Brownfield)
+# Cursor detection is self-report only — read model and mode from the Agent tab header.
+extensions_applied: [ambiguity]
+recommendation:
+  codex:
+    model: "Sol"
+    effort: "High–Extra High"
+    fast_mode: false
+    sandbox_mode: "workspace-write"
+    approval_policy: "on-request"
+  claude_code:
+    model: "claude-opus-4-8"
+    effort: "High"
+    permission_mode: "plan"
+  cursor:
+    mode: "Agent"
+    model: "claude-opus-4-8"
+    max_mode: false
+    auto_run: false
+isolation:
+  worktree_required: false
+duration:
+  profile: "interactive"
+  checkpoint_cadence: "N/A"
+cost_flag: "elevated"
+detect_commands:
+  cursor: "self-report — no CLI surface; read from Agent tab header"
+confirm_checklist:
+  - "Phase 1: Plan/Ask mode, deliberate tier, High–Extra High effort, autonomy off — resolve judgment call first"
+  - "Phase 2: switch to workhorse tier, Medium effort, autonomy scoped to expected files"
+  - "Do not run the whole slice at Max/Ultra — reserve peak effort for the specific hard sub-problem"
+  - "Cursor: self-report detection — confirm Agent tab matches recommendation or document deviation"
+freshness:
+  stale: false
+  stalest_field: "none"
+  last_checked: "2026-09-10"
+---
+# execution (recommend) — profile: low/high/"≤4h (~6 Pomos)"/interactive
+# Open Must/Should queue: 32, 32C, 32B, 33, 28, 31
+extensions_applied: [blast_radius_high]
+recommendation:
+  codex:
+    model: "Terra"
+    effort: "Medium"
+    fast_mode: false
+    sandbox_mode: "read-only"
+    approval_policy: "untrusted"
+  claude_code:
+    model: "claude-sonnet-5"
+    effort: "Medium"
+    permission_mode: "plan"
+  cursor:
+    mode: "Composer"
+    model: "claude-sonnet-5"
+    max_mode: false
+    auto_run: false
+isolation:
+  worktree_required: false
+duration:
+  profile: "interactive"
+  checkpoint_cadence: "N/A"
+cost_flag: "none"
+confirm_checklist:
+  - "Human review checkpoint before any commit — required, not optional"
+  - "No workspace-write / bypassPermissions / Auto-run for this profile"
+  - "git diff --stat main must be empty before first edit (when starting a new slice branch)"
+freshness:
+  stale: false
+  stalest_field: "none"
+  last_checked: "2026-09-10"
+```
 
 **Slice 22 skill proposal (2026-07-29):** `/tdd` · `/verify-slice` · `/clean-commit` · `/project-hygiene` · `/divergence-check` · `/nw-execute` (primary execution path). Cursor rules: `software-craft.mdc`, `test-writing-*.mdc`, `security.md`, `git-github-best-practices.mdc`. No `/frontend-advisor` (no UI). MCP Won't (#8). Graphiti write on gate PASS → `rag-params-finder-flow-planner`.
 
@@ -69,7 +143,8 @@ Each PCTO / migration slice lives in its own file below. Specs live under `docs/
 | 41B | [../plan/slices/06-bayesian/SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md](../plan/slices/06-bayesian/SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) | Bayesian Search: Advanced (parallelism, categorical axes, persistence, random search) | Could | 📦 PARKED | 41A + owner data | — | ~4–6 h | 2026-07-22 |
 | 42 | [../plan/slices/03-platform/SLICE-42-DOCKER-BUILD-OPTIMISATION.md](../plan/slices/03-platform/SLICE-42-DOCKER-BUILD-OPTIMISATION.md) | Docker Build Optimisation — multi-stage, BuildKit cache mounts, CI job | Should | ✅ COMPLETE | none | — | ~2.5 h | 2026-07-25 |
 
-**Execution order**: 21 → 25 → 25B → 29 (done) → **39** *(≤2 h demo interrupt)* → **32 → 32C → 32B → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10. Slices 40, 41A, and 42 are independent housekeeping/optimisation slices and can run at any time without blocking the Supabase migration sequence.
+**Execution order**: 21 → 25 → 25B → 29 (done) → **39** *(≤2 h demo interrupt)* → **⭐ 32 → 32C → 32B → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10. Slices 40, 41A, and 42 are independent housekeeping/optimisation slices and can run at any time without blocking the Supabase migration sequence.
+*Slice 28 is an external contributor PR (@cschanhniem / #49); core team resumes at Slice 31 after 28 merges or stays deferred — it does not block the storage critical path.*
 *Deferred Mongo QoL: 26, 19 — re-scope after cutover. Slice 27 scope absorbed into 36 as four-value `storage_mode` (`mongodb|postgres` × `local|cloud`).*
 
 **PCTO escape hatch (Slice 22):** If slices 32–36 slip **>2 days** past the PCTO deadline, start Slice 22 on Mongo via StorageBackend Protocol only (hard dep: 32 merged); budget ~30 min to re-port history queries when Slice 38 lands; retest on Supabase backend after 38.
@@ -141,3 +216,7 @@ Updated as each slice reaches Gate Status PASSED.
 | 2026-07-26 | nw-platform-architect-reviewer (Slice 38) | **NEEDS REVISION** → remediations applied | BLOCKERs: flip surfaces + Mongo export; latency metric; baseline feasibility; SUPABASE_URI placeholder — DECISIONS #114–#118; pins #120–#121 |
 | 2026-07-26 | Slice 38 gate hygiene | All non-100%-Yes gates → Slice 43 residuals | DECISIONS #125/#126 — local comparison only for 38 COMPLETE |
 | 2026-07-26 | Slice 38 COMPLETE | ✅ PASSED — no default flip (#130 Won't) | ADR-004 + comparison VERIFIED; default stays mongodb permanently; backends independent (#129) |
+| 2026-09-10 | nw-solution-architect-reviewer (EFP final) | **APPROVED** | Remediations #114–#182 verified; escape hatch + evidence honesty + ownership; DECISIONS #184 |
+| 2026-09-10 | nw-product-owner-reviewer (EFP final) | **APPROVED** | #179 hatch; 32C→32B order; 32C M2 docs-only; Slice 28/33 cites |
+| 2026-09-10 | nw-documentarist-reviewer (EFP final) | **APPROVED** | HANDOFF snapshot + gate-evidence hierarchy; Slice 22 PENDING_VERIFICATION honesty |
+| 2026-09-10 | nw-acceptance-designer-reviewer (EFP final) | **APPROVED** | Prior 10 error-path GWT blockers closed; 28/31 happy-path bias non-blocking |

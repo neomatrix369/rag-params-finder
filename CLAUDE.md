@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Agent guidance for `rag-params-finder`. Start with `AGENTS.md` → this file → `docs/README.md` → `docs/plan/slices/PROGRESS.md`.
+Agent guidance for `rag-params-finder`. Start with `AGENTS.md` → this file → `docs/README.md` → `docs/plan/slices/PROGRESS.md` → `docs/plan/invariants.md` (before slice execution).
 
 ## Project Overview
 
@@ -216,7 +216,9 @@ Provider/model must match — registry in `model_registry.py` validates at confi
 ### Pre-slice checklist
 ```
 [ ] Read docs/plan/slices/PROGRESS.md — confirm current state and which slice is next
+[ ] Load docs/plan/invariants.md + docs/plan/DECISION-OWNERSHIP.md (ceilings / fail-closed)
 [ ] Read or create the slice spec in docs/plan/slices/0N-<theme>/SLICE-XX-*.md
+[ ] Confirm gate-evidence path docs/plan/gate-evidence/slice-N.json (do not invent PASSED)
 [ ] bash scripts/ci/install-git-hooks.sh (once per machine — commit + pre-push checks)
 [ ] Run all quality gates — confirm zero regressions before starting
 [ ] Note the exact acceptance criteria — these are the exit conditions
@@ -284,10 +286,11 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 - `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **468** tests; full backend (`server/ + cli/`) floors **72/59/n/a/72** (stmts/br/fn/lines) via `fail_under=70` (combined 70.1%) + `scripts/ci/check_backend_coverage_floors.py` (`backend_coverage_thresholds`) — DECISIONS #142; no `MONGODB_URI` required
 - FE/BE threshold lock: `scripts/ci/check_coverage_threshold_drift.py` asserts Vitest `coverage.thresholds` match `[tool.rag_params_finder.coverage_thresholds]` (incl. `functions=95`) — DECISIONS #161
 
-**Frontend** (2026-08-07 — Slice 45 COMPLETE + floors #142 + 3 gap scenarios):
+**Frontend** (2026-08-07 — Slice 45 COMPLETE + floors #142 + 3 gap scenarios; harness #185):
 - `npm run lint` → 0 errors (eslint + security plugin)
 - `npm run test` → **264** tests across **24** files (Vitest + React Testing Library)
 - `npm run test:coverage` / `test:ci` → v8 thresholds **95/90/95/95** stmts/br/fn/lines (`all: true`; DECISIONS #142); measured ≈98.4% / 93.11% / 100% / 99.69% — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
+- Vitest: `testTimeout`/`hookTimeout` **20s**; setup restores `vi.useRealTimers()` every test (DECISIONS #185)
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s
 - `npm audit --audit-level=high` → 0 high vulnerabilities
@@ -322,7 +325,11 @@ The project follows [Semantic Versioning](https://semver.org/). `scripts/release
 | `docs/contributor-guide/extending.md` | Contributors | Adding models, chunkers, endpoints |
 | `docs/contributor-guide/development.md` | Contributors | Dev loop, quality gates |
 | `docs/contributor-guide/release-process.md` | Contributors | Creating releases, versioning strategy |
-| `docs/plan/slices/PROGRESS.md` | Agents | Slice status, decision log, roadmap |
+| `docs/plan/slices/PROGRESS.md` | Agents | Slice status, decision log, roadmap (**status SSOT**) |
+| `docs/plan/TRAIL.md` | Agents | Plan trail, harness-scout embed, execution order |
+| `docs/plan/invariants.md` | Agents | Self-contained project constraints for fresh-context executors |
+| `docs/plan/DECISION-OWNERSHIP.md` | Agents | Human/Agent/Shared ownership + locked ceilings (HITL to raise) |
+| `docs/plan/HANDOFF.md` | Agents | Session snapshot only — PROGRESS + `gate-evidence/` override when they disagree |
 | `docs/plan/slices/README.md` | Agents / contributors | Theme folder index (`01`–`07`); specs under `0N-<theme>/` (#162) |
 | `docs/README.md` | All | Documentation index (personas, topics, tasks) |
 | `docs/adr/` | All | Architecture Decision Records |
