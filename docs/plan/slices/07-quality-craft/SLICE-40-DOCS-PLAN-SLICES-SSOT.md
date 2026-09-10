@@ -152,6 +152,10 @@ Scenario: Planner migration path remains stable
 - [x] Theme map + Won’ts recorded as DECISIONS #162 (**DECIDED**; folder moves **IMPLEMENTED**)
 
 ## After-Checks [GATE]
+- [ ] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first, §2); essential error paths covered (90–100% of clauses)
+- [ ] Complexity evidence: policy `reporting` (docs/SSOT slice — no product CC gate); if scripts/CI touched, run `bash scripts/ci/complexity-report.sh` for reviewer summary
+- [ ] Branch coverage: 100% target; tool configured with fail_under per project floors; exclusions documented (§12 — test-writing-craft-quality.mdc)
+- [ ] Mutation testing run if slice is feature-complete: survival budget met or nightly waiver logged (§23)
 
 - [x] Theme folders + README exist; every `SLICE-*.md` (except none left flat except PROGRESS/README) lives under `0N-*`
 - [x] Living links from TRAIL / PROGRESS / HANDOFF / agent entry points resolve

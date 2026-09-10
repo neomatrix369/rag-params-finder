@@ -387,6 +387,7 @@ rag-params-finder/
 
 ```
 [ ] Read docs/plan/slices/PROGRESS.md — confirm current state and which slice is next
+[ ] Load docs/plan/invariants.md + docs/plan/DECISION-OWNERSHIP.md before Must/Should execution
 [ ] Read or create the slice spec in docs/plan/slices/0N-<theme>/SLICE-XX-*.md
 [ ] bash scripts/ci/install-git-hooks.sh (once per machine if not already installed)
 [ ] Run all quality gates — confirm zero regressions before starting

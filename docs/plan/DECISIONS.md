@@ -1,6 +1,19 @@
 # Decisions
 > ~2 min read
 
+### Plan-hygiene cohort (2026-09-10 — EFP audit/reconcile + nw-review remediations)
+
+| Decision | Slice(s) | Type | Summary |
+|----------|----------|------|---------|
+| #171–#173 | plan | Auto-fix | invariants.md, DECISION-OWNERSHIP skeleton, slice-22 PENDING_VERIFICATION evidence |
+| #174 | plan | Report | Audit/reconcile vs EFP standards |
+| #175 | TRAIL | Harness | harness-scout YAML; model split opus-4-8 / sonnet-5 |
+| #176–#178 | stubs | EFP gaps | Preamble/Closing Gates/complexity on open Must/Should; coverage on COMPLETE set; ownership filled |
+| #179 | 33 | Escape hatch | 33 may proceed with Protocol-on-main; 32C→32B remains parallel debt |
+| #180 | HANDOFF | Evidence | Snapshot caveat; gate-evidence overrides narrative VERIFIED for Slice 22 |
+| #182 | TRAIL/31/DECISIONS | Discoverability | SAR nits: Slice 28 external note, RTL port note, cohort summary |
+| #183 | AGENTS/CLAUDE/docs | sync-docs | Entry points discover invariants + ownership + HANDOFF caveat |
+
 | # | Date | Slice | Decision | Why | Rejected Alternative |
 |---|------|-------|----------|-----|----------------------|
 | 1 | 2026-06-27 | — | Single integrated flow-planner session (not two sequential steps) | Avoids duplicate work and plan divergence; PCTO IS the spec input for the upgrade | Run integrate-PCTO first, then separately run flow-planner |
@@ -171,3 +184,16 @@
 | 168 | 2026-07-29 | 22 | Persist Tier-1 sweep summaries via StorageBackend on `POST /api/v1/sweep`; `GET /api/v1/best-config` aggregates by task↔topic | Aim-only history cannot satisfy best-config GWT; Protocol is the dual-backend seam | Query Aim repo / CLI experiment name match only |
 | 169 | 2026-07-29 | quality-lens | Slice 22 plan refresh: **10/10** checks passed | Spec rewritten against main HEAD; user approved plan; confirmed | Revised N slices / deferred |
 | 170 | 2026-07-29 | skill-proposer | Slice 22 execution skills: `/tdd`, `/verify-slice`, `/clean-commit`, `/project-hygiene`, `/divergence-check`, `/nw-execute`; rules: software-craft, test-writing, security, git-github; model split unchanged (Planning claude-opus-4-8 · Execution claude-sonnet-4-6) | Brownfield feature on existing ports; no new UI design system; secrets stay server-side | Change models / invent MCP skill this cycle |
+| 171 | 2026-09-10 | health-check | Gap 11: created `docs/plan/invariants.md` (populated from interview_summary + DECISIONS + TRAIL) | EFP requires self-contained invariants for fresh-context executors | AUTO-FIXED |
+| 172 | 2026-09-10 | health-check | Gap 12: created `docs/plan/DECISION-OWNERSHIP.md` skeleton (TBD owners/ceilings) | Portable decision-ownership rule needs project matrix; content is USER_FIX | AUTO-FIXED |
+| 173 | 2026-09-10 | health-check | Gap 5: created `gate-evidence/slice-22.json` as `PENDING_VERIFICATION` placeholder | TRAIL marks 22 COMPLETE but evidence JSON was missing; not inventing PASSED | AUTO-FIXED |
+| 174 | 2026-09-10 | health-check-reconcile | Audit/reconcile vs EFP standards — see session report | Incremental bring-up of open Must/Should stubs; historical COMPLETE stubs deferred per #131 pattern | REPORT |
+| 175 | 2026-09-10 | health-check | Gap 3: harness-scout YAML embedded in TRAIL; model split → Planning claude-opus-4-8 · Execution claude-sonnet-5 (scout profile low/high ≤4h); pins verified 2026-09-10 | User chose A (run harness-scout); confirm-as-is on continue | USER-CONFIRMED |
+| 176 | 2026-09-10 | health-check | Gap 10+9: Context/Non-goals/Output contract + Closing Gates + Complexity evidence on open Must/Should **32/32C/32B/33/28/31** | Incremental bring-up before next execution | USER-CONFIRMED |
+| 177 | 2026-09-10 | health-check | Gap 8+9: Specification coverage (+ complexity) After-Checks on COMPLETE stubs **25/25B/29/38/16/39/40**; preamble retrofit deferred (#131) | Coverage/complexity hygiene without rewriting historical Context preambles | USER-CONFIRMED |
+| 178 | 2026-09-10 | health-check | Gap 12: filled DECISION-OWNERSHIP.md from portable rule + #130/#142/xenon ceilings | Skeleton TBD cleared; ceiling raises remain HITL | USER-CONFIRMED |
+| 179 | 2026-09-10 | nw-po-review | Slice **33** may proceed with Protocol-on-main while formal **32C→32B** gate-closure remains parallel tracker debt (extends #166 escape hatch from Slice 22 to CRUD) | Human-owned MoSCoW override; TRAIL Depends-on stays 32B with documented escape; do not silently drop 32B | Require 32B COMPLETE before any 33 work |
+| 180 | 2026-09-10 | nw-documentarist | HANDOFF.md marked as 2026-07-29 snapshot; Slice 22 evidence honesty → `gate-evidence/slice-22.json` PENDING_VERIFICATION overrides narrative VERIFIED | Evidence-state SSOT is gate-evidence + PROGRESS | Leave HANDOFF claiming VERIFIED without caveat |
+| 181 | 2026-09-10 | nw-at-review | Added error-path GWT scenarios to open stubs 32/32B/33 (+ medium 28/31); 32C M5 already present; 32B Context orders after 32C; 32C M2 clarified docs-only | Close NEEDS_REVISION from acceptance-designer + PO HIGH items | Defer AT density until execution |
+| 182 | 2026-09-10 | nw-sar-review | TRAIL note for Slice 28 external ownership; Slice 31 RTL driving-port note; DECISIONS cohort summary for #171–#181 | Discoverability nits from APPROVED SAR pass | Skip non-blocking polish |
+| 183 | 2026-09-10 | sync-docs | Agent/doc-map surfaces point to invariants + DECISION-OWNERSHIP + HANDOFF snapshot caveat (AGENTS, CLAUDE, docs/README, README, development pre-slice) | EFP plan-hygiene artifacts must be discoverable from entry points | Leave agent start-here pointing only at PROGRESS |

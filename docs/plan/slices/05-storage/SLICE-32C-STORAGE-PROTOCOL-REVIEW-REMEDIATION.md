@@ -10,6 +10,28 @@
 
 ---
 
+## Session bootstrap
+> Re-read CLAUDE.md before starting — use values there, not hardcoded commands here.
+- **Runtime source**: → CLAUDE.md § Environment / Development Commands
+- **Test source**: → CLAUDE.md § Testing / Quality Gates Baseline
+- **Load first**: CLAUDE.md → docs/plan/invariants.md → this stub
+
+## Context
+> Read before any implementation. Do not rely on conversation history alone.
+- **Stage objective**: Apply craft/architecture review remediations so parent Slice 32 After-Checks are unambiguous
+- **Depends on**: Slice 32 Protocol + Mongo adapter landed (or on branch with synced parent checklist)
+- **Global invariants**: → `docs/plan/invariants.md`
+> Executor may diverge from plan if new evidence warrants — document deviations in PROGRESS.md before marking PASSED.
+
+## Non-goals
+> Out of scope for this slice — do not implement here.
+- New storage features; gate-closure evidence rewrite (owned by 32B)
+
+## Output contract
+> Observable shape of completion (shape only — not exact file paths).
+- **Baseline**: note current TRAIL/PROGRESS status and `git status` before edits
+- Parent SLICE-32 checklist deduped; index-seam decision recorded; review BLOCKERs cleared or deferred with owner
+
 ## Slice Workflow Bundle
 
 - Slice name: `slice-32c-storage-protocol-review-remediation`
@@ -39,7 +61,7 @@ Verification gates (coverage %, mutation/waiver, full `quality-gates.sh`, final 
 | # | MoSCoW | Action | Done when |
 |---|---|---|---|
 | M1 | Must | Deduplicate After-Checks in parent SLICE-32 (no duplicate coverage/mutation/full-gates bullets) | Parent checklist has one row per gate |
-| M2 | Must | Record index-provisioning seam decision (default: **defer** to Slice 36 — no `IndexBackend` in 32C) | Decision Log + parent/32C note; Slice 33 path explicit |
+| M2 | Must | **Docs/decision only:** record index-provisioning seam choice in DECISIONS/PROGRESS (default: **defer** IndexBackend to Slice 36). Do **not** implement `IndexBackend` or change index runtime in 32C | Decision Log + parent/32C note; Slice 33 path explicit; no new Protocol type unless Before-Checks override to option B |
 | M3 | Must | Document `StorageBackend` API-helper return shapes (`load_explore_source`, `list_results_for_experiment`, `get_experiment_db_stats`, `get_vector_db_stats_grouped`) | Docstrings name keys / tuple elements |
 | M4 | Must | Split `MongoStorageBackend` / stats helpers — extract `mongo_stats.py`; keep adapter under craft class-size ceiling (~200 lines) | Adapter thin; stats delegated; tests green |
 | M5 | Must | Satisfy `no-inline-imports`: hoist safe imports **or** document lazy-import why at each site | Rule met or documented exception |
@@ -118,6 +140,7 @@ Scenario: Inline imports comply with project rule
 
 - [ ] M1–M5 complete; S1–S2 done or explicitly deferred with note
 - [ ] Specification coverage: every GWT clause ≥1 verification (test or documented checklist evidence)
+- [ ] Complexity evidence: policy `enforcing` (xenon E/C/C on `server/` `cli/` via `./scripts/ci/quality-gates.sh` / pre-push); local report `bash scripts/ci/complexity-report.sh` → `.reports/complexity/pr-body.md`; CI PR update replaces stable marker idempotently
 - [ ] Branch coverage: no regression required beyond existing Slice 32 tests for this refactor; exclusions if any documented
 - [ ] Mutation testing: N/A for docs/refactor slice — waiver note “behavior-preserving move; mutation owned by 32B”
 - [ ] `./scripts/quality-gates.sh --quick` passes after refactor
@@ -127,6 +150,13 @@ Scenario: Inline imports comply with project rule
 - [ ] Doc audit: architecture/extending touch only if import paths change; N/A for user-guide (reason: internal remediation)
 - [ ] PROGRESS + TRAIL: 32C → ✅ COMPLETE; 32B unblocked
 - [ ] `/nw-review` craft/architecture blockers cleared (full APPROVED may wait for 32B evidence)
+
+### Closing Gates
+- [ ] `nw-at-completeness-check` — AT completeness audit (slice close gate #8)
+- [ ] `nw-software-crafter-reviewer` — code quality + TDD discipline review (slice close gate #9)
+- [ ] `nw-solution-architect-reviewer` + `nw-system-designer-reviewer` — data flow review (gate #9, parallel, for slices with runtime data flow changes)
+- [ ] `nw-gate-evidence-validator` — all 9 gate-evidence conditions pass
+- [ ] `/verify-slice` — holistic evidence verdict COMPLETE (final closing gate)
 
 ## Gate Status
 

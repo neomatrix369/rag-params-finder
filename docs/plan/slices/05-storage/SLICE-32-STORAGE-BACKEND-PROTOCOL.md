@@ -10,6 +10,28 @@
 
 ---
 
+## Session bootstrap
+> Re-read CLAUDE.md before starting — use values there, not hardcoded commands here.
+- **Runtime source**: → CLAUDE.md § Environment / Development Commands
+- **Test source**: → CLAUDE.md § Testing / Quality Gates Baseline
+- **Load first**: CLAUDE.md → docs/plan/invariants.md → this stub
+
+## Context
+> Read before any implementation. Do not rely on conversation history alone.
+- **Stage objective**: StorageBackend + RetrieverBackend Protocols with Mongo adapters and factory dispatch; zero user-visible Mongo behavior change
+- **Depends on**: none
+- **Global invariants**: → `docs/plan/invariants.md`
+> Executor may diverge from plan if new evidence warrants — document deviations in PROGRESS.md before marking PASSED.
+
+## Non-goals
+> Out of scope for this slice — do not implement here.
+- Postgres schema/CRUD (Slice 33); formal coverage/mutation COMPLETE tracker close (32B)
+
+## Output contract
+> Observable shape of completion (shape only — not exact file paths).
+- **Baseline**: note current TRAIL/PROGRESS status and `git status` before edits
+- All store I/O through ports; factory selects Mongo; quality gates green on Protocol path
+
 ## Slice Workflow Bundle
 
 - Slice name: `slice-32-storage-backend-protocol`
@@ -67,8 +89,17 @@ Scenario: Retrieval flows through RetrieverBackend
   When dense, sparse, or hybrid retrieval runs
   Then the retriever port is used — not ad-hoc calls into server.core.retriever
   from orchestrator without going through the backend factory
-```
 
+Scenario: Postgres stub NotImplemented during sweep (pre-33)
+  Given STORAGE_BACKEND=postgres and Postgres StorageBackend is not yet implemented
+  When a sweep attempts metadata CRUD
+  Then NotImplementedError (or equivalent clear error) is raised naming Slice 33 — never silent Mongo fallback
+
+Scenario: Cascade delete on missing experiment is a no-op / 404
+  Given experiment_id does not exist in the store
+  When cascade delete is requested for that id
+  Then no unrelated rows are deleted and the API reports not-found (or documented empty delete)
+```
 ---
 
 ## Before-Checks [GATE]
@@ -95,6 +126,7 @@ Scenario: Retrieval flows through RetrieverBackend
 - [x] `postgres` backend raises clear NotImplemented for storage until Slice 33
 - [x] Grep confirms no `from server.db.atlas` in orchestrator/experiments/startup_reconciliation (also `runs.py`)
 - [x] Specification coverage: every GWT clause ≥1 test; essential error paths covered
+- [ ] Complexity evidence: policy `enforcing` (xenon E/C/C on `server/` `cli/` via `./scripts/ci/quality-gates.sh` / pre-push); local report `bash scripts/ci/complexity-report.sh` → `.reports/complexity/pr-body.md`; CI PR update replaces stable marker idempotently
 - [x] Doc audit: PRD §Documentation matrix rows for slice **32** (architecture, extending, CLAUDE Key Files)
 - [x] `docs/plan/slices/PROGRESS.md` decision log row added
 - [x] `./scripts/quality-gates.sh --quick` passed (2026-07-25)
@@ -106,6 +138,13 @@ Scenario: Retrieval flows through RetrieverBackend
 - [ ] `./scripts/quality-gates.sh` (full) passes → **32B**
 - [ ] `/nw-review` APPROVED → **32B**
 - [ ] Gate-evidence + tracker COMPLETE for Slice 32 → **32B**
+
+### Closing Gates
+- [ ] `nw-at-completeness-check` — AT completeness audit (slice close gate #8)
+- [ ] `nw-software-crafter-reviewer` — code quality + TDD discipline review (slice close gate #9)
+- [ ] `nw-solution-architect-reviewer` + `nw-system-designer-reviewer` — data flow review (gate #9, parallel, for slices with runtime data flow changes)
+- [ ] `nw-gate-evidence-validator` — all 9 gate-evidence conditions pass
+- [ ] `/verify-slice` — holistic evidence verdict COMPLETE (final closing gate)
 
 ## Gate Status
 

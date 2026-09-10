@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Agent guidance for `rag-params-finder`. Start with `AGENTS.md` → this file → `docs/README.md` → `docs/plan/slices/PROGRESS.md`.
+Agent guidance for `rag-params-finder`. Start with `AGENTS.md` → this file → `docs/README.md` → `docs/plan/slices/PROGRESS.md` → `docs/plan/invariants.md` (before slice execution).
 
 ## Project Overview
 
@@ -216,7 +216,9 @@ Provider/model must match — registry in `model_registry.py` validates at confi
 ### Pre-slice checklist
 ```
 [ ] Read docs/plan/slices/PROGRESS.md — confirm current state and which slice is next
+[ ] Load docs/plan/invariants.md + docs/plan/DECISION-OWNERSHIP.md (ceilings / fail-closed)
 [ ] Read or create the slice spec in docs/plan/slices/0N-<theme>/SLICE-XX-*.md
+[ ] Confirm gate-evidence path docs/plan/gate-evidence/slice-N.json (do not invent PASSED)
 [ ] bash scripts/ci/install-git-hooks.sh (once per machine — commit + pre-push checks)
 [ ] Run all quality gates — confirm zero regressions before starting
 [ ] Note the exact acceptance criteria — these are the exit conditions
@@ -322,7 +324,11 @@ The project follows [Semantic Versioning](https://semver.org/). `scripts/release
 | `docs/contributor-guide/extending.md` | Contributors | Adding models, chunkers, endpoints |
 | `docs/contributor-guide/development.md` | Contributors | Dev loop, quality gates |
 | `docs/contributor-guide/release-process.md` | Contributors | Creating releases, versioning strategy |
-| `docs/plan/slices/PROGRESS.md` | Agents | Slice status, decision log, roadmap |
+| `docs/plan/slices/PROGRESS.md` | Agents | Slice status, decision log, roadmap (**status SSOT**) |
+| `docs/plan/TRAIL.md` | Agents | Plan trail, harness-scout embed, execution order |
+| `docs/plan/invariants.md` | Agents | Self-contained project constraints for fresh-context executors |
+| `docs/plan/DECISION-OWNERSHIP.md` | Agents | Human/Agent/Shared ownership + locked ceilings (HITL to raise) |
+| `docs/plan/HANDOFF.md` | Agents | Session snapshot only — PROGRESS + `gate-evidence/` override when they disagree |
 | `docs/plan/slices/README.md` | Agents / contributors | Theme folder index (`01`–`07`); specs under `0N-<theme>/` (#162) |
 | `docs/README.md` | All | Documentation index (personas, topics, tasks) |
 | `docs/adr/` | All | Architecture Decision Records |

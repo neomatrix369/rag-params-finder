@@ -1,8 +1,9 @@
 # Handoff — 2026-07-29
+> **Snapshot date:** 2026-07-29. Use [`slices/PROGRESS.md`](slices/PROGRESS.md) as current status SSOT. Gate evidence under [`gate-evidence/`](gate-evidence/) overrides narrative claims here when they disagree.
 
 ## Where We Are
 
-**22** ✅ COMPLETE on branch [`slice/22-sie-scooter`](https://github.com/neomatrix369/rag-params-finder) — `9805de8` (feat) + `383541b` (hermetic tests + docs sync). Spec: [`slices/04-sie/SLICE-22-SIE-SCOOTER.md`](slices/04-sie/SLICE-22-SIE-SCOOTER.md). Evidence: **VERIFIED** at unit/API-mock boundary (`/verify-slice` COMPLETE); live SIE smoke optional After-Check only.
+**22** ✅ COMPLETE on branch [`slice/22-sie-scooter`](https://github.com/neomatrix369/rag-params-finder) — `9805de8` (feat) + `383541b` (hermetic tests + docs sync). Spec: [`slices/04-sie/SLICE-22-SIE-SCOOTER.md`](slices/04-sie/SLICE-22-SIE-SCOOTER.md). Runtime/docs claim `/verify-slice` COMPLETE (2026-07-29); formal machine evidence is **`PENDING_VERIFICATION`** in [`gate-evidence/slice-22.json`](gate-evidence/slice-22.json) (health-check backfill 2026-09-10 — rewrite full schema before treating as PASSED). Live SIE smoke remains optional After-Check only.
 
 **38** ✅ COMPLETE ([PR #118](https://github.com/neomatrix369/rag-params-finder/pull/118)). ADR-004 Accepted; no default flip (#130). Protocol on main — formal **32 / 32C / 32B / 33** tracker debt remains **parallel**.
 

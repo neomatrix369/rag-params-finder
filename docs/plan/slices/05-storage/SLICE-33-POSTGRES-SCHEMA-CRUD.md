@@ -10,6 +10,28 @@
 
 ---
 
+## Session bootstrap
+> Re-read CLAUDE.md before starting — use values there, not hardcoded commands here.
+- **Runtime source**: → CLAUDE.md § Environment / Development Commands
+- **Test source**: → CLAUDE.md § Testing / Quality Gates Baseline
+- **Load first**: CLAUDE.md → docs/plan/invariants.md → this stub
+
+## Context
+> Read before any implementation. Do not rely on conversation history alone.
+- **Stage objective**: Postgres/pgvector schema + pool + StorageBackend CRUD parity with Mongo for metadata/chunks
+- **Depends on**: 32B gate closure **or** Protocol-on-main escape hatch (**DECISIONS #179** — formal tracker debt 32C/32B remains parallel; Human-owned override)
+- **Global invariants**: → `docs/plan/invariants.md`
+> Executor may diverge from plan if new evidence warrants — document deviations in PROGRESS.md before marking PASSED.
+
+## Non-goals
+> Out of scope for this slice — do not implement here.
+- Dense/sparse/hybrid retrieval (34/35); default STORAGE_BACKEND flip (#130 Won't)
+
+## Output contract
+> Observable shape of completion (shape only — not exact file paths).
+- **Baseline**: note current TRAIL/PROGRESS status and `git status` before edits
+- schema.sql bootstrapped; Postgres CRUD green against live or skipped-without-DB integration suite
+
 ## Slice Workflow Bundle
 
 - Slice name: `slice-33-supabase-schema-crud`
@@ -83,6 +105,21 @@ Scenario: External experiment_id preserved
   Given an experiment is created via POST /experiments
   When the response is returned
   Then experiment_id is a string matching the existing API contract (not a raw UUID-only identifier)
+
+Scenario: Unknown experiment prevents destructive cascade
+  Given experiment_id does not exist in Postgres
+  When DELETE /experiments/{id} is called with STORAGE_BACKEND=postgres
+  Then no rows are deleted and the API returns 404 (or equivalent not-found)
+
+Scenario: Unsupported embedding dimension is rejected
+  Given chunks with an embedding length that is neither 384 nor 1024
+  When insertion is attempted
+  Then a clear validation error is raised (wrong column / dimension mismatch) — no silent truncate
+
+Scenario: Empty chunk batch is handled gracefully
+  Given a run with zero chunks to insert
+  When chunks are inserted
+  Then the batch is skipped or logged and no partial corrupt rows remain
 ```
 
 ---
@@ -119,6 +156,7 @@ Scenario: External experiment_id preserved
 - [x] All GWT scenarios passing — 19 tests, all four scenarios covered
       (cascade delete, dimension routing, local bootstrap without TLS, string `experiment_id`)
 - [x] Specification coverage: every GWT clause has at least one test; error paths covered
+- [ ] Complexity evidence: policy `enforcing` (xenon E/C/C on `server/` `cli/` via `./scripts/ci/quality-gates.sh` / pre-push); local report `bash scripts/ci/complexity-report.sh` → `.reports/complexity/pr-body.md`; CI PR update replaces stable marker idempotently
       (unsupported dimension, empty chunk batch, empty interrupt list, unknown experiment id)
 - [ ] Branch coverage: target 100% where practical; document any exclusions
 - [ ] Mutation testing run if slice is feature-complete: mutation budget ≤10% survivors
@@ -139,6 +177,13 @@ Scenario: External experiment_id preserved
 - **Hosted Supabase operator path** — Slice 37 (`--postgres-cloud`, `ensure_env`, lifecycle, Path B docs, low-friction switching).
 - **Flag rename + config consistency gate** — `--postgres` → `--postgres-local`; YAML `database_provider` must match active backend (Slice 37).
 - **Four-value `storage_mode`** — Slice 36 (may pull forward with 37 vocabulary pass).
+
+### Closing Gates
+- [ ] `nw-at-completeness-check` — AT completeness audit (slice close gate #8)
+- [ ] `nw-software-crafter-reviewer` — code quality + TDD discipline review (slice close gate #9)
+- [ ] `nw-solution-architect-reviewer` + `nw-system-designer-reviewer` — data flow review (gate #9, parallel, for slices with runtime data flow changes)
+- [ ] `nw-gate-evidence-validator` — all 9 gate-evidence conditions pass
+- [ ] `/verify-slice` — holistic evidence verdict COMPLETE (final closing gate)
 
 ## Gate Status
 

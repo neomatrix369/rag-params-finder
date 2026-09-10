@@ -301,3 +301,9 @@ This slice changes presentation without intentionally changing state or data log
 ```text
 feat(slice-39): make the dashboard demo journey presentation-ready
 ```
+
+## After-Checks [GATE]
+- [ ] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first, §2); essential error paths covered (90–100% of clauses)
+- [ ] Complexity evidence: policy `reporting` for FE (ESLint complexity via `bash scripts/ci/complexity-report.sh` → `.reports/complexity/pr-body.md`); backend xenon `enforcing` E/C/C when `server/`/`cli/` touched
+- [ ] Branch coverage: 100% target; tool configured with fail_under per project floors; exclusions documented (§12 — test-writing-craft-quality.mdc)
+- [ ] Mutation testing run if slice is feature-complete: survival budget met or nightly waiver logged (§23)

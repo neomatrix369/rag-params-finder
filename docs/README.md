@@ -12,7 +12,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 
 **Repo entry:** [README.md](../README.md) · **Fastest run:** [QUICKSTART.md](../QUICKSTART.md)
 
-**Maintainers:** slice status and decision log live in [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) (updated 2026-07-29). Specs live under numbered theme folders `01`–`07` (#162, **IMPLEMENTED**) — index: [plan/slices/README.md](./plan/slices/README.md); Slice 40: [SLICE-40](./plan/slices/07-quality-craft/SLICE-40-DOCS-PLAN-SLICES-SSOT.md).
+**Maintainers:** slice status and decision log live in [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) (**status SSOT**). Plan trail / harness: [plan/TRAIL.md](./plan/TRAIL.md). Constraints: [plan/invariants.md](./plan/invariants.md) · ownership: [plan/DECISION-OWNERSHIP.md](./plan/DECISION-OWNERSHIP.md). [plan/HANDOFF.md](./plan/HANDOFF.md) is a dated session snapshot — **PROGRESS + [gate-evidence/](./plan/gate-evidence/) override** when they disagree. Specs live under numbered theme folders `01`–`07` (#162, **IMPLEMENTED**) — index: [plan/slices/README.md](./plan/slices/README.md); Slice 40: [SLICE-40](./plan/slices/07-quality-craft/SLICE-40-DOCS-PLAN-SLICES-SSOT.md).
 
 > **Who is this for?** Same personas as [README → Who is this for?](../README.md#who-is-this-for) — this page is the **doc map**; the README is the project entry.
 
@@ -32,7 +32,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | **Contributor — system design** | [contributor-guide/architecture.md](./contributor-guide/architecture.md) | [adr/](./adr/) |
 | **Contributor — extending** | [contributor-guide/extending.md](./contributor-guide/extending.md) | [contributor-guide/development.md](./contributor-guide/development.md) |
 | **Contributor — dev environment** | [contributor-guide/development.md](./contributor-guide/development.md) | [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) · [plan/slices/](./plan/slices/) specs |
-| **Agent / slice worker** | [AGENTS.md](../AGENTS.md) · [CLAUDE.md](../CLAUDE.md) |  [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) → current `0N-<theme>/SLICE-XX-*.md` |
+| **Agent / slice worker** | [AGENTS.md](../AGENTS.md) · [CLAUDE.md](../CLAUDE.md) | [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) → [plan/invariants.md](./plan/invariants.md) → current `0N-<theme>/SLICE-XX-*.md` |
 
 ---
 
@@ -72,8 +72,14 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | [adr/ADR-002-voyage-and-local-providers.md](./adr/ADR-002-voyage-and-local-providers.md) | Dual embedding/rerank providers |
 | [adr/ADR-003-mongodb-atlas-vector-store.md](./adr/ADR-003-mongodb-atlas-vector-store.md) | MongoDB Atlas as vector store (**Superseded** by ADR-004; Mongo still supported) |
 | [adr/ADR-004-postgresql-pgvector-vector-store.md](./adr/ADR-004-postgresql-pgvector-vector-store.md) | Dual-backend: Postgres/pgvector (Supabase) **and** MongoDB |
-| [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) | Slice status, decision log, forward roadmap |
+| [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) | Slice status, decision log, forward roadmap (**status SSOT**) |
+| [plan/TRAIL.md](./plan/TRAIL.md) | Plan trail, harness-scout YAML, execution order |
+| [plan/invariants.md](./plan/invariants.md) | Self-contained constraints for slice executors |
+| [plan/DECISION-OWNERSHIP.md](./plan/DECISION-OWNERSHIP.md) | Human/Agent/Shared ownership + locked ceilings |
+| [plan/HANDOFF.md](./plan/HANDOFF.md) | Session snapshot — superseded by PROGRESS + gate-evidence on conflict |
+| [plan/DECISIONS.md](./plan/DECISIONS.md) | Planning decision log |
 | [plan/slices/README.md](./plan/slices/README.md) · `0N-<theme>/SLICE-*.md` | Per-slice specs by delivery-wave theme (#162); status SSOT remains [PROGRESS.md](./plan/slices/PROGRESS.md) |
+| [plan/gate-evidence/](./plan/gate-evidence/) | Per-slice gate evidence JSON (do not invent `PASSED`) |
 
 ---
 
@@ -101,4 +107,4 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | Quality gates before commit | [contributor-guide/development.md](./contributor-guide/development.md) · `./scripts/ci/quality-gates.sh` |
 | Docker server + dashboard | [plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md](./plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md) |
 | SIE (BGE-M3) Docker setup | [user-guide/sie-setup.md](./user-guide/sie-setup.md) |
-| Continue an in-flight slice |  [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) + matching `plan/slices/0N-<theme>/SLICE-XX-*.md` |
+| Continue an in-flight slice | [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) + [plan/invariants.md](./plan/invariants.md) + matching `plan/slices/0N-<theme>/SLICE-XX-*.md` |

@@ -10,6 +10,28 @@
 
 ---
 
+## Session bootstrap
+> Re-read CLAUDE.md before starting — use values there, not hardcoded commands here.
+- **Runtime source**: → CLAUDE.md § Environment / Development Commands
+- **Test source**: → CLAUDE.md § Testing / Quality Gates Baseline
+- **Load first**: CLAUDE.md → docs/plan/invariants.md → this stub
+
+## Context
+> Read before any implementation. Do not rely on conversation history alone.
+- **Stage objective**: Close formal Protocol verification gates (coverage, mutation/waiver, full gates, nw-review, tracker COMPLETE) **after** Slice 32C remediations are done
+- **Depends on**: **32C Must complete first** (checklist dedupe, index-seam decision, craft split, inline-import rule); then Protocol code on main or mergeable branch
+- **Global invariants**: → `docs/plan/invariants.md`
+> Executor may diverge from plan if new evidence warrants — document deviations in PROGRESS.md before marking PASSED.
+
+## Non-goals
+> Out of scope for this slice — do not implement here.
+- New Protocol methods or Postgres ports; craft/architecture remediations owned by **32C**
+
+## Output contract
+> Observable shape of completion (shape only — not exact file paths).
+- **Baseline**: note current TRAIL/PROGRESS status and `git status` before edits
+- gate-evidence/slice-32.json (and 32B) with real fields; TRAIL/PROGRESS mark 32/32B COMPLETE
+
 ## Slice Workflow Bundle
 
 - Slice name: `slice-32b-storage-protocol-gate-closure`
@@ -67,8 +89,19 @@ Scenario: Review unlocks COMPLETE
   When /nw-review is run on the Slice 32 implementation
   Then the verdict is APPROVED (or NEEDS_REVISION items are fixed and re-reviewed)
   And Slice 32 + 32B are marked ✅ COMPLETE in TRAIL and PROGRESS
-```
 
+Scenario: Coverage miss forces documented exclusion
+  Given a new port module is below the branch-coverage target
+  When 32B closes the coverage gate
+  Then either tests are added to close the gap
+    Or every miss is listed with rationale in gate-evidence (silent under-coverage is FAIL)
+
+Scenario: Mutation budget exceeded forces explicit waiver
+  Given mutation survivors exceed the project budget on port/factory modules
+  When 32B considers the mutation gate
+  Then either survivors are reduced within budget
+    Or a dated DECISIONS.md waiver is logged — never an implicit skip
+```
 ---
 
 ## Before-Checks [GATE]
@@ -93,6 +126,7 @@ Scenario: Review unlocks COMPLETE
 ## After-Checks [GATE]
 
 - [ ] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first, §2); essential error paths covered (90–100% of clauses)
+- [ ] Complexity evidence: policy `enforcing` (xenon E/C/C on `server/` `cli/` via `./scripts/ci/quality-gates.sh` / pre-push); local report `bash scripts/ci/complexity-report.sh` → `.reports/complexity/pr-body.md`; CI PR update replaces stable marker idempotently
 - [ ] Branch coverage: 100% target on `server/db/{storage,retriever_backend,store_factory,mongo_store}.py` **or** exclusions documented in gate-evidence + Decision Log
 - [ ] Mutation testing: run for new port/protocol/factory modules **or** explicit waiver in `docs/plan/DECISIONS.md`
 - [ ] `./scripts/quality-gates.sh` (full) passes
@@ -101,6 +135,13 @@ Scenario: Review unlocks COMPLETE
 - [ ] Parent [`SLICE-32-STORAGE-BACKEND-PROTOCOL.md`](SLICE-32-STORAGE-BACKEND-PROTOCOL.md) Gate Status → ✅ PASSED; header Status → ✅ COMPLETE
 - [ ] `PROGRESS.md` + `TRAIL.md`: Slice 32 and 32B → ✅ COMPLETE; Slice 33 unblocked
 - [ ] Doc audit: N/A for new user-facing docs (gate-closure only) — reason: verification/governance, no API/CLI change
+
+### Closing Gates
+- [ ] `nw-at-completeness-check` — AT completeness audit (slice close gate #8)
+- [ ] `nw-software-crafter-reviewer` — code quality + TDD discipline review (slice close gate #9)
+- [ ] `nw-solution-architect-reviewer` + `nw-system-designer-reviewer` — data flow review (gate #9, parallel, for slices with runtime data flow changes)
+- [ ] `nw-gate-evidence-validator` — all 9 gate-evidence conditions pass
+- [ ] `/verify-slice` — holistic evidence verdict COMPLETE (final closing gate)
 
 ## Gate Status
 

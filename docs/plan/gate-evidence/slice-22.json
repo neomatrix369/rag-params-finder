@@ -1,0 +1,6 @@
+{
+  "slice": 22,
+  "gate_status": "PENDING_VERIFICATION",
+  "inferred": true,
+  "note": "Backfilled by plan-health-check 2026-09-10 — NOT evidence of PASS. HANDOFF claims /verify-slice COMPLETE on slice/22-sie-scooter; executor must rewrite full schema (coverage_pct, complexity_*, closing gates) before treating as PASSED evidence."
+}
