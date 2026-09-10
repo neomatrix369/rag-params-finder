@@ -216,3 +216,7 @@ Updated as each slice reaches Gate Status PASSED.
 | 2026-07-26 | nw-platform-architect-reviewer (Slice 38) | **NEEDS REVISION** → remediations applied | BLOCKERs: flip surfaces + Mongo export; latency metric; baseline feasibility; SUPABASE_URI placeholder — DECISIONS #114–#118; pins #120–#121 |
 | 2026-07-26 | Slice 38 gate hygiene | All non-100%-Yes gates → Slice 43 residuals | DECISIONS #125/#126 — local comparison only for 38 COMPLETE |
 | 2026-07-26 | Slice 38 COMPLETE | ✅ PASSED — no default flip (#130 Won't) | ADR-004 + comparison VERIFIED; default stays mongodb permanently; backends independent (#129) |
+| 2026-09-10 | nw-solution-architect-reviewer (EFP final) | **APPROVED** | Remediations #114–#182 verified; escape hatch + evidence honesty + ownership; DECISIONS #184 |
+| 2026-09-10 | nw-product-owner-reviewer (EFP final) | **APPROVED** | #179 hatch; 32C→32B order; 32C M2 docs-only; Slice 28/33 cites |
+| 2026-09-10 | nw-documentarist-reviewer (EFP final) | **APPROVED** | HANDOFF snapshot + gate-evidence hierarchy; Slice 22 PENDING_VERIFICATION honesty |
+| 2026-09-10 | nw-acceptance-designer-reviewer (EFP final) | **APPROVED** | Prior 10 error-path GWT blockers closed; 28/31 happy-path bias non-blocking |

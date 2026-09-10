@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Vitest screen-suite flakes under coverage** — raise `testTimeout`/`hookTimeout` to 20s; restore real timers in `frontend/src/test/setup.ts` after every test; tolerate list-poll races on post-delete `getExperiments` call counts (DECISIONS #185) (**IMPLEMENTED**; full `npm run test:ci` **VERIFIED** 264/264).
+
 - **`embed_documents_voyage` empty-input crash** — `IndexError` on `all_embeddings[0]` when all batches returned empty; now guards with `dim = len(all_embeddings[0]) if all_embeddings else 0` (**IMPLEMENTED**; 1 regression test **VERIFIED**).
 
 - **tier1_sweep records excluded from `GET /experiments`** — internal sweep-history bookkeeping documents (`experiment_type=tier1_sweep`) were leaking into the standard experiments list, causing CLI display to show empty sweep fields (`models`/`chunking_methods`/`chunk_sizes`/`overlaps` absent from the Tier-1 format) and frontend `SweepSummary` type mismatch. Filter added in `list_all_experiment_docs()` — the single API call-site — so `_matching_sweep_history()` still reaches all records for `GET /api/v1/best-config` (**IMPLEMENTED**; 3 unit tests **VERIFIED**).

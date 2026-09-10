@@ -211,11 +211,12 @@ npm run build
 npm audit --audit-level=high
 ```
 
-**Baseline (as of 2026-07-28 — Slice 45 COMPLETE)**:
+**Baseline (as of 2026-09-10 — Vitest harness #185; counts from 2026-08-07 gap suite)**:
 - `npm run lint` → 0 errors
-- `npm run test` → **261** tests across **24** files (Vitest + React Testing Library)
+- `npm run test` → **264** tests across **24** files (Vitest + React Testing Library)
 - `npm run test:coverage` → statements/functions/lines **≥95%**, branches **≥90%** (`coverage.thresholds` + `all: true`; DECISIONS #142); measured ≈98.4% / 93.11% / 100% / 99.69%
 - Local `quality-gates.sh` / `scripts/ci/pre-push-gates.sh` invoke `test:coverage`; CI frontend job invokes `test:ci` (**VERIFIED**)
+- Vitest harness (DECISIONS #185): `testTimeout` / `hookTimeout` **20s** in `frontend/vite.config.ts`; `frontend/src/test/setup.ts` restores real timers after every test (prevents fake-timer leaks across suites)
 - `npm run typecheck` → 0 errors
 - `npm run build` → built in ~4s, 49 modules
 - `npm audit --audit-level=high` → 0 high vulnerabilities

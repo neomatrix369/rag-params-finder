@@ -286,10 +286,11 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 - `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **468** tests; full backend (`server/ + cli/`) floors **72/59/n/a/72** (stmts/br/fn/lines) via `fail_under=70` (combined 70.1%) + `scripts/ci/check_backend_coverage_floors.py` (`backend_coverage_thresholds`) — DECISIONS #142; no `MONGODB_URI` required
 - FE/BE threshold lock: `scripts/ci/check_coverage_threshold_drift.py` asserts Vitest `coverage.thresholds` match `[tool.rag_params_finder.coverage_thresholds]` (incl. `functions=95`) — DECISIONS #161
 
-**Frontend** (2026-08-07 — Slice 45 COMPLETE + floors #142 + 3 gap scenarios):
+**Frontend** (2026-08-07 — Slice 45 COMPLETE + floors #142 + 3 gap scenarios; harness #185):
 - `npm run lint` → 0 errors (eslint + security plugin)
 - `npm run test` → **264** tests across **24** files (Vitest + React Testing Library)
 - `npm run test:coverage` / `test:ci` → v8 thresholds **95/90/95/95** stmts/br/fn/lines (`all: true`; DECISIONS #142); measured ≈98.4% / 93.11% / 100% / 99.69% — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
+- Vitest: `testTimeout`/`hookTimeout` **20s**; setup restores `vi.useRealTimers()` every test (DECISIONS #185)
 - `npm run typecheck` → 0 errors
 - `npm run build` → ✓ built in ~4s
 - `npm audit --audit-level=high` → 0 high vulnerabilities
