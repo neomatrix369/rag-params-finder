@@ -3,6 +3,8 @@
 [![Release](https://img.shields.io/github/v/release/neomatrix369/rag-params-finder?label=Release&logo=github)](https://github.com/neomatrix369/rag-params-finder/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/ci.yml)
 [![Nightly](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/nightly.yml?branch=main&label=Nightly&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/nightly.yml)
+[![Supply chain](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/supply-chain.yml?branch=main&label=Supply%20chain&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/supply-chain.yml)
+[![Mutation](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/mutation.yml?branch=main&label=Mutation&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/mutation.yml)
 [![stability status](https://www.meterian.com/badge/gh/neomatrix369/rag-params-finder/stability)](https://www.meterian.com/report/gh/neomatrix369/rag-params-finder)
 [![License: MIT](https://img.shields.io/github/license/neomatrix369/rag-params-finder)](https://github.com/neomatrix369/rag-params-finder/blob/main/LICENSE)
 
