@@ -1,9 +1,10 @@
 #!/bin/bash
-# Run all quality gates — mirrors .github/workflows/ci.yml (repo-lint + backend + frontend + audits).
+# Run all quality gates — mirrors PR .github/workflows/ci.yml (repo-lint + backend + frontend + audits).
+# Does not run live DB integration, Docker matrix, supply-chain, or mutation (scheduled workflows).
 # Usage:
-#   ./scripts/ci/quality-gates.sh          # full CI mirror (default)
+#   ./scripts/ci/quality-gates.sh          # PR CI mirror (default)
 #   ./scripts/ci/quality-gates.sh --quick  # fast subset (manual/local; no coverage, no scoped SCA/audit)
-#   ./scripts/ci/quality-gates.sh --full   # CI mirror + local gitleaks + pre-commit all-files
+#   ./scripts/ci/quality-gates.sh --full   # PR CI mirror + local gitleaks + pre-commit all-files
 
 set -e
 set -o pipefail
@@ -97,7 +98,7 @@ fi
 echo ""
 echo "6/11 Backend tests + coverage (full server/ + cli/, unit tier)..."
 # Measures full server/ + cli/. Live Mongo/Postgres suites excluded (they run
-# in dedicated CI integration jobs); integration-only paths explain ~61% floor.
+# in nightly.yml postgres-/mongo-integration); integration-only paths explain ~61% floor.
 # Floor: 61% statements/lines, 47% branches — see pyproject.toml
 # [tool.rag_params_finder.backend_coverage_thresholds].
 mkdir -p .reports/coverage

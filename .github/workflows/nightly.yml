@@ -1,18 +1,28 @@
 name: Nightly
 
+# Bundle A — Daily deep checks (02:00 UTC)
+# Deferred from push CI (aggressive optimization 2026-09-11):
+#   - Postgres / Mongo live integration (service containers)
+#   - Docker build matrix (3 Dockerfiles)
+#   - Full secrets / TruffleHog history
+#   - Coverage snapshots + complexity trending
+#
+# Sibling workflows:
+#   B supply-chain.yml — weekly Mon 03:00 UTC — SBOM · licenses · Meterian · container-scan · Chalk
+#   C mutation.yml     — 1st+15th 02:00 UTC  — mutmut + Stryker (advisory)
+#   D code-review-graph.yml — same 02:00 UTC cron — graph review
+
 on:
   schedule:
-    - cron: '0 2 * * *'       # A — Light T4 (daily 02:00 UTC)
-    - cron: '0 2 * * 1'       # B — Supply chain (Monday 02:00 UTC)
-    - cron: '0 2 1,15 * *'    # C — Mutation (1st + 15th 02:00 UTC)
+    - cron: '0 2 * * *' # 02:00 UTC every night
   workflow_dispatch:
 
 jobs:
-  # ── A — Light T4: full test suite + coverage — Python ────────────────────────
+  # ── Unit + coverage snapshots ────────────────────────────────────────────────
   nightly-tests-python:
     name: Python tests + coverage (nightly snapshot)
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * *'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -59,11 +69,10 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-  # ── A — Light T4: full test suite + coverage — Node ──────────────────────────
   nightly-tests-node:
     name: Node tests + coverage (nightly snapshot)
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * *'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: frontend
@@ -93,11 +102,10 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-  # ── A — Light T4: complexity report ───────────────────────────────────────────
   nightly-complexity:
     name: Complexity report (nightly snapshot)
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * *'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       COMPLEXITY_PYTHON_PATHS: server cli
       COMPLEXITY_NODE_WORKSPACES: frontend
@@ -126,68 +134,118 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-  # ── C — Mutation: Python mutmut (advisory) ────────────────────────────────────
-  mutation-tests-python:
-    name: Mutation testing — Python (mutmut)
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 1,15 * *'
+  # ── Deferred from PR CI: live DB integration ────────────────────────────────
+  postgres-integration:
+    name: Postgres integration (pgvector) — deferred from PR CI
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    continue-on-error: true
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.5-pg16
+        env:
+          POSTGRES_USER: rag
+          POSTGRES_PASSWORD: rag
+          POSTGRES_DB: rag_params_finder
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U rag -d rag_params_finder"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
         with:
           python-version-file: ".python-version"
-      - uses: astral-sh/setup-uv@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
-      - run: uv pip install --system -e ".[dev]" mutmut
-      - name: Run mutation tests
+      - name: Install dependencies (including dev)
+        run: uv pip install --system -e ".[dev]"
+      - name: Postgres StorageBackend and dense retrieval integration tests
+        env:
+          RAG_TEST_DATABASE_URL: postgresql://rag:rag@localhost:5433/rag_params_finder
+          RAG_REQUIRE_POSTGRES: "1"
         run: |
-          mutmut run --paths-to-mutate server/ cli/ || true
-          mutmut results || true
-          mutmut junitxml > mutation-results-python.xml || true
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: mutation-python-${{ github.run_number }}
-          path: mutation-results-python.xml
-          retention-days: 30
+          pytest tests/server/db/test_postgres_store_integration.py \
+                 tests/server/db/test_postgres_dense_retrieval.py \
+                 tests/server/db/test_postgres_sparse_hybrid.py \
+                 tests/contract/test_storage_backend_contract.py \
+                 --tb=short -q -rs \
+                 --cov=server.core.retrieval.retriever_postgres \
+                 --cov-branch --cov-report=term-missing --cov-fail-under=95
 
-  # ── C — Mutation: Node/TS Stryker ─────────────────────────────────────────────
-  mutation-tests-node:
-    name: Mutation testing — Node (Stryker)
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 1,15 * *'
+  mongo-integration:
+    name: Mongo integration (Atlas Local) — deferred from PR CI
     runs-on: ubuntu-latest
-    # Safety net only — Must is narrowed mutate scope (Slice 44 Residual §4 / #163)
-    timeout-minutes: 90
-    defaults:
-      run:
-        working-directory: frontend
+    timeout-minutes: 25
+    services:
+      mongodb:
+        image: mongodb/mongodb-atlas-local:8.3.3
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval \"db.adminCommand('ping').ok\""
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+          --health-start-period 60s
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - name: Set up Python
+        uses: actions/setup-python@v7
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - name: Run Stryker mutation tests
-        run: npx stryker run || true
-      - uses: actions/upload-artifact@v7
-        if: always()
+          python-version-file: ".python-version"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
-          name: mutation-node-${{ github.run_number }}
-          path: frontend/reports/mutation/
-          retention-days: 30
-          if-no-files-found: warn
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: Install dependencies (including dev)
+        run: uv pip install --system -e ".[dev]"
+      - name: Mongo StorageBackend contract tests
+        env:
+          RAG_TEST_MONGODB_URI: mongodb://localhost:27017/rag_params_finder?directConnection=true
+          RAG_REQUIRE_MONGO: "1"
+          STORAGE_BACKEND: mongodb
+        run: |
+          pytest tests/contract/test_storage_backend_contract.py \
+                 --tb=short -q -rs
 
-  # ── A — Light T4: TruffleHog full git-history scan ────────────────────────────
+  # ── Deferred from PR CI: Docker build validation ────────────────────────────
+  docker-build:
+    name: Docker build validation (build-only, non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    strategy:
+      matrix:
+        dockerfile:
+          - docker/server.Dockerfile
+          - docker/frontend.Dockerfile
+          - docker/frontend.dev.Dockerfile
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Build ${{ matrix.dockerfile }}
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Full-history secrets ────────────────────────────────────────────────────
   trufflehog-full:
     name: TruffleHog (full git history)
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * *'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
         with:
@@ -198,160 +256,10 @@ jobs:
           base: ""
           extra_args: --only-verified --exclude-detectors=Lob
 
-  # ── B — Supply chain: SBOM — CycloneDX artifact (whole repo) ─────────────────
-  sbom:
-    name: SBOM (CycloneDX)
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * 1'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: anchore/sbom-action@v0.24.0
-        with:
-          format: cyclonedx-json
-          output-file: sbom.json
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: sbom-${{ github.run_number }}
-          path: sbom.json
-          retention-days: 90
-      - name: License compliance (trivy) — block on HIGH/CRITICAL
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          exit-code: "1"
-          format: table
-          scanners: license
-          severity: HIGH,CRITICAL
-
-  # ── T4: Meterian — SCA + license (OSS path; no token — public MIT repo) ─────
-  # Stack: Python 3.12 (pyproject.toml + uv.lock) + Node/React (frontend/package-lock.json).
-  # Not a Java project — do not rely on auto-detect; pin scanners explicitly.
-  # Docs: https://docs.meterian.io/the-client/command-line-parameters/selecting-scanners.md
-  #       https://docs.meterian.io/the-client/command-line-parameters/producing-reports.md
-  # Exclusions: root `.meterian` (CVE/library waivers; Trivy parity — see that file + .trivyignore).
-  # Reports: HTML + JUnit + SARIF + SBOM (CycloneDX + Meterian CSV) for OSS.
-  # JSON/PDF analysis reports need enterprise — skip those.
-  # Meterian SBOM archived here for vendor comparison with the anchore sbom job.
-  # Inputs: MeterianHQ/meterian-github-action@v1.0.17 → oss + cli_args
-  meterian:
-    name: Meterian SCA + license
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * 1'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Prepare Meterian report directory
-        run: mkdir -p meterian-reports
-      - name: Meterian Scanner
-        uses: MeterianHQ/meterian-github-action@v1.0.17
-        with:
-          oss: true
-          # enabled-scanners → only python + nodejs (frontend npm)
-          # scan-*=true → fail closed if manifests missing
-          # scan-java=false → belt-and-suspenders (no pom/gradle here)
-          # exclude-folders → skip build/cache trees Meterian need not walk
-          # scan-javascript left off (vanilla JS crawler is opt-in; we use nodejs lockfile)
-          # report-* → archiveable CI outputs (dir must exist before scan)
-          # report-sbom → .cdx.json for Anchore parity; .csv for Meterian-native SBOM
-          cli_args: >-
-            --min-security=95
-            --min-licensing=95
-            --enabled-scanners=python,nodejs
-            --scan-python=true
-            --scan-nodejs=true
-            --scan-java=false
-            --exclude-folders=.venv,frontend/node_modules,frontend/dist,.aim,.pytest_cache,.mypy_cache,.ruff_cache,htmlcov,.tox
-            --report-console=nocolor,security,licensing
-            --report-file=meterian-reports/report.html
-            --report-junit=meterian-reports/report.xml
-            --report-sarif=meterian-reports/report.sarif
-            --report-sbom=meterian-reports/sbom.cdx.json,meterian-reports/sbom.csv
-      - name: Upload Meterian reports
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: meterian-${{ github.run_number }}
-          path: meterian-reports/
-          retention-days: 90
-          if-no-files-found: warn
-
-  # ── B — Supply chain: Container image scan (when server Dockerfile present) ───
-  container-scan:
-    name: Container scan (Trivy image)
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * 1'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Check for Dockerfile
-        id: check
-        run: echo "exists=$(test -f docker/server.Dockerfile && echo true || echo false)" >> "$GITHUB_OUTPUT"
-      - name: Build image
-        if: steps.check.outputs.exists == 'true'
-        run: docker build -f docker/server.Dockerfile -t scan-target:${{ github.sha }} .
-      - name: Scan image
-        if: steps.check.outputs.exists == 'true'
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: scan-target:${{ github.sha }}
-          exit-code: "1"
-          severity: HIGH,CRITICAL
-          format: table
-          ignore-unfixed: true     # suppress OS CVEs with no distro patch yet (e.g. linux-libc-dev, perl toolchain from build-essential)
-          trivyignores: .trivyignore  # Python CVEs blocked by transitive dep constraints — see .trivyignore for rationale
-
-  # ── B — Supply chain: Chalk — software provenance + build attestation ────────
-  chalk:
-    name: Chalk (provenance + attestation)
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * 1'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write   # required for Sigstore keyless signing
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-      - name: Set up Chalk
-        uses: crashappsec/setup-chalk-action@v0.0.3
-      - name: Chalk mark source artifacts
-        run: |
-          chalk insert server/ cli/ scripts/
-      - name: Chalk wrap Docker build (server image)
-        if: hashFiles('docker/server.Dockerfile') != ''
-        run: |
-          chalk docker build -f docker/server.Dockerfile -t chalk-attested-server:${{ github.sha }} .
-      - name: Upload Chalk report
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: chalk-report-${{ github.run_number }}
-          path: ~/.local/chalk/chalk.log
-          retention-days: 90
-          if-no-files-found: warn
-
-  # ── T4: DAST — OWASP ZAP baseline (uncomment when Docker service is present) ──
-  # dast:
-  #   name: DAST — OWASP ZAP baseline
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v7
-  #     - name: Start service
-  #       run: docker compose up -d && sleep 10
-  #     - name: ZAP baseline scan
-  #       uses: zaproxy/action-baseline@v0.12.0
-  #       with:
-  #         target: 'http://localhost:8001'
-  #         rules_file_name: '.zap/rules.tsv'
-  #         cmd_options: '-I'
-  #     - name: Stop service
-  #       if: always()
-  #       run: docker compose down
-
-  # ── A — Light T4: Dependency audit (full lockfile sweep) ─────────────────────
   dependency-audit:
     name: Dependency audit (full lockfile sweep)
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * *'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
@@ -386,11 +294,10 @@ jobs:
       - name: Frontend security audit
         run: npm --prefix frontend audit --audit-level=high
 
-  # ── A — Light T4: Full-history secrets scan (gitleaks) ───────────────────────
   full-secrets-scan:
     name: Full-history secrets scan (gitleaks)
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * *'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
         with:

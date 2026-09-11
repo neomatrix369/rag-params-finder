@@ -1,0 +1,67 @@
+name: Mutation
+
+# Bundle C — Mutation testing
+# Cadence: 1st + 15th 02:00 UTC (+ workflow_dispatch)
+# Jobs: mutmut (Python, advisory) · Stryker (Node, narrowed mutate scope #163)
+# Sibling workflows:
+#   A nightly.yml      — daily 02:00 UTC    — unit/cov · live DB · docker-build · secrets
+#   B supply-chain.yml — weekly Mon 03:00 UTC — SBOM · licenses · Meterian · container · Chalk
+on:
+  schedule:
+    - cron: '0 2 1,15 * *' # 02:00 UTC on 1st + 15th
+  workflow_dispatch:
+
+jobs:
+  mutation-tests-python:
+    name: Mutation testing — Python (mutmut)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - run: uv pip install --system -e ".[dev]" mutmut
+      - name: Run mutation tests
+        run: |
+          mutmut run --paths-to-mutate server/ cli/ || true
+          mutmut results || true
+          mutmut junitxml > mutation-results-python.xml || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mutation-python-${{ github.run_number }}
+          path: mutation-results-python.xml
+          retention-days: 30
+          if-no-files-found: warn
+
+  mutation-tests-node:
+    name: Mutation testing — Node (Stryker)
+    runs-on: ubuntu-latest
+    # Safety net only — Must is narrowed mutate scope (Slice 44 Residual §4 / #163)
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Run Stryker mutation tests
+        run: npx stryker run || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mutation-node-${{ github.run_number }}
+          path: frontend/reports/mutation/
+          retention-days: 30
+          if-no-files-found: warn
