@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Nightly T4 three-bucket cadence** — `.github/workflows/nightly.yml` schedules **A** daily (`0 2 * * *`: tests/coverage, complexity, TruffleHog, dep-audit, gitleaks), **B** Mondays (`0 2 * * 1`: SBOM, Meterian, container-scan, Chalk), **C** 1st+15th (`0 2 1,15 * *`: mutmut + Stryker); `workflow_dispatch` still runs all. Aligns with project-hygiene mixed nightly template (**IMPLEMENTED**; schedule **VERIFIED** pending next cron/`workflow_dispatch` observation).
+- **CI cadence split (quine-factory pattern)** — PR/push `ci.yml` is ultra-minimal (unit lint/test/audit/secrets only; **no** daily schedule). Heavy jobs move to separate workflows: `nightly.yml` daily 02:00 (coverage, complexity, live Postgres/Mongo integration, Docker build, full secrets); `supply-chain.yml` Mon 03:00 (SBOM, licenses, Meterian, container-scan, Chalk); `mutation.yml` 1st+15th (mutmut + Stryker); `code-review-graph.yml` nightly schedule only (off PR path). Supersedes monolithic three-cron `nightly.yml` (**IMPLEMENTED**; schedule **VERIFIED** pending next cron/`workflow_dispatch`).
 
 - **Backend coverage raised 59.1% → 70.1%** — 121 new unit tests (ATDD format) cover CLI HTTP client, CLI commands, Voyage embedder, rate limiter, Atlas storage quota, and MongoDB index creation/listing; test suite grows 347 → **468** tests; per-metric floors updated to 72/59/72 (stmts/br/lines); `--cov-fail-under` raised 59 → 70; gap analysis at `docs/plan/gate-evidence/test-gap-analysis-2026-08-07.md` (**VERIFIED** locally).
 

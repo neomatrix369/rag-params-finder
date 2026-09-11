@@ -1,12 +1,22 @@
 name: CI
 
+# Ultra-minimal PR/push gates (aligned with quine-factory aggressive optimization).
+# Deferred from this workflow (2026-09-11):
+#   - Postgres / Mongo live integration → nightly.yml
+#   - Docker build matrix → nightly.yml
+#   - Container CVE scan + Trivy licenses → supply-chain.yml (weekly)
+#   - Mutation testing → mutation.yml (1st + 15th)
+#   - Code review graph → code-review-graph.yml (nightly schedule)
+# Sibling workflows:
+#   A nightly.yml       — daily 02:00 UTC
+#   B supply-chain.yml  — Mon 03:00 UTC
+#   C mutation.yml      — 1st+15th 02:00 UTC
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-  schedule:
-    - cron: "0 2 * * *"
   workflow_dispatch:
 
 jobs:
@@ -14,11 +24,10 @@ jobs:
     name: Detect changed paths
     runs-on: ubuntu-latest
     outputs:
-      backend: ${{ steps.filter.outputs.backend || steps.schedule_defaults.outputs.backend || 'false' }}
-      frontend: ${{ steps.filter.outputs.frontend || steps.schedule_defaults.outputs.frontend || 'false' }}
-      repo: ${{ steps.filter.outputs.repo || steps.schedule_defaults.outputs.repo || 'false' }}
-      deps: ${{ steps.filter.outputs.deps || steps.schedule_defaults.outputs.deps || 'false' }}
-      docker_files: ${{ steps.filter.outputs.docker_files || steps.schedule_defaults.outputs.docker_files || 'false' }}
+      backend: ${{ steps.filter.outputs.backend || 'false' }}
+      frontend: ${{ steps.filter.outputs.frontend || 'false' }}
+      repo: ${{ steps.filter.outputs.repo || 'false' }}
+      deps: ${{ steps.filter.outputs.deps || 'false' }}
 
     steps:
       - name: Checkout for path filtering
@@ -45,32 +54,17 @@ jobs:
               - 'AGENTS.md'
               - 'docs/**'
               - 'scripts/**'
-            docker_files:
-              - 'docker/**'
-              - 'docker-compose*.yml'
             deps:
               - 'uv.lock'
               - 'pyproject.toml'
               - 'frontend/package.json'
               - 'frontend/package-lock.json'
 
-      - name: Scheduled run defaults
-        id: schedule_defaults
-        if: github.event_name == 'schedule'
-        run: |
-          {
-            echo "backend=false"
-            echo "frontend=false"
-            echo "repo=false"
-            echo "docker_files=false"
-            echo "deps=false"
-          } >> "$GITHUB_OUTPUT"
-
   repo-lint:
     name: Repo lint (shell, workflows, docs)
     runs-on: ubuntu-latest
     needs: [changes]
-    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.repo == 'true' }}
+    if: ${{ needs.changes.outputs.repo == 'true' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -97,38 +91,12 @@ jobs:
       - name: Markdownlint
         run: pre-commit run markdownlint --all-files
 
-  docker-build:
-    name: Docker build validation (build-only, non-blocking)
-    runs-on: ubuntu-latest
-    needs: [changes]
-    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.docker_files == 'true' || needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' }}
-    continue-on-error: true
-    strategy:
-      matrix:
-        dockerfile:
-          - docker/server.Dockerfile
-          - docker/frontend.Dockerfile
-          - docker/frontend.dev.Dockerfile
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build ${{ matrix.dockerfile }}
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
   backend:
     name: Backend (Python)
     runs-on: ubuntu-latest
     needs: [changes]
-    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.backend == 'true' }}
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v7
@@ -172,11 +140,10 @@ jobs:
         run: xenon --max-absolute E --max-modules C --max-average C server/ cli/
 
       - name: Tests + coverage (unit tier — full backend)
-        # Measures full server/ + cli/. Live Mongo/Postgres suites are excluded
-        # (they run in the dedicated integration jobs); integration-only paths
-        # (DB adapters, API providers) are why full-backend coverage lands ~61%.
-        # Floor: 61% statements/lines, 47% branches — see pyproject.toml
-        # [tool.rag_params_finder.backend_coverage_thresholds].
+        # Measures full server/ + cli/. Live Mongo/Postgres suites are deferred
+        # to nightly.yml; integration-only paths are why full-backend coverage
+        # lands below selective floors.
+        # Floor: see pyproject.toml [tool.rag_params_finder.backend_coverage_thresholds].
         run: |
           mkdir -p .reports/coverage
           pytest --tb=short -q \
@@ -193,116 +160,12 @@ jobs:
           python scripts/ci/check_backend_coverage_floors.py .reports/coverage/backend-full.json
           python scripts/ci/check_coverage_threshold_drift.py
 
-  postgres-integration:
-    name: Postgres integration (pgvector)
-    runs-on: ubuntu-latest
-    needs: [changes]
-    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.backend == 'true' }}
-
-    # The Postgres adapter's SQL, JSONB mapping, and FK cascade can only be
-    # proven against a real database — mocks would assert our own assumptions.
-    services:
-      postgres:
-        image: pgvector/pgvector:0.8.5-pg16
-        env:
-          POSTGRES_USER: rag
-          POSTGRES_PASSWORD: rag
-          POSTGRES_DB: rag_params_finder
-        ports:
-          - 5433:5432
-        options: >-
-          --health-cmd "pg_isready -U rag -d rag_params_finder"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version-file: ".python-version"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install dependencies (including dev)
-        run: uv pip install --system -e ".[dev]"
-
-      - name: Postgres StorageBackend and dense retrieval integration tests
-        env:
-          RAG_TEST_DATABASE_URL: postgresql://rag:rag@localhost:5433/rag_params_finder
-          # Turns "database unreachable" from a skip into a failure, so a broken
-          # service container cannot masquerade as a passing job.
-          RAG_REQUIRE_POSTGRES: "1"
-        # Coverage is enforced here rather than in the `backend` job: these tests
-        # skip without a database, so the main job would measure them as 0%.
-        # Contract suite is parametrized (mongo+postgres); the mongo param skips
-        # here because only Postgres is provisioned.
-        run: |
-          pytest tests/server/db/test_postgres_store_integration.py \
-                 tests/server/db/test_postgres_dense_retrieval.py \
-                 tests/server/db/test_postgres_sparse_hybrid.py \
-                 tests/contract/test_storage_backend_contract.py \
-                 --tb=short -q -rs \
-                 --cov=server.core.retrieval.retriever_postgres \
-                 --cov-branch --cov-report=term-missing --cov-fail-under=95
-
-  mongo-integration:
-    name: Mongo integration (Atlas Local)
-    runs-on: ubuntu-latest
-    needs: [changes]
-    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.backend == 'true' }}
-
-    # Live Mongo StorageBackend contract coverage — Atlas Local image matches
-    # docker-compose.yml local-atlas profile. Mocks cannot prove port parity.
-    services:
-      mongodb:
-        image: mongodb/mongodb-atlas-local:8.3.3
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --quiet --eval \"db.adminCommand('ping').ok\""
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 12
-          --health-start-period 60s
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version-file: ".python-version"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install dependencies (including dev)
-        run: uv pip install --system -e ".[dev]"
-
-      - name: Mongo StorageBackend contract tests
-        env:
-          RAG_TEST_MONGODB_URI: mongodb://localhost:27017/rag_params_finder?directConnection=true
-          RAG_REQUIRE_MONGO: "1"
-          STORAGE_BACKEND: mongodb
-        run: |
-          pytest tests/contract/test_storage_backend_contract.py \
-                 --tb=short -q -rs
-
   frontend:
     name: Frontend (Node.js)
     runs-on: ubuntu-latest
     needs: [changes]
-    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.frontend == 'true' }}
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    timeout-minutes: 20
 
     defaults:
       run:
@@ -339,6 +202,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes]
     if: ${{ github.event_name == 'pull_request' && needs.changes.outputs.deps == 'true' }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
@@ -378,7 +242,7 @@ jobs:
     name: Secrets scan (diff-only)
     runs-on: ubuntu-latest
     needs: [changes]
-    if: ${{ github.event_name != 'schedule' }}
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
@@ -432,52 +296,3 @@ jobs:
             -v "${{ github.workspace }}:/workspace" \
             ghcr.io/gitleaks/gitleaks:v8.24.3 \
             detect --source /workspace --config /workspace/.gitleaks.toml --redact
-
-  license-check:
-    name: License compliance (Trivy)
-    runs-on: ubuntu-latest
-    needs: [changes]
-    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.deps == 'true' }}
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: License scan — block on HIGH/CRITICAL
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          exit-code: "1"
-          format: table
-          scanners: license
-          severity: HIGH,CRITICAL
-
-  container-scan:
-    name: Container scan — server image (Trivy CVE, non-blocking)
-    runs-on: ubuntu-latest
-    needs: [changes]
-    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.docker_files == 'true' || needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' }}
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build server image (load to daemon for scanning)
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: docker/server.Dockerfile
-          push: false
-          load: true
-          tags: scan-target:${{ github.sha }}
-          cache-from: type=gha
-
-      - name: Scan image — HIGH/CRITICAL CVEs
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: scan-target:${{ github.sha }}
-          exit-code: "1"
-          severity: HIGH,CRITICAL
-          format: table
-          ignore-unfixed: true
-          trivyignores: .trivyignore

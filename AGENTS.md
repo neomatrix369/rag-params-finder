@@ -23,8 +23,9 @@ Agent session entry point for `rag-params-finder`.
 ## Quick commands
 
 ```bash
-# Quality gates (mirrors CI — run before every commit)
-./scripts/ci/quality-gates.sh              # full CI mirror (repo lint + backend + frontend + audits)
+# Quality gates (mirrors PR ci.yml unit path — run before every commit)
+# Scheduled GHA (live DB, Docker, supply-chain, mutation) → docs/contributor-guide/development.md § CI
+./scripts/ci/quality-gates.sh              # PR CI mirror (repo lint + backend + frontend + audits)
 bash scripts/ci/repo-lint.sh               # shellcheck + actionlint + markdownlint only
 ./scripts/ci/pre-push-gates.sh             # full local gates on push (quality-gates.sh default mode)
 ./scripts/ci/quality-gates.sh --quick      # fast local subset (pytest no coverage + no scoped SCA/audit); not used by pre-push by default

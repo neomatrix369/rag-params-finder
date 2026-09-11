@@ -7,6 +7,9 @@
 ![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 [![CI](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/ci.yml)
+[![Nightly](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/nightly.yml?branch=main&label=Nightly&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/nightly.yml)
+[![Supply chain](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/supply-chain.yml?branch=main&label=Supply%20chain&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/supply-chain.yml)
+[![Mutation](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/mutation.yml?branch=main&label=Mutation&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/mutation.yml)
 
 All guides for **rag-params-finder**, organized by **who you are** and **what you want to do**.
 

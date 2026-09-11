@@ -1,5 +1,7 @@
 # Handoff — 2026-07-29
 > **Snapshot date:** 2026-07-29. Use [`slices/PROGRESS.md`](slices/PROGRESS.md) as current status SSOT. Gate evidence under [`gate-evidence/`](gate-evidence/) overrides narrative claims here when they disagree.
+>
+> **2026-09-11 note (docs/CI only):** GHA cadence split landed on `ci/quine-factory-cadence-split` — ultra-minimal PR `ci.yml`; live DB + Docker on daily `nightly.yml`; Meterian/SBOM/container/Chalk on weekly `supply-chain.yml`; mutmut/Stryker on biweekly `mutation.yml`. Mutation “waived to nightly” rows below mean **scheduled deep checks**, not the PR merge gate — see PROGRESS maintenance 2026-09-11.
 
 ## Where We Are
 

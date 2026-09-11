@@ -1,17 +1,28 @@
+# Nightly / manual analysis only (aligned with Nightly 02:00 UTC).
+# PR sticky comments retired with the ultra-minimal CI cut — re-enable by
+# restoring `pull_request` triggers if needed.
 name: Code Review Graph
 
 on:
-  pull_request:
+  schedule:
+    - cron: '0 2 * * *' # 02:00 UTC — with Nightly bundle
+  workflow_dispatch:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
-  review:
+  review-graph:
+    name: Detect changes + review context (nightly)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: tirth8205/code-review-graph@v2.3.7
+        with:
+          fetch-depth: 0
+      - name: Run code-review-graph review
+        uses: tirth8205/code-review-graph@v2.3.8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment: 'false'
+          fail-on-risk: none

@@ -27,6 +27,8 @@
 
 [![CI](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/ci.yml)
 [![Nightly](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/nightly.yml?branch=main&label=Nightly&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/nightly.yml)
+[![Supply chain](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/supply-chain.yml?branch=main&label=Supply%20chain&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/supply-chain.yml)
+[![Mutation](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/mutation.yml?branch=main&label=Mutation&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/mutation.yml)
 [![Code Review Graph](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/code-review-graph.yml?branch=main&label=Code+Review+Graph&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/code-review-graph.yml)
 [![security status](https://www.meterian.com/badge/gh/neomatrix369/rag-params-finder/security)](https://www.meterian.com/report/gh/neomatrix369/rag-params-finder)
 [![stability status](https://www.meterian.com/badge/gh/neomatrix369/rag-params-finder/stability)](https://www.meterian.com/report/gh/neomatrix369/rag-params-finder)
@@ -119,7 +121,7 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-CO
 
 Run all gates before committing. All must pass with zero regressions.
 
-**CI jobs** (`.github/workflows/ci.yml`): `repo-lint`, `backend`, `frontend`, `secrets`, `dependency-audit`, `docker-build`, `license-check`, `container-scan` (eight jobs, path-filtered). Nightly T4 checks in `.github/workflows/nightly.yml` use **three cadence buckets** (also `workflow_dispatch` runs all): **A** daily 02:00 UTC — tests/coverage snapshots, complexity, TruffleHog full, dependency-audit, full-secrets-scan; **B** Mondays 02:00 UTC — SBOM/CycloneDX + Trivy license, Meterian OSS SCA, container scan, Chalk; **C** 1st+15th 02:00 UTC — mutmut + Stryker. Node Stryker mutate scope = `frontend/src/{utils,services,hooks}` only (Slice 44 Residual §4 / #163).
+**CI jobs** (`.github/workflows/ci.yml` — ultra-minimal PR/push): `repo-lint`, `backend` (unit tier), `frontend`, `secrets` (diff-only), `dependency-audit` (lockfile-gated). Heavy work is split across scheduled workflows (quine-factory cadence): **A** `nightly.yml` daily 02:00 UTC — coverage snapshots, complexity, live Postgres/Mongo integration, Docker build matrix, TruffleHog + gitleaks full, dep-audit; **B** `supply-chain.yml` Mondays 03:00 UTC — SBOM, Trivy licenses, Meterian, container scan, Chalk; **C** `mutation.yml` 1st+15th 02:00 UTC — mutmut + Stryker. Node Stryker mutate scope = `frontend/src/{utils,services,hooks}` only (Slice 44 Residual §4 / #163).
 
 | Layer | Tools |
 |-------|--------|
@@ -128,10 +130,10 @@ Run all gates before committing. All must pass with zero regressions.
 | Frontend | Vitest + React Testing Library, eslint, tsc, build, npm audit |
 | Secrets | gitleaks |
 
-**One command (mirrors CI exactly):**
+**One command (mirrors PR `ci.yml` unit path):**
 
 ```bash
-./scripts/ci/quality-gates.sh              # full CI mirror (default)
+./scripts/ci/quality-gates.sh              # PR CI mirror (default)
 ./scripts/ci/quality-gates.sh --quick      # fast local subset (pytest no coverage, no scoped SCA/audit)
 ./scripts/ci/pre-push-gates.sh             # push-specific gates only (pytest+cov, vite build, vitest, audits)
 ./scripts/ci/quality-gates.sh --full       # CI mirror + local gitleaks + pre-commit all-files
@@ -141,7 +143,7 @@ Prefer `scripts/{ci,docker,release,security}/` paths above. Flat `scripts/*.sh` 
 
 Backend pytest in those scripts is the **unit tier**: it ignores live Mongo/Postgres suites
 (`tests/contract/`, `tests/server/db/test_postgres_*.py`) and uses `-m "not integration"`. Live DB
-coverage runs in dedicated CI jobs (`postgres-integration`, `mongo-integration`).
+coverage runs in nightly jobs (`postgres-integration`, `mongo-integration` in `nightly.yml`).
 The unit tier must stay green with `MONGODB_URI` / `DATABASE_URL` unset (as on CI): factory
 tests supply a dummy URI when they exercise `ensure_storage_ready()`, and API detail tests
 must not open a storage backend when run rows are already on the payload.
@@ -177,7 +179,7 @@ uv run pytest --tb=short -q \
 bash scripts/ci/pip-audit.sh
 ```
 
-**SCA suppressions** (congruent-lock blockers only — each entry documents blocker, compensating control, unblock): root [`.meterian`](../../.meterian) (Meterian nightly + local `scripts/security/security-scan.sh --meterian`) · [`.trivyignore`](../../.trivyignore) (Trivy image/container) · [`scripts/ci/pip-audit.sh`](../../scripts/ci/pip-audit.sh) ignores. Deferred unblock work: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) § Deferred Work.
+**SCA suppressions** (congruent-lock blockers only — each entry documents blocker, compensating control, unblock): root [`.meterian`](../../.meterian) (Meterian weekly `supply-chain.yml` + local `scripts/security/security-scan.sh --meterian`) · [`.trivyignore`](../../.trivyignore) (Trivy image/container) · [`scripts/ci/pip-audit.sh`](../../scripts/ci/pip-audit.sh) ignores. Deferred unblock work: [`docs/plan/TRAIL.md`](../plan/TRAIL.md) § Deferred Work.
 
 **Baseline (as of 2026-07-28)** — unit tier, same ignores as CI `backend`:
 - `ruff check .` → 0 errors
@@ -306,10 +308,10 @@ failures when no database URI is configured.
 | `test_store_factory.py` / `test_mongo_store_acceptance.py` | Factory routing (dummy URI) + mocked Mongo acceptance |
 | `test_experiments_api_bayesian.py` | Bayesian detail/summary without opening a live backend |
 
-**Live integration tier** (`pytest.mark.integration` — dedicated CI jobs only):
+**Live integration tier** (`pytest.mark.integration` — nightly jobs only):
 
-| Suite | CI job | Needs |
-|-------|--------|--------|
+| Suite | Nightly job (`nightly.yml`) | Needs |
+|-------|-----------------------------|--------|
 | `tests/server/db/test_postgres_store_integration.py` | `postgres-integration` | pgvector on `:5433`; `RAG_REQUIRE_POSTGRES=1` |
 | `tests/server/db/test_postgres_dense_retrieval.py` | same | ≥95% branch coverage on `retriever_postgres` |
 | `tests/server/db/test_postgres_sparse_hybrid.py` | same | sparse + hybrid + failure-path coverage |
@@ -377,7 +379,7 @@ rag-params-finder/
 │   ├── plan/slices/     # Theme folders 01–07 + PROGRESS.md (flat status SSOT) + README index
 │   ├── _internal/       # Gap tracker, audits, Graphiti exports
 │   └── README.md        # Documentation index (doc map)
-└── .github/workflows/   # CI (see § CI — repo-lint, backend, frontend, secrets)
+└── .github/workflows/   # PR ci.yml + nightly / supply-chain / mutation / code-review-graph (see § CI)
 ```
 
 ---
@@ -420,34 +422,30 @@ Record every non-obvious choice in `docs/plan/slices/PROGRESS.md` → Decision L
 
 ## 🔄 CI
 
-GitHub Actions has two workflows (see `.github/workflows/`):
+GitHub Actions splits PR gates from expensive scheduled work (see `.github/workflows/`):
 
-**ci.yml** — runs on every push and PR to `main` (path-filtered, eight jobs):
+**ci.yml** — push/PR to `main` only (path-filtered essentials; no daily schedule):
 
 | Job | Steps |
 |-----|--------|
 | **Repo lint** | `pre-commit run shellcheck` → `actionlint` → `markdownlint` (all files) |
-| **Backend (Python)** | `ruff` → `mypy` → `bandit` → **unit-tier** `pytest` + `fail_under=95` + `check_backend_coverage_floors.py` (live DB suites ignored) |
-| **Postgres integration** | Live pgvector CRUD/dense/sparse/hybrid + contract (postgres param); `RAG_REQUIRE_POSTGRES=1`; ≥95% `retriever_postgres` |
-| **Mongo integration** | Live Atlas Local StorageBackend contract (mongo param); `RAG_REQUIRE_MONGO=1` |
-| **Frontend (Node.js)** | `npm run lint` → `npm run test:ci` (v8 coverage + thresholds) → `npm run typecheck` → `npm run build` |
+| **Backend (Python)** | `ruff` → `mypy` → `bandit` → xenon → **unit-tier** `pytest` + floors (live DB suites ignored) |
+| **Frontend (Node.js)** | `npm run lint` → `npm run test:ci` → `npm run typecheck` → `npm run build` |
 | **Secrets** | `gitleaks` diff-only scan |
-| **Dependency audit** | `pip-audit` (backend) + `npm audit` (frontend); lockfile-gated, PR-only |
-| **Docker build** | Build-only matrix (server + frontend prod + frontend dev Dockerfiles); non-blocking; GHA layer cache |
-| **License check** | Trivy fs scan — blocks on HIGH/CRITICAL licenses; fires on deps changes |
-| **Container scan** | Trivy CVE scan of built server image — HIGH/CRITICAL; non-blocking; fires on Docker/backend/frontend changes |
+| **Dependency audit** | `pip-audit` + `npm audit`; lockfile-gated, PR-only |
 
-**nightly.yml** — T4 deep checks in three cadence buckets (`workflow_dispatch` runs all). Job `if:` compares `github.event.schedule` to the exact cron string.
+**Scheduled workflows** (separate files — quine-factory cadence):
 
-| Bucket | Cron (02:00 UTC) | Jobs |
-|--------|------------------|------|
-| **A — Light T4** | daily `0 2 * * *` | `nightly-tests-python` · `nightly-tests-node` · `nightly-complexity` · `trufflehog-full` · `dependency-audit` · `full-secrets-scan` |
-| **B — Supply chain** | Mondays `0 2 * * 1` | `sbom` (CycloneDX + Trivy license) · **Meterian** OSS SCA (`oss: true`; archives `meterian-<run>`; exclusions in [`.meterian`](../../.meterian); Trivy image parity [`.trivyignore`](../../.trivyignore)) · `container-scan` (Dockerfile-gated) · `chalk` |
-| **C — Mutation** | 1st + 15th `0 2 1,15 * *` | `mutation-tests-python` (mutmut, advisory `continue-on-error`) · `mutation-tests-node` (Stryker) |
+| Workflow | Cron | Jobs |
+|----------|------|------|
+| **A — `nightly.yml`** | daily `0 2 * * *` | unit/cov snapshots · complexity · **postgres-integration** · **mongo-integration** · **docker-build** · TruffleHog full · dep-audit · gitleaks full |
+| **B — `supply-chain.yml`** | Mondays `0 3 * * 1` | `sbom` (CycloneDX + Trivy license) · **Meterian** OSS SCA (`oss: true`; archives `meterian-<run>`; exclusions in [`.meterian`](../../.meterian); Trivy image parity [`.trivyignore`](../../.trivyignore)) · `container-scan` · `chalk` |
+| **C — `mutation.yml`** | 1st + 15th `0 2 1,15 * *` | `mutation-tests-python` (mutmut, advisory) · `mutation-tests-node` (Stryker) |
+| **D — `code-review-graph.yml`** | daily `0 2 * * *` | graph review (`fail-on-risk: none`; no PR comments) |
 
-**Nightly Stryker (Node) — mutate scope (Slice 44 §4 / DECISIONS #163):** `frontend/stryker.config.js` mutates only `src/utils/**/*.ts`, `src/services/**/*.ts`, and `src/hooks/**/*.ts` (screens/components/chrome out of scope). Also: `ignoreStatic`, `excludedMutations: ['StringLiteral']`, `concurrency: 4`, `progress` reporter; packages pinned at `@stryker-mutator/{core,vitest-runner}@9.6.1`; job `timeout-minutes: 90`. Local dry-run: **9 files / 868 mutants** (was ~3770 full-tree). Bucket **C** / `workflow_dispatch` finish + `mutation-node-*` artifact still needs a green run URL for **VERIFIED**.
+**Stryker (Node) — mutate scope (Slice 44 §4 / DECISIONS #163):** `frontend/stryker.config.js` mutates only `src/utils/**/*.ts`, `src/services/**/*.ts`, and `src/hooks/**/*.ts` (screens/components/chrome out of scope). Also: `ignoreStatic`, `excludedMutations: ['StringLiteral']`, `concurrency: 4`, `progress` reporter; packages pinned at `@stryker-mutator/{core,vitest-runner}@9.6.1`; job `timeout-minutes: 90`. Local dry-run: **9 files / 868 mutants** (was ~3770 full-tree). `mutation.yml` / `workflow_dispatch` finish + `mutation-node-*` artifact still needs a green run URL for **VERIFIED**.
 
-Local `./scripts/security/security-scan.sh --meterian` still uses the Docker CLI path and remains token-gated (`METERIAN_API_TOKEN`) — that is separate from the nightly GHA OSS job. Both paths honor `.meterian` when the file is present at the repo root.
+Local `./scripts/security/security-scan.sh --meterian` still uses the Docker CLI path and remains token-gated (`METERIAN_API_TOKEN`) — that is separate from the weekly GHA OSS job. Both paths honor `.meterian` when the file is present at the repo root.
 
 Dependabot opens weekly PRs for pip, npm, and GitHub Actions (`.github/dependabot.yml`).
 

@@ -31,7 +31,7 @@ uv run mypy server/ cli/
 # Tests
 uv run pytest --tb=short -q
 
-# All quality gates (mirrors CI — repo lint + backend + frontend + audits)
+# All quality gates (mirrors PR ci.yml — repo lint + backend + frontend + audits)
 ./scripts/ci/quality-gates.sh
 bash scripts/ci/repo-lint.sh   # shell + workflows + Markdown only
 ```
@@ -100,7 +100,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `scripts/ci/` | Quality gates, repo lint, hooks install, pip-audit, coverage floor + threshold-drift checkers |
 | `scripts/ci/complexity-report.sh` | Radon (Python) + ESLint (TS/JS) complexity evidence; writes `.reports/complexity/pr-body.md` |
 | `scripts/ci/write_complexity_summary.py` | Renders anchored complexity PR-body section from Radon + ESLint JSON |
-| `scripts/ci/security-scan.sh` | Shim delegating to `scripts/security/security-scan.sh` (used by nightly CI) |
+| `scripts/ci/security-scan.sh` | Shim delegating to `scripts/security/security-scan.sh` (local SCA/SAST; GHA inlines scanners in `nightly.yml` / `supply-chain.yml`) |
 | `scripts/docker/` | health-check, aim-ui, docker-cleanup/build-context |
 | `scripts/release/` | `release.sh` + bump/GitHub helpers |
 | `scripts/security/` | `security-scan.sh` |
@@ -232,7 +232,7 @@ Record every non-obvious choice in `docs/plan/slices/PROGRESS.md` → Decision L
 
 ### Verify-all commands (run before each commit)
 ```bash
-# One command — mirrors CI (repo lint is step 1; unit-tier pytest only)
+# One command — mirrors PR ci.yml (repo lint is step 1; unit-tier pytest only)
 ./scripts/ci/quality-gates.sh
 
 # Repo lint only (shell + workflows + Markdown)
@@ -265,7 +265,9 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 
 ## Quality Gates Baseline
 
-**Unified script:** `./scripts/ci/quality-gates.sh` (mirrors CI — 12 steps including repo lint + xenon)
+**Unified script:** `./scripts/ci/quality-gates.sh` (mirrors **PR** `ci.yml` — unit lint/test/audit path; 12 steps including repo lint + xenon). Does **not** run live Postgres/Mongo integration, Docker matrix, weekly supply-chain, or biweekly mutation — those are scheduled workflows (see `docs/contributor-guide/development.md` § CI).
+
+**GHA cadence (2026-09-11 — quine-factory pattern):** ultra-minimal PR `ci.yml`; daily `nightly.yml` (02:00 UTC, includes deferred live DB + docker-build); weekly `supply-chain.yml` (Mon 03:00); biweekly `mutation.yml` (1st+15th); `code-review-graph.yml` on nightly schedule only.
 
 **Git hooks** (after `bash scripts/ci/install-git-hooks.sh`):
 - **commit** → pre-commit (hygiene, gitleaks, repo lint, ruff, dmypy, bandit, eslint, tsc --noEmit, testmon fast-tests on changed modules)

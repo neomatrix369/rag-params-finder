@@ -18,6 +18,8 @@
 
 [![CI](https://github.com/neomatrix369/rag-params-finder/actions/workflows/ci.yml/badge.svg)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/ci.yml)
 [![Nightly](https://github.com/neomatrix369/rag-params-finder/actions/workflows/nightly.yml/badge.svg)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/nightly.yml)
+[![Supply chain](https://github.com/neomatrix369/rag-params-finder/actions/workflows/supply-chain.yml/badge.svg)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/supply-chain.yml)
+[![Mutation](https://github.com/neomatrix369/rag-params-finder/actions/workflows/mutation.yml/badge.svg)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/mutation.yml)
 [![Complexity](https://github.com/neomatrix369/rag-params-finder/actions/workflows/complexity-report.yml/badge.svg)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/complexity-report.yml)
 <!-- coverage: add CODECOV_TOKEN to GitHub Secrets, then uncomment: -->
 <!-- [![Coverage](https://codecov.io/gh/neomatrix369/rag-params-finder/branch/main/graph/badge.svg)](https://codecov.io/gh/neomatrix369/rag-params-finder) -->

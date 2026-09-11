@@ -1,0 +1,129 @@
+name: Supply chain
+
+# Bundle B — Supply chain
+# Cadence: weekly Mon 03:00 UTC (+ workflow_dispatch)
+# Jobs: SBOM (CycloneDX) · Trivy license HIGH/CRITICAL · Meterian OSS SCA ·
+#       container CVE scan · Chalk provenance
+# Sibling workflows:
+#   A nightly.yml  — daily 02:00 UTC       — unit/cov · live DB · docker-build · secrets
+#   C mutation.yml — 1st+15th 02:00 UTC    — mutmut + Stryker (advisory)
+on:
+  schedule:
+    - cron: '0 3 * * 1' # 03:00 UTC Monday
+  workflow_dispatch:
+
+jobs:
+  sbom:
+    name: SBOM + license compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: anchore/sbom-action@v0.24.0
+        with:
+          format: cyclonedx-json
+          output-file: sbom.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: sbom-${{ github.run_number }}
+          path: sbom.json
+          retention-days: 90
+          if-no-files-found: warn
+      - name: License compliance (trivy) — block on HIGH/CRITICAL
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          exit-code: "1"
+          format: table
+          scanners: license
+          severity: HIGH,CRITICAL
+
+  # Stack: Python 3.12 (pyproject.toml + uv.lock) + Node/React (frontend/package-lock.json).
+  # Docs: https://docs.meterian.io/the-client/command-line-parameters/selecting-scanners.md
+  # Exclusions: root `.meterian` (CVE/library waivers; Trivy parity — see that file + .trivyignore).
+  meterian:
+    name: Meterian SCA + license
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Prepare Meterian report directory
+        run: mkdir -p meterian-reports
+      - name: Meterian Scanner
+        uses: MeterianHQ/meterian-github-action@v1.0.17
+        with:
+          oss: true
+          cli_args: >-
+            --min-security=95
+            --min-licensing=95
+            --enabled-scanners=python,nodejs
+            --scan-python=true
+            --scan-nodejs=true
+            --scan-java=false
+            --exclude-folders=.venv,frontend/node_modules,frontend/dist,.aim,.pytest_cache,.mypy_cache,.ruff_cache,htmlcov,.tox
+            --report-console=nocolor,security,licensing
+            --report-file=meterian-reports/report.html
+            --report-junit=meterian-reports/report.xml
+            --report-sarif=meterian-reports/report.sarif
+            --report-sbom=meterian-reports/sbom.cdx.json,meterian-reports/sbom.csv
+      - name: Upload Meterian reports
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: meterian-${{ github.run_number }}
+          path: meterian-reports/
+          retention-days: 90
+          if-no-files-found: warn
+
+  container-scan:
+    name: Container scan (Trivy image)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check for Dockerfile
+        id: check
+        run: echo "exists=$(test -f docker/server.Dockerfile && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Build image
+        if: steps.check.outputs.exists == 'true'
+        run: docker build -f docker/server.Dockerfile -t scan-target:${{ github.sha }} .
+      - name: Scan image
+        if: steps.check.outputs.exists == 'true'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: scan-target:${{ github.sha }}
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+          format: table
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+
+  chalk:
+    name: Chalk (provenance + attestation)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write # required for Sigstore keyless signing
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Set up Chalk
+        uses: crashappsec/setup-chalk-action@v0.0.3
+      - name: Chalk mark source artifacts
+        run: |
+          chalk insert server/ cli/ scripts/
+      - name: Chalk wrap Docker build (server image)
+        if: hashFiles('docker/server.Dockerfile') != ''
+        run: |
+          chalk docker build -f docker/server.Dockerfile -t chalk-attested-server:${{ github.sha }} .
+      - name: Upload Chalk report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: chalk-report-${{ github.run_number }}
+          path: ~/.local/chalk/chalk.log
+          retention-days: 90
+          if-no-files-found: warn
