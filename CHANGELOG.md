@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`scripts/lib/storage_mode.sh` aborts on macOS Bash 3.2 under `set -u`** — bare-start mode resolution (no `--<db>-<location>` flag) expanded an empty `selected` array, which `/bin/bash` 3.2 treats as unbound; 3 `test_storage_mode_resolve.py` tests failed locally on macOS while CI (Bash 5) passed. Now uses the portable `${arr[@]+"${arr[@]}"}` guard; a static regression test checks every `scripts/lib/*.sh` so CI catches reintroduction (**IMPLEMENTED**; **VERIFIED** 28/28 under Bash 3.2.57 and 5.3.3, full unit tier 470 passed). `start-services.sh` itself was unaffected (no `set -u`).
+
 - **Vitest screen-suite flakes under coverage** — raise `testTimeout`/`hookTimeout` to 20s; restore real timers in `frontend/src/test/setup.ts` after every test; tolerate list-poll races on post-delete `getExperiments` call counts (DECISIONS #185) (**IMPLEMENTED**; full `npm run test:ci` **VERIFIED** 264/264).
 
 - **`embed_documents_voyage` empty-input crash** — `IndexError` on `all_embeddings[0]` when all batches returned empty; now guards with `dim = len(all_embeddings[0]) if all_embeddings else 0` (**IMPLEMENTED**; 1 regression test **VERIFIED**).

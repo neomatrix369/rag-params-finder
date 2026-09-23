@@ -133,7 +133,7 @@ resolve_stack_mode() {
   # Deduplicate while preserving order
   local unique=()
   local token
-  for token in "${selected[@]}"; do
+  for token in "${selected[@]+"${selected[@]}"}"; do
     local seen=0
     local u
     for u in "${unique[@]+"${unique[@]}"}"; do

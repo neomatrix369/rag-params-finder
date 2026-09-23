@@ -7,6 +7,7 @@ Scope: start-services mode resolver (engine × location) — scripts/lib/storage
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -544,3 +545,43 @@ ensure_stack_mode_env
     assert result.returncode == 1
     assert "placeholder" in result.stderr.lower() or "<project-ref>" in result.stderr
     assert "DATABASE_URL" in result.stderr or "SUPABASE_URI" in result.stderr
+
+
+# Bash 3.2 (macOS /bin/bash) treats "${arr[@]}" on an empty array as unbound under
+# `set -u`; Bash >=4.4 (CI) does not. Only the guarded form is portable.
+_GUARDED_ARRAY_EXPANSION = re.compile(r'\$\{(\w+)\[@\]\+"\$\{\1\[@\]\}"\}')
+_BARE_ARRAY_EXPANSION = re.compile(r'"\$\{\w+\[@\]\}"')
+
+
+def _unguarded_array_expansions(source: str) -> list[str]:
+    """Lines expanding "${arr[@]}" outside the ${arr[@]+"${arr[@]}"} guard."""
+    return [
+        f"{lineno}: {line.strip()}"
+        for lineno, line in enumerate(source.splitlines(), start=1)
+        if _BARE_ARRAY_EXPANSION.search(_GUARDED_ARRAY_EXPANSION.sub("", line))
+    ]
+
+
+@pytest.mark.parametrize(
+    "lib",
+    sorted((_REPO / "scripts" / "lib").glob("*.sh")),
+    ids=lambda p: p.name,
+)
+def test_sourced_libs_use_bash32_safe_array_expansion(lib: Path) -> None:
+    """
+    Scenario: Sourced shell libraries stay safe for `set -u` callers on Bash 3.2.
+    Slice: fix/storage-mode-bash32-empty-array
+
+    Given a library under scripts/lib/ that callers source with `set -euo pipefail`
+    When its array expansions are inspected
+    Then every "${arr[@]}" uses the ${arr[@]+"${arr[@]}"} guard, so an empty
+    array cannot abort on macOS /bin/bash 3.2 even though CI runs Bash 5.
+    """
+    ### Given
+    source = lib.read_text(encoding="utf-8")
+
+    ### When
+    offenders = _unguarded_array_expansions(source)
+
+    ### Then
+    assert offenders == [], f"{lib.name}: unguarded array expansion(s): {offenders}"

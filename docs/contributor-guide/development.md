@@ -243,6 +243,8 @@ pre-commit run markdownlint --all-files
 
 Runs in CI (`repo-lint` job), `./scripts/ci/quality-gates.sh`, and pre-commit.
 
+**Sourced shell libraries (`scripts/lib/*.sh`) must stay Bash 3.2-safe.** Callers and tests source them under `set -euo pipefail`, and macOS `/bin/bash` 3.2 treats `"${arr[@]}"` on an empty array as an unbound variable (Bash ≥4.4 in CI does not). Expand arrays as `${arr[@]+"${arr[@]}"}`; `${#arr[@]}` is already safe. Shellcheck does not flag this, so `test_sourced_libs_use_bash32_safe_array_expansion` in `tests/server/db/test_storage_mode_resolve.py` scans every `scripts/lib/*.sh` and fails on an unguarded expansion.
+
 ### Git hooks (commit + push)
 
 ```bash
