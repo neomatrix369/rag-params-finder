@@ -2,7 +2,7 @@
 
 **MoSCoW:** MUST
 **Target time:** ~3–4 h
-**Status:** 🔨 IN PROGRESS (implementation on branch; craft remediation → [Slice 32C](SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md); verification gates → [Slice 32B](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md))
+**Status:** ✅ COMPLETE (code) — on `main` since 2026-07-28 (`2eb2990`); gate evidence `PENDING_VERIFICATION` (DECISIONS #186). Open gate debt: craft remediation → [Slice 32C](SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md); verification gates → [Slice 32B](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md))
 **Depends on:** none
 **Unblocks:** Slice 32C (review remediation) → Slice 32B (gate closure) → Slice 33
 **PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../../PRD-supabase-pgvector-migration.md)

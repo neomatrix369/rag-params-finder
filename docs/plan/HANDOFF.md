@@ -2,6 +2,8 @@
 > **Snapshot date:** 2026-07-29. Use [`slices/PROGRESS.md`](slices/PROGRESS.md) as current status SSOT. Gate evidence under [`gate-evidence/`](gate-evidence/) overrides narrative claims here when they disagree.
 >
 > **2026-09-11 note (docs/CI only):** GHA cadence split landed on `ci/quine-factory-cadence-split` — ultra-minimal PR `ci.yml`; live DB + Docker on daily `nightly.yml`; Meterian/SBOM/container/Chalk on weekly `supply-chain.yml`; mutmut/Stryker on biweekly `mutation.yml`. Mutation “waived to nightly” rows below mean **scheduled deep checks**, not the PR merge gate — see PROGRESS maintenance 2026-09-11.
+>
+> **2026-09-23 note (plan reconcile):** Slices **32/33** are now tracked **✅ COMPLETE (code)** — code on `main` since 2026-07-28 (`2eb2990`). Formal gate debt is scoped to **32C → 32B**; `gate-evidence/slice-{32,33}.json` are `PENDING_VERIFICATION`. Slices **46/47** are listed in TRAIL. See DECISIONS #186–#187.
 
 ## Where We Are
 
@@ -24,7 +26,7 @@
 
 1. Confirm create-pr draft (`yes`) and merge `slice/22-sie-scooter`; optional live SIE smoke of sweep → best-config
 2. Confirm Slice **44 Residual §4** Nightly `mutation-node-*` artifact (**VERIFIED** run URL)
-3. Formal gate-closure debt **32 / 32B / 32C / 33** if prioritized
+3. Formal gate-closure debt **32C → 32B** (covers 32/33 evidence) if prioritized · craft slices **46** (backend coverage) / **47** (xenon B/A/A)
 4. Slice **28** (external — @cschanhniem / #49) · forward Could/Should per [`PROGRESS.md`](slices/PROGRESS.md)
 
 ## Key decisions locked

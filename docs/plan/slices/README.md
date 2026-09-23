@@ -14,7 +14,7 @@
 | 04 | [`04-sie/`](04-sie/) | SIE skateboard → bicycle | 21–23 |
 | 05 | [`05-storage/`](05-storage/) | Ports → Postgres cutover + Mongo residuals | 19, 26–27, 32–38, 43 |
 | 06 | [`06-bayesian/`](06-bayesian/) | Optuna track | 41A–C |
-| 07 | [`07-quality-craft/`](07-quality-craft/) | Docs SSOT + coverage floors + module themes | 40, 44–45 |
+| 07 | [`07-quality-craft/`](07-quality-craft/) | Docs SSOT + coverage floors + module themes | 40, 44–47 |
 
 ## Boundary
 
