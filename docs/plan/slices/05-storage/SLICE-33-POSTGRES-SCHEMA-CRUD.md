@@ -2,7 +2,7 @@
 
 **MoSCoW:** MUST
 **Target time:** ~4–6 h
-**Status:** 🔨 IN PROGRESS
+**Status:** ✅ COMPLETE (code) — on `main` since 2026-07-28 (`2eb2990`); gate evidence `PENDING_VERIFICATION`; formal gate closure → [Slice 32C](SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md) → [Slice 32B](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) (DECISIONS #179, #186)
 **Depends on:** 32B
 **PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../../PRD-supabase-pgvector-migration.md)
 

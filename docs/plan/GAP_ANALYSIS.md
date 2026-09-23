@@ -45,7 +45,7 @@ Canonical build status: [docs/plan/slices/PROGRESS.md](../plan/slices/PROGRESS.m
 | Ollama + Tier 2–3 | HyDE, Multi-Query, etc. | None | Full retrieval tier expansion | Could | Slice 23 |
 | Evidently AI monitoring | Drift alerts | None | Integration | Could | Slice 23 |
 | MCP server | `get_rag_config` tool | None | **Won't this cycle** — use best-config HTTP | Won't | — |
-| Formal Protocol gate closure | Tracker COMPLETE for 32/32C/32B/33 | Protocol **IMPLEMENTED** on main; 38 ✅ | Coverage/mutation/nw-review close-out | Should (parallel) | 32B chain |
+| Formal Protocol gate closure | Gate evidence PASSED for 32/33 | 32/33 code **IMPLEMENTED** on main (`2eb2990`) — tracker ✅ COMPLETE (code); `slice-{32,33}.json` PENDING_VERIFICATION (#186) | Coverage/mutation/nw-review close-out | Should (parallel) | 32C → 32B |
 | Live SIE smoke (Slice 22 After-Check) | Manual sweep → best-config on real gateway | Unit/mocked path **VERIFIED** | Optional operator probe | Could | post-merge |
 
 ---
