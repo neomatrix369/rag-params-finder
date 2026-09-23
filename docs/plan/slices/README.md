@@ -15,6 +15,7 @@
 | 05 | [`05-storage/`](05-storage/) | Ports → Postgres cutover + Mongo residuals | 19, 26–27, 32–38, 43 |
 | 06 | [`06-bayesian/`](06-bayesian/) | Optuna track | 41A–C |
 | 07 | [`07-quality-craft/`](07-quality-craft/) | Docs SSOT + coverage floors + module themes | 40, 44–47 |
+| 08 | [`08-embedding-providers/`](08-embedding-providers/) | New embedding providers + provider-agnostic sweep axes (DoubleWord) | 48A–C |
 
 ## Boundary
 

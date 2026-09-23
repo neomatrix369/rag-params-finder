@@ -66,6 +66,8 @@ Recovery should **reuse the same `run_id`** for a retried run so dashboards, URL
 
 ---
 
+> **Remaining-scope addition (2026-09-24, DECISIONS #195):** when `RECOVER_ON_BOOT=true`, resume polling in-flight DoubleWord batches from the Slice 48B checkpoint store (`.rpf_state/doubleword_batches.json`) instead of marking their experiments `partial`. 48B ships resume-on-resubmit; the boot hook lives here. Only applies once 48B ✅.
+
 ## Files Likely Touched *(when implemented)*
 
 | File | Change |

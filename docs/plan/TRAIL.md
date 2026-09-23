@@ -5,6 +5,7 @@
 
 - **PCTO Spec** (`docs/PCTO-rag-params-finder-2026-06-27.md`): Add SIE as primary open-source inference backend (encode + score + extract), caller-supplied corpus (`corpus: list[str]` field on `SweepRequest`), Aim for experiment tracking, and two new API endpoints (`POST /api/v1/sweep`, `GET /api/v1/best-config`)
 - **Supabase migration PRD** (`docs/plan/PRD-supabase-pgvector-migration.md`, 2026-07-09): Dual-backend storage Protocol; Postgres/pgvector + Supabase as first-class engine alongside Mongo (code default stays `mongodb` — #130 Won't flip)
+- **DoubleWord embedder brief** (`docs/plan/BRIEF-doubleword-embedder.md`, 2026-09-24): owner plan titled "SLICE-32" → renumbered **48A/48B/48C** (32 taken by the Storage Protocol track); realtime provider + mixed-provider axis → batch/cache/pre-embed/cost → MRL/instruction axes (DECISIONS #188–#197)
 - **Codebase** (v0.11.0, 20+ slices complete): Mature Voyage AI + local sentence-transformers RAG sweep pipeline, MongoDB Atlas, FastAPI, React dashboard, Docker, full CI toolchain
 - **Constraints**: Hackathon deadline — Slice 21 targets Days 1–5; Voyage AI stays as numeric baseline (not replaced); PCTO changes remain additive; **Slice 39 is a ≤2 h demo interrupt, then storage migration resumes ahead of Slice 22** (2026-07-18)
 
@@ -143,6 +144,9 @@ Each PCTO / migration slice lives in its own file below. Specs live under `docs/
 | 41B | [../plan/slices/06-bayesian/SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md](../plan/slices/06-bayesian/SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) | Bayesian Search: Advanced (parallelism, categorical axes, persistence, random search) | Could | 📦 PARKED | 41A + owner data | — | ~4–6 h | 2026-07-22 |
 | 42 | [../plan/slices/03-platform/SLICE-42-DOCKER-BUILD-OPTIMISATION.md](../plan/slices/03-platform/SLICE-42-DOCKER-BUILD-OPTIMISATION.md) | Docker Build Optimisation — multi-stage, BuildKit cache mounts, CI job | Should | ✅ COMPLETE | none | — | ~2.5 h | 2026-07-25 |
 | 46 | [../plan/slices/07-quality-craft/SLICE-46-BACKEND-COVERAGE-85.md](../plan/slices/07-quality-craft/SLICE-46-BACKEND-COVERAGE-85.md) | Backend coverage 70.1% → 80–85% (FastAPI TestClient, Typer CliRunner, orchestrator branching) | Should | 📋 PLANNED | none | — | ~3–4 h | 2026-09-23 |
+| 48A | [../plan/slices/08-embedding-providers/SLICE-48A-DOUBLEWORD-REALTIME-PROVIDER.md](../plan/slices/08-embedding-providers/SLICE-48A-DOUBLEWORD-REALTIME-PROVIDER.md) | Mixed-provider embedding axis + DoubleWord Qwen3-Embedding-8B realtime provider (skateboard) | Must | 📋 PLANNED | none | — | ~4 min | 2026-09-24 |
+| 48B | [../plan/slices/08-embedding-providers/SLICE-48B-DOUBLEWORD-BATCH-CACHE-PREEMBED.md](../plan/slices/08-embedding-providers/SLICE-48B-DOUBLEWORD-BATCH-CACHE-PREEMBED.md) | DoubleWord batch + shared embedding cache + pre-embed (grid & Bayesian) + cost capture | Must | 📋 PLANNED | 48A (soft: 47) | — | ~5 min | 2026-09-24 |
+| 48C | [../plan/slices/08-embedding-providers/SLICE-48C-DOUBLEWORD-MRL-INSTRUCTION-AXES.md](../plan/slices/08-embedding-providers/SLICE-48C-DOUBLEWORD-MRL-INSTRUCTION-AXES.md) | MRL `dimensions` + `query_instruction` sweep axes | Should | 📋 PLANNED | 48B | — | ~3 min | 2026-09-24 |
 | 47 | [../plan/slices/07-quality-craft/SLICE-47-COMPLEXITY-TIGHTEN.md](../plan/slices/07-quality-craft/SLICE-47-COMPLEXITY-TIGHTEN.md) | Xenon complexity E/C/C → B/A/A (orchestrator CC=40, experiments_lifecycle CC=32) | Should | 📋 PLANNED | none | — | ~2–3 h | 2026-09-23 |
 
 **Execution order**: 21 → 25 → 25B → 29 (done) → **39** *(≤2 h demo interrupt)* → **⭐ 32 → 32C → 32B → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10. Slices 40, 41A, and 42 are independent housekeeping/optimisation slices and can run at any time without blocking the Supabase migration sequence.
@@ -150,6 +154,10 @@ Each PCTO / migration slice lives in its own file below. Specs live under `docs/
 *Deferred Mongo QoL: 26, 19 — re-scope after cutover. Slice 27 scope absorbed into 36 as four-value `storage_mode` (`mongodb|postgres` × `local|cloud`).*
 
 > **Reconcile 2026-09-23 (audit_reconcile):** Slices **32** (Storage Protocol) and **33** (Postgres schema+CRUD) code is fully on `main` since 2026-07-28 (`2eb2990`) — every downstream slice (34–38, 22) that depends on them is already ✅ COMPLETE. Their status is now **✅ COMPLETE (code)**; the remaining **formal gate closure** (coverage/mutation/nw-review sign-off + full gate-evidence schema) stays the open debt owned by slices **32C → 32B** per DECISIONS #179. Placeholder `gate-evidence/slice-32.json` / `slice-33.json` are `PENDING_VERIFICATION` — **not** PASS evidence. Slices **46/47** (genuinely open, code not started) added to the table above from PROGRESS. No code changes on `main` since 2026-09-11 (CI-cadence split, docs already synced). See DECISIONS #186–#187.
+
+**Embedding-provider track (2026-09-24):** **48A → 48B → 48C** — independent of the storage gate-debt (32C/32B) and the craft slices (46/47); can start any time. 48B soft-depends on 47 only for the pre-embed insertion point (never grow `_run_sweep_inner`). Automatic resume of in-flight DoubleWord batches on boot is appended to **Slice 10** remaining scope (reuse, not a new slice — #195). Brief: [`BRIEF-doubleword-embedder.md`](BRIEF-doubleword-embedder.md).
+
+**Slice 48 skill proposal (2026-09-24):** `/tdd` · `/verify-slice` · `/clean-commit` · `/sync-docs` · `/nw-execute` (primary) · `/divergence-check` (brief vs spec). Rules: `software-craft.mdc`, `test-writing-*.mdc`, `security.md` (outbound HTTP + secret), `git-github-best-practices.mdc`. No `/frontend-advisor` (badge/progress tweaks only). Model split unchanged. **harness-scout:** not re-run for this Add — 48A inherits the 2026-09-10 execution embed above; 48B must run fresh `detect_confirm` at slice start (external async integration) — degradation logged DECISIONS #197.
 
 **PCTO escape hatch (Slice 22):** If slices 32–36 slip **>2 days** past the PCTO deadline, start Slice 22 on Mongo via StorageBackend Protocol only (hard dep: 32 merged); budget ~30 min to re-port history queries when Slice 38 lands; retest on Supabase backend after 38.
 
@@ -224,3 +232,4 @@ Updated as each slice reaches Gate Status PASSED.
 | 2026-09-10 | nw-product-owner-reviewer (EFP final) | **APPROVED** | #179 hatch; 32C→32B order; 32C M2 docs-only; Slice 28/33 cites |
 | 2026-09-10 | nw-documentarist-reviewer (EFP final) | **APPROVED** | HANDOFF snapshot + gate-evidence hierarchy; Slice 22 PENDING_VERIFICATION honesty |
 | 2026-09-10 | nw-acceptance-designer-reviewer (EFP final) | **APPROVED** | Prior 10 error-path GWT blockers closed; 28/31 happy-path bias non-blocking |
+<!-- slice-48-reviews -->

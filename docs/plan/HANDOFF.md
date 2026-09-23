@@ -4,6 +4,8 @@
 > **2026-09-11 note (docs/CI only):** GHA cadence split landed on `ci/quine-factory-cadence-split` — ultra-minimal PR `ci.yml`; live DB + Docker on daily `nightly.yml`; Meterian/SBOM/container/Chalk on weekly `supply-chain.yml`; mutmut/Stryker on biweekly `mutation.yml`. Mutation “waived to nightly” rows below mean **scheduled deep checks**, not the PR merge gate — see PROGRESS maintenance 2026-09-11.
 >
 > **2026-09-23 note (plan reconcile):** Slices **32/33** are now tracked **✅ COMPLETE (code)** — code on `main` since 2026-07-28 (`2eb2990`). Formal gate debt is scoped to **32C → 32B**; `gate-evidence/slice-{32,33}.json` are `PENDING_VERIFICATION`. Slices **46/47** are listed in TRAIL. See DECISIONS #186–#187.
+>
+> **2026-09-24 note (plan Add — docs only):** New embedding-provider track **48A/48B/48C** (DoubleWord Qwen3-Embedding-8B) planned from the owner brief [`BRIEF-doubleword-embedder.md`](BRIEF-doubleword-embedder.md); specs under [`slices/08-embedding-providers/`](slices/08-embedding-providers/). Start at **48A** (T0 V-spike needs `DOUBLEWORD_API_KEY`; S1 mixed-provider axis does not). HITL pending: 48B `DOUBLEWORD_MODE` default; 48C D1–D3. See DECISIONS #188–#198.
 
 ## Where We Are
 

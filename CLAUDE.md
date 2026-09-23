@@ -332,7 +332,7 @@ The project follows [Semantic Versioning](https://semver.org/). `scripts/release
 | `docs/plan/invariants.md` | Agents | Self-contained project constraints for fresh-context executors |
 | `docs/plan/DECISION-OWNERSHIP.md` | Agents | Human/Agent/Shared ownership + locked ceilings (HITL to raise) |
 | `docs/plan/HANDOFF.md` | Agents | Session snapshot only — PROGRESS + `gate-evidence/` override when they disagree |
-| `docs/plan/slices/README.md` | Agents / contributors | Theme folder index (`01`–`07`); specs under `0N-<theme>/` (#162) |
+| `docs/plan/slices/README.md` | Agents / contributors | Theme folder index (`01`–`08`); specs under `0N-<theme>/` (#162) |
 | `docs/README.md` | All | Documentation index (personas, topics, tasks) |
 | `docs/adr/` | All | Architecture Decision Records |
 
