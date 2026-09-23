@@ -285,7 +285,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 **Backend** (2026-08-07 — unit tier, full scope):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **468** tests; full backend (`server/ + cli/`) floors **72/59/n/a/72** (stmts/br/fn/lines) via `fail_under=70` (combined 70.1%) + `scripts/ci/check_backend_coverage_floors.py` (`backend_coverage_thresholds`) — DECISIONS #142; no `MONGODB_URI` required
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **470** tests (2026-09-23); full backend (`server/ + cli/`) floors **72/59/n/a/72** (stmts/br/fn/lines) via `fail_under=70` (combined 70.1%) + `scripts/ci/check_backend_coverage_floors.py` (`backend_coverage_thresholds`) — DECISIONS #142; no `MONGODB_URI` required
 - FE/BE threshold lock: `scripts/ci/check_coverage_threshold_drift.py` asserts Vitest `coverage.thresholds` match `[tool.rag_params_finder.coverage_thresholds]` (incl. `functions=95`) — DECISIONS #161
 
 **Frontend** (2026-08-07 — Slice 45 COMPLETE + floors #142 + 3 gap scenarios; harness #185):
