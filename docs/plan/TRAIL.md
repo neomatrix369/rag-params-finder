@@ -52,7 +52,7 @@ freshness:
   last_checked: "2026-09-10"
 ---
 # execution (recommend) — profile: low/high/"≤4h (~6 Pomos)"/interactive
-# Open Must/Should queue: 32, 32C, 32B, 33, 28, 31
+# Open Must/Should queue: 32C, 32B (gate-debt only — 32/33 code on main 2eb2990), 28, 31
 extensions_applied: [blast_radius_high]
 recommendation:
   codex:
@@ -114,10 +114,10 @@ Each PCTO / migration slice lives in its own file below. Specs live under `docs/
 | 25 | [../plan/slices/03-platform/SLICE-25-ATLAS-LOCAL.md](../plan/slices/03-platform/SLICE-25-ATLAS-LOCAL.md) | Atlas Local Dev Mode — `mongodb-atlas-local` as opt-in backend | Should | ✅ PASSED | 21 | — | ~2 min | 2026-06-29 |
 | 25B | [../plan/slices/03-platform/SLICE-25B-ATLAS-SWITCHING.md](../plan/slices/03-platform/SLICE-25B-ATLAS-SWITCHING.md) | Atlas Backend Switching — single-flag cloud ↔ local switching | Should | ✅ PASSED | 25 | — | ~2 min | 2026-06-29 |
 | 29 | [../plan/slices/01-core-pipeline/SLICE-29-PADDING-PROPAGATION.md](../plan/slices/01-core-pipeline/SLICE-29-PADDING-PROPAGATION.md) | Padding cross-cutting propagation — config key, API, types, UI | Must | ✅ PASSED | none | — | ~2 min | 2026-07-05 |
-| 32 | [../plan/slices/05-storage/SLICE-32-STORAGE-BACKEND-PROTOCOL.md](../plan/slices/05-storage/SLICE-32-STORAGE-BACKEND-PROTOCOL.md) | Storage Protocol + Mongo adapter (Storage + Retriever ports) | Must | 🔨 IN PROGRESS | none | [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) | ~2 min | 2026-07-25 |
+| 32 | [../plan/slices/05-storage/SLICE-32-STORAGE-BACKEND-PROTOCOL.md](../plan/slices/05-storage/SLICE-32-STORAGE-BACKEND-PROTOCOL.md) | Storage Protocol + Mongo adapter (Storage + Retriever ports) | Must | ✅ COMPLETE (code) · gate-debt→32C/32B | none | [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) | ~2 min | 2026-09-23 |
 | 32C | [../plan/slices/05-storage/SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md](../plan/slices/05-storage/SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md) | Storage Protocol review remediation — craft split, port schemas, index deferral, checklist hygiene | Must | 📋 PLANNED | 32 | [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) | ~2 min | 2026-07-25 |
 | 32B | [../plan/slices/05-storage/SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md](../plan/slices/05-storage/SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) | Storage Protocol gate closure — coverage, mutation/waiver, full gates, nw-review, tracker COMPLETE | Must | 📋 PLANNED | 32C | [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) | ~2 min | 2026-07-25 |
-| 33 | [../plan/slices/05-storage/SLICE-33-POSTGRES-SCHEMA-CRUD.md](../plan/slices/05-storage/SLICE-33-POSTGRES-SCHEMA-CRUD.md) | Postgres schema + pool + CRUD (+ local pgvector Path A) | Must | 🔨 IN PROGRESS | 32B | — | ~2 min | 2026-07-26 |
+| 33 | [../plan/slices/05-storage/SLICE-33-POSTGRES-SCHEMA-CRUD.md](../plan/slices/05-storage/SLICE-33-POSTGRES-SCHEMA-CRUD.md) | Postgres schema + pool + CRUD (+ local pgvector Path A) | Must | ✅ COMPLETE (code) · gate-debt→32C/32B | 32B | — | ~2 min | 2026-09-23 |
 | 34 | [../plan/slices/05-storage/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md](../plan/slices/05-storage/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) | Postgres dense retrieval (pgvector HNSW) | Must | ✅ COMPLETE | 33 | — | ~2 min | 2026-07-25 |
 | 35 | [../plan/slices/05-storage/SLICE-35-POSTGRES-SPARSE-HYBRID.md](../plan/slices/05-storage/SLICE-35-POSTGRES-SPARSE-HYBRID.md) | Postgres sparse + hybrid RRF (+ Mongo equivalence gate) | Must | ✅ COMPLETE | 34 | — | ~2 min | 2026-07-26 |
 | 36 | [../plan/slices/05-storage/SLICE-36-POSTGRES-PREFLIGHT-STATS.md](../plan/slices/05-storage/SLICE-36-POSTGRES-PREFLIGHT-STATS.md) | Preflight + db-stats + four-value storage_mode | Must | ✅ COMPLETE | 35 | — | ~2 min | 2026-07-26 |
@@ -142,10 +142,14 @@ Each PCTO / migration slice lives in its own file below. Specs live under `docs/
 | 41A | [../plan/slices/06-bayesian/SLICE-41A-BAYESIAN-SEARCH-SIMPLE-FUNCTIONAL.md](../plan/slices/06-bayesian/SLICE-41A-BAYESIAN-SEARCH-SIMPLE-FUNCTIONAL.md) | Bayesian Search: Simple Functional | Could | ✅ COMPLETE | 16 | — | ~2.5 h | 2026-07-23 |
 | 41B | [../plan/slices/06-bayesian/SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md](../plan/slices/06-bayesian/SLICE-41B-BAYESIAN-SEARCH-ADVANCED.md) | Bayesian Search: Advanced (parallelism, categorical axes, persistence, random search) | Could | 📦 PARKED | 41A + owner data | — | ~4–6 h | 2026-07-22 |
 | 42 | [../plan/slices/03-platform/SLICE-42-DOCKER-BUILD-OPTIMISATION.md](../plan/slices/03-platform/SLICE-42-DOCKER-BUILD-OPTIMISATION.md) | Docker Build Optimisation — multi-stage, BuildKit cache mounts, CI job | Should | ✅ COMPLETE | none | — | ~2.5 h | 2026-07-25 |
+| 46 | [../plan/slices/07-quality-craft/SLICE-46-BACKEND-COVERAGE-85.md](../plan/slices/07-quality-craft/SLICE-46-BACKEND-COVERAGE-85.md) | Backend coverage 70.1% → 80–85% (FastAPI TestClient, Typer CliRunner, orchestrator branching) | Should | 📋 PLANNED | none | — | ~3–4 h | 2026-09-23 |
+| 47 | [../plan/slices/07-quality-craft/SLICE-47-COMPLEXITY-TIGHTEN.md](../plan/slices/07-quality-craft/SLICE-47-COMPLEXITY-TIGHTEN.md) | Xenon complexity E/C/C → B/A/A (orchestrator CC=40, experiments_lifecycle CC=32) | Should | 📋 PLANNED | none | — | ~2–3 h | 2026-09-23 |
 
 **Execution order**: 21 → 25 → 25B → 29 (done) → **39** *(≤2 h demo interrupt)* → **⭐ 32 → 32C → 32B → 33 → 34 → 35 → 36 → 37 → 38** → **22** → 28*(external)* → 31 → 30 → 16 → 11 → 23 → 10. Slices 40, 41A, and 42 are independent housekeeping/optimisation slices and can run at any time without blocking the Supabase migration sequence.
 *Slice 28 is an external contributor PR (@cschanhniem / #49); core team resumes at Slice 31 after 28 merges or stays deferred — it does not block the storage critical path.*
 *Deferred Mongo QoL: 26, 19 — re-scope after cutover. Slice 27 scope absorbed into 36 as four-value `storage_mode` (`mongodb|postgres` × `local|cloud`).*
+
+> **Reconcile 2026-09-23 (audit_reconcile):** Slices **32** (Storage Protocol) and **33** (Postgres schema+CRUD) code is fully on `main` since 2026-07-28 (`2eb2990`) — every downstream slice (34–38, 22) that depends on them is already ✅ COMPLETE. Their status is now **✅ COMPLETE (code)**; the remaining **formal gate closure** (coverage/mutation/nw-review sign-off + full gate-evidence schema) stays the open debt owned by slices **32C → 32B** per DECISIONS #179. Placeholder `gate-evidence/slice-32.json` / `slice-33.json` are `PENDING_VERIFICATION` — **not** PASS evidence. Slices **46/47** (genuinely open, code not started) added to the table above from PROGRESS. No code changes on `main` since 2026-09-11 (CI-cadence split, docs already synced). See DECISIONS #186–#187.
 
 **PCTO escape hatch (Slice 22):** If slices 32–36 slip **>2 days** past the PCTO deadline, start Slice 22 on Mongo via StorageBackend Protocol only (hard dep: 32 merged); budget ~30 min to re-port history queries when Slice 38 lands; retest on Supabase backend after 38.
 

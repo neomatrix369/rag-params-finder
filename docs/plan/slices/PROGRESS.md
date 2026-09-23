@@ -1,7 +1,7 @@
 # rag-params-finder — Build Progress
 
 **Last Updated**: 2026-08-09 (chore/project-hygiene-full — xenon complexity gate wired (E/C/C baseline); slices 46/47 added for coverage 80–85% and xenon B/A/A tighten; Slice **22** ✅ COMPLETE — PR #148 open)
-**Current**: Next Must **28** (external). **22** ✅ · **40** ✅ · **45** ✅ · **44** ✅ Residual §4 **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending). Migration track: **38** ✅; formal gate-closure debt **32** / **32C** / **32B** / **33** (parallel). Then **41B**. Deferred Mongo QoL **26/27/19**
+**Current**: Next Must **28** (external). **22** ✅ · **40** ✅ · **45** ✅ · **44** ✅ Residual §4 **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending). Migration track: **32/33/34–38 code ✅ on main**; formal gate-closure debt now scoped to **32C** → **32B** only (coverage/mutation/nw-review + gate-evidence schema — see reconcile 2026-09-23, DECISIONS #186–#187). Then **41B**. Deferred Mongo QoL **26/27/19**. Genuinely-open craft: **46** (backend cov 80–85%), **47** (xenon B/A/A).
 
 PCTO plan context: [`docs/plan/TRAIL.md`](../TRAIL.md) · Gap analysis: [`docs/plan/GAP_ANALYSIS.md`](../GAP_ANALYSIS.md) · Migration PRD: [`docs/plan/PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md)
 
@@ -46,10 +46,10 @@ PCTO plan context: [`docs/plan/TRAIL.md`](../TRAIL.md) · Gap analysis: [`docs/p
 | 26 — Local MongoDB smooth-path docs | 📦 DEFERRED | ~1 h | Re-scope after Postgres cutover — [`SLICE-26-LOCAL-MONGODB-DOCS.md`](05-storage/SLICE-26-LOCAL-MONGODB-DOCS.md) |
 | 27 — MongoDB mode indicator | 📦 DEFERRED | ~2 h | Absorbed into Slice 36 as four-value `storage_mode` (`mongodb\|postgres` × `local\|cloud`) — [`SLICE-27-MONGODB-MODE-INDICATOR.md`](05-storage/SLICE-27-MONGODB-MODE-INDICATOR.md) |
 | 19 — Atlas storage quota guard | 📦 DEFERRED | ~3–5 h | Atlas-specific; Postgres stats in Slice 36 — [`SLICE-19-STORAGE-QUOTA-GUARD.md`](05-storage/SLICE-19-STORAGE-QUOTA-GUARD.md) |
-| 32 — Storage Backend Protocol | 🔨 IN PROGRESS | ~3–4 h | Storage + Retriever ports; Mongo adapter — [`SLICE-32-STORAGE-BACKEND-PROTOCOL.md`](05-storage/SLICE-32-STORAGE-BACKEND-PROTOCOL.md) · [PR #110](https://github.com/neomatrix369/rag-params-finder/pull/110) |
+| 32 — Storage Backend Protocol | ✅ COMPLETE (code) · gate-debt→32C/32B | ~3–4 h | Storage + Retriever ports + Mongo adapter — code on main `2eb2990` (2026-07-28); downstream 34–38/22 all shipped. Formal gate closure = 32C/32B; `gate-evidence/slice-32.json` PENDING_VERIFICATION (reconcile 2026-09-23) — [`SLICE-32-STORAGE-BACKEND-PROTOCOL.md`](05-storage/SLICE-32-STORAGE-BACKEND-PROTOCOL.md) · [PR #110](https://github.com/neomatrix369/rag-params-finder/pull/110) |
 | 32C — Storage Protocol Review Remediation | 📋 PLANNED | ~2–3 h | Craft split, port schemas, index deferral, checklist hygiene — [`SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md`](05-storage/SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md) |
 | 32B — Storage Protocol Gate Closure | 📋 PLANNED | ~1–2 h | Coverage, mutation/waiver, full gates, nw-review, COMPLETE — [`SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md`](05-storage/SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) |
-| 33 — Postgres schema + CRUD | 🔨 IN PROGRESS | ~4–6 h | Pool, schema, cascade, local Path A (shipped `--postgres` → `--postgres-local` in 37), 19 live tests, CI job — hosted DX deferred to 37 — [`SLICE-33-POSTGRES-SCHEMA-CRUD.md`](05-storage/SLICE-33-POSTGRES-SCHEMA-CRUD.md) |
+| 33 — Postgres schema + CRUD | ✅ COMPLETE (code) · gate-debt→32C/32B | ~4–6 h | Pool, schema, cascade, local Path A (shipped `--postgres` → `--postgres-local` in 37), 19 live tests, CI job — code on main `2eb2990` (2026-07-28); downstream 34–38 shipped. Formal gate closure = 32C/32B (DECISIONS #179); `gate-evidence/slice-33.json` PENDING_VERIFICATION (reconcile 2026-09-23) — [`SLICE-33-POSTGRES-SCHEMA-CRUD.md`](05-storage/SLICE-33-POSTGRES-SCHEMA-CRUD.md) |
 | 34 — Postgres dense retrieval | ✅ COMPLETE | ~3–4 h | pgvector dense + embedding_model filter; Atlas-scale scores; HNSW iterative_scan; mode/hosted DX handed to 36–37 — [`SLICE-34-POSTGRES-DENSE-RETRIEVAL.md`](05-storage/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) |
 | 35 — Postgres sparse + hybrid | ✅ COMPLETE | ~4–5 h | tsvector + RRF + Supabase-mode copy hygiene; equivalence CONDITIONAL → 38 — [`SLICE-35-POSTGRES-SPARSE-HYBRID.md`](05-storage/SLICE-35-POSTGRES-SPARSE-HYBRID.md) |
 | 36 — Preflight + stats + storage_mode | ✅ COMPLETE | ~3–4 h | Catalog preflight 422 + four-value `storage_mode`; live smoke `postgres-local`; mutation waived #101 — [`SLICE-36-POSTGRES-PREFLIGHT-STATS.md`](05-storage/SLICE-36-POSTGRES-PREFLIGHT-STATS.md) |
@@ -87,10 +87,10 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 | 25 | Should | ✅ COMPLETE | 21 | Atlas Local |
 | 25B | Should | ✅ COMPLETE | 25 | Atlas switching |
 | 29 | Must | ✅ COMPLETE | — | Padding propagation |
-| 32 | Must | 🔨 IN PROGRESS | — | Storage + Retriever ports; Mongo adapter |
-| 32C | Must | 📋 PLANNED | 32 | Review remediation — craft/architecture nw-review BLOCKERs |
-| 32B | Must | 📋 PLANNED | 32C | Gate closure — coverage, mutation/waiver, full gates, nw-review |
-| 33 | Must | 🔨 IN PROGRESS | 32B | Supabase schema + CRUD + local pgvector smoke |
+| 32 | Must | ✅ COMPLETE (code) | — | Storage + Retriever ports + Mongo adapter — code on main `2eb2990`; gate closure→32C/32B |
+| 32C | Must | 📋 PLANNED | 32 | Review remediation — craft/architecture nw-review BLOCKERs (open formal debt) |
+| 32B | Must | 📋 PLANNED | 32C | Gate closure — coverage, mutation/waiver, full gates, nw-review, gate-evidence schema (open formal debt) |
+| 33 | Must | ✅ COMPLETE (code) | — | Postgres schema + CRUD + local pgvector — code on main `2eb2990`; gate closure→32C/32B (#179) |
 | 34 | Must | ✅ COMPLETE | 33 | Dense pgvector |
 | 35 | Must | ✅ COMPLETE | 34 | Sparse + hybrid + copy hygiene |
 | 36 | Must | ✅ COMPLETE | 35 | Preflight + db-stats + storage mode (replaces 27) |
@@ -122,6 +122,7 @@ Plan-tracked slices with dependencies. Gate evidence: [`docs/plan/gate-evidence/
 
 | Date | Item | Outcome |
 |------|------|---------|
+| 2026-09-23 | EFP audit/reconcile (plan-health-check audit_reconcile) | Health check **0 gaps** (12/12 pass). Reconciled slice↔code drift: **32** (Storage Protocol) + **33** (Postgres schema/CRUD) code fully on `main` since 2026-07-28 (`2eb2990`) while marked 🔨 IN PROGRESS — contradicted by downstream 34–38/22 all ✅ COMPLETE. Set both to **✅ COMPLETE (code)**; formal gate closure scoped to **32C→32B** (DECISIONS #179); wrote `gate-evidence/slice-{32,33}.json` **PENDING_VERIFICATION** (not PASS). Added missing **46/47** rows to TRAIL slice table. No `server/cli/frontend` divergence on `main` since 2026-09-11. Docs/plan only — **no code or gate execution**. DECISIONS #186–#187. |
 | 2026-09-11 | CI cadence split — quine-factory pattern (ci/quine-factory-cadence-split) | Human-approved topology: ultra-minimal PR `ci.yml` (drop daily schedule + live DB/Docker/container/license from PR path). Split scheduled work into `nightly.yml` (daily 02:00 — + deferred integration/docker-build), `supply-chain.yml` (Mon 03:00), `mutation.yml` (1st+15th), `code-review-graph.yml` (nightly only). Docs: `development.md` + CHANGELOG. **IMPLEMENTED**; schedule **VERIFIED** pending next cron/`workflow_dispatch`. SUPERSEDES 2026-09-10 three-bucket monolithic nightly. |
 | 2026-09-11 | /sync-docs after CI cadence split | Closed agent/contributor drift: `AGENTS.md`/`CLAUDE.md` “mirrors CI” → PR unit path; Meterian weekly wording; badges on `docs/README.md` + `release-process.md`; `quality-gates.sh` comments; Decision Log three-bucket **SUPERSEDED**; HANDOFF snapshot note. Outcome: **APPLIED**. |
 | 2026-09-10 | Nightly T4 three-bucket cadence (chore/project-hygiene) | Aligned `nightly.yml` to A/B/C: daily light T4, Monday supply chain, 1st+15th mutation; job-level `if:` on `github.event.schedule`. Docs: `development.md` + CHANGELOG. **SUPERSEDED** 2026-09-11 by separate workflow files (quine-factory cadence split). |
