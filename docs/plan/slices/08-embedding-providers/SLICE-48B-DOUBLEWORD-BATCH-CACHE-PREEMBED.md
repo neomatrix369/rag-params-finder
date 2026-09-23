@@ -17,7 +17,7 @@ With `DOUBLEWORD_MODE=batch`, an experiment embeds all distinct DoubleWord docum
 ## Context
 > Read before any implementation. Do not rely on conversation history alone.
 - **Stage objective**: batch-priced embedding for the whole declared sweep space, with persistence and resume.
-- **Depends on**: **48A** ✅ (DoubleWord provider, guard, MockTransport fixture, ADR-005 Proposed). Soft: **47** (if 47 has split `_run_sweep_inner`, insert pre-embed as a phase callable; otherwise call it before `_run_sweep_inner`). Do **not** add branches inside the CC=40 function.
+- **Depends on**: **48A** ✅ (DoubleWord provider, guard, stubbed DoubleWord API fixture, ADR-005 Proposed). Soft: **47** (if 47 has split `_run_sweep_inner`, insert pre-embed as a phase callable; otherwise call it before `_run_sweep_inner`). Do **not** add branches inside the CC=40 function.
 - **Global invariants**: → [`docs/plan/invariants.md`](../../invariants.md).
 - **Codebase realities**:
   - The orchestrator is sync and threaded (`parallelism` ≤ 16). The cache must be thread-safe.
@@ -46,26 +46,32 @@ With `DOUBLEWORD_MODE=batch`, an experiment embeds all distinct DoubleWord docum
 - Each run result carries `embed_mode`, `embed_tokens_docs`, `embed_tokens_queries` and `embed_cost_usd` (the list-price cost of that config, independent of cache state).
 - Killing the server mid-batch and resubmitting the same config → the checkpoint's `batch_id` is polled; no second upload.
 - The Voyage-only golden result set is byte-identical to the baseline.
-- ADR-005 moves **Proposed → Accepted** with the V3–V7 results.
+- ADR-005 moves **Proposed → Accepted** with the V3–V7 and V10 results.
+- **Not in this contract:** automatic resume on server boot (Slice 10 remaining scope, #195). 48B resumes only when the same config is resubmitted.
 
 ## Acceptance Criteria
 
 ### T0 — Batch verification spike (Must, before S2; needs key)
-- [ ] Extend `scripts/spikes/dw_embed_spike.py`: **V3** (batch on `/v1/embeddings` completes), **V4** (output line shape), **V5** (list `input` per line), **V6** (`completion_window="1h"`), **V7** (`/batches/{id}/analytics` → `total_cost`). Record in ADR-005.
+- [ ] Extend `scripts/spikes/dw_embed_spike.py`: **V3** (batch on `/v1/embeddings` completes), **V4** (output line shape), **V5** (list `input` per line), **V6** (`completion_window="1h"`), **V7** (`/batches/{id}/analytics` → `total_cost`), **V10** (`GET /batches` lists recent batches **with** their `metadata`). Record in ADR-005.
+- [ ] **If V10 = NO** → the lost-checkpoint adoption below degrades to "checkpoint file is the only resume source". Document the double-billing risk in `doubleword-setup.md` and log it in DECISIONS.
 - [ ] **If V3 = NO** → STOP (HITL): 48B's premise fails. Re-scope to cache + realtime pre-embed only and log it in DECISIONS.
 
 ### S1 — Content-addressed embedding cache (Must)
-- [ ] `server/core/embedding/embedding_cache.py`: `cache_key(text, *, provider, model, dim, instruction, role) -> str` (sha256 over a JSON list), `get_many(keys) -> dict[key, list[float]]` and `put_many(items)`. Local **SQLite** (stdlib; no new dependency), `float32` BLOB, path from `settings.embedding_cache_path` (default `.rpf_cache/embeddings.sqlite`). Thread-safe via lock plus per-call connection or a single `check_same_thread=False` connection.
+- [ ] `server/core/embedding/embedding_cache.py`: `cache_key(text, *, provider, model, dim, instruction, role) -> str` (sha256 over a JSON list), `get_many(keys) -> dict[key, list[float]]` and `put_many(items)`. Local **SQLite** (stdlib; no new dependency), `float32` BLOB, path from `settings.embedding_cache_path` (default `.rpf_cache/embeddings.sqlite`). Thread-safe via lock plus per-call connection or a single `check_same_thread=False` connection; `PRAGMA journal_mode=WAL` so a second process can read safely. Supported deployment is a **single uvicorn worker** (the current default); document it. Log a WARN at startup when the cache path resolves under a temp directory (the cache would be lost on reboot).
 - [ ] Shared across experiments (#194). Docker: the cache path lives on a named volume in `docker-compose.yml`; `.gitignore` + `.dockerignore` cover `.rpf_cache/` and `.rpf_state/`.
 - [ ] The DoubleWord embed functions (48A) read from the cache first in **both** modes. Realtime fills misses; batch mode treats a miss after pre-embed as an error (below).
 
 ### S2 — Batch client (Must)
 - [ ] `server/core/embedding/doubleword_batch.py`, sync `httpx` re-expression of brief §6.7: `build_jsonl` (5 MB/line guard naming the custom_id), upload from memory (`/files`, `purpose=batch`), `create` (`endpoint=/v1/embeddings`, `completion_window` from settings), `poll` (interval from settings, default 10 s, reports `completed/total`, calls `cancel_check`), `download_vectors` (row errors + `prompt_tokens`), `download_error_file` (pre-processing rejections), `cancel_batch`.
-- [ ] Checkpoint store `.rpf_state/doubleword_batches.json`, keyed by `job_key = sha256(identity + role + sorted custom_ids)`, written **before** polling and removed on success. A terminal failed/expired/cancelled checkpoint → resubmit **once**; a second failure → experiment `failed` with the batch id in the error.
+- [ ] Checkpoint store `.rpf_state/doubleword_batches.json`, keyed by `job_key = sha256(identity + role + sorted custom_ids)`, written **before** polling and removed on success. Every submitted batch carries `metadata.job_key`.
+- [ ] **Double-billing guard:** with no local checkpoint, list recent batches (V10) before submitting. A non-terminal or `completed` batch with the same `metadata.job_key` is **adopted** (polled or downloaded), not resubmitted.
+- [ ] **Per-identity serialization:** an in-process lock keyed by `job_key` ensures two concurrent experiments needing the same job share one batch. The second waits, then reads the cache. A terminal failed/expired/cancelled checkpoint → resubmit **once**; a second failure → experiment `failed` with the batch id in the error.
 - [ ] Missing ids (row errors ∪ error-file) → one retry batch of only those ids; still missing → fail loudly naming the count and the first ids. Never store a partial corpus.
 
 ### S3 — Pre-embed step (Must)
-- [ ] `server/core/pipeline/pre_embed.py`: pure `collect_embed_jobs(config, source_text, queries) -> dict[identity, EmbedJob{doc_texts, query_texts}]` over the **declared** chunk space (grid product; used for both `grid` and `bayesian`, #193), limited to models whose provider is DoubleWord **and** `DOUBLEWORD_MODE=batch`. Plus an orchestration function `run_pre_embed(...)` that dedupes against the cache, runs batches and fills the cache.
+- [ ] `server/core/pipeline/pre_embed.py`, with effect isolation:
+  - **pure** `plan_pre_embed(config: ExperimentConfig, source_text: str, queries: list[str], cached_keys: frozenset[str]) -> PreEmbedPlan`: a frozen dataclass of `EmbedJob(job_key, identity, role, items: tuple[(cache_key, formatted_text), ...])`, containing only cache misses. It covers the **declared** chunk space (grid product; used for both `grid` and `bayesian`, #193), limited to models whose provider is DoubleWord **and** `DOUBLEWORD_MODE=batch`. It does no I/O, so it can be property-tested.
+  - **effectful** `execute_pre_embed(plan, *, batch_client, cache, checkpoint, cancel_check, on_progress) -> PreEmbedOutcome` (tokens, batch ids, cost). It is the only function that touches the network or disk.
 - [ ] Called once per experiment **before** the run loop (grid and Bayesian entry points). Runs are not multiplied by `parallelism`. Other providers skip it entirely.
 - [ ] Plan-time guard: any chunk exceeding the model context (32K tokens, estimated with the existing tokenizer helper) → 422 at submit naming the chunk config.
 - [ ] Experiment-level `pre_embed` progress object persisted through `StorageBackend`. The frontend progress card shows "Pre-embedding (DoubleWord batch) n/N" while `state=running` (TS type + component test).
@@ -98,14 +104,15 @@ Feature: Embedding cache
     When all threads finish
     Then get_many returns all 400 entries
 
-  Scenario: Cache hit skips the API (shared across sweeps)
+  Scenario: Repeat experiment is not billed again (shared across sweeps)
     Given the cache already holds every text of experiment A
     When experiment B with the same corpus and model runs
-    Then the DoubleWord MockTransport receives 0 requests
+    Then no paid DoubleWord request is made
     And pre_embed.cost_incurred_usd is 0 while each run's embed_cost_usd is > 0
 
 Feature: Batch client
 
+  # Provider wire-contract test: the JSONL line IS the external interface
   Scenario: JSONL line shape
     When build_jsonl([("k1","hello")], model Q, dimensions 1024) is called
     Then the line has custom_id k1, method POST, url /v1/embeddings and body {model Q, input "hello", dimensions 1024}
@@ -131,6 +138,17 @@ Feature: Batch client
     Given a checkpoint for job_key J with batch_id b-1 in state in_progress
     When run_pre_embed is invoked for the same job
     Then no /files upload is sent and b-1 is polled to completion
+
+  Scenario: Lost checkpoint adopts the remote batch instead of paying twice
+    Given no local checkpoint for job_key J
+    And the stubbed DoubleWord API lists batch b-1 with metadata.job_key J in state in_progress
+    When run_pre_embed is invoked
+    Then b-1 is polled to completion and no new batch is created
+
+  Scenario: Concurrent experiments needing the same job share one batch
+    Given two experiments with the same corpus and model start pre-embed at the same time
+    When both finish
+    Then exactly one document batch was paid for and both experiments read identical vectors
 
   Scenario: Expired batch resubmits once then fails
     Given the checkpointed batch b-1 is expired and the resubmitted b-2 also expires
@@ -206,7 +224,7 @@ Feature: Cost capture
 - [ ] Branch `slice/48b-doubleword-batch-preembed` from latest `main`; `git diff --stat main` empty
 - [ ] `./scripts/ci/quality-gates.sh` green on main
 - [ ] HITL: `DOUBLEWORD_MODE` default decided and logged in DECISIONS
-- [ ] Check Slice 47 status to choose the pre-embed insertion point (Context)
+- [ ] Confirm Slice 47 status. If 47 is not ✅, call `execute_pre_embed` **before** `_run_sweep_inner` / the Bayesian loop at the entry points. Never add branches inside `_run_sweep_inner` (xenon must not worsen).
 - [ ] harness-scout `detect_confirm` (external async integration: re-run, don't reuse the 48A result)
 
 ## After-Checks

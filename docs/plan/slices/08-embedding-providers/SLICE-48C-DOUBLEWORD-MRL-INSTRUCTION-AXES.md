@@ -41,13 +41,14 @@ A DoubleWord config can sweep `dimensions` (e.g. `[512, 1024, 2048]`) and `query
 ## Output contract
 - **Baseline**: current TRAIL/PROGRESS status and `git status`; expansion snapshots for all example configs.
 - A config with dimensions `[512, 1024]` × instruction `[null, I]` expands to 4× the runs of its non-axis equivalent, and every run's identity string contains both values.
-- A document batch is paid **once** at max dim: MockTransport sees 1 document batch for all dims.
+- A document batch is paid **once** at max dim: the stubbed DoubleWord API bills 1 document batch for all dims.
 - Instruction variants share document vectors: only query batches differ.
 - Unsupported combinations (Postgres dim not allowlisted, or index capacity exceeded) → 422 at submit with an actionable message.
 
 ## GWT Scenarios
 
 ```gherkin
+@pending_decision_D1
 Scenario: Axis expansion count
   Given 1 DoubleWord model, dimensions [512,1024,2048], query_instruction [null, "Given a question…"] and 1 chunk config
   When expand_sweep is called
@@ -69,15 +70,22 @@ Scenario: Instruction variants reuse document vectors
   Then 1 document batch and 2 query batches are submitted
   And both instruction runs query the same stored chunk rows
 
+@pending_decision_D3
 Scenario: Vectors of different dims never mix in retrieval
   Given stored chunks at 512 and 1024 for the same experiment
   When a 512 run queries
   Then only rows whose embedding_model identity has dim 512 are searched
 
+@pending_decision_D2
 Scenario: Postgres rejects a non-allowlisted dim at submit (if D2 = i)
   Given STORAGE_BACKEND postgres and dimensions [2048]
   When POST /experiments is called
   Then HTTP 422 lists the supported Postgres dims
+
+Scenario: Postgres rejects any dimension above the pgvector HNSW limit (independent of D2)
+  Given STORAGE_BACKEND postgres and dimensions [4096]
+  When POST /experiments is called
+  Then HTTP 422 states the 2000-dim HNSW limit for vector columns
 
 Scenario: Atlas index capacity exceeded is caught at submit
   Given the cluster tier cannot host another vector index
@@ -87,7 +95,7 @@ Scenario: Atlas index capacity exceeded is caught at submit
 
 ## Before-Checks
 - [ ] 48B ✅ PASSED
-- [ ] D1–D3 decided (HITL) and logged; ADR-005 amended if D2/D3 change the identity namespace
+- [ ] D1–D3 decided (HITL) and logged in DECISIONS **before** any 48C code. No auto-proceed on the recommendations. ADR-005 amended if D2/D3 change the identity namespace; update the `@pending_decision` scenarios above to match.
 - [ ] Branch from latest `main`; `./scripts/ci/quality-gates.sh` green
 
 ## After-Checks

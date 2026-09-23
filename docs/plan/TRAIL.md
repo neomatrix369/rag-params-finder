@@ -232,4 +232,7 @@ Updated as each slice reaches Gate Status PASSED.
 | 2026-09-10 | nw-product-owner-reviewer (EFP final) | **APPROVED** | #179 hatch; 32C→32B order; 32C M2 docs-only; Slice 28/33 cites |
 | 2026-09-10 | nw-documentarist-reviewer (EFP final) | **APPROVED** | HANDOFF snapshot + gate-evidence hierarchy; Slice 22 PENDING_VERIFICATION honesty |
 | 2026-09-10 | nw-acceptance-designer-reviewer (EFP final) | **APPROVED** | Prior 10 error-path GWT blockers closed; 28/31 happy-path bias non-blocking |
-<!-- slice-48-reviews -->
+| 2026-09-24 | nw-solution-architect-reviewer (Slice 48 plan) | **CONDITIONALLY APPROVED** → remediated | Pure/effectful pre-embed split; exact SIE-guard call sites (3, not 2); `embedding_providers` back-compat; `provider_for_model` signature — DECISIONS #199 |
+| 2026-09-24 | nw-system-designer-reviewer (48B/48C) | **CONDITIONALLY APPROVED** → remediated | Double-billing guard via `metadata.job_key` + V10; per-identity lock; SQLite WAL + single worker; temp-dir WARN; PG >2000-dim 422 moved to 48C (48B has no dim axis) — #199 |
+| 2026-09-24 | nw-product-owner-reviewer (48 DoR) | **CONDITIONALLY APPROVED** → remediated | 48C D1–D3 no-auto-proceed; `DOUBLEWORD_MODE` HITL surfaced in PROGRESS; boot-resume deferral in 48B contract — #199 |
+| 2026-09-24 | nw-acceptance-designer-reviewer (48 GWT) | **NEEDS REVISION** → partially remediated | Outcome phrasing + business language applied; `@pending_decision` tags on 48C; `@contract-shape` tags **declined** (not a repo convention) — #199 |

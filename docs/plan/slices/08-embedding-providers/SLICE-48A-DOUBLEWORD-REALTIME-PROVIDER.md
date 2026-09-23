@@ -57,19 +57,19 @@ Comparing a new embedding provider against the Voyage baseline currently takes o
 
 ### S1 — Mixed-provider embedding axis (Must)
 - [ ] `EmbeddingConfig.provider` becomes optional (`None` default). When set, the existing single-provider validation still applies (back-compatible). When omitted, models may come from any registered provider.
-- [ ] One helper owns "provider for model" (`model_registry`). `expand_sweep` and guards call it; no parallel lookup.
-- [ ] `sie_guard` fires if **any** configured model is SIE (not only when `embedding.provider == "sie"`).
-- [ ] `sweep_summary.embedding_provider` stays a string for single-provider experiments. Mixed experiments get the new field `embedding_providers: list[str]`, and the frontend detail badge renders all values. The TS type is updated in `frontend/src/types/index.ts`.
+- [ ] One helper owns "provider for model": `model_registry.provider_for_model(model_id: str) -> str`, raising `ValueError(f"Unknown embedding model '{model_id}'")` for unregistered ids. `expand_sweep`, `sie_guard` and `doubleword_guard` all call it; no parallel lookup.
+- [ ] `sie_guard._uses_sie` changes from `config.embedding.provider == "sie"` to `any(provider_for_model(m) == "sie" for m in config.embedding.models)`.
+- [ ] Backward-compatible summary contract (`server/api/experiments.py` sweep_summary builder): new experiments **always** write `embedding_providers: list[str]` (length ≥ 1, registry order of first appearance). `embedding_provider: str` stays populated: the single provider when the list has length 1, else the literal `"mixed"`, so older clients and stored documents keep rendering. The TS type (`frontend/src/types/index.ts`) adds `embedding_providers?: string[]`. The detail badge renders `embedding_providers ?? [embedding_provider]`, so legacy experiments without the field still display.
 - [ ] CLI `config_loader` accepts the provider-less form; `docs/user-guide/configuration.md` documents both forms.
 
 ### S2 — DoubleWord realtime provider (Must)
-- [ ] `"doubleword"` added to `Provider`. The duplicate literal in `status.py` is replaced by an import from `config.py` (Duplication Horizon: the file is touched, and this leaves one owner).
+- [ ] `"doubleword"` added to `Provider` in `server/models/config.py`. `server/models/status.py` deletes its own `Provider = Literal[...]` (line 9) and adds `from server.models.config import Provider` (Duplication Horizon: one owner). Check for an import cycle first; if one exists, move `Provider` to `server/models/enums.py` and import it from both.
 - [ ] Registry entry `Qwen/Qwen3-Embedding-8B`: `provider=doubleword`, `dimensions=1024`, `contextualized=False`.
 - [ ] `server/core/embedding/doubleword_embedder.py` provides `embed_documents_doubleword(texts, model_id, cancel_check=None) -> list[list[float]]` and `embed_query_doubleword(text, model_id) -> list[float]`. It uses a sync `httpx.Client` singleton, `POST {base}/embeddings` with list `input` in bounded batches, sends `dimensions` only when V1 = YES, and preserves input order. It checks returned vector length (mismatch → raise, never silently store). Retries 429/5xx with exponential backoff (max 4). **Fails fast** on 401/403/404 with `DoublewordUnavailableError`. Calls `cancel_check()` between batches.
 - [ ] Query texts are formatted with the Qwen3 instruction prefix (fixed constant); documents are plain text.
 - [ ] `server/settings.py`: `doubleword_api_key: SecretStr | None`, `doubleword_base_url` (default `https://api.doubleword.ai/v1`). The key is never logged.
 - [ ] `embedder_factory.get_embedder("doubleword")` branch; error message lists it among supported providers.
-- [ ] `server/core/guards/doubleword_guard.py::validate_doubleword_readiness(config)` raises when any model is DoubleWord and the key is unset. It is wired at the **same two call sites** as `validate_sie_readiness` (`server/api/experiments.py` submit → 422; orchestrator start).
+- [ ] `server/core/guards/doubleword_guard.py::validate_doubleword_readiness(config)` raises when any model is DoubleWord and the key is unset. It is wired next to **every** existing `validate_sie_readiness` call on `main` @ `6283caa`: `server/api/experiments.py:69` (submit → 422), `server/core/pipeline/orchestrator.py:137` (Bayesian entry) and `:594` (grid entry). Re-grep before editing, because line numbers drift.
 - [ ] Example configs `configs/mongodb/example-doubleword.yaml` + `configs/supabase/example-doubleword.yaml` (DoubleWord only), and `configs/mongodb/example-provider-compare.yaml` (local + Voyage 1024 + DoubleWord, provider omitted).
 - [ ] Docs: `docs/user-guide/doubleword-setup.md` (key from app.doubleword.ai, realtime is best-effort, cost note, M0 note: no new index at 1024), `.env.example`, `configuration.md`, `docs/contributor-guide/extending.md`, `CLAUDE.md` Key Files + Provider System, `README.md` stays vendor-neutral ("batch-priced embedding providers").
 
@@ -131,47 +131,47 @@ Feature: Mixed-provider embedding axis
 Feature: DoubleWord realtime provider
 
   Scenario: Documents are embedded in input order at 1024 dims
-    Given an httpx MockTransport answering /v1/embeddings with 1024-dim vectors tagged by input index
-    When embed_documents_doubleword is called with 5 texts and batch size 2
-    Then 3 HTTP requests are sent with model Qwen/Qwen3-Embedding-8B
-    And 5 vectors of length 1024 are returned in input order
+    Given a stubbed DoubleWord API that answers with 1024-dim vectors tagged by input position
+    When 5 documents are embedded across several requests
+    Then 5 vectors of length 1024 are returned, each matching its input position
+    And every request names model Qwen/Qwen3-Embedding-8B
 
   Scenario: Query text carries the Qwen3 instruction; documents do not
-    Given a MockTransport that records request bodies
+    Given a stubbed DoubleWord API that records the texts it receives
     When embed_query_doubleword("what is RAG?") and embed_documents_doubleword(["RAG is"]) are called
     Then the query input starts with "Instruct: " and contains "Query:" followed by the query
     And the document input is exactly "RAG is"
 
   Scenario: Server returns the wrong dimension
-    Given V1 = YES and a MockTransport returning 4096-dim vectors
+    Given V1 = YES and a stubbed DoubleWord API returning 4096-dim vectors
     When embed_documents_doubleword is called
     Then a ValueError reports expected 1024 and got 4096, and nothing is returned
 
   Scenario: Client-side MRL fallback when dimensions is unsupported (only if V1 = NO)
-    Given V1 = NO and a MockTransport returning 4096-dim vectors
+    Given V1 = NO and a stubbed DoubleWord API returning 4096-dim vectors
     When embed_documents_doubleword is called
     Then each returned vector has length 1024, unit L2 norm, and is proportional to the first 1024 components
 
   Scenario: Transient 429 is retried
-    Given a MockTransport that returns 429 once then 200
+    Given a stubbed DoubleWord API that rate-limits (429) once, then succeeds
     When embed_documents_doubleword is called
-    Then 2 requests are sent and vectors are returned
+    Then vectors are returned without surfacing an error
 
   Scenario Outline: Permission errors fail fast without retry
-    Given a MockTransport that returns <status>
+    Given a stubbed DoubleWord API that answers <status>
     When embed_documents_doubleword is called
-    Then DoublewordUnavailableError is raised after exactly 1 request
+    Then DoublewordUnavailableError is raised without any retry delay
     Examples: | status | 401 | 403 | 404 |
 
   Scenario: Retries exhausted
-    Given a MockTransport that always returns 503
+    Given a stubbed DoubleWord API that always answers 503
     When embed_documents_doubleword is called
     Then an error naming DoubleWord and the attempt count is raised after 4 attempts
 
   Scenario: Cancellation between batches
-    Given 4 texts, batch size 2 and a cancel_check that raises on its second call
+    Given 4 texts sent in 2 requests and an experiment cancelled after the first request
     When embed_documents_doubleword is called
-    Then exactly 1 HTTP request is sent and the cancel exception propagates
+    Then the cancellation propagates, no vectors are returned, and the second half of the texts never leaves the server
 
   Scenario: API key never appears in logs
     Given DOUBLEWORD_API_KEY is "dw-secret-123" and a request fails with 500
@@ -210,7 +210,7 @@ Feature: DoubleWord realtime provider
     Then 3 vectors of length 1024 are returned
 ```
 
-**Step reuse:** "Given a MockTransport …" and "When POST /experiments …" steps are shared fixtures (≥4 uses each). The MockTransport fixture lives in `tests/fixtures/doubleword.py` and 48B reuses it.
+**Step reuse:** "Given a stubbed DoubleWord API …" (implemented with `httpx.MockTransport`) and "When POST /experiments …" steps are shared fixtures (≥4 uses each). The MockTransport fixture lives in `tests/fixtures/doubleword.py` and 48B reuses it.
 
 ## Before-Checks
 - [ ] Branch `slice/48a-doubleword-realtime` from latest `main`; `git diff --stat main` empty
