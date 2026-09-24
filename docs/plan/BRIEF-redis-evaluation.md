@@ -31,10 +31,10 @@
 | D1 vector-only | Redis *could* hold run state (JSON), but durability/eviction make it a poor system of record | **Keep** — `can_host_run_state=False`; `STORAGE_BACKEND=redis` rejected |
 | D2 YAML asserts vector store | None | **Keep** — `redis` joins `DatabaseProvider` |
 | D3 client-side RRF k=60 | Redis 8.x may ship native `FT.HYBRID` (*hypothesis — verify in 52*) | **Keep** client-side `rrf_fuse()` for comparability; native hybrid = optional capability flag, off by default |
-| D4 one index, per-dim fields | Multiple `VECTOR` fields per index are supported; docs missing a field are simply unindexed for it (*verify in PoC*) | **Keep** — `embedding_384` / `embedding_1024` on HASH keys |
+| D4 one index, per-dim fields | *Hypothesis — verify in 52 R3 PoC (Redis 8 **and** valkey-search):* one index accepts multiple `VECTOR` fields, and a document missing a field is simply unindexed for that field | **Keep** — `embedding_384` / `embedding_1024` on HASH keys |
 | D5 `--redis-local` also starts run-state store | None | **Keep** — pairs with `postgres-local` by default |
 | *(new)* Memory-bound store | Vectors + HNSW graph live in RAM; `maxmemory` + eviction can silently drop vectors | Capacity preflight + `maxmemory-policy` check as adapter preflight (**HITL** in 52) |
-| *(new)* Persistence | Restart without AOF/RDB loses the index | Compose profile enables AOF; documented in `redis-setup.md` |
+| *(new)* Persistence | *Hypothesis — verify in 52 R3 PoC (restart with and without AOF, on Redis 8 and Valkey):* restart without AOF/RDB persistence loses the vectors and index | Compose profile enables AOF; documented in `redis-setup.md` |
 
 ---
 

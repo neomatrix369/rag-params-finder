@@ -45,6 +45,14 @@
 
 **Combined deployment (HITL at 52/54 start):** one Redis instance cannot run both `noeviction` (vectors, required by 53 preflight) and `allkeys-lru` (cache). There are two options: (a) one instance with `volatile-lru`, where cache keys carry a TTL and vectors have none, so only cache keys are evictable; (b) two instances/profiles. Slice 52 recommends; the owner decides.
 
+| Criterion | (a) one instance, `volatile-lru` | (b) two instances |
+|---|---|---|
+| Cost / footprint | One container, one `maxmemory` budget shared | Two containers, two budgets |
+| Ops complexity | Lower: one profile, one URL | Higher: two profiles, two URLs, two health checks |
+| Failure mode | A vector key that ever gains a TTL becomes evictable; cache pressure can starve vector headroom; a key evicted **between** pre-embed planning and the run reading it raises 48A's `DoublewordCacheMissError` | Isolated: cache eviction can never touch vectors |
+| TTL management | Mandatory TTL on every cache key; vector keys must stay TTL `-1` (asserted in 53 and here) | TTL optional for the cache (`allkeys-lru` works) |
+| Durability of cache | AOF shared with vectors | Cache instance can run without persistence |
+
 ---
 
 ## Slice Workflow Bundle
@@ -82,10 +90,22 @@ Feature: The embedding cache can live in SQLite or Redis without changing caller
     When the same config is submitted again
     Then zero embedding batches are submitted
 
-  Scenario: Redis unavailable for the cache fails closed at startup
+  Scenario: An unreachable Redis cache stops the server from starting
     Given EMBEDDING_CACHE_BACKEND=redis and REDIS_URL unreachable
     When the server starts
-    Then startup reports the cache backend unreachable instead of silently falling back to SQLite
+    Then startup logs that the cache backend is unreachable and the process exits non-zero
+      And it does not silently fall back to SQLite
+
+  Scenario: Evicted cache entries are re-embedded at the next submission
+    Given option (a) and some cache keys evicted after a completed sweep
+    When the same config is submitted again
+    Then the pre-embed plan contains exactly the evicted texts
+      And no run of that submission fails with a cache miss unless a key is evicted after planning (the option (a) failure mode above)
+
+  Scenario: In a shared instance, only cache keys can expire
+    Given one Redis instance serving vectors and the cache under volatile-lru
+    When key TTLs are inspected after a sweep
+    Then every rpf:emb: key has a TTL and every vector key reports TTL -1
 
   Scenario: Cache keys cannot collide with vector-store keys
     Given one Redis instance serving both the vector store and the cache
@@ -98,6 +118,7 @@ Feature: The embedding cache can live in SQLite or Redis without changing caller
 ## Before-Checks [GATE]
 
 - [ ] 48A ✅ on `main`; Slice 52 Branch B cache GO recorded, with the concrete need.
+- [ ] `[redis]` extra scope confirmed: this slice reuses Slice 53's extra (or introduces it, if 53 hasn't shipped); no second Redis extra.
 - [ ] harness-scout `detect_confirm` at slice start.
 
 ## After-Checks [GATE]

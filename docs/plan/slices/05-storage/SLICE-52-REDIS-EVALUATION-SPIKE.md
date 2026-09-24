@@ -18,6 +18,7 @@ Produce the evidence-backed decision for whether and how Redis joins rag-params-
 
 - **Depends-on outputs:** Slice 49 target design (`VectorStoreAdapter`, `VectorCapabilities`, registry, `VECTOR_STORE_BACKEND`) and Slice 51 journey + docs-parity design are the fixed inputs; D1–D5 accepted (#215). Branch B anchors: 48A S3 `embedding_cache.py` (planned), `server/core/pipeline/executors.py`, `server/core/pipeline/experiment_control.py`, `server/core/embedding/rate_limiter.py`, Slice 16 Approach B.
 - **Invariants pointer:** `docs/plan/invariants.md`. Cost gate: $0 and no card. Self-hosted wins ties. Default store stays `mongodb` (#130).
+- **Terms used below:** *free gate* = usable today at $0 with no card; *D1–D5* = the Elasticsearch-track design decisions accepted in DECISIONS #215 (vector-only store, YAML asserts the vector store, client-side RRF k=60, one index with per-dimension fields, `--<store>-local` also starts a run-state store) — full text in the [brief](../../BRIEF-redis-evaluation.md); *zero-changes criterion* = adding a store changes no route (`server/api/`), sweep logic (`server/core/pipeline/`), UI component (`frontend/src/components/`) or CLI command (`cli/main.py`, `cli/indexes_cmd.py`); *Coverage Gap* = a fact the report needs but could not source, listed rather than estimated.
 
 ## Non-goals
 
@@ -67,11 +68,11 @@ Produce the evidence-backed decision for whether and how Redis joins rag-params-
   - PoC script: session scratchpad only (e.g. `poc_redis_vectors.py`); **not** committed
 - Streams:
   - **R0 — Delta surface map (~45 min):** re-run Slice 49's grep baseline on current `main`; confirm 49/51 file refs are still valid (`/divergence-check`). Fill the **Redis planned** column of the parity + journey matrices with the file each stage will touch.
-  - **R1 — Candidates + free gate (~1 h):** Redis Open Source 8.x + Query Engine, Vector Sets, Redis Stack (status), Redis Cloud free, RedisVL, `redis-py`, `langchain-redis` / LlamaIndex Redis, LangCache, RQ / arq / Celery / Huey, Valkey + valkey-search (label **not Redis Inc.**), Upstash, Aiven for Valkey. Official sources only; drop discontinued options with the reason.
-  - **R2 — Adoption & outreach (~1 h):** GitHub / PyPI / Docker Hub / vendor-outreach metrics with URL + date; flag conflicting signals.
-  - **R3 — PoC (~1.5 h, throwaway):** against `redis:8` **and** a valkey-search image, run: `FT.CREATE` on HASH with TAG `embedding_model`/`experiment_id`/`run_id`, TEXT `text`, VECTOR `embedding_384` + `embedding_1024` (HNSW, COSINE, FLOAT32) → insert ~1k docs with mixed dims → filtered KNN on each field → BM25 text query → `FT.HYBRID` availability probe → score conversion check (`score = 1 − distance/2` vs `(1+cos)/2`) → `INFO memory` per 1k vectors → `maxmemory-policy` behaviour → restart with/without AOF. Record the **compatibility table** (Redis 8 vs Valkey) and the client choice evidence (`redis-py` vs RedisVL).
+  - **R1 — Candidates + free gate (~1 h):** Redis Open Source 8.x + Query Engine, Vector Sets, Redis Stack (**first establish its current status** — still distributed, or folded into Redis 8 — from the official release channel; if discontinued, record it as dropped with the reason and don't research it further), Redis Cloud free, RedisVL, `redis-py`, `langchain-redis` / LlamaIndex Redis, LangCache, RQ / arq / Celery / Huey, Valkey + valkey-search (label **not Redis Inc.**), Upstash, Aiven for Valkey. Official sources only; drop discontinued options with the reason.
+  - **R2 — Adoption & outreach (~1 h):** GitHub / PyPI / Docker Hub / vendor-outreach metrics with URL + date; flag conflicting signals. **Source hierarchy:** primary registries (GitHub API, PyPI stats, Docker Hub) > official project docs (Redis Inc., Valkey / Linux Foundation) > third-party articles. Keep Redis Inc. and Valkey sources in **separate columns**, and never let one vendor's marketing numbers score the other.
+  - **R3 — PoC (~1.5 h, throwaway):** against `redis:8` **and** a valkey-search image, run: `FT.CREATE` on HASH with TAG `embedding_model`/`experiment_id`/`run_id`, TEXT `text`, VECTOR `embedding_384` + `embedding_1024` (HNSW, COSINE, FLOAT32) → insert ~1k docs with mixed dims → filtered KNN on each field → BM25 text query → `FT.HYBRID` availability probe → score conversion check (`score = 1 − distance/2` vs `(1+cos)/2`) → `INFO memory` per 1k vectors → `maxmemory-policy` behaviour → restart with/without AOF → **selective-filter undercount** (one `experiment_id` with 10 docs, `top_k=20`: does KNN return all 10, and does the `top_k × 2` over-fetch matter?) → **TTL isolation** (`EXPIRE` on a vector key: what happens, and can the adapter guarantee vector keys stay TTL `-1`?) → **distance semantics** (record the raw result object from the chosen client, with client version, to prove the returned value is COSINE *distance* `1 − cos`, not similarity) → **auth** (`requirepass` / ACL user in `REDIS_URL`, and `rediss://` against a TLS endpoint). Record the **compatibility table** (Redis 8 vs Valkey) and the client choice evidence (`redis-py` vs RedisVL). Also record the HASH field layout the PoC used, as the draft for Slice 53's schema.
   - **R4 — Branch B verdicts (~45 min):** one row each for embedding cache, semantic/LLM cache, job queue, rate limiting, CI speed-ups: adapter · default impl · attach point (file path) · benefit · ops cost · self-hosted vs managed · verdict · flip trigger.
-  - **R5 — Scoring + outputs (~2 h):** per-branch weighted tables (50/30/20) + equal-weight sensitivity, primary / fallback / flip conditions, combined deployment (one vs two instances; eviction + persistence as adapter config), Redis touchpoint plan against the checklist covering all 15 stages, zero-changes verdict, sequencing vs 49–51, walkthrough + sample `configs/redis/*.yaml` (illustrative), `redis-setup.md` outline, snippets (all marked illustrative). Then the HTML guide and ADR-007 (Proposed).
+  - **R5 — Scoring + outputs (~2 h):** per-branch weighted tables (50/30/20) + equal-weight sensitivity (33/33/34 tests whether adoption's dominance of the ranking is structural or just an effect of its 50% weight), primary / fallback / flip conditions, combined deployment (one vs two instances; eviction + persistence as adapter config), with an explicit **criteria table** — cost, ops complexity, failure modes, TTL management — scoring option (a) one `volatile-lru` instance against option (b) two instances; a **licensing** subsection giving each candidate's licence as verified from its official source, and what it means for self-hosting this tool; a **security** subsection (AUTH / ACL for local vs cloud, `REDIS_URL` handling in `.env`, TLS); Redis touchpoint plan against the checklist covering all 15 stages, zero-changes verdict, sequencing vs 49–51, walkthrough + sample `configs/redis/*.yaml` (illustrative), `redis-setup.md` outline (including **AUTH / ACL** and **backup & recovery**: AOF vs RDB trade-off and a manual `BGSAVE` export, with defaults verified from docs), snippets (all marked illustrative). Then the HTML guide and ADR-007 (Proposed).
 - Exit criteria: all GWT below evidenced; owner GO / NO-GO recorded; 53/54 stubs updated to match the decision (MoSCoW / scope) or deferred.
 - Commit pattern: `docs(research): Redis evaluation report + guide + ADR-007 (Proposed)`
 - **Doc exit (Must):** report + HTML + ADR-007 + DECISIONS/TRAIL/PROGRESS. `docs/adr/` index / `docs/README.md` link to ADR-007 once it exists.
@@ -86,7 +87,7 @@ Feature: Redis evaluation produces an evidence-backed, owner-decidable recommend
   Scenario: Every candidate has a free-gate verdict backed by an official source
     Given the candidate list in the brief (Step 1)
     When the report's candidate table is complete
-    Then every candidate shows branch, hosting model, adapter implemented and a PASS/FAIL free-gate verdict
+    Then every candidate shows branch, hosting model, adapter implemented and a PASS/FAIL verdict on whether it is usable today at $0 with no card
       And each verdict cites an official URL with a retrieval date
       And discontinued or renamed offerings are listed as dropped, with the reason
 
@@ -124,11 +125,18 @@ Feature: Redis evaluation produces an evidence-backed, owner-decidable recommend
     Then the report gives bytes-per-vector including HNSW overhead
       And states which free tiers can or cannot hold a sweep-scale experiment
 
-  Scenario: Branch B verdicts are anchored to real code paths
-    Given the Branch B candidates (embedding cache, semantic cache, job queue, rate limiting, CI speed-ups)
-    When each verdict is written
-    Then it names the existing file or planned slice it would attach to
-      And a Won't verdict states the concrete trigger that would flip it
+  Scenario Outline: Each Branch B verdict is anchored to real code and states its flip trigger
+    Given the <use> verdict in the report
+    When it is read without the planning conversation
+    Then it names <attach_point> as the code or slice it would attach to
+      And, if the verdict is Won't, it states the concrete trigger that would flip it
+    Examples:
+      | use                  | attach_point                                                       |
+      | embedding cache      | server/core/embedding/embedding_cache.py (48A S3)                  |
+      | semantic / LLM cache | the grep result showing no LLM generation calls in server/ or cli/ |
+      | job queue            | server/core/pipeline/executors.py + Slice 16 Approach B            |
+      | rate limiting        | server/core/embedding/rate_limiter.py                              |
+      | CI speed-ups         | .github/workflows/ caches                                          |
 
   Scenario: Weights change the ranking visibly and reproducibly
     Given the HTML scoring table at the default weights 50/30/20
@@ -142,20 +150,15 @@ Feature: Redis evaluation produces an evidence-backed, owner-decidable recommend
     Then none point to an external host
       (citation anchors to sources are allowed)
 
-  Scenario: Divergence from D1–D5 is surfaced, never silent
-    Given a Redis-specific reason that argues against one of D1–D5
+  Scenario: Divergence from the Elasticsearch-track decisions D1–D5 is surfaced, never silent
+    Given a Redis-specific reason that argues against one of D1–D5 (see Terms in Context)
     When the report is finalised
     Then the reason appears in Open questions with a recommended stance
       And no slice stub changes that decision until the owner records it in DECISIONS
 
-  Scenario: ADR numbering does not collide
-    Given ADR-005 (DoubleWord) and ADR-006 (Elasticsearch) are already assigned
-    When the Redis ADR is created
-    Then it is ADR-007 with status Proposed
-
-  Scenario: The zero-changes criterion is assessed explicitly
+  Scenario: The report says whether adding Redis would leave routes, sweep logic, UI components and CLI commands untouched
     Given the touchpoint plan for a Redis vector adapter
-    When it is compared with the acceptance criterion (no route, sweep, UI-component or CLI-command change)
+    When it is compared with the zero-changes criterion (see Terms in Context)
     Then the report states MET, or lists each violating file and the Slice 49/51 gap that causes it
 ```
 
@@ -166,6 +169,7 @@ Feature: Redis evaluation produces an evidence-backed, owner-decidable recommend
 ## Before-Checks [GATE]
 
 - [ ] Slice 49 and 51 specs on the branch (the fixed inputs); D1–D5 recorded (#215).
+- [ ] Owner confirms the HITL items this slice will bring back for decision at its end: Branch A GO / NO-GO, Branch B cache GO / NO-GO, image + licence + client choice, the D1–D5 pressure rows in the brief, memory / eviction / persistence stance, and the one-vs-two-instance deployment (DECISION-OWNERSHIP).
 - [ ] Docker available locally for the PoC; images pulled: `redis:8` and a valkey-search image (exact tag chosen in R1).
 - [ ] harness-scout `detect_confirm` at slice start. Research + judgment-heavy: expect the planning tier. Degradation note #228 applies until run.
 - [ ] Web access for official sources. If blocked, record it as a Coverage Gap and don't guess.
@@ -176,6 +180,7 @@ Feature: Redis evaluation produces an evidence-backed, owner-decidable recommend
 - [ ] Branch coverage: N/A — no product code (PoC is uncommitted scratch). Reason recorded in gate evidence.
 - [ ] Complexity evidence: N/A — policy `reporting`; no source files changed (`git diff --stat -- server cli frontend` empty).
 - [ ] `bash scripts/ci/repo-lint.sh` green (markdownlint on the report + ADR).
+- [ ] ADR numbering: `docs/adr/ADR-007-redis.md` exists with status Proposed; ADR-005 (DoubleWord) and ADR-006 (Elasticsearch) unchanged.
 - [ ] HTML self-containment scan (grep for external `src=`/`href=` on script/link, `@import`, `url(http`) → zero hits.
 - [ ] Owner GO / NO-GO for Branch A and Branch B recorded in DECISIONS; 53/54 stubs aligned.
 - [ ] `docs/plan/gate-evidence/slice-52.json` written by the executor (docs-only schema: `coverage_pct: null` with reason, `complexity_passed: "n/a"`, evidence list).
