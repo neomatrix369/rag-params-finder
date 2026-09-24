@@ -63,13 +63,13 @@ After 48A, DoubleWord sweeps work and survive restarts, but four gaps remain:
 - [ ] **If V10 = NO** → adoption degrades to checkpoint-only. Document the double-billing risk in `doubleword-setup.md`; log it in DECISIONS.
 
 ### S1 — Cost capture (Must)
-- [ ] Registry entry gains `price_per_mtok: {"1h": float, "24h": float}` (optional `TypedDict` field; other models omit it). Values are HITL-confirmed from the DoubleWord models page at slice start.
+- [ ] Registry entry gains `price_per_mtok: {"1h": float, "24h": float}` (optional `TypedDict` field; other models omit it). **Owner decision #205:** each window is priced at its own (cheapest applicable) batch tier. Starting values from the brief: `1h` ≈ $0.03 (DoubleWord "async" tier, as docextract uses), `24h` = $0.02. The T0 spike confirms them against the live models page; analytics `total_cost` stays the billed truth.
 - [ ] Per-run fields above, computed from cache-row `prompt_tokens`, so cache hits still report the config's list price.
 - [ ] Per-experiment `cost_incurred_usd`: analytics via `httpx` (5 s timeout, 1 retry), else tokens × price[window]. Analytics failure → WARN, never fails the experiment.
 - [ ] Fields round-trip on Mongo and Postgres, and are shown in the detail run table (FE type + render test).
 
 ### S2 — Double-billing guard + cross-experiment adoption (Must)
-- [ ] Before any `submit_batch`: (1) a local checkpoint for `job_key` → attach to it; (2) else `batches.list()` recent pages → adopt a batch with the same `metadata.job_key` in `{validating, in_progress, finalizing, completed}`; (3) else submit.
+- [ ] Before any `submit_batch`: (1) a local checkpoint for `job_key` → attach to it; (2) else page through `batches.list()` newest-first until batches are older than the completion window + 1 h → adopt a batch with the same `metadata.job_key` in `{validating, in_progress, finalizing, completed}`; (3) else submit.
 - [ ] Checkpoint entries become `{job_key, batch_id, experiment_ids: [...]}`, so one batch serves several waiting experiments. The watcher schedules each experiment when **all** its jobs are ready.
 - [ ] Atomic checkpoint writes guarded by a process lock (the watcher and sweep thread both write).
 
@@ -95,12 +95,21 @@ Feature: Cost capture
     Given the cache already holds every text of experiment A
     When experiment B with the same corpus and model completes
     Then no paid DoubleWord batch is created, pre_embed.cost_incurred_usd is 0, and each run's embed_cost_usd is > 0
+    And experiment B's stored vectors are identical to experiment A's
 
-  Scenario: Cost prefers analytics, falls back to tokens × price
-    Given analytics returns total_cost 0.0123 for the experiment's batch
+  Scenario: Cost uses analytics when available
+    Given the analytics endpoint returns total_cost 0.0123 for the experiment's batch
+    When the experiment completes
     Then pre_embed.cost_incurred_usd is 0.0123
-    Given analytics fails
-    Then cost_incurred_usd = prompt_tokens × window price / 1e6, a warning is logged, and the experiment still completes
+
+  Scenario Outline: Cost falls back to tokens × price when analytics is unavailable
+    Given the analytics endpoint <failure> on the first call and on its single retry
+    When the experiment completes
+    Then cost_incurred_usd = prompt_tokens × the 1h price / 1e6, a warning is logged, and the experiment status is complete
+    Examples:
+      | failure                          |
+      | returns HTTP 500                 |
+      | does not answer within 5 seconds |
 
   Scenario: Voyage-only golden results unchanged (regression)
     Given the Voyage-only golden config captured before edits
@@ -114,6 +123,11 @@ Feature: Billing safety
     And the stubbed DoubleWord API lists batch b-1 with metadata.job_key J in progress
     When an experiment needing J is submitted
     Then b-1 is attached and no new batch is created
+
+  Scenario: Batches older than the adoption window are not adopted
+    Given the stubbed DoubleWord API lists batch b-0 for job J created 3 hours ago with completion_window 1h
+    When an experiment needing J is submitted
+    Then b-0 is not adopted and a new batch is created
 
   Scenario: Remote batch in a terminal failure state is not adopted
     Given the stubbed DoubleWord API lists batch b-1 for job J as expired
@@ -146,7 +160,7 @@ Feature: Progress and diagnostics
 ## Before-Checks
 - [ ] 48A ✅ PASSED (gate evidence + `/verify-slice` COMPLETE)
 - [ ] Branch from latest `main`; `git diff --stat main` empty; `./scripts/ci/quality-gates.sh` green
-- [ ] HITL: `price_per_mtok` values confirmed and logged
+- [ ] `price_per_mtok` starting values checked against the live DoubleWord models page (update + log in DECISIONS if they differ)
 - [ ] harness-scout `detect_confirm`
 
 ## After-Checks

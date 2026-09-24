@@ -1,6 +1,6 @@
 # Slice 48C — MRL `dimensions` Axis + `query_instruction` Axis
 
-**Status**: 📋 PLANNED (design decision required at slice start; see Open design decisions)
+**Status**: 📋 PLANNED — **execution gated: do not implement 48C until the owner confirms D1, D2 and D3** (see Open design decisions)
 **Branch**: `slice/48c-embedding-dim-instruction-axes`
 **Estimated time**: ~4–6 h (depends on the Postgres option chosen)
 **MoSCoW**: Should (owner decision 2026-09-24; DECISIONS #189, #196). Start only after 48B ✅.

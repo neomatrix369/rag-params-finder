@@ -2,7 +2,7 @@
 
 > **Source material, not a slice spec.** Owner-supplied plan (2026-09-24), originally titled "SLICE-32". Kept for traceability and for the reusable design sketches (§6.3, §6.7, Appendix A).
 > **Executable specs:** [48A](slices/08-embedding-providers/SLICE-48A-DOUBLEWORD-BATCH-PROVIDER.md) · [48B](slices/08-embedding-providers/SLICE-48B-DOUBLEWORD-COST-HARDENING.md) · [48C](slices/08-embedding-providers/SLICE-48C-DOUBLEWORD-MRL-INSTRUCTION-AXES.md) · [48D](slices/08-embedding-providers/SLICE-48D-DOUBLEWORD-REALTIME-MODE.md). Where this brief and a slice spec disagree, **the slice spec wins**.
-> **Decisions:** [DECISIONS #188–#204](DECISIONS.md). **Reference implementation:** `playgroup_202602_docextract` (`llm_doubleword.py`, `extractor.py::_run_all_doubleword`, `DW_FB.md`, `docs/doubleword-platform-knowledge.md`).
+> **Decisions:** [DECISIONS #188–#206](DECISIONS.md). **Reference implementation:** `playgroup_202602_docextract` (`llm_doubleword.py`, `extractor.py::_run_all_doubleword`, `DW_FB.md`, `docs/doubleword-platform-knowledge.md`).
 
 ## Reconciliation against `main` @ `6283caa` (2026-09-24)
 

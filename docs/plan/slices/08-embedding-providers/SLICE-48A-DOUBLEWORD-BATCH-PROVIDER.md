@@ -2,7 +2,7 @@
 
 **Status**: 📋 PLANNED
 **Branch**: `slice/48a-doubleword-batch-provider`
-**Estimated time**: ~9–11 h in five ordered streams (T0 spike ≤45 min · S1 axis ~2 h · S2 batch client port ~1.5 h · S3 cache + plan/submit ~2.5 h · S4 watcher + resume ~3 h). S1 is independent and may ship as its own PR.
+**Estimated time**: ~9–11 h in five ordered streams (T0 spike ≤45 min · S1 axis ~2 h · S2 batch client port ~1.5 h · S3 cache + plan/submit ~2.5 h · S4 watcher + resume ~3 h). **S1 (mixed-provider axis) is independent and may ship first as its own PR if urgent; S2–S4 are one inseparable batch pipeline and ship together.**
 **MoSCoW**: Must (owner decisions 2026-09-24; DECISIONS #189–#190, #200–#203)
 **Source brief**: [`BRIEF-doubleword-embedder.md`](../../BRIEF-doubleword-embedder.md). This spec wins where they differ.
 **Reference implementation**: `playgroup_202602_docextract` → `llm_doubleword.py` (batch client) and `extractor.py::_run_all_doubleword` (submit-all → poll-all → checkpoint/resume); lessons in `DW_FB.md` and `docs/doubleword-platform-knowledge.md`. **Port its patterns; do not import the repo.**
@@ -92,12 +92,15 @@ The sweep executor has **one worker** (`server/core/pipeline/executors.py:24`, `
 - [ ] `server/core/embedding/embedding_cache.py`: `cache_key(text, *, provider, model, dim, instruction, role) -> str` (sha256 of a JSON list); `get_many` / `put_many`; stdlib SQLite rows `(key, dim, vec float32 BLOB, prompt_tokens INT NULL)` so 48B can price every text, `settings.embedding_cache_path` (default `.rpf_cache/embeddings.sqlite`); `PRAGMA journal_mode=WAL`. Thread- **and** event-loop-safe: the watcher writes via `asyncio.to_thread`, runs read from the sweep thread. Shared across sweeps (#194). WARN at startup if the path is under a temp dir. Compose named volume; `.gitignore`/`.dockerignore` cover `.rpf_cache/`, `.rpf_state/`.
 - [ ] `server/core/pipeline/pre_embed.py`, with effect isolation:
   - **pure** `plan_pre_embed(config, source_text, queries, cached_keys: frozenset[str]) -> PreEmbedPlan`: frozen `EmbedJob(job_key, identity, role, items)`, cache misses only, declared space for grid **and** Bayesian (#193), DoubleWord models only.
-  - **effectful** `submit_pre_embed(plan, client, checkpoint) -> list[SubmittedJob]`: submits **all** jobs first (docextract Phase 2), then writes checkpoint entries `{experiment_id, job_key, batch_id, role, n, submitted_at}` to `.rpf_state/doubleword_batches.json` (atomic write).
-- [ ] Orchestrator entry points (grid `:594` and Bayesian `:137`): if the plan has jobs → submit, persist `pre_embed.state="waiting"`, **return without running** (the sweep thread is released). If the plan is empty (everything cached) → run immediately. No branches inside `_run_sweep_inner` (xenon must not worsen).
+  - **effectful** `submit_pre_embed(plan, client, checkpoint) -> list[SubmittedJob]`: submits **all** jobs first (docextract Phase 2), then writes checkpoint entries `{experiment_id, job_key, batch_id, role, n, submitted_at}` to `.rpf_state/doubleword_batches.json`. The checkpoint store owns one module-level `threading.Lock` (single process is an invariant) and writes atomically (temp file + `os.replace`); the sweep thread and the watcher (via `asyncio.to_thread`) both go through it.
+- [ ] Orchestrator entry points (grid `:594` and Bayesian `:137`) call one extracted helper `defer_for_pre_embed(experiment_id, config) -> bool`. It returns `True` after submitting jobs and persisting `pre_embed.state="waiting"` (the entry point then returns and the sweep thread is released), and `False` when the plan is empty (run immediately). Each entry point gains **at most one** branch; there are no branches inside `_run_sweep_inner` (xenon must not worsen).
 - [ ] `embed_documents_doubleword` / `embed_query_doubleword` (factory branch) **only read the cache**. A miss raises `DoublewordCacheMissError` naming the key count (never silently embed or store a partial corpus).
 
 ### S4 — Detached watcher + resume (Must)
-- [ ] `server/core/pipeline/doubleword_watcher.py`: one `asyncio` task started in `lifespan` startup **only when** `DOUBLEWORD_API_KEY` is set. It loads checkpoints (boot resume), then loops every `DOUBLEWORD_POLL_INTERVAL_S` (default 10). Each pass: `poll_batch` every pending job.
+- [ ] `server/core/pipeline/doubleword_watcher.py`: one `asyncio` task started in `lifespan` startup **only when** `DOUBLEWORD_API_KEY` is set. It loads checkpoints (boot resume), then loops every `DOUBLEWORD_POLL_INTERVAL_S` (default 10; stretched to 30 when more than 10 batches are pending). Each pass polls pending jobs **sequentially** (docextract pattern).
+  - **Error isolation:** an exception on one batch is logged (`logger.exception`) and the pass continues; the batch is retried next pass. A 429 backs off that batch with exponential delay + jitter.
+  - **Supervision:** an unexpected exception escaping the loop is caught by a supervisor that restarts the loop with backoff (1 s → 60 s cap). `/healthz` reports `doubleword_watcher: running | restarting | disabled`. Experiments are **not** failed for transient watcher errors.
+  - **No event-loop blocking:** JSONL parsing of output/error files and cache `put_many` run via `asyncio.to_thread` (a 20k × 1024 output file is ≈ 80 MB).
   - `completed` → download both channels, `put_many`, drop the checkpoint.
   - `failed`/`expired` → resubmit **once** (then fail the experiment naming the batch id).
   - `cancelled` → fail.
@@ -106,12 +109,12 @@ The sweep executor has **one worker** (`server/core/pipeline/executors.py:24`, `
 - [ ] When **all** jobs of an experiment are done → `pre_embed.state="ready"` and `schedule_sweep(run_sweep, experiment_id, config)`. The runs then execute from the cache.
 - [ ] Minimum controls: **cancel** while waiting → `cancel_batch` for its jobs, drop checkpoints, experiment `cancelled`. **Pause** while waiting → keep polling but do not schedule runs until resumed.
 - [ ] `lifespan` shutdown: cancel the watcher **task** only. Never cancel remote batches; checkpoints are preserved (docextract graceful-shutdown pattern).
-- [ ] `startup_reconciliation` exempts experiments with `pre_embed.state == "waiting"` that have checkpoint entries. A waiting experiment **without** checkpoints (orphan) is marked `failed` with a clear reason.
+- [ ] `startup_reconciliation` exempts experiments with `pre_embed.state == "waiting"` that have checkpoint entries. A waiting experiment **without** checkpoints (orphan) is marked `failed` with a clear reason. Waiting experiments found at boot while `DOUBLEWORD_API_KEY` is unset are marked `failed` with reason "DOUBLEWORD_API_KEY removed; batches cannot be polled" (their checkpoints are kept, so restoring the key and resubmitting resumes them).
 - [ ] Each batch record exposes `dashboard_url`, and elapsed time uses API `created_at`/`completed_at`.
 
 ### Docs + config (Must)
 - [ ] `configs/{mongodb,supabase}/example-doubleword.yaml`, `configs/mongodb/example-provider-compare.yaml`; `docs/user-guide/doubleword-setup.md` covers: key, **batch latency (1h/24h windows; 24h cheaper)**, restart-safe, `.rpf_state`/`.rpf_cache` volumes, single uvicorn worker, unavailable-model reset. Also `.env.example`, `configuration.md`, `extending.md`, `CLAUDE.md` Key Files + Provider System, `README.md` vendor-neutral.
-- [ ] **HITL at slice start:** default `DOUBLEWORD_COMPLETION_WINDOW` (`1h` faster vs `24h` cheaper). Log in DECISIONS.
+- [ ] `DOUBLEWORD_COMPLETION_WINDOW` default **`1h`** (owner decision #205; `24h` documented as the cheaper option for large sweeps). If V6 shows `1h` is not accepted for embeddings → fall back to `24h` and log it in DECISIONS.
 
 ## GWT Scenarios (acceptance tests: author RED first)
 
@@ -131,7 +134,8 @@ Feature: Mixed-provider embedding axis
 
   Scenario: Explicit provider still rejects a mismatched model
     Given embedding.provider voyage and embedding.models [all-MiniLM-L6-v2]
-    Then validation fails naming the model, its provider local and the configured provider voyage
+    When the experiment is submitted
+    Then it is rejected (422) naming the model all-MiniLM-L6-v2, its provider local and the configured provider voyage
 
   Scenario: SIE guard fires for a mixed config containing an SIE model
     Given SIE_ENABLED false and models [voyage-3.5-lite, bge-m3] with no provider
@@ -243,6 +247,37 @@ Feature: Restart safety
     When the server boots
     Then the experiment is failed with a reason stating its batches cannot be resumed
 
+Feature: Watcher resilience
+
+  Scenario Outline: Watcher polls at the configured cadence
+    Given DOUBLEWORD_POLL_INTERVAL_S 10, <pending> pending batches and a controllable clock
+    When 60 seconds elapse
+    Then each pending batch has been polled <polls> times
+    Examples:
+      | pending | polls |
+      | 2       | 6     |
+      | 12      | 2     |
+
+  Scenario: An error on one batch does not stop the others
+    Given two waiting experiments and a stubbed DoubleWord API that errors for batch b-1 but completes b-2
+    When the watcher polls
+    Then b-2's experiment completes and b-1 is polled again on the next pass
+
+  Scenario: Rate limiting backs off instead of failing
+    Given the stubbed DoubleWord API rate-limits (429) polls of b-1 twice, then reports it completed
+    When the watcher runs
+    Then the experiment completes and was not marked failed
+
+  Scenario: Watcher crash is supervised and visible
+    Given the watcher loop raises an unexpected error
+    When /healthz is requested
+    Then it reports doubleword_watcher restarting, and after the restart the waiting experiment still completes
+
+  Scenario: Key removed before restart
+    Given a waiting experiment with checkpointed batch b-1
+    When the server restarts with DOUBLEWORD_API_KEY unset
+    Then the experiment is failed with reason "DOUBLEWORD_API_KEY removed" and the checkpoint for b-1 is kept
+
 Feature: Readiness and secrets
 
   Scenario: Missing key rejects a DoubleWord experiment
@@ -264,6 +299,7 @@ Feature: Readiness and secrets
     When embed_documents_doubleword is called
     Then DoublewordCacheMissError names how many texts are missing
 
+  # Manual/opt-in evidence only: @integration is excluded from default pytest; skipped when DOUBLEWORD_API_KEY is unset; not a merge gate
   @integration
   Scenario: Live smoke (opt-in, skipped without key)
     Given DOUBLEWORD_API_KEY is set
@@ -278,12 +314,11 @@ Feature: Readiness and secrets
 - [ ] `./scripts/ci/quality-gates.sh` green on main; baseline `expand_sweep` snapshots captured
 - [ ] harness-scout `detect_confirm` fresh (external async integration + new concurrency seam; the #197 degradation does **not** apply to the rescoped 48A)
 - [ ] T0 spike run (key required; V3 is a hard gate)
-- [ ] HITL: `DOUBLEWORD_COMPLETION_WINDOW` default decided and logged
 
 ## After-Checks
 - [ ] `./scripts/ci/quality-gates.sh` pass
 - [ ] Specification coverage: every GWT scenario ↔ ≥1 named test; all failure channels covered (403, all-rows-unavailable, row error, error file, failed/expired, not-found, orphan, cache miss)
-- [ ] Coverage 100% line + branch on `doubleword_client.py`, `embedding_cache.py`, `pre_embed.py`, `doubleword_watcher.py`, `doubleword_guard.py`; floors unchanged or higher
+- [ ] Coverage 100% line + branch on `doubleword_client.py`, `embedding_cache.py`, `pre_embed.py`, `doubleword_watcher.py`, `doubleword_guard.py`; both outcomes of `defer_for_pre_embed` exercised from each orchestrator entry point; floors unchanged or higher
 - [ ] Complexity evidence: xenon **enforcing** E/C/C; new modules A/B; orchestrator ranks unchanged; `.reports/complexity/pr-body.md`
 - [ ] Mutation testing on plan/cache-key/missing-id policy/resume triage: ≤10% survivors or a waiver
 - [ ] Dependency audit: `openai` version + `pip-audit` result logged (lens #13)
