@@ -95,7 +95,7 @@ Qwen3-Embedding is instruction-aware on the **query** side; documents are embedd
 def format_query(text: str, instruction: str | None) -> str:
     if not instruction:
         return text
-    return f"Instruct: {instruction}\nQuery: {text}"   # V9: confirm spacing against official example
+    return f"Instruct: {instruction}\nQuery: {text}"  # V9: confirm spacing against official example
 ```
 
 ### 6.4 MRL truncation
