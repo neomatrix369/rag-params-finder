@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Dependency CVEs (2026-09-24)** — lockfile-only upgrades: `anyio` 4.13.0 → 4.14.2 (CVE-2026-63374 TLS host-name spoofing, CVE-2026-64847 process-pool hang) and `restrictedpython` 8.3 → 8.5 via `aim` (CVE-2026-76825 sandbox escape). No waivers added (**IMPLEMENTED**; local `pip-audit` **VERIFIED** exit 0; 470 unit tests pass).
 - **Nightly #71 SCA (2026-09-10)** — `nltk` ≥3.10.3, `pypdf` ≥6.16.1 (→6.18.0), `pip` ≥26.2; waive deferred transformers `CVE-2026-9856` / `PYSEC-2026-3929` and nltk `CVE-2026-81726` scanner false-positive on fix version 3.10.3 across `.trivyignore` / `.meterian` / `pip-audit.sh` (**IMPLEMENTED**; local `pip-audit` **VERIFIED** exit 0). Targets Nightly Dependency audit + Trivy container scan (+ Meterian parity).
 
 - **PR #174 frontend audit** — `fast-uri` override `>=3.1.5` still allowed vulnerable 3.1.5 (HIGH GHSA-5jgf-p345-68v8 et al.); pin `3.1.7`. Also pin `qs` 6.16.0 and `postcss-selector-parser` 6.1.4 (**IMPLEMENTED**). Vitest 4.1.11 deferred — npm arborist `edgesOut` crash on this lockfile.
