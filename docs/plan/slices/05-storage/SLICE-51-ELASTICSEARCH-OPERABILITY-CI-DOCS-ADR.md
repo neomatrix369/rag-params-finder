@@ -174,12 +174,13 @@ Scenario: ADR-006 is Accepted and distinct from ADR-005
 - [ ] harness-scout `detect_confirm` at slice start (multi-file infra + script + FE + CI + docs — high blast radius).
 
 ## After-Checks [GATE]
-- [ ] Every GWT clause has ≥1 test; `GET /api/stores` redaction test + docs-parity red-path test present.
+- [ ] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first); `GET /api/stores` redaction test + docs-parity red-path test present.
 - [ ] Config-name + docs-parity checks extended to `configs/elasticsearch/` and green in PR CI.
 - [ ] Nightly ES job conclusion recorded (skipped ≠ green).
 - [ ] **Journey gate:** stage-5→8 commands run from a clean clone as written; 15-stage read-through completes; transcripts in gate evidence.
 - [ ] Cross-backend comparability evidence (Mongo/Postgres/ES, same YAML) recorded.
-- [ ] Coverage floors (BE + FE) hold; complexity `enforcing`.
+- [ ] Coverage floors (BE + FE) hold.
+- [ ] Complexity evidence: policy `enforcing` (xenon E/C/C on `server/`/`cli/` via `./scripts/ci/quality-gates.sh`); local `bash scripts/ci/complexity-report.sh` → `.reports/complexity/pr-body.md`; FE complexity per the ESLint rules in the same report; new modules do not raise the average rank.
 - [ ] Doc audit YES: all E2E-journey docs updated; `/sync-docs` footprint clean.
 - [ ] `docs/plan/gate-evidence/slice-51.json` with coverage/complexity fields + clean-clone + journey + comparability transcripts.
 

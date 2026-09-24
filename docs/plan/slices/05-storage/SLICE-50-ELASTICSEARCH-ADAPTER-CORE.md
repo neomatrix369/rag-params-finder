@@ -158,9 +158,9 @@ Scenario: ES client missing raises install guidance
 - [ ] harness-scout `detect_confirm` at slice start (external service integration + near-real-time refresh seam).
 
 ## After-Checks [GATE]
-- [ ] Every GWT clause has ≥1 test; refresh regression + quantized-preflight rejection explicitly present.
+- [ ] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first); refresh regression + quantized-preflight rejection explicitly present.
 - [ ] ES retrieval coverage ≥95% (matches Postgres retrieval floor); combined backend floors hold.
-- [ ] Complexity `enforcing`; new ES modules do not raise average xenon rank.
+- [ ] Complexity evidence: policy `enforcing` (xenon E/C/C on `server/`/`cli/` via `./scripts/ci/quality-gates.sh`); local `bash scripts/ci/complexity-report.sh` → `.reports/complexity/pr-body.md`; new ES modules do not raise the average xenon rank.
 - [ ] `pip install -e .` (no extra) still imports server + runs the non-ES suites — ES import stays lazy.
 - [ ] Mutation on the ES retrieval + fusion helper: survival budget met or waiver logged.
 - [ ] `docs/plan/gate-evidence/slice-50.json` with coverage/complexity fields.
