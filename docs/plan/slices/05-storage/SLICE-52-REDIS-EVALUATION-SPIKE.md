@@ -1,6 +1,6 @@
 # SLICE 52 — Redis Evaluation Spike + Decision Record (docs + throwaway PoC)
 
-**MoSCoW:** MUST *(proposed — owner to confirm, #227)*
+**MoSCoW:** MUST *(owner-confirmed, #233)*
 **Target time:** ~6–8 h in six ordered streams (R0 delta ~45 min · R1 candidates ~1 h · R2 adoption ~1 h · R3 PoC ~1.5 h · R4 Branch B ~45 min · R5 scoring + outputs ~2 h)
 **Status:** 📋 PLANNED
 **Depends on:** none (hard). Soft: Slice 49 / 50 / 51 **specs** (read as fixed inputs — their code need not exist). May run in parallel with Slice 49 execution.
@@ -217,4 +217,4 @@ Feature: Redis evaluation produces an evidence-backed, owner-decidable recommend
 
 ## Gate Status
 
-📋 PLANNED. The spec is drafted. The owner still has to confirm MoSCoW (#227); then the `nw-distill` evidence-check pass runs before 🔨 IN PROGRESS.
+📋 PLANNED. MoSCoW confirmed (#233). Next: the `nw-distill` evidence-check pass before 🔨 IN PROGRESS.

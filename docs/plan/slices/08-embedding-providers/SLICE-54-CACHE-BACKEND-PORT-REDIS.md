@@ -1,6 +1,6 @@
 # SLICE 54 — Embedding-Cache Backend Port + Redis Cache Adapter (Branch B)
 
-**MoSCoW:** COULD *(proposed. Only if Slice 52 finds a concrete need that SQLite can't meet, e.g. a cache shared across hosts/containers — #225, #227)*
+**MoSCoW:** COULD *(owner-confirmed #233. Only if Slice 52 finds a concrete need that SQLite can't meet, e.g. a cache shared across hosts/containers — #225)*
 **Target time:** ~3–4 h
 **Status:** 📋 PLANNED
 **Depends on:** **48A** (`server/core/embedding/embedding_cache.py` on `main`) · **52** (Branch B cache GO). Soft: **53** (reuse the `redis-local` compose profile + `REDIS_URL` conventions; otherwise this slice adds a minimal profile).

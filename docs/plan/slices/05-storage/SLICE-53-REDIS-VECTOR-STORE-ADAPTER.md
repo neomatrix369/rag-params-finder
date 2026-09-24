@@ -1,6 +1,6 @@
 # SLICE 53 — Redis Vector Store: Adapter + Full Journey (Branch A)
 
-**MoSCoW:** SHOULD *(proposed; promoted to Must on a Slice 52 Branch A **GO** — owner, #227)*
+**MoSCoW:** SHOULD *(owner-confirmed #233; promoted to Must on a Slice 52 Branch A **GO**)*
 **Target time:** ~9–12 h, one branch, may ship as 2 PRs: **53a** adapter core (~5–6 h) · **53b** operability + CI + docs + ADR-007 Accepted (~4–6 h)
 **Status:** 📋 PLANNED
 **Depends on:** **51** (registry, capabilities, `VECTOR_STORE_BACKEND`, `rrf_fuse()`, `GET /api/stores`, registry-driven FE labels, generalised `stop-services.sh`, docs-parity gate, all on `main`) · **52** (Branch A GO + client/image choice)
