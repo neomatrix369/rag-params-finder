@@ -66,6 +66,10 @@ echo "5b/11 Backend complexity (xenon — baseline E/C/C, target B/A/A)..."
 # experiments_lifecycle._normalize_stale_running_status (E,CC=32), plus D/C blocks.
 uv run xenon --max-absolute E --max-modules C --max-average C server/ cli/
 
+echo ""
+echo "5c/11 Backend dead code (vulture ≥80% — config in pyproject.toml)..."
+uv run vulture
+
 if [[ "${MODE}" == "quick" ]]; then
   echo ""
   echo "6/9 Backend unit tests (no coverage)..."

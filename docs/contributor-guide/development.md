@@ -126,7 +126,7 @@ Run all gates before committing. All must pass with zero regressions.
 | Layer | Tools |
 |-------|--------|
 | Repo | shellcheck (`start-services.sh` + `scripts/**/*.sh`), actionlint, markdownlint |
-| Backend | ruff, ruff format, mypy, bandit, pytest + coverage, pip-audit |
+| Backend | ruff, ruff format, mypy, bandit, vulture, pytest + coverage, pip-audit |
 | Frontend | Vitest + React Testing Library, eslint, tsc, build, npm audit |
 | Secrets | gitleaks |
 
@@ -285,7 +285,7 @@ test -x .git/hooks/pre-push && echo "pre-push hook OK"
 
 | Trigger | What runs |
 |---------|-----------|
-| `git commit` | **pre-commit** — hygiene, gitleaks, repo lint, ruff, dmypy, bandit, eslint, tsc --noEmit, testmon fast-tests (changed modules) |
+| `git commit` | **pre-commit** — hygiene, gitleaks, repo lint, ruff, dmypy, bandit, vulture, eslint, tsc --noEmit, testmon fast-tests (changed modules) |
 | `git push` | **pre-push** — pytest+coverage (backend-changed only), vite build, vitest, pip-audit, npm audit (zero overlap with commit) |
 | PR or push to `main` | **GitHub Actions** — CI (repo-lint, backend, frontend, secrets, dependency-audit jobs) + Nightly T4 buckets (A daily / B Mon / C 1st+15th — see § CI) |
 | Manual | `./scripts/ci/quality-gates.sh` — full local mirror of CI before opening a PR |
@@ -431,7 +431,7 @@ GitHub Actions splits PR gates from expensive scheduled work (see `.github/workf
 | Job | Steps |
 |-----|--------|
 | **Repo lint** | `pre-commit run shellcheck` → `actionlint` → `markdownlint` (all files) |
-| **Backend (Python)** | `ruff` → `mypy` → `bandit` → xenon → **unit-tier** `pytest` + floors (live DB suites ignored) |
+| **Backend (Python)** | `ruff` → `mypy` → `bandit` → `vulture` → xenon → **unit-tier** `pytest` + floors (live DB suites ignored) |
 | **Frontend (Node.js)** | `npm run lint` → `npm run test:ci` → `npm run typecheck` → `npm run build` |
 | **Secrets** | `gitleaks` diff-only scan |
 | **Dependency audit** | `pip-audit` + `npm audit`; lockfile-gated, PR-only |
@@ -440,7 +440,7 @@ GitHub Actions splits PR gates from expensive scheduled work (see `.github/workf
 
 | Workflow | Cron | Jobs |
 |----------|------|------|
-| **A — `nightly.yml`** | daily `0 2 * * *` | unit/cov snapshots · complexity · **postgres-integration** · **mongo-integration** · **docker-build** · TruffleHog full · dep-audit · gitleaks full |
+| **A — `nightly.yml`** | daily `0 2 * * *` | unit/cov snapshots · complexity · **postgres-integration** · **mongo-integration** · **docker-build** · TruffleHog full · dep-audit · gitleaks full · **Semgrep SAST** · **OSV SCA** (waivers: `osv-scanner.toml`) · frontend knip/jscpd report (not a gate) |
 | **B — `supply-chain.yml`** | Mondays `0 3 * * 1` | `sbom` (CycloneDX + Trivy license) · **Meterian** OSS SCA (`oss: true`; archives `meterian-<run>`; exclusions in [`.meterian`](../../.meterian); Trivy image parity [`.trivyignore`](../../.trivyignore)) · `container-scan` · `chalk` |
 | **C — `mutation.yml`** | 1st + 15th `0 2 1,15 * *` | `mutation-tests-python` (mutmut, advisory) · `mutation-tests-node` (Stryker) |
 | **D — `code-review-graph.yml`** | daily `0 2 * * *` | graph review (`fail-on-risk: none`; no PR comments) |

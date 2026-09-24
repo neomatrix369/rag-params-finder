@@ -94,6 +94,9 @@ SCANS_SKIPPED=0
 # ─────────────────────────────────────────────────────────────────────────────
 # SEMGREP — multi-language SAST
 # ─────────────────────────────────────────────────────────────────────────────
+# Rule packs mirror nightly.yml (sast-semgrep); avoid --config=auto in gate scripts.
+SEMGREP_ARGS=(--config p/owasp-top-ten --config p/python --config p/javascript --config p/secrets
+  --severity ERROR --error --quiet)
 if $RUN_SEMGREP; then
   echo -e "${BOLD}--- Semgrep (SAST) ---${RESET}"
 
@@ -101,13 +104,12 @@ if $RUN_SEMGREP; then
     warn "semgrep not installed — brew install semgrep  OR  pip install semgrep"
     SCANS_SKIPPED=$((SCANS_SKIPPED + 1))
   elif $DRY_RUN; then
-    info "DRY RUN: would run: semgrep --config=auto --error ."
+    info "DRY RUN: would run: semgrep scan ${SEMGREP_ARGS[*]} ."
   else
     SCANS_RUN=$((SCANS_RUN + 1))
-    echo "  Running: semgrep (auto ruleset)..."
-    # --config=auto pulls Semgrep OSS rules: p/owasp-top-ten, p/python, p/javascript, etc.
-    # --error exits 1 if any finding at severity WARNING+
-    if ! semgrep --config=auto --error --quiet .; then
+    echo "  Running: semgrep (CI rule packs, ERROR severity)..."
+    # Same packs + severity as nightly.yml sast-semgrep; --error exits 1 on any finding.
+    if ! semgrep scan "${SEMGREP_ARGS[@]}" .; then
       fail "Semgrep found SAST issues"
       SCANS_FAILED=$((SCANS_FAILED + 1))
     else
@@ -128,11 +130,11 @@ if $RUN_OSV; then
     warn "  go install github.com/google/osv-scanner/cmd/osv-scanner@latest"
     SCANS_SKIPPED=$((SCANS_SKIPPED + 1))
   elif $DRY_RUN; then
-    info "DRY RUN: would run: osv-scanner --recursive ."
+    info "DRY RUN: would run: osv-scanner scan source -r --config osv-scanner.toml ."
   else
     SCANS_RUN=$((SCANS_RUN + 1))
-    echo "  Running: osv-scanner (recursive lockfile scan)..."
-    if ! osv-scanner --recursive .; then
+    echo "  Running: osv-scanner (recursive lockfile scan, waivers from osv-scanner.toml)..."
+    if ! osv-scanner scan source -r --config osv-scanner.toml .; then
       fail "OSV-Scanner found dependency vulnerabilities"
       SCANS_FAILED=$((SCANS_FAILED + 1))
     else

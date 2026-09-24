@@ -6,6 +6,7 @@ name: Nightly
 #   - Docker build matrix (3 Dockerfiles)
 #   - Full secrets / TruffleHog history
 #   - Coverage snapshots + complexity trending
+#   - Semgrep SAST + OSV SCA; frontend knip/jscpd trend (report only)
 #
 # Sibling workflows:
 #   B supply-chain.yml — weekly Mon 03:00 UTC — SBOM · licenses · Meterian · container-scan · Chalk
@@ -240,6 +241,61 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # ── SAST + SCA (same packs/waivers as scripts/security/security-scan.sh) ────
+  sast-semgrep:
+    name: Semgrep SAST (OWASP · Python · JS · secrets — ERROR)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: semgrep/semgrep:1.172.0
+    steps:
+      - uses: actions/checkout@v7
+      - run: >-
+          semgrep scan --config p/owasp-top-ten --config p/python
+          --config p/javascript --config p/secrets --severity ERROR --error .
+
+  sca-osv:
+    name: OSV-Scanner SCA (uv.lock + package-lock.json)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: OSV-Scanner (waivers mirror pip-audit.sh — osv-scanner.toml)
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/src" -w /src \
+            ghcr.io/google/osv-scanner:v2.4.0 \
+            scan source -r --config osv-scanner.toml .
+
+  # ── Frontend hygiene trend (report only — baseline, not a gate) ────────────
+  frontend-hygiene-report:
+    name: Frontend dead exports + duplication (report only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Dead exports (knip)
+        run: |
+          mkdir -p ../.reports/hygiene
+          npx --yes knip@6.38.0 --no-progress --reporter markdown > ../.reports/hygiene/knip.md || true
+      - name: Duplication (jscpd — baseline 6.2%, target ≤5%)
+        run: npx --yes jscpd@5.3.2 src --min-lines 6 --reporters markdown,console --output ../.reports/hygiene/jscpd || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: nightly-frontend-hygiene-${{ github.run_number }}
+          path: .reports/hygiene/
+          retention-days: 30
+          if-no-files-found: warn
 
   # ── Full-history secrets ────────────────────────────────────────────────────
   trufflehog-full:

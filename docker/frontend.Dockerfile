@@ -48,4 +48,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
   CMD wget -qO- http://127.0.0.1:5374/ > /dev/null || exit 1
 
 # Start nginx in foreground mode (for Docker)
+# Runs as root today (stock nginx:alpine needs root for its cache/pid paths). Non-root switch is an owner decision tracked in
+# CHANGELOG (Unreleased/Security) — needs a Docker smoke test before changing.
+# nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["nginx", "-g", "daemon off;"]

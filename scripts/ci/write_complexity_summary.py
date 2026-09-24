@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any
 
 COMPLEXITY_MESSAGE = re.compile(r"complexity of (?P<score>\d+)", re.IGNORECASE)
+COGNITIVE_MESSAGE = re.compile(r"cognitive complexity from (?P<score>\d+)", re.IGNORECASE)
+COGNITIVE_RULE = "sonarjs/cognitive-complexity"
 MAX_ITEMS = 10
 
 
@@ -26,12 +28,16 @@ def python_summary(report: Mapping[str, Sequence[Mapping[str, Any]]]) -> tuple[i
     return int(highest["complexity"]), str(highest["rank"]), len(entries)
 
 
-def eslint_violations(report: Iterable[Mapping[str, Any]]) -> list[tuple[str, int, int]]:
+def eslint_violations(
+    report: Iterable[Mapping[str, Any]],
+    rule_id: str = "complexity",
+    pattern: re.Pattern[str] = COMPLEXITY_MESSAGE,
+) -> list[tuple[str, int, int]]:
     violations: list[tuple[str, int, int]] = []
     for file_report in report:
         for message in file_report.get("messages", []):
-            match = COMPLEXITY_MESSAGE.search(str(message.get("message", "")))
-            if message.get("ruleId") == "complexity" and match:
+            match = pattern.search(str(message.get("message", "")))
+            if message.get("ruleId") == rule_id and match:
                 violations.append(
                     (
                         str(file_report["filePath"]),
@@ -49,7 +55,9 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     score, rank, count = python_summary(read_json(args.python_report))
-    violations = eslint_violations(read_json(args.node_report))
+    node_report = read_json(args.node_report)
+    violations = eslint_violations(node_report)
+    cognitive = eslint_violations(node_report, COGNITIVE_RULE, COGNITIVE_MESSAGE)
     lines = [
         "<!-- complexity-report:start -->",
         "## Complexity",
@@ -60,6 +68,7 @@ def main() -> None:
         "| --- | --- | --- |",
         f"| Python | Radon | highest CC **{score}** (rank **{rank}**), {count} blocks |",
         f"| JS/TS | ESLint | {len(violations)} function(s) above CC 10 |",
+        f"| JS/TS | ESLint sonarjs | {len(cognitive)} function(s) above cognitive 15 |",
         "",
         "<details><summary>Functions above the JavaScript threshold</summary>",
         "",
@@ -67,6 +76,18 @@ def main() -> None:
             [
                 f"- `{Path(path).name}:{line}` — CC {value}"
                 for path, line, value in violations[:MAX_ITEMS]
+            ]
+            or ["- None."]
+        ),
+        "",
+        "</details>",
+        "",
+        "<details><summary>Functions above the cognitive-complexity threshold</summary>",
+        "",
+        *(
+            [
+                f"- `{Path(path).name}:{line}` — cognitive {value}"
+                for path, line, value in cognitive[:MAX_ITEMS]
             ]
             or ["- None."]
         ),

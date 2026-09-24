@@ -133,6 +133,12 @@ lines = 72
 exclude_dirs = ["tests", ".venv"]
 skips = ["B101"]
 
+[tool.vulture]
+paths = ["server", "cli"]
+min_confidence = 80
+# Pydantic `@field_validator` classmethods must accept `cls` even when unused.
+ignore_names = ["cls"]
+
 # Transitive ML stack (torch/transformers via sentence-transformers) — tracked; major upgrade deferred.
 # The current compensating control is an allowlisted model registry; arbitrary HuggingFace IDs are rejected.
 # Ignores are applied in scripts/pip-audit.sh (pip-audit has no pyproject config).
