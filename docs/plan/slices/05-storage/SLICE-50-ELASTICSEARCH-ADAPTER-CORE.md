@@ -32,8 +32,10 @@ The greenfield Elasticsearch adapter: a `server/db/elasticsearch/` package + a r
 - **Explicit mapping** (data-eng review): `dense_vector` fields set `index_options.type: "hnsw"`, `similarity: "cosine"`, and the ES 9.5 defaults **stated explicitly** (`m: 16`, `ef_construction: 100`) so a future default change can't silently drift; `text` field uses the `english` analyzer; `experiment_id`/`embedding_model`/`run_id` are `keyword`. Ship an `index_mapping.json` template (or an in-code builder) beside the adapter as the SSOT for the shape.
 - **Preflight detection method** (data-eng review): `GET /{index}/_mapping` → read each `dense_vector` field's `index_options.type`; **reject** if any is `bbq_hnsw` or `int8_hnsw` with a clear "unquantized HNSW required" remediation.
 - **Sizing note** (data-eng review, for `elasticsearch-setup.md` in Slice 51): raw float32 vectors on disk (≈1.5 KB/384-d, ≈4 KB/1024-d) + HNSW graph in memory (≈`8 × m × 4` bytes/chunk ≈ 512 B/chunk at `m=16`); `-Xms1g -Xmx1g` for local testing.
+- **`capabilities()` (data-eng review — Suggestion-2):** returns `VectorCapabilities(retrieval_methods=[dense, sparse, hybrid], similarity="cosine", index_types=["hnsw"], supported_dims={384, 1024}, metadata_filtering=True, can_host_run_state=False)`. `supported_dims` mirrors pgvector's `VECTOR_COLUMNS` — a config requesting a dim outside it (e.g. SPLADE 30522) is rejected at preflight via this value, not deep in a query.
 - `search()`: dense `knn` (`k=top_k`, `num_candidates=top_k*2`, filters in `knn.filter` for **pre**-filtering), sparse BM25 `match` with the same filters, hybrid = **client-side RRF (k=60)** via a shared fusion helper (extracted, not copied from `retriever_mongo.py`).
 - `upsert_chunks` refreshes before returning (`refresh="wait_for"`, **not** `refresh=true` — serialises the immediate follow-up search); `delete_experiment` via delete-by-query.
+- **Dual-store error precedence (data-eng review — Suggestion-3):** when both the vector store and run-state store are checked in preflight, the **vector-store (ES) failure gates the sweep and is reported first**; a run-state failure is secondary. Recorded in ADR-006 (Slice 51).
 - Missing `elasticsearch` client raises a clear "install the `[elasticsearch]` extra" error **only when ES is selected**.
 
 ## Reuse ledger (reuse-first — don't reinvent the wheel)
@@ -84,6 +86,12 @@ Scenario: Hybrid RRF parity with Mongo on a fixed fixture
   When ES hybrid fuses dense + sparse
   Then the fused ranking matches Mongo's on the same fixture
 
+Scenario: Extracted RRF helper is the single fusion path (extraction regression)
+  Given rrf_fuse() extracted to a shared module (Mongo's inlined copy deleted)
+  When Mongo hybrid retrieval runs on the fixed dual-list fixture
+  Then its output is unchanged from before the extraction
+    (Mongo now routes through the shared helper — no duplicate fusion logic remains)
+
 Scenario: Insert-then-immediately-search returns hits (refresh regression)
   Given upsert_chunks has just returned
   When search runs immediately (no manual refresh)
@@ -95,7 +103,8 @@ Scenario: ensure_indexes is idempotent
   Then no error is raised and the mapping is unchanged
 
 Scenario: Quantized mapping is rejected at preflight
-  Given a live rpf-chunks index whose dense_vector uses bbq_hnsw or int8_hnsw
+  Given a rpf-chunks index whose dense_vector uses bbq_hnsw or int8_hnsw
+    (the test fixture pre-creates the index with a quantized mapping via the ES API before preflight runs)
   When preflight runs
   Then it fails with a clear "unquantized HNSW required" remediation
     (scores would otherwise degrade for reasons unrelated to the sweep)
