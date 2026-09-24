@@ -45,6 +45,8 @@ DoubleWord is primarily a **batch inference cloud** with an OpenAI-compatible AP
 | Output tokens | $0.00 |
 | Realtime availability | **limited**: DoubleWord states it is primarily a batch API |
 
+> **Catalog check (2026-09-24, #208):** the public model catalog (`docs.doubleword.ai/inference-api/models`, generated from the models API) lists 36 models; `Qwen/Qwen3-Embedding-8B` is the **only** embedding model and there is **no** reranker. The Qwen3 0.6B/4B embedding sizes are not hosted. DoubleWord's own embeddings guide batches this model on `/v1/embeddings` (documentary support for V3; the spike still runs it). The pricing page names tiers Realtime/Async/Batch (24h) but does not say which tier a `completion_window="1h"` batch bills at. The `1h` ≈ Async mapping (#205) comes from docextract; analytics `total_cost` (48B) stays the billed truth. The authenticated `/v1/models` list is re-checked in the 48A T0 spike.
+
 Why it matters for rag-params-finder: DoubleWord's embeddings workbook argues that re-embedding after every chunking change is where embedding costs multiply, which is exactly what a chunking × embedding sweep does. Their measured run (1.6M tokens) cost $0.03 on DoubleWord batch, against $0.19 on voyage-3-large and $0.10 on OpenAI batch. Their small 100-query Wikipedia eval had Qwen3-Embedding-8B at recall@10 82.4% against 85.1% for text-embedding-3-large (both at 1024 dims). That is close enough to let the sweep decide on *your* data.
 
 **Key design consequence:** in a grid sweep, every chunk configuration *and* every golden-master question is known before any trial runs. So both documents and queries can be embedded in one batch per embedding config, which makes the 24h batch tier usable even for query embeddings.
