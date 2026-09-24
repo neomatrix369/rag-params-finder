@@ -1,6 +1,6 @@
 # Slice 48C — MRL `dimensions` Axis + `query_instruction` Axis
 
-**Status**: 📋 PLANNED — **execution gated: do not implement 48C until the owner confirms D1, D2 and D3** (see Open design decisions)
+**Status**: 📋 PLANNED — design decisions D1–D3 **decided** by the owner 2026-09-24 (#207)
 **Branch**: `slice/48c-embedding-dim-instruction-axes`
 **Estimated time**: ~4–6 h (depends on the Postgres option chosen)
 **MoSCoW**: Should (owner decision 2026-09-24; DECISIONS #189, #196). Start only after 48B ✅.
@@ -25,13 +25,24 @@ A DoubleWord config can sweep `dimensions` (e.g. `[512, 1024, 2048]`) and `query
   - Run identity: `_run_config_key` (results_analyzer) and `pipeline/signatures.py` key on `embedding_model`, so dim/instruction must enter identity and the mandatory `embedding_model` filter, or vectors of different dims/instructions mix.
 > The executor may diverge from the plan if new evidence warrants. Document deviations in PROGRESS.md before marking PASSED.
 
-## Open design decisions (HITL at slice start; log in DECISIONS)
+## Design decisions (owner, 2026-09-24, DECISIONS #207)
 
-| # | Decision | Options | Recommendation |
+| # | Decision | Chosen | Consequence |
 |---|---|---|---|
-| D1 | How the axes appear in config | (a) `embedding.axes: {dimensions: [...], query_instruction: [...]}` scoped to MRL-capable models; (b) derived model-id variants `Qwen/Qwen3-Embedding-8B@512` | (a). Keeps the registry id clean; expansion adds two product dimensions for MRL models only |
-| D2 | Postgres dims beyond 1024 | (i) allowlist `{384, 512, 1024}` on Postgres and reject others with 422; (ii) add `halfvec` columns for 2048/4096; (iii) a generic column per dim | (i) for the Should scope. Column/namespace growth is HITL + ADR |
-| D3 | Stored `embedding_model` value | a composite like `Qwen/Qwen3-Embedding-8B#d512`, or a separate `embedding_dim` filter field | Composite. Rides the existing mandatory filter with no new index filter field |
+| D1 | How the axes appear in config | **Sub-axes of the existing embedding axis, declared per model** under `embedding.axes.<model_id>` | Other models in a mixed-provider sweep are unaffected. Sub-axes on a model that doesn't support them (not MRL / not instruction-aware per the registry) → 422 at submit |
+| D2 | Postgres dims beyond 1024 | **Allowlist `{384, 512, 1024}` on Postgres** for now; other dims → 422 at submit. Atlas may sweep any registry-supported dim (index capacity permitting) | **Revisit trigger:** reopen D2 (e.g. `halfvec` columns ≤4000) if DoubleWord embedding models need bigger or different sizes on Postgres. Needs a HITL + ADR because it's a schema/namespace change |
+| D3 | Stored `embedding_model` value | **Composite identity** `Qwen/Qwen3-Embedding-8B#d<dim>` (plus `#q<hash>` for a non-null query instruction on query-side records only) | Rides the existing mandatory `embedding_model` filter; no new index filter field |
+
+Config shape (D1):
+
+```yaml
+embedding:
+  models: [voyage-3.5-lite, Qwen/Qwen3-Embedding-8B]
+  axes:
+    Qwen/Qwen3-Embedding-8B:
+      dimensions: [512, 1024]
+      query_instruction: [null, "Given a question, retrieve passages that answer it"]
+```
 
 ## Non-goals
 - MRL for non-DoubleWord models (Voyage dims are fixed in the registry; revisit when a second MRL model appears — Rule of 3).
@@ -43,16 +54,20 @@ A DoubleWord config can sweep `dimensions` (e.g. `[512, 1024, 2048]`) and `query
 - A config with dimensions `[512, 1024]` × instruction `[null, I]` expands to 4× the runs of its non-axis equivalent, and every run's identity string contains both values.
 - A document batch is paid **once** at max dim: the stubbed DoubleWord API bills 1 document batch for all dims.
 - Instruction variants share document vectors: only query batches differ.
-- Unsupported combinations (Postgres dim not allowlisted, or index capacity exceeded) → 422 at submit with an actionable message.
+- Unsupported combinations (sub-axes on a non-supporting model, Postgres dim not in `{384, 512, 1024}`, or Atlas index capacity exceeded) → 422 at submit with an actionable message.
 
 ## GWT Scenarios
 
 ```gherkin
-@pending_decision_D1
-Scenario: Axis expansion count
-  Given 1 DoubleWord model, dimensions [512,1024,2048], query_instruction [null, "Given a question…"] and 1 chunk config
+Scenario: Sub-axes expand only for the model that declares them
+  Given models [voyage-3.5-lite, Qwen/Qwen3-Embedding-8B], and embedding.axes for Qwen/Qwen3-Embedding-8B with dimensions [512,1024,2048] and query_instruction [null, "Given a question…"], and 1 chunk config
   When expand_sweep is called
-  Then 6 runs are returned and each identity includes its dim and instruction hash
+  Then 7 runs are returned: 1 Voyage run and 6 DoubleWord runs whose identities include their dim and instruction hash
+
+Scenario: Sub-axes on a model that does not support them are rejected
+  Given embedding.axes declares dimensions [512] for voyage-3.5-lite
+  When the experiment is submitted
+  Then it is rejected (422) naming voyage-3.5-lite and the unsupported sub-axis dimensions
 
 Scenario: One paid document pass serves every dimension
   Given batch mode, dimensions [512,1024,2048] and an empty cache
@@ -70,14 +85,12 @@ Scenario: Instruction variants reuse document vectors
   Then 1 document batch and 2 query batches are submitted
   And both instruction runs query the same stored chunk rows
 
-@pending_decision_D3
 Scenario: Vectors of different dims never mix in retrieval
   Given stored chunks at 512 and 1024 for the same experiment
   When a 512 run queries
-  Then only rows whose embedding_model identity has dim 512 are searched
+  Then only rows whose embedding_model is Qwen/Qwen3-Embedding-8B#d512 are searched
 
-@pending_decision_D2
-Scenario: Postgres rejects a non-allowlisted dim at submit (if D2 = i)
+Scenario: Postgres rejects a non-allowlisted dim at submit
   Given STORAGE_BACKEND postgres and dimensions [2048]
   When POST /experiments is called
   Then HTTP 422 lists the supported Postgres dims
@@ -95,7 +108,7 @@ Scenario: Atlas index capacity exceeded is caught at submit
 
 ## Before-Checks
 - [ ] 48B ✅ PASSED
-- [ ] D1–D3 decided (HITL) and logged in DECISIONS **before** any 48C code. No auto-proceed on the recommendations. ADR-005 amended if D2/D3 change the identity namespace; update the `@pending_decision` scenarios above to match.
+- [ ] D1–D3 as decided (#207); ADR-005 amended with the composite `embedding_model` identity (D3). If DoubleWord's models now need sizes outside the Postgres allowlist → stop and reopen D2 (HITL) before coding.
 - [ ] Branch from latest `main`; `./scripts/ci/quality-gates.sh` green
 
 ## After-Checks
@@ -103,8 +116,8 @@ Scenario: Atlas index capacity exceeded is caught at submit
 - [ ] Coverage 100% line + branch on the axis expansion + truncation modules; floors unchanged
 - [ ] Complexity evidence: xenon **enforcing** E/C/C; `expand_sweep` rank must not worsen (extract an axis helper if needed)
 - [ ] Mutation testing on identity composition + truncation: ≤10% survivors or a waiver
-- [ ] Doc audit → YES: configuration.md axes, doubleword-setup.md storage notes, schema docs if D2 ≠ i
-- [ ] Security audit → NO (no new inputs reaching shell/DB beyond validated ints/strings) unless D2 adds DDL
+- [ ] Doc audit → YES: configuration.md `embedding.axes` sub-axes, doubleword-setup.md storage notes (Postgres allowlist + revisit trigger)
+- [ ] Security audit → NO (no new inputs reaching shell/DB beyond validated ints/strings; no DDL under D2 allowlist)
 
 ## Commits
 ```

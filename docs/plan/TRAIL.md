@@ -5,7 +5,7 @@
 
 - **PCTO Spec** (`docs/PCTO-rag-params-finder-2026-06-27.md`): Add SIE as primary open-source inference backend (encode + score + extract), caller-supplied corpus (`corpus: list[str]` field on `SweepRequest`), Aim for experiment tracking, and two new API endpoints (`POST /api/v1/sweep`, `GET /api/v1/best-config`)
 - **Supabase migration PRD** (`docs/plan/PRD-supabase-pgvector-migration.md`, 2026-07-09): Dual-backend storage Protocol; Postgres/pgvector + Supabase as first-class engine alongside Mongo (code default stays `mongodb` — #130 Won't flip)
-- **DoubleWord embedder brief** (`docs/plan/BRIEF-doubleword-embedder.md`, 2026-09-24): owner plan titled "SLICE-32" → renumbered **48A–48D** (32 taken by the Storage Protocol track); **batch-first** per the docextract reference project: mixed-provider axis + batch provider + detached watcher → cost + hardening → MRL/instruction axes → realtime (Could) (DECISIONS #188–#206)
+- **DoubleWord embedder brief** (`docs/plan/BRIEF-doubleword-embedder.md`, 2026-09-24): owner plan titled "SLICE-32" → renumbered **48A–48D** (32 taken by the Storage Protocol track); **batch-first** per the docextract reference project: mixed-provider axis + batch provider + detached watcher → cost + hardening → MRL/instruction axes → realtime (Could) (DECISIONS #188–#207)
 - **Codebase** (v0.11.0, 20+ slices complete): Mature Voyage AI + local sentence-transformers RAG sweep pipeline, MongoDB Atlas, FastAPI, React dashboard, Docker, full CI toolchain
 - **Constraints**: Hackathon deadline — Slice 21 targets Days 1–5; Voyage AI stays as numeric baseline (not replaced); PCTO changes remain additive; **Slice 39 is a ≤2 h demo interrupt, then storage migration resumes ahead of Slice 22** (2026-07-18)
 
