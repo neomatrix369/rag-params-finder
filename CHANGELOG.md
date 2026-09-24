@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Dependency CVEs (2026-09-24)** — lockfile-only upgrades: `anyio` 4.13.0 → 4.14.2 (CVE-2026-63374 TLS host-name spoofing, CVE-2026-64847 process-pool hang) and `restrictedpython` 8.3 → 8.5 via `aim` (CVE-2026-76825 sandbox escape). No waivers added (**IMPLEMENTED**; local `pip-audit` **VERIFIED** exit 0; 470 unit tests pass).
 - **Nightly #71 SCA (2026-09-10)** — `nltk` ≥3.10.3, `pypdf` ≥6.16.1 (→6.18.0), `pip` ≥26.2; waive deferred transformers `CVE-2026-9856` / `PYSEC-2026-3929` and nltk `CVE-2026-81726` scanner false-positive on fix version 3.10.3 across `.trivyignore` / `.meterian` / `pip-audit.sh` (**IMPLEMENTED**; local `pip-audit` **VERIFIED** exit 0). Targets Nightly Dependency audit + Trivy container scan (+ Meterian parity).
 
 - **PR #174 frontend audit** — `fast-uri` override `>=3.1.5` still allowed vulnerable 3.1.5 (HIGH GHSA-5jgf-p345-68v8 et al.); pin `3.1.7`. Also pin `qs` 6.16.0 and `postcss-selector-parser` 6.1.4 (**IMPLEMENTED**). Vitest 4.1.11 deferred — npm arborist `edgesOut` crash on this lockfile.
@@ -26,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependency bumps (Nightly CI fix)** — `aiohttp` 3.14.1 → 3.14.3 (CVE-2026-69244 HIGH + CVE-2026-59881/CVE-2026-69243 MEDIUM; out-of-bounds heap read + WebSocket request smuggling); `cryptography` 49.0.0 → 50.0.0 (CVE-2026-69247 HIGH). `frontend/package.json` override: `brace-expansion` 5.0.8 → 5.0.9 (GHSA-rgw5-rvv9-x895 HIGH; previous pin was still in the vulnerable 4.0.0–5.0.8 range); `qs` override pinned at 6.15.3 (GHSA-q8mj-m7cp-5q26 MODERATE). Resolves all three Nightly failures: Meterian SCA, Trivy container scan, and frontend dependency audit (**IMPLEMENTED**).
 
 ### Fixed
+
+- **CI `ruff format --check` failed on Markdown code blocks** — CI installs `.[dev]` without the lockfile, so it picked up ruff 0.16.8 (formats Python in `.md`) while `uv.lock` had 0.15.12 and pre-commit v0.11.4. Aligned all three on 0.16.8 (`pyproject` now `ruff>=0.16.8,<0.17` so CI cannot drift a minor ahead), reformatted the one affected snippet in `BRIEF-doubleword-embedder.md`, and renamed the pre-commit hook to `ruff-check` (**IMPLEMENTED**; `ruff format --check` 274 files, `ruff check` clean).
 
 - **`scripts/lib/storage_mode.sh` aborts on macOS Bash 3.2 under `set -u`** — bare-start mode resolution (no `--<db>-<location>` flag) expanded an empty `selected` array, which `/bin/bash` 3.2 treats as unbound; 3 `test_storage_mode_resolve.py` tests failed locally on macOS while CI (Bash 5) passed. Now uses the portable `${arr[@]+"${arr[@]}"}` guard; a static regression test checks every `scripts/lib/*.sh` so CI catches reintroduction (**IMPLEMENTED**; **VERIFIED** 28/28 under Bash 3.2.57 and 5.3.3, full unit tier 470 passed). `start-services.sh` itself was unaffected (no `set -u`).
 
