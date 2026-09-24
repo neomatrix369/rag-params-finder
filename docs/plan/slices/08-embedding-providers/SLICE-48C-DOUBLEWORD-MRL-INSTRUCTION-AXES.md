@@ -12,12 +12,12 @@ Qwen3-Embedding-8B supports Matryoshka (MRL) output sizes of 32–4096 and task 
 
 ## Goal
 
-A DoubleWord config can sweep `dimensions` (e.g. `[512, 1024, 2048]`) and `query_instruction` (e.g. `[null, "<task>"]`). There is **one paid document embedding pass at max(dimensions)**; lower dims are derived by truncate + L2-renormalize from the 48B cache. Instruction variants **reuse the stored document vectors** and re-embed only queries.
+A DoubleWord config can sweep `dimensions` (e.g. `[512, 1024, 2048]`) and `query_instruction` (e.g. `[null, "<task>"]`). There is **one paid document embedding pass at max(dimensions)**; lower dims are derived by truncate + L2-renormalize from the 48A cache. Instruction variants **reuse the stored document vectors** and re-embed only queries.
 
 ## Context
 > Read before any implementation. Do not rely on conversation history alone.
 - **Stage objective**: new sweep axes for embedding shape and query instruction.
-- **Depends on**: **48B** ✅ (cache with full-dim storage, pre-embed step, cost fields).
+- **Depends on**: **48B** ✅ (48A cache + pre-embed plan/submit + watcher; 48B cost fields and job adoption). Dim variants reuse the 48A `plan_pre_embed` → one batch at max dim.
 - **Global invariants**: → [`docs/plan/invariants.md`](../../invariants.md). Identity namespace changes (index/column names) = **HITL + ADR** per `DECISION-OWNERSHIP.md`.
 - **Hard storage constraints found in recon (2026-09-24)**:
   - Mongo: vector indexes are `vector_index_{dims}` on the shared `embedding` field with an `embedding_model` filter. Every new dimension = one more Atlas search index, counted by `search_index_plan`'s capacity assessment (the M0/shared-tier cap is already near its limit with 384/1024/30522 + text). The capacity check must fail **at submit**, never mid-run.

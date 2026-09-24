@@ -1,21 +1,22 @@
 # Brief — DoubleWord Embedder (Qwen3-Embedding-8B) as a Sweepable Embedding Provider
 
 > **Source material, not a slice spec.** Owner-supplied plan (2026-09-24), originally titled "SLICE-32". Kept for traceability and for the reusable design sketches (§6.3, §6.7, Appendix A).
-> **Executable specs:** [48A](slices/08-embedding-providers/SLICE-48A-DOUBLEWORD-REALTIME-PROVIDER.md) · [48B](slices/08-embedding-providers/SLICE-48B-DOUBLEWORD-BATCH-CACHE-PREEMBED.md) · [48C](slices/08-embedding-providers/SLICE-48C-DOUBLEWORD-MRL-INSTRUCTION-AXES.md). Where this brief and a slice spec disagree, **the slice spec wins**.
-> **Decisions:** [DECISIONS #188–#197](DECISIONS.md).
+> **Executable specs:** [48A](slices/08-embedding-providers/SLICE-48A-DOUBLEWORD-BATCH-PROVIDER.md) · [48B](slices/08-embedding-providers/SLICE-48B-DOUBLEWORD-COST-HARDENING.md) · [48C](slices/08-embedding-providers/SLICE-48C-DOUBLEWORD-MRL-INSTRUCTION-AXES.md) · [48D](slices/08-embedding-providers/SLICE-48D-DOUBLEWORD-REALTIME-MODE.md). Where this brief and a slice spec disagree, **the slice spec wins**.
+> **Decisions:** [DECISIONS #188–#204](DECISIONS.md). **Reference implementation:** `playgroup_202602_docextract` (`llm_doubleword.py`, `extractor.py::_run_all_doubleword`, `DW_FB.md`, `docs/doubleword-platform-knowledge.md`).
 
 ## Reconciliation against `main` @ `6283caa` (2026-09-24)
 
 | Brief assumes | Repo reality | Resolution |
 |---|---|---|
 | Slice number **32** / **32B** | 32 / 32B / 32C = Storage Protocol track | Renumbered **48A / 48B / 48C** (#188) |
-| 32A = one Must slice (realtime + batch + cache + pre-embed + cost) | Too large for one skateboard increment | Split: 48A realtime skateboard · 48B batch/cache/pre-embed/cost · 48C axes (#189) |
-| `EmbedderProtocol`, async `DoublewordEmbedder` class, `server/embedders/…` | Sync plain functions dispatched by `server/core/embedding/embedder_factory.get_embedder(provider)`; DECISIONS #10 prefers factory over Protocol | New module `server/core/embedding/doubleword_embedder.py` + factory branch (#191) |
-| `AsyncOpenAI` + `respx` | `httpx` already a dependency; no `openai` or `respx`; kimchi branch used raw `httpx` to `/v1/embeddings` | Sync `httpx.Client`; tests use `httpx.MockTransport`; **no new dependency** (#191) |
+| 32A = one Must slice (realtime + batch + cache + pre-embed + cost) | Too large for one skateboard increment; DoubleWord is batch/async by nature | Split **batch-first** (#202): 48A batch provider + watcher + cache + resume · 48B cost + hardening · 48C axes · 48D realtime (Could) |
+| `EmbedderProtocol`, async `DoublewordEmbedder` class, `server/embedders/…` | Sync plain functions dispatched by `server/core/embedding/embedder_factory.get_embedder(provider)`; DECISIONS #10 prefers factory over Protocol | Factory branch reading the cache; batch client in `server/core/embedding/doubleword_client.py` (#191, client part superseded by #201) |
+| `AsyncOpenAI` + `respx` | `httpx` already a dependency; no `openai`/`respx`. docextract proved `AsyncOpenAI` on DoubleWord files/batches | **Add `openai`** and port docextract's client (#201, supersedes #191's client choice); tests stub the SDK's `http_client` with `httpx.MockTransport` (no `respx`) |
 | `embedding.models[]` entries with `class:` / `params:` / `requires_env:` | `EmbeddingConfig{provider, models: list[str]}`: one provider per experiment; the registry owns each model's provider | `embedding.provider` becomes optional; provider derived per model from the registry, so mixed-provider sweeps need no new schema block (#190) |
 | Generic `requires_env` + WARN-and-skip | Fail-closed preflight guards (`sie_guard`, `config_backend_guard`) return **HTTP 422** at submit | `doubleword_guard` returns 422 when a DoubleWord model is configured without `DOUBLEWORD_API_KEY`; configs without DoubleWord are unaffected (#192) |
 | Per-identity vector fields `emb__dw_qwen3_8b__1024` | Indexes keyed by dimension (`vector_index_{dims}`, Postgres `embedding_1024`) plus a mandatory `embedding_model` filter | 1024-dim needs **no** index or schema change (48A). Other dimensions are 48C's problem: Postgres has only 384/1024 columns, and pgvector HNSW caps `vector` at 2000 dims (#196) |
 | New `pre_embedding` run **Phase** | `Phase` is per run; pre-embed is per experiment | Experiment-level `pre_embed` progress object; the `Phase` enum is unchanged (#194) |
+| Pre-embed polls inside the sweep | `SWEEP_EXECUTOR` has **one worker**; `startup_reconciliation` marks stale `running` experiments on boot | Submit-all, release the worker, detached asyncio watcher polls all batches + boot resume; reconciliation exempts waiting experiments (#200, #203) |
 | Bayesian: no complete run list | 41A Bayesian uses `suggest_categorical` over declared chunk sizes and overlaps, so the space is finite | Pre-embed the declared space for both grid and Bayesian runs (#193) |
 | `@pytest.mark.live` | Repo marker is `integration` (excluded by default) | Opt-in DoubleWord tests use `integration` and skip when no key is set |
 | `docs/embedders/doubleword.md`, `configs/examples/…` | Pattern: `docs/user-guide/sie-setup.md`; `configs/{mongodb,supabase}/example-*.yaml` | `docs/user-guide/doubleword-setup.md`; example config in both folders |
@@ -60,6 +61,9 @@ Why it matters for rag-params-finder: DoubleWord's embeddings workbook argues th
 | V6 | Is `completion_window="1h"` accepted for embeddings? | Submit with `"1h"` | Use `"24h"` only |
 | V7 | `GET /v1/batches/{id}/analytics` returns `total_cost` | httpx GET | Compute cost as `prompt_tokens × price` |
 | V8 | Realtime availability right now | 10 sequential realtime calls; note errors/latency | Realtime marked "best effort"; default mode = batch |
+| V9 *(added)* | Exact model id + Qwen3 query-prefix format accepted | Embed with the registry id; compare `Query:` spacing | Correct registry id / prefix constant |
+| V10 *(added)* | `batches.list()` returns `metadata` (incl. `job_key`) | List recent batches | 48B adoption degrades to checkpoint-only |
+| V11 *(added)* | Does the `/jobs` async API support embeddings? | Submit one embedding job | Record only (non-goal) |
 
 ### 5.3 Provider metadata (static, used for cost + validation)
 
@@ -174,11 +178,20 @@ then run trials as today — every embed call is a cache hit
 
 | Lesson | Applied in |
 |---|---|
-| Checkpoint `{batch_id, submitted_at}` before polling; resume on restart | 48B |
-| Two error channels: `output_file_id` row errors **and** `error_file_id` pre-processing rejections | 48B |
-| 5 MB per JSONL line limit | 48B `build_jsonl` |
-| Poll interval 10 s | 48B settings default |
-| Upload JSONL from memory (`(name, bytes)`), no temp files | 48B |
-| Track unavailable models persistently; don't retry permission errors | 48A (fail fast on 401/403/404) |
+| Checkpoint `{batch_id, submitted_at}` before polling; resume on restart | 48A |
+| Two error channels: `output_file_id` row errors **and** `error_file_id` pre-processing rejections | 48A |
+| 5 MB per JSONL line limit | 48A `build_jsonl` |
+| Poll interval 10 s | 48A settings default |
+| Upload JSONL from memory (`(name, bytes)`), no temp files | 48A |
+| Track unavailable models persistently; don't retry permission errors | 48A registry |
 | DoubleWord docs vs API model IDs have diverged before; verify the exact ID | 48A T0 spike |
 | Analytics endpoint is DoubleWord-specific; call it with httpx and degrade gracefully | 48B cost |
+| Submit all jobs first, then poll all in one loop; resumed batches polled first | 48A watcher |
+| Resume set `{validating, in_progress, finalizing, completed}`; `retrieve` error → resubmit | 48A watcher |
+| Completed batch with **every** row "not configured / not available" = account access issue → mark unavailable | 48A registry |
+| Graceful shutdown (Ctrl-C) keeps checkpoints; next start resumes | 48A lifespan |
+| Elapsed time from API `created_at`/`completed_at`; log `app.doubleword.ai/batches/{id}` | 48A/48B |
+| Parse actual ctx limit from error-file messages (`extract_ctx_from_error`) | 48B diagnostics |
+| Don't use `autobatcher` (hides batch ids → no checkpoint/resume); webhooks need a public endpoint | 48A non-goals |
+| 24h window is 30–50% cheaper than 1h | 48A HITL default, 48B pricing |
+| docextract never proved `/v1/embeddings` in batch (chat only) | 48A T0 V3 hard gate |
