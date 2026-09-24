@@ -6,6 +6,8 @@
 > **2026-09-23 note (plan reconcile):** Slices **32/33** are now tracked **✅ COMPLETE (code)** — code on `main` since 2026-07-28 (`2eb2990`). Formal gate debt is scoped to **32C → 32B**; `gate-evidence/slice-{32,33}.json` are `PENDING_VERIFICATION`. Slices **46/47** are listed in TRAIL. See DECISIONS #186–#187.
 >
 > **2026-09-24 note (plan Add — docs only):** New embedding-provider track **48A/48B/48C/48D** (DoubleWord Qwen3-Embedding-8B, **batch-first**, docextract async pattern) from the owner brief [`BRIEF-doubleword-embedder.md`](BRIEF-doubleword-embedder.md); specs under [`slices/08-embedding-providers/`](slices/08-embedding-providers/). Start at **48A** (T0 spike needs `DOUBLEWORD_API_KEY`; V3 embeddings-batch is a hard gate; S1 mixed-provider axis needs no key). Owner decided 2026-09-24: completion window **1h**, pricing per window (#205). 48C D1–D3 decided (#207). No open HITL items at planning level; slice-start checks remain (T0 spikes). Nw re-review iteration 2 remediated (#206). Post-merge EFP health check + quality lens re-run 17/18 (#209–#210); DoubleWord catalog has one embedding model (#208); owner: 48B stays Must, next wave = 48A T0 spike first (#212). See DECISIONS #188–#212.
+>
+> **2026-09-24 note (plan Adds — docs only):** Elasticsearch vector-store track **49 → 50 → 51** (specs under [`slices/05-storage/`](slices/05-storage/), ADR-006, DECISIONS #213–#219) and Redis track **52 → 53** (+ **54** Could) from [`BRIEF-redis-evaluation.md`](BRIEF-redis-evaluation.md) (ADR-007, DECISIONS #220–#229). Slice 52 is a docs-only evaluation spike that can start now; its owner GO / NO-GO gates 53 and 54. MoSCoW for 52–54 awaits owner confirmation (#227).
 
 ## Where We Are
 
