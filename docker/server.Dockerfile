@@ -57,4 +57,7 @@ EXPOSE 8001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
   CMD curl -f http://localhost:8001/healthz || exit 1
 
+# Runs as root today (writes the ./.aim bind mount and the HuggingFace cache). Non-root switch is an owner decision tracked in
+# CHANGELOG (Unreleased/Security) — needs a Docker smoke test before changing.
+# nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8001"]

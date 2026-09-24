@@ -134,6 +134,10 @@ jobs:
       - name: SAST (bandit, medium+ severity)
         run: bandit -c pyproject.toml -r server/ cli/ -q -ll
 
+      - name: Dead code (vulture ≥80% confidence)
+        # Paths, confidence and ignores live in pyproject.toml [tool.vulture].
+        run: vulture
+
       - name: Complexity (xenon — baseline E/C/C, target B/A/A)
         # Floor: E/C/C passes current code. Tighten as violations are refactored.
         # Violations blocking B/A/A tracked in docs/plan/slices/PROGRESS.md.
@@ -250,29 +254,38 @@ jobs:
 
       - name: Fetch base ref for PR
         if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
 
       - name: Configure gitleaks diff range
         id: gitleaks-range
+        # Event values reach the script via env (not ${{ }} interpolation) to
+        # avoid shell injection — Semgrep run-shell-injection.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
 
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            if git show-ref --verify --quiet "refs/remotes/origin/${{ github.base_ref }}"; then
-              echo "range=origin/${{ github.base_ref }}..${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            if git show-ref --verify --quiet "refs/remotes/origin/$BASE_REF"; then
+              echo "range=origin/$BASE_REF..$HEAD_SHA" >> "$GITHUB_OUTPUT"
             else
-              echo "::warning::Base ref origin/${{ github.base_ref }} not available; running full tree scan."
+              echo "::warning::Base ref origin/$BASE_REF not available; running full tree scan."
               echo "range=" >> "$GITHUB_OUTPUT"
             fi
-          elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+          elif [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
             echo "range=" >> "$GITHUB_OUTPUT"
           else
-            RANGE="${{ github.event.before }}..${{ github.sha }}"
-            if ! git cat-file -e "${{ github.event.before }}^{commit}"; then
-              echo "::warning::Base commit ${{ github.event.before }} is missing from checkout; running full tree scan."
+            RANGE="$BEFORE_SHA..$HEAD_SHA"
+            if ! git cat-file -e "$BEFORE_SHA^{commit}"; then
+              echo "::warning::Base commit $BEFORE_SHA is missing from checkout; running full tree scan."
               echo "range=" >> "$GITHUB_OUTPUT"
-            elif ! git rev-list -n 1 $RANGE -- >/dev/null 2>&1; then
+            elif ! git rev-list -n 1 "$RANGE" -- >/dev/null 2>&1; then
               echo "::warning::Gitleaks range '$RANGE' is not available in checkout; running full tree scan."
               echo "range=" >> "$GITHUB_OUTPUT"
             else

@@ -1,0 +1,49 @@
+# OSV-Scanner waivers — mirror of the reviewed exceptions in scripts/ci/pip-audit.sh
+# (plus .trivyignore / .meterian). Add an entry here only when the same finding is
+# already waived there with a reason. Used by scripts/security/security-scan.sh and
+# the nightly `sca-osv` job via `--config osv-scanner.toml`.
+
+# aim — no installable fixed release (PyPI aim 4.0.x yanked); Aim UI runs locally only.
+[[IgnoredVulns]]
+id = "PYSEC-2026-1087" # CVE-2025-51464 (XSS)
+reason = "aim: no fixed release; pip-audit waives CVE-2025-51464"
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-1088" # CVE-2025-5321 (sandbox escape)
+reason = "aim: no fixed release; pip-audit waives CVE-2025-5321"
+
+# transformers via sentence-transformers — ST 4+ major upgrade deferred; allowlisted models only.
+[[IgnoredVulns]]
+id = "PYSEC-2025-217" # CVE-2025-14929 (X-CLIP conversion script)
+reason = "transformers: unused conversion path; pip-audit waives PYSEC-2025-217"
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-2288" # CVE-2026-1839 (Trainer)
+reason = "transformers: Trainer not used; pip-audit waives CVE-2026-1839"
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-2289" # CVE-2026-4372
+reason = "transformers: ST major upgrade deferred; pip-audit waives CVE-2026-4372"
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-2290" # CVE-2026-5241 (LightGlue)
+reason = "transformers: unused LightGlue path; pip-audit waives PYSEC-2026-2290"
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-3929" # CVE-2026-9856 (save_pretrained path traversal)
+reason = "transformers: fix needs >=5.10 (ST major upgrade); pip-audit waives PYSEC-2026-3929"
+
+# langsmith via langchain — fix (>=0.8.18) needs websockets>=15; sie-sdk pins websockets<15 (unsatisfiable lock).
+[[IgnoredVulns]]
+id = "GHSA-f4xh-w4cj-qxq8"
+reason = "langsmith: blocked by sie-sdk websockets pin; pip-audit/.trivyignore/.meterian waive it"
+
+# nltk — scanner false positive on the fixed version 3.10.3.
+[[IgnoredVulns]]
+id = "GHSA-8mgp-746c-j5xp" # PYSEC-2026-3740 / CVE-2026-81726
+reason = "nltk: false positive on fix version 3.10.3; pip-audit waives PYSEC-2026-3740"
+
+# vitest — dev-only test runner; 4.1.11 upgrade deferred (npm arborist crash on this lockfile, see CHANGELOG).
+[[IgnoredVulns]]
+id = "GHSA-82fw-gwwq-j7x9" # CVE-2026-84373 (MEDIUM)
+reason = "vitest/@vitest/mocker: dev-only, never shipped; below npm audit high threshold"

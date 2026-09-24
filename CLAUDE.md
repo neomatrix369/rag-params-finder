@@ -100,7 +100,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `scripts/ci/` | Quality gates, repo lint, hooks install, pip-audit, coverage floor + threshold-drift checkers |
 | `scripts/ci/complexity-report.sh` | Radon (Python) + ESLint (TS/JS) complexity evidence; writes `.reports/complexity/pr-body.md` |
 | `scripts/ci/write_complexity_summary.py` | Renders anchored complexity PR-body section from Radon + ESLint JSON |
-| `scripts/ci/security-scan.sh` | Shim delegating to `scripts/security/security-scan.sh` (local SCA/SAST; GHA inlines scanners in `nightly.yml` / `supply-chain.yml`) |
+| `scripts/ci/security-scan.sh` | Shim delegating to `scripts/security/security-scan.sh` (local SCA/SAST; nightly.yml runs Semgrep + OSV with the same packs/waivers — `osv-scanner.toml`) |
 | `scripts/docker/` | health-check, aim-ui, docker-cleanup/build-context |
 | `scripts/release/` | `release.sh` + bump/GitHub helpers |
 | `scripts/security/` | `security-scan.sh` |
@@ -270,7 +270,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 **GHA cadence (2026-09-11 — quine-factory pattern):** ultra-minimal PR `ci.yml`; daily `nightly.yml` (02:00 UTC, includes deferred live DB + docker-build); weekly `supply-chain.yml` (Mon 03:00); biweekly `mutation.yml` (1st+15th); `code-review-graph.yml` on nightly schedule only.
 
 **Git hooks** (after `bash scripts/ci/install-git-hooks.sh`):
-- **commit** → pre-commit (hygiene, gitleaks, repo lint, ruff, dmypy, bandit, eslint, tsc --noEmit, testmon fast-tests on changed modules)
+- **commit** → pre-commit (hygiene, gitleaks, repo lint, ruff, dmypy, bandit, vulture, eslint, tsc --noEmit, testmon fast-tests on changed modules)
 - **push** → push-specific only (`./scripts/ci/pre-push-gates.sh` — xenon complexity gate, full pytest+coverage, vite build, vitest, pip-audit, npm audit; no duplicate of commit checks)
 
 **Repo lint** (2026-05-27):

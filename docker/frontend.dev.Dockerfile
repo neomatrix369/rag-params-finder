@@ -22,4 +22,7 @@ ENV VITE_DEV_PROXY_TARGET=http://server:8001
 
 EXPOSE 5374
 
+# Runs as root today (dev-only HMR container with a bind-mounted source tree). Non-root switch is an owner decision tracked in
+# CHANGELOG (Unreleased/Security) — needs a Docker smoke test before changing.
+# nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5374"]

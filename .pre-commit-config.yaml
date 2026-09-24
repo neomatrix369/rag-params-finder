@@ -75,6 +75,12 @@ repos:
         language: system
         pass_filenames: false
         types: [python]
+      - id: vulture
+        name: vulture dead code (≥80% confidence)
+        entry: uv run vulture
+        language: system
+        pass_filenames: false
+        types: [python]
 
   # ── Python lint + format (one tool, replaces black+isort+pylint) ─
   - repo: https://github.com/astral-sh/ruff-pre-commit
