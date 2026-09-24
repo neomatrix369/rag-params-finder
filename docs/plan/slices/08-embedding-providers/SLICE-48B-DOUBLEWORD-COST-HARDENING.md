@@ -165,6 +165,7 @@ Feature: Progress and diagnostics
 
 ## After-Checks
 - [ ] `./scripts/ci/quality-gates.sh` pass; every GWT scenario ↔ ≥1 test
+- [ ] Specification coverage: every GWT scenario ↔ ≥1 named test; failure channels covered (analytics 500/timeout fallback, adoption outside the window, terminal-failure remote batch not adopted, oversized chunk rejected at submit)
 - [ ] Coverage 100% line + branch on the cost, adoption and ctx-parse units; floors unchanged or higher
 - [ ] Complexity evidence: xenon **enforcing** E/C/C; `.reports/complexity/pr-body.md`
 - [ ] Mutation testing on the cost formula + adoption triage: ≤10% survivors or a waiver

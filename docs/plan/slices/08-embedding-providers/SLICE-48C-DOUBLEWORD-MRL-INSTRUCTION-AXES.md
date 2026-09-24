@@ -110,9 +110,11 @@ Scenario: Atlas index capacity exceeded is caught at submit
 - [ ] 48B ✅ PASSED
 - [ ] D1–D3 as decided (#207); ADR-005 amended with the composite `embedding_model` identity (D3). If DoubleWord's models now need sizes outside the Postgres allowlist → stop and reopen D2 (HITL) before coding.
 - [ ] Branch from latest `main`; `./scripts/ci/quality-gates.sh` green
+- [ ] harness-scout `detect_confirm` against the TRAIL embed (identity + index namespace change)
 
 ## After-Checks
 - [ ] `./scripts/ci/quality-gates.sh` pass; every GWT scenario ↔ ≥1 test
+- [ ] Specification coverage: every GWT scenario ↔ ≥1 named test; rejection paths covered (sub-axes on a non-supporting model, Postgres allowlist, HNSW >2000, Atlas capacity)
 - [ ] Coverage 100% line + branch on the axis expansion + truncation modules; floors unchanged
 - [ ] Complexity evidence: xenon **enforcing** E/C/C; `expand_sweep` rank must not worsen (extract an axis helper if needed)
 - [ ] Mutation testing on identity composition + truncation: ≤10% survivors or a waiver
