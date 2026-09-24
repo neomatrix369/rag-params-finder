@@ -15,7 +15,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 
 **Repo entry:** [README.md](../README.md) · **Fastest run:** [QUICKSTART.md](../QUICKSTART.md)
 
-**Maintainers:** slice status and decision log live in [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) (**status SSOT**). Plan trail / harness: [plan/TRAIL.md](./plan/TRAIL.md). Constraints: [plan/invariants.md](./plan/invariants.md) · ownership: [plan/DECISION-OWNERSHIP.md](./plan/DECISION-OWNERSHIP.md). [plan/HANDOFF.md](./plan/HANDOFF.md) is a dated session snapshot — **PROGRESS + [gate-evidence/](./plan/gate-evidence/) override** when they disagree. Specs live under numbered theme folders `01`–`07` (#162, **IMPLEMENTED**) — index: [plan/slices/README.md](./plan/slices/README.md); Slice 40: [SLICE-40](./plan/slices/07-quality-craft/SLICE-40-DOCS-PLAN-SLICES-SSOT.md).
+**Maintainers:** slice status and decision log live in [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) (**status SSOT**). Plan trail / harness: [plan/TRAIL.md](./plan/TRAIL.md). Constraints: [plan/invariants.md](./plan/invariants.md) · ownership: [plan/DECISION-OWNERSHIP.md](./plan/DECISION-OWNERSHIP.md). [plan/HANDOFF.md](./plan/HANDOFF.md) is a dated session snapshot — **PROGRESS + [gate-evidence/](./plan/gate-evidence/) override** when they disagree. Specs live under numbered theme folders `01`–`08` (#162, **IMPLEMENTED**) — index: [plan/slices/README.md](./plan/slices/README.md); Slice 40: [SLICE-40](./plan/slices/07-quality-craft/SLICE-40-DOCS-PLAN-SLICES-SSOT.md).
 
 > **Who is this for?** Same personas as [README → Who is this for?](../README.md#who-is-this-for) — this page is the **doc map**; the README is the project entry.
 

@@ -15,7 +15,9 @@
 - Backends are independent — neither is a fail-safe for the other (#129).
 - ADR-004 Accepted; ADR-003 Superseded (#127).
 - SIE is opt-in (`SIE_ENABLED` + endpoint/key); Voyage/local remain first-class.
-- Secrets (`VOYAGE_API_KEY`, `MONGODB_URI`, `DATABASE_URL` / `SUPABASE_URI`) stay server-side — never in CLI configs or commits.
+- New embedding providers (e.g. DoubleWord, Slice 48) are opt-in behind a fail-closed readiness guard (HTTP 422 at submit); configs that don't use them must behave byte-identically without their keys (#192).
+- `SWEEP_EXECUTOR` has **one worker**: nothing may block it waiting on an external async job (e.g. DoubleWord batches) — submit, release, and resume via a detached watcher (#200).
+- Secrets (`VOYAGE_API_KEY`, `DOUBLEWORD_API_KEY`, `MONGODB_URI`, `DATABASE_URL` / `SUPABASE_URI`) stay server-side — never in CLI configs or commits.
 → Source: `docs/plan/DECISIONS.md` (#114–#130, #166–#170); `docs/adr/ADR-004-*.md`
 
 ## Tech stack & runtime

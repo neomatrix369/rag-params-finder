@@ -66,6 +66,8 @@ Recovery should **reuse the same `run_id`** for a retried run so dashboards, URL
 
 ---
 
+> **Note (2026-09-24, DECISIONS #203):** resume of in-flight DoubleWord batches on boot is owned by Slice **48A** (detached watcher loads checkpoints in `lifespan`); `startup_reconciliation` must exempt `pre_embed.state=waiting` experiments. Not in this slice's scope.
+
 ## Files Likely Touched *(when implemented)*
 
 | File | Change |
