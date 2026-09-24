@@ -63,7 +63,7 @@ Reuse-first order: **reuse → extend → extract → write new (last)**. This s
 | `GET /api/stores`, FE labels, CLI `indexes list` | Slice 51 (registry-driven) | **Reuse — zero code** |
 | Secret redaction in `/api/stores` | Slice 51's redaction of connection URIs (its `/api/stores` redaction test) | **Reuse** — `REDIS_URL` goes through the same redaction; add a `redis://user:pass@host` / `rediss://` case to that test |
 | Teardown + container health | `stop-services.sh` and `scripts/docker/health-check.sh` made registry-driven in Slice 51 | **Reuse — zero Redis-specific edits expected**; verified as a Before-Check, and any gap is a Slice 51 defect |
-| bash 3.2 array safety | `tests/server/db/test_storage_mode_resolve.py::test_sourced_libs_use_bash32_safe_array_expansion` | **Reuse** — the static guard test covers the new `redis-*` tokens unchanged |
+| bash 3.2 array safety | `tests/server/db/test_storage_mode_resolve.py::test_sourced_libs_use_bash32_safe_array_expansion` | **Reuse** — it is parametrised over every `scripts/lib/*.sh` and scans every `"${arr[@]}"` expansion, so new `redis-*` branches are covered with no test change |
 | Docs-parity + config-name parity | Slice 51 gate generalising `tests/server/models/test_config_examples.py` | **Reuse — zero code**; add `configs/redis/*` so it passes |
 | Nightly integration job | `nightly.yml` `elasticsearch-integration` (51) | **Mirror** → `redis-integration` service container |
 | Setup guide / QUICKSTART / ADR | `postgres-setup.md` / `elasticsearch-setup.md`; QUICKSTART Path D/E; `ADR-006` | **Mirror** → `redis-setup.md`, **Path F**, `ADR-007` (Proposed in 52 → Accepted here) |
@@ -188,7 +188,8 @@ Feature: Redis is a config-selectable vector-only store with full retrieval pari
   Scenario: A paused and resumed sweep keeps using the same Redis vectors
     Given a Redis-backed sweep paused after some runs completed
     When it is resumed
-    Then completed runs are not re-embedded and remaining runs query the same index
+    Then no embedding request is made for texts of runs that completed before the pause
+      And the remaining runs complete with hits from the same Redis index
 
   Scenario: Vectors survive a Redis restart
     Given the redis-local profile with AOF enabled and a completed experiment
@@ -226,7 +227,9 @@ Feature: Redis is a config-selectable vector-only store with full retrieval pari
 - [ ] Slice 52 GO for Branch A recorded in DECISIONS, with image, licence and client choice.
 - [ ] T0 dependency audit logged (lens #13).
 - [ ] Slice 51 gate evidence shows `stop-services.sh` and `scripts/docker/health-check.sh` iterate the registered local profiles. If they still hard-code stores, stop and route the gap to Slice 51 (plan-self-healer); don't patch it here.
-- [ ] Compose sizing: `--maxmemory` value taken from 52's measured bytes-per-vector; eviction policy fixed by the owner's 52/54 combined-deployment decision.
+- [ ] Owner's combined-deployment decision — option (a) one shared `volatile-lru` instance, or (b) separate vector and cache instances — recorded in DECISIONS with rationale. Without it the compose `maxmemory-policy` can't be fixed, so the slice doesn't start.
+- [ ] Compose sizing: `--maxmemory` value taken from 52's measured bytes-per-vector.
+- [ ] Slice 51 gate evidence shows the `/api/stores` redaction test with Mongo/Postgres URI cases (Slice 53 adds the Redis case). If it is missing, route it to Slice 51.
 - [ ] Contract + docs-parity suites green on `main` for the three existing stores (baseline).
 - [ ] harness-scout `detect_confirm` at slice start (external service + infra multi-file + CI + docs).
 
@@ -237,7 +240,7 @@ Feature: Redis is a config-selectable vector-only store with full retrieval pari
 - [ ] Complexity evidence: policy `enforcing` (xenon E/C/C via `./scripts/ci/quality-gates.sh`); local `bash scripts/ci/complexity-report.sh` → `.reports/complexity/pr-body.md`; new modules do not raise the average rank.
 - [ ] Contract suite: the registry-parametrised StorageBackend / VectorStoreAdapter suite passes with the `redis` param and its test file has **no diff** (only the fixture's param list grows).
 - [ ] `pip install -e .` (no `[redis]` extra) imports the server and runs non-Redis suites (lazy import holds).
-- [ ] Mutation on Redis preflight + score conversion: survival budget met or waiver logged.
+- [ ] Mutation on Redis preflight, score conversion **and the no-TTL write path** (a mutant that sets any positive TTL on a vector key must be killed by the "Vector keys never expire" test): survival budget met or waiver logged.
 - [ ] Zero-changes diff guard empty (or each violation routed to 49/51 via plan-self-healer, not patched here).
 - [ ] Nightly `redis-integration` conclusion recorded (skipped ≠ green).
 - [ ] Journey gate: stage 5→8 clean-clone transcript + 15-stage read-through; cross-backend comparability (4 stores, same YAML).

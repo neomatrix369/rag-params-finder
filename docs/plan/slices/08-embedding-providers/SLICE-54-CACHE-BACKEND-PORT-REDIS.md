@@ -59,7 +59,7 @@
 
 - Slice name: `slice-54-cache-backend-port-redis`
 - Branch: `slice/54-cache-backend-port-redis`
-- Files (expected): `server/core/embedding/embedding_cache.py` (**edit** — Protocol + SQLite adapter moved in place), `server/core/embedding/embedding_cache_redis.py` (**new**), `server/settings.py` (**edit**), 48A cache tests (**edit** — parametrise), `docs/user-guide/configuration.md` + `redis-setup.md` (**edit** — cache section), `.env.example`, CHANGELOG.
+- Files (expected): `server/core/embedding/embedding_cache.py` (**edit** — Protocol + SQLite adapter moved in place), `server/core/embedding/embedding_cache_redis.py` (**new**), `server/settings.py` (**edit**), 48A cache tests (**edit** — parametrise), `docs/user-guide/configuration.md` + `redis-setup.md` (**edit** — cache section; for option (a), an "Eviction" note with a manual TTL audit command confirming no vector key carries a TTL), `.env.example`, CHANGELOG.
 - Exit criteria: both backends pass the same tests; default behaviour byte-identical; combined-deployment stance documented.
 - Commit pattern: `refactor(embedding): CacheBackend port (SQLite default)` then `feat(embedding): Redis cache backend`
 
