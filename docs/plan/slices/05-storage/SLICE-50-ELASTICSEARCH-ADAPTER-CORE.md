@@ -3,19 +3,21 @@
 **MoSCoW:** MUST
 **Target time:** ~6–8 h
 **Status:** 📋 PLANNED
-**Depends on:** 49 (`VectorStoreAdapter` protocol + registry + `VECTOR_STORE_BACKEND`)
+**Depends on:** 49A (`VectorStore` port + registry + `VECTOR_STORE_BACKEND`) · 49B (chunk data path on the vector port, pairing rule (ii), split-store acceptance test, two-store preflight/health)
 **Branch:** `slice/50-elasticsearch-adapter-core`
 **Feature:** Elasticsearch vector-store adapter (ADR-006)
 
 > Pasted spec's "Slice 49". Renumbered per DECISIONS #213.
+>
+> **Amendment (2026-09-25, DECISIONS #240–#249):** the split-store data path, two-store `/healthz`, fail-fast boot and dual-store preflight now land in **49B**, before any ES code. This slice implements the ES `VectorStore` and runs 49B's split-store acceptance test against a **live** ES. Ledger corrected: the candidate multiplier and RRF facts below were mis-attributed in the first draft.
 
 ---
 
 ## Context
 
-The greenfield Elasticsearch adapter: a `server/db/elasticsearch/` package + a retrieval module that satisfy `VectorStoreAdapter` (Slice 49) with **full parity** to Mongo/Postgres on dense, sparse, and hybrid retrieval — registered as one manifest entry. ES is a **vector-only** store (D1); run state stays on Mongo/Postgres. Optional extra `[elasticsearch]` with lazy import.
+The greenfield Elasticsearch adapter: a `server/db/elasticsearch/` package + a retrieval module that satisfy `VectorStore` (Slice 49A) with **full parity** to Mongo/Postgres on dense, sparse, and hybrid retrieval — registered as one manifest entry. ES is a **vector-only** store (D1); run state stays on Mongo/Postgres. Optional extra `[elasticsearch]` with lazy import.
 
-- **Depends-on outputs:** the registry + capabilities seam from Slice 49; the `(1+cos)/2` score scale and RRF `k=60` fusion already implemented for Mongo/Postgres (shared, not duplicated).
+- **Depends-on outputs:** the registry + capabilities seam from 49A; the rewired data path, pairing rule (ii) and the in-memory split-store acceptance test from 49B; the `(1+cos)/2` score scale and RRF `k=60` fusion already implemented for Mongo/Postgres (shared, not duplicated).
 - **Invariants pointer:** `docs/plan/invariants.md` — `embedding_model` filter mandatory on every query (+ `experiment_id`, `run_id`); Basic-licence only; unquantized HNSW; `git clone && pip install -e .` must still work with ES absent.
 
 ## Non-goals
@@ -28,14 +30,17 @@ The greenfield Elasticsearch adapter: a `server/db/elasticsearch/` package + a r
 ## Output contract
 
 - `server/db/elasticsearch/` package: config model, local-vs-cloud URI classification, single-index mapping creation (explicit `index_options.type: "hnsw"`, `cosine`, keyword filter fields, `english` analyzer), idempotent `ensure_indexes`, and a preflight that **fails if the live mapping is quantized** (`bbq_hnsw`/`int8_hnsw`).
-- Single index `rpf-chunks` (prefix configurable) with per-dimension fields `embedding_384` / `embedding_1024` (D4), mirroring pgvector's `VECTOR_COLUMNS`. Add `elasticsearch` to the `DatabaseProvider` Literal in `server/models/config.py` (it is a valid vector-store sweep dimension; the D2 guard from Slice 49 matches it to the active `VECTOR_STORE_BACKEND`).
+- Single index `rpf-chunks` (prefix configurable) with per-dimension fields `embedding_384` / `embedding_1024` (D4), mirroring pgvector's `VECTOR_COLUMNS`. Add `elasticsearch` to the single `DatabaseProvider` Literal in `server/models/config.py` (49A removed the `status.py` duplicate, so `RunStatus` accepts it too; the D2 guard matches it to the active `VECTOR_STORE_BACKEND`).
+- **Settings named:** `ELASTICSEARCH_URL` (required when `VECTOR_STORE_BACKEND=elasticsearch`) and `ELASTICSEARCH_API_KEY` (optional; cloud). Both server-side only, redacted wherever surfaced; 49B's `ensure_storage_ready()` fails boot fast when `ELASTICSEARCH_URL` is unset or unreachable.
+- `pyproject.toml` gains `[project.optional-dependencies] elasticsearch = ["elasticsearch>=9,<10"]` (no such extra exists today).
+- **Live leg of the 49B split-store acceptance test:** the same scenario, parametrised `elasticsearch`, run against a live ES with run state on Postgres — plus the live-only assertions the in-memory double cannot prove (refresh-before-return, delete-by-query counts, BM25 ranking, `(1+cos)/2` on real vectors).
 - **Explicit mapping** (data-eng review): `dense_vector` fields set `index_options.type: "hnsw"`, `similarity: "cosine"`, and the ES 9.5 defaults **stated explicitly** (`m: 16`, `ef_construction: 100`) so a future default change can't silently drift; `text` field uses the `english` analyzer; `experiment_id`/`embedding_model`/`run_id` are `keyword`. Ship an `index_mapping.json` template (or an in-code builder) beside the adapter as the SSOT for the shape.
 - **Preflight detection method** (data-eng review): `GET /{index}/_mapping` → read each `dense_vector` field's `index_options.type`; **reject** if any is `bbq_hnsw` or `int8_hnsw` with a clear "unquantized HNSW required" remediation.
 - **Sizing note** (data-eng review, for `elasticsearch-setup.md` in Slice 51): raw float32 vectors on disk (≈1.5 KB/384-d, ≈4 KB/1024-d) + HNSW graph in memory (≈`8 × m × 4` bytes/chunk ≈ 512 B/chunk at `m=16`); `-Xms1g -Xmx1g` for local testing.
 - **`capabilities()` (data-eng review — Suggestion-2):** returns `VectorCapabilities(retrieval_methods=[dense, sparse, hybrid], similarity="cosine", index_types=["hnsw"], supported_dims={384, 1024}, metadata_filtering=True, can_host_run_state=False)`. `supported_dims` mirrors pgvector's `VECTOR_COLUMNS` — a config requesting a dim outside it (e.g. SPLADE 30522) is rejected at preflight via this value, not deep in a query.
 - `search()`: dense `knn` (`k=top_k`, `num_candidates=top_k*2`, filters in `knn.filter` for **pre**-filtering), sparse BM25 `match` with the same filters, hybrid = **client-side RRF (k=60)** via a shared fusion helper (extracted, not copied from `retriever_mongo.py`).
 - `upsert_chunks` refreshes before returning (`refresh="wait_for"`, **not** `refresh=true` — serialises the immediate follow-up search); `delete_experiment` via delete-by-query.
-- **Dual-store error precedence (data-eng review — Suggestion-3):** when both the vector store and run-state store are checked in preflight, the **vector-store (ES) failure gates the sweep and is reported first**; a run-state failure is secondary. Recorded in ADR-006 (Slice 51).
+- **Dual-store error precedence (data-eng review — Suggestion-3):** when both the vector store and run-state store are checked in preflight, the **vector-store (ES) failure gates the sweep and is reported first**; a run-state failure is secondary. The generic two-store preflight is built in 49B; this slice supplies the ES checks (mapping present, unquantized, dims). Recorded in ADR-006 (Slice 51).
 - Missing `elasticsearch` client raises a clear "install the `[elasticsearch]` extra" error **only when ES is selected**.
 
 ## Reuse ledger (reuse-first — don't reinvent the wheel)
@@ -45,12 +50,13 @@ The ES adapter is net-new code, but its *behaviour* is composed from patterns an
 | Need | Existing code to reuse/extend | Action |
 |---|---|---|
 | Dense score scale `(1+cos)/2` | Normalisation in `server/core/retrieval/retriever_postgres.py` | **Reuse** the exact formula/constant — assert parity, don't re-derive |
-| `num_candidates = top_k×2` | `_CANDIDATES_MULTIPLIER = 2` — `retriever_postgres.py` | **Reuse** the constant |
-| RRF fusion `k=60` | `_RRF_K = 60` + fusion loop — `server/core/retrieval/retriever_mongo.py` | **Extract** a shared `rrf_fuse()` helper; Mongo + ES both call it (delete the inlined copy) |
+| `num_candidates = top_k×2` | `_CANDIDATES_MULTIPLIER = 2` — `retriever_mongo.py:18` (Postgres has its own `_CANDIDATE_MULTIPLIER = 2`, `retriever_postgres.py:28`) | **Reuse** — move to one shared constant beside `rrf_fuse()`; Mongo, Postgres and ES import it |
+| RRF fusion `k=60` | `_RRF_K = 60` + Python fusion loop — `server/core/retrieval/retriever_mongo.py:17,187-233` | **Extract** a shared `rrf_fuse()` helper; Mongo + ES (+ Redis in 53) call it. **Postgres is not a caller:** it fuses in SQL (`retriever_postgres.py:128-130`) and keeps doing so; it shares only the `k=60` constant |
 | Per-dimension field layout | `VECTOR_COLUMNS = {384, 1024}` — `server/db/postgres/postgres_docs.py` | **Mirror** as ES `embedding_384`/`embedding_1024` fields |
 | Mandatory 3-filter isolation | `WHERE embedding_model/experiment_id/run_id` (`retriever_postgres.py`) + `$vectorSearch` filter (`retriever_mongo.py`) | **Reuse** the same filter set in `knn.filter` |
 | Return type | `SearchResult` — `server/models/results.py` | **Reuse** — adapter returns the existing model |
-| `RetrieverBackend.search` signature | `server/db/ports/retriever_backend.py` | **Reuse** (Slice 49 composition) — no new search shape |
+| `RetrieverBackend.search` signature | `server/db/ports/retriever_backend.py` | **Reuse** (49A `VectorStore.retriever()`) — no new search shape |
+| Split-store acceptance test | 49B test, parametrised `{memory}` | **Reuse** — add the `elasticsearch` live param; no new scenario |
 | Config model + provider Literal | `server/models/config.py` | **Extend** `DatabaseProvider` with `elasticsearch` |
 | Live contract fixture | `tests/contract/test_storage_backend_contract.py`, `tests/helpers/storage_live.py` | **Reuse** — add ES to the registry-parametrised fixture |
 | **Net-new (only)** | `server/db/elasticsearch/` package (config/URI/mapping/ensure/preflight/upsert/delete), `rrf_fuse()` extraction, `[elasticsearch]` extra | Write new — the ES-specific I/O only |
@@ -134,12 +140,19 @@ Scenario: Elasticsearch unreachable surfaces a clear error
   When search or ensure_indexes runs
   Then a clear connection error is raised (not a silent empty result)
 
-Scenario: Dual-store preflight validates both stores (resolves nw-solution-architect high)
+Scenario: Dual-store preflight validates both stores (generic path from 49B, ES checks here)
   Given STORAGE_BACKEND=postgres (run state) and VECTOR_STORE_BACKEND=elasticsearch (vectors)
   When preflight runs before a sweep
   Then it ensures the Postgres run-state objects exist
     And the ES rpf-chunks mapping is present and unquantized
     And both adapters report health=ok (error precedence documented)
+
+Scenario: Split-store sweep end to end on live Elasticsearch (49B acceptance, live leg)
+  Given run state on Postgres and VECTOR_STORE_BACKEND=elasticsearch with ES reachable
+  When a sweep runs through the orchestrator and API
+  Then chunks are only in rpf-chunks, every query has hits and recall is above 0,
+    /healthz reports elasticsearch + postgres, db-stats counts ES chunks under the ES label,
+    and DELETE reports the delete-by-query count and leaves both stores empty
 
 Scenario: ES client missing raises install guidance
   Given the elasticsearch extra is not installed and VECTOR_STORE_BACKEND=elasticsearch
@@ -153,7 +166,7 @@ Scenario: ES client missing raises install guidance
 ---
 
 ## Before-Checks [GATE]
-- [ ] Slice 49 ✅ COMPLETE (registry + capabilities + `VECTOR_STORE_BACKEND` on `main` or the working branch).
+- [ ] Slices 49A + 49B ✅ COMPLETE (port, registry, rewired data path, split-store AT green on `memory`).
 - [ ] Local ES 9.5.x reachable for live contract cases (or documented skip); `elasticsearch>=9,<10` added to `[elasticsearch]` extra only.
 - [ ] harness-scout `detect_confirm` at slice start (external service integration + near-real-time refresh seam).
 
@@ -174,4 +187,4 @@ Scenario: ES client missing raises install guidance
 - [ ] `/verify-slice` — verdict COMPLETE
 
 ## Gate Status
-📋 PLANNED — depends on Slice 49 sign-off; AT authoring (`nw-distill`) before 🔨 IN PROGRESS.
+📋 PLANNED — depends on 49A/49B; amended 2026-09-25 (DECISIONS #240–#249); AT authoring (`nw-distill`) before 🔨 IN PROGRESS.

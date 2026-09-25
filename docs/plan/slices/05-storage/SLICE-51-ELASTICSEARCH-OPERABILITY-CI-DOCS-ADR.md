@@ -3,11 +3,21 @@
 **MoSCoW:** MUST
 **Target time:** ~11–15 h (largest ES slice — feature closeout; may ship as 2 PRs: **51a** operability/surfaces, **51b** CI/docs/ADR — one branch)
 **Status:** 📋 PLANNED
-**Depends on:** 50 (ES adapter core)
+**Depends on:** 50 (ES adapter core) · 49A/49B (registry, two-store `/healthz`, pairing rule (ii))
 **Branch:** `slice/51-elasticsearch-operability-ci-docs-adr`
 **Feature:** Elasticsearch vector-store adapter (ADR-006)
 
 > **Merge note (2026-09-24, DECISIONS #218):** fuses the former Slices 51 (operability) + 52 (CI/docs/ADR). Elasticsearch is genuinely simpler than Postgres (no schema-DDL slice, no cloud/local-parity slice — D5 makes pairing a flag), so its closeout collapses to one slice. Optional 2-PR split (51a surfaces / 51b CI+docs+ADR) keeps each PR reviewable without re-fragmenting the plan. Pasted spec's "Slice 50 + 51".
+>
+> **Amendment (2026-09-25, DECISIONS #240–#249):** the round-3 desk-check found gaps that would break the local Docker path and the docs journey:
+> - the server image installed no extras, so it had no ES client;
+> - compose never passed the new settings to the server;
+> - "manifest-driven scripts" had no shell-readable manifest;
+> - the 15-stage journey was never written down;
+> - `invariants.md` had none of the rules this slice pointed to;
+> - no backend had a teardown section.
+>
+> Owner decisions applied here: Dockerfile build ARG `EXTRAS` (#243), `scripts/lib/stores.tsv` + parity test (#244), one nightly matrix job (#248). Two-store `/healthz` semantics come from 49B (#247).
 
 ---
 
@@ -16,7 +26,7 @@
 Makes the ES store operable, proven, and documented end-to-end from a clean clone: Docker profile + scripts + `GET /api/stores` + configs + registry-driven FE labels (E2E journey stages 5–8, 10, 14), the nightly ES integration job, the full 15-stage user journey in docs with a **registry-driven docs-parity gate** (the docs equivalent of the contract suite), and `ADR-006`. "Done" = a fresh reader goes from "which backend?" to results-in-dashboard to teardown using docs + scripts alone, for ES exactly as for Mongo/Postgres.
 
 - **Depends-on outputs:** ES adapter `stats()`, `labels()`, `capabilities()`, `search()` from Slice 50; the registry from Slice 49 (drive scripts, health-check, docs-parity, and `/api/stores` from the manifest — ES is one entry, not four edits).
-- **Invariants pointer:** `docs/plan/invariants.md` — local ES pairs with a run-state store (D5, default `postgres-local`, flag convenience not a constraint); Basic-licence single-node, security off, `127.0.0.1`; 1 GB heap; dashboard read-only; cross-backend comparability (same YAML, only the vector store changed, comparable dense scores on Mongo/Postgres/ES).
+- **Invariants pointer:** `docs/plan/invariants.md` § Vector store / split-store — local ES pairs with a run-state store (D5, default `postgres-local`; any pairing must satisfy rule (ii), #241); Basic-licence single-node, security off, `127.0.0.1`; 1 GB heap; dashboard read-only; cross-backend comparability (same YAML, only the vector store changed, comparable dense scores on Mongo/Postgres/ES).
 
 ## Non-goals
 
@@ -29,19 +39,29 @@ Makes the ES store operable, proven, and documented end-to-end from a clean clon
 **Operability / surfaces (was Slice 51):**
 - `docker-compose.yml` profile `elasticsearch-local` (pinned 9.5.x, single-node, `xpack.security.enabled=false`, `xpack.license.self_generated.type=basic`, `-Xms1g -Xmx1g`, named volume, `/_cluster/health` healthcheck, `127.0.0.1` binding, `required: false` in `server.depends_on`).
 - `start-services.sh --elasticsearch-local | --elasticsearch-cloud` + `elasticsearch start|stop|reset|status`; `scripts/lib/compose.sh` gains `RAG_LOCAL_ELASTICSEARCH_URL_HOST/_DOCKER` + container/volume constants; local mode also starts the run-state store (D5 default `postgres-local`).
+- **Server image extras (#243):** `docker/server.Dockerfile:26` takes `ARG EXTRAS=""` and runs `uv sync --frozen --no-install-project ${EXTRAS:+--extra $EXTRAS}`; the `elasticsearch-local` / `-cloud` modes build with `EXTRAS=elasticsearch`. Default image unchanged in size.
+- **Compose env pass-through:** the `server` service `environment:` passes `VECTOR_STORE_BACKEND`, `ELASTICSEARCH_URL` (Docker-network URL for local) and `ELASTICSEARCH_API_KEY`; secrets come from `.env`, never the compose file.
+- **Store manifest for scripts (#244):** `scripts/lib/stores.tsv` — one row per store: provider · compose profile · `--<x>-local` flag · health URL · required env vars · `can_host_run_state`. `start-services.sh`, `stop-services.sh` and `scripts/docker/health-check.sh` read it (bash 3.2-safe loops, guarded array expansion). A parity test asserts its providers equal `known_vector_stores()` from the Python registry.
 - `configs/elasticsearch/*.yaml` — same 9 basenames as `configs/mongodb/`, `database_provider: elasticsearch`, prerequisite header comment (incl. run-state store).
 - `GET /api/stores` — registry + capabilities + labels + active store, secrets redacted; CLI `indexes list` routes through it (fixes the ADR-001 thin-client leak for all stores).
 - Frontend labels from adapter `labels()` (Index/Host) replacing `isMongoProvider()` — no new per-store branch; no quota bar for ES.
 - `stats()` via `_count`/`_stats`; quota fields `None`.
-- **Drift fixes:** `configs/supabase/*.yaml` `database_provider: supabase → postgres` (9 files); `stop-services.sh` iterates all registered local profiles; `health-check.sh` `elasticsearch=ok` check driven by the manifest.
+- **Drift fixes:** `configs/supabase/*.yaml` `database_provider: supabase → postgres` (9 files) and `postgres-setup.md:74` kept in agreement with them; `stop-services.sh` iterates every `stores.tsv` local profile (today it handles Atlas only, via a deprecated env var, `stop-services.sh:16-21`); `health-check.sh` reads `/healthz` `stores{}` and reports each store from the manifest.
+- **Orphan-vector reconciler:** if 49B deferred it (CF row), it lands here (Should, #246).
 
 **CI / docs / ADR (was Slice 52):**
-- Nightly `elasticsearch-integration` service-container job running store + vector contract suites with the ES retrieval coverage gate (added to `nightly.yml`, not PR `ci.yml`).
+- **One nightly matrix job (#248):** `vector-store-integration` in `nightly.yml`, matrix over `{mongodb, postgres, elasticsearch}` (Redis joins in 53), each leg running the store + vector contract suites and the 49B split-store acceptance test where the store is vector-only. `RAG_REQUIRE_<STORE>=1` makes an unreachable store fail; a skipped leg fails the job (skipped ≠ green). The existing per-store live jobs fold into it.
 - `docs/user-guide/elasticsearch-setup.md` structured like `postgres-setup.md` (11 sections: choose deployment → env vars → Path A local Docker → Path B bring-your-own → index lifecycle → before a sweep → smoke sweep → switching → **sizing** (float32 on disk + HNSW graph memory, 1 GB heap — from Slice 50 data-eng note) → troubleshooting → diagnostics cheat sheet).
-- Journey docs: `QUICKSTART.md` Path E + verify line; `getting-started.md`; `configuration.md` (Engine × Location rows `elasticsearch-local`/`-cloud` + env-asymmetry note); `cli-reference.md` (`/healthz` + `GET /api/stores`); `dashboard-guide.md`; `troubleshooting.md` (ES: memory/`vm.max_map_count`, 401/TLS, **403 licence non-compliant**, refresh zero-hits, quantized preflight, dims mismatch, 422); switching rows in `mongodb-setup.md` + `postgres-setup.md`; `.env.example` ES block; `README.md`; `docs/README.md`.
-- **Registry-driven docs-parity check** (generalises `tests/server/models/test_config_examples.py`): for every registered provider asserts setup-guide existence + required headings, config-dir basename parity, and mentions in `.env.example`/`README`/`QUICKSTART`/`docs/README`/`troubleshooting` + `start-services.sh --help`. Wired into PR CI.
+- Journey docs: `QUICKSTART.md` Path E + verify line; `getting-started.md`; `configuration.md` (Engine × Location rows `elasticsearch-local`/`-cloud`, `VECTOR_STORE_BACKEND`, pairing rule (ii), env-asymmetry note); `cli-reference.md` (`/healthz` two-store shape replacing the Mongo-only example at line 216, `GET /api/stores`, **an `elasticsearch` row in the `indexes` table at lines 134-137**); `dashboard-guide.md` (generic `indexes reset` advice at line 111 made store-aware); `troubleshooting.md` (ES: memory/`vm.max_map_count`, 401/TLS, **403 licence non-compliant**, refresh zero-hits, quantized preflight, dims mismatch, 422; env-var table gains ES rows); switching rows in `mongodb-setup.md` + `postgres-setup.md`; start-flag lists in `local-environment.md`, `development.md`, `AGENTS.md`, `CLAUDE.md`; `.env.example` ES block; `README.md`; `docs/README.md`.
+- **Documentation homes (Diataxis):**
+  - *Reference* — the **15-stage user journey** as a table in `extending.md` (stage · user action · command/surface · doc that covers it · test that proves it), so "full journey" is checkable.
+  - *How-to* — "Add a vector store" checklist in `extending.md` (~15 items: registry entry, `VectorStore` composite, capabilities, settings + env, extra, Dockerfile `EXTRAS`, compose profile + env, `stores.tsv` row, configs dir, setup guide, QUICKSTART path, nightly matrix leg, split-store AT param, docs-parity pass, ADR).
+  - *Explanation* — `architecture.md`: ports/adapters (C4 component) view and the split-store data flow from 49A/49B, extended with ES; the Mongo-only data-flow diagram gains the other stores.
+  - *Tutorial* — `QUICKSTART.md` gains a **Teardown** section for every backend (stop, reset volumes), not just ES.
+- **Registry-driven docs-parity check** (generalises `tests/server/models/test_config_examples.py`): for every registered provider asserts setup-guide existence with **all 11 required sections**, that its relative links resolve, config-dir basename parity, and mentions in `.env.example`/`README`/`QUICKSTART` (path + teardown)/`docs/README`/`troubleshooting`/`cli-reference` `indexes` table + `start-services.sh --help` + a `stores.tsv` row. Wired into PR CI. A heading-only check would pass with empty sections, so it checks each section has content.
 - `docs/adr/ADR-006-elasticsearch-vector-store.md` (vector-only role, unquantized HNSW, client-side RRF licence rationale, refresh semantics; alternatives note — OpenSearch/Vespa/pgvector/Atlas — answering the architect's "why ES" without expanding code scope).
-- `extending.md` updated to the registry flow **and** to require the full 15-stage journey for any new store.
+- `extending.md` updated to the registry flow **and** to require the full 15-stage journey for any new store (journey table + checklist above).
+- `docs/plan/invariants.md` § Vector store / split-store rows verified against the shipped code (D5 pairing default, local-profile constraints).
 
 ## Reuse ledger (reuse-first — don't reinvent the wheel)
 
@@ -51,18 +71,20 @@ This closeout is almost entirely *extending existing operator surfaces and doc t
 |---|---|---|
 | Compose helpers + local/cloud URI constants | `scripts/lib/compose.sh` (`mongodb`/`postgres` subcommands + constants) | **Extend** — add ES constants + `elasticsearch` subcommand in the same shape |
 | Four-flag storage-mode resolver | `scripts/lib/storage_mode.sh` | **Extend** for the ES + run-state pairing |
-| `--<db>-local/cloud` + `<db> start/stop/reset/status` | `start-services.sh` Mongo/Postgres branches | **Mirror** the existing pattern (no new bespoke path) |
-| Teardown | `stop-services.sh` (currently Atlas-only) | **Fix + generalise** to iterate all registered local profiles |
-| Dual-container health probe | `scripts/docker/health-check.sh` | **Extend** — manifest-driven ES probe |
+| `--<db>-local/cloud` + `<db> start/stop/reset/status` | `start-services.sh` Mongo/Postgres branches | **Extract** the per-store branches into a loop over `scripts/lib/stores.tsv` (#244); ES is a row, not a new `case` branch |
+| Teardown | `stop-services.sh` (currently Atlas-only) | **Fix + generalise** to iterate every `stores.tsv` local profile |
+| Dual-container health probe | `scripts/docker/health-check.sh` | **Extend** — reads `/healthz` `stores{}` + `stores.tsv` |
+| bash 3.2 array safety | `tests/server/db/test_storage_mode_resolve.py::test_sourced_libs_use_bash32_safe_array_expansion` | **Reuse** — covers the new manifest loops |
+| Server image | `docker/server.Dockerfile:26` | **Extend** with `ARG EXTRAS` (#243) |
 | Stats assembly | `server/db/ports/stats_common.py` | **Reuse** — backend-agnostic; ES fills `_count`/`_stats`, quota `None` |
 | Config-name parity test | `tests/server/models/test_config_examples.py` | **Generalise** into the registry-driven docs-parity check (reuse, not a second test) |
 | Frontend labels | `frontend/src/utils/storageLabels.ts` (`isMongoProvider()` switch) | **Replace** the switch with adapter `labels()` — removes a branch, reuses the component |
 | Setup-guide structure | `docs/user-guide/postgres-setup.md` (11-section template) | **Mirror** for `elasticsearch-setup.md` |
 | QUICKSTART path | `QUICKSTART.md` Path D (Postgres) | **Mirror** as Path E |
 | ADR template | `docs/adr/ADR-004-postgresql-pgvector-vector-store.md` | **Mirror** for `ADR-006` |
-| Nightly integration job | `.github/workflows/nightly.yml` mongo/postgres service-container jobs | **Mirror** as `elasticsearch-integration` |
+| Nightly integration job | `.github/workflows/nightly.yml` mongo/postgres service-container jobs | **Fold** into one `vector-store-integration` matrix job (#248); ES is a matrix leg |
 | Comparison shape | Slice 38 `slice-38-quality-comparison.md` (top-3 overlap) | **Reuse** the comparison method for cross-backend evidence |
-| **Net-new (only)** | `elasticsearch-local` compose profile, `GET /api/stores` endpoint, `configs/elasticsearch/*` (9 files), `elasticsearch-setup.md` + `ADR-006` prose | Write new — the ES-specific surfaces and prose |
+| **Net-new (only)** | `elasticsearch-local` compose profile, `GET /api/stores` endpoint, `configs/elasticsearch/*` (9 files), `scripts/lib/stores.tsv` + parity test, `elasticsearch-setup.md` + `ADR-006` prose, journey table + checklist, QUICKSTART teardown | Write new — the ES-specific surfaces and prose |
 
 ---
 
@@ -74,8 +96,10 @@ Scenario: Clean-clone stage 5→8 works as written
   Given a fresh clone with the [elasticsearch] extra installed
   When ./start-services.sh --elasticsearch-local runs
   Then ES + the run-state store + server + dashboard come up "healthy" — defined as:
-    /healthz returns 200 with vector store reachable (ES _cluster/health green|yellow),
-    run-state store connected, and resolve_storage_mode() reporting elasticsearch + the paired run-state store
+    /healthz returns 200 with stores.vector.ok and stores.run_state.ok true
+    (ES _cluster/health green|yellow), storage_mode = elasticsearch-local and
+    run_state_mode = postgres-local
+    And the server image contains the elasticsearch client (built with EXTRAS=elasticsearch)
     And rag-params-finder indexes list shows the rpf-chunks mapping summary
     And configs/elasticsearch/example-local.yaml submits without a config-engine 422
     (transcript recorded in gate-evidence/slice-51.json)
@@ -91,7 +115,14 @@ Scenario: ES unreachable at startup degrades clearly (not silently)
   Given --elasticsearch-local where the ES container fails to become healthy
   When the stack starts
   Then health-check.sh reports elasticsearch != ok with a remediation hint
-    And /healthz surfaces the vector-store failure (server does not claim ready)
+    And the server fails boot fast naming ELASTICSEARCH_URL (49B), or, if ES drops
+    after boot, /healthz returns 503 with stores.vector.ok = false
+
+Scenario: Script manifest matches the Python registry
+  Given scripts/lib/stores.tsv and known_vector_stores()
+  When the manifest parity test runs
+  Then both list the same providers
+    And start/stop/health-check scripts contain no per-store case branch
 
 Scenario: GET /api/stores reports the registry with secrets redacted
   When GET /api/stores is called
@@ -139,10 +170,11 @@ Scenario: Docs-parity check fails on a missing file or heading
   When the docs-parity check runs
   Then it fails and names the missing file/heading (docs equivalent of a red contract test)
 
-Scenario: Nightly ES integration job is green (skipped ≠ green)
-  Given the elasticsearch-integration service-container job
+Scenario: Nightly vector-store matrix is green (skipped ≠ green)
+  Given the vector-store-integration matrix job with an elasticsearch leg
   When nightly.yml runs
-  Then store + vector contract suites pass against a live ES 9.5.x
+  Then store + vector contract suites and the split-store acceptance test pass against a live ES 9.5.x
+    And a skipped or unreachable leg fails the job
     And gate-evidence/slice-51.json records the job conclusion + run URL
 
 Scenario: Same YAML runs on all three stores with comparable scores
@@ -195,4 +227,4 @@ Scenario: ADR-006 is Accepted and distinct from ADR-005
 - [ ] `/verify-slice` — verdict COMPLETE
 
 ## Gate Status
-📋 PLANNED — depends on Slice 50; AT authoring (`nw-distill`) before 🔨 IN PROGRESS. Optional 51a/51b PR split decided at execution start.
+📋 PLANNED — depends on Slice 50; amended 2026-09-25 (DECISIONS #240–#249); AT authoring (`nw-distill`) before 🔨 IN PROGRESS. Optional 51a/51b PR split decided at execution start.
