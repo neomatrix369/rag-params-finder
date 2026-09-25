@@ -47,13 +47,13 @@ Makes the ES store operable, proven, and documented end-to-end from a clean clon
 - `GET /api/stores` — registry + capabilities + labels + active store, secrets redacted; CLI `indexes list` routes through it (fixes the ADR-001 thin-client leak for all stores).
 - Frontend labels from adapter `labels()` (Index/Host) replacing `isMongoProvider()` — no new per-store branch; no quota bar for ES.
 - `stats()` via `_count`/`_stats`; quota fields `None`.
-- **Drift fixes:** `configs/supabase/*.yaml` `database_provider: supabase → postgres` (9 files) and `postgres-setup.md:74` kept in agreement with them; `stop-services.sh` iterates every `stores.tsv` local profile (today it handles Atlas only, via a deprecated env var, `stop-services.sh:16-21`); `health-check.sh` reads `/healthz` `stores{}` and reports each store from the manifest.
+- **Drift fixes:** (the `configs/supabase/*.yaml` provider label, the Mongo-only `/health` example and the Atlas-only `indexes reset` advice in `dashboard-guide.md` were fixed on 2026-09-25, DECISIONS #251) `stop-services.sh` iterates every `stores.tsv` local profile (today it handles Atlas only, via a deprecated env var, `stop-services.sh:16-21`); `health-check.sh` reads `/healthz` `stores{}` and reports each store from the manifest.
 - **Orphan-vector reconciler:** if 49B deferred it (CF row), it lands here (Should, #246).
 
 **CI / docs / ADR (was Slice 52):**
 - **One nightly matrix job (#248):** `vector-store-integration` in `nightly.yml`, matrix over `{mongodb, postgres, elasticsearch}` (Redis joins in 53), each leg running the store + vector contract suites and the 49B split-store acceptance test where the store is vector-only. `RAG_REQUIRE_<STORE>=1` makes an unreachable store fail; a skipped leg fails the job (skipped ≠ green). The existing per-store live jobs fold into it.
 - `docs/user-guide/elasticsearch-setup.md` structured like `postgres-setup.md` (11 sections: choose deployment → env vars → Path A local Docker → Path B bring-your-own → index lifecycle → before a sweep → smoke sweep → switching → **sizing** (float32 on disk + HNSW graph memory, 1 GB heap — from Slice 50 data-eng note) → troubleshooting → diagnostics cheat sheet).
-- Journey docs: `QUICKSTART.md` Path E + verify line; `getting-started.md`; `configuration.md` (Engine × Location rows `elasticsearch-local`/`-cloud`, `VECTOR_STORE_BACKEND`, pairing rule (ii), env-asymmetry note); `cli-reference.md` (`/healthz` two-store shape replacing the Mongo-only example at line 216, `GET /api/stores`, **an `elasticsearch` row in the `indexes` table at lines 134-137**); `dashboard-guide.md` (generic `indexes reset` advice at line 111 made store-aware); `troubleshooting.md` (ES: memory/`vm.max_map_count`, 401/TLS, **403 licence non-compliant**, refresh zero-hits, quantized preflight, dims mismatch, 422; env-var table gains ES rows); switching rows in `mongodb-setup.md` + `postgres-setup.md`; start-flag lists in `local-environment.md`, `development.md`, `AGENTS.md`, `CLAUDE.md`; `.env.example` ES block; `README.md`; `docs/README.md`.
+- Journey docs: `QUICKSTART.md` Path E + verify line; `getting-started.md`; `configuration.md` (Engine × Location rows `elasticsearch-local`/`-cloud`, `VECTOR_STORE_BACKEND`, pairing rule (ii), env-asymmetry note); `cli-reference.md` (`/healthz` two-store shape replacing the Mongo-only example at line 216, `GET /api/stores`, **an `elasticsearch` row in the `indexes` table at lines 134-137**); `dashboard-guide.md` (ES row in the preflight-failed remediation); `troubleshooting.md` (ES: memory/`vm.max_map_count`, 401/TLS, **403 licence non-compliant**, refresh zero-hits, quantized preflight, dims mismatch, 422; env-var table gains ES rows); switching rows in `mongodb-setup.md` + `postgres-setup.md`; start-flag lists in `local-environment.md`, `development.md`, `AGENTS.md`, `CLAUDE.md`; `.env.example` ES block; `README.md`; `docs/README.md`.
 - **Documentation homes (Diataxis):**
   - *Reference* — the **15-stage user journey** as a table in `extending.md` (stage · user action · command/surface · doc that covers it · test that proves it), so "full journey" is checkable.
   - *How-to* — "Add a vector store" checklist in `extending.md` (~15 items: registry entry, `VectorStore` composite, capabilities, settings + env, extra, Dockerfile `EXTRAS`, compose profile + env, `stores.tsv` row, configs dir, setup guide, QUICKSTART path, nightly matrix leg, split-store AT param, docs-parity pass, ADR).
@@ -152,11 +152,6 @@ Scenario: Teardown iterates all local profiles
   Given postgres-local and elasticsearch-local were started
   When stop-services.sh runs
   Then every registered local profile is brought down (no orphan container)
-
-Scenario: Supabase configs no longer trip the deprecation warning
-  Given configs/supabase/*.yaml
-  When each loads
-  Then database_provider is postgres (no Slice 37 supabase-alias warning)
 
 # ── CI / docs / ADR ──────────────────────────────────────────────────────
 Scenario: Docs-parity check passes for every registered store
