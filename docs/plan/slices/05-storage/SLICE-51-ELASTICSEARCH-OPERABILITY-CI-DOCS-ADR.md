@@ -40,7 +40,8 @@ Makes the ES store operable, proven, and documented end-to-end from a clean clon
 - `docker-compose.yml` profile `elasticsearch-local` (pinned 9.5.x, single-node, `xpack.security.enabled=false`, `xpack.license.self_generated.type=basic`, `-Xms1g -Xmx1g`, named volume, `/_cluster/health` healthcheck, `127.0.0.1` binding, `required: false` in `server.depends_on`).
 - `start-services.sh --elasticsearch-local | --elasticsearch-cloud` + `elasticsearch start|stop|reset|status`; `scripts/lib/compose.sh` gains `RAG_LOCAL_ELASTICSEARCH_URL_HOST/_DOCKER` + container/volume constants; local mode also starts the run-state store (D5 default `postgres-local`).
 - **Server image extras (#243):** `docker/server.Dockerfile:26` takes `ARG EXTRAS=""` and runs `uv sync --frozen --no-install-project ${EXTRAS:+--extra $EXTRAS}`; the `elasticsearch-local` / `-cloud` modes build with `EXTRAS=elasticsearch`. Default image unchanged in size.
-- **Compose env pass-through:** the `server` service `environment:` passes `VECTOR_STORE_BACKEND`, `ELASTICSEARCH_URL` (Docker-network URL for local) and `ELASTICSEARCH_API_KEY`; secrets come from `.env`, never the compose file.
+- **Compose env pass-through:** the `server` service `environment:` passes `VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-}` (empty → defaults to `STORAGE_BACKEND` in settings), `ELASTICSEARCH_URL: ${RAG_SERVER_ELASTICSEARCH_URL:-${ELASTICSEARCH_URL:-}}` and `ELASTICSEARCH_API_KEY: ${ELASTICSEARCH_API_KEY:-}`. This follows the existing `RAG_SERVER_*` pattern (`docker-compose.yml:22,29`): `start-services.sh --elasticsearch-local` sets `RAG_SERVER_ELASTICSEARCH_URL` to the Docker-network URL, while cloud reads `ELASTICSEARCH_URL` from `.env`. Secrets come from `.env`, never the compose file.
+- **Storage-mode resolver:** `scripts/lib/storage_mode.sh` gains the `elasticsearch-local` / `elasticsearch-cloud` tokens. They export `VECTOR_STORE_BACKEND=elasticsearch` and pair a run-state store (D5 default `postgres-local`, overridable by `STORAGE_BACKEND`). Choosing `elasticsearch` as the run-state store fails with the same vector-store-only message as the settings validator. The user sets no environment variables by hand for the local path.
 - **Store manifest for scripts (#244):** `scripts/lib/stores.tsv` — one row per store: provider · compose profile · `--<x>-local` flag · health URL · required env vars · `can_host_run_state`. `start-services.sh`, `stop-services.sh` and `scripts/docker/health-check.sh` read it (bash 3.2-safe loops, guarded array expansion). A parity test asserts its providers equal `known_vector_stores()` from the Python registry.
 - `configs/elasticsearch/*.yaml` — same 9 basenames as `configs/mongodb/`, `database_provider: elasticsearch`, prerequisite header comment (incl. run-state store).
 - `GET /api/stores` — registry + capabilities + labels + active store, secrets redacted; CLI `indexes list` routes through it (fixes the ADR-001 thin-client leak for all stores).
@@ -58,7 +59,8 @@ Makes the ES store operable, proven, and documented end-to-end from a clean clon
   - *How-to* — "Add a vector store" checklist in `extending.md` (~15 items: registry entry, `VectorStore` composite, capabilities, settings + env, extra, Dockerfile `EXTRAS`, compose profile + env, `stores.tsv` row, configs dir, setup guide, QUICKSTART path, nightly matrix leg, split-store AT param, docs-parity pass, ADR).
   - *Explanation* — `architecture.md`: ports/adapters (C4 component) view and the split-store data flow from 49A/49B, extended with ES; the Mongo-only data-flow diagram gains the other stores.
   - *Tutorial* — `QUICKSTART.md` gains a **Teardown** section for every backend (stop, reset volumes), not just ES.
-- **Registry-driven docs-parity check** (generalises `tests/server/models/test_config_examples.py`): for every registered provider asserts setup-guide existence with **all 11 required sections**, that its relative links resolve, config-dir basename parity, and mentions in `.env.example`/`README`/`QUICKSTART` (path + teardown)/`docs/README`/`troubleshooting`/`cli-reference` `indexes` table + `start-services.sh --help` + a `stores.tsv` row. Wired into PR CI. A heading-only check would pass with empty sections, so it checks each section has content.
+  - Each new section opens with one sentence saying what it is for and when to use it, so its role is clear in place.
+- **Registry-driven docs-parity check** (generalises `tests/server/models/test_config_examples.py`): for every registered provider asserts setup-guide existence with **all 11 required sections**, that its relative links resolve, config-dir basename parity, and mentions in `.env.example`/`README`/`QUICKSTART` (path + teardown)/`docs/README`/`troubleshooting`/`cli-reference` `indexes` table + `start-services.sh --help` + a `stores.tsv` row. Wired into PR CI. A heading-only check would pass with empty sections, so the content rule is explicit: each required section must contain at least one non-empty paragraph, list or code block under its heading, and must not be only a placeholder (`TODO`, `TBD`, `Coming soon`).
 - `docs/adr/ADR-006-elasticsearch-vector-store.md` (vector-only role, unquantized HNSW, client-side RRF licence rationale, refresh semantics; alternatives note — OpenSearch/Vespa/pgvector/Atlas — answering the architect's "why ES" without expanding code scope).
 - `extending.md` updated to the registry flow **and** to require the full 15-stage journey for any new store (journey table + checklist above).
 - `docs/plan/invariants.md` § Vector store / split-store rows verified against the shipped code (D5 pairing default, local-profile constraints).
@@ -70,7 +72,7 @@ This closeout is almost entirely *extending existing operator surfaces and doc t
 | Need | Existing code to reuse/extend | Action |
 |---|---|---|
 | Compose helpers + local/cloud URI constants | `scripts/lib/compose.sh` (`mongodb`/`postgres` subcommands + constants) | **Extend** — add ES constants + `elasticsearch` subcommand in the same shape |
-| Four-flag storage-mode resolver | `scripts/lib/storage_mode.sh` | **Extend** for the ES + run-state pairing |
+| Four-flag storage-mode resolver | `scripts/lib/storage_mode.sh` | **Extend** — `elasticsearch-local/-cloud` tokens export `VECTOR_STORE_BACKEND` + pair a run-state store |
 | `--<db>-local/cloud` + `<db> start/stop/reset/status` | `start-services.sh` Mongo/Postgres branches | **Extract** the per-store branches into a loop over `scripts/lib/stores.tsv` (#244); ES is a row, not a new `case` branch |
 | Teardown | `stop-services.sh` (currently Atlas-only) | **Fix + generalise** to iterate every `stores.tsv` local profile |
 | Dual-container health probe | `scripts/docker/health-check.sh` | **Extend** — reads `/healthz` `stores{}` + `stores.tsv` |
@@ -95,7 +97,7 @@ This closeout is almost entirely *extending existing operator surfaces and doc t
 Scenario: Clean-clone stage 5→8 works as written
   Given a fresh clone with the [elasticsearch] extra installed
   When ./start-services.sh --elasticsearch-local runs
-  Then ES + the run-state store + server + dashboard come up "healthy" — defined as:
+  Then no environment variable was set by hand, and ES + the run-state store + server + dashboard come up "healthy" — defined as:
     /healthz returns 200 with stores.vector.ok and stores.run_state.ok true
     (ES _cluster/health green|yellow), storage_mode = elasticsearch-local and
     run_state_mode = postgres-local
@@ -115,8 +117,8 @@ Scenario: ES unreachable at startup degrades clearly (not silently)
   Given --elasticsearch-local where the ES container fails to become healthy
   When the stack starts
   Then health-check.sh reports elasticsearch != ok with a remediation hint
-    And the server fails boot fast naming ELASTICSEARCH_URL (49B), or, if ES drops
-    after boot, /healthz returns 503 with stores.vector.ok = false
+    And /healthz returns 503 with stores.vector.ok = false (the server stays up so the
+    Docker healthcheck reports it; it becomes healthy once ES is — #250)
 
 Scenario: Script manifest matches the Python registry
   Given scripts/lib/stores.tsv and known_vector_stores()

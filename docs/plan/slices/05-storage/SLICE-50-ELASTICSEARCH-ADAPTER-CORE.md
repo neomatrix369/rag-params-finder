@@ -9,7 +9,7 @@
 
 > Pasted spec's "Slice 49". Renumbered per DECISIONS #213.
 >
-> **Amendment (2026-09-25, DECISIONS #240–#249):** the split-store data path, two-store `/healthz`, fail-fast boot and dual-store preflight now land in **49B**, before any ES code. This slice implements the ES `VectorStore` and runs 49B's split-store acceptance test against a **live** ES. Ledger corrected: the candidate multiplier and RRF facts below were mis-attributed in the first draft.
+> **Amendment (2026-09-25, DECISIONS #240–#249):** the split-store data path, two-store `/healthz`, boot-time configuration checks and dual-store preflight now land in **49B**, before any ES code. This slice implements the ES `VectorStore` and runs 49B's split-store acceptance test against a **live** ES. Ledger corrected: the candidate multiplier and RRF facts below were mis-attributed in the first draft.
 
 ---
 
@@ -31,7 +31,7 @@ The greenfield Elasticsearch adapter: a `server/db/elasticsearch/` package + a r
 
 - `server/db/elasticsearch/` package: config model, local-vs-cloud URI classification, single-index mapping creation (explicit `index_options.type: "hnsw"`, `cosine`, keyword filter fields, `english` analyzer), idempotent `ensure_indexes`, and a preflight that **fails if the live mapping is quantized** (`bbq_hnsw`/`int8_hnsw`).
 - Single index `rpf-chunks` (prefix configurable) with per-dimension fields `embedding_384` / `embedding_1024` (D4), mirroring pgvector's `VECTOR_COLUMNS`. Add `elasticsearch` to the single `DatabaseProvider` Literal in `server/models/config.py` (49A removed the `status.py` duplicate, so `RunStatus` accepts it too; the D2 guard matches it to the active `VECTOR_STORE_BACKEND`).
-- **Settings named:** `ELASTICSEARCH_URL` (required when `VECTOR_STORE_BACKEND=elasticsearch`) and `ELASTICSEARCH_API_KEY` (optional; cloud). Both server-side only, redacted wherever surfaced; 49B's `ensure_storage_ready()` fails boot fast when `ELASTICSEARCH_URL` is unset or unreachable.
+- **Settings named:** `ELASTICSEARCH_URL` (required when `VECTOR_STORE_BACKEND=elasticsearch`) and `ELASTICSEARCH_API_KEY` (optional; cloud). Both server-side only, redacted wherever surfaced; 49B's `ensure_storage_ready()` stops startup when `ELASTICSEARCH_URL` is unset or a placeholder; an unreachable ES shows as `/healthz` 503 and a preflight 422 (#250).
 - `pyproject.toml` gains `[project.optional-dependencies] elasticsearch = ["elasticsearch>=9,<10"]` (no such extra exists today).
 - **Live leg of the 49B split-store acceptance test:** the same scenario, parametrised `elasticsearch`, run against a live ES with run state on Postgres — plus the live-only assertions the in-memory double cannot prove (refresh-before-return, delete-by-query counts, BM25 ranking, `(1+cos)/2` on real vectors).
 - **Explicit mapping** (data-eng review): `dense_vector` fields set `index_options.type: "hnsw"`, `similarity: "cosine"`, and the ES 9.5 defaults **stated explicitly** (`m: 16`, `ef_construction: 100`) so a future default change can't silently drift; `text` field uses the `english` analyzer; `experiment_id`/`embedding_model`/`run_id` are `keyword`. Ship an `index_mapping.json` template (or an in-code builder) beside the adapter as the SSOT for the shape.

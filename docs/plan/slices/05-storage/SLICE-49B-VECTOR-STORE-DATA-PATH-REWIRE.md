@@ -34,28 +34,78 @@ After 49A the port exists but every caller still routes chunks through `StorageB
 | 1 | `orchestrator.py:921` `get_storage_backend().insert_chunks(...)` | `get_vector_store().upsert_chunks(...)` |
 | 2 | `search.py:50` `get_retriever_backend().search(...)` | Unchanged call; now resolved via the vector store (49A factory) — covered by the E2E test |
 | 3 | `experiments_shared.py:59-60` delete | `delete_experiment_data()` use-case: **vectors first** (idempotent), then run state, counts merged |
-| 4 | `experiments_shared.py:61-68` db-stats + grouped stats | Run-state facts from `StorageBackend` + chunk facts from `VectorStore.stats()`; labels from the registry |
+| 4 | `experiments_shared.py:61-68` db-stats + grouped stats (`GET /experiments/{id}/db-stats`, `GET /experiments/vector-db-stats`) | Run-state facts from `StorageBackend` + chunk facts from `VectorStore.stats()`; labels from the registry. **Response shapes unchanged** — same fields, values now composed; no `server/api` or frontend type change (keeps Slice 53's zero-changes criterion achievable). The characterization records cover both endpoints |
 | 5 | `mongo_store.py:231-252` cascade deletes chunks | Chunk delete removed from the run-state cascade (the vector store owns it) |
 | 6 | `postgres_store.py:320-338` cascade deletes chunks | Same as #5 (single-store Postgres still ends with no chunk rows — characterization proves it) |
 | 7 | `main.py` lifespan index bootstrap | `ensure_indexes()` on the vector store; run-state bootstrap stays on `StorageBackend`; no unused `chunks` index when the vector store is elsewhere |
-| 8 | `settings.ensure_storage_ready()` | Checks both URIs; **fail-fast boot** when the vector store is unreachable |
+| 8 | `settings.ensure_storage_ready()` | Checks both stores' configuration; boot fails on a missing or placeholder URI (see Boot behaviour) |
 | 9 | `health_check.py` `/healthz` | Two-store response (below) |
-| 10 | `search_index_guard.py` preflight | Dual-store preflight: vector-store objects + run-state objects; vector-store failure reported first (moved here from Slice 50) |
+| 10 | `search_index_guard.py:131-200` + `search_index_plan.py:85-153` preflight | Dual-store preflight (moved here from Slice 50) — see orchestration below |
 
-### Two-store `/healthz` (DECISIONS #247)
+### `StorageBackend` chunk methods — lifecycle
 
-- Returns **503 if either store is down**.
-- `storage_mode` keeps meaning the **vector store** (dashboard and `health-check.sh` keep working); adds `run_state_mode` and `stores: {vector: {provider, mode, ok, latency_ms}, run_state: {…}}`. Single-store deployments report both equal.
+- `insert_chunks` and `delete_chunks_for_experiment` are **removed from the `StorageBackend` Protocol** in this slice, once every caller uses `get_vector_store()`.
+- They **stay on the concrete Mongo/Postgres classes**, because the 49A composites delegate to them. No deprecation decorator is needed.
+- The 49A AST guard gains a rule: no call to a chunk method through `get_storage_backend()`.
+- All test modules that patch the factories today (baseline list captured in Before-Checks, ~11 files) migrate to `_patch_backends` in this slice.
+
+### Dual-store preflight — orchestration
+
+One entry point, `preflight_stores(config)` in `search_index_guard.py`, called where preflight runs today (the orchestrator's `_fail_experiment_preflight` path, `orchestrator.py:409`, keeps reporting):
+
+1. Vector store: `health()`, then `plan_indexes()` / `ensure_indexes()`, then the `capabilities()` checks (dims, retrieval methods). The first failure raises the existing preflight error (HTTP 422 at submit) and **stops**, so run-state checks are not attempted.
+2. Run-state store: `health()` + required run-state objects.
+
+In single-store mode both steps hit the same database, and the characterization records prove the output is unchanged.
+
+### Two-store `/healthz` (DECISIONS #247, refined by #250)
+
+- Returns **503 if either store is down** (today it already returns 503 when `ok` is false — `main.py:108`).
+- **Every key present today stays, with today's meaning** (`health_check.py:87-120`): `ok`, `storage_backend` (the run-state store, i.e. `STORAGE_BACKEND`), `storage_mode`, and the per-engine key (`mongodb` / `postgres`, including Mongo's `"skipped"`). In a split setup `storage_mode` reports the **vector** store, which is what the dashboard label (`frontend/src/types/index.ts:312`) and `health-check.sh:88` show.
+- **Added keys:** `vector_store_backend`, `run_state_mode`, and `stores: {vector: {provider, mode, ok, latency_ms}, run_state: {…}}`.
+
+Single-store (Postgres local) — today's keys plus the additions:
+
+```json
+{"ok": true, "storage_backend": "postgres", "storage_mode": "postgres-local", "postgres": "ok",
+ "vector_store_backend": "postgres", "run_state_mode": "postgres-local",
+ "stores": {"vector": {"provider": "postgres", "mode": "postgres-local", "ok": true, "latency_ms": 3},
+            "run_state": {"provider": "postgres", "mode": "postgres-local", "ok": true, "latency_ms": 3}}}
+```
+
+Split store (ES down, returns HTTP 503):
+
+```json
+{"ok": false, "storage_backend": "postgres", "storage_mode": "elasticsearch-local", "postgres": "ok",
+ "vector_store_backend": "elasticsearch", "run_state_mode": "postgres-local",
+ "stores": {"vector": {"provider": "elasticsearch", "mode": "elasticsearch-local", "ok": false, "latency_ms": null,
+                       "remediation": "Check ELASTICSEARCH_URL / ./start-services.sh elasticsearch status"},
+            "run_state": {"provider": "postgres", "mode": "postgres-local", "ok": true, "latency_ms": 4}}}
+```
+
+### Boot behaviour (DECISIONS #250)
+
+- **Configuration errors fail boot:** `settings.ensure_storage_ready()` raises `ValueError` from `lifespan` for a missing or placeholder URI of **either** store. The message names the setting, e.g. "VECTOR_STORE_BACKEND=elasticsearch requires ELASTICSEARCH_URL". This extends today's check (`settings.py:149-174`), and FastAPI startup aborts with a non-zero exit.
+- **Reachability does not fail boot:** an unreachable store is reported by `/healthz` 503 and by preflight 422, as today for Mongo (`main.py:32-38` logs a warning and starts). This keeps single-store boot byte-identical. It also avoids restart loops while ES is still starting, since compose marks it `required: false` and ES takes tens of seconds to become healthy.
 
 ### Pairing rule (ii) (DECISIONS #241)
 
-The 49A equality lock is replaced by: **if the vector store `can_host_run_state`, then `VECTOR_STORE_BACKEND` must equal `STORAGE_BACKEND`.** Vector-only stores (ES, Redis) may pair with either run-state store. Rejected at settings validation with the reason (e.g. Mongo run state + Postgres vectors breaks the `schema.sql` FKs to `experiments`).
+The 49A equality lock is replaced by: **if the vector store `can_host_run_state`, then `VECTOR_STORE_BACKEND` must equal `STORAGE_BACKEND`.** Vector-only stores (ES, Redis) may pair with either run-state store. Rejected at settings validation with the reason. Example message: "STORAGE_BACKEND=mongodb with VECTOR_STORE_BACKEND=postgres is not supported: postgres can hold run state, so it must hold both. Set VECTOR_STORE_BACKEND=mongodb, or STORAGE_BACKEND=postgres."
 
 ### Delete across two stores (DECISIONS #246)
 
 - Order: vector store first, then run state. Both steps idempotent; a retry after a partial failure completes the delete and reports the true counts.
-- Invariant: no vector without a run-state experiment, except transiently during a delete.
-- **Should (this slice if time allows, else a CF row pointing at Slice 51):** an orphan-vector reconciler that deletes vector-store chunks whose `experiment_id` no longer exists in run state — run at boot next to `startup_reconciliation.py` and via CLI.
+- Partial-failure matrix:
+
+  | Vector delete | Run-state delete | Result | Recovery |
+  |---|---|---|---|
+  | fails | not attempted | experiment intact, error returned | retry DELETE |
+  | succeeds | fails | experiment row remains without chunks, error returned | retry DELETE completes it (vector step deletes 0) |
+  | succeeds | succeeds | both empty | — |
+  | process crash between steps | — | same as row 2 | retry DELETE, or the reconciler |
+
+- Invariant: no vector without a run-state experiment. Orphan vectors are possible only if a run-state experiment disappears some other way (manual DB edit, a crash inside a store's own cascade).
+- **Should — orphan-vector reconciler:** deletes vector-store chunks whose `experiment_id` no longer exists in run state; runs at boot next to `startup_reconciliation.py` and via `rag-params-finder reconcile-vectors`. If it doesn't fit this slice, record the CF row `CF-49B-1 | orphan-vector reconciler not built | Slice 51 | build + test the boot pass and CLI command` in DECISIONS.
 
 ### Observability
 
@@ -64,8 +114,10 @@ The 49A equality lock is replaced by: **if the vector store `can_host_run_state`
 ### Test infrastructure
 
 - **In-memory `VectorStore` double** (`tests/helpers/memory_vector_store.py`), registered under `memory` for tests only, `can_host_run_state=False`. It honours the three mandatory filters, `top_k`, the `(1+cos)/2` dense score scale, delete counts and a simple term-overlap sparse score.
+- **Known-answer fixture** (`tests/fixtures/split_store/`): a few short text documents plus 5 queries, each with a known relevant passage, embedded by a deterministic bag-of-words test embedder (no model download). Recall assertions are therefore meaningful, not accidental.
 - **`_patch_backends` helper** in `tests/helpers/pipeline_sweep.py` patches `get_storage_backend`, `get_vector_store` and `get_retriever_backend` together; the ~11 test files that patch the factories today migrate to it.
-- **Anti test-theater guard:** a test fails if any test sets chunk-method expectations (`insert_chunks`, `delete_chunks_for_experiment`) on a run-state mock — those calls must now hit the vector store.
+- **Anti test-theater guard** (`tests/test_no_run_state_chunk_expectations.py`): an AST scan of `tests/` that fails, naming file:line, on any `assert_called*` / `call_count` / `return_value` / `side_effect` use of `insert_chunks` or `delete_chunks_for_experiment` outside `tests/server/db/` and `tests/contract/` (the adapter-level suites that legitimately test those methods). It is a plain test, not a pytest hook, so it runs in PR CI with everything else.
+- **Test files by kind:** `tests/server/test_split_store_e2e.py` (acceptance), `tests/server/test_vector_store_pairing.py` (settings rules), `tests/server/test_single_store_characterization.py` (49A golden records, replayed).
 
 ## Reuse ledger
 
@@ -86,7 +138,12 @@ The 49A equality lock is replaced by: **if the vector store `can_host_run_state`
 
 - Slice name: `slice-49b-vector-store-data-path-rewire`
 - Branch: `slice/49b-vector-store-data-path-rewire`
-- Order: (1) RED split-store AT against the in-memory double — it must **fail on 49A** (proves it detects the defect); (2) migrate tests to `_patch_backends`; (3) rewire sites 1–10; (4) relax the lock to rule (ii); (5) GREEN + characterization still identical.
+- Order:
+  1. **RED:** the first commit on the branch (based on the 49A commit) adds only the split-store AT. Its fixture lifts the 49A lock for the test by constructing settings directly. The failing run's output (`test_split_store_e2e.py` failing on "chunks written to the vector store") is saved to `gate-evidence/slice-49b.json` as `red_run` (commit SHA + failing assertion).
+  2. Migrate tests to `_patch_backends`.
+  3. Rewire sites 1–10.
+  4. Relax the lock to rule (ii).
+  5. GREEN, with the characterization records still identical.
 - Commit pattern: `feat(storage): route chunk data path through the vector-store port; split-store pairing rule`
 - **Doc exit (Must):** `invariants.md` § Vector store rows verified; `architecture.md` gains the split-store data-flow diagram (ingest → vector store; runs/results → run-state store); `configuration.md` documents `VECTOR_STORE_BACKEND` + pairing rule; `/healthz` shape in `cli-reference.md`; CHANGELOG + PROGRESS/TRAIL.
 
@@ -96,26 +153,33 @@ The 49A equality lock is replaced by: **if the vector store `can_host_run_state`
 
 ```
 Scenario: A split-store sweep writes, finds, reports and deletes through the vector store
-  Given run state on the configured run-state store and VECTOR_STORE_BACKEND=memory
-  When a sweep runs through the orchestrator and API (not adapter calls)
+  Given run state on the configured run-state store, VECTOR_STORE_BACKEND=memory
+    and the known-answer fixture corpus with 5 queries
+  When the experiment is submitted with POST /experiments (FastAPI TestClient)
+    and the sweep runs through run_sweep (orchestrator.py:84), not adapter calls
   Then chunks are written only to the vector store (the run-state store holds none)
-    And every query returns hits and recall is above 0
+    And every query returns hits
+    And for at least 4 of the 5 queries the known relevant passage ranks in the top 3
     And GET /healthz shows storage_mode = the vector store and run_state_mode = the run-state store
     And db-stats counts the vector-store chunks under the vector store's label
-    And DELETE reports the written chunk count and leaves both stores empty for that experiment
+    And DELETE /experiments/{id} reports the written chunk count and leaves both stores empty for that experiment
+    And a second DELETE reports 0 chunks, leaves both stores empty and does not error
 
 Scenario: The same test fails on the 49A wiring (detects the defect)
   Given the 49A code with the lock lifted in the test
   When the split-store scenario runs
   Then it fails on "chunks written to the vector store"
 
-Scenario: Vector store down
-  Given the vector store is unreachable
+Scenario: Vector store misconfigured
+  Given VECTOR_STORE_BACKEND=elasticsearch and ELASTICSEARCH_URL unset
   When the server boots
-  Then boot fails fast naming the vector-store URI setting
-  When it goes down after boot
-  Then /healthz returns 503 with stores.vector.ok = false
-    And submitting a sweep fails preflight with the vector-store error reported first
+  Then startup aborts with an error naming ELASTICSEARCH_URL
+
+Scenario: Vector store unreachable
+  Given the vector store is configured but unreachable
+  When /healthz is called
+  Then it returns 503 with stores.vector.ok = false and today's keys still present
+    And submitting a sweep fails preflight with the vector-store error, and run-state checks are not attempted
 
 Scenario: Partial delete is completed by a retry
   Given the vector-store delete succeeded and the run-state delete failed
@@ -131,8 +195,9 @@ Scenario: Pairing rule (ii)
 
 Scenario: Single-store behaviour unchanged
   Given the 49A characterization records for Mongo and Postgres
+    (sweep, results, db-stats, vector-db-stats, delete counts, preflight, and every /healthz key and value present today)
   When the same flow runs after the rewire
-  Then every output matches exactly
+  Then every recorded output matches exactly (the new /healthz keys are additions only)
 
 Scenario: No test asserts chunk calls on the run-state mock
   Given the test suite
@@ -147,12 +212,13 @@ Scenario: No test asserts chunk calls on the run-state mock
 ## Before-Checks [GATE]
 
 - [ ] 49A ✅ COMPLETE; characterization records present.
-- [ ] Baseline list of tests that patch the storage/retriever factories captured.
+- [ ] Baseline list of tests that patch the storage/retriever factories captured (`grep -rl "get_storage_backend\|get_retriever_backend" tests`).
+- [ ] 49A characterization records include both stats endpoints and the full `/healthz` body.
 - [ ] harness-scout `detect_confirm` at slice start (touches orchestrator, API, guards, boot).
 
 ## After-Checks [GATE]
 
-- [ ] Split-store AT green on `memory`; its RED run on 49A recorded in gate evidence.
+- [ ] Split-store AT green on `memory`; its RED run on 49A recorded in `gate-evidence/slice-49b.json` (`red_run`: commit SHA + failing assertion).
 - [ ] Characterization records unchanged for Mongo + Postgres.
 - [ ] AST guard (49A) + anti test-theater guard green.
 - [ ] Coverage floors hold; complexity per `./scripts/ci/quality-gates.sh` (orchestrator must not raise CC — Slice 47 target).

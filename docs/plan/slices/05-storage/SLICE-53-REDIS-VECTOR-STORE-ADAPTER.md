@@ -166,11 +166,12 @@ Feature: Redis is a config-selectable vector-only store with full retrieval pari
     When DELETE /experiments/{id} runs
     Then no key tagged with that experiment_id remains and other experiments are untouched
 
-  Scenario: Redis being unreachable fails fast and clearly
-    Given REDIS_URL points at a closed port
+  Scenario: Redis misconfigured or unreachable fails clearly
+    Given VECTOR_STORE_BACKEND=redis and REDIS_URL unset
     When the server boots
-    Then boot fails fast naming REDIS_URL (49B fail-fast boot)
-    When Redis drops after boot and /healthz is called
+    Then startup aborts with an error naming REDIS_URL (49B, #250)
+    Given REDIS_URL points at a closed port
+    When /healthz is called
     Then it returns 503 with stores.vector.ok = false, the redis-local/redis-cloud mode and a remediation hint
 
   Scenario: Split-store sweep end to end on live Redis (49B acceptance, live leg)
