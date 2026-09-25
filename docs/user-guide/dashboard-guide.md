@@ -108,7 +108,7 @@ Pause, resume, and cancel controls appear **only in the overview header** — no
 | `paused` | Violet — “Experiment Paused” banner with run count; resume via header controls |
 | `cancelled` | Gray — runs completed before cancellation |
 | Failed runs | Red panel listing `error_message` per run |
-| Preflight failed | Experiment `error_message` explains missing indexes or quota — fix with `rag-params-finder indexes list` / `indexes reset`; see [Troubleshooting](troubleshooting.md#-search-index-preflight-failed) |
+| Preflight failed | Experiment `error_message` explains missing indexes or quota — check with `rag-params-finder indexes list`; on MongoDB Atlas fix with `indexes reset`, on Postgres restart the server so it re-applies `schema.sql` (see [postgres-setup.md → Index preflight](postgres-setup.md#index-preflight)); see [Troubleshooting](troubleshooting.md#-search-index-preflight-failed) |
 | Interrupted runs | Amber panel listing interruption reason |
 
 **Vector DB stats card**: Collapsible operational-context panel after the run outcome, with per-experiment chunk counts, embedding model breakdown, estimated storage, and index names. Loaded from `GET /experiments/{id}/db-stats`.
