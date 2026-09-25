@@ -1,6 +1,6 @@
 # Slice 48C — MRL `dimensions` Axis + `query_instruction` Axis
 
-**Status**: 📋 PLANNED — design decisions D1–D3 **decided** by the owner 2026-09-24 (#207)
+**Status**: 📋 PLANNED — D1 **decided** by the owner 2026-09-24 (#207); D2 and D3 **reopened as HITL blockers** by the data-engineer review 2026-09-25 (#236, #237)
 **Branch**: `slice/48c-embedding-dim-instruction-axes`
 **Estimated time**: ~4–6 h (depends on the Postgres option chosen)
 **MoSCoW**: Should (owner decision 2026-09-24; DECISIONS #189, #196). Start only after 48B ✅.
@@ -30,8 +30,8 @@ A DoubleWord config can sweep `dimensions` (e.g. `[512, 1024, 2048]`) and `query
 | # | Decision | Chosen | Consequence |
 |---|---|---|---|
 | D1 | How the axes appear in config | **Sub-axes of the existing embedding axis, declared per model** under `embedding.axes.<model_id>` | Other models in a mixed-provider sweep are unaffected. Sub-axes on a model that doesn't support them (not MRL / not instruction-aware per the registry) → 422 at submit |
-| D2 | Postgres dims beyond 1024 | **Allowlist `{384, 512, 1024}` on Postgres** for now; other dims → 422 at submit. Atlas may sweep any registry-supported dim (index capacity permitting) | **Revisit trigger:** reopen D2 (e.g. `halfvec` columns ≤4000) if DoubleWord embedding models need bigger or different sizes on Postgres. Needs a HITL + ADR because it's a schema/namespace change |
-| D3 | Stored `embedding_model` value | **Composite identity** `Qwen/Qwen3-Embedding-8B#d<dim>` (plus `#q<hash>` for a non-null query instruction on query-side records only) | Rides the existing mandatory `embedding_model` filter; no new index filter field |
+| D2 | Postgres dims beyond 1024 | **Allowlist `{384, 512, 1024}` on Postgres** for now; other dims → 422 at submit. Atlas may sweep any registry-supported dim (index capacity permitting) | **⚠️ BLOCKER (data-engineer review 2026-09-25):** `schema.sql` has `embedding_384` + `embedding_1024` only — 512-dim vectors have **no column to land in**. Before 48C starts, owner must decide: **(A)** add `embedding_512 vector(512)` column + HNSW index via a DDL migration (add as a pre-48C sub-task or dedicated slice), or **(B)** reduce the allowlist to `{384, 1024}` until a migration lands. Record in DECISIONS; update D2 row accordingly. **Revisit trigger:** reopen D2 (e.g. `halfvec` columns ≤4000) if DoubleWord models need bigger sizes on Postgres. Needs a HITL + ADR. |
+| D3 | Stored `embedding_model` value | **Composite identity** `Qwen/Qwen3-Embedding-8B#d<dim>` (document side); `#q<hash>` suffix on query-side records only when instruction is non-null | **⚠️ BLOCKER (data-engineer review 2026-09-25):** identity namespace change breaks data lineage for any pre-48C vectors stored as plain `Qwen/Qwen3-Embedding-8B`. Before 48C starts, owner must decide one of: **(A)** backward-compat query logic (retriever checks both old and new identity); **(B)** auto-migration on server boot (scan stored chunks, rewrite identity field); or **(C)** data isolation (old and new runs are treated as separate experiment corpora — no cross-contamination, no migration). Record in DECISIONS. The `#q<hash>` suffix should be verified: if queries and chunks are stored in separate tables/collections and the filter is never cross-collection, drop the suffix for simplicity (confirm with schema before implementing). |
 
 Config shape (D1):
 
@@ -54,7 +54,7 @@ embedding:
 - A config with dimensions `[512, 1024]` × instruction `[null, I]` expands to 4× the runs of its non-axis equivalent, and every run's identity string contains both values.
 - A document batch is paid **once** at max dim: the stubbed DoubleWord API bills 1 document batch for all dims.
 - Instruction variants share document vectors: only query batches differ.
-- Unsupported combinations (sub-axes on a non-supporting model, Postgres dim not in `{384, 512, 1024}`, or Atlas index capacity exceeded) → 422 at submit with an actionable message.
+- Unsupported combinations (sub-axes on a non-supporting model, Postgres dim outside the allowlist resolved in #236, or Atlas index capacity exceeded) → 422 at submit with an actionable message.
 
 ## GWT Scenarios
 
@@ -108,13 +108,16 @@ Scenario: Atlas index capacity exceeded is caught at submit
 
 ## Before-Checks
 - [ ] 48B ✅ PASSED
-- [ ] D1–D3 as decided (#207); ADR-005 amended with the composite `embedding_model` identity (D3). If DoubleWord's models now need sizes outside the Postgres allowlist → stop and reopen D2 (HITL) before coding.
+- [ ] **D2 blocker resolved** (DECISIONS entry exists): either `embedding_512` DDL migration **merged to `main` before 48C branches** (not a parallel task), or allowlist revised to `{384, 1024}` — owner decision required; do not start 48C until this is recorded
+- [ ] **D3 blocker resolved** (DECISIONS entry exists): backward-compat / auto-migration / data-isolation strategy chosen and documented; all downstream `embedding_model` key sites mapped (`run_config_key`, `pipeline/signatures.py`, `results_analyzer`, retrievers); `#q<hash>` suffix confirmed or dropped based on schema verification
+- [ ] D1 as decided (#207); ADR-005 amended with the composite `embedding_model` identity (D3 — post-resolution). If DoubleWord's models now need sizes outside the resolved allowlist → stop and reopen D2 (HITL) before coding.
 - [ ] Branch from latest `main`; `./scripts/ci/quality-gates.sh` green
 - [ ] harness-scout `detect_confirm` against the TRAIL embed (identity + index namespace change)
 
 ## After-Checks
 - [ ] `./scripts/ci/quality-gates.sh` pass; every GWT scenario ↔ ≥1 test
 - [ ] Specification coverage: every GWT scenario ↔ ≥1 named test; rejection paths covered (sub-axes on a non-supporting model, Postgres allowlist, HNSW >2000, Atlas capacity)
+- [ ] Postgres dim allowlist enforced by the submit-time guard (`search_index_plan.py` / `search_index_guard.py`), matching the D2 resolution and the columns in `schema.sql`; Atlas capacity assessment counts every new `vector_index_<dim>`
 - [ ] Coverage 100% line + branch on the axis expansion + truncation modules; floors unchanged
 - [ ] Complexity evidence: xenon **enforcing** E/C/C; `expand_sweep` rank must not worsen (extract an axis helper if needed)
 - [ ] Mutation testing on identity composition + truncation: ≤10% survivors or a waiver
