@@ -82,7 +82,7 @@ A registry flag marking providers as "requires pre-submission". Rejected (#192):
 
 ### Neutral
 - Storage and retrieval ports (`StorageBackend`, `RetrieverBackend`) are unchanged.
-- The `embedding_model` mandatory filter rides the existing infrastructure; 48C's proposed composite identity (`model#d<dim>`) would extend it without new filter fields — pending the lineage decision (DECISIONS #237, HITL).
+- The `embedding_model` mandatory filter rides the existing infrastructure; 48C's composite identity (`model#d<dim>`) extends it without new filter fields; pre-48C records are migrated at boot (see § Embedding Identity).
 
 ---
 
@@ -91,6 +91,14 @@ A registry flag marking providers as "requires pre-submission". Rejected (#192):
 Before 48A, `EmbeddingConfig.provider` was a required single value for the entire experiment. 48A makes it optional; when omitted, each model's provider is derived from the registry via `model_registry.provider_for_model(model_id)`. This enables one sweep to compare Local / Voyage / DoubleWord models directly.
 
 Existing single-provider configs are byte-identical after the change (regression lock tested).
+
+## Embedding Identity (48C)
+
+Owner decisions 2026-09-25 (DECISIONS #238, #239). **Decided, not yet implemented.**
+
+- Stored `embedding_model` for DoubleWord documents is `Qwen/Qwen3-Embedding-8B#d<dim>`, so vectors of different MRL sizes never share a retrieval filter.
+- Records written before 48C (plain id) are rewritten once at server boot to `#d<dim>`, with `<dim>` read from the stored vector. The migration covers `chunks`, `run_status` and `results` on both backends, is idempotent, and runs before orphan reconciliation and the watcher. A single exact-match identity filter is kept; no dual-identity query path.
+- Postgres gains an `embedding_512` column + HNSW index (additive `ADD COLUMN IF NOT EXISTS`), so the `{384, 512, 1024}` allowlist is backed by storage.
 
 ---
 
