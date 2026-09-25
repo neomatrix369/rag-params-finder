@@ -75,6 +75,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | [adr/ADR-002-voyage-and-local-providers.md](./adr/ADR-002-voyage-and-local-providers.md) | Dual embedding/rerank providers |
 | [adr/ADR-003-mongodb-atlas-vector-store.md](./adr/ADR-003-mongodb-atlas-vector-store.md) | MongoDB Atlas as vector store (**Superseded** by ADR-004; Mongo still supported) |
 | [adr/ADR-004-postgresql-pgvector-vector-store.md](./adr/ADR-004-postgresql-pgvector-vector-store.md) | Dual-backend: Postgres/pgvector (Supabase) **and** MongoDB |
+| [adr/ADR-005-doubleword-embedding-provider.md](./adr/ADR-005-doubleword-embedding-provider.md) | DoubleWord batch-first embedding provider (**Proposed** — Slice 48, not yet implemented) |
 | [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) | Slice status, decision log, forward roadmap (**status SSOT**) |
 | [plan/TRAIL.md](./plan/TRAIL.md) | Plan trail, harness-scout YAML, execution order |
 | [plan/invariants.md](./plan/invariants.md) | Self-contained constraints for slice executors |

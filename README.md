@@ -136,7 +136,7 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 | Understand the system design | [Architecture](docs/contributor-guide/architecture.md) |
 | Add a new model, chunker, or endpoint | [Extending the System](docs/contributor-guide/extending.md) |
 | Set up a development environment | [Development Guide](docs/contributor-guide/development.md) |
-| Why these design choices? | [ADR-001](docs/adr/ADR-001-two-process-architecture.md) · [ADR-002](docs/adr/ADR-002-voyage-and-local-providers.md) · [ADR-003](docs/adr/ADR-003-mongodb-atlas-vector-store.md) |
+| Why these design choices? | [ADR-001](docs/adr/ADR-001-two-process-architecture.md) · [ADR-002](docs/adr/ADR-002-voyage-and-local-providers.md) · [ADR-003](docs/adr/ADR-003-mongodb-atlas-vector-store.md) · [ADR-004](docs/adr/ADR-004-postgresql-pgvector-vector-store.md) · [ADR-005](docs/adr/ADR-005-doubleword-embedding-provider.md) (Proposed) |
 
 ---
 

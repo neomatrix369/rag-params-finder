@@ -281,6 +281,7 @@ See `docs/adr/` for Architecture Decision Records:
 - [ADR-002](../adr/ADR-002-voyage-and-local-providers.md): Why dual embedding/reranking providers
 - [ADR-003](../adr/ADR-003-mongodb-atlas-vector-store.md): MongoDB Atlas as original sole vector store (**Superseded**)
 - [ADR-004](../adr/ADR-004-postgresql-pgvector-vector-store.md): Dual-backend Postgres/pgvector (Supabase) **and** MongoDB — code default stays `mongodb` (DECISIONS #130 Won't flip)
+- [ADR-005](../adr/ADR-005-doubleword-embedding-provider.md): DoubleWord batch-first embedding provider (**Proposed** — Slice 48, not yet implemented)
 
 **Key design choices not covered by ADRs**:
 
@@ -346,4 +347,4 @@ Atlas / Postgres connection strings and API keys live in `.env` on the host (mou
 
 - [Extending the System](extending.md) — add new models, chunkers, or endpoints
 - [Development Guide](development.md) — dev loop, quality gates, slice playbook
-- [ADR-001](../adr/ADR-001-two-process-architecture.md) · [ADR-002](../adr/ADR-002-voyage-and-local-providers.md) · [ADR-003](../adr/ADR-003-mongodb-atlas-vector-store.md) · [ADR-004](../adr/ADR-004-postgresql-pgvector-vector-store.md) — detailed rationale for key decisions
+- [ADR-001](../adr/ADR-001-two-process-architecture.md) · [ADR-002](../adr/ADR-002-voyage-and-local-providers.md) · [ADR-003](../adr/ADR-003-mongodb-atlas-vector-store.md) · [ADR-004](../adr/ADR-004-postgresql-pgvector-vector-store.md) · [ADR-005](../adr/ADR-005-doubleword-embedding-provider.md) (Proposed) — detailed rationale for key decisions
