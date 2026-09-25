@@ -53,6 +53,17 @@
 | TTL management | Mandatory TTL on every cache key; vector keys must stay TTL `-1` (asserted in 53 and here) | TTL optional for the cache (`allkeys-lru` works) |
 | Durability of cache | AOF shared with vectors | Cache instance can run without persistence |
 
+## External references (load at slice start)
+
+> Official vendor docs, verified to resolve on 2026-09-25 (HTTP 200 + page title). Load them at slice start: fetch the URL, or query the context7 ID (`query-docs`) for the exact version the slice pins. **Where a vendor doc and a statement in this slice disagree, the vendor doc wins.** Record the discrepancy in DECISIONS and the doc version in gate evidence. Don't add a source here without checking it resolves.
+
+| Topic | Official source | context7 ID | Backs |
+|---|---|---|---|
+| Key eviction policies (`volatile-lru`, `noeviction`) | <https://redis.io/docs/latest/develop/reference/eviction/> | `/redis/docs` | Combined-deployment option (a)/(b); TTL-only cache keys |
+| Persistence (AOF / RDB) | <https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/> | `/redis/docs` | Cache durability row in the criteria table |
+| redis-py | <https://redis.readthedocs.io/en/stable/> | `/redis/redis-py` | `MGET` / pipelined `SET` in `RedisCacheBackend` |
+| TLS | <https://redis.io/docs/latest/operate/oss_and_stack/management/security/encryption/> | `/redis/docs` | Managed endpoints for the cache |
+
 ---
 
 ## Slice Workflow Bundle
@@ -117,6 +128,7 @@ Feature: The embedding cache can live in SQLite or Redis without changing caller
 
 ## Before-Checks [GATE]
 
+- [ ] External references loaded (fetch each URL or query its context7 ID) before the first RED test; doc versions recorded in `gate-evidence/slice-54.json`.
 - [ ] 48A ✅ on `main`; Slice 52 Branch B cache GO recorded, with the concrete need.
 - [ ] `[redis]` extra scope confirmed: this slice reuses Slice 53's extra (or introduces it, if 53 hasn't shipped); no second Redis extra.
 - [ ] harness-scout `detect_confirm` at slice start.
