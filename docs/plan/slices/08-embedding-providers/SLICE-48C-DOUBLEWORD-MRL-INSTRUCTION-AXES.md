@@ -1,8 +1,8 @@
 # Slice 48C — MRL `dimensions` Axis + `query_instruction` Axis
 
-**Status**: 📋 PLANNED — design decisions D1–D3 **decided** by the owner 2026-09-24 (#207)
+**Status**: 📋 PLANNED — D1 decided 2026-09-24 (#207); D2 and D3 reopened by the data-engineer review and **re-decided by the owner 2026-09-25**: D2 = add `embedding_512` migration (#238), D3 = boot-time identity migration (#239)
 **Branch**: `slice/48c-embedding-dim-instruction-axes`
-**Estimated time**: ~4–6 h (depends on the Postgres option chosen)
+**Estimated time**: ~5–7 h in 48C (boot identity migration included) + ~1 h pre-48C `embedding_512` migration PR
 **MoSCoW**: Should (owner decision 2026-09-24; DECISIONS #189, #196). Start only after 48B ✅.
 **Source brief**: [`BRIEF-doubleword-embedder.md`](../../BRIEF-doubleword-embedder.md) §6.4, §12.
 
@@ -25,13 +25,13 @@ A DoubleWord config can sweep `dimensions` (e.g. `[512, 1024, 2048]`) and `query
   - Run identity: `_run_config_key` (results_analyzer) and `pipeline/signatures.py` key on `embedding_model`, so dim/instruction must enter identity and the mandatory `embedding_model` filter, or vectors of different dims/instructions mix.
 > The executor may diverge from the plan if new evidence warrants. Document deviations in PROGRESS.md before marking PASSED.
 
-## Design decisions (owner, 2026-09-24, DECISIONS #207)
+## Design decisions (owner, 2026-09-24 #207; D2/D3 re-decided 2026-09-25 #238/#239)
 
 | # | Decision | Chosen | Consequence |
 |---|---|---|---|
 | D1 | How the axes appear in config | **Sub-axes of the existing embedding axis, declared per model** under `embedding.axes.<model_id>` | Other models in a mixed-provider sweep are unaffected. Sub-axes on a model that doesn't support them (not MRL / not instruction-aware per the registry) → 422 at submit |
-| D2 | Postgres dims beyond 1024 | **Allowlist `{384, 512, 1024}` on Postgres** for now; other dims → 422 at submit. Atlas may sweep any registry-supported dim (index capacity permitting) | **Revisit trigger:** reopen D2 (e.g. `halfvec` columns ≤4000) if DoubleWord embedding models need bigger or different sizes on Postgres. Needs a HITL + ADR because it's a schema/namespace change |
-| D3 | Stored `embedding_model` value | **Composite identity** `Qwen/Qwen3-Embedding-8B#d<dim>` (plus `#q<hash>` for a non-null query instruction on query-side records only) | Rides the existing mandatory `embedding_model` filter; no new index filter field |
+| D2 | Postgres dims beyond 1024 | **Allowlist `{384, 512, 1024}` on Postgres**, backed by a new `embedding_512 vector(512)` column (owner 2026-09-25, #238 — option A of the #236 blocker). Other dims → 422 at submit. Atlas may sweep any registry-supported dim (index capacity permitting) | **Pre-48C migration PR** (merged to `main` before the 48C branch is created): in `schema.sql` add `ALTER TABLE chunks ADD COLUMN IF NOT EXISTS embedding_512 vector(512)` plus a partial HNSW index `chunks_embedding_512_hnsw … WHERE embedding_512 IS NOT NULL` (same idempotent pattern as `text_search`); add `512: "embedding_512"` to `VECTOR_COLUMNS` (`postgres_docs.py`); add the index name to the Postgres required-catalog set in `search_index_plan.py`. Existing rows are untouched (NULL column). **Revisit trigger:** reopen D2 (e.g. `halfvec` columns ≤4000) if DoubleWord models need bigger sizes on Postgres. |
+| D3 | Stored `embedding_model` value | **Composite identity** `Qwen/Qwen3-Embedding-8B#d<dim>` (document side); `#q<hash>` suffix on query-side records only when instruction is non-null — **subject to the schema check in Before-Checks**. Pre-48C records are rewritten by a **boot-time identity migration** (owner 2026-09-25, #239 — option B of the #237 blocker) | Migration runs once in FastAPI `lifespan` **before** `reconcile_orphaned_experiments()`, the DoubleWord watcher and any sweep. It rewrites only records whose `embedding_model` is exactly the plain DoubleWord id (no `#`) to `#d<dim>`, taking `<dim>` from the stored vector (Mongo: `len(embedding)`; Postgres: which `embedding_<dim>` column is non-NULL), never from an assumed default. Rewrites every key site: `chunks`, `run_status`, `results` (Mongo + Postgres) so `signatures.py` resume and `results_analyzer` grouping stay consistent. Idempotent (second boot = 0 rewrites), logs counts per collection via `scope_log`, and a failure fails startup loudly rather than serving mixed identities. Exposed as one `StorageBackend` port method so both adapters implement it. |
 
 Config shape (D1):
 
@@ -54,11 +54,22 @@ embedding:
 - A config with dimensions `[512, 1024]` × instruction `[null, I]` expands to 4× the runs of its non-axis equivalent, and every run's identity string contains both values.
 - A document batch is paid **once** at max dim: the stubbed DoubleWord API bills 1 document batch for all dims.
 - Instruction variants share document vectors: only query batches differ.
-- Unsupported combinations (sub-axes on a non-supporting model, Postgres dim not in `{384, 512, 1024}`, or Atlas index capacity exceeded) → 422 at submit with an actionable message.
+- Unsupported combinations (sub-axes on a non-supporting model, Postgres dim outside `{384, 512, 1024}` (#238), or Atlas index capacity exceeded) → 422 at submit with an actionable message.
 
 ## GWT Scenarios
 
 ```gherkin
+Scenario: Pre-48C DoubleWord records get the composite identity at boot
+  Given stored chunks, run records and results whose embedding_model is Qwen/Qwen3-Embedding-8B with 1024-dim vectors, and Voyage records alongside them
+  When the server starts
+  Then the DoubleWord records read Qwen/Qwen3-Embedding-8B#d1024 and the Voyage records are unchanged
+  And a second start rewrites nothing
+
+Scenario: 512-dim vectors are stored on Postgres
+  Given STORAGE_BACKEND postgres and dimensions [512]
+  When the experiment runs
+  Then chunk rows have embedding_512 set and a 512 run retrieves only those rows
+
 Scenario: Sub-axes expand only for the model that declares them
   Given models [voyage-3.5-lite, Qwen/Qwen3-Embedding-8B], and embedding.axes for Qwen/Qwen3-Embedding-8B with dimensions [512,1024,2048] and query_instruction [null, "Given a question…"], and 1 chunk config
   When expand_sweep is called
@@ -108,18 +119,22 @@ Scenario: Atlas index capacity exceeded is caught at submit
 
 ## Before-Checks
 - [ ] 48B ✅ PASSED
-- [ ] D1–D3 as decided (#207); ADR-005 amended with the composite `embedding_model` identity (D3). If DoubleWord's models now need sizes outside the Postgres allowlist → stop and reopen D2 (HITL) before coding.
+- [ ] **D2 migration merged** (#238): the `embedding_512` column + HNSW index + `VECTOR_COLUMNS` + required-catalog PR is **on `main` before 48C branches** (not a parallel task); `tests/server/db/test_postgres_store_integration.py` round-trips a 512-dim row on local pgvector
+- [ ] **D3 = boot migration** (#239): every downstream `embedding_model` key site mapped and listed in the slice PR (`chunks`, `run_status`, `results` in both backends; `_run_config_key`, `pipeline/signatures.py`, `results_analyzer`, retrievers, and any Tier-1 sweep history); `#q<hash>` suffix confirmed or dropped based on schema verification
+- [ ] D1 as decided (#207); ADR-005 § Embedding identity (48C) matches #239. If DoubleWord's models now need sizes outside the resolved allowlist → stop and reopen D2 (HITL) before coding.
 - [ ] Branch from latest `main`; `./scripts/ci/quality-gates.sh` green
 - [ ] harness-scout `detect_confirm` against the TRAIL embed (identity + index namespace change)
 
 ## After-Checks
 - [ ] `./scripts/ci/quality-gates.sh` pass; every GWT scenario ↔ ≥1 test
 - [ ] Specification coverage: every GWT scenario ↔ ≥1 named test; rejection paths covered (sub-axes on a non-supporting model, Postgres allowlist, HNSW >2000, Atlas capacity)
+- [ ] Postgres dim allowlist enforced by the submit-time guard (`search_index_plan.py` / `search_index_guard.py`), matching the D2 resolution and the columns in `schema.sql`; Atlas capacity assessment counts every new `vector_index_<dim>`
 - [ ] Coverage 100% line + branch on the axis expansion + truncation modules; floors unchanged
 - [ ] Complexity evidence: xenon **enforcing** E/C/C; `expand_sweep` rank must not worsen (extract an axis helper if needed)
-- [ ] Mutation testing on identity composition + truncation: ≤10% survivors or a waiver
-- [ ] Doc audit → YES: configuration.md `embedding.axes` sub-axes, doubleword-setup.md storage notes (Postgres allowlist + revisit trigger)
-- [ ] Security audit → NO (no new inputs reaching shell/DB beyond validated ints/strings; no DDL under D2 allowlist)
+- [ ] Boot identity migration tested on **both** backends: rewrites plain ids to `#d<stored dim>` across `chunks`/`run_status`/`results`; leaves non-DoubleWord and already-composite ids untouched; second run rewrites 0; runs before orphan reconciliation and the watcher; a failure aborts startup
+- [ ] Mutation testing on identity composition, truncation and the identity migration: ≤10% survivors or a waiver
+- [ ] Doc audit → YES: configuration.md `embedding.axes` sub-axes; doubleword-setup.md storage notes (Postgres allowlist + revisit trigger) and a note that the first boot after upgrading rewrites older DoubleWord records to `#d<dim>` (one-time, logged); postgres-setup.md lists the `embedding_512` column (#238); CLAUDE.md Key Files / schema row mentions `embedding_512`
+- [ ] Security audit → YES (narrow): the identity migration issues parameterised updates only (no string-built queries), matches the exact plain model id, and never deletes rows; D2 DDL is static in `schema.sql` (no user input)
 
 ## Commits
 ```
