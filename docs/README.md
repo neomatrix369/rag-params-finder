@@ -96,6 +96,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | [_internal/DOCS-CODE-AUDIT-FIXES.md](./_internal/DOCS-CODE-AUDIT-FIXES.md) | Audit remediation log |
 | [_internal/TIEBREAKER-EXPLANATION-FEATURE.md](./_internal/TIEBREAKER-EXPLANATION-FEATURE.md) | Tiebreaker UI feature notes |
 | [_internal/GRAPHITI-EXPORT-SLICE-1.md](./_internal/GRAPHITI-EXPORT-SLICE-1.md) | Graphiti export notes |
+| [_internal/STORE-E2E-WALKTHROUGH.md](./_internal/STORE-E2E-WALKTHROUGH.md) | Simulated end-to-end trace of every hop and journey stage across MongoDB, Postgres, Elasticsearch and Redis; gaps and owning slices |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Redirect stub → contributor-guide/architecture.md |
 
 ---
