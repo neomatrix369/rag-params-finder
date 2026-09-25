@@ -133,7 +133,7 @@ Scenario: Atlas index capacity exceeded is caught at submit
 - [ ] Complexity evidence: xenon **enforcing** E/C/C; `expand_sweep` rank must not worsen (extract an axis helper if needed)
 - [ ] Boot identity migration tested on **both** backends: rewrites plain ids to `#d<stored dim>` across `chunks`/`run_status`/`results`; leaves non-DoubleWord and already-composite ids untouched; second run rewrites 0; runs before orphan reconciliation and the watcher; a failure aborts startup
 - [ ] Mutation testing on identity composition, truncation and the identity migration: ≤10% survivors or a waiver
-- [ ] Doc audit → YES: configuration.md `embedding.axes` sub-axes, doubleword-setup.md storage notes (Postgres allowlist + revisit trigger)
+- [ ] Doc audit → YES: configuration.md `embedding.axes` sub-axes; doubleword-setup.md storage notes (Postgres allowlist + revisit trigger) and a note that the first boot after upgrading rewrites older DoubleWord records to `#d<dim>` (one-time, logged); postgres-setup.md lists the `embedding_512` column (#238); CLAUDE.md Key Files / schema row mentions `embedding_512`
 - [ ] Security audit → YES (narrow): the identity migration issues parameterised updates only (no string-built queries), matches the exact plain model id, and never deletes rows; D2 DDL is static in `schema.sql` (no user input)
 
 ## Commits
