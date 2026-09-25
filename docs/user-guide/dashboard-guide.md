@@ -7,7 +7,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 ![Vitest](https://img.shields.io/badge/Vitest-6E9F18?logo=vitest&logoColor=white)
 
-The React dashboard at `http://localhost:5374` visualizes experiments and results. Experiments are **submitted from the CLI**; the dashboard can **pause, resume, cancel, and delete** active sweeps. It polls the server every 2 seconds while any experiment is `running` or `paused`.
+Use this guide to monitor and control experiments from the React dashboard at `http://localhost:5374`, and to read their results. Experiments are **submitted from the CLI**; the dashboard can **pause, resume, cancel, and delete** active sweeps. It polls the server every 2 seconds while any experiment is `running` or `paused`.
 
 **Prerequisites:** A storage backend ready ([MongoDB Setup](mongodb-setup.md) or [Postgres Setup](postgres-setup.md)) and server running. Optional SIE sweeps require [SIE Setup](sie-setup.md) before submitting `configs/mongodb/example-sie.yaml` (or the `configs/supabase/` twin).
 
@@ -108,7 +108,7 @@ Pause, resume, and cancel controls appear **only in the overview header** — no
 | `paused` | Violet — “Experiment Paused” banner with run count; resume via header controls |
 | `cancelled` | Gray — runs completed before cancellation |
 | Failed runs | Red panel listing `error_message` per run |
-| Preflight failed | Experiment `error_message` explains missing indexes or quota — fix with `rag-params-finder indexes list` / `indexes reset`; see [Troubleshooting](troubleshooting.md#-search-index-preflight-failed) |
+| Preflight failed | Experiment `error_message` explains missing indexes or quota — check with `rag-params-finder indexes list`; on MongoDB Atlas fix with `indexes reset`, on Postgres restart the server so it re-applies `schema.sql` (see [postgres-setup.md → Index preflight](postgres-setup.md#index-preflight)); see [Troubleshooting](troubleshooting.md#-search-index-preflight-failed) |
 | Interrupted runs | Amber panel listing interruption reason |
 
 **Vector DB stats card**: Collapsible operational-context panel after the run outcome, with per-experiment chunk counts, embedding model breakdown, estimated storage, and index names. Loaded from `GET /experiments/{id}/db-stats`.

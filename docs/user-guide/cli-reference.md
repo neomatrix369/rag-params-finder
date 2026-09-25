@@ -213,7 +213,7 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 
 - `HEALTH_LIVENESS_LOCAL`: confirms process and dependency ping endpoints.
   - `curl -sS http://127.0.0.1:8001/health | jq`
-  - Expected: 200 with `{"status": "...", "mongodb": "ok", "sie": ...}`
+  - Expected: 200 with the `/healthz` storage fields for the active backend plus `sie` and `version` — MongoDB: `"storage_backend": "mongodb", "mongodb": "ok"`; Postgres: `"storage_backend": "postgres", "postgres": "ok"`
 - `READINESS_DATA_PLANE`: confirms the data plane is usable.
   - `curl -sS http://127.0.0.1:8001/experiments`
   - Expected: controlled empty list (`[]`) or actual experiment payload, and a meaningful error on malformed usage.

@@ -20,6 +20,18 @@
 - Secrets (`VOYAGE_API_KEY`, `DOUBLEWORD_API_KEY`, `MONGODB_URI`, `DATABASE_URL` / `SUPABASE_URI`) stay server-side — never in CLI configs or commits.
 → Source: `docs/plan/DECISIONS.md` (#114–#130, #166–#170); `docs/adr/ADR-004-*.md`
 
+## Vector store / split-store (Slices 49A–51, 53)
+- `VECTOR_STORE_BACKEND` defaults to `STORAGE_BACKEND`; single-store Mongo/Postgres behaviour stays byte-identical (#240, #242).
+- Chunk write, delete, stats and search go **only** through `get_vector_store()`; run state (experiments, runs, results) goes only through `get_storage_backend()`. `get_retriever_backend()` keeps its name and signature and resolves via the vector store (#240).
+- Pairing rule (ii): a store that can hold run state must hold it (`VECTOR_STORE_BACKEND == STORAGE_BACKEND`); vector-only stores (ES, Redis) pair with either. `elasticsearch` / `redis` are never valid for `STORAGE_BACKEND` (#241).
+- Delete order: vector store first, then run state; both idempotent (#246).
+- `/healthz` returns 503 if either store is down; `storage_mode` = vector store, plus `run_state_mode` and `stores{}`; a missing or placeholder URI for either store stops startup, an unreachable store is reported by `/healthz` 503 and preflight 422 (#247, #250).
+- One `DatabaseProvider` Literal (`server/models/config.py`); no store-name comparisons outside adapters, registry, settings and config normalisers (AST guard over `server/` + `cli/`) (#240, #242).
+- Mandatory `embedding_model` + `experiment_id` + `run_id` filter on every vector query; dense scores on the shared `(1+cos)/2` scale; hybrid via RRF `k=60`.
+- Local ES (D5) pairs with `postgres-local` by default; Basic licence, security off, `127.0.0.1`, 1 GB heap, unquantized HNSW (#215, ADR-006).
+- Scripts read `scripts/lib/stores.tsv` (bash 3.2-safe); server image extras via `ARG EXTRAS`; one nightly matrix job, skipped ≠ green (#243, #244, #248).
+→ Source: `docs/plan/DECISIONS.md` (#213–#219, #240–#250); `docs/plan/slices/05-storage/SLICE-49*.md`–`SLICE-53*.md`
+
 ## Tech stack & runtime
 - Python 3.12+ via `uv`; Node 22+ (frontend); FastAPI server `:8001`; React dashboard `:5374`.
 - Quality gates: `./scripts/ci/quality-gates.sh` (repo lint + backend + frontend + audits).

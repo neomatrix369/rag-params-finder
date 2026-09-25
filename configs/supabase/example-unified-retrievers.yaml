@@ -27,7 +27,7 @@ data_paths:
 
 queries_file: ./configs/questions.example.json
 
-database_provider: supabase
+database_provider: postgres
 
 embedding:
   provider: local
