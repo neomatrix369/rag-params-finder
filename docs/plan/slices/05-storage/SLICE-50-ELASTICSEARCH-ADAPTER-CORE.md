@@ -61,6 +61,20 @@ The ES adapter is net-new code, but its *behaviour* is composed from patterns an
 | Live contract fixture | `tests/contract/test_storage_backend_contract.py`, `tests/helpers/storage_live.py` | **Reuse** — add ES to the registry-parametrised fixture |
 | **Net-new (only)** | `server/db/elasticsearch/` package (config/URI/mapping/ensure/preflight/upsert/delete), `rrf_fuse()` extraction, `[elasticsearch]` extra | Write new — the ES-specific I/O only |
 
+## External references (load at slice start)
+
+> Official vendor docs, verified to resolve on 2026-09-25 (HTTP 200 + page title). Load them at slice start: fetch the URL, or query the context7 ID (`query-docs`) for the exact version the slice pins. **Where a vendor doc and a statement in this slice disagree, the vendor doc wins.** Record the discrepancy in DECISIONS and the doc version in gate evidence. Don't add a source here without checking it resolves.
+
+| Topic | Official source | context7 ID | Backs |
+|---|---|---|---|
+| `dense_vector` mapping + HNSW `index_options` (`m`, `ef_construction`, element type, similarity) | <https://www.elastic.co/docs/reference/elasticsearch/mapping-reference/dense-vector> | `/websites/elastic_co_reference` | Explicit mapping, unquantized HNSW, quantized-preflight rejection |
+| kNN search + `filter` + `num_candidates` | <https://www.elastic.co/docs/solutions/search/vector/knn> | `/websites/elastic_co_reference` | Dense parity, 3-filter isolation, candidate over-fetch |
+| Retrievers (incl. `rrf`) | <https://www.elastic.co/docs/reference/elasticsearch/rest-apis/retrievers> | `/websites/elastic_co_reference` | Client-side RRF decision (D3) — which retrievers the Basic licence allows |
+| Reciprocal rank fusion | <https://www.elastic.co/docs/reference/elasticsearch/rest-apis/reciprocal-rank-fusion> | `/websites/elastic_co_reference` | `rrf_fuse()` k=60 parity with the native definition |
+| `refresh` parameter | <https://www.elastic.co/docs/reference/elasticsearch/rest-apis/refresh-parameter> | `/websites/elastic_co_reference` | Refresh-before-return / zero-hits regression |
+| Python client | <https://www.elastic.co/docs/reference/elasticsearch/clients/python> | `/elastic/elasticsearch-py` | Adapter I/O, `[elasticsearch]` extra, TLS + API-key auth |
+| Subscriptions / licence feature matrix | <https://www.elastic.co/subscriptions> | none (page renders client-side; open in a browser) | Basic-licence feature checks |
+
 ---
 
 ## Spec (GWT)
@@ -166,6 +180,7 @@ Scenario: ES client missing raises install guidance
 ---
 
 ## Before-Checks [GATE]
+- [ ] External references loaded (fetch each URL or query its context7 ID) before the first RED test; doc versions recorded in `gate-evidence/slice-50.json`.
 - [ ] Slices 49A + 49B ✅ COMPLETE (port, registry, rewired data path, split-store AT green on `memory`).
 - [ ] Local ES 9.5.x reachable for live contract cases (or documented skip); `elasticsearch>=9,<10` added to `[elasticsearch]` extra only.
 - [ ] harness-scout `detect_confirm` at slice start (external service integration + near-real-time refresh seam).

@@ -19,6 +19,7 @@ Add Redis (Query Engine, per Slice 52's choice of Redis 8 or Valkey + valkey-sea
 
 - **Depends-on outputs:** Slice 49 protocol + registry + `VECTOR_STORE_BACKEND` · Slice 50 `rrf_fuse()` shared fusion + `(1+cos)/2` parity pattern + `[elasticsearch]` extra pattern + registry-parametrised contract fixture · Slice 51 `GET /api/stores`, FE labels from `labels()`, `stop-services.sh` iterating registered profiles, docs-parity gate, nightly service-container job pattern · Slice 52 client choice (`redis-py` vs RedisVL), image + licence choice, measured bytes-per-vector, D1–D5 stance.
 - **Invariants pointer:** `docs/plan/invariants.md`. Mandatory `embedding_model` filter (incompatible vectors never mixed). Default store stays `mongodb` (#130). D1–D5 (#215).
+- **End-to-end trace:** [`docs/_internal/STORE-E2E-WALKTHROUGH.md`](../../../_internal/STORE-E2E-WALKTHROUGH.md) walks every hop and journey stage for all four stores, with the Redis column as specified here. Its gaps G1–G4 are owned by 49B/51 and checked in Before-Checks below.
 
 ## Non-goals
 
@@ -38,7 +39,9 @@ Add Redis (Query Engine, per Slice 52's choice of Redis 8 or Valkey + valkey-sea
 - `GET /api/stores` lists `redis` with `capabilities.can_host_run_state=false`, `supported_dims={384,1024}`, `retrieval_methods=[dense,sparse,hybrid]`, secrets redacted.
 - The registry-parametrised contract suite passes for `redis` with **no edit to the suite itself** (only the fixture param list grows).
 - The docs-parity gate passes for `redis` with **no edit to the gate**.
-- `git diff main...HEAD --stat -- server/api server/core/pipeline frontend/src/components cli/main.py cli/indexes_cmd.py` → **empty**.
+- `git diff main...HEAD --stat -- server/api server/core/pipeline frontend/src/components cli/main.py cli/indexes_cmd.py` → **empty**. This is the single home of the zero-changes criterion; the scenario and After-Check below point here.
+- **Preflight reads server settings through `INFO`, not `CONFIG GET`** (DECISIONS #253). Managed services often block or rename `CONFIG`. `INFO memory` gives `maxmemory` and `maxmemory_policy` (eviction and capacity checks, 422 as specified). `INFO persistence` gives the AOF state. **AOF off is a warning, not a 422:** vectors can be re-created by re-running, and managed services handle persistence themselves. The warning names the setting and links `redis-setup.md` § backup & recovery.
+- `stores.tsv` row uses a command health probe (`cmd:redis-cli ping`), plus `FT._LIST` in the compose healthcheck (51's probe column, #253).
 
 ## Reuse ledger (reuse-first — don't reinvent the wheel)
 
@@ -75,6 +78,27 @@ Reuse-first order: **reuse → extend → extract → write new (last)**. This s
 | Cross-backend comparison | Slice 38 top-3 overlap method (reused in 51) | **Reuse** — same YAML on 4 stores |
 | **Net-new (only)** | `server/db/redis/` I/O (schema, `FT.CREATE`, pipelined `HSET`, `FT.SEARCH` KNN + BM25, delete-by-experiment, Redis preflight checks: Query Engine present, `maxmemory-policy`, capacity), `redis-local` compose profile, `configs/redis/*`, `redis-setup.md` + ADR-007 prose, `[redis]` extra | Write new — the Redis-specific I/O and prose |
 
+## External references (load at slice start)
+
+> Official vendor docs, verified to resolve on 2026-09-25 (HTTP 200 + page title). Load them at slice start: fetch the URL, or query the context7 ID (`query-docs`) for the exact version the slice pins. **Where a vendor doc and a statement in this slice disagree, the vendor doc wins.** Record the discrepancy in DECISIONS and the doc version in gate evidence. Don't add a source here without checking it resolves.
+
+| Topic | Official source | context7 ID | Backs |
+|---|---|---|---|
+| Vector search concepts (field types, HNSW/FLAT, distance metrics, KNN + pre-filter) | <https://redis.io/docs/latest/develop/ai/search-and-query/vectors/> | `/websites/redis_io_develop_ai` | Per-dim fields (D4), `1 − d/2` score, filtered KNN |
+| `FT.CREATE` | <https://redis.io/docs/latest/commands/ft.create/> | `/redis/docs` | Schema: TAG / TEXT / NUMERIC / VECTOR on HASH |
+| `FT.SEARCH` | <https://redis.io/docs/latest/commands/ft.search/> | `/redis/docs` | KNN query, dialect, BM25 sparse |
+| `FT.HYBRID` | <https://redis.io/docs/latest/commands/ft.hybrid/> | `/redis/docs` | Native hybrid as an optional capability; client-side `rrf_fuse()` stays default (D3) |
+| `FT._LIST` | <https://redis.io/docs/latest/commands/ft._list/> | `/redis/docs` | Query Engine presence preflight |
+| `FT.INFO` | <https://redis.io/docs/latest/commands/ft.info/> | `/redis/docs` | Index doc counts for `stats()` via `stats_common` |
+| Persistence (AOF / RDB) | <https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/> | `/redis/docs` | AOF restart scenario, backup & recovery |
+| Key eviction policies | <https://redis.io/docs/latest/develop/reference/eviction/> | `/redis/docs` | `noeviction` preflight; `volatile-lru` option (a) |
+| ACL | <https://redis.io/docs/latest/operate/oss_and_stack/management/security/acl/> | `/redis/docs` | AUTH / ACL in `REDIS_URL`, credential redaction |
+| TLS | <https://redis.io/docs/latest/operate/oss_and_stack/management/security/encryption/> | `/redis/docs` | `rediss://` managed endpoints |
+| Official Docker image | <https://hub.docker.com/_/redis> | none | `redis-local` compose profile, nightly service container |
+| redis-py | <https://redis.readthedocs.io/en/stable/> | `/redis/redis-py` | Adapter client (if Slice 52 picks it); pipelines |
+| RedisVL | <https://docs.redisvl.com/en/latest/> | `/websites/redis_io_develop_ai` | Adapter client (if Slice 52 picks it) |
+| valkey-search (**not Redis Inc.**) | <https://github.com/valkey-io/valkey-search> | `/valkey-io/valkey-search` | Valkey image option: `FT.*` compatibility |
+
 ---
 
 ## Slice Workflow Bundle
@@ -85,7 +109,7 @@ Reuse-first order: **reuse → extend → extract → write new (last)**. This s
 - Files (expected):
   - **53a — core:** `server/db/redis/{__init__,config,redis_uri,schema,ensure,preflight,upsert,search,delete,stats,redis_store}.py` — **new**; `server/db/ports/registry.py` — **edit** (+1 entry); `server/settings.py` — **edit** (`redis` ∈ `_KNOWN_VECTOR_STORE_BACKENDS`; `REDIS_URL`); `server/models/config.py` — **edit** (`redis` in `DatabaseProvider`; config schema, allowed by the criterion); `pyproject.toml` — **edit** (`[redis]` extra, **shared** with Slice 54's cache backend: no separate `[redis-cache]` extra); tests (RED first): `tests/server/db/redis/test_*.py` (mocked client), contract fixture param.
     - *Illustrative* HASH layout (final layout taken from the 52 PoC appendix): key `rpf:chunk:{experiment_id}:{run_id}:{chunk_id}`; fields `text` (TEXT), `embedding_model` / `experiment_id` / `run_id` / `chunking_method` (TAG), `chunk_size` / `overlap` (NUMERIC), `embedding_384` or `embedding_1024` (VECTOR HNSW FLOAT32 COSINE — only the matching one is set). Vector keys are written **without a TTL**.
-  - **53b — journey:** `docker-compose.yml` (`redis-local` profile: image from 52; command `--appendonly yes --maxmemory <from 52 sizing> --maxmemory-policy noeviction` — `volatile-lru` only if the owner picks Slice 54 option (a); bound to `127.0.0.1`; healthcheck `redis-cli ping` **and** `redis-cli FT._LIST`; named volume); `scripts/lib/compose.sh` (Redis URL/container/volume constants + `redis` subcommand) and `start-services.sh` — **edit**; `scripts/lib/storage_mode.sh` — **edit**: `redis-local` / `redis-cloud` tokens set the **vector** store only and pair a run-state store (D5 default `postgres-local`, overridable), and a run-state selection of `redis` fails with the same vector-store-only message as the settings validator; `configs/redis/example-*.yaml` (same basenames as the other store dirs); `.github/workflows/nightly.yml` — **edit**: a `redis` leg in the `vector-store-integration` matrix — service container (image from 52), health options running `redis-cli ping`, env `VECTOR_STORE_BACKEND=redis` + `REDIS_URL` + a Postgres service for run state, runs `tests/contract` with the `redis` param, the 49B split-store acceptance test and the Redis retrieval suite under `-m integration`; a skipped leg fails the job; `scripts/lib/stores.tsv` — **edit** (+1 row); `docker-compose.yml` server `environment:` passes `REDIS_URL`; server image built with `EXTRAS=redis`; `.env.example`; docs: `docs/user-guide/redis-setup.md` (**new**, including AUTH / ACL for local vs cloud and backup & recovery: AOF vs RDB, manual `BGSAVE`), `QUICKSTART.md` Path F, `getting-started.md`, `configuration.md` (Engine × Location rows `redis-local`/`-cloud`), `cli-reference.md`, `dashboard-guide.md`, `troubleshooting.md` (Query Engine missing, `OOM command not allowed`, eviction policy, AOF off → empty after restart, TLS `rediss://`, dims mismatch 422), switching rows in `mongodb-setup.md` / `postgres-setup.md` / `elasticsearch-setup.md`, `README.md`, `docs/README.md`, `extending.md` (checklist items learned); `docs/adr/ADR-007-redis.md` → **Accepted**.
+  - **53b — journey:** `docker-compose.yml` (`redis-local` profile: image from 52; command `--appendonly yes --maxmemory <from 52 sizing> --maxmemory-policy noeviction` — `volatile-lru` only if the owner picks Slice 54 option (a); bound to `127.0.0.1`; healthcheck `redis-cli ping` **and** `redis-cli FT._LIST`; named volume); `scripts/lib/compose.sh` (Redis URL/container/volume constants + `redis` subcommand) and `start-services.sh` — **edit**; `scripts/lib/storage_mode.sh` — **edit**: `redis-local` / `redis-cloud` tokens set the **vector** store only and pair a run-state store (D5 default `postgres-local`, overridable), and a run-state selection of `redis` fails with the same vector-store-only message as the settings validator; `configs/redis/example-*.yaml` (same basenames as the other store dirs); `.github/workflows/nightly.yml` — **edit**: a `redis` leg in the `vector-store-integration` matrix — service container (image from 52), health options running `redis-cli ping`, env `VECTOR_STORE_BACKEND=redis` + `REDIS_URL` + a Postgres service for run state, runs `tests/contract` with the `redis` param, the 49B split-store acceptance test and the Redis retrieval suite under `-m integration`; a skipped leg fails the job; `scripts/lib/stores.tsv` — **edit** (+1 row); `docker-compose.yml` server `environment:` passes `REDIS_URL`; server image built with `EXTRAS=redis`; `.env.example`; docs: `docs/user-guide/redis-setup.md` (**new**, including AUTH / ACL for local vs cloud and backup & recovery: AOF vs RDB, manual `BGSAVE`), `QUICKSTART.md` Path F, `getting-started.md`, `configuration.md` (Engine × Location rows `redis-local`/`-cloud`), `cli-reference.md`, `dashboard-guide.md`, `troubleshooting.md` (Query Engine missing, the out-of-memory write error (exact text from the 52 PoC), eviction policy, AOF off → empty after restart, TLS `rediss://`, dims mismatch 422), switching rows in `mongodb-setup.md` / `postgres-setup.md` / `elasticsearch-setup.md`, `README.md`, `docs/README.md`, `extending.md` (checklist items learned); `docs/adr/ADR-007-redis.md` → **Accepted**.
 - Exit criteria: all GWT green; contract + docs-parity pass unchanged; zero-changes diff guard empty; nightly matrix `redis` leg conclusion recorded; clean-clone journey transcript.
 - Commit pattern: `feat(storage): Redis vector-store adapter (dense/sparse/hybrid, vector-only)` · `feat(ops): redis-local profile + journey docs + ADR-007 Accepted`
 
@@ -124,7 +148,7 @@ Feature: Redis is a config-selectable vector-only store with full retrieval pari
   Scenario: Hybrid uses the shared fusion helper
     Given dense and sparse candidate lists from Redis
     When hybrid results are produced
-    Then they come from rrf_fuse() with k=60 and no Redis-local fusion code exists
+    Then they equal rrf_fuse(dense, sparse, k=60) applied to those same candidate lists
 
   Scenario: Vectors from different models never mix
     Given chunks from two embedding models, two experiments and two runs in one index
@@ -166,13 +190,28 @@ Feature: Redis is a config-selectable vector-only store with full retrieval pari
     When DELETE /experiments/{id} runs
     Then no key tagged with that experiment_id remains and other experiments are untouched
 
-  Scenario: Redis misconfigured or unreachable fails clearly
+  Scenario: Redis misconfigured stops the server from starting
     Given VECTOR_STORE_BACKEND=redis and REDIS_URL unset
     When the server boots
     Then startup aborts with an error naming REDIS_URL (49B, #250)
+
+  Scenario: Redis unreachable is reported by /healthz
     Given REDIS_URL points at a closed port
     When /healthz is called
     Then it returns 503 with stores.vector.ok = false, the redis-local/redis-cloud mode and a remediation hint
+
+  Scenario: A Redis without AOF is accepted with a persistence warning
+    Given INFO persistence reports AOF disabled on the target server
+    When preflight runs
+    Then the sweep is accepted
+      And a warning names the AOF setting and links redis-setup.md backup & recovery
+
+  Scenario: Preflight works where CONFIG is blocked
+    Given a server that rejects CONFIG GET but answers INFO, with an accepted eviction policy and enough memory
+    When preflight runs
+    Then it succeeds and reports the server's maxmemory and eviction policy
+      And no CONFIG error is reported
+      And the same server with allkeys-lru is still rejected with the eviction 422
 
   Scenario: Split-store sweep end to end on live Redis (49B acceptance, live leg)
     Given run state on Postgres and VECTOR_STORE_BACKEND=redis with Redis reachable
@@ -201,9 +240,10 @@ Feature: Redis is a config-selectable vector-only store with full retrieval pari
       And selecting redis as the run-state store is refused with the vector-store-only message
 
   Scenario: A paused and resumed sweep keeps using the same Redis vectors
-    Given a Redis-backed sweep paused after some runs completed
-    When it is resumed
-    Then no embedding request is made for texts of runs that completed before the pause
+    Given a Redis-backed sweep paused after some runs completed, using the test embedding provider that records every request it receives
+    When it is resumed and completes
+    Then the provider received no request for texts of runs that completed before the pause (49B resume scenario, live redis leg)
+      And the Redis key count for those runs (rpf:chunk:{experiment_id}:{run_id}:*) is the same before and after the resume
       And the remaining runs complete with hits from the same Redis index
 
   Scenario: Vectors survive a Redis restart
@@ -223,7 +263,7 @@ Feature: Redis is a config-selectable vector-only store with full retrieval pari
 
   Scenario: Adding Redis changed no routes, sweep logic, UI components or CLI commands
     Given the slice branch
-    When git diff main...HEAD --stat runs over server/api, server/core/pipeline, frontend/src/components, cli/main.py and cli/indexes_cmd.py
+    When git diff main...HEAD --stat runs over the paths listed in the Output contract
     Then it prints nothing
 
   Scenario: Teardown and reset leave no Redis data behind
@@ -238,9 +278,13 @@ Feature: Redis is a config-selectable vector-only store with full retrieval pari
 
 ## Before-Checks [GATE]
 
+- [ ] External references loaded (fetch each URL or query its context7 ID) before the first RED test; doc versions recorded in `gate-evidence/slice-53.json`.
 - [ ] Slices 49A, 49B, 50 and 51 ✅ COMPLETE on `main` (port + rewired data path, split-store AT, `rrf_fuse()`, `/api/stores`, docs-parity, `stores.tsv`, nightly matrix).
 - [ ] Slice 52 GO for Branch A recorded in DECISIONS, with image, licence and client choice.
 - [ ] T0 dependency audit logged (lens #13).
+- [ ] Walkthrough gaps closed upstream (DECISIONS #253): 49B's label, stats allow-list and fail-closed preflight scenarios are green (G1–G3), **and** Slice 51's registry `example_config` feeds both `ExperimentsScreen.tsx` and `config_backend_guard._example_config_for_engine()` (G4; 51 After-Check). If `ExperimentsScreen.tsx` still hard-codes store hints, stop and route it to Slice 51; the zero-changes guard would otherwise fail here.
+- [ ] `stores.tsv` accepts a `cmd:` health probe (51, #253), so the Redis row needs no script edit.
+- [ ] Slice 52's PoC transcript records the exact `INFO memory` / `INFO persistence` field names (`maxmemory`, `maxmemory_policy`, AOF state) on the chosen image, whether `CONFIG GET` is blocked on the free managed plan, and the exact error text for a write under memory pressure. Copy them into `gate-evidence/slice-53.json`; preflight code uses only the recorded names.
 - [ ] Slice 51 gate evidence shows `stop-services.sh` and `scripts/docker/health-check.sh` iterate the registered local profiles. If they still hard-code stores, stop and route the gap to Slice 51 (plan-self-healer); don't patch it here.
 - [ ] Owner's combined-deployment decision — option (a) one shared `volatile-lru` instance, or (b) separate vector and cache instances — recorded in DECISIONS with rationale. Without it the compose `maxmemory-policy` can't be fixed, so the slice doesn't start.
 - [ ] Compose sizing: `--maxmemory` value taken from 52's measured bytes-per-vector.

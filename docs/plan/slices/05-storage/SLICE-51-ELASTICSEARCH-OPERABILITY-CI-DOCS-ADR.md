@@ -42,7 +42,9 @@ Makes the ES store operable, proven, and documented end-to-end from a clean clon
 - **Server image extras (#243):** `docker/server.Dockerfile:26` takes `ARG EXTRAS=""` and runs `uv sync --frozen --no-install-project ${EXTRAS:+--extra $EXTRAS}`; the `elasticsearch-local` / `-cloud` modes build with `EXTRAS=elasticsearch`. Default image unchanged in size.
 - **Compose env pass-through:** the `server` service `environment:` passes `VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-}` (empty → defaults to `STORAGE_BACKEND` in settings), `ELASTICSEARCH_URL: ${RAG_SERVER_ELASTICSEARCH_URL:-${ELASTICSEARCH_URL:-}}` and `ELASTICSEARCH_API_KEY: ${ELASTICSEARCH_API_KEY:-}`. This follows the existing `RAG_SERVER_*` pattern (`docker-compose.yml:22,29`): `start-services.sh --elasticsearch-local` sets `RAG_SERVER_ELASTICSEARCH_URL` to the Docker-network URL, while cloud reads `ELASTICSEARCH_URL` from `.env`. Secrets come from `.env`, never the compose file.
 - **Storage-mode resolver:** `scripts/lib/storage_mode.sh` gains the `elasticsearch-local` / `elasticsearch-cloud` tokens. They export `VECTOR_STORE_BACKEND=elasticsearch` and pair a run-state store (D5 default `postgres-local`, overridable by `STORAGE_BACKEND`). Choosing `elasticsearch` as the run-state store fails with the same vector-store-only message as the settings validator. The user sets no environment variables by hand for the local path.
-- **Store manifest for scripts (#244):** `scripts/lib/stores.tsv` — one row per store: provider · compose profile · `--<x>-local` flag · health URL · required env vars · `can_host_run_state`. `start-services.sh`, `stop-services.sh` and `scripts/docker/health-check.sh` read it (bash 3.2-safe loops, guarded array expansion). A parity test asserts its providers equal `known_vector_stores()` from the Python registry.
+- **Store manifest for scripts (#244):** `scripts/lib/stores.tsv` — one row per store: provider · compose profile · `--<x>-local` flag · health probe · required env vars · `can_host_run_state`. `start-services.sh`, `stop-services.sh` and `scripts/docker/health-check.sh` read it (bash 3.2-safe loops, guarded array expansion). A parity test asserts its providers equal `known_vector_stores()` from the Python registry.
+  - **Health probe (DECISIONS #253):** either an `http(s)://` URL, or `cmd:<command>` run inside the store's container (e.g. `cmd:redis-cli ping`). Redis has no HTTP endpoint, so a URL-only column would force a per-store branch in 53. `health-check.sh` dispatches on the prefix only. A `cmd:` probe runs as `docker exec <container> <command>`. The container name follows the existing convention (`health-check.sh:15-16`): `${RAG_<PROVIDER>_LOCAL_CONTAINER:-rag-params-finder-<provider>-local}`. It is derived from the provider, so the manifest needs no container column. Parsing stays bash 3.2-safe.
+- **Empty-state hints from the registry (walkthrough G4, DECISIONS #253):** `ExperimentsScreen.tsx:447-450` hard-codes a MongoDB and a Postgres `run --config` line. Each registry entry gains `example_config` (e.g. `configs/elasticsearch/example-local.yaml`), which `GET /api/stores` returns. The empty state shows the active store's line first, then the others. `config_backend_guard._example_config_for_engine()` (`config_backend_guard.py:23-26`, also two-store today) reads the same field, so the 422 hint and the dashboard can't drift. Without this, Slice 53 would have to edit a guarded component.
 - `configs/elasticsearch/*.yaml` — same 9 basenames as `configs/mongodb/`, `database_provider: elasticsearch`, prerequisite header comment (incl. run-state store).
 - `GET /api/stores` — registry + capabilities + labels + active store, secrets redacted; CLI `indexes list` routes through it (fixes the ADR-001 thin-client leak for all stores).
 - Frontend labels from adapter `labels()` (Index/Host) replacing `isMongoProvider()` — no new per-store branch; no quota bar for ES.
@@ -81,12 +83,26 @@ This closeout is almost entirely *extending existing operator surfaces and doc t
 | Stats assembly | `server/db/ports/stats_common.py` | **Reuse** — backend-agnostic; ES fills `_count`/`_stats`, quota `None` |
 | Config-name parity test | `tests/server/models/test_config_examples.py` | **Generalise** into the registry-driven docs-parity check (reuse, not a second test) |
 | Frontend labels | `frontend/src/utils/storageLabels.ts` (`isMongoProvider()` switch) | **Replace** the switch with adapter `labels()` — removes a branch, reuses the component |
+| Empty-state run hints + 422 example-config hint | `ExperimentsScreen.tsx:447-450` (two hard-coded lines) + `config_backend_guard._example_config_for_engine()` | **Replace** both with the registry's `example_config` via `GET /api/stores` — one source for both surfaces |
 | Setup-guide structure | `docs/user-guide/postgres-setup.md` (11-section template) | **Mirror** for `elasticsearch-setup.md` |
 | QUICKSTART path | `QUICKSTART.md` Path D (Postgres) | **Mirror** as Path E |
 | ADR template | `docs/adr/ADR-004-postgresql-pgvector-vector-store.md` | **Mirror** for `ADR-006` |
 | Nightly integration job | `.github/workflows/nightly.yml` mongo/postgres service-container jobs | **Fold** into one `vector-store-integration` matrix job (#248); ES is a matrix leg |
 | Comparison shape | Slice 38 `slice-38-quality-comparison.md` (top-3 overlap) | **Reuse** the comparison method for cross-backend evidence |
 | **Net-new (only)** | `elasticsearch-local` compose profile, `GET /api/stores` endpoint, `configs/elasticsearch/*` (9 files), `scripts/lib/stores.tsv` + parity test, `elasticsearch-setup.md` + `ADR-006` prose, journey table + checklist, QUICKSTART teardown | Write new — the ES-specific surfaces and prose |
+
+## External references (load at slice start)
+
+> Official vendor docs, verified to resolve on 2026-09-25 (HTTP 200 + page title). Load them at slice start: fetch the URL, or query the context7 ID (`query-docs`) for the exact version the slice pins. **Where a vendor doc and a statement in this slice disagree, the vendor doc wins.** Record the discrepancy in DECISIONS and the doc version in gate evidence. Don't add a source here without checking it resolves.
+
+| Topic | Official source | context7 ID | Backs |
+|---|---|---|---|
+| Single-node cluster in Docker | <https://www.elastic.co/docs/deploy-manage/deploy/self-managed/install-elasticsearch-docker-basic> | `/websites/elastic_co_reference` | `elasticsearch-local` compose profile (single-node, security off, heap) |
+| `vm.max_map_count` | <https://www.elastic.co/docs/deploy-manage/deploy/self-managed/vm-max-map-count> | `/websites/elastic_co_reference` | Troubleshooting + health-check remediation |
+| Subscriptions / licence feature matrix | <https://www.elastic.co/subscriptions> | none (page renders client-side; open in a browser) | ADR-006 licence rationale; 403 licence-non-compliant troubleshooting |
+| `dense_vector` mapping (for sizing) | <https://www.elastic.co/docs/reference/elasticsearch/mapping-reference/dense-vector> | `/websites/elastic_co_reference` | `elasticsearch-setup.md` sizing (float32 + HNSW memory) |
+| Reciprocal rank fusion | <https://www.elastic.co/docs/reference/elasticsearch/rest-apis/reciprocal-rank-fusion> | `/websites/elastic_co_reference` | ADR-006 client-side RRF rationale |
+| Python client | <https://www.elastic.co/docs/reference/elasticsearch/clients/python> | `/elastic/elasticsearch-py` | Nightly matrix `elasticsearch` leg |
 
 ---
 
@@ -141,6 +157,23 @@ Scenario: Frontend labels come from the adapter, not a Mongo switch
   When the dashboard renders store labels
   Then it shows Index/Host from labels() and no quota bar
     And storageLabels.ts has no elasticsearch-specific branch
+
+Scenario: Empty-state hints come from the registry
+  Given no experiments and a registry fixture with one extra store entry
+  When the Experiments screen renders
+  Then it shows a run --config line for every registered store, using each entry's example_config, with the active store first
+    And the extra store's line appears with no component change
+
+Scenario: The config-engine 422 suggests the registry's example config
+  Given a YAML whose database_provider doesn't match the active vector store
+  When it is submitted
+  Then the 422 names the active store's example_config from the registry
+
+Scenario: A store with a command health probe is checked
+  Given a stores.tsv row whose health probe is cmd:<command>
+  When health-check.sh runs
+  Then it runs the command in that store's container (named by the rag-params-finder-<provider>-local convention) and reports ok or the failure
+    And a row added to stores.tsv later is probed on the next health-check.sh run
 
 Scenario: config name parity enforced for elasticsearch
   Given configs/elasticsearch/
@@ -198,12 +231,15 @@ Scenario: ADR-006 is Accepted and distinct from ADR-005
 ---
 
 ## Before-Checks [GATE]
+- [ ] External references loaded (fetch each URL or query its context7 ID) before the first RED test; doc versions recorded in `gate-evidence/slice-51.json`.
 - [ ] Slice 50 ✅ COMPLETE (ES adapter with `stats`/`labels`/`capabilities`/`search`).
+- [ ] 49B's label, stats allow-list and fail-closed preflight scenarios green (walkthrough G1–G3); 51's FE labels and `/api/stores` build on them.
 - [ ] Docker Desktop ≥4 GB available; live ES 9.5.x reachable for the nightly service container.
 - [ ] harness-scout `detect_confirm` at slice start (multi-file infra + script + FE + CI + docs — high blast radius).
 
 ## After-Checks [GATE]
 - [ ] Specification coverage: every GWT clause has ≥1 test (BDD/GWT-first); `GET /api/stores` redaction test + docs-parity red-path test present.
+- [ ] Registry `example_config` is wired to **both** surfaces (G4, #253): the `ExperimentsScreen` empty state and `config_backend_guard`'s 422 hint. `ExperimentsScreen.tsx` has no hard-coded store line left; Slice 53's zero-changes gate depends on it.
 - [ ] Config-name + docs-parity checks extended to `configs/elasticsearch/` and green in PR CI.
 - [ ] Nightly ES job conclusion recorded (skipped ≠ green).
 - [ ] **Journey gate:** stage-5→8 commands run from a clean clone as written; 15-stage read-through completes; transcripts in gate evidence.

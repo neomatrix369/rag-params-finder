@@ -58,6 +58,14 @@ One entry point, `preflight_stores(config)` in `search_index_guard.py`, called w
 
 In single-store mode both steps hit the same database, and the characterization records prove the output is unchanged.
 
+**No skip path (walkthrough G3, DECISIONS #253).** `preflight_store_indexes()` today returns `preflight_not_applicable()` for any backend other than mongodb/postgres (`search_index_guard.py:147-152`). That branch is removed. `preflight_stores()` dispatches only through the vector store's port, and an adapter that returns no index plan raises the preflight error (422 naming the store). A store with a missing preflight fails closed instead of passing silently.
+
+### Engine labels (walkthrough G1/G2, DECISIONS #253)
+
+- **New runs** already persist the YAML `database_provider` (`orchestrator.py:839`), and D2 rejects a YAML that doesn't match the vector store. A run on a vector-only store is therefore labelled with that store, and 49B keeps it that way end to end.
+- **Legacy rows** (persisted before `database_provider` was recorded) fall back to `settings.default_database_provider()`, which derives from `STORAGE_BACKEND` (`settings.py:176-185`). Such rows were written when both stores were the same engine, so that value is correct. **Freeze it.** `signatures.py:46` and `results_analyzer.py:31,125` keep this run-state fallback and must **not** follow `VECTOR_STORE_BACKEND`. Following it would change legacy signatures, so resume would re-run completed runs.
+- **Stats allow-list:** `normalize_stats_database_provider()` (`stats_common.py:105-112`) maps any value other than mongo/postgres/supabase to the fallback, which would erase a persisted `elasticsearch` / `redis` label. It accepts every registered provider (from the registry, not a second list), with the `supabase → postgres` alias kept.
+
 ### Two-store `/healthz` (DECISIONS #247, refined by #250)
 
 - Returns **503 if either store is down** (today it already returns 503 when `ok` is false — `main.py:108`).
@@ -181,17 +189,71 @@ Scenario: Vector store unreachable
   Then it returns 503 with stores.vector.ok = false and today's keys still present
     And submitting a sweep fails preflight with the vector-store error, and run-state checks are not attempted
 
-Scenario: Partial delete is completed by a retry
-  Given the vector-store delete succeeded and the run-state delete failed
+Scenario Outline: A partial delete is completed by a retry
+  Given a first DELETE that ended with <failure>
   When DELETE is retried
   Then it succeeds, both stores are empty for the experiment, and the reported counts are correct
+  Examples:
+    | failure                                              |
+    | the vector-store delete failing (run state untouched) |
+    | the run-state delete failing after vectors were gone  |
+    | a process crash between the two steps                 |
 
-Scenario: Pairing rule (ii)
+Scenario: Deleting an experiment with no chunks
+  Given an experiment whose runs wrote no chunks
+  When DELETE /experiments/{id} runs
+  Then it succeeds and reports 0 chunks
+
+Scenario: A store that can hold run state must hold it
   Given STORAGE_BACKEND=mongodb and VECTOR_STORE_BACKEND=postgres
   When settings validate
   Then a clear error explains that a store able to hold run state must also hold it
-  Given STORAGE_BACKEND=postgres (or mongodb) and VECTOR_STORE_BACKEND=elasticsearch
-  Then settings validate
+
+Scenario Outline: A vector-only store pairs with either run-state store
+  Given STORAGE_BACKEND=<run_state> and VECTOR_STORE_BACKEND=memory
+  When settings validate
+  Then they are accepted
+  Examples:
+    | run_state |
+    | mongodb   |
+    | postgres  |
+
+Scenario Outline: A vector-store write failure fails the run and honours on_error
+  Given the memory vector store raises on upsert_chunks for one run
+  When the sweep runs with on_error=<mode>
+  Then that run ends FAILED with the vector store named in its error
+    And <others>
+  Examples:
+    | mode     | others                                 |
+    | continue | the remaining runs complete            |
+    | stop     | no further run starts after the failure |
+
+Scenario: A paused and resumed split-store sweep does not re-embed completed runs
+  Given a split-store sweep paused after some runs completed, using the test embedding provider that records every request it receives
+  When it is resumed and completes
+  Then the provider received no request for texts of runs that completed before the pause
+    And the vector-store chunk count for those runs is the same before and after the resume
+    And the experiment ends COMPLETE with results for every planned run
+
+Scenario Outline: Runs persisted without database_provider keep their run-state label
+  Given run rows without database_provider on run-state store <run_state>, and VECTOR_STORE_BACKEND=memory
+  When the experiment is resumed and its results are analysed
+  Then no completed run is executed again
+    And explore, best-config and db-stats label those runs <run_state>
+  Examples:
+    | run_state |
+    | mongodb   |
+    | postgres  |
+
+Scenario: A run on a vector-only store carries that store's label everywhere
+  Given VECTOR_STORE_BACKEND=memory and a YAML with database_provider matching it
+  When the sweep completes
+  Then the run row, explore, best-config, db-stats and vector-db-stats all show the memory store
+
+Scenario: A vector store without an index plan fails preflight closed
+  Given a registered vector store that publishes no index plan for the submitted config
+  When a sweep is submitted
+  Then HTTP 422 names the store and the missing plan, and no experiment is persisted
 
 Scenario: Single-store behaviour unchanged
   Given the 49A characterization records for Mongo and Postgres
@@ -205,7 +267,7 @@ Scenario: No test asserts chunk calls on the run-state mock
   Then no test sets insert_chunks / delete_chunks_for_experiment expectations on a StorageBackend mock
 ```
 
-*(Parametrize handoff for `nw-distill`: the split-store scenario is parametrised over `{memory}` here; Slice 50 adds `elasticsearch` and Slice 53 adds `redis`, each against a live store. Assertions that only a live store can prove — refresh-before-return, delete-by-query counts, BM25 ranking, score scale on real vectors — belong to those live legs, not the double.)*
+*(Parametrize handoff for `nw-distill`: the split-store scenario and the resume scenario are parametrised over `{memory}` here; Slice 50 adds `elasticsearch` and Slice 53 adds `redis`, each against a live store. The first scenario stays one journey on purpose: it is the defect detector for #240, and the scenarios after it pin each concern separately. Assertions that only a live store can prove — refresh-before-return, delete-by-query counts, BM25 ranking, score scale on real vectors — belong to those live legs, not the double.)*
 
 ---
 
