@@ -61,7 +61,7 @@ RAG_MONGODB_LOCAL=1 ./start-services.sh  # same as --mongodb-local via env var
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build  # dev HMR
 ```
 
-Backend switching — only the start command changes:
+Backend switching — the start command and the example config change (a YAML `database_provider` that doesn't match the server's engine returns 422):
 
 | Backend | Connection string (CLI / host server) |
 |---------|--------------------------------|

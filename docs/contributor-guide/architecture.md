@@ -325,7 +325,7 @@ See `docs/adr/` for Architecture Decision Records:
 | Docker + local Postgres | `./start-services.sh --postgres-local` | Adds `pgvector/pgvector:0.8.5-pg16` (Supabase stand-in); host port **5433** |
 | Docker + hosted Supabase | `./start-services.sh --postgres-cloud` | No local DB container; requires `DATABASE_URL` or `SUPABASE_URI` |
 | DB container only | `./start-services.sh mongodb\|postgres start\|stop\|reset\|status` | Native server/frontend on host |
-| Docker (dev profile) | `docker compose --profile dev up` | Bind mounts + HMR |
+| Docker (dev overlay) | `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build` | Bind mounts + HMR |
 
 Atlas / Postgres connection strings and API keys live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md), [MongoDB Setup](../user-guide/mongodb-setup.md), and [Postgres Setup](../user-guide/postgres-setup.md).
 

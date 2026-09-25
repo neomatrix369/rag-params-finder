@@ -205,9 +205,10 @@ directly.
 
 ### 1. Implement the adapter
 
-Create `server/db/<backend>_store.py` with classes that structurally satisfy both
-Protocols (see `MongoStorageBackend` / `MongoRetrieverBackend` in `mongo_store.py`;
-stats helpers in `mongo_stats.py`).
+Create `server/db/<backend>/<backend>_store.py` with classes that structurally satisfy both
+Protocols (see `MongoStorageBackend` / `MongoRetrieverBackend` in `server/db/mongo/mongo_store.py`;
+stats helpers in `server/db/mongo/mongo_stats.py`). The top-level `server/db/*_store.py` files are
+deprecated re-export shims — don't add new ones.
 
 ### 2. Wire the factory
 

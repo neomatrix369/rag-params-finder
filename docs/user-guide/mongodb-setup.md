@@ -231,7 +231,7 @@ The server detects URI type at startup:
 
 ## Switching backends
 
-The only thing that changes between backends is how you start the stack. No code changes, no config file changes.
+No code changes. Two things change between backends: how you start the stack, and which example config you run. The YAML `database_provider` must match the server's engine, or submit returns **422** (see *Config engine mismatch* in [Troubleshooting](troubleshooting.md)).
 
 | Action | Command |
 |--------|---------|
