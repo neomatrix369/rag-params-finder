@@ -7,7 +7,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 ![Vitest](https://img.shields.io/badge/Vitest-6E9F18?logo=vitest&logoColor=white)
 
-The React dashboard at `http://localhost:5374` visualizes experiments and results. Experiments are **submitted from the CLI**; the dashboard can **pause, resume, cancel, and delete** active sweeps. It polls the server every 2 seconds while any experiment is `running` or `paused`.
+Use this guide to monitor and control experiments from the React dashboard at `http://localhost:5374`, and to read their results. Experiments are **submitted from the CLI**; the dashboard can **pause, resume, cancel, and delete** active sweeps. It polls the server every 2 seconds while any experiment is `running` or `paused`.
 
 **Prerequisites:** A storage backend ready ([MongoDB Setup](mongodb-setup.md) or [Postgres Setup](postgres-setup.md)) and server running. Optional SIE sweeps require [SIE Setup](sie-setup.md) before submitting `configs/mongodb/example-sie.yaml` (or the `configs/supabase/` twin).
 
