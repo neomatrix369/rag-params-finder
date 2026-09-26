@@ -30,9 +30,66 @@ System design, data flow, module structure, and design decisions for `rag-params
 
 The CLI submits configs; the Dashboard observes progress and controls active sweeps. All pipeline business logic lives in the server.
 
+> **Diagram convention:** **Mermaid is primary** for static structure (diagram-as-code — versioned, diff-able, dark-mode-safe), following C4 levels L1 (Context) → L2 (Container) → Key Flows (sequence). **ASCII art is retained as the always-portable fallback** — kept alongside each Mermaid diagram (in a collapsible block) for viewers where Mermaid can't render, and used on its own wherever Mermaid isn't available. Product/UI captures live in [`../images/`](../images/README.md); folder-theme view in [`module-theme-map.md`](module-theme-map.md).
+
+---
+
+## 🗺️ Context (C4 L1)
+
+```mermaid
+C4Context
+    title System Context — rag-params-finder
+    Person(user, "Researcher", "Runs RAG parameter sweeps")
+    System(rpf, "rag-params-finder", "CLI + FastAPI server + React dashboard")
+    System_Ext(voyage, "Voyage AI", "Hosted embeddings + reranking")
+    System_Ext(sie, "SIE gateway", "Open-source embeddings (BGE-M3 / Stella / SPLADE)")
+    SystemDb_Ext(mongo, "MongoDB Atlas", "Vector + run state (cloud or local)")
+    SystemDb_Ext(pg, "Postgres / pgvector", "Vector + run state (Supabase or local)")
+    Rel(user, rpf, "Submits configs, views results")
+    Rel(rpf, voyage, "Embeds / reranks", "HTTPS")
+    Rel(rpf, sie, "Embeds", "HTTPS")
+    Rel(rpf, mongo, "Reads / writes", "driver")
+    Rel(rpf, pg, "Reads / writes", "SQL")
+```
+
+---
+
+## 📦 Containers (C4 L2)
+
+```mermaid
+C4Container
+    title Containers — rag-params-finder
+    Person(user, "Researcher")
+    System_Boundary(rpf, "rag-params-finder") {
+        Container(cli, "CLI", "Python / Typer", "Submits configs; watch / status")
+        Container(api, "FastAPI server", "Python / FastAPI :8001", "Pipeline orchestration + REST API")
+        Container(dash, "Dashboard", "React 19 / Vite :5374", "Observe + control sweeps")
+    }
+    SystemDb_Ext(store, "Storage + vector store", "Mongo / pgvector / ES via ports")
+    System_Ext(emb, "Embedders", "Voyage / local / SIE via embedder_factory")
+    Rel(user, cli, "runs")
+    Rel(user, dash, "views / controls")
+    Rel(cli, api, "POST /experiments", "HTTP")
+    Rel(dash, api, "poll / pause / resume / cancel / delete", "HTTP")
+    Rel(api, store, "CRUD + vector search", "StorageBackend / RetrieverBackend")
+    Rel(api, emb, "embed / rerank")
+```
+
 ---
 
 ## 🔀 Data Flow
+
+```mermaid
+flowchart TD
+    CLI["CLI — submit YAML"] -->|POST /experiments| SRV["FastAPI server"]
+    SRV -->|BackgroundTask per experiment| PIPE["Pipeline — one run per config combination"]
+    PIPE --> STEPS["parse → chunk → embed → vector write → query → rerank → store"]
+    STEPS --> STORE[("Storage + vector store<br/>chunks · experiments · run_status · results")]
+    STORE -->|polling ~2s| DASH["React dashboard"]
+```
+
+<details>
+<summary>ASCII fallback (portable — renders anywhere)</summary>
 
 ```
 CLI (submit YAML)
@@ -63,6 +120,36 @@ FastAPI Server
                │  polling (every 2s)
                ▼
        React Dashboard
+```
+
+</details>
+
+---
+
+## 🔁 Key flow — submit a sweep
+
+```mermaid
+sequenceDiagram
+    actor U as Researcher
+    participant CLI
+    participant API as FastAPI server
+    participant PIPE as Pipeline
+    participant EMB as Embedder
+    participant DB as Storage + vector store
+    participant UI as Dashboard
+    U->>CLI: rag-params-finder run --config ...
+    CLI->>API: POST /experiments (config)
+    API->>API: config_backend_guard + index preflight
+    API-->>CLI: experiment_id (422 on engine/index mismatch)
+    API->>PIPE: BackgroundTask (per config combination)
+    loop each run
+        PIPE->>EMB: embed chunks
+        PIPE->>DB: write chunks + vectors
+        PIPE->>DB: query + rerank + store results
+    end
+    UI->>API: GET /experiments/{id} (poll ~2s)
+    API->>DB: read status + results
+    API-->>UI: phases + results
 ```
 
 ---
