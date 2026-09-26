@@ -15,6 +15,8 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 
 **Repo entry:** [README.md](../README.md) · **Fastest run:** [QUICKSTART.md](../QUICKSTART.md)
 
+**New here?** Route by goal (onboarding · build · <60s lookup) → [TRAVERSAL.md](./TRAVERSAL.md). Verify anything runnable → [smoke-tests/SMOKE-REGISTRY.md](./smoke-tests/SMOKE-REGISTRY.md).
+
 **Maintainers:** slice status and decision log live in [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) (**status SSOT**). Plan trail / harness: [plan/TRAIL.md](./plan/TRAIL.md). Constraints: [plan/invariants.md](./plan/invariants.md) · ownership: [plan/DECISION-OWNERSHIP.md](./plan/DECISION-OWNERSHIP.md). [plan/HANDOFF.md](./plan/HANDOFF.md) is a dated session snapshot — **PROGRESS + [gate-evidence/](./plan/gate-evidence/) override** when they disagree. Specs live under numbered theme folders `01`–`08` (#162, **IMPLEMENTED**) — index: [plan/slices/README.md](./plan/slices/README.md); Slice 40: [SLICE-40](./plan/slices/07-quality-craft/SLICE-40-DOCS-PLAN-SLICES-SSOT.md).
 
 > **Who is this for?** Same personas as [README → Who is this for?](../README.md#who-is-this-for) — this page is the **doc map**; the README is the project entry.
@@ -32,7 +34,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | **Operator — dashboard** | [user-guide/dashboard-guide.md](./user-guide/dashboard-guide.md) | [user-guide/configuration.md](./user-guide/configuration.md) (tiebreaker, env vars) |
 | **Operator — SIE (BGE-M3 / Stella / SPLADE)** | [user-guide/sie-setup.md](./user-guide/sie-setup.md) | [user-guide/troubleshooting.md](./user-guide/troubleshooting.md#sie-superlinked-inference-engine) |
 | **Operator — fixing errors** | [user-guide/troubleshooting.md](./user-guide/troubleshooting.md) | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) (indexes, Voyage tiers) · [postgres-setup.md](./user-guide/postgres-setup.md) |
-| **Contributor — system design** | [contributor-guide/architecture.md](./contributor-guide/architecture.md) | [adr/](./adr/) |
+| **Contributor — system design** | [contributor-guide/architecture.md](./contributor-guide/architecture.md) | [adr/](./adr/README.md) · [plan/GROWTH.md](./plan/GROWTH.md) (change history) |
 | **Contributor — extending** | [contributor-guide/extending.md](./contributor-guide/extending.md) | [contributor-guide/development.md](./contributor-guide/development.md) |
 | **Contributor — dev environment** | [contributor-guide/development.md](./contributor-guide/development.md) | [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) · [plan/slices/](./plan/slices/) specs |
 | **Agent / slice worker** | [AGENTS.md](../AGENTS.md) · [CLAUDE.md](../CLAUDE.md) | [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) → [plan/invariants.md](./plan/invariants.md) → current `0N-<theme>/SLICE-XX-*.md` |

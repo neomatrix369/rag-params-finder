@@ -218,7 +218,7 @@ Provider/model must match — registry in `model_registry.py` validates at confi
 [ ] Read docs/plan/slices/PROGRESS.md — confirm current state and which slice is next
 [ ] Load docs/plan/invariants.md + docs/plan/DECISION-OWNERSHIP.md (ceilings / fail-closed)
 [ ] Read or create the slice spec in docs/plan/slices/0N-<theme>/SLICE-XX-*.md
-[ ] Confirm gate-evidence path docs/plan/gate-evidence/slice-N.json (do not invent PASSED)
+[ ] Confirm gate-evidence path docs/plan/gate-evidence/slice-N.json (schema + close rule: docs/plan/GATE_CONTRACT.md; do not invent PASSED)
 [ ] bash scripts/ci/install-git-hooks.sh (once per machine — commit + pre-push checks)
 [ ] Run all quality gates — confirm zero regressions before starting
 [ ] Note the exact acceptance criteria — these are the exit conditions
@@ -257,6 +257,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 [ ] Quality gates pass (zero regressions) — ./scripts/ci/quality-gates.sh; git push runs pre-push-gates (full local gates) when hooks installed
 [ ] Slice status updated in docs/plan/slices/PROGRESS.md (🔨 → ✅ COMPLETE)
 [ ] Decisions logged in PROGRESS.md Decision Log
+[ ] Abstraction Views Delta appended to docs/plan/GROWTH.md (non-trivial slices — forward-only)
 [ ] Committed with a short, specific message
 [ ] Consider release: ./scripts/release/release.sh minor (slices/features) or patch (fixes/polish)
     Creates release/vX.Y.Z + PR — never push the bump to main; tag after merge
@@ -332,9 +333,13 @@ The project follows [Semantic Versioning](https://semver.org/). `scripts/release
 | `docs/plan/invariants.md` | Agents | Self-contained project constraints for fresh-context executors |
 | `docs/plan/DECISION-OWNERSHIP.md` | Agents | Human/Agent/Shared ownership + locked ceilings (HITL to raise) |
 | `docs/plan/HANDOFF.md` | Agents | Session snapshot only — PROGRESS + `gate-evidence/` override when they disagree |
-| `docs/plan/slices/README.md` | Agents / contributors | Theme folder index (`01`–`08`); specs under `0N-<theme>/` (#162) |
+| `docs/plan/slices/README.md` | Agents / contributors | Theme folder index (`01`–`08`); specs under `0N-<theme>/` (#162); Abstraction Views contract |
+| `docs/plan/GATE_CONTRACT.md` | Agents | Gate-evidence JSON schema + Before/After close rule (SSOT) |
+| `docs/plan/GROWTH.md` | Agents / contributors | Rolling architecture-evolution log (seed + per-slice deltas) |
+| `docs/smoke-tests/SMOKE-REGISTRY.md` | Agents / contributors | Capability → runnable verification command map |
 | `docs/README.md` | All | Documentation index (personas, topics, tasks) |
-| `docs/adr/` | All | Architecture Decision Records |
+| `docs/TRAVERSAL.md` | All | Goal-based routing (onboarding / build / <60s lookup) |
+| `docs/adr/` ([index](docs/adr/README.md)) | All | Architecture Decision Records + status index |
 
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph
