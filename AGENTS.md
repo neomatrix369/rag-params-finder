@@ -5,9 +5,9 @@ Agent session entry point for `rag-params-finder`.
 ## Start here
 
 1. Read [`CLAUDE.md`](CLAUDE.md) — project overview, architecture, commands, quality gates, and slice playbook.
-2. Read [`docs/README.md`](docs/README.md) — documentation map by persona and topic.
+2. Read [`docs/README.md`](docs/README.md) — documentation map by persona and topic. Routing by *goal* (onboarding / build / <60s lookup): [`docs/TRAVERSAL.md`](docs/TRAVERSAL.md).
 3. Read [`docs/plan/slices/PROGRESS.md`](docs/plan/slices/PROGRESS.md) — current slice status, forward roadmap, and interrupt recovery checklist (**status SSOT**).
-4. Before executing a Must/Should slice: load [`docs/plan/invariants.md`](docs/plan/invariants.md) and [`docs/plan/DECISION-OWNERSHIP.md`](docs/plan/DECISION-OWNERSHIP.md) (ceilings / fail-closed), then the slice stub under [`docs/plan/slices/`](docs/plan/slices/) (`0N-<theme>/` — see [README](docs/plan/slices/README.md)).
+4. Before executing a Must/Should slice: load [`docs/plan/invariants.md`](docs/plan/invariants.md) (self-contained — Baseline commands + Depends-on file mapping), [`docs/plan/DECISION-OWNERSHIP.md`](docs/plan/DECISION-OWNERSHIP.md) (ceilings / fail-closed), and the gate rules in [`docs/plan/GATE_CONTRACT.md`](docs/plan/GATE_CONTRACT.md), then the slice stub under [`docs/plan/slices/`](docs/plan/slices/) (`0N-<theme>/` — see [README](docs/plan/slices/README.md)).
 5. Plan trail / harness: [`docs/plan/TRAIL.md`](docs/plan/TRAIL.md). Session snapshot only: [`docs/plan/HANDOFF.md`](docs/plan/HANDOFF.md) — **PROGRESS + `gate-evidence/` override narrative claims** when they disagree.
 6. If exploring module layout / folder themes: read [`docs/contributor-guide/module-theme-map.md`](docs/contributor-guide/module-theme-map.md) (Slice 45 hotspots 1–5 **IMPLEMENTED**; prefer `scripts/ci|docker|release|security/` over flat shim paths).
 7. If starting a new slice: check the forward roadmap in `docs/plan/slices/PROGRESS.md` and create a spec before writing code.
@@ -16,6 +16,8 @@ Agent session entry point for `rag-params-finder`.
 
 - Run quality gates before and after every change; install hooks with `bash scripts/ci/install-git-hooks.sh` (commit + pre-push checks — see `CLAUDE.md` → Quality Gates Baseline).
 - Follow the slice execution playbook in `CLAUDE.md` → Slice Execution Playbook.
+- Gate evidence must satisfy [`docs/plan/GATE_CONTRACT.md`](docs/plan/GATE_CONTRACT.md) before `ON BRANCH → PASSED`; runnable smoke categories: [`docs/smoke-tests/SMOKE-REGISTRY.md`](docs/smoke-tests/SMOKE-REGISTRY.md).
+- At slice close, append the slice's Abstraction Views Delta to [`docs/plan/GROWTH.md`](docs/plan/GROWTH.md) (forward-only — see [`docs/plan/slices/README.md`](docs/plan/slices/README.md) § Abstraction Views).
 - Secrets (`VOYAGE_API_KEY`, `MONGODB_URI`, `DATABASE_URL`, `SUPABASE_URI`) stay server-side — never in CLI configs or committed files.
 - Storage backend: `STORAGE_BACKEND=mongodb` (default, permanent — DECISIONS #130 Won't flip) or `postgres`. Legacy `mongo` normalizes to `mongodb`. YAML `database_provider` must match the server's engine, or submit returns 422 before preflight (`server/core/guards/config_backend_guard.py`). Postgres URI: canonical `DATABASE_URL`; optional `SUPABASE_URI` alias when `DATABASE_URL` unset — see `docs/user-guide/postgres-setup.md`.
 - Provider/model must match: `provider: local` + Voyage model → Pydantic validation error. SIE: `SIE_ENABLED=true` (on/off, same for both paths), `SIE_ENDPOINT` (where), `SIE_API_KEY` (auth when required) — see `docs/user-guide/sie-setup.md`.
