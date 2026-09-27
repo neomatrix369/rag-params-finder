@@ -28,32 +28,21 @@ from server.models.enums import (
     RetrieverType,
 )
 from server.models.results import Chunk, SearchResult
-from tests.helpers.pipeline_sweep import _fake_storage_backend, _run_param, _slice_config
+from tests.helpers.pipeline_sweep import (
+    _fake_storage_backend,
+    _patch_backends,
+    _run_param,
+    _slice_config,
+)
 
 
-@patch("server.db.ports.store_factory.get_vector_store")
-@patch("server.core.orchestrator.AimLogger")
-@patch("server.core.orchestrator._search_traditional_retriever")
-@patch("server.core.orchestrator.get_embedder")
-@patch("server.core.orchestrator.load_queries")
-@patch("server.core.orchestrator.chunk_text")
-@patch("server.core.orchestrator.load_all_files")
-@patch("server.core.orchestrator.check_control")
-@patch("server.core.orchestrator.get_storage_backend")
-def test_run_single_happy_path_executes_pipeline(
-    mock_get_storage_backend: MagicMock,
-    mock_check_control: MagicMock,
-    mock_load_all_files: MagicMock,
-    mock_chunk_text: MagicMock,
-    mock_load_queries: MagicMock,
-    mock_get_embedder: MagicMock,
-    mock_search_traditional: MagicMock,
-    mock_aim_logger: MagicMock,
-    mock_get_vector_store: MagicMock,
-) -> None:
+def test_run_single_happy_path_executes_pipeline() -> None:
     """
     Scenario: _run_single performs normal pipeline for a runnable configuration
-    Slice: 45 — GWT-on-touch (module theme separation)
+    Slice: 45 — GWT-on-touch (module theme separation); migrated to
+    ``_patch_backends`` in Slice 49B (patches ``get_storage_backend`` +
+    ``get_vector_store`` together — the duplicated dual-factory pattern the
+    helper consolidates).
 
     Given a successful dense run configuration
     When _run_single executes
@@ -63,153 +52,143 @@ def test_run_single_happy_path_executes_pipeline(
 
     """
     ### Given
-    ### When
-    ### Then
-    # Given
     storage = _fake_storage_backend()
-    mock_get_storage_backend.return_value = storage
     vector_store = MagicMock(name="VectorStore")
-    mock_get_vector_store.return_value = vector_store
-    mock_check_control.return_value = None
-    mock_load_all_files.return_value = "text content"
-    mock_chunk_text.return_value = ["chunk-one", "chunk-two"]
-    mock_load_queries.return_value = [
-        Query(text="What is retrieval?", persona_id="persona", focus=None)
-    ]
-    mock_get_embedder.return_value = (
-        lambda chunks, _model, cancel_check=None, **_kwargs: [[0.1], [0.2]],
-        lambda text, model: [0.1, 0.2],
-    )
-    mock_search_traditional.return_value = (
-        [
-            SearchResult(
-                chunk=Chunk(
-                    id="chunk-1",
-                    text="sample",
-                    index=0,
-                    embedding_model="all-MiniLM-L6-v2",
-                    chunk_method="recursive",
-                ),
-                dense_score=0.9,
-                rerank_score=None,
-                retrieval_method="dense",
-                rank=1,
-            )
-        ],
-        [0.1, 0.2],
-    )
 
-    # When
-    _run_single("exp-run", "run-1", _run_param())
+    with (
+        patch("server.core.orchestrator.AimLogger") as mock_aim_logger,
+        patch("server.core.orchestrator._search_traditional_retriever") as mock_search_traditional,
+        patch("server.core.orchestrator.get_embedder") as mock_get_embedder,
+        patch("server.core.orchestrator.load_queries") as mock_load_queries,
+        patch("server.core.orchestrator.chunk_text") as mock_chunk_text,
+        patch("server.core.orchestrator.load_all_files") as mock_load_all_files,
+        patch("server.core.orchestrator.check_control") as mock_check_control,
+        _patch_backends(storage=storage, vector_store=vector_store),
+    ):
+        mock_check_control.return_value = None
+        mock_load_all_files.return_value = "text content"
+        mock_chunk_text.return_value = ["chunk-one", "chunk-two"]
+        mock_load_queries.return_value = [
+            Query(text="What is retrieval?", persona_id="persona", focus=None)
+        ]
+        mock_get_embedder.return_value = (
+            lambda chunks, _model, cancel_check=None, **_kwargs: [[0.1], [0.2]],
+            lambda text, model: [0.1, 0.2],
+        )
+        mock_search_traditional.return_value = (
+            [
+                SearchResult(
+                    chunk=Chunk(
+                        id="chunk-1",
+                        text="sample",
+                        index=0,
+                        embedding_model="all-MiniLM-L6-v2",
+                        chunk_method="recursive",
+                    ),
+                    dense_score=0.9,
+                    rerank_score=None,
+                    retrieval_method="dense",
+                    rank=1,
+                )
+            ],
+            [0.1, 0.2],
+        )
 
-    # Then
-    assert storage.insert_run_status.call_count == 1
-    assert storage.insert_result.call_count >= 1
-    assert vector_store.insert_chunks.called
-    assert storage.update_run_phase.call_count >= 3
-    mock_search_traditional.assert_called_once()
-    mock_aim_logger.log_run.assert_called_once()
+        ### When
+        _run_single("exp-run", "run-1", _run_param())
+
+        ### Then
+        assert storage.insert_run_status.call_count == 1
+        assert storage.insert_result.call_count >= 1
+        assert vector_store.insert_chunks.called
+        assert storage.update_run_phase.call_count >= 3
+        mock_search_traditional.assert_called_once()
+        mock_aim_logger.log_run.assert_called_once()
 
 
-@patch("server.db.ports.store_factory.get_vector_store")
-@patch("server.core.orchestrator.AimLogger")
-@patch("server.core.orchestrator._search_reranker_retriever")
-@patch("server.core.orchestrator.get_embedder")
-@patch("server.core.orchestrator.load_queries")
-@patch("server.core.orchestrator.chunk_text")
-@patch("server.core.orchestrator.load_all_files")
-@patch("server.core.orchestrator.check_control")
-@patch("server.core.orchestrator.get_storage_backend")
-def test_run_single_reranker_path_executes_pipeline(
-    mock_get_storage_backend: MagicMock,
-    mock_check_control: MagicMock,
-    mock_load_all_files: MagicMock,
-    mock_chunk_text: MagicMock,
-    mock_load_queries: MagicMock,
-    mock_get_embedder: MagicMock,
-    mock_search_reranker: MagicMock,
-    mock_aim_logger: MagicMock,
-    mock_get_vector_store: MagicMock,
-) -> None:
+def test_run_single_reranker_path_executes_pipeline() -> None:
     """
     Scenario: _run_single executes reranker retrieval branch.
-    Slice: 45 — GWT-on-touch (module theme separation)
+    Slice: 45 — GWT-on-touch (module theme separation); migrated to
+    ``_patch_backends`` in Slice 49B.
     """
     ### Given
-    ### When
-    ### Then
     storage = _fake_storage_backend()
-    mock_get_storage_backend.return_value = storage
-    mock_get_vector_store.return_value = MagicMock(name="VectorStore")
-    mock_check_control.return_value = None
-    mock_load_all_files.return_value = "text content"
-    mock_chunk_text.return_value = ["chunk-one"]
-    mock_load_queries.return_value = [Query(text="How?", persona_id="persona", focus=None)]
-    mock_get_embedder.return_value = (
-        lambda chunks, _model, cancel_check=None, **_kwargs: [[0.1]],
-        lambda text, model: [0.1, 0.2],
-    )
-    mock_search_reranker.return_value = []
+    vector_store = MagicMock(name="VectorStore")
 
-    run_param = _run_param()
-    run_param.retrievers = [
-        RetrieverConfig(
-            type=RetrieverType.RERANKER,
-            provider="local",
-            model="cross-encoder/ms-marco-MiniLM-L-6-v2",
+    with (
+        patch("server.core.orchestrator.AimLogger") as mock_aim_logger,
+        patch("server.core.orchestrator._search_reranker_retriever") as mock_search_reranker,
+        patch("server.core.orchestrator.get_embedder") as mock_get_embedder,
+        patch("server.core.orchestrator.load_queries") as mock_load_queries,
+        patch("server.core.orchestrator.chunk_text") as mock_chunk_text,
+        patch("server.core.orchestrator.load_all_files") as mock_load_all_files,
+        patch("server.core.orchestrator.check_control") as mock_check_control,
+        _patch_backends(storage=storage, vector_store=vector_store),
+    ):
+        mock_check_control.return_value = None
+        mock_load_all_files.return_value = "text content"
+        mock_chunk_text.return_value = ["chunk-one"]
+        mock_load_queries.return_value = [Query(text="How?", persona_id="persona", focus=None)]
+        mock_get_embedder.return_value = (
+            lambda chunks, _model, cancel_check=None, **_kwargs: [[0.1]],
+            lambda text, model: [0.1, 0.2],
         )
-    ]
+        mock_search_reranker.return_value = []
 
-    _run_single("exp-rerank", "run-rerank", run_param)
+        run_param = _run_param()
+        run_param.retrievers = [
+            RetrieverConfig(
+                type=RetrieverType.RERANKER,
+                provider="local",
+                model="cross-encoder/ms-marco-MiniLM-L-6-v2",
+            )
+        ]
 
-    assert storage.insert_run_status.call_count == 1
-    assert storage.insert_result.call_count == 1
-    mock_search_reranker.assert_called_once()
-    mock_aim_logger.log_run.assert_called_once()
+        ### When
+        _run_single("exp-rerank", "run-rerank", run_param)
+
+        ### Then
+        assert storage.insert_run_status.call_count == 1
+        assert storage.insert_result.call_count == 1
+        mock_search_reranker.assert_called_once()
+        mock_aim_logger.log_run.assert_called_once()
 
 
-@patch("server.db.ports.store_factory.get_vector_store")
-@patch("server.core.orchestrator.get_embedder")
-@patch("server.core.orchestrator.load_queries")
-@patch("server.core.orchestrator.chunk_text")
-@patch("server.core.orchestrator.load_all_files")
-@patch("server.core.orchestrator.check_control")
-@patch("server.core.orchestrator.get_storage_backend")
-@patch("server.core.orchestrator._search_traditional_retriever")
-def test_run_single_failure_updates_failed_phase(
-    mock_search_traditional: MagicMock,
-    mock_get_storage_backend: MagicMock,
-    mock_check_control: MagicMock,
-    mock_load_all_files: MagicMock,
-    mock_chunk_text: MagicMock,
-    mock_load_queries: MagicMock,
-    mock_get_embedder: MagicMock,
-    mock_get_vector_store: MagicMock,
-) -> None:
+def test_run_single_failure_updates_failed_phase() -> None:
     """
     Scenario: _run_single failure branch updates FAILED phase.
-    Slice: 45 — GWT-on-touch (module theme separation)
+    Slice: 45 — GWT-on-touch (module theme separation); migrated to
+    ``_patch_backends`` in Slice 49B.
     """
     ### Given
-    ### When
-    ### Then
     storage = _fake_storage_backend()
-    mock_get_storage_backend.return_value = storage
-    mock_get_vector_store.return_value = MagicMock(name="VectorStore")
-    mock_check_control.return_value = None
-    mock_load_all_files.return_value = "text content"
-    mock_chunk_text.return_value = ["chunk-one"]
-    mock_load_queries.return_value = [Query(text="How?", persona_id="persona", focus=None)]
-    mock_get_embedder.return_value = (
-        lambda chunks, _model, cancel_check=None, **_kwargs: [[0.1]],
-        lambda text, model: [0.1, 0.2],
-    )
-    mock_search_traditional.side_effect = RuntimeError("index failure")
+    vector_store = MagicMock(name="VectorStore")
 
-    with pytest.raises(RuntimeError):
-        _run_single("exp-fail", "run-fail", _run_param())
+    with (
+        patch("server.core.orchestrator.get_embedder") as mock_get_embedder,
+        patch("server.core.orchestrator.load_queries") as mock_load_queries,
+        patch("server.core.orchestrator.chunk_text") as mock_chunk_text,
+        patch("server.core.orchestrator.load_all_files") as mock_load_all_files,
+        patch("server.core.orchestrator.check_control") as mock_check_control,
+        patch("server.core.orchestrator._search_traditional_retriever") as mock_search_traditional,
+        _patch_backends(storage=storage, vector_store=vector_store),
+    ):
+        mock_check_control.return_value = None
+        mock_load_all_files.return_value = "text content"
+        mock_chunk_text.return_value = ["chunk-one"]
+        mock_load_queries.return_value = [Query(text="How?", persona_id="persona", focus=None)]
+        mock_get_embedder.return_value = (
+            lambda chunks, _model, cancel_check=None, **_kwargs: [[0.1]],
+            lambda text, model: [0.1, 0.2],
+        )
+        mock_search_traditional.side_effect = RuntimeError("index failure")
 
-    assert storage.update_run_phase.call_count >= 4
+        ### When / Then
+        with pytest.raises(RuntimeError):
+            _run_single("exp-fail", "run-fail", _run_param())
+
+        assert storage.update_run_phase.call_count >= 4
 
 
 @patch("server.core.orchestrator.check_control")
@@ -247,56 +226,52 @@ def test_run_sweep_paused_stops_new_scheduling_marking_paused(
     assert result["status"] == ExperimentStatus.PAUSED
 
 
-@patch("server.db.ports.store_factory.get_vector_store")
-@patch("server.core.orchestrator._update_phase")
-@patch("server.core.orchestrator._search_traditional_retriever")
-@patch("server.core.orchestrator.get_storage_backend")
-def test_run_single_records_empty_parse_and_chunk(
-    mock_get_storage_backend: MagicMock,
-    mock_search_traditional: MagicMock,
-    mock_update_phase: MagicMock,
-    mock_get_vector_store: MagicMock,
-) -> None:
+def test_run_single_records_empty_parse_and_chunk() -> None:
     """
     Scenario: _run_single logs and continues when parse/chunking are empty.
-    Slice: 45 — GWT-on-touch (module theme separation)
+    Slice: 45 — GWT-on-touch (module theme separation); migrated to
+    ``_patch_backends`` in Slice 49B.
     """
     ### Given
-    ### When
-    ### Then
     storage = _fake_storage_backend()
-    mock_get_storage_backend.return_value = storage
     vector_store = MagicMock(name="VectorStore")
-    mock_get_vector_store.return_value = vector_store
-    mock_update_phase.side_effect = lambda run_id, phase, error_message=None: None
-    mock_search_traditional.return_value = ([], [])
+
     with (
-        patch("server.core.orchestrator.load_all_files", return_value=""),
-        patch("server.core.orchestrator.chunk_text", return_value=[]),
-        patch(
-            "server.core.orchestrator.load_queries",
-            return_value=[Query(text="q", persona_id="p", focus=None)],
-        ),
+        patch("server.core.orchestrator._update_phase") as mock_update_phase,
+        patch("server.core.orchestrator._search_traditional_retriever") as mock_search_traditional,
+        _patch_backends(storage=storage, vector_store=vector_store),
     ):
-        with patch(
-            "server.core.orchestrator.get_embedder",
-            return_value=(
-                lambda chunks, m, cancel_check=None, **_kwargs: [],
-                lambda text, model: [],
+        mock_update_phase.side_effect = lambda run_id, phase, error_message=None: None
+        mock_search_traditional.return_value = ([], [])
+        with (
+            patch("server.core.orchestrator.load_all_files", return_value=""),
+            patch("server.core.orchestrator.chunk_text", return_value=[]),
+            patch(
+                "server.core.orchestrator.load_queries",
+                return_value=[Query(text="q", persona_id="p", focus=None)],
             ),
         ):
             with patch(
-                "server.core.orchestrator._search_reranker_retriever"
-            ) as mock_search_reranker:
-                mock_search_reranker.return_value = []
-                from server.core import orchestrator
+                "server.core.orchestrator.get_embedder",
+                return_value=(
+                    lambda chunks, m, cancel_check=None, **_kwargs: [],
+                    lambda text, model: [],
+                ),
+            ):
+                with patch(
+                    "server.core.orchestrator._search_reranker_retriever"
+                ) as mock_search_reranker:
+                    mock_search_reranker.return_value = []
+                    from server.core import orchestrator
 
-                orchestrator._run_start_times.clear()
-                _run_single("exp-empty", "run-empty", _run_param())
+                    ### When
+                    orchestrator._run_start_times.clear()
+                    _run_single("exp-empty", "run-empty", _run_param())
 
-    assert storage.insert_run_status.call_count == 1
-    assert storage.insert_result.call_count == 1
-    assert vector_store.insert_chunks.called
+        ### Then
+        assert storage.insert_run_status.call_count == 1
+        assert storage.insert_result.call_count == 1
+        assert vector_store.insert_chunks.called
 
 
 @patch("server.core.orchestrator.AimLogger")
