@@ -8,9 +8,6 @@ is running on pgvector — marks a healthy stack as unhealthy and blocks Compose
 
 from __future__ import annotations
 
-from pymongo import MongoClient
-from pymongo.errors import PyMongoError
-
 from server.db.mongo.mongodb_uri import mongo_client_kwargs, mongodb_storage_mode
 from server.db.ports.registry import resolve_adapter
 from server.db.postgres.postgres_uri import postgres_connect_kwargs, postgres_storage_mode
@@ -74,9 +71,15 @@ def mongodb_health_status() -> str:
     lowered = uri.lower()
     if any(marker in lowered for marker in _MONGODB_PLACEHOLDER_MARKERS):
         return "error"
+    # Lazy import (same convention as postgres_health_status / store_factory.py):
+    # this module is shared by both backends' health probes, so importing pymongo
+    # at module scope would leak the Mongo driver into a Postgres-only process (GWT-1).
+    from pymongo import MongoClient
+    from pymongo.errors import PyMongoError
+
     try:
         # Short timeout — default MongoClient waits ~30s; Docker healthcheck allows 10s.
-        client: MongoClient = MongoClient(
+        client = MongoClient(
             uri,
             **mongo_client_kwargs(
                 uri,
