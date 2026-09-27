@@ -359,6 +359,7 @@ def _patch_backends(
     storage_call_sites = [
         "server.db.ports.store_factory.get_storage_backend",
         "server.core.pipeline.orchestrator.get_storage_backend",
+        "server.core.pipeline.signatures.get_storage_backend",
         "server.api.experiments_shared.get_storage_backend",
     ]
     retriever_call_sites = [
