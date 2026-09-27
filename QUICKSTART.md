@@ -313,7 +313,7 @@ rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
 rag-params-finder run --config configs/supabase/example-local.yaml
 
 # Elasticsearch (Path E — see docs/user-guide/elasticsearch-setup.md)
-# Pairs a run-state store (default postgres-local). No env vars by hand.
+# Pairs a run-state store (default mongodb-local). No env vars by hand.
 ./start-services.sh --elasticsearch-local
 rag-params-finder run --config configs/elasticsearch/example-local.yaml
 ```

@@ -29,7 +29,7 @@
 - Dual-store preflight: `preflight_stores()` in `search_index_guard.py` — vector store `health()` → `plan_indexes()`/`ensure_indexes()` → `capabilities()` first (stops on first failure, HTTP 422), then run-state `health()` only when the run-state store differs from the vector store. No skip path — a registered vector store with no index plan fails closed (#253).
 - One `DatabaseProvider` Literal (`server/models/config.py`); no store-name comparisons outside adapters, registry, settings and config normalisers (AST guard over `server/` + `cli/`) (#240, #242).
 - Mandatory `embedding_model` + `experiment_id` + `run_id` filter on every vector query; dense scores on the shared `(1+cos)/2` scale; hybrid via RRF `k=60`.
-- Local ES (D5) pairs with `postgres-local` by default; Basic licence, security off, `127.0.0.1`, 1 GB heap, unquantized HNSW (#215, ADR-006).
+- Local ES (D5) pairs with `mongodb-local` by default (psycopg is not required); `STORAGE_BACKEND=postgres` still pairs Postgres. Basic licence, security off, `127.0.0.1`, 1 GB heap, unquantized HNSW (#215, ADR-006).
 - Scripts read `scripts/lib/stores.tsv` (bash 3.2-safe); server image extras via `ARG EXTRAS`; one nightly matrix job, skipped ≠ green (#243, #244, #248).
 → Source: `docs/plan/DECISIONS.md` (#213–#219, #240–#250); `docs/plan/slices/05-storage/SLICE-49*.md`–`SLICE-53*.md`
 

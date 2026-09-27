@@ -232,7 +232,7 @@ jobs:
           RAG_TEST_DATABASE_URL: ${{ matrix.store == 'postgres' && 'postgresql://rag:rag@localhost:5433/rag_params_finder' || '' }}
           RAG_TEST_MONGODB_URI: ${{ matrix.store == 'mongodb' && 'mongodb://localhost:27017/rag_params_finder?directConnection=true' || '' }}
           ELASTICSEARCH_URL: ${{ matrix.store == 'elasticsearch' && 'http://127.0.0.1:9200' || '' }}
-          STORAGE_BACKEND: ${{ matrix.store == 'mongodb' && 'mongodb' || 'postgres' }}
+          STORAGE_BACKEND: ${{ matrix.store == 'postgres' && 'postgres' || 'mongodb' }}
         run: pytest ${{ matrix.pytest_args }} --tb=short -q -rs
 
   vector-store-integration-summary:

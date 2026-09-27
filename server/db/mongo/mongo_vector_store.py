@@ -19,11 +19,8 @@ from server.core.guards.search_index_plan import (
     required_search_indexes,
     validate_vector_index_feasibility,
 )
-from server.db.mongo.indexes import (
-    TEXT_SEARCH_INDEX_NAME,
-    VECTOR_INDEX_CONFIGS,
-)
 from server.db.mongo.indexes import ensure_indexes as _mongo_ensure_indexes
+from server.db.mongo.mongo_catalog import MongoCatalog
 from server.db.mongo.mongo_store import (
     MongoRetrieverBackend,
     MongoStorageBackend,
@@ -34,20 +31,7 @@ from server.db.mongo.mongodb_uri import mongodb_storage_mode
 from server.db.ports.retriever_backend import RetrieverBackend
 from server.db.ports.vector_store import VectorCapabilities
 from server.models.config import ExperimentConfig
-from server.models.enums import RetrievalMethod
 from server.settings import settings
-
-_CAPABILITIES = VectorCapabilities(
-    retrieval_methods=frozenset(
-        {RetrievalMethod.DENSE, RetrievalMethod.SPARSE, RetrievalMethod.HYBRID}
-    ),
-    similarity_metrics=frozenset({"cosine"}),
-    index_types=frozenset({"vectorSearch", "search"}),
-    supported_embedding_dims=frozenset({384, 1024, 30522}),
-    supports_metadata_filters=True,
-    can_host_run_state=True,
-    labels=frozenset({"mongodb", "atlas"}),
-)
 
 
 class MongoVectorStore:
@@ -108,18 +92,12 @@ class MongoVectorStore:
 
     @classmethod
     def capabilities(cls) -> VectorCapabilities:
-        return _CAPABILITIES
+        return MongoCatalog.capabilities()
 
     @classmethod
     def ui_labels(cls) -> dict[str, str]:
-        return {
-            "index": "Collection",
-            "host": "Atlas host",
-            "section": "Cluster & Collection",
-        }
+        return MongoCatalog.ui_labels()
 
     @classmethod
     def index_summary(cls) -> dict[str, object]:
-        names = [row["name"] for row in VECTOR_INDEX_CONFIGS]
-        names.append(TEXT_SEARCH_INDEX_NAME)
-        return {"indexes": names}
+        return MongoCatalog.index_summary()

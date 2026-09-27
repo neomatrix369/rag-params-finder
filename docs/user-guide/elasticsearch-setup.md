@@ -11,7 +11,7 @@ Pick one location. The default store stays MongoDB; Elasticsearch is opt-in.
 | `elasticsearch-local` | Laptop, no Elastic Cloud account | `./start-services.sh --elasticsearch-local` |
 | `elasticsearch-cloud` | A cluster you already run | `./start-services.sh --elasticsearch-cloud` |
 
-Local mode pairs a run-state store. The default is `postgres-local`. Set `STORAGE_BACKEND=mongodb` before the command to pair Atlas Local instead. `STORAGE_BACKEND=elasticsearch` is rejected: Elasticsearch cannot hold experiments, runs, or results.
+Local mode pairs a run-state store. The default is `mongodb-local`, which does not need psycopg. Set `STORAGE_BACKEND=postgres` before the command to pair local Postgres instead. `STORAGE_BACKEND=elasticsearch` is rejected: Elasticsearch cannot hold experiments, runs, or results.
 
 ## Environment variables
 
@@ -23,13 +23,13 @@ The server reads these. The CLI configs do not contain them.
 | `ELASTICSEARCH_URL` | `http://elasticsearch-local:9200` inside Compose; `http://127.0.0.1:9200` on the host | Your cluster URL |
 | `ELASTICSEARCH_API_KEY` | Empty (security is off) | Set when the cluster requires a key |
 | `ELASTICSEARCH_INDEX_PREFIX` | `rpf` → index `rpf-chunks` | Same |
-| `STORAGE_BACKEND` | `postgres` unless you override it | `postgres` or `mongodb` |
+| `STORAGE_BACKEND` | `mongodb` unless you set `postgres` | `mongodb` or `postgres` |
 
 Install the client extra before a host-side server: `uv pip install -e ".[elasticsearch]"`. The Compose server image installs that extra only when `SERVER_EXTRAS=elasticsearch`.
 
 ## Path A — local Docker
 
-This path needs Docker and about 1 GB of heap for Elasticsearch plus the paired Postgres container.
+This path needs Docker and about 1 GB of heap for Elasticsearch plus the paired MongoDB container. psycopg is not part of this path.
 
 ```bash
 uv pip install -e ".[elasticsearch]"
@@ -44,7 +44,7 @@ Confirm health:
 curl -sS http://127.0.0.1:8001/healthz | python3 -m json.tool
 ```
 
-Expect `storage_mode` `elasticsearch-local`, `run_state_mode` `postgres-local`, and both `stores.vector.ok` and `stores.run_state.ok` true.
+Expect `storage_mode` `elasticsearch-local`, `run_state_mode` `mongodb-local`, and both `stores.vector.ok` and `stores.run_state.ok` true.
 
 ## Path B — bring your own
 

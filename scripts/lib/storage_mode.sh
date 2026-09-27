@@ -5,7 +5,7 @@
 # Canonical modes: mongodb-local | mongodb-cloud | postgres-local | postgres-cloud
 #                  elasticsearch-local | elasticsearch-cloud
 # elasticsearch is vector-only: it exports VECTOR_STORE_BACKEND and pairs a
-# run-state store (default postgres-local, overridable by STORAGE_BACKEND).
+# run-state store (default mongodb-local, overridable by STORAGE_BACKEND).
 # Exports (when resolve_stack_mode succeeds):
 #   STACK_DB_TYPE, STACK_LOCATION, STACK_STORAGE_MODE
 #   LOCAL_ATLAS, LOCAL_POSTGRES, LOCAL_ELASTICSEARCH
@@ -313,11 +313,12 @@ export_storage_backend_for_stack() {
   return 0
 }
 
-# Vector-only Elasticsearch pairs with a run-state store (D5 default postgres).
-# STORAGE_BACKEND=elasticsearch is rejected with the settings-validator message.
+# Vector-only Elasticsearch pairs with a run-state store. The default is
+# mongodb so the ES path does not require psycopg. STORAGE_BACKEND=postgres
+# still pairs Postgres. STORAGE_BACKEND=elasticsearch is rejected.
 _pair_elasticsearch_run_state() {
   local run_state
-  run_state="$(printf '%s' "${STORAGE_BACKEND:-postgres}" | tr '[:upper:]' '[:lower:]')"
+  run_state="$(printf '%s' "${STORAGE_BACKEND:-mongodb}" | tr '[:upper:]' '[:lower:]')"
   if [[ "$run_state" == "mongo" ]]; then
     run_state=mongodb
   fi

@@ -15,7 +15,7 @@ from fastapi import APIRouter
 from server.db.ports.registry import (
     example_config_for,
     known_vector_stores,
-    resolve_adapter,
+    resolve_catalog,
     vector_store_can_host_run_state,
 )
 from server.db.ports.vector_store import VectorCapabilities
@@ -64,7 +64,7 @@ def build_stores_payload() -> dict[str, object]:
     active = normalize_storage_backend(settings.vector_store_backend or settings.storage_backend)
     stores: list[dict[str, object]] = []
     for provider in sorted(known_vector_stores()):
-        adapter = cast(type[_CatalogAdapter], resolve_adapter(provider))
+        adapter = cast(type[_CatalogAdapter], resolve_catalog(provider))
         stores.append(
             {
                 "provider": provider,

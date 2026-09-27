@@ -18,6 +18,12 @@ from server.db.mongo.atlas import (
     get_database,
     get_mongo_client,
 )
+from server.db.mongo.search_index_names import (
+    TEXT_SEARCH_INDEX_NAME,
+    VECTOR_INDEX_384,
+    VECTOR_INDEX_1024,
+    VECTOR_INDEX_30522,
+)
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -57,15 +63,13 @@ STANDARD_INDEX_SPEC: dict[str, list[IndexModel]] = {
 
 VECTOR_INDEX_CONFIGS: list[_VectorIndexConfig] = [
     {
-        "name": "vector_index_1024",
+        "name": VECTOR_INDEX_1024,
         "dimensions": 1024,
         "desc": "Voyage + dense SIE (bge-m3, stella-v5)",
     },
-    {"name": "vector_index_384", "dimensions": 384, "desc": "local models (e.g. all-MiniLM-L6-v2)"},
-    {"name": "vector_index_30522", "dimensions": 30522, "desc": "SIE splade-v3 learned sparse"},
+    {"name": VECTOR_INDEX_384, "dimensions": 384, "desc": "local models (e.g. all-MiniLM-L6-v2)"},
+    {"name": VECTOR_INDEX_30522, "dimensions": 30522, "desc": "SIE splade-v3 learned sparse"},
 ]
-
-TEXT_SEARCH_INDEX_NAME = "text_search_index"
 M0_SEARCH_INDEX_LIMIT = 3
 ATLAS_MAX_VECTOR_DIMENSIONS = 4096
 

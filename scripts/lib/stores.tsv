@@ -1,4 +1,4 @@
-provider	profile	local_flag	health_probe	required_env	can_host_run_state
-mongodb	mongodb-local	--mongodb-local	cmd:mongosh --quiet --eval db.adminCommand('ping').ok	MONGODB_URI	true
-postgres	postgres-local	--postgres-local	cmd:pg_isready -U rag -d rag_params_finder	DATABASE_URL	true
-elasticsearch	elasticsearch-local	--elasticsearch-local	http://127.0.0.1:9200/_cluster/health	ELASTICSEARCH_URL	false
+provider	profile	local_flag	health_probe	required_env	can_host_run_state	example_config	volumes
+mongodb	mongodb-local	--mongodb-local	cmd:mongosh --quiet --eval db.adminCommand('ping').ok	MONGODB_URI	true	configs/mongodb/example-local.yaml	RAG_MONGODB_LOCAL_DB_VOLUME RAG_MONGODB_LOCAL_CONFIGDB_VOLUME RAG_MONGODB_LOCAL_MONGOT_VOLUME
+postgres	postgres-local	--postgres-local	cmd:pg_isready -U rag -d rag_params_finder	DATABASE_URL	true	configs/supabase/example-local.yaml	RAG_POSTGRES_LOCAL_VOLUME
+elasticsearch	elasticsearch-local	--elasticsearch-local	http://127.0.0.1:9200/_cluster/health	ELASTICSEARCH_URL	false	configs/elasticsearch/example-local.yaml	RAG_ELASTICSEARCH_LOCAL_VOLUME

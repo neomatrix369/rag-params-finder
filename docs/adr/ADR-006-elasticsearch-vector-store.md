@@ -16,7 +16,7 @@ Add Elasticsearch as a **vector-only** adapter behind the existing `VectorStore`
 
 | Concern | Choice |
 |---|---|
-| Role | Chunks and search only. Run state stays on MongoDB or Postgres (default local pair: `postgres-local`) |
+| Role | Chunks and search only. Run state stays on MongoDB or Postgres (default local pair: `mongodb-local`) |
 | Index | One `rpf-chunks` index, unquantized HNSW (`type: hnsw`, `m=16`, `ef_construction=100`, cosine) |
 | Hybrid | Client-side reciprocal rank fusion (`k=60`) because RRF in Elasticsearch is outside the Basic licence |
 | Refresh | Refresh before search returns so a sweep does not read a stale interval |

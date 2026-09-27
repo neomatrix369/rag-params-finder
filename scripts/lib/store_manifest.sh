@@ -29,8 +29,8 @@ store_is_provider() {
 store_field() {
   local want="$1"
   local column="$2"
-  local provider profile local_flag probe required_env can_host
-  while IFS=$'\t' read -r provider profile local_flag probe required_env can_host; do
+  local provider profile local_flag probe required_env can_host example_config volumes
+  while IFS=$'\t' read -r provider profile local_flag probe required_env can_host example_config volumes; do
     _store_row_skipped "$provider" && continue
     if [[ "$provider" != "$want" ]]; then
       continue
@@ -45,6 +45,10 @@ store_field() {
       echo "$required_env"
     elif [[ "$column" == "can_host_run_state" ]]; then
       echo "$can_host"
+    elif [[ "$column" == "example_config" ]]; then
+      echo "$example_config"
+    elif [[ "$column" == "volumes" ]]; then
+      echo "$volumes"
     fi
     return 0
   done < "$(store_manifest_path)"
@@ -54,8 +58,8 @@ store_field() {
 # each_store fn — fn receives provider profile local_flag probe required_env can_host
 each_store() {
   local fn="$1"
-  local provider profile local_flag probe required_env can_host
-  while IFS=$'\t' read -r provider profile local_flag probe required_env can_host; do
+  local provider profile local_flag probe required_env can_host example_config volumes
+  while IFS=$'\t' read -r provider profile local_flag probe required_env can_host example_config volumes; do
     _store_row_skipped "$provider" && continue
     "$fn" "$provider" "$profile" "$local_flag" "$probe" "$required_env" "$can_host"
   done < "$(store_manifest_path)"

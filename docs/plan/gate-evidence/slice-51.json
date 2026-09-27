@@ -3,7 +3,7 @@
   "gate_status": "ON_BRANCH",
   "verified_at": "2026-09-27",
   "branch": "slice/51-elasticsearch-operability-ci-docs-adr",
-  "note": "Reviewers ran on 74efcb2. Four approved (solution architect, platform, documentarist, researcher). Crafter and system-designer returned NEEDS_REVISION; neither finding is remediated here (see code_review). /verify-slice is INCOMPLETE. gate_status stays ON_BRANCH: server image with EXTRAS=elasticsearch was not built (Docker disk watermark), cross-backend top-3 overlap was not run, and nightly has no run URL.",
+  "note": "Reviewers ran on 74efcb2. Four approved. Crafter and system-designer returned NEEDS_REVISION; both findings are now remediated in code (driver-free catalog, one store lifecycle). They have not been re-reviewed. /verify-slice stays INCOMPLETE. gate_status stays ON_BRANCH: server image with EXTRAS=elasticsearch was not built (Docker disk watermark), cross-backend top-3 overlap was not run, and nightly has no run URL.",
   "open": [
     "server image build with EXTRAS=elasticsearch (blocked: Docker disk watermark, 1.2 GB free, needs 5.8 GB)",
     "cross-backend top-3 overlap (Mongo was not running; a 120-run grid was not started)",
@@ -111,8 +111,8 @@
       "nw-software-crafter-reviewer": "NEEDS_REVISION",
       "nw-system-designer-reviewer": "NEEDS_REVISION"
     },
-    "crafter_not_remediated": "The catalog test calls build_stores_payload(), which resolves adapters. psycopg is a required dependency in pyproject.toml, and quality gates already ran this test green (603 passed). Mocking resolve_adapter would drop the secret-redaction assertion. The case-arm regex matches the acceptance scenario; widening it is advisory.",
-    "system_designer_deferred": "cmd_<store>_* functions are the start pattern Mongo and Postgres already used. Elasticsearch composed the same pattern. The acceptance scan forbids case arms, and that test is green. A generic waiter is deferred to the Redis slice so this slice does not rewrite the Mongo and Postgres start paths."
+    "crafter_remediation": "GET /api/stores resolves driver-free catalog classes (resolve_catalog). The redaction assertions still call build_stores_payload(). A fresh-process test asserts psycopg, pymongo, and the Elasticsearch client stay unimported. The operator-script scan also rejects per-store cmd_* lifecycle functions.",
+    "system_designer_remediation": "start-services.sh uses cmd_store_start/stop/reset/status. Volumes and example configs come from stores.tsv. wait_for_named_container_healthy is the shared docker-health wait; Mongo and Postgres keep their existing hint wrappers. run_mongodb_subcommand and run_postgres_subcommand are removed."
   },
   "at_completeness": {
     "gwt_fence": "10 of 18 scenarios have a unit or component test. The other 8 are live, nightly, or reader transcripts and are listed in gwt_mapping as OPEN.",
@@ -137,7 +137,7 @@
     "head": "74efcb2",
     "acceptance_criteria": "10/18 scenarios have tests; 8 remain open in gwt_mapping",
     "quality_gates": "exit 0 on 2026-09-27: 603 pytest, cover 73.77% (floors 72/59/72), frontend 266 tests at 97.76/92.78/99.39/99.16",
-    "reviewers": "4 APPROVED, 2 NEEDS_REVISION (recorded, not remediated; see code_review)",
+    "reviewers": "4 APPROVED, 2 NEEDS_REVISION later remediated in code and not re-reviewed. See code_review.",
     "note": "INCOMPLETE. Do not treat this as COMPLETE or PASSED."
   }
 }

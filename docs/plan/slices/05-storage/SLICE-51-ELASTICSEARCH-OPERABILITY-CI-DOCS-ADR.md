@@ -26,7 +26,7 @@
 Makes the ES store operable, proven, and documented end-to-end from a clean clone: Docker profile + scripts + `GET /api/stores` + configs + registry-driven FE labels (E2E journey stages 5–8, 10, 14), the nightly ES integration job, the full 15-stage user journey in docs with a **registry-driven docs-parity gate** (the docs equivalent of the contract suite), and `ADR-006`. "Done" = a fresh reader goes from "which backend?" to results-in-dashboard to teardown using docs + scripts alone, for ES exactly as for Mongo/Postgres.
 
 - **Depends-on outputs:** ES adapter `stats()`, `labels()`, `capabilities()`, `search()` from Slice 50; the registry from Slice 49 (drive scripts, health-check, docs-parity, and `/api/stores` from the manifest — ES is one entry, not four edits).
-- **Invariants pointer:** `docs/plan/invariants.md` § Vector store / split-store — local ES pairs with a run-state store (D5, default `postgres-local`; any pairing must satisfy rule (ii), #241); Basic-licence single-node, security off, `127.0.0.1`; 1 GB heap; dashboard read-only; cross-backend comparability (same YAML, only the vector store changed, comparable dense scores on Mongo/Postgres/ES).
+- **Invariants pointer:** `docs/plan/invariants.md` § Vector store / split-store — local ES pairs with a run-state store (D5, default `mongodb-local`; any pairing must satisfy rule (ii), #241); Basic-licence single-node, security off, `127.0.0.1`; 1 GB heap; dashboard read-only; cross-backend comparability (same YAML, only the vector store changed, comparable dense scores on Mongo/Postgres/ES).
 
 ## Non-goals
 
@@ -38,10 +38,10 @@ Makes the ES store operable, proven, and documented end-to-end from a clean clon
 
 **Operability / surfaces (was Slice 51):**
 - `docker-compose.yml` profile `elasticsearch-local` (pinned 9.5.x, single-node, `xpack.security.enabled=false`, `xpack.license.self_generated.type=basic`, `-Xms1g -Xmx1g`, named volume, `/_cluster/health` healthcheck, `127.0.0.1` binding, `required: false` in `server.depends_on`).
-- `start-services.sh --elasticsearch-local | --elasticsearch-cloud` + `elasticsearch start|stop|reset|status`; `scripts/lib/compose.sh` gains `RAG_LOCAL_ELASTICSEARCH_URL_HOST/_DOCKER` + container/volume constants; local mode also starts the run-state store (D5 default `postgres-local`).
+- `start-services.sh --elasticsearch-local | --elasticsearch-cloud` + `elasticsearch start|stop|reset|status`; `scripts/lib/compose.sh` gains `RAG_LOCAL_ELASTICSEARCH_URL_HOST/_DOCKER` + container/volume constants; local mode also starts the run-state store (D5 default `mongodb-local`).
 - **Server image extras (#243):** `docker/server.Dockerfile:26` takes `ARG EXTRAS=""` and runs `uv sync --frozen --no-install-project ${EXTRAS:+--extra $EXTRAS}`; the `elasticsearch-local` / `-cloud` modes build with `EXTRAS=elasticsearch`. Default image unchanged in size.
 - **Compose env pass-through:** the `server` service `environment:` passes `VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-}` (empty → defaults to `STORAGE_BACKEND` in settings), `ELASTICSEARCH_URL: ${RAG_SERVER_ELASTICSEARCH_URL:-${ELASTICSEARCH_URL:-}}` and `ELASTICSEARCH_API_KEY: ${ELASTICSEARCH_API_KEY:-}`. This follows the existing `RAG_SERVER_*` pattern (`docker-compose.yml:22,29`): `start-services.sh --elasticsearch-local` sets `RAG_SERVER_ELASTICSEARCH_URL` to the Docker-network URL, while cloud reads `ELASTICSEARCH_URL` from `.env`. Secrets come from `.env`, never the compose file.
-- **Storage-mode resolver:** `scripts/lib/storage_mode.sh` gains the `elasticsearch-local` / `elasticsearch-cloud` tokens. They export `VECTOR_STORE_BACKEND=elasticsearch` and pair a run-state store (D5 default `postgres-local`, overridable by `STORAGE_BACKEND`). Choosing `elasticsearch` as the run-state store fails with the same vector-store-only message as the settings validator. The user sets no environment variables by hand for the local path.
+- **Storage-mode resolver:** `scripts/lib/storage_mode.sh` gains the `elasticsearch-local` / `elasticsearch-cloud` tokens. They export `VECTOR_STORE_BACKEND=elasticsearch` and pair a run-state store (D5 default `mongodb-local`, overridable by `STORAGE_BACKEND`). Choosing `elasticsearch` as the run-state store fails with the same vector-store-only message as the settings validator. The user sets no environment variables by hand for the local path.
 - **Store manifest for scripts (#244):** `scripts/lib/stores.tsv` — one row per store: provider · compose profile · `--<x>-local` flag · health probe · required env vars · `can_host_run_state`. `start-services.sh`, `stop-services.sh` and `scripts/docker/health-check.sh` read it (bash 3.2-safe loops, guarded array expansion). A parity test asserts its providers equal `known_vector_stores()` from the Python registry.
   - **Health probe (DECISIONS #253):** either an `http(s)://` URL, or `cmd:<command>` run inside the store's container (e.g. `cmd:redis-cli ping`). Redis has no HTTP endpoint, so a URL-only column would force a per-store branch in 53. `health-check.sh` dispatches on the prefix only. A `cmd:` probe runs as `docker exec <container> <command>`. The container name follows the existing convention (`health-check.sh:15-16`): `${RAG_<PROVIDER>_LOCAL_CONTAINER:-rag-params-finder-<provider>-local}`. It is derived from the provider, so the manifest needs no container column. Parsing stays bash 3.2-safe.
 - **Empty-state hints from the registry (walkthrough G4, DECISIONS #253):** `ExperimentsScreen.tsx:447-450` hard-codes a MongoDB and a Postgres `run --config` line. Each registry entry gains `example_config` (e.g. `configs/elasticsearch/example-local.yaml`), which `GET /api/stores` returns. The empty state shows the active store's line first, then the others. `config_backend_guard._example_config_for_engine()` (`config_backend_guard.py:23-26`, also two-store today) reads the same field, so the 422 hint and the dashboard can't drift. Without this, Slice 53 would have to edit a guarded component.
@@ -116,7 +116,7 @@ Scenario: Clean-clone stage 5→8 works as written
   Then no environment variable was set by hand, and ES + the run-state store + server + dashboard come up "healthy" — defined as:
     /healthz returns 200 with stores.vector.ok and stores.run_state.ok true
     (ES _cluster/health green|yellow), storage_mode = elasticsearch-local and
-    run_state_mode = postgres-local
+    run_state_mode = mongodb-local
     And the server image contains the elasticsearch client (built with EXTRAS=elasticsearch)
     And rag-params-finder indexes list shows the rpf-chunks mapping summary
     And configs/elasticsearch/example-local.yaml submits without a config-engine 422
@@ -251,9 +251,9 @@ Scenario: ADR-006 is Accepted and distinct from ADR-005
 
 ### Closing Gates
 - [x] `nw-at-completeness-check` — run 2026-09-27: 10/18 scenarios tested; ACCEPTABLE_WITH_DOCUMENTED_GAPS; zero-obligation (secret redaction) PASS. Recorded in `gate-evidence/slice-51.json`.
-- [x] `nw-software-crafter-reviewer` — ran 2026-09-27: NEEDS_REVISION. Not remediated: `psycopg` is a required dependency, and mocking `resolve_adapter` would drop the redaction assertion. Recorded in `gate-evidence/slice-51.json`.
+- [x] `nw-software-crafter-reviewer` — ran 2026-09-27: NEEDS_REVISION. Remediated: `resolve_catalog` lists stores without importing drivers; redaction assertions stay on `build_stores_payload()`. Not re-reviewed.
 - [x] `nw-solution-architect-reviewer` — APPROVED 2026-09-27 (`GET /api/stores`, registry, no case arms, pairing rule).
-- [x] `nw-system-designer-reviewer` — ran 2026-09-27: NEEDS_REVISION on `cmd_<store>_*` duplication. Deferred to the Redis slice; case-arm scan stays the Slice 51 acceptance test.
+- [x] `nw-system-designer-reviewer` — ran 2026-09-27: NEEDS_REVISION on `cmd_<store>_*` duplication. Remediated: one `cmd_store_*` lifecycle plus `wait_for_named_container_healthy`. Not re-reviewed.
 - [x] `nw-platform-architect-reviewer` — APPROVED 2026-09-27 (compose 9.5.0, EXTRAS arg, nightly matrix + summary job, docs-parity collected in unit CI).
 - [x] `nw-documentarist-reviewer` — APPROVED 2026-09-27 (`elasticsearch-setup.md` stays a how-to).
 - [x] `nw-researcher-reviewer` — APPROVED 2026-09-27 (ADR-006 claims match the adapter, mapping, and compose file).

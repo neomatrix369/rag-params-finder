@@ -9,6 +9,8 @@ Scope: public store catalog, secret redaction, registry example_config
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 
 import pytest
 
@@ -50,6 +52,43 @@ def test_given_registry_when_catalog_built_then_secrets_are_absent(
     assert active["example_config"] == "configs/elasticsearch/example-local.yaml"
     assert active["labels"]["index"] == "Index"
     assert active["index_summary"]["index"] == "rpf-chunks"
+
+
+def test_given_fresh_process_when_catalog_built_then_store_drivers_stay_unimported() -> None:
+    """
+    Scenario: GET /api/stores lists every store without importing store drivers.
+    Slice: 51
+
+    Given a fresh interpreter,
+    When the public catalog is built,
+    Then psycopg, pymongo, and the Elasticsearch client are not imported.
+    """
+    ### Given
+    script = """
+import sys
+from server.api.stores import build_stores_payload
+build_stores_payload()
+banned = ("psycopg", "pymongo", "elasticsearch")
+loaded = [
+    name
+    for name in sys.modules
+    if name in banned or name.startswith(tuple(item + "." for item in banned))
+]
+if loaded:
+    print("LOADED:" + ",".join(loaded))
+"""
+
+    ### When
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    ### Then
+    assert result.returncode == 0, result.stderr
+    assert "LOADED:" not in result.stdout
 
 
 def test_given_elasticsearch_server_when_mismatch_formatted_then_example_config_is_named() -> None:

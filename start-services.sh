@@ -40,7 +40,7 @@ Stack options (pick one):
   --mongodb-cloud              Atlas cloud — requires MONGODB_URI
   --postgres-local             Local pgvector — STORAGE_BACKEND=postgres
   --postgres-cloud             Hosted Supabase — requires DATABASE_URL or SUPABASE_URI; no MONGODB_URI
-  --elasticsearch-local        Local Elasticsearch 9.5 + run-state store (default postgres-local)
+  --elasticsearch-local        Local Elasticsearch 9.5 + run-state store (default mongodb-local)
   --elasticsearch-cloud        Bring-your-own Elasticsearch — requires ELASTICSEARCH_URL
   --force-build, --build, -b   Rebuild images even when build context is unchanged
   -h, --help                   Show this help
@@ -73,124 +73,112 @@ Modes (storage_mode = engine × location):
 EOF
 }
 
-cmd_mongodb_start() {
-  echo "Starting MongoDB Atlas Local..."
-  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" up -d mongodb-local
+_print_ready_mongodb() {
+  print_local_atlas_cli_hints "${1:-1}"
+}
+
+_print_ready_postgres() {
+  print_local_postgres_cli_hints "${1:-1}"
+}
+
+_print_ready_elasticsearch() {
+  local example
+  example="$(store_field elasticsearch example_config)"
   echo ""
-  echo "Waiting for MongoDB Atlas Local to be ready..."
-  wait_for_mongodb_local_healthy
-  print_local_atlas_cli_hints 1
+  echo "Elasticsearch: ${RAG_LOCAL_ELASTICSEARCH_URL_HOST}"
+  echo "  rag-params-finder run --config ${example}"
 }
 
-cmd_mongodb_stop() {
-  echo "Stopping MongoDB Atlas Local..."
-  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" stop mongodb-local
-  echo "Stopped."
+_elasticsearch_health_failed() {
+  echo "  On Linux, vm.max_map_count must be at least 262144." >&2
 }
 
-cmd_mongodb_reset() {
-  echo "Stopping and wiping MongoDB Atlas Local data volumes..."
-  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" rm -sf mongodb-local
-  for vol in "${RAG_MONGODB_LOCAL_VOLUMES[@]}"; do
-    docker volume rm "$vol" 2>/dev/null || true
+print_store_ready_hint() {
+  local provider="$1"
+  local example
+  example="$(store_field "$provider" example_config)"
+  echo ""
+  echo "${provider} is ready."
+  echo "  rag-params-finder run --config ${example}"
+}
+
+_print_store_ready() {
+  local provider="$1"
+  local hint="_print_ready_${provider}"
+  if declare -F "$hint" >/dev/null; then
+    "$hint" 1
+    return 0
+  fi
+  print_store_ready_hint "$provider"
+}
+
+_remove_store_volumes() {
+  local provider="$1"
+  local volumes var_name vol
+  volumes="$(store_field "$provider" volumes)"
+  # Volume column is a space-separated list of env var names from stores.tsv.
+  # shellcheck disable=SC2086
+  for var_name in $volumes; do
+    vol="${!var_name:-}"
+    if [[ -n "$vol" ]]; then
+      docker volume rm "$vol" 2>/dev/null || true
+    fi
   done
-  echo "Volumes wiped. Run './start-services.sh mongodb start' to recreate."
 }
 
-cmd_mongodb_status() {
-  local state
-  state="$(docker inspect --format='{{.State.Status}}' "$RAG_MONGODB_LOCAL_CONTAINER" 2>/dev/null || echo "not found")"
-  local health
-  health="$(docker inspect --format='{{.State.Health.Status}}' "$RAG_MONGODB_LOCAL_CONTAINER" 2>/dev/null || echo "—")"
-  echo "Container: $RAG_MONGODB_LOCAL_CONTAINER"
-  echo "  State:  $state"
-  echo "  Health: $health"
-  if [[ "$state" == "running" && "$health" == "healthy" ]]; then
-    print_local_atlas_cli_hints 1
-  fi
-}
-
-run_mongodb_subcommand() {
-  if ! command -v docker >/dev/null 2>&1; then
-    echo "Docker is not installed. See https://docs.docker.com/get-docker/" >&2
-    exit 1
-  fi
-  compose_require_docker_daemon || exit 1
-  compose_detect
-  compose_files
-  compose_local_atlas_profiles
-
-  local cmd="${1:-start}"
-  case "$cmd" in
-    start)  cmd_mongodb_start ;;
-    stop)   cmd_mongodb_stop ;;
-    reset)  cmd_mongodb_reset ;;
-    status) cmd_mongodb_status ;;
-    *)
-      echo "Unknown mongodb command: $cmd" >&2
-      echo "Usage: ./start-services.sh mongodb [start|stop|reset|status]" >&2
-      exit 1
-      ;;
-  esac
-}
-
-cmd_postgres_start() {
-  echo "Starting local Postgres + pgvector..."
-  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" up -d postgres-local
+cmd_store_start() {
+  local provider="$1"
+  local service container hook
+  service="$(store_field "$provider" profile)"
+  container="$(store_container_name "$provider")"
+  echo "Starting ${provider}..."
+  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" up -d "$service"
   echo ""
-  echo "Waiting for Postgres to be ready..."
-  wait_for_postgres_local_healthy
-  print_local_postgres_cli_hints 1
+  echo "Waiting for ${provider} to be ready..."
+  local wait_fn="wait_for_${provider}_local_healthy"
+  if declare -F "$wait_fn" >/dev/null; then
+    "$wait_fn"
+  else
+    hook="_${provider}_health_failed"
+    if ! declare -F "$hook" >/dev/null; then
+      hook=""
+    fi
+    wait_for_named_container_healthy "$container" "$provider" "$hook"
+  fi
+  _print_store_ready "$provider"
 }
 
-cmd_postgres_stop() {
-  echo "Stopping local Postgres..."
-  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" stop postgres-local
+cmd_store_stop() {
+  local provider="$1"
+  local service
+  service="$(store_field "$provider" profile)"
+  echo "Stopping ${provider}..."
+  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" stop "$service"
   echo "Stopped."
 }
 
-cmd_postgres_reset() {
-  echo "Stopping and wiping local Postgres data volume..."
-  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" rm -sf postgres-local
-  docker volume rm "$RAG_POSTGRES_LOCAL_VOLUME" 2>/dev/null || true
-  echo "Volume wiped. Run './start-services.sh postgres start' to recreate."
+cmd_store_reset() {
+  local provider="$1"
+  local service
+  service="$(store_field "$provider" profile)"
+  echo "Stopping and wiping ${provider} data volumes..."
+  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" rm -sf "$service"
+  _remove_store_volumes "$provider"
+  echo "Volumes wiped. Run './start-services.sh ${provider} start' to recreate."
 }
 
-cmd_postgres_status() {
-  local state
-  state="$(docker inspect --format='{{.State.Status}}' "$RAG_POSTGRES_LOCAL_CONTAINER" 2>/dev/null || echo "not found")"
-  local health
-  health="$(docker inspect --format='{{.State.Health.Status}}' "$RAG_POSTGRES_LOCAL_CONTAINER" 2>/dev/null || echo "—")"
-  echo "Container: $RAG_POSTGRES_LOCAL_CONTAINER"
+cmd_store_status() {
+  local provider="$1"
+  local container state health
+  container="$(store_container_name "$provider")"
+  state="$(docker inspect --format='{{.State.Status}}' "$container" 2>/dev/null || echo "not found")"
+  health="$(docker inspect --format='{{.State.Health.Status}}' "$container" 2>/dev/null || echo "—")"
+  echo "Container: $container"
   echo "  State:  $state"
   echo "  Health: $health"
   if [[ "$state" == "running" && "$health" == "healthy" ]]; then
-    print_local_postgres_cli_hints 1
+    _print_store_ready "$provider"
   fi
-}
-
-run_postgres_subcommand() {
-  if ! command -v docker >/dev/null 2>&1; then
-    echo "Docker is not installed. See https://docs.docker.com/get-docker/" >&2
-    exit 1
-  fi
-  compose_require_docker_daemon || exit 1
-  compose_detect
-  compose_files
-  compose_local_postgres_profiles
-
-  local cmd="${1:-start}"
-  case "$cmd" in
-    start)  cmd_postgres_start ;;
-    stop)   cmd_postgres_stop ;;
-    reset)  cmd_postgres_reset ;;
-    status) cmd_postgres_status ;;
-    *)
-      echo "Unknown postgres command: $cmd" >&2
-      echo "Usage: ./start-services.sh postgres [start|stop|reset|status]" >&2
-      exit 1
-      ;;
-  esac
 }
 
 parse_args() {
@@ -221,59 +209,10 @@ parse_args() {
   export FORCE_BUILD LOCAL_ATLAS LOCAL_POSTGRES STACK_DB_TYPE STACK_LOCATION STACK_STORAGE_MODE STACK_MODE_FROM_CLI
 }
 
-cmd_elasticsearch_start() {
-  echo "Starting local Elasticsearch..."
-  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" up -d elasticsearch-local
-  echo ""
-  echo "Waiting for Elasticsearch to be ready..."
-  local tries=0
-  local health=""
-  while true; do
-    health="$(docker inspect --format='{{.State.Health.Status}}' "$RAG_ELASTICSEARCH_LOCAL_CONTAINER" 2>/dev/null || echo "")"
-    if [[ "$health" == "healthy" ]]; then
-      break
-    fi
-    tries=$((tries + 1))
-    if [[ "$health" == "unhealthy" || $tries -ge 90 ]]; then
-      echo "Elasticsearch did not become healthy." >&2
-      echo "  docker logs $RAG_ELASTICSEARCH_LOCAL_CONTAINER 2>&1 | tail -20" >&2
-      echo "  On Linux, vm.max_map_count must be at least 262144." >&2
-      exit 1
-    fi
-    printf "."
-    sleep 2
-  done
-  echo ""
-  echo "Elasticsearch: ${RAG_LOCAL_ELASTICSEARCH_URL_HOST}"
-  echo "Suggested: rag-params-finder run --config configs/elasticsearch/example-local.yaml"
-}
-
-cmd_elasticsearch_stop() {
-  echo "Stopping local Elasticsearch..."
-  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" stop elasticsearch-local
-  echo "Stopped."
-}
-
-cmd_elasticsearch_reset() {
-  echo "Stopping and wiping local Elasticsearch data volume..."
-  "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_PROFILES[@]}" rm -sf elasticsearch-local
-  docker volume rm "$RAG_ELASTICSEARCH_LOCAL_VOLUME" 2>/dev/null || true
-  echo "Volume wiped. Run './start-services.sh elasticsearch start' to recreate."
-}
-
-cmd_elasticsearch_status() {
-  local state health
-  state="$(docker inspect --format='{{.State.Status}}' "$RAG_ELASTICSEARCH_LOCAL_CONTAINER" 2>/dev/null || echo "not found")"
-  health="$(docker inspect --format='{{.State.Health.Status}}' "$RAG_ELASTICSEARCH_LOCAL_CONTAINER" 2>/dev/null || echo "—")"
-  echo "Container: $RAG_ELASTICSEARCH_LOCAL_CONTAINER"
-  echo "  State:  $state"
-  echo "  Health: $health"
-}
-
 run_named_store_command() {
   local provider="$1"
   local cmd="${2:-start}"
-  local fn="cmd_${provider}_${cmd}"
+  local fn="cmd_store_${cmd}"
   if ! declare -F "$fn" >/dev/null; then
     echo "Unknown ${provider} command: $cmd" >&2
     echo "Usage: ./start-services.sh ${provider} [start|stop|reset|status]" >&2
@@ -289,7 +228,7 @@ run_named_store_command() {
   local profile
   profile="$(store_field "$provider" profile)"
   COMPOSE_PROFILES=(--profile "$profile")
-  "$fn"
+  "$fn" "$provider"
 }
 
 if store_is_provider "${1:-}"; then

@@ -12,14 +12,11 @@ from __future__ import annotations
 
 from server.core.guards.health_check import postgres_health_status
 from server.core.guards.search_index_guard import validate_postgres_experiment_indexes
-from server.core.guards.search_index_plan import (
-    POSTGRES_REQUIRED_INDEXES,
-    POSTGRES_VECTOR_EXTENSION,
-    SearchIndexAssessment,
-)
+from server.core.guards.search_index_plan import SearchIndexAssessment
 from server.db.ports.retriever_backend import RetrieverBackend
 from server.db.ports.vector_store import VectorCapabilities
 from server.db.postgres.postgres import bootstrap_schema
+from server.db.postgres.postgres_catalog import PostgresCatalog
 from server.db.postgres.postgres_store import (
     PostgresRetrieverBackend,
     PostgresStorageBackend,
@@ -28,20 +25,7 @@ from server.db.postgres.postgres_store import (
 )
 from server.db.postgres.postgres_uri import postgres_storage_mode
 from server.models.config import ExperimentConfig
-from server.models.enums import RetrievalMethod
 from server.settings import settings
-
-_CAPABILITIES = VectorCapabilities(
-    retrieval_methods=frozenset(
-        {RetrievalMethod.DENSE, RetrievalMethod.SPARSE, RetrievalMethod.HYBRID}
-    ),
-    similarity_metrics=frozenset({"cosine"}),
-    index_types=frozenset({"hnsw", "gin"}),
-    supported_embedding_dims=frozenset({384, 1024}),
-    supports_metadata_filters=True,
-    can_host_run_state=True,
-    labels=frozenset({"postgres", "pgvector", "supabase"}),
-)
 
 
 class PostgresVectorStore:
@@ -97,15 +81,12 @@ class PostgresVectorStore:
 
     @classmethod
     def capabilities(cls) -> VectorCapabilities:
-        return _CAPABILITIES
+        return PostgresCatalog.capabilities()
 
     @classmethod
     def ui_labels(cls) -> dict[str, str]:
-        return {"index": "Table", "host": "Host", "section": "Host & Table"}
+        return PostgresCatalog.ui_labels()
 
     @classmethod
     def index_summary(cls) -> dict[str, object]:
-        return {
-            "extension": POSTGRES_VECTOR_EXTENSION,
-            "indexes": sorted(POSTGRES_REQUIRED_INDEXES),
-        }
+        return PostgresCatalog.index_summary()

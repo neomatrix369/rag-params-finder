@@ -67,6 +67,32 @@ def example_config_for(provider: str) -> str:
     return _EXAMPLE_CONFIG[provider]
 
 
+# Catalog modules expose labels, capabilities, and index summaries without
+# importing pymongo, psycopg, or the Elasticsearch client. GET /api/stores
+# resolves these, not the full adapters.
+_CATALOG_REGISTRY: dict[str, str] = {
+    "mongodb": "server.db.mongo.mongo_catalog:MongoCatalog",
+    "postgres": "server.db.postgres.postgres_catalog:PostgresCatalog",
+    "elasticsearch": "server.db.elasticsearch.elasticsearch_catalog:ElasticsearchCatalog",
+}
+
+
+def resolve_catalog(provider: str) -> type:
+    """Lazily import the driver-free catalog class for ``provider``.
+
+    Same error shape as ``resolve_adapter``. The catalog class must stay
+    free of store drivers so listing stores does not require every extra.
+    """
+    if provider not in _VECTOR_STORE_REGISTRY:
+        known = ", ".join(sorted(_VECTOR_STORE_REGISTRY)) or "<none>"
+        raise ValueError(f"Unknown vector store {provider!r}. Known vector stores: {known}.")
+    target = _CATALOG_REGISTRY.get(provider)
+    if target is None:
+        known = ", ".join(sorted(_CATALOG_REGISTRY)) or "<none>"
+        raise ValueError(f"Unknown vector store {provider!r}. Known vector stores: {known}.")
+    return _load_registered_class(target)
+
+
 def resolve_adapter(provider: str) -> type:
     """Lazily import and return the adapter class registered for ``provider``.
 
@@ -79,10 +105,14 @@ def resolve_adapter(provider: str) -> type:
     if target is None:
         known = ", ".join(sorted(_VECTOR_STORE_REGISTRY)) or "<none>"
         raise ValueError(f"Unknown vector store {provider!r}. Known vector stores: {known}.")
+    return _load_registered_class(target)
+
+
+def _load_registered_class(target: str) -> type:
     module_path, _, class_name = target.partition(":")
     module = importlib.import_module(module_path)
-    adapter_class: type = getattr(module, class_name)
-    return adapter_class
+    registered: type = getattr(module, class_name)
+    return registered
 
 
 def vector_store_can_host_run_state(provider: str) -> bool:
