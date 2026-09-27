@@ -2,8 +2,9 @@
   "slice": "49B",
   "gate_status": "ON_BRANCH",
   "branch": "slice/49b-vector-store-data-path-rewire",
-  "head": "0c2c141",
-  "note": "Chunk data path fully rewired onto the vector-store port (10/10 sites); pairing rule (ii) replaces the 49A equality lock; two-store /healthz + fail-closed preflight; gates green locally, PR not yet opened",
+  "head": "67ef663",
+  "pr": "https://github.com/neomatrix369/rag-params-finder/pull/202",
+  "note": "Chunk data path rewired onto the vector-store port; pairing rule (ii); two-store health and fail-closed preflight. Reviewers APPROVED and /verify-slice COMPLETE at 67ef663. gate_status stays ON_BRANCH until PR #202 merges.",
   "red_run": {
     "commit": "a490f406",
     "test": "tests/server/test_split_store_e2e.py::TestSplitStoreSweepShould::test_given_split_store_config_when_sweep_runs_then_chunks_land_only_in_vector_store",
@@ -58,14 +59,46 @@
     {"item": "preflight call sites still invoke validate_experiment_search_indexes by name (wrapped by preflight_stores) rather than a renamed symbol", "owner": "n/a — deliberate", "reason": "~9 existing test files monkeypatch that exact attribute; renaming would silently disable those patches"}
   ],
   "code_review": {
+    "reviewed_at": "2026-09-27",
+    "head": "67ef663",
+    "parent_cross_check": "Call sites re-read after the four reviews. Reviewer line numbers differed; the lines below are the ones on disk. Chunk writes do not go through get_storage_backend().",
+    "trace": {
+      "ingest": "server/core/pipeline/orchestrator.py:98-99 store_factory.get_vector_store().insert_chunks",
+      "query": "server/core/pipeline/search.py:50 get_retriever_backend(); server/db/ports/store_factory.py:58-65 delegates to get_vector_store().retriever()",
+      "delete": "server/api/experiments_shared.py:69-72 vector delete_chunks_for_experiment then get_storage_backend().delete_experiment_data",
+      "stats": "server/api/experiments_shared.py:79-82 vector chunk facts plus run-state result counts; :86-87 grouped stats from the vector store",
+      "preflight": "server/core/guards/search_index_guard.py:162-168 vector step first; run-state health only when the stores differ",
+      "boot": "server/main.py:28 settings.ensure_storage_ready(); server/main.py:36-47 Atlas bootstrap only when the vector store is Mongo",
+      "healthz": "server/core/guards/health_check.py:224-239 ok is both stores; server/main.py:115-117 returns 503 when not ok"
+    },
     "reviewers": {
-      "nw-software-crafter-reviewer": "PENDING",
-      "nw-solution-architect-reviewer": "PENDING",
-      "nw-system-designer-reviewer": "PENDING",
-      "nw-data-engineer-reviewer": "PENDING"
+      "nw-software-crafter-reviewer": "APPROVED",
+      "nw-solution-architect-reviewer": "APPROVED",
+      "nw-system-designer-reviewer": "APPROVED",
+      "nw-data-engineer-reviewer": "APPROVED"
     }
   },
+  "at_completeness": {
+    "gwt_fence": "14/14 scenarios in the spec fence have a test, or the recorded 49A red_run for the defect-detector scenario",
+    "tier1": "12/15 ACCEPTABLE_WITH_DOCUMENTED_GAPS",
+    "zero_obligation": "PASS — DELETE of an experiment with no chunks reports 0",
+    "tier2": "no BLOCK — S1 N/A (pytest, no bdd step registry); S2 N/A (this repo has no des.domain package; ATs use TestClient and public use-cases); S3 PASS (sweep, DELETE, /healthz, preflight, boot URI check)",
+    "documented_gaps": [
+      "C2a/C2b: 49B does not add an experiment state machine; pause/resume and partial-delete transitions are tested",
+      "C6c: declared errors (422, ValidationError, 503) each have a test; there is no assertion that no other error type can escape"
+    ]
+  },
   "verify_slice": {
-    "verdict": "PENDING"
+    "verdict": "COMPLETE",
+    "evidence_state": "VERIFIED",
+    "verified_at": "2026-09-27",
+    "head": "67ef663",
+    "acceptance_criteria": "14/14",
+    "quality_gates": "pre-push at 67ef663: 563 unit tests passed; gated-module coverage 98.33% (floor 95); frontend test:ci 264 passed, 98.4/93.11/100/99.69; xenon E/C/C pass. Combined backend coverage last full run 72.43% against floor 70, before the additive recovery tests.",
+    "runtime": "In-memory split store via FastAPI TestClient (POST /experiments, /healthz, DELETE). Live Elasticsearch is a 49B non-goal.",
+    "documentation": "current — pairing rule and planned-not-runnable ES wording landed in 48fd4cc",
+    "visual_assets": "aligned — docs/contributor-guide/architecture.md storage-ports diagram shows get_vector_store() and pairing rule (ii)",
+    "decision_ownership": "CF-49B-1 → Slice 51; CF-49B-2 → Slice 50 (DECISIONS #258). DatabaseProvider was not widened.",
+    "note": "COMPLETE on the slice contract. gate_status stays ON_BRANCH until PR #202 merges (GATE_CONTRACT)."
   }
 }

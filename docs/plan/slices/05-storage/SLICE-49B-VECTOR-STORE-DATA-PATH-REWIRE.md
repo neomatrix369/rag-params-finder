@@ -284,12 +284,12 @@ Scenario: No test asserts chunk calls on the run-state mock
 
 ### Closing Gates
 
-- [ ] `nw-at-completeness-check` (gate #8)
-- [ ] `nw-software-crafter-reviewer` (gate #9)
-- [ ] `nw-solution-architect-reviewer` + `nw-system-designer-reviewer` + `nw-data-engineer-reviewer` (gate #9, parallel): each traces ingest → query → delete → stats → preflight → boot → `/healthz` through the real call sites with file:line evidence (DECISIONS #240)
-- [ ] `nw-gate-evidence-validator` — 9 conditions pass
-- [ ] `/verify-slice` — verdict COMPLETE
+- [x] `nw-at-completeness-check` (gate #8) — GWT fence 14/14; Tier-1 12/15 ACCEPTABLE_WITH_DOCUMENTED_GAPS (C2a, C2b, C6c); Tier-2 no BLOCK
+- [x] `nw-software-crafter-reviewer` (gate #9) — APPROVED 2026-09-27
+- [x] `nw-solution-architect-reviewer` + `nw-system-designer-reviewer` + `nw-data-engineer-reviewer` (gate #9, parallel) — APPROVED 2026-09-27; parent cross-check confirmed ingest `orchestrator.py:98-99`, query `search.py:50` via `store_factory.py:58-65`, delete `experiments_shared.py:69-72`, stats `experiments_shared.py:79-87`, preflight `search_index_guard.py:162-168`, boot `main.py:28` and `:36-47`, `/healthz` `health_check.py:224-239` plus `main.py:115-117`
+- [x] `nw-gate-evidence-validator` — recorded in `gate-evidence/slice-49b.json`. Project floors (DECISIONS #142: combined cover 70, not the skill's 95% default) hold on the last full run (72.43%) plus the pre-push unit suite (563 passed, gated modules 98.33%). Complexity stays inside the locked xenon E/C/C ceiling (Slice 47). `gate_status` stays `ON_BRANCH` until PR #202 merges.
+- [x] `/verify-slice` — verdict COMPLETE (2026-09-27, head `67ef663`)
 
 ## Gate Status
 
-🔀 ON BRANCH — created 2026-09-25 (DECISIONS #242); rewire sites 1–10, test infra, and doc exit landed on `slice/49b-vector-store-data-path-rewire`; `/verify-slice` + reviewer gates (Closing Gates above) still pending before `gate-evidence/slice-49b.json` and PROGRESS/TRAIL move to ✅ PASSED.
+🔀 ON BRANCH — `/verify-slice` COMPLETE and Closing Gates reviewers APPROVED on 2026-09-27 (head `67ef663`, [PR #202](https://github.com/neomatrix369/rag-params-finder/pull/202)). `gate-evidence/slice-49b.json` stays `ON_BRANCH` until that PR merges; PROGRESS/TRAIL move to ✅ PASSED after merge. CF-49B-1 remains Slice 51; CF-49B-2 remains Slice 50.
