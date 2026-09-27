@@ -229,6 +229,59 @@ conformance check for the new adapter. Call-site modules must not import
 
 ---
 
+## 🧭 Adding a Vector Store
+
+Chunk write/delete/stats, search, index planning, and health live behind a
+second port — `VectorStore` (`server/db/ports/vector_store.py`) — separate
+from `StorageBackend`'s run-state CRUD (experiments/runs/results). A
+provider→adapter registry (`server/db/ports/registry.py`) resolves the active
+store, so a new vector store is one registry entry, not a scatter of
+`if backend == …` edits.
+
+### 1. Implement the `VectorStore` Protocol
+
+Either directly, or — as both existing adapters do — as a thin composite over
+an existing storage/retriever pair: delegate chunk write/delete/stats to the
+store's existing `StorageBackend` methods, `retriever()` to its
+`RetrieverBackend`, and declare a `VectorCapabilities` (retrieval methods,
+similarity metrics, index types, supported embedding dims, metadata-filter
+support, `can_host_run_state`). See `MongoVectorStore`
+(`server/db/mongo/mongo_vector_store.py`) and `PostgresVectorStore`
+(`server/db/postgres/postgres_vector_store.py`) for the composite pattern.
+
+### 2. Register it
+
+Add one entry to `_VECTOR_STORE_REGISTRY` in `server/db/ports/registry.py`:
+
+```python
+_VECTOR_STORE_REGISTRY: dict[str, str] = {
+    "mongodb": "server.db.mongo.mongo_vector_store:MongoVectorStore",
+    "postgres": "server.db.postgres.postgres_vector_store:PostgresVectorStore",
+    "my_store": "server.db.my_store.my_vector_store:MyVectorStore",
+}
+```
+
+`resolve_adapter()` imports the target lazily, so a store that isn't selected
+never pulls in its driver at process start.
+
+### 3. That's it
+
+`get_vector_store()` (`server/db/ports/store_factory.py`) picks up the new
+entry automatically via `VECTOR_STORE_BACKEND` — no factory branch to edit.
+`get_retriever_backend()` keeps working unchanged (`get_vector_store().retriever()`).
+
+### Current limitation (Slice 49A)
+
+Slice 49A locks `VECTOR_STORE_BACKEND == STORAGE_BACKEND` — the chunk data
+path still runs through `StorageBackend`, not yet through `VectorStore`, so a
+store that can't host run state (e.g. the upcoming Elasticsearch adapter,
+Slice 50) can register here but can't actually run as a split store — vectors
+in one engine, run state in another — until Slice 49B rewires the data path
+and relaxes the lock to the pairing rule. The full 15-stage "add a store" user
+journey and checklist land in Slice 51.
+
+---
+
 ## ⚠️ Common Gotchas
 
 | Gotcha | What to watch for |
