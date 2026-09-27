@@ -29,6 +29,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 |---------|------------|------|
 | **New user — MongoDB + providers** | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) | [QUICKSTART.md](../QUICKSTART.md) → [user-guide/getting-started.md](./user-guide/getting-started.md) |
 | **New user — Postgres (local or Supabase-hosted)** | [user-guide/postgres-setup.md](./user-guide/postgres-setup.md) | [QUICKSTART.md](../QUICKSTART.md) Path D → `configs/supabase/example-unified-retrievers.yaml` |
+| **New user — Elasticsearch (vector-only)** | [user-guide/elasticsearch-setup.md](./user-guide/elasticsearch-setup.md) | [QUICKSTART.md](../QUICKSTART.md) Path E → `configs/elasticsearch/example-local.yaml` |
 | **New user — first sweep** | [QUICKSTART.md](../QUICKSTART.md) | [user-guide/getting-started.md](./user-guide/getting-started.md) → dashboard at `http://localhost:5374` |
 | **Operator — config & CLI** | [user-guide/configuration.md](./user-guide/configuration.md) | [user-guide/cli-reference.md](./user-guide/cli-reference.md) |
 | **Operator — dashboard** | [user-guide/dashboard-guide.md](./user-guide/dashboard-guide.md) | [user-guide/configuration.md](./user-guide/configuration.md) (tiebreaker, env vars) |

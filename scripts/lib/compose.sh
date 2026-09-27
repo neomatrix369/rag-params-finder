@@ -30,6 +30,12 @@ RAG_LOCAL_DATABASE_URL_DOCKER="${RAG_LOCAL_DATABASE_URL_DOCKER:-postgresql://${R
 RAG_POSTGRES_LOCAL_CONTAINER="${POSTGRES_LOCAL_CONTAINER_NAME:-rag-params-finder-postgres-local}"
 RAG_POSTGRES_LOCAL_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_postgres_local_data"
 
+# ── Elasticsearch (vector-only; run state is a separate store) ────────────────
+RAG_LOCAL_ELASTICSEARCH_URL_HOST="${RAG_LOCAL_ELASTICSEARCH_URL_HOST:-http://127.0.0.1:9200}"
+RAG_LOCAL_ELASTICSEARCH_URL_DOCKER="${RAG_LOCAL_ELASTICSEARCH_URL_DOCKER:-http://elasticsearch-local:9200}"
+RAG_ELASTICSEARCH_LOCAL_CONTAINER="${ELASTICSEARCH_LOCAL_CONTAINER_NAME:-rag-params-finder-elasticsearch-local}"
+RAG_ELASTICSEARCH_LOCAL_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_elasticsearch_local_data"
+
 compose_require_docker_daemon() {
   if ! docker info >/dev/null 2>&1; then
     echo "Cannot connect to the Docker daemon. Is Docker Desktop running?" >&2
@@ -72,6 +78,20 @@ compose_local_postgres_active() {
 compose_local_postgres_profiles() {
   # Canonical profile matches storage_mode=postgres-local (local-postgres remains an alias).
   COMPOSE_PROFILES=(--profile postgres-local)
+}
+
+compose_local_elasticsearch_profiles() {
+  COMPOSE_PROFILES=(--profile elasticsearch-local)
+}
+
+compose_export_local_elasticsearch_env() {
+  export RAG_SERVER_ELASTICSEARCH_URL="$RAG_LOCAL_ELASTICSEARCH_URL_DOCKER"
+  export VECTOR_STORE_BACKEND=elasticsearch
+  export SERVER_EXTRAS=elasticsearch
+}
+
+compose_clear_local_elasticsearch_env() {
+  unset RAG_SERVER_ELASTICSEARCH_URL SERVER_EXTRAS
 }
 
 compose_export_local_postgres_env() {

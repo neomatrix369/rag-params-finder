@@ -135,6 +135,7 @@ Backend-aware:
 |---|---|---|
 | `mongodb` | Atlas Search indexes (known vs unknown) | Drop unknown / rebuild chunks indexes |
 | `postgres` | Catalog: `vector` extension + HNSW/GIN present vs missing | Not applicable — restart server / schema bootstrap |
+| `elasticsearch` | `GET /api/stores` mapping summary (`rpf-chunks`, HNSW fields) | Not applicable — Atlas-only |
 
 #### `indexes list`
 
@@ -145,6 +146,12 @@ rag-params-finder indexes list
 **Mongo:** Lists all Atlas Search indexes across every database on the cluster. Tags each index **KNOWN** (managed by this project) or **UNKNOWN**. Shows total count vs the M0 limit (3).
 
 **Postgres:** Lists the `vector` extension and required `chunks` indexes (`chunks_embedding_384_hnsw`, `chunks_embedding_1024_hnsw`, `chunks_text_search_gin`) as PRESENT or MISSING.
+
+**Elasticsearch:** Prints the active store's `GET /api/stores` index summary (index name, HNSW fields). It does not open the cluster catalog directly.
+
+#### `GET /api/stores`
+
+Public catalog of registered vector stores: provider, whether it is active, `example_config`, `can_host_run_state`, UI labels, capabilities, and a static index summary. Connection strings and API keys are omitted. `indexes list` reads this endpoint.
 
 #### `indexes reset`
 
@@ -222,6 +229,7 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 
 | Method | Path | Purpose |
 |---|---|---|
+| GET | `/api/stores` | Registered vector stores, active store, labels, and index summary. Secrets omitted |
 | GET | `/healthz` | Liveness for both stores (Slice 49B). See **`/healthz` response shape** below. HTTP 503 when either store is unreachable |
 | GET | `/health` | Extended health — storage fields from `/healthz` plus `sie` (`disabled` / `reachable` / `unreachable`) and `version` |
 
@@ -275,7 +283,7 @@ label), and the per-engine key (`mongodb` / `postgres`, including Mongo's
 }
 ```
 
-**`storage_mode`** follows the vector store (`VECTOR_STORE_BACKEND`, default `STORAGE_BACKEND`). Single-store values stay the four compounds from that backend plus the connection-string host: `mongodb-local`, `mongodb-cloud`, `postgres-local`, `postgres-cloud`. Atlas cloud is detected via `*.mongodb.net`; hosted Supabase via `*.supabase.*`. It is *not* the YAML `database_provider` field (see [configuration.md](configuration.md)). The split-store JSON above illustrates the added keys with the Elasticsearch vector store. Local cluster commands land in Slice 51.
+**`storage_mode`** follows the vector store (`VECTOR_STORE_BACKEND`, default `STORAGE_BACKEND`). Single-store values stay the four compounds from that backend plus the connection-string host: `mongodb-local`, `mongodb-cloud`, `postgres-local`, `postgres-cloud`. Atlas cloud is detected via `*.mongodb.net`; hosted Supabase via `*.supabase.*`. It is *not* the YAML `database_provider` field (see [configuration.md](configuration.md)). The split-store JSON above illustrates the added keys with the Elasticsearch vector store. Local cluster: `./start-services.sh --elasticsearch-local` and `./start-services.sh elasticsearch status`.
 
 **`POST /experiments` engine gate:** if normalized `database_provider` ≠ `VECTOR_STORE_BACKEND` (default `STORAGE_BACKEND`), the API returns **HTTP 422** with a `Config engine mismatch` remediation **before** search-index / SIE preflight. The message text still says `server storage_backend=`; that value is the active vector store. Catalog/index missing-object 422s are a separate message family (see [troubleshooting](troubleshooting.md#-config-engine-mismatch-database_provider--storage_backend)).
 | POST | `/api/v1/sweep` | Tier 1 ranked SIE vs Voyage sweep over caller-supplied corpus *(see [sie-setup.md](sie-setup.md))* |

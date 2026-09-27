@@ -9,7 +9,7 @@ Admin or Postgres catalogs.
 from __future__ import annotations
 
 from server.core.guards.health_check import resolve_storage_mode
-from server.db.ports.registry import resolve_adapter
+from server.db.ports.registry import example_config_for
 from server.models.config import ExperimentConfig, normalize_database_provider
 from server.settings import normalize_storage_backend, settings
 
@@ -23,9 +23,10 @@ def _location_suffix(storage_mode: str) -> str:
 
 
 def _example_config_for_engine(engine: str) -> str:
-    if resolve_adapter(engine) is resolve_adapter("postgres"):
-        return "configs/supabase/example-local.yaml"
-    return "configs/mongodb/example-local.yaml"
+    try:
+        return example_config_for(engine)
+    except ValueError:
+        return example_config_for("mongodb")
 
 
 def format_config_backend_mismatch(

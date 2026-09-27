@@ -75,6 +75,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 |---------|------------|------------------|
 | **New user — cloud accounts** | [MongoDB Setup](docs/user-guide/mongodb-setup.md) | Atlas + optional Voyage, then [QUICKSTART](QUICKSTART.md) |
 | **New user — Postgres (local or Supabase-hosted)** | [Postgres Setup](docs/user-guide/postgres-setup.md) | `./start-services.sh --postgres-local` + `configs/supabase/example-unified-retrievers.yaml` |
+| **New user — Elasticsearch (vector-only)** | [Elasticsearch Setup](docs/user-guide/elasticsearch-setup.md) | `./start-services.sh --elasticsearch-local` + `configs/elasticsearch/example-local.yaml` |
 | **New user — first sweep** | [QUICKSTART](QUICKSTART.md) | Install, run server + CLI, open dashboard |
 | **Operator — config & CLI** | [Configuration Reference](docs/user-guide/configuration.md) | YAML sweeps, env vars, `rag-params-finder` commands |
 | **Operator — dashboard** | [Dashboard Guide](docs/user-guide/dashboard-guide.md) | Live phases, Search Explorer, experiment controls |

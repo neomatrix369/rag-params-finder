@@ -8,6 +8,17 @@ export function isMongoProvider(databaseProvider: string | undefined | null): bo
   return provider === 'mongodb' || provider === 'mongo';
 }
 
+export type StoreUiLabels = {
+  index: string;
+  host: string;
+  section: string;
+};
+
+function isPostgresProvider(databaseProvider: string | undefined | null): boolean {
+  const provider = (databaseProvider ?? '').toLowerCase();
+  return provider === 'postgres' || provider === 'supabase';
+}
+
 /** Display label for database_provider — never invents a backend when unset. */
 export function displayDatabaseProvider(
   databaseProvider: string | undefined | null,
@@ -16,16 +27,33 @@ export function displayDatabaseProvider(
   return trimmed.length > 0 ? trimmed : '—';
 }
 
-export function clusterHostLabel(databaseProvider: string | undefined | null): string {
-  return isMongoProvider(databaseProvider) ? 'Atlas host' : 'Host';
+export function clusterHostLabel(
+  databaseProvider: string | undefined | null,
+  labels?: StoreUiLabels | null,
+): string {
+  if (labels?.host) return labels.host;
+  if (isMongoProvider(databaseProvider)) return 'Atlas host';
+  return 'Host';
 }
 
-export function collectionOrTableLabel(databaseProvider: string | undefined | null): string {
-  return isMongoProvider(databaseProvider) ? 'Collection' : 'Table';
+export function collectionOrTableLabel(
+  databaseProvider: string | undefined | null,
+  labels?: StoreUiLabels | null,
+): string {
+  if (labels?.index) return labels.index;
+  if (isMongoProvider(databaseProvider)) return 'Collection';
+  if (isPostgresProvider(databaseProvider)) return 'Table';
+  return 'Index';
 }
 
-export function clusterSectionTitle(databaseProvider: string | undefined | null): string {
-  return isMongoProvider(databaseProvider) ? 'Cluster & Collection' : 'Host & Table';
+export function clusterSectionTitle(
+  databaseProvider: string | undefined | null,
+  labels?: StoreUiLabels | null,
+): string {
+  if (labels?.section) return labels.section;
+  if (isMongoProvider(databaseProvider)) return 'Cluster & Collection';
+  if (isPostgresProvider(databaseProvider)) return 'Host & Table';
+  return 'Index & Host';
 }
 
 export function storageQuotaHint(databaseProvider: string | undefined | null): string {

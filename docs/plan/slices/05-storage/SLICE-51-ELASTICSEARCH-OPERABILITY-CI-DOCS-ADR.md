@@ -2,7 +2,7 @@
 
 **MoSCoW:** MUST
 **Target time:** ~11–15 h (largest ES slice — feature closeout; may ship as 2 PRs: **51a** operability/surfaces, **51b** CI/docs/ADR — one branch)
-**Status:** 📋 PLANNED
+**Status:** 🔨 IN PROGRESS
 **Depends on:** 50 (ES adapter core) · 49A/49B (registry, two-store `/healthz`, pairing rule (ii))
 **Branch:** `slice/51-elasticsearch-operability-ci-docs-adr`
 **Feature:** Elasticsearch vector-store adapter (ADR-006)

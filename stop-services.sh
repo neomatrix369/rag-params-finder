@@ -10,15 +10,18 @@ cd "$SCRIPT_DIR"
 source ./scripts/docker/docker-cleanup.sh
 # shellcheck source=scripts/lib/compose.sh
 source ./scripts/lib/compose.sh
+# shellcheck source=scripts/lib/store_manifest.sh
+source ./scripts/lib/store_manifest.sh
 
 compose_detect
 compose_files
-if compose_local_atlas_active; then
-  compose_local_atlas_profiles
-  COMPOSE_DOWN_PROFILES=("${COMPOSE_PROFILES[@]}")
-else
-  COMPOSE_DOWN_PROFILES=()
-fi
+COMPOSE_DOWN_PROFILES=()
+_collect_down_profile() {
+  local _provider="$1"
+  local profile="$2"
+  COMPOSE_DOWN_PROFILES+=(--profile "$profile")
+}
+each_store _collect_down_profile
 
 echo "=== Stop rag-params-finder services ==="
 "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" ps 2>/dev/null || true
@@ -37,23 +40,23 @@ fi
 
 case "$choice" in
   1)
-    "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]}" down
+    "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]+"${COMPOSE_DOWN_PROFILES[@]}"}" down
     docker_cleanup silent
     ;;
   2)
-    "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]}" stop
+    "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]+"${COMPOSE_DOWN_PROFILES[@]}"}" stop
     ;;
   3)
     if [[ "${NONINTERACTIVE:-}" != "1" ]]; then
       echo "Type DELETE HF CACHE to remove HuggingFace model cache volume (cloud Atlas data unaffected)."
       read -r confirm
       if [[ "$confirm" == "DELETE HF CACHE" ]]; then
-        "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]}" down -v
+        "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]+"${COMPOSE_DOWN_PROFILES[@]}"}" down -v
       else
-        "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]}" down
+        "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]+"${COMPOSE_DOWN_PROFILES[@]}"}" down
       fi
     else
-      "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]}" down
+      "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${COMPOSE_DOWN_PROFILES[@]+"${COMPOSE_DOWN_PROFILES[@]}"}" down
     fi
     docker_cleanup aggressive
     ;;

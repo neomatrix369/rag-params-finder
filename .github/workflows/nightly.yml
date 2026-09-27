@@ -135,27 +135,84 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-  # ── Deferred from PR CI: live DB integration ────────────────────────────────
-  postgres-integration:
-    name: Postgres integration (pgvector) — deferred from PR CI
+  # ── Deferred from PR CI: live vector-store integration (skipped ≠ green) ──
+  vector-store-integration:
+    name: Vector store integration (${{ matrix.store }})
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - store: postgres
+            image: pgvector/pgvector:0.8.5-pg16
+            port: "5433:5432"
+            health_options: >-
+              --health-cmd "pg_isready -U rag -d rag_params_finder"
+              --health-interval 5s --health-timeout 5s --health-retries 12
+            pytest_args: >-
+              tests/server/db/test_postgres_store_integration.py
+              tests/server/db/test_postgres_dense_retrieval.py
+              tests/server/db/test_postgres_sparse_hybrid.py
+              tests/contract/test_storage_backend_contract.py
+              --cov=server.core.retrieval.retriever_postgres
+              --cov-branch --cov-report=term-missing --cov-fail-under=95
+            require_env: RAG_REQUIRE_POSTGRES=1
+            extra_env: RAG_TEST_DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+            service_env: |
+              POSTGRES_USER=rag
+              POSTGRES_PASSWORD=rag
+              POSTGRES_DB=rag_params_finder
+            install_spec: ".[dev]"
+          - store: mongodb
+            image: mongodb/mongodb-atlas-local:8.3.3
+            port: "27017:27017"
+            health_options: >-
+              --health-cmd "mongosh --quiet --eval \"db.adminCommand('ping').ok\""
+              --health-interval 10s --health-timeout 5s --health-retries 12
+              --health-start-period 60s
+            pytest_args: tests/contract/test_storage_backend_contract.py
+            require_env: RAG_REQUIRE_MONGO=1
+            extra_env: RAG_TEST_MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true
+            service_env: ""
+            install_spec: ".[dev]"
+          - store: elasticsearch
+            image: docker.elastic.co/elasticsearch/elasticsearch:9.5.0
+            port: "9200:9200"
+            health_options: >-
+              --health-cmd "curl -sf http://localhost:9200/_cluster/health"
+              --health-interval 10s --health-timeout 5s --health-retries 18
+              --health-start-period 40s
+            pytest_args: >-
+              tests/server/db/test_elasticsearch_live.py
+              tests/server/test_split_store_e2e.py
+            require_env: RAG_REQUIRE_ELASTICSEARCH=1
+            extra_env: ELASTICSEARCH_URL=http://127.0.0.1:9200
+            service_env: |
+              discovery.type=single-node
+              xpack.security.enabled=false
+              xpack.license.self_generated.type=basic
+              ES_JAVA_OPTS=-Xms1g -Xmx1g
+            install_spec: ".[dev,elasticsearch]"
     services:
-      postgres:
-        image: pgvector/pgvector:0.8.5-pg16
+      store:
+        image: ${{ matrix.image }}
         env:
           POSTGRES_USER: rag
           POSTGRES_PASSWORD: rag
           POSTGRES_DB: rag_params_finder
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          xpack.license.self_generated.type: basic
+          ES_JAVA_OPTS: "-Xms1g -Xmx1g"
         ports:
-          - 5433:5432
-        options: >-
-          --health-cmd "pg_isready -U rag -d rag_params_finder"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
+          - ${{ matrix.port }}
+        options: ${{ matrix.health_options }}
     steps:
       - uses: actions/checkout@v7
+      - name: Raise vm.max_map_count for Elasticsearch
+        if: matrix.store == 'elasticsearch'
+        run: sudo sysctl -w vm.max_map_count=262144
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
@@ -165,57 +222,30 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
-      - name: Install dependencies (including dev)
-        run: uv pip install --system -e ".[dev]"
-      - name: Postgres StorageBackend and dense retrieval integration tests
+      - name: Install dependencies
+        run: uv pip install --system -e "${{ matrix.install_spec }}"
+      - name: Live ${{ matrix.store }} tests
         env:
-          RAG_TEST_DATABASE_URL: postgresql://rag:rag@localhost:5433/rag_params_finder
-          RAG_REQUIRE_POSTGRES: "1"
-        run: |
-          pytest tests/server/db/test_postgres_store_integration.py \
-                 tests/server/db/test_postgres_dense_retrieval.py \
-                 tests/server/db/test_postgres_sparse_hybrid.py \
-                 tests/contract/test_storage_backend_contract.py \
-                 --tb=short -q -rs \
-                 --cov=server.core.retrieval.retriever_postgres \
-                 --cov-branch --cov-report=term-missing --cov-fail-under=95
+          RAG_REQUIRE_POSTGRES: ${{ matrix.store == 'postgres' && '1' || '' }}
+          RAG_REQUIRE_MONGO: ${{ matrix.store == 'mongodb' && '1' || '' }}
+          RAG_REQUIRE_ELASTICSEARCH: ${{ matrix.store == 'elasticsearch' && '1' || '' }}
+          RAG_TEST_DATABASE_URL: ${{ matrix.store == 'postgres' && 'postgresql://rag:rag@localhost:5433/rag_params_finder' || '' }}
+          RAG_TEST_MONGODB_URI: ${{ matrix.store == 'mongodb' && 'mongodb://localhost:27017/rag_params_finder?directConnection=true' || '' }}
+          ELASTICSEARCH_URL: ${{ matrix.store == 'elasticsearch' && 'http://127.0.0.1:9200' || '' }}
+          STORAGE_BACKEND: ${{ matrix.store == 'mongodb' && 'mongodb' || 'postgres' }}
+        run: pytest ${{ matrix.pytest_args }} --tb=short -q -rs
 
-  mongo-integration:
-    name: Mongo integration (Atlas Local) — deferred from PR CI
+  vector-store-integration-summary:
+    name: Vector store integration summary (skipped ≠ green)
+    needs: vector-store-integration
+    if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    services:
-      mongodb:
-        image: mongodb/mongodb-atlas-local:8.3.3
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --quiet --eval \"db.adminCommand('ping').ok\""
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 12
-          --health-start-period 60s
     steps:
-      - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version-file: ".python-version"
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-      - name: Install dependencies (including dev)
-        run: uv pip install --system -e ".[dev]"
-      - name: Mongo StorageBackend contract tests
-        env:
-          RAG_TEST_MONGODB_URI: mongodb://localhost:27017/rag_params_finder?directConnection=true
-          RAG_REQUIRE_MONGO: "1"
-          STORAGE_BACKEND: mongodb
+      - name: Fail unless every matrix leg succeeded
         run: |
-          pytest tests/contract/test_storage_backend_contract.py \
-                 --tb=short -q -rs
+          result="${{ needs.vector-store-integration.result }}"
+          echo "vector-store-integration result=${result}"
+          test "${result}" = "success"
 
   # ── Deferred from PR CI: Docker build validation ────────────────────────────
   docker-build:

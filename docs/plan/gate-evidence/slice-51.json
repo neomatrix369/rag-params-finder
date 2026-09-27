@@ -1,0 +1,84 @@
+{
+  "slice": "51",
+  "gate_status": "ON_BRANCH",
+  "verified_at": "2026-09-27",
+  "branch": "slice/51-elasticsearch-operability-ci-docs-adr",
+  "note": "Compose Elasticsearch 9.5.0 is running (basic licence, security off, 1 GB heap, 127.0.0.1:9200, cluster green after the disk-watermark incident). Live pytest passed. health-check.sh passed with the dashboard up. This is not PASSED: the server image build was stopped because the Docker disk was at 97.9% (Elasticsearch high watermark), so the image was not proven to import the client; cross-backend overlap and the nightly run URL are still open; reviewer gates are not closed.",
+  "open": [
+    "server image build with EXTRAS=elasticsearch (blocked: Docker disk watermark, 1.2 GB free, needs 5.8 GB)",
+    "cross-backend top-3 overlap (Mongo was not running; a 120-run grid was not started)",
+    "nightly vector-store-integration conclusion + run URL",
+    "nw-at-completeness-check, reviewers, and /verify-slice"
+  ],
+  "external_references": {
+    "loaded_at": "2026-09-27",
+    "image_tags_present": ["9.5.0", "9.5.1", "9.5.3"],
+    "compose_pin": "docker.elastic.co/elasticsearch/elasticsearch:9.5.0",
+    "context7": "A current Elastic Docker snippet uses elasticsearch:9.5.3 and xpack.license.self_generated.type=trial. This slice keeps 9.5.0 and licence basic, which the live 9.2.4 cluster also reported as type basic."
+  },
+  "compose_9_5_0": {
+    "measured_at": "2026-09-27T21:44:27Z",
+    "command": "./start-services.sh elasticsearch start",
+    "container": "rag-params-finder-elasticsearch-local",
+    "image": "docker.elastic.co/elasticsearch/elasticsearch:9.5.0",
+    "version_number": "9.5.0",
+    "bind": "127.0.0.1:9200",
+    "health_at_start": "green",
+    "license": "basic",
+    "security_enabled": false,
+    "heap": "-Xms1g -Xmx1g",
+    "pytest_live": "1 passed against this cluster",
+    "healthz": "200 storage_mode=elasticsearch-local run_state_mode=postgres-local both stores ok",
+    "indexes_list": "rpf-chunks embedding_384 embedding_1024 hnsw",
+    "health_check_sh": "all checks passed once the dashboard was on :5374, including the elasticsearch HTTP probe and the postgres cmd probe",
+    "disk_watermark": "During the server image build the node hit 97.9% disk (1.2 GB free). rpf-chunks was created and its primary stayed unassigned (cluster red). The build was stopped and that empty index was deleted. Cluster returned to green."
+  },
+  "live_checks_9_2_4": {
+    "measured_at": "2026-09-27T21:34:00Z",
+    "cluster": {
+      "container": "rag-params-finder-elasticsearch-live",
+      "image": "docker.elastic.co/elasticsearch/elasticsearch:9.2.4",
+      "bind": "127.0.0.1:9200",
+      "health": "green",
+      "license": "basic",
+      "heap_max_bytes": 1073741824
+    },
+    "pytest_live": "RAG_REQUIRE_ELASTICSEARCH=1 tests/server/db/test_elasticsearch_live.py — 1 passed",
+    "python_client": "9.5.1",
+    "healthz": {
+      "ok": true,
+      "storage_mode": "elasticsearch-local",
+      "run_state_mode": "postgres-local",
+      "vector_ok": true,
+      "run_state_ok": true
+    },
+    "indexes_list": "rpf-chunks, fields embedding_1024 and embedding_384, index_type hnsw",
+    "submit_mismatch": "HTTP 422 naming configs/elasticsearch/example-local.yaml",
+    "submit_example": "HTTP 200 experiment 07262d07-37a2-4b6e-8871-24d94bb8e546, 120 runs, then cancel 200 and delete 200 with chunks 0",
+    "health_check_sh": "vector and postgres probes OK; elasticsearch container skipped because the running name is rag-params-finder-elasticsearch-live, not rag-params-finder-elasticsearch-local; frontend :5374 failed because the dashboard was not started"
+  },
+  "quality_gates": {
+    "command": "./scripts/ci/quality-gates.sh",
+    "exit_code": 0,
+    "measured_at": "2026-09-27",
+    "backend": {
+      "tests": 603,
+      "deselected": 1,
+      "total_cover": 73.77,
+      "statements": 76.12,
+      "branches": 64.01,
+      "lines": 76.12,
+      "floors": "72/59/72",
+      "cover_target": 70
+    },
+    "frontend": {
+      "tests": 266,
+      "coverage": {
+        "stmts": 97.76,
+        "branch": 92.78,
+        "functions": 99.39,
+        "lines": 99.16
+      }
+    }
+  }
+}

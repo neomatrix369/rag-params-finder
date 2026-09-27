@@ -22,8 +22,11 @@ COPY pyproject.toml uv.lock ./
 # On aarch64 (Apple Silicon / ARM CI), torch from PyPI is already CPU-only (~82 MB).
 # On x86_64 production hosts, torch from PyPI ships with CUDA; a future slice can
 # add the pytorch-cpu index override via [tool.uv.sources] once x86_64 CI is needed.
+# EXTRAS selects an optional dependency group (Slice 51, DECISIONS #243).
+# Empty keeps the default image the same size. elasticsearch-local sets EXTRAS=elasticsearch.
+ARG EXTRAS=""
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
-    uv sync --frozen --no-install-project --python ${PYTHON_VERSION} --python-preference=only-system
+    uv sync --frozen --no-install-project ${EXTRAS:+--extra $EXTRAS} --python ${PYTHON_VERSION} --python-preference=only-system
 
 # Runtime stage — minimal, compiler-free
 FROM python:${PYTHON_VERSION}-slim

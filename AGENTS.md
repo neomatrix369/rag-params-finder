@@ -39,8 +39,11 @@ python scripts/ci/check_integrity.py       # unit tests + import smoke
 ./start-services.sh --mongodb-local            # + MongoDB Atlas Local container
 ./start-services.sh --postgres-local           # + local pgvector (STORAGE_BACKEND=postgres)
 ./start-services.sh --postgres-cloud           # + hosted Supabase (DATABASE_URL or SUPABASE_URI; no MONGODB_URI)
+./start-services.sh --elasticsearch-local      # + local Elasticsearch (vector-only; default Postgres run state)
+./start-services.sh --elasticsearch-cloud      # hosted Elasticsearch (ELASTICSEARCH_URL in .env)
 ./start-services.sh mongodb start|stop|reset|status  # MongoDB container only
 ./start-services.sh postgres start|stop|reset|status # Postgres container only
+./start-services.sh elasticsearch start|stop|reset|status
 ./scripts/docker/health-check.sh
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
@@ -51,7 +54,7 @@ rag-params-finder run --config configs/mongodb/example-sie.yaml    # SIE sweep �
 rag-params-finder run --config configs/supabase/example-local.yaml # pgvector — see docs/user-guide/postgres-setup.md
 rag-params-finder pause <experiment-id>   # pause after current phase
 rag-params-finder resume <experiment-id>  # continue paused sweep
-rag-params-finder indexes list            # Atlas: known vs unknown | Postgres: catalog PRESENT vs MISSING
+rag-params-finder indexes list            # GET /api/stores index summary for the active store
 rag-params-finder indexes reset           # Atlas only — drop unknown indexes + ensure required
 rag-params-finder indexes reset --all     # Atlas only — drop all chunks search indexes + recreate
 ./scripts/docker/aim-ui.sh                       # Aim experiment UI → http://localhost:43800

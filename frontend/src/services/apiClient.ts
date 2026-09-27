@@ -86,6 +86,31 @@ function emit(cb: ExperimentProgressCallback | undefined, u: FetchProgressUpdate
   cb?.(u);
 }
 
+export type StoreCatalogEntry = {
+  provider: string;
+  active: boolean;
+  example_config: string;
+  can_host_run_state: boolean;
+  labels: { index: string; host: string; section: string };
+};
+
+export type StoreCatalog = {
+  active: string;
+  stores: StoreCatalogEntry[];
+};
+
+export async function getStores(signal?: AbortSignal): Promise<StoreCatalog> {
+  const url = `${API_BASE_URL}/api/stores`;
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(url, { signal }, API_FETCH_TIMEOUT_MS);
+  } catch (err) {
+    rethrowWithFetchHint(url, err);
+  }
+  await assertOk(response, url, 'Failed to load store catalog');
+  return response.json() as Promise<StoreCatalog>;
+}
+
 export async function getExperiments(signal?: AbortSignal): Promise<Experiment[]> {
   let response: Response;
   try {

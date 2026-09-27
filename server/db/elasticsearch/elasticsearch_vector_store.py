@@ -16,6 +16,7 @@ from server.db.elasticsearch.client import (
 from server.db.elasticsearch.mapping import (
     SUPPORTED_DIMS,
     UNQUANTIZED_HNSW_REQUIRED,
+    VECTOR_FIELDS,
     field_for_dims,
     index_name_for,
     load_index_body,
@@ -206,6 +207,18 @@ class ElasticsearchVectorStore:
     @classmethod
     def capabilities(cls) -> VectorCapabilities:
         return _CAPABILITIES
+
+    @classmethod
+    def ui_labels(cls) -> dict[str, str]:
+        return {"index": "Index", "host": "Host", "section": "Index & Host"}
+
+    @classmethod
+    def index_summary(cls) -> dict[str, object]:
+        return {
+            "index": index_name_for(settings.elasticsearch_index_prefix),
+            "fields": sorted(VECTOR_FIELDS.values()),
+            "index_type": "hnsw",
+        }
 
     def _label_stats(self, total_chunks: int) -> dict:
         return assemble_experiment_db_stats(

@@ -19,6 +19,10 @@ from server.core.guards.search_index_plan import (
     required_search_indexes,
     validate_vector_index_feasibility,
 )
+from server.db.mongo.indexes import (
+    TEXT_SEARCH_INDEX_NAME,
+    VECTOR_INDEX_CONFIGS,
+)
 from server.db.mongo.indexes import ensure_indexes as _mongo_ensure_indexes
 from server.db.mongo.mongo_store import (
     MongoRetrieverBackend,
@@ -105,3 +109,17 @@ class MongoVectorStore:
     @classmethod
     def capabilities(cls) -> VectorCapabilities:
         return _CAPABILITIES
+
+    @classmethod
+    def ui_labels(cls) -> dict[str, str]:
+        return {
+            "index": "Collection",
+            "host": "Atlas host",
+            "section": "Cluster & Collection",
+        }
+
+    @classmethod
+    def index_summary(cls) -> dict[str, object]:
+        names = [row["name"] for row in VECTOR_INDEX_CONFIGS]
+        names.append(TEXT_SEARCH_INDEX_NAME)
+        return {"indexes": names}

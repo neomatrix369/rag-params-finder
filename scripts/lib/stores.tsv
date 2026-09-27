@@ -1,0 +1,4 @@
+provider	profile	local_flag	health_probe	required_env	can_host_run_state
+mongodb	mongodb-local	--mongodb-local	cmd:mongosh --quiet --eval db.adminCommand('ping').ok	MONGODB_URI	true
+postgres	postgres-local	--postgres-local	cmd:pg_isready -U rag -d rag_params_finder	DATABASE_URL	true
+elasticsearch	elasticsearch-local	--elasticsearch-local	http://127.0.0.1:9200/_cluster/health	ELASTICSEARCH_URL	false

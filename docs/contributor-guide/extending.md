@@ -8,7 +8,45 @@
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 ![Optuna](https://img.shields.io/badge/Optuna-Bayesian-2C3E50)
 
-How to add new embedding models, chunking methods, retrieval methods, and API endpoints.
+How to add new embedding models, chunking methods, retrieval methods, API endpoints, and vector stores.
+
+## Add a vector store
+
+Use this checklist when a new engine should sit behind `VectorStore`. Elasticsearch is the worked example (ADR-006).
+
+1. Registry entry in `server/db/ports/registry.py` (`example_config`, `can_host_run_state`).
+2. A `VectorStore` composite with `capabilities()`, `ui_labels()`, and `index_summary()`.
+3. Settings and env vars, plus an optional install extra.
+4. `ARG EXTRAS` on the server image when the extra is required in Docker.
+5. A Compose profile and env pass-through.
+6. One row in `scripts/lib/stores.tsv`.
+7. A `configs/<dir>/` tree with the same YAML basenames as `configs/mongodb/`.
+8. `docs/user-guide/<provider>-setup.md` with the 11 operator sections.
+9. A QUICKSTART path and a teardown line.
+10. A nightly `vector-store-integration` matrix leg with `RAG_REQUIRE_<STORE>=1`.
+11. The docs-parity check stays green.
+
+### 15-stage user journey
+
+This table is the reference for "a fresh reader can finish the journey from the docs".
+
+| Stage | User action | Surface | Doc | Test |
+|---|---|---|---|---|
+| 1 | Choose a backend | README persona row | `docs/README.md` | docs-parity mentions |
+| 2 | Read the setup guide | `<provider>-setup.md` | user guide | docs-parity headings |
+| 3 | Install the extra | `uv pip install -e ".[elasticsearch]"` | elasticsearch-setup | extra in pyproject |
+| 4 | Start the stack | `./start-services.sh --elasticsearch-local` | QUICKSTART Path E | manifest parity |
+| 5 | See both stores healthy | `GET /healthz` | elasticsearch-setup Path A | health-check script |
+| 6 | List indexes | `rag-params-finder indexes list` | cli-reference | `GET /api/stores` |
+| 7 | Submit the example YAML | `configs/elasticsearch/example-local.yaml` | setup guide | config basename parity |
+| 8 | Watch the dashboard | `http://localhost:5374` | dashboard guide | empty-state hints |
+| 9 | Read Index/Host labels | stats panel | storage labels | storageLabels test |
+| 10 | Compare dense scores | same YAML, three stores | ADR-006 | overlap note in setup guide |
+| 11 | Switch engines | start flags | configuration / setup | storage_mode tokens |
+| 12 | Hit a 422 | wrong `database_provider` | troubleshooting | config guard |
+| 13 | Read diagnostics | cheat sheet | setup guide | docs-parity content |
+| 14 | Tear down | `./stop-services.sh` | QUICKSTART Teardown | manifest profiles |
+| 15 | Nightly proof | `vector-store-integration` | `nightly.yml` | skipped leg fails |
 
 ---
 

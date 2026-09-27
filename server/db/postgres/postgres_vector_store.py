@@ -12,7 +12,11 @@ from __future__ import annotations
 
 from server.core.guards.health_check import postgres_health_status
 from server.core.guards.search_index_guard import validate_postgres_experiment_indexes
-from server.core.guards.search_index_plan import SearchIndexAssessment
+from server.core.guards.search_index_plan import (
+    POSTGRES_REQUIRED_INDEXES,
+    POSTGRES_VECTOR_EXTENSION,
+    SearchIndexAssessment,
+)
 from server.db.ports.retriever_backend import RetrieverBackend
 from server.db.ports.vector_store import VectorCapabilities
 from server.db.postgres.postgres import bootstrap_schema
@@ -94,3 +98,14 @@ class PostgresVectorStore:
     @classmethod
     def capabilities(cls) -> VectorCapabilities:
         return _CAPABILITIES
+
+    @classmethod
+    def ui_labels(cls) -> dict[str, str]:
+        return {"index": "Table", "host": "Host", "section": "Host & Table"}
+
+    @classmethod
+    def index_summary(cls) -> dict[str, object]:
+        return {
+            "extension": POSTGRES_VECTOR_EXTENSION,
+            "indexes": sorted(POSTGRES_REQUIRED_INDEXES),
+        }

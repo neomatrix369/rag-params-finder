@@ -3,9 +3,12 @@
 # Source from project root: source ./scripts/lib/storage_mode.sh
 #
 # Canonical modes: mongodb-local | mongodb-cloud | postgres-local | postgres-cloud
+#                  elasticsearch-local | elasticsearch-cloud
+# elasticsearch is vector-only: it exports VECTOR_STORE_BACKEND and pairs a
+# run-state store (default postgres-local, overridable by STORAGE_BACKEND).
 # Exports (when resolve_stack_mode succeeds):
 #   STACK_DB_TYPE, STACK_LOCATION, STACK_STORAGE_MODE
-#   LOCAL_ATLAS, LOCAL_POSTGRES  (compat for existing compose helpers)
+#   LOCAL_ATLAS, LOCAL_POSTGRES, LOCAL_ELASTICSEARCH
 
 # shellcheck disable=SC2034
 
@@ -17,12 +20,12 @@ _stack_mode_conflict() {
   local left="$1"
   local right="$2"
   _stack_mode_error "ERROR: conflicting mode selectors: ${left} and ${right}"
-  _stack_mode_error "Pick one of: --mongodb-local | --mongodb-cloud | --postgres-local | --postgres-cloud"
+  _stack_mode_error "Pick one of: --mongodb-local | --mongodb-cloud | --postgres-local | --postgres-cloud | --elasticsearch-local | --elasticsearch-cloud"
   return 1
 }
 
 # Map a single selector token to STACK_DB_TYPE + STACK_LOCATION.
-# Tokens: mongodb-local|mongodb-cloud|postgres-local|postgres-cloud
+# Tokens: mongodb-local|mongodb-cloud|postgres-local|postgres-cloud|elasticsearch-local|elasticsearch-cloud
 _stack_mode_apply_token() {
   local token="$1"
   case "$token" in
@@ -40,6 +43,14 @@ _stack_mode_apply_token() {
       ;;
     postgres-cloud)
       STACK_DB_TYPE=postgres
+      STACK_LOCATION=cloud
+      ;;
+    elasticsearch-local)
+      STACK_DB_TYPE=elasticsearch
+      STACK_LOCATION=local
+      ;;
+    elasticsearch-cloud)
+      STACK_DB_TYPE=elasticsearch
       STACK_LOCATION=cloud
       ;;
     *)
@@ -70,6 +81,7 @@ resolve_stack_mode() {
   STACK_STORAGE_MODE=""
   LOCAL_ATLAS=0
   LOCAL_POSTGRES=0
+  LOCAL_ELASTICSEARCH=0
 
   local selected=()
   local deprecations=()
@@ -91,6 +103,14 @@ resolve_stack_mode() {
         ;;
       --postgres-cloud)
         selected+=("postgres-cloud")
+        shift
+        ;;
+      --elasticsearch-local)
+        selected+=("elasticsearch-local")
+        shift
+        ;;
+      --elasticsearch-cloud)
+        selected+=("elasticsearch-cloud")
         shift
         ;;
       --force-build | --build | -b)
@@ -120,6 +140,12 @@ resolve_stack_mode() {
   fi
   if [[ "${RAG_POSTGRES_CLOUD:-}" == "1" ]]; then
     selected+=("postgres-cloud")
+  fi
+  if [[ "${RAG_ELASTICSEARCH_LOCAL:-}" == "1" ]]; then
+    selected+=("elasticsearch-local")
+  fi
+  if [[ "${RAG_ELASTICSEARCH_CLOUD:-}" == "1" ]]; then
+    selected+=("elasticsearch-cloud")
   fi
   if [[ "${RAG_LOCAL_ATLAS:-}" == "1" ]]; then
     selected+=("mongodb-local")
@@ -192,6 +218,9 @@ resolve_stack_mode() {
   if [[ "$STACK_DB_TYPE" == "postgres" && "$STACK_LOCATION" == "local" ]]; then
     LOCAL_POSTGRES=1
   fi
+  if [[ "$STACK_DB_TYPE" == "elasticsearch" && "$STACK_LOCATION" == "local" ]]; then
+    LOCAL_ELASTICSEARCH=1
+  fi
 
   FORCE_BUILD="${FORCE_BUILD:-0}"
   if [[ "$force_build" == "1" || "${RAG_FORCE_BUILD:-}" == "1" ]]; then
@@ -203,7 +232,7 @@ resolve_stack_mode() {
     echo "Deprecated: ${dep}" >&2
   done
 
-  export STACK_DB_TYPE STACK_LOCATION STACK_STORAGE_MODE LOCAL_ATLAS LOCAL_POSTGRES FORCE_BUILD
+  export STACK_DB_TYPE STACK_LOCATION STACK_STORAGE_MODE LOCAL_ATLAS LOCAL_POSTGRES LOCAL_ELASTICSEARCH FORCE_BUILD
   return 0
 }
 
@@ -236,6 +265,16 @@ ensure_stack_mode_env() {
       # Never require MONGODB_URI for postgres modes.
       return 0
       ;;
+    elasticsearch-local)
+      return 0
+      ;;
+    elasticsearch-cloud)
+      if [[ -z "${ELASTICSEARCH_URL:-}" ]]; then
+        _stack_mode_error "Set ELASTICSEARCH_URL in .env for --elasticsearch-cloud."
+        return 1
+      fi
+      return 0
+      ;;
     *)
       _stack_mode_error "ERROR: STACK_STORAGE_MODE unset — call resolve_stack_mode first"
       return 1
@@ -256,15 +295,49 @@ export_storage_backend_for_stack() {
   case "${STACK_DB_TYPE:-}" in
     mongodb)
       export STORAGE_BACKEND=mongodb
+      export VECTOR_STORE_BACKEND=mongodb
       ;;
     postgres)
       export STORAGE_BACKEND=postgres
+      export VECTOR_STORE_BACKEND=postgres
+      ;;
+    elasticsearch)
+      export VECTOR_STORE_BACKEND=elasticsearch
+      _pair_elasticsearch_run_state || return 1
       ;;
     *)
       _stack_mode_error "ERROR: STACK_DB_TYPE unset — call resolve_stack_mode first"
       return 1
       ;;
   esac
+  return 0
+}
+
+# Vector-only Elasticsearch pairs with a run-state store (D5 default postgres).
+# STORAGE_BACKEND=elasticsearch is rejected with the settings-validator message.
+_pair_elasticsearch_run_state() {
+  local run_state
+  run_state="$(printf '%s' "${STORAGE_BACKEND:-postgres}" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$run_state" == "mongo" ]]; then
+    run_state=mongodb
+  fi
+  if [[ "$run_state" == "elasticsearch" ]]; then
+    _stack_mode_error "STORAGE_BACKEND=elasticsearch is not supported: elasticsearch is vector-store-only and cannot host run state. Set STORAGE_BACKEND to 'mongodb' or 'postgres'."
+    return 1
+  fi
+  if [[ "$run_state" != "mongodb" && "$run_state" != "postgres" ]]; then
+    _stack_mode_error "ERROR: unknown STORAGE_BACKEND=${STORAGE_BACKEND:-} for an Elasticsearch vector store."
+    return 1
+  fi
+  export STORAGE_BACKEND="$run_state"
+  if [[ "${STACK_LOCATION:-}" == "local" && "$run_state" == "postgres" ]]; then
+    LOCAL_POSTGRES=1
+    export LOCAL_POSTGRES
+  fi
+  if [[ "${STACK_LOCATION:-}" == "local" && "$run_state" == "mongodb" ]]; then
+    LOCAL_ATLAS=1
+    export LOCAL_ATLAS
+  fi
   return 0
 }
 
@@ -275,6 +348,9 @@ example_config_for_stack_mode() {
       ;;
     postgres-local | postgres-cloud)
       echo "configs/supabase/example-local.yaml"
+      ;;
+    elasticsearch-local | elasticsearch-cloud)
+      echo "configs/elasticsearch/example-local.yaml"
       ;;
     *)
       echo "configs/mongodb/example-local.yaml"

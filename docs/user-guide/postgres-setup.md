@@ -422,6 +422,22 @@ docker exec rag-params-finder-postgres-local \
 
 ---
 
+## Switching backends
+
+Stop the current stack, then start the other engine. Postgres and Mongo do not share rows.
+
+```bash
+./stop-services.sh
+./start-services.sh --mongodb-local
+./start-services.sh --elasticsearch-local
+```
+
+`--elasticsearch-local` keeps Postgres as the run-state store and points `VECTOR_STORE_BACKEND` at Elasticsearch. See [Elasticsearch setup](elasticsearch-setup.md).
+
+## Sizing
+
+pgvector stores float32 vectors plus an HNSW graph. A 1024-dimension chunk is about 4 KB of vector data before the graph. Local Docker has no Atlas quota bar; size the volume for the embedding count you plan to keep.
+
 ## Related docs
 
 - [Getting Started](getting-started.md) — install, first experiment

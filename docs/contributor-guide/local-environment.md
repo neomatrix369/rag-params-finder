@@ -57,6 +57,20 @@ export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 
 Schema / indexes come from `server/db/postgres/schema.sql` on first pool open (no Atlas UI). Hosted Supabase: `--postgres-cloud` + `DATABASE_URL` / `SUPABASE_URI` — [Path B](../user-guide/postgres-setup.md#path-b--hosted-supabase).
 
+---
+
+## Elasticsearch — local vector store
+
+→ [Elasticsearch Setup](../user-guide/elasticsearch-setup.md)
+
+```bash
+./start-services.sh --elasticsearch-local   # Elasticsearch + default Postgres run state
+./start-services.sh elasticsearch status
+./start-services.sh elasticsearch reset     # wipe the local volume
+```
+
+`STORAGE_BACKEND` stays `postgres` or `mongodb`. `VECTOR_STORE_BACKEND=elasticsearch` is set by the start script. Cloud: `--elasticsearch-cloud` plus `ELASTICSEARCH_URL` in `.env`.
+
 Dual-container smoke: `./scripts/docker/health-check.sh` probes whichever of Atlas Local / pgvector is present.
 
 ### Connection String Format

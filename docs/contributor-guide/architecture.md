@@ -310,7 +310,8 @@ new store is one registry entry (`server/db/ports/registry.py`), not a branch in
 factory. Both `mongodb` and `postgres` can host run state, so pairing rule (ii) keeps
 `VECTOR_STORE_BACKEND` equal to `STORAGE_BACKEND` for those two. A vector-only
 store may differ. `elasticsearch` is registered and cannot host run state
-(Slice 50). Local cluster, CI, and ADR-006 land in Slice 51.
+(Slice 50). Slice 51 adds the local compose profile, `stores.tsv`, `GET /api/stores`,
+and [ADR-006](../adr/ADR-006-elasticsearch-vector-store.md).
 
 ```mermaid
 C4Component
