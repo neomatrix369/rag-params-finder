@@ -23,6 +23,24 @@ def normalize_database_provider(value: str) -> str:
     return provider
 
 
+def normalize_stats_database_provider(value: str | None, *, fallback: str) -> str:
+    """Canonical engine label for db-stats display (never emit ``supabase``).
+
+    Same owner as ``normalize_database_provider`` above (Slice 49A Stream 6 —
+    this used to be duplicated in ``server/db/ports/stats_common.py``, which
+    still re-exports it for its existing callers). Falls back to a
+    caller-supplied default for legacy/stale ``sweep_summary.database_provider``
+    values that don't resolve to a known engine, rather than passing an
+    unrecognised label straight through to the dashboard.
+    """
+    raw = (value or fallback).strip().lower()
+    if raw in {"supabase", "postgres"}:
+        return "postgres"
+    if raw in {"mongo", "mongodb"}:
+        return "mongodb"
+    return fallback
+
+
 class ChunkParams(BaseModel):
     chunk_sizes: list[int] = Field(default=[512])
     overlaps: list[int] = Field(default=[50])

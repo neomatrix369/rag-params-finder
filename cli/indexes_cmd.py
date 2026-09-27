@@ -24,6 +24,7 @@ from server.db.mongo.indexes import (
     prune_unknown_search_indexes,
     reset_chunks_search_indexes,
 )
+from server.db.ports.registry import is_same_adapter
 from server.settings import normalize_storage_backend, settings
 from server.utils.logger import get_logger
 
@@ -92,10 +93,10 @@ def _list_postgres_catalog_indexes() -> None:
 def indexes_list() -> None:
     """List search indexes for the active storage backend."""
     backend = normalize_storage_backend(settings.storage_backend)
-    if backend == "postgres":
+    if is_same_adapter(backend, "postgres"):
         _list_postgres_catalog_indexes()
         return
-    if backend != "mongodb":
+    if not is_same_adapter(backend, "mongodb"):
         console.print(f"[yellow]indexes[/yellow] unsupported for STORAGE_BACKEND={backend!r}.")
         raise typer.Exit(0)
 
@@ -125,14 +126,14 @@ def indexes_reset(
 ) -> None:
     """Drop search indexes and recreate required ones on chunks (Mongo/Atlas only)."""
     backend = normalize_storage_backend(settings.storage_backend)
-    if backend == "postgres":
+    if is_same_adapter(backend, "postgres"):
         console.print(
             "[yellow]indexes reset[/yellow] is Atlas-only. "
             "Postgres indexes are created by schema.sql at server bootstrap — "
             "restart the server or re-run pool init; then `indexes list` to verify."
         )
         raise typer.Exit(0)
-    if backend != "mongodb":
+    if not is_same_adapter(backend, "mongodb"):
         console.print(
             f"[yellow]indexes reset[/yellow] unsupported for STORAGE_BACKEND={backend!r}."
         )

@@ -45,3 +45,20 @@ def resolve_adapter(provider: str) -> type:
     module = importlib.import_module(module_path)
     adapter_class: type = getattr(module, class_name)
     return adapter_class
+
+
+def is_same_adapter(provider: str, other: str) -> bool:
+    """True when ``provider`` resolves to the same registered class as ``other``.
+
+    Lets call sites ask "is the active backend the postgres/mongodb one?"
+    by comparing resolved *classes* instead of a ``== "postgres"`` /
+    ``== "mongodb"`` string literal (Slice 49A output contract — the guards
+    already do this inline; this names the pattern as one reusable registry
+    primitive rather than a third copy of it). An unrecognised ``provider``
+    returns False rather than raising, matching the guards' existing
+    try/except-ValueError fallback behaviour.
+    """
+    try:
+        return resolve_adapter(provider) is resolve_adapter(other)
+    except ValueError:
+        return False
