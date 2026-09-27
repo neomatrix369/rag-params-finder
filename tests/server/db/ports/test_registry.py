@@ -7,12 +7,9 @@ Scope: table-driven vector-store registry — known-provider listing,
        unknown-provider rejection with guidance, lazy import mechanism,
        and the two real registry targets (Slice 49A Stream 2).
 
-Two tests in TestResolveAdapterRealTargetsShould are marked xfail, pending
-Stream 3: they assert the *real* registry targets ("mongodb" ->
-MongoVectorStore, "postgres" -> PostgresVectorStore) import cleanly. Until
-Stream 3 adds mongo_vector_store.py / postgres_vector_store.py they fail
-with ModuleNotFoundError, which is the expected, honest red state for this
-stream — not a fake pass.
+TestResolveAdapterRealTargetsShould asserts the *real* registry targets
+("mongodb" -> MongoVectorStore, "postgres" -> PostgresVectorStore) import
+cleanly now that Stream 3 added mongo_vector_store.py / postgres_vector_store.py.
 """
 
 from __future__ import annotations
@@ -183,16 +180,8 @@ class TestResolveAdapterMechanismShould:
 
 
 class TestResolveAdapterRealTargetsShould:
-    """Scenario: resolving the real registry entries — pending Stream 3."""
+    """Scenario: resolving the real registry entries (Stream 3 composites)."""
 
-    @pytest.mark.xfail(
-        reason=(
-            "Stream 3 creates server/db/mongo/mongo_vector_store.py:MongoVectorStore; "
-            "until then this raises ModuleNotFoundError."
-        ),
-        raises=ModuleNotFoundError,
-        strict=True,
-    )
     def test_given_mongodb_provider_when_resolve_adapter_called_then_imports_mongo_vector_store(
         self,
     ) -> None:
@@ -210,14 +199,6 @@ class TestResolveAdapterRealTargetsShould:
         ### Then
         assert adapter.__name__ == "MongoVectorStore"
 
-    @pytest.mark.xfail(
-        reason=(
-            "Stream 3 creates server/db/postgres/postgres_vector_store.py:PostgresVectorStore; "
-            "until then this raises ModuleNotFoundError."
-        ),
-        raises=ModuleNotFoundError,
-        strict=True,
-    )
     def test_given_postgres_provider_when_resolve_adapter_called_then_imports_postgres_vector_store(
         self,
     ) -> None:
