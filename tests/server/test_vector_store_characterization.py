@@ -191,9 +191,10 @@ class TestSearchCharacterizationShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "mongodb"),
+            patch("server.settings.settings.vector_store_backend", "mongodb"),
             patch("server.settings.settings.mongodb_uri", "mongodb://localhost:27017/db"),
             patch(
-                "server.db.mongo.mongo_store.get_mongo_retriever",
+                "server.db.mongo.mongo_vector_store.get_mongo_retriever",
                 return_value=mock_retriever,
             ),
         ):

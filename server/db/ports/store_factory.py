@@ -1,4 +1,4 @@
-"""Backend factory — resolves the active StorageBackend and RetrieverBackend from settings.
+"""Backend factory — resolves the active StorageBackend and VectorStore from settings.
 
 Usage:
     from server.db.ports.store_factory import get_storage_backend, get_retriever_backend
@@ -6,8 +6,10 @@ Usage:
     retriever = get_retriever_backend()
 """
 
+from server.db.ports.registry import resolve_adapter
 from server.db.ports.retriever_backend import RetrieverBackend
 from server.db.ports.storage import StorageBackend
+from server.db.ports.vector_store import VectorStore
 from server.settings import normalize_storage_backend, settings
 
 # Adapter modules are imported inside the functions below, not at module scope.
@@ -38,22 +40,26 @@ def get_storage_backend() -> StorageBackend:
     )
 
 
+def get_vector_store() -> VectorStore:
+    """Return the configured VectorStore.
+
+    Reads VECTOR_STORE_BACKEND from settings (defaults to STORAGE_BACKEND).
+    Resolves the registered composite adapter (``MongoVectorStore`` /
+    ``PostgresVectorStore``) via ``server.db.ports.registry.resolve_adapter``,
+    which lazily imports the adapter module — a backend that is switched off
+    never pulls in its driver.
+    """
+    settings.ensure_storage_ready()
+    backend = normalize_storage_backend(settings.vector_store_backend)
+    adapter_class = resolve_adapter(backend)
+    return adapter_class()  # type: ignore[no-any-return]
+
+
 def get_retriever_backend() -> RetrieverBackend:
     """Return the configured RetrieverBackend.
 
-    Reads STORAGE_BACKEND from settings (default ``mongodb``).
-    Postgres serves dense, sparse, and hybrid retrieval.
+    Delegates to ``get_vector_store().retriever()`` — same name and call
+    signature as before this port split (existing ``@patch(...
+    get_retriever_backend)`` call-site patches keep working unchanged).
     """
-    settings.ensure_storage_ready()
-    backend = normalize_storage_backend(settings.storage_backend)
-    if backend == "mongodb":
-        from server.db.mongo.mongo_store import get_mongo_retriever
-
-        return get_mongo_retriever()
-    if backend == "postgres":
-        from server.db.postgres.postgres_store import get_postgres_retriever
-
-        return get_postgres_retriever()
-    raise ValueError(
-        f"Unknown storage backend {backend!r}. Set STORAGE_BACKEND to 'mongodb' or 'postgres'."
-    )
+    return get_vector_store().retriever()
