@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import sys
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -27,6 +27,7 @@ from server.db.elasticsearch.mapping import (
     quantized_dense_fields,
 )
 from server.db.elasticsearch.retriever import search
+from server.db.elasticsearch.uri import cluster_host, elasticsearch_storage_mode
 from server.models.config import (
     ChunkingConfig,
     ChunkParams,
@@ -40,6 +41,7 @@ from server.models.config import (
 from server.models.enums import ChunkingMethod, RetrievalMethod, RetrieverType
 from server.models.results import Chunk, SearchResult
 from server.models.status import RunStatus
+from tests.helpers.storage_live import elasticsearch_skip_reason
 
 
 def _config(model: str = "all-MiniLM-L6-v2", provider: str = "local") -> ExperimentConfig:
@@ -663,3 +665,181 @@ def test_capabilities_declare_vector_only_hnsw() -> None:
     assert actual.similarity_metrics == frozenset({"cosine"})
     assert actual.index_types == frozenset({"hnsw"})
     assert RetrievalMethod.HYBRID in actual.retrieval_methods
+
+
+def test_given_blank_model_when_search_runs_then_isolation_error() -> None:
+    """
+    Scenario: embedding_model isolation — a blank model is rejected.
+    Slice: 50
+
+    Given an empty embedding_model,
+    When search runs,
+    Then it fails before any Elasticsearch call.
+    """
+    ### Given
+    client = _FakeElasticsearch()
+
+    ### When / Then
+    with pytest.raises(ValueError, match="embedding_model"):
+        search(
+            client,
+            index="rpf-chunks",
+            method=RetrievalMethod.SPARSE,
+            query_text="q",
+            experiment_id="exp-1",
+            embedding_model="",
+            run_id="run-a",
+            top_k=1,
+            query_embedding=None,
+        )
+    assert client.calls == []
+
+
+def test_given_dense_without_vector_when_search_runs_then_rejected() -> None:
+    """
+    Scenario: Dimension mismatch is rejected — dense needs a query vector.
+    Slice: 50
+
+    Given dense search with no query embedding,
+    When search runs,
+    Then it fails before any Elasticsearch call.
+    """
+    ### Given
+    client = _FakeElasticsearch()
+
+    ### When / Then
+    with pytest.raises(ValueError, match="query_embedding"):
+        search(
+            client,
+            index="rpf-chunks",
+            method=RetrievalMethod.DENSE,
+            query_text="q",
+            experiment_id="exp-1",
+            embedding_model="model-a",
+            run_id="run-a",
+            top_k=1,
+            query_embedding=None,
+        )
+    assert client.calls == []
+
+
+def test_given_hybrid_without_vector_when_search_runs_then_rejected() -> None:
+    """
+    Scenario: Hybrid RRF parity — hybrid needs a query vector.
+    Slice: 50
+
+    Given hybrid search with no query embedding,
+    When search runs,
+    Then it fails before any Elasticsearch call.
+    """
+    ### Given
+    client = _FakeElasticsearch()
+
+    ### When / Then
+    with pytest.raises(ValueError, match="query_embedding"):
+        search(
+            client,
+            index="rpf-chunks",
+            method=RetrievalMethod.HYBRID,
+            query_text="q",
+            experiment_id="exp-1",
+            embedding_model="model-a",
+            run_id="run-a",
+            top_k=1,
+            query_embedding=None,
+        )
+    assert client.calls == []
+
+
+def test_given_unknown_method_when_search_runs_then_rejected() -> None:
+    """
+    Scenario: top_k bound — an unknown method is rejected.
+    Slice: 50
+
+    Given a retrieval method the adapter does not implement,
+    When search runs,
+    Then it fails with a clear error and no Elasticsearch call.
+    """
+    ### Given
+    client = _FakeElasticsearch()
+
+    ### When / Then
+    with pytest.raises(ValueError, match="Unknown retrieval method"):
+        search(
+            client,
+            index="rpf-chunks",
+            method=cast(RetrievalMethod, "bogus"),
+            query_text="q",
+            experiment_id="exp-1",
+            embedding_model="model-a",
+            run_id="run-a",
+            top_k=1,
+            query_embedding=None,
+        )
+    assert client.calls == []
+
+
+def test_given_loopback_and_cloud_urls_when_classified_then_mode_matches() -> None:
+    """
+    Scenario: Elasticsearch unreachable surfaces a clear error — URL mode is local or cloud.
+    Slice: 50
+
+    Given loopback, cloud, and empty URLs,
+    When they are classified,
+    Then loopback and empty are local and a named host is cloud.
+    """
+    ### Given / When / Then
+    assert elasticsearch_storage_mode("http://127.0.0.1:9200") == "elasticsearch-local"
+    assert elasticsearch_storage_mode("https://example.es.io:443") == "elasticsearch-cloud"
+    assert elasticsearch_storage_mode("   ") == "elasticsearch-local"
+    assert cluster_host("https://example.es.io") == "example.es.io"
+    assert cluster_host("not a url") is None
+
+
+def test_given_unreachable_es_when_skip_reason_asked_then_local_skip(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Scenario: Elasticsearch unreachable surfaces a clear error — local skip.
+    Slice: 50
+
+    Given Elasticsearch is down and RAG_REQUIRE_ELASTICSEARCH is unset,
+    When the live-test skip reason is asked,
+    Then it names Slice 51 instead of failing the unit suite.
+    """
+    ### Given
+    monkeypatch.setattr(
+        "tests.helpers.storage_live.elasticsearch_reachable",
+        lambda url="": False,
+    )
+    monkeypatch.delenv("RAG_REQUIRE_ELASTICSEARCH", raising=False)
+
+    ### When
+    actual = elasticsearch_skip_reason()
+
+    ### Then
+    assert actual is not None
+    assert "Slice 51" in actual
+
+
+def test_given_require_flag_when_es_unreachable_then_ci_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Scenario: Elasticsearch unreachable surfaces a clear error — CI fail-closed.
+    Slice: 50
+
+    Given RAG_REQUIRE_ELASTICSEARCH=1 and no cluster,
+    When the live-test skip reason is asked,
+    Then the suite fails instead of skipping.
+    """
+    ### Given
+    monkeypatch.setattr(
+        "tests.helpers.storage_live.elasticsearch_reachable",
+        lambda url="": False,
+    )
+    monkeypatch.setenv("RAG_REQUIRE_ELASTICSEARCH", "1")
+
+    ### When / Then
+    with pytest.raises(pytest.fail.Exception, match="RAG_REQUIRE_ELASTICSEARCH"):
+        elasticsearch_skip_reason()

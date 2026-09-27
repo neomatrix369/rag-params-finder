@@ -449,9 +449,9 @@ Mongo/Postgres setups need no change.
 `STORAGE_BACKEND` — you cannot point the vector data at a *different*
 run-state-capable store (e.g. `STORAGE_BACKEND=mongodb` +
 `VECTOR_STORE_BACKEND=postgres` is rejected). A **vector-only** store (one that
-cannot host run state) may pair with *either* run-state store. The first
-planned vector-only store is Elasticsearch (Slice 50); Redis is Slice 53.
-No vector-only adapter is registered yet, so a split setup is not runnable.
+cannot host run state) may pair with *either* run-state store. The registered
+vector-only store is Elasticsearch; Redis is Slice 53. Local Elasticsearch
+and the setup guide land in Slice 51.
 
 Settings validation rejects an invalid pairing with:
 

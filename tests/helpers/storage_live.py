@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import os
+import urllib.error
+import urllib.request
 
 import pytest
 
 DEFAULT_POSTGRES_URL = "postgresql://rag:rag@localhost:5433/rag_params_finder"
 DEFAULT_MONGODB_URI = "mongodb://localhost:27017/rag_params_finder?directConnection=true"
+DEFAULT_ELASTICSEARCH_URL = "http://127.0.0.1:9200"
 
 TEST_DATABASE_URL = os.environ.get("RAG_TEST_DATABASE_URL", DEFAULT_POSTGRES_URL)
 TEST_MONGODB_URI = os.environ.get("RAG_TEST_MONGODB_URI", DEFAULT_MONGODB_URI)
@@ -76,6 +79,32 @@ def mongo_skip_reason(uri: str = TEST_MONGODB_URI) -> str | None:
             pytrace=False,
         )
     return f"No MongoDB at {uri} — run ./start-services.sh --mongodb-local"
+
+
+def elasticsearch_reachable(url: str = DEFAULT_ELASTICSEARCH_URL) -> bool:
+    """True when Elasticsearch answers an HTTP request. Does not import the client."""
+    try:
+        with urllib.request.urlopen(url, timeout=2) as response:
+            return int(response.status) < 500
+    except (urllib.error.URLError, TimeoutError, OSError):
+        return False
+
+
+def elasticsearch_skip_reason(url: str = DEFAULT_ELASTICSEARCH_URL) -> str | None:
+    """Why Elasticsearch live tests cannot run, or None when they can.
+
+    CI sets RAG_REQUIRE_ELASTICSEARCH=1 once Slice 51 provisions the cluster.
+    Locally the cluster is optional, so an unreachable one skips.
+    """
+    if elasticsearch_reachable(url):
+        return None
+    if os.environ.get("RAG_REQUIRE_ELASTICSEARCH") == "1":
+        pytest.fail(
+            f"RAG_REQUIRE_ELASTICSEARCH=1 but no Elasticsearch at {url}. "
+            "The CI service container is missing or unhealthy.",
+            pytrace=False,
+        )
+    return f"No Elasticsearch at {url} — Slice 51 starts the local cluster"
 
 
 def reset_mongo_client() -> None:
