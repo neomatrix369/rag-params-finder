@@ -15,6 +15,7 @@ from __future__ import annotations
 from pgvector import Vector
 from psycopg import sql
 
+from server.core.retrieval.fusion import CANDIDATES_MULTIPLIER, RRF_K
 from server.db.postgres.postgres import fetch_all
 from server.db.postgres.postgres_docs import vector_column_for
 from server.models.enums import RetrievalMethod
@@ -23,9 +24,9 @@ from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Match Mongo ``retriever._RRF_K`` for cross-backend rank comparison (Slice 38).
-_DEFAULT_RRF_K = 60
-_CANDIDATE_MULTIPLIER = 2
+# Same constants as Mongo / Elasticsearch. Fusion itself stays in SQL.
+_DEFAULT_RRF_K = RRF_K
+_CANDIDATE_MULTIPLIER = CANDIDATES_MULTIPLIER
 
 
 def _require_embedding_model(embedding_model: str, *, context: str) -> None:

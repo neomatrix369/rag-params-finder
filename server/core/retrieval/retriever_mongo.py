@@ -7,6 +7,9 @@ counterpart is ``server.core.retrieval.retriever_postgres``.
 import time
 
 from server.core.model_registry import get_index_name
+from server.core.retrieval.fusion import CANDIDATES_MULTIPLIER as _CANDIDATES_MULTIPLIER
+from server.core.retrieval.fusion import RRF_K as _RRF_K
+from server.core.retrieval.fusion import rrf_fuse
 from server.db.mongo.atlas import CHUNKS_COLLECTION, get_collection
 from server.db.mongo.indexes import TEXT_SEARCH_INDEX_NAME
 from server.models.enums import RetrievalMethod
@@ -14,8 +17,6 @@ from server.models.results import Chunk, SearchResult
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
-_RRF_K = 60  # Reciprocal Rank Fusion constant — higher value smooths rank differences
-_CANDIDATES_MULTIPLIER = 2  # numCandidates = top_k * multiplier for Atlas $vectorSearch
 _SPARSE_INDEX_RETRY_ATTEMPTS = 3
 _SPARSE_INDEX_RETRY_DELAY_S = 2.0  # Atlas Search may lag behind insert_many on fresh chunks
 
@@ -201,35 +202,7 @@ def hybrid_search(
 
     dense_results = dense_search(query_embedding, experiment_id, embedding_model, run_id, top_k)
     sparse_results = sparse_search(query_text, experiment_id, embedding_model, run_id, top_k)
-
-    rrf_scores: dict[str, float] = {}
-    chunk_by_id: dict[str, SearchResult] = {}
-
-    for rank, result in enumerate(dense_results, start=1):
-        cid = result.chunk.id
-        rrf_scores[cid] = rrf_scores.get(cid, 0.0) + 1.0 / (rank + _RRF_K)
-        chunk_by_id[cid] = result
-
-    for rank, result in enumerate(sparse_results, start=1):
-        cid = result.chunk.id
-        rrf_scores[cid] = rrf_scores.get(cid, 0.0) + 1.0 / (rank + _RRF_K)
-        chunk_by_id[cid] = result
-
-    ranked_ids = sorted(rrf_scores, key=lambda cid: rrf_scores[cid], reverse=True)[:top_k]
-
-    merged: list[SearchResult] = []
-    for final_rank, cid in enumerate(ranked_ids, start=1):
-        base = chunk_by_id[cid]
-        merged.append(
-            SearchResult(
-                chunk=base.chunk,
-                dense_score=rrf_scores[cid],
-                rerank_score=None,
-                retrieval_method="hybrid",
-                rank=final_rank,
-            )
-        )
-
+    merged = rrf_fuse(dense_results, sparse_results, top_k=top_k, k=_RRF_K)
     logger.debug("hybrid search OK — %s hits after RRF", len(merged))
     return merged
 

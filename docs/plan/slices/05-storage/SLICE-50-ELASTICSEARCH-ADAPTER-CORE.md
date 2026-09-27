@@ -207,4 +207,4 @@ Scenario: ES client missing raises install guidance
 - [ ] `/verify-slice` — verdict COMPLETE
 
 ## Gate Status
-📋 PLANNED — depends on 49A/49B; amended 2026-09-25 (DECISIONS #240–#249); AT authoring (`nw-distill`) before 🔨 IN PROGRESS.
+✅ PASSED — PR [#203](https://github.com/neomatrix369/rag-params-finder/pull/203) is open. Six reviewers APPROVED. Live Elasticsearch was not reachable locally (documented skip). Merge and release stay manual.

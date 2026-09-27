@@ -54,3 +54,8 @@ Full list: [`invariants.md`](invariants.md).
 - **L1/L2 impact**: which box or edge above moved; link the slice's Abstraction Views.
 - **Data-Flow**: only if the data path changed.
 -->
+
+### 2026-09-27 — Slice 50: Elasticsearch adapter core
+- **Delta**: `server/db/elasticsearch/` is a vector-only registry adapter (`can_host_run_state=False`). One `{prefix}-chunks` index holds `embedding_384` and `embedding_1024` as explicit unquantized HNSW. Dense, sparse, and hybrid search share `rrf_fuse` with Mongo; Postgres still fuses in SQL.
+- **L1/L2 impact**: the vector-store box now includes Elasticsearch beside Mongo and pgvector. Run state stays on Mongo or Postgres.
+- **Data-Flow**: chunk write/search/delete for `VECTOR_STORE_BACKEND=elasticsearch` goes to Elasticsearch (`refresh=wait_for` on bulk, delete-by-query on delete). Experiment, run, and result rows stay on the run-state store.

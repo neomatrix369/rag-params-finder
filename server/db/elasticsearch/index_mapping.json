@@ -1,0 +1,36 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  },
+  "mappings": {
+    "properties": {
+      "chunk_id": {"type": "keyword"},
+      "experiment_id": {"type": "keyword"},
+      "run_id": {"type": "keyword"},
+      "embedding_model": {"type": "keyword"},
+      "chunk_method": {"type": "keyword"},
+      "chunk_index": {"type": "integer"},
+      "chunk_size": {"type": "integer"},
+      "overlap": {"type": "integer"},
+      "padding": {"type": "integer"},
+      "text": {"type": "text", "analyzer": "english"},
+      "embedding_384": {
+        "type": "dense_vector",
+        "dims": 384,
+        "element_type": "float",
+        "similarity": "cosine",
+        "index": true,
+        "index_options": {"type": "hnsw", "m": 16, "ef_construction": 100}
+      },
+      "embedding_1024": {
+        "type": "dense_vector",
+        "dims": 1024,
+        "element_type": "float",
+        "similarity": "cosine",
+        "index": true,
+        "index_options": {"type": "hnsw", "m": 16, "ef_construction": 100}
+      }
+    }
+  }
+}

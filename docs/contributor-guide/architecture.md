@@ -309,7 +309,8 @@ write/delete/stats, search (via `retriever()`), index planning, health, and decl
 new store is one registry entry (`server/db/ports/registry.py`), not a branch in the
 factory. Both `mongodb` and `postgres` can host run state, so pairing rule (ii) keeps
 `VECTOR_STORE_BACKEND` equal to `STORAGE_BACKEND` for those two. A vector-only
-store may differ; no third adapter is registered yet (Elasticsearch is Slice 50).
+store may differ. `elasticsearch` is registered and cannot host run state
+(Slice 50). Local cluster, CI, and ADR-006 land in Slice 51.
 
 ```mermaid
 C4Component
@@ -331,6 +332,9 @@ C4Component
         Component(pg_storage, "PostgresStorageBackend", "Adapter", "postgres_store.py")
         Component(pg_vector, "PostgresVectorStore", "Composite adapter", "postgres_vector_store.py — composes PostgresStorageBackend chunk methods + PostgresRetrieverBackend")
     }
+    Container_Boundary(es, "server/db/elasticsearch") {
+        Component(es_vector, "ElasticsearchVectorStore", "Vector-only adapter", "elasticsearch_vector_store.py — dense/sparse/hybrid; cannot host run state")
+    }
     Rel(caller, factory, "get_storage_backend() / get_vector_store()")
     Rel(factory, registry, "resolve_adapter(provider)")
     Rel(factory, storage_port, "returns")
@@ -339,6 +343,7 @@ C4Component
     Rel(storage_port, pg_storage, "implemented by")
     Rel(vector_port, mongo_vector, "implemented by")
     Rel(vector_port, pg_vector, "implemented by")
+    Rel(vector_port, es_vector, "implemented by")
     Rel(mongo_vector, mongo_storage, "composes chunk methods from")
     Rel(pg_vector, pg_storage, "composes chunk methods from")
 ```

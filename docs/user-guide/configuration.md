@@ -449,9 +449,9 @@ Mongo/Postgres setups need no change.
 `STORAGE_BACKEND` — you cannot point the vector data at a *different*
 run-state-capable store (e.g. `STORAGE_BACKEND=mongodb` +
 `VECTOR_STORE_BACKEND=postgres` is rejected). A **vector-only** store (one that
-cannot host run state) may pair with *either* run-state store. The first
-planned vector-only store is Elasticsearch (Slice 50); Redis is Slice 53.
-No vector-only adapter is registered yet, so a split setup is not runnable.
+cannot host run state) may pair with *either* run-state store. The registered
+vector-only store is Elasticsearch; Redis is Slice 53. Local Elasticsearch
+and the setup guide land in Slice 51.
 
 Settings validation rejects an invalid pairing with:
 
@@ -461,14 +461,20 @@ postgres can hold run state, so it must hold both. Set VECTOR_STORE_BACKEND=mong
 or STORAGE_BACKEND=postgres.
 ```
 
-**Planned split-store shape (Slice 50 — not runnable until the Elasticsearch adapter is registered):**
+**Split store (Elasticsearch vectors, Postgres or Mongo run state):**
 
 ```bash
 STORAGE_BACKEND=postgres
 DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 VECTOR_STORE_BACKEND=elasticsearch
 ELASTICSEARCH_URL=http://localhost:9200
+# ELASTICSEARCH_API_KEY=   # optional, cloud only
+# ELASTICSEARCH_INDEX_PREFIX=rpf   # index name rpf-chunks
 ```
+
+Install the client with `pip install -e ".[elasticsearch]"`. Local Elasticsearch
+and the setup guide are Slice 51; without a reachable cluster, `/healthz` is
+503 and sweep preflight is 422.
 
 **Invalid split-store example** (both engines can host run state — rejected at boot):
 
@@ -490,7 +496,7 @@ Create a `.env` file in the project root to configure server behavior:
 ```bash
 # Storage backend: "mongodb" (permanent default — DECISIONS #130 Won't flip) or "postgres"
 # Legacy alias: mongo → mongodb
-# YAML database_provider (mongodb|postgres; supabase→postgres) is engine metadata —
+# YAML database_provider (mongodb|postgres|elasticsearch; supabase→postgres) is engine metadata —
 # this env selects the adapter.
 STORAGE_BACKEND=mongodb
 

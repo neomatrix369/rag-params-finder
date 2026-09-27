@@ -270,15 +270,13 @@ never pulls in its driver at process start.
 entry automatically via `VECTOR_STORE_BACKEND` — no factory branch to edit.
 `get_retriever_backend()` keeps working unchanged (`get_vector_store().retriever()`).
 
-### Current limitation (Slice 49A)
+### Current adapters
 
-Slice 49A locks `VECTOR_STORE_BACKEND == STORAGE_BACKEND` — the chunk data
-path still runs through `StorageBackend`, not yet through `VectorStore`, so a
-store that can't host run state (e.g. the upcoming Elasticsearch adapter,
-Slice 50) can register here but can't actually run as a split store — vectors
-in one engine, run state in another — until Slice 49B rewires the data path
-and relaxes the lock to the pairing rule. The full 15-stage "add a store" user
-journey and checklist land in Slice 51.
+`mongodb` and `postgres` can host run state, so pairing rule (ii) keeps
+`VECTOR_STORE_BACKEND` equal to `STORAGE_BACKEND` for those two. `elasticsearch`
+is registered as vector-only (Slice 50): chunks go through `VectorStore`, run
+state stays on Mongo or Postgres. Local Elasticsearch, the setup guide, and
+ADR-006 land in Slice 51.
 
 ---
 

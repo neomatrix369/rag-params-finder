@@ -426,8 +426,10 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-CO
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `STORAGE_BACKEND` | No | `mongodb` | Run-state adapter: `mongodb` (permanent default — DECISIONS #130 Won't flip; legacy alias `mongo`) or `postgres` (local Docker or Supabase-hosted Postgres) |
-| `VECTOR_STORE_BACKEND` | No | `STORAGE_BACKEND` | Chunk store. Pairing rule (ii): a store that can host run state must equal `STORAGE_BACKEND`. Elasticsearch is accepted as a name ahead of its adapter (Slice 50) — a split setup is not runnable yet. See [configuration.md](configuration.md) |
-| `ELASTICSEARCH_URL` | When `VECTOR_STORE_BACKEND=elasticsearch` | — | Elasticsearch URL. Required at boot once that backend is selected; the adapter itself lands in Slice 50 |
+| `VECTOR_STORE_BACKEND` | No | `STORAGE_BACKEND` | Chunk store. Pairing rule (ii): a store that can host run state must equal `STORAGE_BACKEND`. `elasticsearch` is a vector-only store (optional `[elasticsearch]` extra). Docker profiles and the setup guide land in Slice 51. See [configuration.md](configuration.md) |
+| `ELASTICSEARCH_URL` | When `VECTOR_STORE_BACKEND=elasticsearch` | — | Elasticsearch URL. Required at boot when that backend is selected |
+| `ELASTICSEARCH_API_KEY` | No | — | Optional Elasticsearch API key for cloud. Server-side only; never logged |
+| `ELASTICSEARCH_INDEX_PREFIX` | No | `rpf` | Chunks index name prefix (`rpf` → `rpf-chunks`) |
 | `MONGODB_URI` | When `STORAGE_BACKEND=mongodb` | — | MongoDB Atlas / Atlas Local connection string |
 | `DATABASE_URL` | When `STORAGE_BACKEND=postgres` | — | Canonical Postgres connection string (local or Supabase-hosted) |
 | `SUPABASE_URI` | No | — | Optional alias for `DATABASE_URL` (used only when `DATABASE_URL` is unset) |

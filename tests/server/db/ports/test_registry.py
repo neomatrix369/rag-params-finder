@@ -42,7 +42,7 @@ class TestKnownVectorStoresShould:
         known = known_vector_stores()
 
         ### Then
-        assert known == frozenset({"mongodb", "postgres"})
+        assert known == frozenset({"mongodb", "postgres", "elasticsearch"})
 
     def test_given_known_vector_stores_when_return_type_inspected_then_it_is_a_frozenset(
         self,

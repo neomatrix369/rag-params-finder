@@ -137,10 +137,12 @@ class Settings(BaseSettings):
     # (e.g. "elasticsearch") may pair with either run-state store.
     vector_store_backend: str = ""
 
-    # Elasticsearch connection string — required when VECTOR_STORE_BACKEND=elasticsearch.
-    # No Elasticsearch adapter exists yet (Slice 50); this field only lets
-    # boot-time validation name the missing setting ahead of that slice.
+    # Elasticsearch — required URL when VECTOR_STORE_BACKEND=elasticsearch.
+    # API key is optional (cloud). Index prefix defaults to ``rpf`` → ``rpf-chunks``.
+    # Never log elasticsearch_api_key.
     elasticsearch_url: str = ""
+    elasticsearch_api_key: str = ""
+    elasticsearch_index_prefix: str = "rpf"
 
     # Postgres connection string — required when STORAGE_BACKEND=postgres.
     # Hosted Supabase: Settings → Database → Connection string (Session mode pooler).
