@@ -1,9 +1,11 @@
 {
   "slice": "49A",
-  "gate_status": "ON_BRANCH",
+  "gate_status": "PASSED",
+  "verified_at": "2026-09-27",
   "branch": "slice/49a-vector-store-port-registry",
   "head": "442fcba",
-  "note": "VectorStore port + registry seam, zero behaviour change; gates green locally, PR not yet merged",
+  "pr": "https://github.com/neomatrix369/rag-params-finder/pull/201",
+  "note": "VectorStore port + registry seam, zero behaviour change; gates green, PR #201 merged to main (654f830 sync commit, f57e05b merge commit)",
   "quality_gates": {
     "command": "uv run pytest --ignore=tests/contract --ignore=tests/server/db/test_postgres_store_integration.py --ignore=tests/server/db/test_postgres_dense_retrieval.py --ignore=tests/server/db/test_postgres_sparse_hybrid.py -m \"not integration\" --cov=server --cov=cli --cov-fail-under=70",
     "exit_code": 0,
