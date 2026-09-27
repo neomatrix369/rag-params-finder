@@ -153,6 +153,7 @@ class TestChunkWriteCharacterizationShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
+            patch("server.settings.settings.vector_store_backend", "postgres"),
             patch(
                 "server.settings.settings.database_url",
                 "postgresql://rag:rag@localhost:5433/rag_params_finder",
@@ -310,6 +311,7 @@ class TestChunkDeleteCharacterizationShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
+            patch("server.settings.settings.vector_store_backend", "postgres"),
             patch(
                 "server.settings.settings.database_url",
                 "postgresql://rag:rag@localhost:5433/rag_params_finder",
@@ -375,6 +377,7 @@ class TestDbStatsCharacterizationShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
+            patch("server.settings.settings.vector_store_backend", "postgres"),
             patch(
                 "server.settings.settings.database_url",
                 "postgresql://rag:rag@localhost:5433/rag_params_finder",

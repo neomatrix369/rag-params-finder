@@ -208,6 +208,7 @@ class TestStoreFactoryShould:
         ### Given / When / Then
         with (
             patch("server.settings.settings.storage_backend", "redis"),
+            patch("server.settings.settings.vector_store_backend", "redis"),
             pytest.raises(ValueError, match="Unknown storage backend 'redis'"),
         ):
             get_storage_backend()
@@ -262,6 +263,7 @@ class TestStoreFactoryShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
+            patch("server.settings.settings.vector_store_backend", "postgres"),
             patch(
                 "server.settings.settings.database_url",
                 "postgresql://rag:rag@localhost:5433/rag_params_finder",
