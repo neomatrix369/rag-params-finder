@@ -101,7 +101,9 @@ def test_given_live_cluster_when_upsert_then_search_and_delete_are_scoped(
 
     ### Then
     assert dense, "insert-then-search must find the chunk (refresh=wait_for)"
-    assert 0.0 <= dense[0].dense_score <= 1.0
+    # Identical vectors are cosine 1, so the score is 1. Elasticsearch can
+    # return 1.0000002 from float32 HNSW; that is still the unit scale.
+    assert dense[0].dense_score == pytest.approx(1.0, abs=1e-5)
     assert sparse, "BM25 must return the in-scope chunk"
     assert deleted >= 1
     assert remaining == []
