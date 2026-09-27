@@ -438,6 +438,52 @@ Someone says “I’m on Supabase” → engine is Postgres cloud; local Postgre
 
 Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud`. (The old `--local` / `--postgres` flag aliases were removed.)
 
+### Split-store: `VECTOR_STORE_BACKEND` (Slice 49B)
+
+`VECTOR_STORE_BACKEND` selects the store used for chunk write/delete/stats/search,
+independently of `STORAGE_BACKEND` (which always holds run state — experiments,
+runs, results). It defaults to `STORAGE_BACKEND` when unset, so single-store
+Mongo/Postgres setups need no change.
+
+**Pairing rule (ii):** a store that can hold run state must equal
+`STORAGE_BACKEND` — you cannot point the vector data at a *different*
+run-state-capable store (e.g. `STORAGE_BACKEND=mongodb` +
+`VECTOR_STORE_BACKEND=postgres` is rejected). A **vector-only** store (one that
+cannot host run state — currently `elasticsearch`; Redis is planned) may pair
+with *either* run-state store.
+
+Settings validation rejects an invalid pairing with:
+
+```text
+STORAGE_BACKEND=mongodb with VECTOR_STORE_BACKEND=postgres is not supported:
+postgres can hold run state, so it must hold both. Set VECTOR_STORE_BACKEND=mongodb,
+or STORAGE_BACKEND=postgres.
+```
+
+**Valid split-store example** — run state on Postgres, vectors on Elasticsearch:
+
+```bash
+STORAGE_BACKEND=postgres
+DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+VECTOR_STORE_BACKEND=elasticsearch
+ELASTICSEARCH_URL=http://localhost:9200
+```
+
+**Invalid split-store example** (both engines can host run state — rejected at boot):
+
+```bash
+STORAGE_BACKEND=mongodb
+VECTOR_STORE_BACKEND=postgres   # ✗ rejected: postgres can host run state
+```
+
+A missing or placeholder connection URI for **either** store fails server boot
+with a `ValueError` naming the setting (e.g. `VECTOR_STORE_BACKEND=elasticsearch
+requires ELASTICSEARCH_URL`). An unreachable-but-configured store does **not**
+fail boot — it is reported by `GET /healthz` (HTTP 503) and by sweep-submit
+preflight (HTTP 422) instead. See
+[CLI Reference → `/healthz`](cli-reference.md#-api-endpoints) for the two-store
+response shape.
+
 Create a `.env` file in the project root to configure server behavior:
 
 ```bash
@@ -446,6 +492,13 @@ Create a `.env` file in the project root to configure server behavior:
 # YAML database_provider (mongodb|postgres; supabase→postgres) is engine metadata —
 # this env selects the adapter.
 STORAGE_BACKEND=mongodb
+
+# Vector store backend (OPTIONAL — split-store, Slice 49B). Defaults to
+# STORAGE_BACKEND when unset. Pairing rule (ii): a store that can host run
+# state must equal STORAGE_BACKEND; a vector-only store (e.g. "elasticsearch")
+# may pair with either run-state store. See configuration.md → split-store.
+# VECTOR_STORE_BACKEND=elasticsearch
+# ELASTICSEARCH_URL=http://localhost:9200   # required when VECTOR_STORE_BACKEND=elasticsearch
 
 # /healthz and db-stats expose storage_mode (four compounds — matches start-services flags):
 #   mongodb-local | mongodb-cloud | postgres-local | postgres-cloud

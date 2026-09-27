@@ -2,7 +2,7 @@
 
 **MoSCoW:** MUST
 **Target time:** ~6–8 h
-**Status:** 📋 PLANNED
+**Status:** 🔀 ON BRANCH
 **Depends on:** [49A](SLICE-49-VECTOR-STORE-PORT-SPLIT-REGISTRY.md) (`VectorStore` port, registry, composites, `get_vector_store()`, stores locked equal)
 **Branch:** `slice/49b-vector-store-data-path-rewire`
 **Feature:** Elasticsearch vector-store adapter (ADR-006)
@@ -296,4 +296,4 @@ Scenario: No test asserts chunk calls on the run-state mock
 
 ## Gate Status
 
-📋 PLANNED — created 2026-09-25 (DECISIONS #242); confirmation review pending before AT authoring (`nw-distill`).
+🔀 ON BRANCH — created 2026-09-25 (DECISIONS #242); rewire sites 1–10, test infra, and doc exit landed on `slice/49b-vector-store-data-path-rewire`; `/verify-slice` + reviewer gates (Closing Gates above) still pending before `gate-evidence/slice-49b.json` and PROGRESS/TRAIL move to ✅ PASSED.

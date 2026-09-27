@@ -353,6 +353,78 @@ adapters/registry/settings/config).
 
 ---
 
+## 🔀 Split-store data flow (Slice 49B)
+
+Every chunk operation (write, delete, stats, search, index planning, health) now
+routes through `get_vector_store()`; every run-state operation (experiments, runs,
+results, boot reconciliation) routes through `get_storage_backend()`. In
+**single-store mode** (`VECTOR_STORE_BACKEND` unset or equal to `STORAGE_BACKEND`)
+both ports resolve to the same adapter, so the two lanes below collapse onto one
+database — behaviour is byte-identical to pre-49B. In **split-store mode**
+(`VECTOR_STORE_BACKEND` set to a vector-only store such as `elasticsearch`) the two
+lanes hit different databases, governed by pairing rule (ii): a store that can
+host run state must equal `STORAGE_BACKEND`; a vector-only store may pair with
+either run-state store.
+
+```mermaid
+flowchart TD
+    CLI["CLI — submit YAML"] -->|POST /experiments| SRV["FastAPI server"]
+    SRV --> PIPE["Pipeline — one run per config combination"]
+    PIPE --> INGEST["Ingest: parse → chunk → embed"]
+    INGEST -->|get_vector_store| VSTORE[("Vector store<br/>chunks + embeddings")]
+    VSTORE -->|search / rerank| PIPE
+    PIPE -->|get_storage_backend| RSTORE[("Run-state store<br/>experiments · run_status · results")]
+    RSTORE -->|polling ~2s| DASH["React dashboard"]
+
+    subgraph SINGLE["Single-store mode (default)"]
+        VSTORE -.same database.- RSTORE
+    end
+```
+
+<details>
+<summary>ASCII fallback (portable — renders anywhere)</summary>
+
+```
+CLI (submit YAML)
+      │  POST /experiments
+      ▼
+FastAPI Server → Pipeline (one run per config combination)
+      │
+      ├── Ingest: parse → chunk → embed
+      │        │
+      │        ▼
+      │   get_vector_store()  ──────────►  Vector store
+      │        │                           (chunks + embeddings)
+      │        ◄── search / rerank ────────────┘
+      │
+      └── Run metadata: experiments / run_status / results
+               │
+               ▼
+        get_storage_backend()  ─────────►  Run-state store
+               │                           (experiments · run_status · results)
+               ▼
+        React dashboard (polling)
+
+Single-store mode: Vector store == Run-state store (same database).
+Split-store mode:  Vector store != Run-state store (pairing rule (ii) governs
+                    which combinations are valid — see Storage Ports above).
+```
+
+</details>
+
+**Delete order** (DECISIONS #246): vector store first (chunks), then run state
+(experiment, runs, results) — both steps idempotent, so a retry after a partial
+failure completes the delete and reports true counts.
+
+**Health / preflight**: `/healthz` probes both stores independently
+(`vector_store_backend`, `run_state_mode`, `stores: {vector, run_state}` — see
+[CLI Reference → `/healthz`](../user-guide/cli-reference.md)); `preflight_stores()`
+checks the vector store first (health → index plan → capabilities, HTTP 422 on
+failure) and only probes the run-state store's health when it differs from the
+vector store.
+
+---
+
 ## 🗄️ MongoDB Backend
 
 Two deployment modes share identical query syntax (`$vectorSearch`, `$search`):
