@@ -649,6 +649,7 @@ class TestPreflightBackendScopeShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
+            patch("server.settings.settings.vector_store_backend", "postgres"),
             patch(
                 "server.core.guards.search_index_guard.postgres_vector_extension_present",
                 return_value=True,
@@ -699,6 +700,7 @@ class TestPreflightBackendScopeShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
+            patch("server.settings.settings.vector_store_backend", "postgres"),
             patch(
                 "server.core.guards.search_index_guard.postgres_vector_extension_present",
                 return_value=True,

@@ -17,13 +17,13 @@ from server.core.guards.search_index_plan import (
     assess_search_index_readiness,
     format_mismatch_message,
     format_postgres_mismatch_message,
-    preflight_not_applicable,
     required_postgres_catalog_indexes,
     required_search_indexes,
     validate_vector_index_feasibility,
 )
-from server.db.ports.registry import resolve_adapter
+from server.db.ports.registry import is_same_adapter, resolve_adapter
 from server.models.config import ExperimentConfig
+from server.models.enums import RetrieverType
 from server.settings import normalize_storage_backend, settings
 from server.utils.logger import get_logger
 
@@ -147,6 +147,121 @@ def validate_postgres_experiment_indexes(
     raise SearchIndexMismatchError(message)
 
 
+def preflight_stores(config: ExperimentConfig) -> SearchIndexAssessment:
+    """Dual-store preflight — one entry point (Slice 49B, DECISIONS #253).
+
+    Step 1 (vector store): health -> plan/ensure indexes -> capabilities
+    checks (retrieval methods). The first failure raises
+    ``SearchIndexMismatchError`` (HTTP 422 at submit) and stops; run-state
+    checks are not attempted. Step 2 (run-state store): health only, and
+    only when the run-state store differs from the vector store — in
+    single-store mode both steps would hit the same database, so skipping
+    the redundant second probe there keeps single-store behaviour byte-
+    identical (characterization).
+    """
+    assessment = validate_experiment_search_indexes(config)
+    vector_backend = normalize_storage_backend(
+        settings.vector_store_backend or settings.storage_backend
+    )
+    run_state_backend = normalize_storage_backend(settings.storage_backend)
+    if not is_same_adapter(vector_backend, run_state_backend):
+        _preflight_run_state_store(run_state_backend)
+    return assessment
+
+
+def _preflight_run_state_store(run_state_backend: str) -> None:
+    """Step 2 — run-state store health only (no search-index concept there)."""
+    # Lazy import — health_check.py is shared by both backends' probes and
+    # this module is imported by the vector-store composites, so importing it
+    # at module scope here would risk the same driver-leak class this file's
+    # other lazy imports already guard against.
+    from server.core.guards.health_check import mongodb_health_status, postgres_health_status
+
+    if is_same_adapter(run_state_backend, "postgres"):
+        status = postgres_health_status()
+    elif is_same_adapter(run_state_backend, "mongodb"):
+        status = mongodb_health_status()
+    else:
+        status = "error"
+
+    if status == "error":
+        raise SearchIndexMismatchError(
+            f"Run-state store {run_state_backend!r} is unreachable. Check its "
+            "connection settings and that the service is running."
+        )
+
+
+def _validate_vector_capabilities(
+    config: ExperimentConfig,
+    capabilities: object,
+    backend: str,
+) -> None:
+    """Fail closed when the vector store does not declare a requested retrieval method."""
+    requested = {
+        r.type.value
+        for r in config.retrieval.retrievers
+        if r.type in (RetrieverType.DENSE, RetrieverType.SPARSE, RetrieverType.HYBRID)
+    }
+    supported = {m.value for m in capabilities.retrieval_methods}  # type: ignore[attr-defined]
+    unsupported = requested - supported
+    if unsupported:
+        raise SearchIndexMismatchError(
+            f"Vector store {backend!r} does not support retrieval method(s) "
+            f"{sorted(unsupported)}. Supported: {sorted(supported)}."
+        )
+
+
+def _validate_generic_vector_store_indexes(
+    config: ExperimentConfig, backend: str
+) -> SearchIndexAssessment:
+    """Preflight for a registered vector store outside the mongodb/postgres pair.
+
+    No skip path (DECISIONS #253, walkthrough G3): dispatches only through
+    the vector store's own port methods. An adapter that raises on
+    ``plan_indexes`` (no index plan published) fails closed with the
+    preflight error naming the store, rather than passing silently.
+    """
+    # Lazy import — avoids a hard dependency on store_factory at module
+    # import time for callers that never reach this generic branch.
+    from server.db.ports.store_factory import get_vector_store
+
+    try:
+        store = get_vector_store()
+    except ValueError as exc:
+        # Unregistered/misconfigured VECTOR_STORE_BACKEND — fails closed as
+        # SearchIndexMismatchError (not a raw ValueError) so the orchestrator's
+        # existing SearchIndexMismatchError catch still fails the experiment
+        # cleanly instead of crashing the sweep thread.
+        raise SearchIndexMismatchError(
+            f"Vector store {backend!r} is not configured: {exc}"
+        ) from exc
+    if not store.health_check():
+        raise SearchIndexMismatchError(
+            f"Vector store {backend!r} is unreachable. Check its connection "
+            "settings and that the service is running."
+        )
+
+    def _plan() -> SearchIndexAssessment:
+        try:
+            return store.plan_indexes(config)
+        except (AttributeError, NotImplementedError) as exc:
+            raise SearchIndexMismatchError(
+                f"Vector store {backend!r} publishes no index plan for this "
+                f"config — cannot verify readiness: {exc}"
+            ) from exc
+
+    assessment = _plan()
+    if not assessment.is_satisfied:
+        store.ensure_indexes()
+        assessment = _plan()
+        if not assessment.is_satisfied:
+            message = format_mismatch_message(assessment)
+            raise SearchIndexMismatchError(f"Vector store {backend!r}: {message}")
+
+    _validate_vector_capabilities(config, store.capabilities(), backend)
+    return assessment
+
+
 def validate_experiment_search_indexes(
     config: ExperimentConfig,
     *,
@@ -157,8 +272,15 @@ def validate_experiment_search_indexes(
 
     Mongo: Atlas ensure/reconcile path.
     Postgres: catalog introspection only (schema bootstrap remains the ensure path).
+    Any other registered vector store: generic plan/ensure + capabilities
+    dispatch through the ``VectorStore`` port (Slice 49B) — fails closed
+    rather than skipping (no ``preflight_not_applicable()`` fallback).
+
+    Scoped by ``VECTOR_STORE_BACKEND`` (falling back to ``STORAGE_BACKEND``
+    when unset) — identical to ``STORAGE_BACKEND`` in single-store mode, so
+    this is a no-op change there (characterization).
     """
-    backend = normalize_storage_backend(settings.storage_backend)
+    backend = normalize_storage_backend(settings.vector_store_backend or settings.storage_backend)
     try:
         adapter_class: type | None = resolve_adapter(backend)
     except ValueError:
@@ -170,10 +292,10 @@ def validate_experiment_search_indexes(
 
     if adapter_class is not resolve_adapter("mongodb"):
         logger.info(
-            "search index preflight skipped — unknown backend=%s",
-            settings.storage_backend,
+            "search index preflight — generic vector-store dispatch, backend=%s",
+            backend,
         )
-        return preflight_not_applicable()
+        return _validate_generic_vector_store_indexes(config, backend)
 
     # Lazy import — see collect_search_index_snapshot() above. Only reached
     # once the backend is confirmed to be mongodb, so a Postgres-only process

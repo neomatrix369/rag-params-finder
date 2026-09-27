@@ -8,8 +8,10 @@ is running on pgvector — marks a healthy stack as unhealthy and blocks Compose
 
 from __future__ import annotations
 
+import time
+
 from server.db.mongo.mongodb_uri import mongo_client_kwargs, mongodb_storage_mode
-from server.db.ports.registry import resolve_adapter
+from server.db.ports.registry import is_same_adapter, resolve_adapter
 from server.db.postgres.postgres_uri import postgres_connect_kwargs, postgres_storage_mode
 from server.settings import normalize_storage_backend, settings
 from server.utils.logger import get_logger
@@ -56,11 +58,32 @@ def _is_mongodb_backend(backend: str) -> bool:
 
 
 def resolve_storage_mode() -> str:
-    """Return the four-value storage_mode for the active backend + URI."""
+    """Return the four-value storage_mode for the active (run-state) backend + URI."""
     backend = normalize_storage_backend(settings.storage_backend or "mongodb")
     if _is_postgres_backend(backend):
         return postgres_storage_mode(settings.database_url or "")
     return mongodb_storage_mode(settings.mongodb_uri or "")
+
+
+def _storage_mode_for(backend: str) -> str:
+    """Four-value storage_mode for an arbitrary named backend.
+
+    When ``backend`` is the run-state store (``STORAGE_BACKEND``), delegates
+    to ``resolve_storage_mode()`` itself so callers/tests that patch
+    ``resolve_storage_mode`` keep working unchanged (Slice 49A
+    characterization). Only a genuinely different (split) backend computes
+    its mode directly here.
+    """
+    run_state_backend = normalize_storage_backend(settings.storage_backend or "mongodb")
+    if backend == run_state_backend:
+        return resolve_storage_mode()
+    if _is_postgres_backend(backend):
+        return postgres_storage_mode(settings.database_url or "")
+    if _is_mongodb_backend(backend):
+        return mongodb_storage_mode(settings.mongodb_uri or "")
+    # Not-yet-registered vector-only store (Elasticsearch/Redis, Slice 50/53)
+    # — no adapter exists to derive a real four-value mode from yet.
+    return f"{backend}-unconfigured"
 
 
 def mongodb_health_status() -> str:
@@ -114,37 +137,104 @@ def postgres_health_status() -> str:
         return "error"
 
 
-def storage_health() -> dict[str, str | bool]:
-    """Probe the configured storage backend and decide whether the process is ready.
+def _probe_store(backend: str) -> dict[str, object]:
+    """Probe one named backend; return provider/mode/ok/latency_ms (+ legacy fields).
 
-    Returns a body fragment for ``/healthz`` / ``/health``:
-    ``ok``, ``storage_backend``, ``storage_mode``, and either ``mongodb`` or ``postgres``.
+    ``_legacy_key``/``_legacy_status`` carry the pre-49B per-engine key
+    (``mongodb``/``postgres``) and its raw status string (``ok``/``error``/
+    ``skipped``) — internal, stripped before the ``stores.*`` body is built
+    (see ``_public_probe``).
     """
-    backend = normalize_storage_backend(settings.storage_backend or "mongodb")
-    mode = resolve_storage_mode()
+    mode = _storage_mode_for(backend)
     if _is_postgres_backend(backend):
-        postgres = postgres_health_status()
-        body: dict[str, str | bool] = {
-            "ok": postgres == "ok",
-            "storage_backend": "postgres",
-            "storage_mode": mode,
-            "postgres": postgres,
+        start = time.monotonic()
+        status = postgres_health_status()
+        ok = status == "ok"
+        entry: dict[str, object] = {
+            "provider": "postgres",
+            "mode": mode,
+            "ok": ok,
+            "latency_ms": int((time.monotonic() - start) * 1000) if ok else None,
+            "_legacy_key": "postgres",
+            "_legacy_status": status,
         }
-        if postgres == "error":
-            body["remediation"] = _POSTGRES_CLOUD_ERROR_REMEDIATION
-            logger.warning("%s storage_mode=%s", _POSTGRES_CLOUD_ERROR_REMEDIATION, mode)
-        return body
+        if status == "error":
+            entry["remediation"] = _POSTGRES_CLOUD_ERROR_REMEDIATION
+        return entry
     if _is_mongodb_backend(backend):
-        mongodb = mongodb_health_status()
+        start = time.monotonic()
+        status = mongodb_health_status()
+        ok = status in ("ok", "skipped")
         return {
-            "ok": mongodb in ("ok", "skipped"),
-            "storage_backend": "mongodb",
-            "storage_mode": mode,
-            "mongodb": mongodb,
+            "provider": "mongodb",
+            "mode": mode,
+            "ok": ok,
+            "latency_ms": int((time.monotonic() - start) * 1000) if ok else None,
+            "_legacy_key": "mongodb",
+            "_legacy_status": status,
         }
+    # Not-yet-registered vector-only store (Elasticsearch/Redis, Slice 50/53).
     return {
+        "provider": backend,
+        "mode": mode,
         "ok": False,
-        "storage_backend": backend,
-        "storage_mode": mode,
-        "error": f"unknown storage backend {backend!r}",
+        "latency_ms": None,
+        "_legacy_key": backend,
+        "_legacy_status": "error",
+        "remediation": f"Check {backend.upper()}_URL / ./start-services.sh {backend} status",
     }
+
+
+def _public_probe(probe: dict[str, object]) -> dict[str, object]:
+    """Strip internal legacy-shim fields from a probe for the ``stores.*`` body."""
+    public: dict[str, object] = {
+        "provider": probe["provider"],
+        "mode": probe["mode"],
+        "ok": probe["ok"],
+        "latency_ms": probe["latency_ms"],
+    }
+    if "remediation" in probe:
+        public["remediation"] = probe["remediation"]
+    return public
+
+
+def storage_health() -> dict[str, object]:
+    """Probe both stores and decide whether the process is ready (Slice 49B).
+
+    Every key present before 49B stays, with the same meaning: ``ok``,
+    ``storage_backend`` (the run-state store, i.e. ``STORAGE_BACKEND``),
+    ``storage_mode`` (the **vector** store's mode in a split setup — matches
+    the dashboard label), and the per-engine key (``mongodb``/``postgres``,
+    including Mongo's ``"skipped"``). Adds: ``vector_store_backend``,
+    ``run_state_mode``, and ``stores: {vector: {...}, run_state: {...}}``.
+    Returns not-ok (503 at the route) when either store is down.
+    """
+    vector_backend = normalize_storage_backend(
+        settings.vector_store_backend or settings.storage_backend
+    )
+    run_state_backend = normalize_storage_backend(settings.storage_backend or "mongodb")
+
+    vector_probe = _probe_store(vector_backend)
+    run_state_probe = (
+        vector_probe
+        if is_same_adapter(vector_backend, run_state_backend)
+        else _probe_store(run_state_backend)
+    )
+
+    body: dict[str, object] = {
+        "ok": bool(vector_probe["ok"]) and bool(run_state_probe["ok"]),
+        "storage_backend": run_state_backend,
+        "storage_mode": vector_probe["mode"],
+        str(run_state_probe["_legacy_key"]): run_state_probe["_legacy_status"],
+    }
+    if "remediation" in run_state_probe:
+        body["remediation"] = run_state_probe["remediation"]
+        logger.warning("%s storage_mode=%s", run_state_probe["remediation"], body["storage_mode"])
+
+    body["vector_store_backend"] = vector_backend
+    body["run_state_mode"] = run_state_probe["mode"]
+    body["stores"] = {
+        "vector": _public_probe(vector_probe),
+        "run_state": _public_probe(run_state_probe),
+    }
+    return body

@@ -403,7 +403,9 @@ class TestHealthzCharacterizationShould:
         Given STORAGE_BACKEND=mongodb, a successful ping, and storage_mode
         "mongodb-cloud",
         When storage_health() is called,
-        Then the body is exactly {ok, storage_backend, storage_mode, mongodb}.
+        Then today's keys/values ({ok, storage_backend, storage_mode, mongodb})
+        stay exactly as before — Slice 49B's stores/vector_store_backend/
+        run_state_mode keys are additions only.
         """
         ### Given / When
         with (
@@ -415,15 +417,23 @@ class TestHealthzCharacterizationShould:
             ),
         ):
             mock_settings.storage_backend = "mongodb"
+            mock_settings.vector_store_backend = "mongodb"
             actual = storage_health()
 
-        ### Then
-        assert actual == {
-            "ok": True,
-            "storage_backend": "mongodb",
-            "storage_mode": "mongodb-cloud",
-            "mongodb": "ok",
-        }
+        ### Then — legacy subset byte-identical.
+        assert actual["ok"] is True
+        assert actual["storage_backend"] == "mongodb"
+        assert actual["storage_mode"] == "mongodb-cloud"
+        assert actual["mongodb"] == "ok"
+        # New keys are additions only (Slice 49B, DECISIONS #247/#250).
+        assert actual["vector_store_backend"] == "mongodb"
+        assert actual["run_state_mode"] == "mongodb-cloud"
+        for side in ("vector", "run_state"):
+            probe = actual["stores"][side]
+            assert probe["provider"] == "mongodb"
+            assert probe["mode"] == "mongodb-cloud"
+            assert probe["ok"] is True
+            assert isinstance(probe["latency_ms"], int) and probe["latency_ms"] >= 0
 
     def test_given_postgres_backend_error_when_storage_health_then_shape_is_golden(
         self,
@@ -446,14 +456,21 @@ class TestHealthzCharacterizationShould:
             ),
         ):
             mock_settings.storage_backend = "postgres"
+            mock_settings.vector_store_backend = "postgres"
             actual = storage_health()
 
-        ### Then
+        ### Then — legacy subset byte-identical.
         assert actual["ok"] is False
         assert actual["storage_backend"] == "postgres"
         assert actual["storage_mode"] == "postgres-cloud"
         assert actual["postgres"] == "error"
         assert "Session-mode" in str(actual["remediation"])
+        # New keys are additions only (Slice 49B, DECISIONS #247/#250).
+        assert actual["vector_store_backend"] == "postgres"
+        assert actual["run_state_mode"] == "postgres-cloud"
+        assert actual["stores"]["vector"]["ok"] is False
+        assert actual["stores"]["vector"]["latency_ms"] is None
+        assert actual["stores"]["run_state"]["ok"] is False
 
 
 class TestPreflightCharacterizationShould:
@@ -482,6 +499,7 @@ class TestPreflightCharacterizationShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "mongodb"),
+            patch("server.settings.settings.vector_store_backend", "mongodb"),
             patch(
                 "server.core.guards.search_index_guard.collect_search_index_snapshot",
                 return_value=ready,
@@ -524,6 +542,7 @@ class TestPreflightCharacterizationShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
+            patch("server.settings.settings.vector_store_backend", "postgres"),
             patch(
                 "server.core.guards.search_index_guard.postgres_vector_extension_present",
                 return_value=True,

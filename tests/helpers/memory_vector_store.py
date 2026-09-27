@@ -275,5 +275,6 @@ class MemoryVectorStore:
     def storage_mode(self) -> str:
         return "memory-test"
 
-    def capabilities(self) -> VectorCapabilities:
+    @classmethod
+    def capabilities(cls) -> VectorCapabilities:
         return _CAPABILITIES

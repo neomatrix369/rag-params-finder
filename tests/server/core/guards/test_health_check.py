@@ -205,15 +205,18 @@ class TestStorageHealthShould:
             ),
         ):
             mock_settings.storage_backend = "postgres"
+            mock_settings.vector_store_backend = "postgres"
             actual = storage_health()
 
-        ### Then
-        assert actual == {
-            "ok": True,
-            "storage_backend": "postgres",
-            "storage_mode": "postgres-local",
-            "postgres": "ok",
-        }
+        ### Then — legacy keys/values unchanged; new keys are additions only.
+        assert actual["ok"] is True
+        assert actual["storage_backend"] == "postgres"
+        assert actual["storage_mode"] == "postgres-local"
+        assert actual["postgres"] == "ok"
+        assert actual["vector_store_backend"] == "postgres"
+        assert actual["run_state_mode"] == "postgres-local"
+        assert actual["stores"]["vector"]["ok"] is True
+        assert actual["stores"]["run_state"]["ok"] is True
         postgres_probe.assert_called_once()
         mongo_probe.assert_not_called()
 
@@ -245,6 +248,7 @@ class TestStorageHealthShould:
             ),
         ):
             mock_settings.storage_backend = "postgres"
+            mock_settings.vector_store_backend = "postgres"
             actual = storage_health()
 
         ### Then
@@ -283,15 +287,16 @@ class TestStorageHealthShould:
             ),
         ):
             mock_settings.storage_backend = "mongodb"
+            mock_settings.vector_store_backend = "mongodb"
             actual = storage_health()
 
-        ### Then
-        assert actual == {
-            "ok": True,
-            "storage_backend": "mongodb",
-            "storage_mode": "mongodb-cloud",
-            "mongodb": "ok",
-        }
+        ### Then — legacy keys/values unchanged; new keys are additions only.
+        assert actual["ok"] is True
+        assert actual["storage_backend"] == "mongodb"
+        assert actual["storage_mode"] == "mongodb-cloud"
+        assert actual["mongodb"] == "ok"
+        assert actual["vector_store_backend"] == "mongodb"
+        assert actual["run_state_mode"] == "mongodb-cloud"
         postgres_probe.assert_not_called()
 
     def test_given_mongo_skipped_when_storage_health_then_still_ok(self) -> None:
@@ -320,9 +325,50 @@ class TestStorageHealthShould:
             ),
         ):
             mock_settings.storage_backend = "mongodb"
+            mock_settings.vector_store_backend = "mongodb"
             actual = storage_health()
 
         ### Then
         assert actual["ok"] is True
         assert actual["mongodb"] == "skipped"
         assert actual["storage_mode"] == "mongodb-local"
+
+    def test_given_split_store_with_vector_unreachable_when_storage_health_then_not_ok(
+        self,
+    ) -> None:
+        """
+        Scenario: Vector store unreachable (split-store /healthz).
+
+        Given STORAGE_BACKEND=postgres (reachable) and
+              VECTOR_STORE_BACKEND=elasticsearch (not yet registered —
+              Slice 50 — so it degrades to the generic "unreachable"
+              probe branch),
+        When storage_health() is called,
+        Then it reports ok=False with stores.vector.ok=False and a
+             remediation string, while stores.run_state.ok stays True and
+             today's per-engine key (postgres) still reflects the run-state
+             probe.
+        """
+        ### Given / When
+        with (
+            patch("server.core.guards.health_check.settings") as mock_settings,
+            patch("server.core.guards.health_check.postgres_health_status", return_value="ok"),
+            patch(
+                "server.core.guards.health_check.resolve_storage_mode",
+                return_value="postgres-local",
+            ),
+        ):
+            mock_settings.storage_backend = "postgres"
+            mock_settings.vector_store_backend = "elasticsearch"
+            actual = storage_health()
+
+        ### Then
+        assert actual["ok"] is False
+        assert actual["storage_backend"] == "postgres"
+        assert actual["postgres"] == "ok"
+        assert actual["vector_store_backend"] == "elasticsearch"
+        assert actual["run_state_mode"] == "postgres-local"
+        assert actual["stores"]["vector"]["ok"] is False
+        assert actual["stores"]["vector"]["latency_ms"] is None
+        assert "remediation" in actual["stores"]["vector"]
+        assert actual["stores"]["run_state"]["ok"] is True
