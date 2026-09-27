@@ -207,4 +207,4 @@ Scenario: ES client missing raises install guidance
 - [ ] `/verify-slice` — verdict COMPLETE
 
 ## Gate Status
-🔀 ON BRANCH — adapter, unit tests, and docs are on `slice/50-elasticsearch-adapter-core`. Live Elasticsearch was not reachable locally. Reviewers APPROVED 2026-09-27. `gate_status` stays `ON_BRANCH` until the PR is open.
+✅ PASSED — PR [#203](https://github.com/neomatrix369/rag-params-finder/pull/203) is open. Six reviewers APPROVED. Live Elasticsearch was not reachable locally (documented skip). Merge and release stay manual.
