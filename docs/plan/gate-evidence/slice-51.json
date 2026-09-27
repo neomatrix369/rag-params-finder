@@ -3,12 +3,11 @@
   "gate_status": "ON_BRANCH",
   "verified_at": "2026-09-27",
   "branch": "slice/51-elasticsearch-operability-ci-docs-adr",
-  "note": "Compose Elasticsearch 9.5.0 is running (basic licence, security off, 1 GB heap, 127.0.0.1:9200, cluster green after the disk-watermark incident). Live pytest passed. health-check.sh passed with the dashboard up. This is not PASSED: the server image build was stopped because the Docker disk was at 97.9% (Elasticsearch high watermark), so the image was not proven to import the client; cross-backend overlap and the nightly run URL are still open; reviewer gates are not closed.",
+  "note": "Reviewers ran on 74efcb2. Four approved (solution architect, platform, documentarist, researcher). Crafter and system-designer returned NEEDS_REVISION; neither finding is remediated here (see code_review). /verify-slice is INCOMPLETE. gate_status stays ON_BRANCH: server image with EXTRAS=elasticsearch was not built (Docker disk watermark), cross-backend top-3 overlap was not run, and nightly has no run URL.",
   "open": [
     "server image build with EXTRAS=elasticsearch (blocked: Docker disk watermark, 1.2 GB free, needs 5.8 GB)",
     "cross-backend top-3 overlap (Mongo was not running; a 120-run grid was not started)",
-    "nightly vector-store-integration conclusion + run URL",
-    "nw-at-completeness-check, reviewers, and /verify-slice"
+    "nightly vector-store-integration conclusion + run URL"
   ],
   "external_references": {
     "loaded_at": "2026-09-27",
@@ -80,5 +79,65 @@
         "lines": 99.16
       }
     }
+  },
+  "gwt_mapping": {
+    "compose_constraints": "docker-compose.yml elasticsearch-local; live inspect in compose_9_5_0",
+    "manifest_parity_and_no_case_arm": "tests/scripts/test_store_manifest.py",
+    "dockerfile_extras": "tests/scripts/test_store_manifest.py::test_given_server_dockerfile_when_read_then_extras_build_arg_is_optional — static only; image import not proven",
+    "catalog_redaction": "tests/server/api/test_stores_api.py::test_given_registry_when_catalog_built_then_secrets_are_absent",
+    "mismatch_422": "tests/server/api/test_stores_api.py::test_given_elasticsearch_server_when_mismatch_formatted_then_example_config_is_named",
+    "config_basename_parity": "tests/server/models/test_config_examples.py",
+    "docs_parity_and_red_path": "tests/server/test_docs_parity.py",
+    "empty_state_hints": "frontend/src/components/screens/ExperimentsScreen.test.tsx",
+    "labels_no_elasticsearch_branch": "frontend/src/utils/storageLabels.ts has no elasticsearch branch; quota hidden when limit is null",
+    "indexes_list_via_catalog": "tests/cli/test_indexes_cmd.py reads the catalog payload",
+    "clean_clone_image_import": "OPEN — Dockerfile ARG is tested; built image was not proven to import elasticsearch",
+    "es_unreachable_503": "OPEN — no automated test for a failed elasticsearch container",
+    "cmd_health_probe_execution": "OPEN — health-check.sh was run live once; no unit test executes a cmd: probe",
+    "teardown_all_profiles": "OPEN — stop-services.sh iterates the manifest; no live teardown transcript",
+    "nightly_matrix": "OPEN — workflow is in .github/workflows/nightly.yml; no GitHub run URL",
+    "cross_backend_overlap": "OPEN",
+    "journey_15_stages": "OPEN — setup guide reviewed; no reader transcript of all 15 stages",
+    "adr_006_distinct": "docs/adr/README.md lists ADR-005 DoubleWord and ADR-006 Elasticsearch Accepted"
+  },
+  "code_review": {
+    "reviewed_at": "2026-09-27",
+    "head": "74efcb2",
+    "reviewers": {
+      "nw-solution-architect-reviewer": "APPROVED",
+      "nw-platform-architect-reviewer": "APPROVED",
+      "nw-documentarist-reviewer": "APPROVED",
+      "nw-researcher-reviewer": "APPROVED",
+      "nw-software-crafter-reviewer": "NEEDS_REVISION",
+      "nw-system-designer-reviewer": "NEEDS_REVISION"
+    },
+    "crafter_not_remediated": "The catalog test calls build_stores_payload(), which resolves adapters. psycopg is a required dependency in pyproject.toml, and quality gates already ran this test green (603 passed). Mocking resolve_adapter would drop the secret-redaction assertion. The case-arm regex matches the acceptance scenario; widening it is advisory.",
+    "system_designer_deferred": "cmd_<store>_* functions are the start pattern Mongo and Postgres already used. Elasticsearch composed the same pattern. The acceptance scan forbids case arms, and that test is green. A generic waiter is deferred to the Redis slice so this slice does not rewrite the Mongo and Postgres start paths."
+  },
+  "at_completeness": {
+    "gwt_fence": "10 of 18 scenarios have a unit or component test. The other 8 are live, nightly, or reader transcripts and are listed in gwt_mapping as OPEN.",
+    "tier1": "ACCEPTABLE_WITH_DOCUMENTED_GAPS",
+    "zero_obligation": "PASS for secret redaction — the catalog test asserts configured secrets are absent. No zero-obligation scenario is missing its test.",
+    "tier2": "no BLOCK — S1 N/A (pytest, no step registry); S2 N/A (no des.domain package); S3 partial (catalog, 422, docs-parity red path exist; full stack and nightly do not)",
+    "documented_gaps": [
+      "Clean-clone proof stops before a built server image imports the elasticsearch client",
+      "Nightly vector-store-integration has no run URL",
+      "Cross-backend top-3 overlap was not measured",
+      "15-stage reader journey has no transcript"
+    ]
+  },
+  "gate_evidence_validator": {
+    "verdict": "FAIL",
+    "reason": "Schema fields for ON_BRANCH are present and gate_status is not invented as PASSED. After-Checks are not all green: nightly conclusion, comparability, and the EXTRAS image proof are open."
+  },
+  "verify_slice": {
+    "verdict": "INCOMPLETE",
+    "evidence_state": "ON_BRANCH",
+    "verified_at": "2026-09-27",
+    "head": "74efcb2",
+    "acceptance_criteria": "10/18 scenarios have tests; 8 remain open in gwt_mapping",
+    "quality_gates": "exit 0 on 2026-09-27: 603 pytest, cover 73.77% (floors 72/59/72), frontend 266 tests at 97.76/92.78/99.39/99.16",
+    "reviewers": "4 APPROVED, 2 NEEDS_REVISION (recorded, not remediated; see code_review)",
+    "note": "INCOMPLETE. Do not treat this as COMPLETE or PASSED."
   }
 }

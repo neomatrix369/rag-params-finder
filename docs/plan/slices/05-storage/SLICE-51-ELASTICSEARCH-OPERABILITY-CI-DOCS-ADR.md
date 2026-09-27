@@ -250,14 +250,15 @@ Scenario: ADR-006 is Accepted and distinct from ADR-005
 - [ ] `docs/plan/gate-evidence/slice-51.json` with coverage/complexity fields + clean-clone + journey + comparability transcripts.
 
 ### Closing Gates
-- [ ] `nw-at-completeness-check` — AT completeness audit (gate #8)
-- [ ] `nw-software-crafter-reviewer` — code quality + TDD discipline (gate #9)
-- [ ] `nw-solution-architect-reviewer` + `nw-system-designer-reviewer` — data-flow review (gate #9, parallel): `/api/stores` contract + registry-driven scripts/docs-parity (no new SPOF/per-store branch)
-- [ ] `nw-platform-architect-reviewer` — compose profile, healthcheck/binding/heap/teardown + nightly service-container job + docs-parity CI wiring
-- [ ] `nw-documentarist-reviewer` — DIVIO/Diataxis currency for `elasticsearch-setup.md` + journey docs
-- [ ] `nw-researcher-reviewer` — ES facts in ADR-006 (unquantized HNSW, Basic-licence RRF, refresh, alternatives) evidence-backed
-- [ ] `nw-gate-evidence-validator` — 9 conditions pass
-- [ ] `/verify-slice` — verdict COMPLETE
+- [x] `nw-at-completeness-check` — run 2026-09-27: 10/18 scenarios tested; ACCEPTABLE_WITH_DOCUMENTED_GAPS; zero-obligation (secret redaction) PASS. Recorded in `gate-evidence/slice-51.json`.
+- [x] `nw-software-crafter-reviewer` — ran 2026-09-27: NEEDS_REVISION. Not remediated: `psycopg` is a required dependency, and mocking `resolve_adapter` would drop the redaction assertion. Recorded in `gate-evidence/slice-51.json`.
+- [x] `nw-solution-architect-reviewer` — APPROVED 2026-09-27 (`GET /api/stores`, registry, no case arms, pairing rule).
+- [x] `nw-system-designer-reviewer` — ran 2026-09-27: NEEDS_REVISION on `cmd_<store>_*` duplication. Deferred to the Redis slice; case-arm scan stays the Slice 51 acceptance test.
+- [x] `nw-platform-architect-reviewer` — APPROVED 2026-09-27 (compose 9.5.0, EXTRAS arg, nightly matrix + summary job, docs-parity collected in unit CI).
+- [x] `nw-documentarist-reviewer` — APPROVED 2026-09-27 (`elasticsearch-setup.md` stays a how-to).
+- [x] `nw-researcher-reviewer` — APPROVED 2026-09-27 (ADR-006 claims match the adapter, mapping, and compose file).
+- [ ] `nw-gate-evidence-validator` — FAIL: ON_BRANCH schema is valid, but nightly, comparability, and the EXTRAS image proof are still open.
+- [x] `/verify-slice` — verdict **INCOMPLETE** (not COMPLETE, not PASSED). See `gate-evidence/slice-51.json` → `verify_slice`.
 
 ## Gate Status
-📋 PLANNED — depends on Slice 50; amended 2026-09-25 (DECISIONS #240–#249); AT authoring (`nw-distill`) before 🔨 IN PROGRESS. Optional 51a/51b PR split decided at execution start.
+🔨 IN PROGRESS — branch `slice/51-elasticsearch-operability-ci-docs-adr` at `74efcb2`. Reviewers and `/verify-slice` have run. `gate_status` is `ON_BRANCH`. `/verify-slice` is INCOMPLETE until the server image import, cross-backend overlap, and a nightly run URL are recorded.
