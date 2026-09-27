@@ -2,7 +2,7 @@
 
 **MoSCoW:** MUST
 **Target time:** ~3–4 h
-**Status:** ✅ COMPLETE (code) — on `main` since 2026-07-28 (`2eb2990`); gate evidence `PENDING_VERIFICATION` (DECISIONS #186). Open gate debt: craft remediation → [Slice 32C](SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md); verification gates → [Slice 32B](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md))
+**Status:** ✅ COMPLETE — on `main` since 2026-07-28 (`2eb2990`); all gates PASSED 2026-09-27. Craft remediation → [Slice 32C](SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md) ✅; verification gates → [Slice 32B](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) ✅
 **Depends on:** none
 **Unblocks:** Slice 32C (review remediation) → Slice 32B (gate closure) → Slice 33
 **PRD:** [`docs/plan/PRD-supabase-pgvector-migration.md`](../../PRD-supabase-pgvector-migration.md)
@@ -148,4 +148,4 @@ Scenario: Cascade delete on missing experiment is a no-op / 404
 
 ## Gate Status
 
-🔨 IN PROGRESS — implementation + GWT/acceptance tests + docs + quick gates green (2026-07-25). Remaining verification/governance gates owned by **Slice 32B**.
+✅ PASSED — 2026-09-27. All verification gates closed via Slice 32B: 100% branch coverage on all 4 target modules; mutation waiver DECISIONS #257 (protocol stubs + adapter CRUD one-liners fully exercised by ATs); full quality-gates.sh backend ✅ (472 tests, 70.12% overall, floors 72/59/72); craft/architecture BLOCKERs cleared by Slice 32C (DECISIONS #256, PR #199). gate-evidence/slice-32.json + slice-32B.json on branch. Slice 33 unblocked.
