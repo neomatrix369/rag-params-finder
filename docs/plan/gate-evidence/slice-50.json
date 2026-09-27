@@ -2,7 +2,7 @@
   "slice": "50",
   "gate_status": "ON_BRANCH",
   "branch": "slice/50-elasticsearch-adapter-core",
-  "head": "d14f0df",
+  "head": "2449e74",
   "note": "Elasticsearch vector-only adapter: explicit unquantized HNSW, shared client-side RRF, DatabaseProvider widened. Live cluster was not running locally (connection refused on 127.0.0.1:9200); the live test skips unless RAG_REQUIRE_ELASTICSEARCH=1. gate_status stays ON_BRANCH until the PR merges. Do not read this as PASSED.",
   "external_references": {
     "loaded_at": "2026-09-27",
@@ -64,5 +64,16 @@
       "owner": "Slice 51",
       "reason": "explicit non-goals of Slice 50"
     }
-  ]
+  ],
+  "code_review": {
+    "reviewed_at": "2026-09-27",
+    "reviewers": {
+      "nw-software-crafter-reviewer": "APPROVED",
+      "nw-acceptance-designer-reviewer": "APPROVED",
+      "nw-solution-architect-reviewer": "APPROVED",
+      "nw-ddd-architect-reviewer": "APPROVED",
+      "nw-system-designer-reviewer": "APPROVED",
+      "nw-data-engineer-reviewer": "APPROVED"
+    }
+  }
 }

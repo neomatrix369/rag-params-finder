@@ -207,4 +207,4 @@ Scenario: ES client missing raises install guidance
 - [ ] `/verify-slice` — verdict COMPLETE
 
 ## Gate Status
-📋 PLANNED — depends on 49A/49B; amended 2026-09-25 (DECISIONS #240–#249); AT authoring (`nw-distill`) before 🔨 IN PROGRESS.
+🔀 ON BRANCH — adapter, unit tests, and docs are on `slice/50-elasticsearch-adapter-core`. Live Elasticsearch was not reachable locally. Reviewers APPROVED 2026-09-27. `gate_status` stays `ON_BRANCH` until the PR is open.
