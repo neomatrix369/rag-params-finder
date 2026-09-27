@@ -3,7 +3,7 @@
   "gate_status": "ON_BRANCH",
   "verified_at": "2026-09-27",
   "branch": "slice/51-elasticsearch-operability-ci-docs-adr",
-  "note": "Reviewers ran on 74efcb2. Four approved. Crafter and system-designer returned NEEDS_REVISION; both findings are now remediated in code and have not been re-reviewed. /verify-slice stays INCOMPLETE. gate_status stays ON_BRANCH. The server image import, a dense top-3 overlap, and the nightly vector-store-integration URL are now recorded. Still open: the 15-stage reader transcript and the full 120-run grid.",
+  "note": "Reviewers ran on 74efcb2. Four approved. Crafter and system-designer returned NEEDS_REVISION; both findings are now remediated in code and have not been re-reviewed. /verify-slice is PARTIAL. gate_status stays ON_BRANCH. The server image import, a dense top-3 overlap, and the nightly vector-store-integration URL are recorded. Still open: the 15-stage reader transcript and the full 120-run grid.",
   "open": [
     "15-stage reader journey has no transcript",
     "full 120-run cross-backend grid was not repeated; dense top-3 on one chunk setting is recorded"
@@ -158,13 +158,13 @@
     "reason": "Schema fields for ON_BRANCH are present and gate_status is not invented as PASSED. Image import, dense top-3, and the nightly URL are recorded. The 15-stage reader transcript and the full 120-run grid are still open, so the validator stays FAIL."
   },
   "verify_slice": {
-    "verdict": "INCOMPLETE",
-    "evidence_state": "ON_BRANCH",
+    "verdict": "PARTIAL",
+    "evidence_state": "IMPLEMENTED",
     "verified_at": "2026-09-27",
-    "head": "74efcb2",
-    "acceptance_criteria": "10/18 scenarios have tests; 8 remain open in gwt_mapping",
-    "quality_gates": "exit 0 on 2026-09-27: 603 pytest, cover 73.77% (floors 72/59/72), frontend 266 tests at 97.76/92.78/99.39/99.16",
+    "head": "14bc002",
+    "acceptance_criteria": "12/18 GWT scenarios passed. Failed: clean-clone mongodb-local healthz, unreachable 503, command probe, teardown, full 120-run sweep, 15-stage journey.",
+    "quality_gates": "pytest 607 and frontend 266 passed after the pairing change; pre-push gates passed on 529250d and 14bc002",
     "reviewers": "4 APPROVED, 2 NEEDS_REVISION later remediated in code and not re-reviewed. See code_review.",
-    "note": "INCOMPLETE. Image import, dense top-3, and the nightly URL are recorded. The 15-stage reader transcript and the full 120-run grid are still open. Do not treat this as COMPLETE or PASSED."
+    "note": "PARTIAL. Not COMPLETE and not PASSED. Image import, dense top-3, and the nightly URL are recorded. The 15-stage reader transcript and the full 120-run grid are still open."
   }
 }

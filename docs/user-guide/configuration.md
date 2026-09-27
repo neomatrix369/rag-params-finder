@@ -438,7 +438,7 @@ Two independent axes select storage. Product names are **shorthand for the usual
 Someone says “I’m on Atlas” → ask: **cloud or Local?**
 Someone says “I’m on Supabase” → engine is Postgres cloud; local Postgres is `postgres-local`, not Supabase.
 
-Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud` / `--elasticsearch-local|cloud`. `--elasticsearch-local` also starts the run-state store (default local Postgres). The old `--local` / `--postgres` flag aliases were removed. Env asymmetry: Elasticsearch needs `ELASTICSEARCH_URL` (and `ELASTICSEARCH_API_KEY` on a secured cloud). It never uses `MONGODB_URI` or `DATABASE_URL` for the vector lane.
+Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud` / `--elasticsearch-local|cloud`. `--elasticsearch-local` also starts the run-state store (default `mongodb-local`; set `STORAGE_BACKEND=postgres` to pair Postgres). The old `--local` / `--postgres` flag aliases were removed. Env asymmetry: Elasticsearch needs `ELASTICSEARCH_URL` (and `ELASTICSEARCH_API_KEY` on a secured cloud). It never uses `MONGODB_URI` or `DATABASE_URL` for the vector lane.
 
 ### Split-store: `VECTOR_STORE_BACKEND` (Slice 49B)
 

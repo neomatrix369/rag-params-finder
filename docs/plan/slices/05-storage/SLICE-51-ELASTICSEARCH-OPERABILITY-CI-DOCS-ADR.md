@@ -257,8 +257,8 @@ Scenario: ADR-006 is Accepted and distinct from ADR-005
 - [x] `nw-platform-architect-reviewer` — APPROVED 2026-09-27 (compose 9.5.0, EXTRAS arg, nightly matrix + summary job, docs-parity collected in unit CI).
 - [x] `nw-documentarist-reviewer` — APPROVED 2026-09-27 (`elasticsearch-setup.md` stays a how-to).
 - [x] `nw-researcher-reviewer` — APPROVED 2026-09-27 (ADR-006 claims match the adapter, mapping, and compose file).
-- [ ] `nw-gate-evidence-validator` — FAIL: ON_BRANCH schema is valid, but nightly, comparability, and the EXTRAS image proof are still open.
-- [x] `/verify-slice` — verdict **INCOMPLETE** (not COMPLETE, not PASSED). See `gate-evidence/slice-51.json` → `verify_slice`.
+- [ ] `nw-gate-evidence-validator` — FAIL: ON_BRANCH schema is valid. Image import, dense top-3, and the nightly URL are recorded. The 15-stage reader transcript and the full 120-run grid are still open.
+- [x] `/verify-slice` — verdict **PARTIAL** (2026-09-27; not COMPLETE, not PASSED). See `gate-evidence/slice-51.json` → `verify_slice`.
 
 ## Gate Status
-🔨 IN PROGRESS — branch `slice/51-elasticsearch-operability-ci-docs-adr` at `74efcb2`. Reviewers and `/verify-slice` have run. `gate_status` is `ON_BRANCH`. `/verify-slice` is INCOMPLETE until the server image import, cross-backend overlap, and a nightly run URL are recorded.
+🔨 IN PROGRESS — branch `slice/51-elasticsearch-operability-ci-docs-adr` at `14bc002`. `gate_status` is `ON_BRANCH`. `/verify-slice` is PARTIAL: the server image imports the Elasticsearch client, a dense top-3 overlap is recorded, and the nightly matrix URL is green. Still open: the 15-stage reader transcript and the full 120-run grid. Not PASSED.

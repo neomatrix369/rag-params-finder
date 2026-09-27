@@ -88,7 +88,7 @@ Open the dashboard at `http://localhost:5374`. Store labels read Index and Host.
 
 ## Switching backends
 
-Use the same YAML shape and change only the vector store. Run state can stay on Postgres.
+Use the same YAML shape and change only the vector store. The default run-state pair is `mongodb-local`. Set `STORAGE_BACKEND=postgres` before start to keep run state on Postgres.
 
 ```bash
 ./start-services.sh --mongodb-local
