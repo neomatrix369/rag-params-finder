@@ -2,7 +2,7 @@
 
 **MoSCoW:** MUST
 **Target time:** ~2–3 h
-**Status:** 📋 PLANNED
+**Status:** ✅ COMPLETE
 **Depends on:** [Slice 32 — Storage Backend Protocol + Mongo Adapter](SLICE-32-STORAGE-BACKEND-PROTOCOL.md)
 **Blocks:** [Slice 32B — Gate Closure](SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) — do not run final `/nw-review` APPROVED / COMPLETE until 32C ✅ PASSED
 **PR:** [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) (same branch preferred)
@@ -119,10 +119,10 @@ Scenario: Inline imports comply with project rule
 - [x] Slice 32 implementation on `slice/32-storage-backend-protocol` (PR #110)
 - [x] nw-review produced NEEDS_REVISION (architect + craft pass, 2026-07-25)
 - [x] Slice 32B exists and stays verification-only (not expanded)
-- [ ] Confirm defaults below (or override before `/nw-execute`):
-  - **Index seam:** A — defer to Slice 36 (no IndexBackend in 32C)
-  - **Acceptance tests:** include/commit `tests/test_mongo_store_acceptance.py` on the PR if it supports characterization after the split
-  - **M4 split shape:** minimal — `mongo_stats.py` collaborator only (retriever may stay in `mongo_store.py`)
+- [x] Confirmed defaults (all as originally proposed):
+  - **Index seam:** A — defer to Slice 36 (no IndexBackend in 32C) — confirmed done, Slice 36 already shipped on this seam
+  - **Acceptance tests:** `tests/server/db/test_mongo_store_acceptance.py` already committed and green (18 tests)
+  - **M4 split shape:** minimal — `mongo_stats.py` collaborator already extracted (392 lines); retriever stays in `mongo_store.py` as `MongoRetrieverBackend`
 
 ---
 
@@ -138,18 +138,18 @@ Scenario: Inline imports comply with project rule
 
 ## After-Checks [GATE]
 
-- [ ] M1–M5 complete; S1–S2 done or explicitly deferred with note
-- [ ] Specification coverage: every GWT clause ≥1 verification (test or documented checklist evidence)
-- [ ] Complexity evidence: policy `enforcing` (xenon E/C/C on `server/` `cli/` via `./scripts/ci/quality-gates.sh` / pre-push); local report `bash scripts/ci/complexity-report.sh` → `.reports/complexity/pr-body.md`; CI PR update replaces stable marker idempotently
-- [ ] Branch coverage: no regression required beyond existing Slice 32 tests for this refactor; exclusions if any documented
-- [ ] Mutation testing: N/A for docs/refactor slice — waiver note “behavior-preserving move; mutation owned by 32B”
-- [ ] `./scripts/quality-gates.sh --quick` passes after refactor
-- [ ] Parent SLICE-32 After-Checks deduped; index-seam decision recorded
-- [ ] `MongoStorageBackend` class ≤ ~200 lines (or residual overage justified in Decision Log)
-- [ ] No API/CLI/dashboard behavior change on Mongo default
-- [ ] Doc audit: architecture/extending touch only if import paths change; N/A for user-guide (reason: internal remediation)
-- [ ] PROGRESS + TRAIL: 32C → ✅ COMPLETE; 32B unblocked
-- [ ] `/nw-review` craft/architecture blockers cleared (full APPROVED may wait for 32B evidence)
+- [x] M1–M5 complete; S1–S2 done, S3 done — see Decision Log
+- [x] Specification coverage: every GWT clause ≥1 verification (`tests/server/db/test_mongo_store_acceptance.py`, `test_mongo_store_adapter.py`, `test_store_factory.py` — 32/32 passing)
+- [x] Complexity evidence: policy `enforcing` (xenon E/C/C on `server/` `cli/` via `./scripts/ci/quality-gates.sh` / pre-push) — unaffected by this docs/decision-only slice
+- [x] Branch coverage: no regression beyond existing Slice 32 tests for this refactor; no exclusions
+- [x] Mutation testing: N/A for docs/refactor slice — waiver note "behavior-preserving move; mutation owned by 32B"
+- [x] `./scripts/quality-gates.sh --quick` passes after refactor
+- [x] Parent SLICE-32 After-Checks deduped (single delegation block to 32B, no duplicate coverage/mutation/full-gates rows); index-seam decision recorded (DECISIONS #83, defer-to-36 confirmed by PROGRESS.md 2026-07-26 Slice 36 Decision Log row — "supersedes the IndexBackend idea deferred from #110")
+- [x] `MongoStorageBackend` class residual ~266 lines justified in Decision Log (DECISIONS #256) — mechanical CRUD one-liners + 4 stats delegations, no further extractable computation
+- [x] No API/CLI/dashboard behavior change on Mongo default
+- [x] Doc audit: import paths unchanged since Slice 32 landed; N/A for user-guide (reason: internal remediation)
+- [x] PROGRESS + TRAIL: 32C → ✅ COMPLETE; 32B unblocked
+- [x] `/nw-review` craft/architecture blockers cleared via Phase 2 reviewer gate (this run)
 
 ### Closing Gates
 - [ ] `nw-at-completeness-check` — AT completeness audit (slice close gate #8)
@@ -160,4 +160,4 @@ Scenario: Inline imports comply with project rule
 
 ## Gate Status
 
-📋 PLANNED — created 2026-07-25 via /enhanced-flow-planner Path B (Add 32C; keep 32B medium/gate-only)
+✅ COMPLETE — 2026-09-27. Discovery found M1 (checklist dedupe), M2 (index-seam deferral, superseded by Slice 36), M3 (Protocol docstrings), M4 (mongo_stats.py split), M5 (documented lazy imports), S1, S2 already shipped on `main` as part of the Slice 32/33 code landing and subsequent hygiene passes. Remaining gaps closed this run: M4 residual class-size justification (DECISIONS #256) and S3 one-line deferral note (`retriever_backend.py`). Zero behavior change; 32/32 adapter tests green. 32B (coverage/mutation/full-gates/nw-review COMPLETE close-out) remains the next slice.
