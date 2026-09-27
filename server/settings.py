@@ -25,8 +25,8 @@ _STORAGE_BACKEND_ALIASES: dict[str, str] = {"mongo": "mongodb"}
 _KNOWN_STORAGE_BACKENDS: frozenset[str] = frozenset({"mongodb", "postgres"})
 # Vector stores additionally allow "elasticsearch" (Slice 50) — it cannot host
 # run state, so it is rejected for STORAGE_BACKEND but accepted for
-# VECTOR_STORE_BACKEND. Slice 49A locks VECTOR_STORE_BACKEND == STORAGE_BACKEND,
-# so elasticsearch cannot actually be selected as a vector store until 49B.
+# VECTOR_STORE_BACKEND. Pairing rule (ii) (49B) allows that split; the
+# adapter is not registered yet, so selecting it fails when the store is resolved.
 _KNOWN_VECTOR_STORE_BACKENDS: frozenset[str] = _KNOWN_STORAGE_BACKENDS | {"elasticsearch"}
 
 # Vector-only providers named ahead of their adapter landing (Slice 50/53):

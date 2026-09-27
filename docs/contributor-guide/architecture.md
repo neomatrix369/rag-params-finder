@@ -307,9 +307,9 @@ owns experiments/runs/results CRUD + boot reconciliation; `VectorStore` owns chu
 write/delete/stats, search (via `retriever()`), index planning, health, and declared
 `capabilities()`. A provider→adapter registry resolves the active vector store, so a
 new store is one registry entry (`server/db/ports/registry.py`), not a branch in the
-factory. Both `mongodb` and `postgres` currently resolve to the *same* engine for both
-ports (`VECTOR_STORE_BACKEND` is locked equal to `STORAGE_BACKEND` until Slice 49B) —
-no Elasticsearch or other third store exists yet.
+factory. Both `mongodb` and `postgres` can host run state, so pairing rule (ii) keeps
+`VECTOR_STORE_BACKEND` equal to `STORAGE_BACKEND` for those two. A vector-only
+store may differ; no third adapter is registered yet (Elasticsearch is Slice 50).
 
 ```mermaid
 C4Component

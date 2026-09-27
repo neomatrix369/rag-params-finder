@@ -21,6 +21,7 @@ After 49A the port exists but every caller still routes chunks through `StorageB
 ## Non-goals
 
 - Any Elasticsearch code (→ Slice 50). The split-store test uses an in-memory `VectorStore` double.
+- Proving a vector-only store's name on every run surface (run row, explore, best-config, db-stats, vector-db-stats). `DatabaseProvider` is still `mongodb|postgres|supabase`, so a YAML cannot name the test double (`memory`). **CF-49B-2** → Slice 50, with that slice's `DatabaseProvider` widening (`elasticsearch`).
 - CLI `indexes list/reset` routing (→ Slice 51 via `GET /api/stores`).
 - Frontend label changes (→ Slice 51).
 - Post-write chunk-count guard — **Could** (DECISIONS #245); if added, warn-only.
@@ -62,7 +63,7 @@ In single-store mode both steps hit the same database, and the characterization 
 
 ### Engine labels (walkthrough G1/G2, DECISIONS #253)
 
-- **New runs** already persist the YAML `database_provider` (`orchestrator.py:839`), and D2 rejects a YAML that doesn't match the vector store. A run on a vector-only store is therefore labelled with that store, and 49B keeps it that way end to end.
+- **New runs** already persist the YAML `database_provider` (`orchestrator.py:839`), and D2 rejects a YAML that doesn't match the vector store. Names already in `DatabaseProvider` (`mongodb`, `postgres`, `supabase`) keep that label. A vector-only name outside today's literal is **CF-49B-2** (Slice 50): once `elasticsearch` is a legal `database_provider`, the completed run shows it on the run row, explore, best-config, db-stats, and vector-db-stats.
 - **Legacy rows** (persisted before `database_provider` was recorded) fall back to `settings.default_database_provider()`, which derives from `STORAGE_BACKEND` (`settings.py:176-185`). Such rows were written when both stores were the same engine, so that value is correct. **Freeze it.** `signatures.py:46` and `results_analyzer.py:31,125` keep this run-state fallback and must **not** follow `VECTOR_STORE_BACKEND`. Following it would change legacy signatures, so resume would re-run completed runs.
 - **Stats allow-list:** `normalize_stats_database_provider()` (`stats_common.py:105-112`) maps any value other than mongo/postgres/supabase to the fallback, which would erase a persisted `elasticsearch` / `redis` label. It accepts every registered provider (from the registry, not a second list), with the `supabase → postgres` alias kept.
 
@@ -245,11 +246,6 @@ Scenario Outline: Runs persisted without database_provider keep their run-state 
     | mongodb   |
     | postgres  |
 
-Scenario: A run on a vector-only store carries that store's label everywhere
-  Given VECTOR_STORE_BACKEND=memory and a YAML with database_provider matching it
-  When the sweep completes
-  Then the run row, explore, best-config, db-stats and vector-db-stats all show the memory store
-
 Scenario: A vector store without an index plan fails preflight closed
   Given a registered vector store that publishes no index plan for the submitted config
   When a sweep is submitted
@@ -267,7 +263,7 @@ Scenario: No test asserts chunk calls on the run-state mock
   Then no test sets insert_chunks / delete_chunks_for_experiment expectations on a StorageBackend mock
 ```
 
-*(Parametrize handoff for `nw-distill`: the split-store scenario and the resume scenario are parametrised over `{memory}` here; Slice 50 adds `elasticsearch` and Slice 53 adds `redis`, each against a live store. The first scenario stays one journey on purpose: it is the defect detector for #240, and the scenarios after it pin each concern separately. Assertions that only a live store can prove — refresh-before-return, delete-by-query counts, BM25 ranking, score scale on real vectors — belong to those live legs, not the double.)*
+*(Parametrize handoff for `nw-distill`: the split-store scenario and the resume scenario are parametrised over `{memory}` here; Slice 50 adds `elasticsearch` and Slice 53 adds `redis`, each against a live store. The vector-only label-everywhere scenario moved to Slice 50 as CF-49B-2 (DECISIONS #258). The first scenario stays one journey on purpose: it is the defect detector for #240, and the scenarios after it pin each concern separately. Assertions that only a live store can prove — refresh-before-return, delete-by-query counts, BM25 ranking, score scale on real vectors — belong to those live legs, not the double.)*
 
 ---
 

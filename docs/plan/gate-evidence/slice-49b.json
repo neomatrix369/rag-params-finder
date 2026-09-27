@@ -52,6 +52,7 @@
   ],
   "deferred": [
     {"item": "orphan-vector reconciler (spec Should, CF-49B-1)", "owner": "Slice 51", "reason": "explicitly deferred by the spec itself"},
+    {"item": "vector-only store label on every run surface (CF-49B-2, DECISIONS #258)", "owner": "Slice 50", "reason": "DatabaseProvider is mongodb|postgres|supabase, so YAML cannot name the memory test double; Slice 50 widens the literal with elasticsearch and asserts that label on the run row, explore, best-config, db-stats, and vector-db-stats"},
     {"item": "preflight run-state 'required objects' check is health-only, no schema/collection-existence check", "owner": "follow-up", "reason": "no such concept exists outside StorageBackend's own lazy bootstrap yet"},
     {"item": "vector-store capabilities check in preflight validates retrieval-method support only, not embedding dimensions", "owner": "follow-up", "reason": "adding a dims check risked new preflight failures for existing single-store configs not fully enumerated"},
     {"item": "preflight call sites still invoke validate_experiment_search_indexes by name (wrapped by preflight_stores) rather than a renamed symbol", "owner": "n/a — deliberate", "reason": "~9 existing test files monkeypatch that exact attribute; renaming would silently disable those patches"}

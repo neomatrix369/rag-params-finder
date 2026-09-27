@@ -168,6 +168,11 @@ Scenario: Split-store sweep end to end on live Elasticsearch (49B acceptance, li
     /healthz reports elasticsearch + postgres, db-stats counts ES chunks under the ES label,
     and DELETE reports the delete-by-query count and leaves both stores empty
 
+Scenario: A vector-only store's label appears on every run surface (CF-49B-2)
+  Given VECTOR_STORE_BACKEND=elasticsearch and a YAML whose database_provider matches it
+  When the sweep completes
+  Then the run row, explore, best-config, db-stats and vector-db-stats all show elasticsearch
+
 Scenario: ES client missing raises install guidance
   Given the elasticsearch extra is not installed and VECTOR_STORE_BACKEND=elasticsearch
   When the adapter is resolved
