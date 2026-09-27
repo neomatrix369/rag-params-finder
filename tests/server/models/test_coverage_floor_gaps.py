@@ -18,6 +18,7 @@ from server.core.search_index_guard import (
     postgres_vector_extension_present,
     validate_experiment_search_indexes,
 )
+from server.core.search_index_plan import SearchIndexMismatchError
 from server.models.config import (
     ChunkingConfig,
     ChunkParams,
@@ -163,10 +164,13 @@ def test_given_required_indexes_when_collect_postgres_snapshot_then_present_set(
     assert "chunks_embedding_384_hnsw" in snap.chunks_ready
 
 
-def test_given_unknown_storage_backend_when_validate_then_not_applicable() -> None:
+def test_given_unknown_storage_backend_when_validate_then_fails_closed() -> None:
     """
-    Scenario: Unknown storage_backend skips Atlas/Postgres preflight.
-    Slice: 44 — BE coverage floor parity
+    Scenario: Unknown vector store backend fails preflight closed.
+    Slice: 49B — no skip path (DECISIONS #253, walkthrough G3): an
+    unregistered VECTOR_STORE_BACKEND no longer silently passes via
+    ``preflight_not_applicable()`` — it raises SearchIndexMismatchError
+    naming the store instead.
     """
     # -- Given --
     config = ExperimentConfig(
@@ -181,12 +185,13 @@ def test_given_unknown_storage_backend_when_validate_then_not_applicable() -> No
         retrieval=RetrievalConfig(methods=[RetrievalMethod.DENSE]),
         execution=ExecutionConfig(),
     )
-    with patch("server.settings.settings.storage_backend", "sqlite"):
-        # -- When --
-        assessment = validate_experiment_search_indexes(config)
-
-    # -- Then --
-    assert assessment.is_satisfied
+    with (
+        patch("server.settings.settings.storage_backend", "sqlite"),
+        patch("server.settings.settings.vector_store_backend", "sqlite"),
+        pytest.raises(SearchIndexMismatchError, match="sqlite"),
+    ):
+        # -- When / Then --
+        validate_experiment_search_indexes(config)
 
 
 def test_normalize_database_provider_aliases() -> None:

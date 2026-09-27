@@ -114,7 +114,7 @@ On **M10+**, the server attempts programmatic creation when slots are available;
 
 **Symptom**: submit returns **422** starting with `Config engine mismatch: database_provider=... but server storage_backend=...`.
 
-**Cause**: YAML declares a different **engine** than the running process. This check runs **before** search-index / SIE preflight and before any experiment row is written. It is **not** the same as catalog/index missing-object 422s.
+**Cause**: YAML `database_provider` does not match the active vector store (`VECTOR_STORE_BACKEND`, which defaults to `STORAGE_BACKEND`). The 422 text says `server storage_backend=`; that value is the vector store. This check runs **before** search-index / SIE preflight and before any experiment row is written. It is **not** the same as catalog/index missing-object 422s.
 
 **Fix** (pick one):
 
@@ -425,7 +425,9 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-CO
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `STORAGE_BACKEND` | No | `mongodb` | Storage adapter: `mongodb` (permanent default — DECISIONS #130 Won't flip; legacy alias `mongo`) or `postgres` (local Docker or Supabase-hosted Postgres) |
+| `STORAGE_BACKEND` | No | `mongodb` | Run-state adapter: `mongodb` (permanent default — DECISIONS #130 Won't flip; legacy alias `mongo`) or `postgres` (local Docker or Supabase-hosted Postgres) |
+| `VECTOR_STORE_BACKEND` | No | `STORAGE_BACKEND` | Chunk store. Pairing rule (ii): a store that can host run state must equal `STORAGE_BACKEND`. Elasticsearch is accepted as a name ahead of its adapter (Slice 50) — a split setup is not runnable yet. See [configuration.md](configuration.md) |
+| `ELASTICSEARCH_URL` | When `VECTOR_STORE_BACKEND=elasticsearch` | — | Elasticsearch URL. Required at boot once that backend is selected; the adapter itself lands in Slice 50 |
 | `MONGODB_URI` | When `STORAGE_BACKEND=mongodb` | — | MongoDB Atlas / Atlas Local connection string |
 | `DATABASE_URL` | When `STORAGE_BACKEND=postgres` | — | Canonical Postgres connection string (local or Supabase-hosted) |
 | `SUPABASE_URI` | No | — | Optional alias for `DATABASE_URL` (used only when `DATABASE_URL` is unset) |

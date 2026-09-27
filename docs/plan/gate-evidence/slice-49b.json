@@ -1,0 +1,104 @@
+{
+  "slice": "49B",
+  "gate_status": "ON_BRANCH",
+  "branch": "slice/49b-vector-store-data-path-rewire",
+  "head": "67ef663",
+  "pr": "https://github.com/neomatrix369/rag-params-finder/pull/202",
+  "note": "Chunk data path rewired onto the vector-store port; pairing rule (ii); two-store health and fail-closed preflight. Reviewers APPROVED and /verify-slice COMPLETE at 67ef663. gate_status stays ON_BRANCH until PR #202 merges.",
+  "red_run": {
+    "commit": "a490f406",
+    "test": "tests/server/test_split_store_e2e.py::TestSplitStoreSweepShould::test_given_split_store_config_when_sweep_runs_then_chunks_land_only_in_vector_store",
+    "failing_assertion": "AssertionError: expected chunks written to the vector store, found none — run-state store holds 5 chunk(s) instead (final experiment status=complete)\nassert 0 > 0\n +  where 0 = len([])\n +    where [] = MemoryVectorStore(chunks=[]).chunks"
+  },
+  "quality_gates": {
+    "command": "./scripts/ci/quality-gates.sh",
+    "exit_code": 0,
+    "measured_at": "2026-09-27",
+    "backend": {
+      "tests": 548,
+      "total_cover": 72.43,
+      "cover_target": 70
+    },
+    "frontend": {
+      "tests": 264,
+      "coverage": {
+        "stmts": 98.4,
+        "branch": 93.11,
+        "functions": 100,
+        "lines": 99.69
+      }
+    },
+    "ruff": "clean",
+    "mypy": "clean (112 files)",
+    "eslint": "clean",
+    "tsc": "clean",
+    "vite_build": "built in 2.31s",
+    "split_store_e2e": "green — tests/server/test_split_store_e2e.py (1 passed, xfail marker removed)",
+    "characterization": "byte-identical, 16/16 tests green (tests/server/test_vector_store_characterization.py), extended for two-store /healthz keys as additions-only",
+    "anti_test_theater_guard": "green — tests/test_no_run_state_chunk_expectations.py (AST scan; caught and required an allowlist fix during authoring, confirming it works)",
+    "ast_store_string_guard": "green (49A guard, extended to cover chunk-method-via-get_storage_backend rule)",
+    "complexity": {
+      "tool": "xenon",
+      "policy": "enforcing",
+      "result": "pass — exit 0, no new violations (orchestrator CC not raised, Slice 47 debt unaffected)"
+    },
+    "npm_audit": "3 moderate (pre-existing @vitest/mocker transitive dev-dependency advisory, unrelated to this slice)"
+  },
+  "streams": [
+    {"name": "test infra + RED", "commit": "a490f40", "summary": "MemoryVectorStore double, known-answer fixture, _patch_backends helper, RED split-store E2E test"},
+    {"name": "core rewire sites 1/3/4", "commit": "f4f5944", "summary": "orchestrator chunk-write via get_vector_store(), delete_experiment_data() use-case, db-stats composition, StorageBackend Protocol cleanup"},
+    {"name": "rewire sites 7-10", "commit": "d89ec1f", "summary": "main.py lifespan bootstrap, settings pairing rule (ii) + boot validation, two-store /healthz, dual-store fail-closed preflight"},
+    {"name": "docs exit", "commit": "6939cb9", "summary": "invariants.md, architecture.md split-store diagram, configuration.md, cli-reference.md /healthz shape, CHANGELOG, PROGRESS/TRAIL"},
+    {"name": "test migration + anti test-theater guard", "commit": "0c2c141", "summary": "migrated dual-factory test to _patch_backends, added AST-based theater guard"}
+  ],
+  "deferred": [
+    {"item": "orphan-vector reconciler (spec Should, CF-49B-1)", "owner": "Slice 51", "reason": "explicitly deferred by the spec itself"},
+    {"item": "vector-only store label on every run surface (CF-49B-2, DECISIONS #258)", "owner": "Slice 50", "reason": "DatabaseProvider is mongodb|postgres|supabase, so YAML cannot name the memory test double; Slice 50 widens the literal with elasticsearch and asserts that label on the run row, explore, best-config, db-stats, and vector-db-stats"},
+    {"item": "preflight run-state 'required objects' check is health-only, no schema/collection-existence check", "owner": "follow-up", "reason": "no such concept exists outside StorageBackend's own lazy bootstrap yet"},
+    {"item": "vector-store capabilities check in preflight validates retrieval-method support only, not embedding dimensions", "owner": "follow-up", "reason": "adding a dims check risked new preflight failures for existing single-store configs not fully enumerated"},
+    {"item": "preflight call sites still invoke validate_experiment_search_indexes by name (wrapped by preflight_stores) rather than a renamed symbol", "owner": "n/a — deliberate", "reason": "~9 existing test files monkeypatch that exact attribute; renaming would silently disable those patches"}
+  ],
+  "code_review": {
+    "reviewed_at": "2026-09-27",
+    "head": "67ef663",
+    "parent_cross_check": "Call sites re-read after the four reviews. Reviewer line numbers differed; the lines below are the ones on disk. Chunk writes do not go through get_storage_backend().",
+    "trace": {
+      "ingest": "server/core/pipeline/orchestrator.py:98-99 store_factory.get_vector_store().insert_chunks",
+      "query": "server/core/pipeline/search.py:50 get_retriever_backend(); server/db/ports/store_factory.py:58-65 delegates to get_vector_store().retriever()",
+      "delete": "server/api/experiments_shared.py:69-72 vector delete_chunks_for_experiment then get_storage_backend().delete_experiment_data",
+      "stats": "server/api/experiments_shared.py:79-82 vector chunk facts plus run-state result counts; :86-87 grouped stats from the vector store",
+      "preflight": "server/core/guards/search_index_guard.py:162-168 vector step first; run-state health only when the stores differ",
+      "boot": "server/main.py:28 settings.ensure_storage_ready(); server/main.py:36-47 Atlas bootstrap only when the vector store is Mongo",
+      "healthz": "server/core/guards/health_check.py:224-239 ok is both stores; server/main.py:115-117 returns 503 when not ok"
+    },
+    "reviewers": {
+      "nw-software-crafter-reviewer": "APPROVED",
+      "nw-solution-architect-reviewer": "APPROVED",
+      "nw-system-designer-reviewer": "APPROVED",
+      "nw-data-engineer-reviewer": "APPROVED"
+    }
+  },
+  "at_completeness": {
+    "gwt_fence": "14/14 scenarios in the spec fence have a test, or the recorded 49A red_run for the defect-detector scenario",
+    "tier1": "12/15 ACCEPTABLE_WITH_DOCUMENTED_GAPS",
+    "zero_obligation": "PASS — DELETE of an experiment with no chunks reports 0",
+    "tier2": "no BLOCK — S1 N/A (pytest, no bdd step registry); S2 N/A (this repo has no des.domain package; ATs use TestClient and public use-cases); S3 PASS (sweep, DELETE, /healthz, preflight, boot URI check)",
+    "documented_gaps": [
+      "C2a/C2b: 49B does not add an experiment state machine; pause/resume and partial-delete transitions are tested",
+      "C6c: declared errors (422, ValidationError, 503) each have a test; there is no assertion that no other error type can escape"
+    ]
+  },
+  "verify_slice": {
+    "verdict": "COMPLETE",
+    "evidence_state": "VERIFIED",
+    "verified_at": "2026-09-27",
+    "head": "67ef663",
+    "acceptance_criteria": "14/14",
+    "quality_gates": "pre-push at 67ef663: 563 unit tests passed; gated-module coverage 98.33% (floor 95); frontend test:ci 264 passed, 98.4/93.11/100/99.69; xenon E/C/C pass. Combined backend coverage last full run 72.43% against floor 70, before the additive recovery tests.",
+    "runtime": "In-memory split store via FastAPI TestClient (POST /experiments, /healthz, DELETE). Live Elasticsearch is a 49B non-goal.",
+    "documentation": "current — pairing rule and planned-not-runnable ES wording landed in 48fd4cc",
+    "visual_assets": "aligned — docs/contributor-guide/architecture.md storage-ports diagram shows get_vector_store() and pairing rule (ii)",
+    "decision_ownership": "CF-49B-1 → Slice 51; CF-49B-2 → Slice 50 (DECISIONS #258). DatabaseProvider was not widened.",
+    "note": "COMPLETE on the slice contract. gate_status stays ON_BRANCH until PR #202 merges (GATE_CONTRACT)."
+  }
+}

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from server.db.ports.registry import known_vector_stores
+from server.db.ports.registry import known_vector_stores, vector_store_can_host_run_state
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -25,15 +25,37 @@ _STORAGE_BACKEND_ALIASES: dict[str, str] = {"mongo": "mongodb"}
 _KNOWN_STORAGE_BACKENDS: frozenset[str] = frozenset({"mongodb", "postgres"})
 # Vector stores additionally allow "elasticsearch" (Slice 50) — it cannot host
 # run state, so it is rejected for STORAGE_BACKEND but accepted for
-# VECTOR_STORE_BACKEND. Slice 49A locks VECTOR_STORE_BACKEND == STORAGE_BACKEND,
-# so elasticsearch cannot actually be selected as a vector store until 49B.
+# VECTOR_STORE_BACKEND. Pairing rule (ii) (49B) allows that split; the
+# adapter is not registered yet, so selecting it fails when the store is resolved.
 _KNOWN_VECTOR_STORE_BACKENDS: frozenset[str] = _KNOWN_STORAGE_BACKENDS | {"elasticsearch"}
+
+# Vector-only providers named ahead of their adapter landing (Slice 50/53):
+# the registry cannot yet answer ``vector_store_can_host_run_state`` for
+# these (no adapter registered, so ``resolve_adapter`` raises), so the
+# pairing-rule validator below falls back to this declared-vector-only list.
+# Once an adapter registers, the registry lookup takes over and this entry
+# becomes redundant (harmless — same answer either way).
+_PENDING_VECTOR_ONLY_BACKENDS: frozenset[str] = frozenset({"elasticsearch"})
 
 
 def normalize_storage_backend(value: str) -> str:
     """Map legacy ``mongo`` to canonical ``mongodb``; otherwise lower/strip."""
     backend = value.strip().lower()
     return _STORAGE_BACKEND_ALIASES.get(backend, backend)
+
+
+def _can_host_run_state(backend: str) -> bool:
+    """True when ``backend`` (a vector store) can also hold run state.
+
+    Prefers the registry's declared ``VectorCapabilities.can_host_run_state``
+    (DECISIONS #241 pairing rule (ii)) — never a hardcoded provider list.
+    Falls back to ``_PENDING_VECTOR_ONLY_BACKENDS`` only when the provider has
+    no registered adapter yet (Elasticsearch/Redis before Slice 50/53 land).
+    """
+    try:
+        return vector_store_can_host_run_state(backend)
+    except ValueError:
+        return backend not in _PENDING_VECTOR_ONLY_BACKENDS
 
 
 def _is_postgres_uri_placeholder(uri: str) -> bool:
@@ -110,11 +132,15 @@ class Settings(BaseSettings):
     storage_backend: str = "mongodb"
 
     # Active vector store. Defaults to storage_backend when unset (empty string
-    # sentinel). Slice 49A locks this equal to storage_backend — a split
-    # store (vectors in one engine, run state in another) arrives in Slice 49B.
-    # "elasticsearch" is a valid value here (vector-only) but is currently
-    # unreachable because of the equality lock.
+    # sentinel). Pairing rule (ii) (Slice 49B, DECISIONS #241): a store that
+    # can hold run state must equal storage_backend; a vector-only store
+    # (e.g. "elasticsearch") may pair with either run-state store.
     vector_store_backend: str = ""
+
+    # Elasticsearch connection string — required when VECTOR_STORE_BACKEND=elasticsearch.
+    # No Elasticsearch adapter exists yet (Slice 50); this field only lets
+    # boot-time validation name the missing setting ahead of that slice.
+    elasticsearch_url: str = ""
 
     # Postgres connection string — required when STORAGE_BACKEND=postgres.
     # Hosted Supabase: Settings → Database → Connection string (Session mode pooler).
@@ -159,24 +185,29 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
-    def vector_store_backend_must_be_known_and_locked(self) -> Settings:
-        """Default VECTOR_STORE_BACKEND to storage_backend; reject unknown/mismatched values.
+    def vector_store_backend_pairing_rule(self) -> Settings:
+        """Default VECTOR_STORE_BACKEND to storage_backend; enforce pairing rule (ii).
 
-        Slice 49A locks vector_store_backend == storage_backend (DECISIONS #241):
-        a split setup (vectors and run state in different engines) has no wired
-        data path yet, so it is rejected here rather than allowed to silently
-        half-work. Slice 49B replaces this lock with pairing rule (ii).
+        Slice 49B (DECISIONS #241) replaces the 49A equality lock: **if the
+        vector store can host run state, VECTOR_STORE_BACKEND must equal
+        STORAGE_BACKEND** (both stores are the same engine — nothing else is
+        wired). A vector-only store (``can_host_run_state=False`` —
+        Elasticsearch, Redis, or the test-only ``memory`` provider) may pair
+        with either run-state store, because it never has to hold run state
+        itself.
         """
         raw = self.vector_store_backend.strip()
         backend = normalize_storage_backend(raw) if raw else self.storage_backend
-        if backend not in _KNOWN_VECTOR_STORE_BACKENDS:
+        if backend not in _KNOWN_VECTOR_STORE_BACKENDS and backend not in known_vector_stores():
             known = ", ".join(sorted(known_vector_stores()))
             raise ValueError(f"Unknown VECTOR_STORE_BACKEND={raw!r}. Known vector stores: {known}.")
-        if backend != self.storage_backend:
+        if _can_host_run_state(backend) and backend != self.storage_backend:
             raise ValueError(
-                f"VECTOR_STORE_BACKEND={backend!r} does not match "
-                f"STORAGE_BACKEND={self.storage_backend!r}: split stores arrive in "
-                "Slice 49B. Set VECTOR_STORE_BACKEND to match STORAGE_BACKEND for now."
+                f"STORAGE_BACKEND={self.storage_backend!r} with "
+                f"VECTOR_STORE_BACKEND={backend!r} is not supported: {backend} can "
+                "hold run state, so it must hold both. Set "
+                f"VECTOR_STORE_BACKEND={self.storage_backend!r}, or "
+                f"STORAGE_BACKEND={backend!r}."
             )
         self.vector_store_backend = backend
         return self
@@ -189,13 +220,27 @@ class Settings(BaseSettings):
         return self
 
     def ensure_storage_ready(self) -> None:
-        """Raise when the active backend is missing its required connection URI.
+        """Raise when either store is missing its required connection URI.
 
         Called from server lifespan and store_factory so misconfiguration fails
         with one clear message before any driver I/O. Empty URIs remain allowed
         at Settings construction so unit tests can import the module without a DB.
+
+        Checks the run-state store (STORAGE_BACKEND) and, when different
+        (split store, Slice 49B DECISIONS #250), the vector store
+        (VECTOR_STORE_BACKEND) too — a missing/placeholder URI on *either*
+        side fails boot. An unreachable-but-configured store does not fail
+        boot here (that stays a `/healthz` 503 + preflight 422 concern).
         """
-        backend = normalize_storage_backend(self.storage_backend)
+        self._ensure_backend_uri_present(normalize_storage_backend(self.storage_backend))
+        vector_backend = normalize_storage_backend(
+            self.vector_store_backend or self.storage_backend
+        )
+        if vector_backend != normalize_storage_backend(self.storage_backend):
+            self._ensure_backend_uri_present(vector_backend)
+
+    def _ensure_backend_uri_present(self, backend: str) -> None:
+        """Raise naming the missing/placeholder setting for one engine's URI."""
         if backend == "mongodb" and not self.mongodb_uri.strip():
             raise ValueError(
                 "STORAGE_BACKEND=mongodb requires MONGODB_URI. "
@@ -214,6 +259,11 @@ class Settings(BaseSettings):
                     "(contains <project-ref>). Replace it with a real Session-mode URI, "
                     "or use ./start-services.sh --postgres-local."
                 )
+        if backend == "elasticsearch" and not self.elasticsearch_url.strip():
+            raise ValueError(
+                "VECTOR_STORE_BACKEND=elasticsearch requires ELASTICSEARCH_URL. "
+                "Set it in .env or the environment."
+            )
 
     def default_database_provider(self) -> str:
         """Label for runs/stats when YAML omits ``database_provider``.

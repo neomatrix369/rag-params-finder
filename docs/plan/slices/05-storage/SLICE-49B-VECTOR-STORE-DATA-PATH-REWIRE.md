@@ -2,7 +2,7 @@
 
 **MoSCoW:** MUST
 **Target time:** ~6–8 h
-**Status:** 📋 PLANNED
+**Status:** 🔀 ON BRANCH
 **Depends on:** [49A](SLICE-49-VECTOR-STORE-PORT-SPLIT-REGISTRY.md) (`VectorStore` port, registry, composites, `get_vector_store()`, stores locked equal)
 **Branch:** `slice/49b-vector-store-data-path-rewire`
 **Feature:** Elasticsearch vector-store adapter (ADR-006)
@@ -21,6 +21,7 @@ After 49A the port exists but every caller still routes chunks through `StorageB
 ## Non-goals
 
 - Any Elasticsearch code (→ Slice 50). The split-store test uses an in-memory `VectorStore` double.
+- Proving a vector-only store's name on every run surface (run row, explore, best-config, db-stats, vector-db-stats). `DatabaseProvider` is still `mongodb|postgres|supabase`, so a YAML cannot name the test double (`memory`). **CF-49B-2** → Slice 50, with that slice's `DatabaseProvider` widening (`elasticsearch`).
 - CLI `indexes list/reset` routing (→ Slice 51 via `GET /api/stores`).
 - Frontend label changes (→ Slice 51).
 - Post-write chunk-count guard — **Could** (DECISIONS #245); if added, warn-only.
@@ -62,7 +63,7 @@ In single-store mode both steps hit the same database, and the characterization 
 
 ### Engine labels (walkthrough G1/G2, DECISIONS #253)
 
-- **New runs** already persist the YAML `database_provider` (`orchestrator.py:839`), and D2 rejects a YAML that doesn't match the vector store. A run on a vector-only store is therefore labelled with that store, and 49B keeps it that way end to end.
+- **New runs** already persist the YAML `database_provider` (`orchestrator.py:839`), and D2 rejects a YAML that doesn't match the vector store. Names already in `DatabaseProvider` (`mongodb`, `postgres`, `supabase`) keep that label. A vector-only name outside today's literal is **CF-49B-2** (Slice 50): once `elasticsearch` is a legal `database_provider`, the completed run shows it on the run row, explore, best-config, db-stats, and vector-db-stats.
 - **Legacy rows** (persisted before `database_provider` was recorded) fall back to `settings.default_database_provider()`, which derives from `STORAGE_BACKEND` (`settings.py:176-185`). Such rows were written when both stores were the same engine, so that value is correct. **Freeze it.** `signatures.py:46` and `results_analyzer.py:31,125` keep this run-state fallback and must **not** follow `VECTOR_STORE_BACKEND`. Following it would change legacy signatures, so resume would re-run completed runs.
 - **Stats allow-list:** `normalize_stats_database_provider()` (`stats_common.py:105-112`) maps any value other than mongo/postgres/supabase to the fallback, which would erase a persisted `elasticsearch` / `redis` label. It accepts every registered provider (from the registry, not a second list), with the `supabase → postgres` alias kept.
 
@@ -245,11 +246,6 @@ Scenario Outline: Runs persisted without database_provider keep their run-state 
     | mongodb   |
     | postgres  |
 
-Scenario: A run on a vector-only store carries that store's label everywhere
-  Given VECTOR_STORE_BACKEND=memory and a YAML with database_provider matching it
-  When the sweep completes
-  Then the run row, explore, best-config, db-stats and vector-db-stats all show the memory store
-
 Scenario: A vector store without an index plan fails preflight closed
   Given a registered vector store that publishes no index plan for the submitted config
   When a sweep is submitted
@@ -267,7 +263,7 @@ Scenario: No test asserts chunk calls on the run-state mock
   Then no test sets insert_chunks / delete_chunks_for_experiment expectations on a StorageBackend mock
 ```
 
-*(Parametrize handoff for `nw-distill`: the split-store scenario and the resume scenario are parametrised over `{memory}` here; Slice 50 adds `elasticsearch` and Slice 53 adds `redis`, each against a live store. The first scenario stays one journey on purpose: it is the defect detector for #240, and the scenarios after it pin each concern separately. Assertions that only a live store can prove — refresh-before-return, delete-by-query counts, BM25 ranking, score scale on real vectors — belong to those live legs, not the double.)*
+*(Parametrize handoff for `nw-distill`: the split-store scenario and the resume scenario are parametrised over `{memory}` here; Slice 50 adds `elasticsearch` and Slice 53 adds `redis`, each against a live store. The vector-only label-everywhere scenario moved to Slice 50 as CF-49B-2 (DECISIONS #258). The first scenario stays one journey on purpose: it is the defect detector for #240, and the scenarios after it pin each concern separately. Assertions that only a live store can prove — refresh-before-return, delete-by-query counts, BM25 ranking, score scale on real vectors — belong to those live legs, not the double.)*
 
 ---
 
@@ -288,12 +284,12 @@ Scenario: No test asserts chunk calls on the run-state mock
 
 ### Closing Gates
 
-- [ ] `nw-at-completeness-check` (gate #8)
-- [ ] `nw-software-crafter-reviewer` (gate #9)
-- [ ] `nw-solution-architect-reviewer` + `nw-system-designer-reviewer` + `nw-data-engineer-reviewer` (gate #9, parallel): each traces ingest → query → delete → stats → preflight → boot → `/healthz` through the real call sites with file:line evidence (DECISIONS #240)
-- [ ] `nw-gate-evidence-validator` — 9 conditions pass
-- [ ] `/verify-slice` — verdict COMPLETE
+- [x] `nw-at-completeness-check` (gate #8) — GWT fence 14/14; Tier-1 12/15 ACCEPTABLE_WITH_DOCUMENTED_GAPS (C2a, C2b, C6c); Tier-2 no BLOCK
+- [x] `nw-software-crafter-reviewer` (gate #9) — APPROVED 2026-09-27
+- [x] `nw-solution-architect-reviewer` + `nw-system-designer-reviewer` + `nw-data-engineer-reviewer` (gate #9, parallel) — APPROVED 2026-09-27; parent cross-check confirmed ingest `orchestrator.py:98-99`, query `search.py:50` via `store_factory.py:58-65`, delete `experiments_shared.py:69-72`, stats `experiments_shared.py:79-87`, preflight `search_index_guard.py:162-168`, boot `main.py:28` and `:36-47`, `/healthz` `health_check.py:224-239` plus `main.py:115-117`
+- [x] `nw-gate-evidence-validator` — recorded in `gate-evidence/slice-49b.json`. Project floors (DECISIONS #142: combined cover 70, not the skill's 95% default) hold on the last full run (72.43%) plus the pre-push unit suite (563 passed, gated modules 98.33%). Complexity stays inside the locked xenon E/C/C ceiling (Slice 47). `gate_status` stays `ON_BRANCH` until PR #202 merges.
+- [x] `/verify-slice` — verdict COMPLETE (2026-09-27, head `67ef663`)
 
 ## Gate Status
 
-📋 PLANNED — created 2026-09-25 (DECISIONS #242); confirmation review pending before AT authoring (`nw-distill`).
+🔀 ON BRANCH — `/verify-slice` COMPLETE and Closing Gates reviewers APPROVED on 2026-09-27 (head `67ef663`, [PR #202](https://github.com/neomatrix369/rag-params-finder/pull/202)). `gate-evidence/slice-49b.json` stays `ON_BRANCH` until that PR merges; PROGRESS/TRAIL move to ✅ PASSED after merge. CF-49B-1 remains Slice 51; CF-49B-2 remains Slice 50.

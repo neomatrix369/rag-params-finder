@@ -1,0 +1,14 @@
+{
+  "personas": [
+    {
+      "id": "prospective-student",
+      "questions": [
+        {"text": "When is the Pell Grant deadline?", "focus": "financial-aid"},
+        {"text": "What time does the library close on weekends?", "focus": "campus-services"},
+        {"text": "When does spring course registration open?", "focus": "registration"},
+        {"text": "When are on campus housing applications due?", "focus": "housing"},
+        {"text": "How do I enroll in student health insurance?", "focus": "health"}
+      ]
+    }
+  ]
+}

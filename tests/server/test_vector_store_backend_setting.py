@@ -103,27 +103,33 @@ class TestVectorStoreBackendDefaultShould:
 
 
 class TestVectorStoreBackendLockShould:
-    """Scenario: split stores are locked out until Slice 49B."""
+    """Scenario: pairing rule (ii) (Slice 49B, DECISIONS #241).
+
+    Replaces the 49A equality lock: a run-state-capable vector store
+    (mongodb/postgres) must equal STORAGE_BACKEND; a vector-only store
+    (elasticsearch, or the test-only ``memory`` provider) may pair with
+    either run-state store.
+    """
 
     @pytest.mark.parametrize(
         "storage_backend, vector_store_backend",
         [
             ("postgres", "mongodb"),
-            ("postgres", "elasticsearch"),
             ("mongodb", "postgres"),
-            ("mongodb", "elasticsearch"),
         ],
     )
-    def test_given_mismatched_backends_when_settings_validate_then_raises_split_store_error(
+    def test_given_two_run_state_capable_backends_mismatched_when_settings_validate_then_raises(
         self, storage_backend: str, vector_store_backend: str
     ) -> None:
         """
-        Scenario: Split stores are locked out until Slice 49B.
+        Scenario: A store that can hold run state must hold it.
 
         Given STORAGE_BACKEND=<storage_backend> and
-              VECTOR_STORE_BACKEND=<vector_store_backend> (mismatched),
+              VECTOR_STORE_BACKEND=<vector_store_backend>, both run-state
+              capable and mismatched,
         When settings validate,
-        Then a clear error says split stores arrive in Slice 49B.
+        Then a clear error explains that a store able to hold run state
+             must also hold it.
         """
         ### Given
         connection_kwargs = (
@@ -133,13 +139,85 @@ class TestVectorStoreBackendLockShould:
         )
 
         ### When / Then
-        with pytest.raises(ValidationError, match="split stores arrive in Slice 49B"):
+        with pytest.raises(ValidationError, match="can hold run state, so it must hold both"):
             Settings(
                 _env_file=None,
                 storage_backend=storage_backend,
                 vector_store_backend=vector_store_backend,
                 **connection_kwargs,
             )
+
+    @pytest.mark.parametrize("storage_backend", ["mongodb", "postgres"])
+    def test_given_vector_only_backend_when_settings_validate_then_accepted(
+        self, storage_backend: str
+    ) -> None:
+        """
+        Scenario Outline: A vector-only store pairs with either run-state store.
+
+        Given STORAGE_BACKEND=<storage_backend> and
+              VECTOR_STORE_BACKEND=elasticsearch (vector-only,
+              can_host_run_state=False, not yet registered — Slice 50),
+        When settings validate,
+        Then they are accepted.
+        """
+        ### Given
+        connection_kwargs = (
+            {"mongodb_uri": "mongodb://localhost:27017/db"}
+            if storage_backend == "mongodb"
+            else {"database_url": "postgresql://rag:rag@localhost:5433/rag_params_finder"}
+        )
+
+        ### When
+        loaded = Settings(
+            _env_file=None,
+            storage_backend=storage_backend,
+            vector_store_backend="elasticsearch",
+            **connection_kwargs,
+        )
+
+        ### Then
+        assert loaded.vector_store_backend == "elasticsearch"
+        assert loaded.storage_backend == storage_backend
+
+    @pytest.mark.parametrize("storage_backend", ["mongodb", "postgres"])
+    def test_given_registered_vector_only_backend_when_settings_validate_then_accepted(
+        self, storage_backend: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        Scenario Outline: A vector-only store pairs with either run-state store
+        (registry-driven path — a registered adapter with
+        ``can_host_run_state=False``, not the not-yet-registered fallback).
+
+        Given STORAGE_BACKEND=<storage_backend> and
+              VECTOR_STORE_BACKEND=memory (registered for this test only,
+              declares can_host_run_state=False),
+        When settings validate,
+        Then they are accepted.
+        """
+        ### Given
+        from server.db.ports import registry as vector_store_registry
+
+        monkeypatch.setitem(
+            vector_store_registry._VECTOR_STORE_REGISTRY,
+            "memory",
+            "tests.helpers.memory_vector_store:MemoryVectorStore",
+        )
+        connection_kwargs = (
+            {"mongodb_uri": "mongodb://localhost:27017/db"}
+            if storage_backend == "mongodb"
+            else {"database_url": "postgresql://rag:rag@localhost:5433/rag_params_finder"}
+        )
+
+        ### When
+        loaded = Settings(
+            _env_file=None,
+            storage_backend=storage_backend,
+            vector_store_backend="memory",
+            **connection_kwargs,
+        )
+
+        ### Then
+        assert loaded.vector_store_backend == "memory"
 
 
 class TestStorageBackendElasticsearchRejectionShould:
@@ -229,6 +307,61 @@ class TestGetRetrieverBackendDelegationShould:
         ### Then
         assert actual is mock_retriever
         mock_vector_store.retriever.assert_called_once_with()
+
+
+class TestEnsureStorageReadyTwoStoreShould:
+    """Scenario: Vector store misconfigured (boot behaviour, DECISIONS #250).
+
+    ``ensure_storage_ready()`` checks both stores' configuration; a missing/
+    placeholder URI on *either* side fails boot naming the specific setting.
+    """
+
+    def test_given_split_store_with_missing_vector_uri_when_ensure_ready_then_raises_naming_it(
+        self,
+    ) -> None:
+        """
+        Scenario: Vector store misconfigured.
+
+        Given VECTOR_STORE_BACKEND=elasticsearch and ELASTICSEARCH_URL unset
+              (STORAGE_BACKEND=postgres, configured),
+        When ensure_storage_ready() runs (as it does from server lifespan),
+        Then it raises naming ELASTICSEARCH_URL.
+        """
+        ### Given
+        loaded = Settings(
+            _env_file=None,
+            storage_backend="postgres",
+            vector_store_backend="elasticsearch",
+            database_url="postgresql://rag:rag@localhost:5433/rag_params_finder",
+        )
+
+        ### When / Then
+        with pytest.raises(ValueError, match="ELASTICSEARCH_URL"):
+            loaded.ensure_storage_ready()
+
+    def test_given_split_store_with_both_uris_present_when_ensure_ready_then_does_not_raise(
+        self,
+    ) -> None:
+        """
+        Scenario: A configured split store passes the boot check.
+
+        Given STORAGE_BACKEND=postgres (configured) and
+              VECTOR_STORE_BACKEND=elasticsearch with ELASTICSEARCH_URL set,
+        When ensure_storage_ready() runs,
+        Then it does not raise (reachability is a /healthz + preflight concern,
+             not a boot-time one).
+        """
+        ### Given
+        loaded = Settings(
+            _env_file=None,
+            storage_backend="postgres",
+            vector_store_backend="elasticsearch",
+            database_url="postgresql://rag:rag@localhost:5433/rag_params_finder",
+            elasticsearch_url="http://localhost:9200",
+        )
+
+        ### When / Then
+        loaded.ensure_storage_ready()  # no raise
 
 
 class TestSingleDatabaseProviderLiteralShould:

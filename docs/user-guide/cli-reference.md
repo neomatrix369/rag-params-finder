@@ -222,12 +222,62 @@ The server exposes a REST API at `http://localhost:8001`. Full interactive docs 
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/healthz` | Liveness for the active storage backend — MongoDB: `{"ok": true, "storage_backend": "mongodb", "storage_mode": "mongodb-cloud", "mongodb": "ok"}`; Postgres: `{"ok": true, "storage_backend": "postgres", "storage_mode": "postgres-local", "postgres": "ok"}`; HTTP 503 when the active backend is unreachable |
+| GET | `/healthz` | Liveness for both stores (Slice 49B). See **`/healthz` response shape** below. HTTP 503 when either store is unreachable |
 | GET | `/health` | Extended health — storage fields from `/healthz` plus `sie` (`disabled` / `reachable` / `unreachable`) and `version` |
 
-**`storage_mode`** is one of four compounds derived from `STORAGE_BACKEND` plus the connection-string host: `mongodb-local`, `mongodb-cloud`, `postgres-local`, `postgres-cloud`. Atlas cloud is detected via `*.mongodb.net`; hosted Supabase via `*.supabase.*`. It is *not* the YAML `database_provider` field (see [configuration.md](configuration.md)).
+#### `/healthz` response shape (Slice 49B — two-store)
 
-**`POST /experiments` engine gate:** if normalized `database_provider` ≠ process `STORAGE_BACKEND`, the API returns **HTTP 422** with a `Config engine mismatch` remediation **before** search-index / SIE preflight. Catalog/index missing-object 422s are a separate message family (see [troubleshooting](troubleshooting.md#-config-engine-mismatch-database_provider--storage_backend)).
+Every key present before Slice 49B stays with the same meaning: `ok`,
+`storage_backend` (the **run-state** store, i.e. `STORAGE_BACKEND`),
+`storage_mode` (the **vector** store's four-value mode — matches the dashboard
+label), and the per-engine key (`mongodb` / `postgres`, including Mongo's
+`"skipped"` when `MONGODB_URI` is unset). Added: `vector_store_backend`,
+`run_state_mode`, and `stores: {vector: {...}, run_state: {...}}` (each with
+`provider`, `mode`, `ok`, `latency_ms`, and `remediation` when down).
+
+**Single-store** (e.g. local Postgres — vector and run-state are the same store):
+
+```json
+{
+  "ok": true,
+  "storage_backend": "postgres",
+  "storage_mode": "postgres-local",
+  "postgres": "ok",
+  "vector_store_backend": "postgres",
+  "run_state_mode": "postgres-local",
+  "stores": {
+    "vector": {"provider": "postgres", "mode": "postgres-local", "ok": true, "latency_ms": 3},
+    "run_state": {"provider": "postgres", "mode": "postgres-local", "ok": true, "latency_ms": 3}
+  }
+}
+```
+
+**Split-store** (vector store down — HTTP 503):
+
+```json
+{
+  "ok": false,
+  "storage_backend": "postgres",
+  "storage_mode": "elasticsearch-local",
+  "postgres": "ok",
+  "vector_store_backend": "elasticsearch",
+  "run_state_mode": "postgres-local",
+  "stores": {
+    "vector": {
+      "provider": "elasticsearch",
+      "mode": "elasticsearch-local",
+      "ok": false,
+      "latency_ms": null,
+      "remediation": "Check ELASTICSEARCH_URL / ./start-services.sh elasticsearch status"
+    },
+    "run_state": {"provider": "postgres", "mode": "postgres-local", "ok": true, "latency_ms": 4}
+  }
+}
+```
+
+**`storage_mode`** follows the vector store (`VECTOR_STORE_BACKEND`, default `STORAGE_BACKEND`). Single-store values stay the four compounds from that backend plus the connection-string host: `mongodb-local`, `mongodb-cloud`, `postgres-local`, `postgres-cloud`. Atlas cloud is detected via `*.mongodb.net`; hosted Supabase via `*.supabase.*`. It is *not* the YAML `database_provider` field (see [configuration.md](configuration.md)). The split-store JSON above illustrates the added keys with the planned Elasticsearch vector store (adapter lands in Slice 50).
+
+**`POST /experiments` engine gate:** if normalized `database_provider` ≠ `VECTOR_STORE_BACKEND` (default `STORAGE_BACKEND`), the API returns **HTTP 422** with a `Config engine mismatch` remediation **before** search-index / SIE preflight. The message text still says `server storage_backend=`; that value is the active vector store. Catalog/index missing-object 422s are a separate message family (see [troubleshooting](troubleshooting.md#-config-engine-mismatch-database_provider--storage_backend)).
 | POST | `/api/v1/sweep` | Tier 1 ranked SIE vs Voyage sweep over caller-supplied corpus *(see [sie-setup.md](sie-setup.md))* |
 | GET | `/api/v1/best-config` | Best config from persisted Tier-1 sweep history for `task=<topic>` |
 | POST | `/experiments` | Submit an experiment sweep *(422 if search-index preflight fails)* |

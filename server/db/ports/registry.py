@@ -23,6 +23,19 @@ _VECTOR_STORE_REGISTRY: dict[str, str] = {
     "postgres": "server.db.postgres.postgres_vector_store:PostgresVectorStore",
 }
 
+# Declarative mirror of each adapter's ``VectorCapabilities.can_host_run_state``
+# (DECISIONS #241 pairing rule (ii)). Kept alongside the dotted-path registry
+# above rather than resolved by importing the adapter class: settings.py's
+# pairing-rule validator runs during ``Settings()`` construction, and the
+# adapter modules import ``server.core.guards.health_check`` which imports
+# ``server.settings`` — importing an adapter mid-construction is a circular
+# import. A provider absent here defaults to ``False`` (vector-only) — a new
+# store must opt in to being trusted with run state, not the other way round.
+_CAN_HOST_RUN_STATE: dict[str, bool] = {
+    "mongodb": True,
+    "postgres": True,
+}
+
 
 def known_vector_stores() -> frozenset[str]:
     """Return the set of registered vector-store provider keys."""
@@ -45,6 +58,23 @@ def resolve_adapter(provider: str) -> type:
     module = importlib.import_module(module_path)
     adapter_class: type = getattr(module, class_name)
     return adapter_class
+
+
+def vector_store_can_host_run_state(provider: str) -> bool:
+    """Return the registered vector store's declared ``can_host_run_state``.
+
+    Pairing rule (ii) (DECISIONS #241) decides by capability, not a branch
+    keyed on the provider string. Reads ``_CAN_HOST_RUN_STATE`` (declared
+    alongside the adapter registry, not by importing/constructing the
+    adapter — see that dict's docstring for why). Raises ``ValueError``
+    (same as ``resolve_adapter``) when ``provider`` is not registered —
+    callers decide the not-yet-registered fallback (e.g. Elasticsearch/Redis
+    before their adapter lands).
+    """
+    if provider not in _VECTOR_STORE_REGISTRY:
+        known = ", ".join(sorted(_VECTOR_STORE_REGISTRY)) or "<none>"
+        raise ValueError(f"Unknown vector store {provider!r}. Known vector stores: {known}.")
+    return _CAN_HOST_RUN_STATE.get(provider, False)
 
 
 def is_same_adapter(provider: str, other: str) -> bool:

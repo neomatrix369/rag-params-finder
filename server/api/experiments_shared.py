@@ -6,6 +6,7 @@ async endpoints. Keeping I/O here isolates blocking work into threadpool tasks.
 All persistent data access delegates to the StorageBackend port via store_factory.
 """
 
+from server.db.ports import store_factory
 from server.db.ports.store_factory import get_storage_backend
 from server.utils.logger import get_logger
 
@@ -57,12 +58,30 @@ def mark_experiment_running(experiment_id: str):
 
 
 def delete_experiment_data(experiment_id: str) -> dict[str, int]:
-    return get_storage_backend().delete_experiment_data(experiment_id)
+    """Delete an experiment's data from both stores (DECISIONS #246).
+
+    Order: vector store first (chunks), then run state (experiment, runs,
+    results) — both steps are idempotent, so a retry after a partial failure
+    completes the delete and reports the true counts. Response shape is
+    unchanged (same keys as the pre-split-store StorageBackend cascade) —
+    only the composition source changed.
+    """
+    chunks_deleted = store_factory.get_vector_store().delete_chunks_for_experiment(experiment_id)
+    run_state_counts = get_storage_backend().delete_experiment_data(experiment_id)
+    counts = dict(run_state_counts)
+    counts["chunks"] = chunks_deleted
+    return counts
 
 
 def get_experiment_db_stats(experiment_id: str) -> dict:
-    return get_storage_backend().get_experiment_db_stats(experiment_id)
+    """Compose per-experiment db-stats: chunk facts from the vector store,
+    result facts from run state (DECISIONS #240). Response shape unchanged."""
+    stats = dict(store_factory.get_vector_store().get_experiment_db_stats(experiment_id))
+    run_state_stats = get_storage_backend().get_experiment_db_stats(experiment_id)
+    stats["total_results"] = run_state_stats.get("total_results", stats.get("total_results", 0))
+    stats["unique_queries"] = run_state_stats.get("unique_queries", stats.get("unique_queries", 0))
+    return stats
 
 
 def get_vector_db_stats_grouped() -> dict:
-    return get_storage_backend().get_vector_db_stats_grouped()
+    return store_factory.get_vector_store().get_vector_db_stats_grouped()

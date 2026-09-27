@@ -26,11 +26,14 @@ async def lifespan(app: FastAPI):
     """Ensure indexes exist on startup."""
     logger.info("boot — server starting")
     settings.ensure_storage_ready()
-    # Atlas search indexes are a Mongo concern. Postgres applies schema.sql
-    # (including HNSW) when its pool opens — reaching for Mongo here would fail
-    # a --postgres-local / --postgres-cloud stack that has no MONGODB_URI
-    # and no Atlas Local container.
-    _backend = normalize_storage_backend(settings.storage_backend)
+    # Atlas search indexes are a Mongo concern, and Mongo only owns them when
+    # it is the *vector* store (Slice 49B, site 7) — a split setup
+    # (VECTOR_STORE_BACKEND=elasticsearch, STORAGE_BACKEND=mongodb) must not
+    # bootstrap an unused `chunks` search index that nothing ever reads.
+    # Postgres applies schema.sql (including HNSW) when its pool opens —
+    # reaching for Mongo here would fail a --postgres-local / --postgres-cloud
+    # stack that has no MONGODB_URI and no Atlas Local container.
+    _backend = normalize_storage_backend(settings.vector_store_backend or settings.storage_backend)
     try:
         _is_mongodb = resolve_adapter(_backend) is resolve_adapter("mongodb")
     except ValueError:

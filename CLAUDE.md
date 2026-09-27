@@ -61,7 +61,7 @@ RAG_MONGODB_LOCAL=1 ./start-services.sh  # same as --mongodb-local via env var
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build  # dev HMR
 ```
 
-Backend switching — the start command and the example config change (a YAML `database_provider` that doesn't match the server's engine returns 422):
+Backend switching — the start command and the example config change (a YAML `database_provider` that doesn't match `VECTOR_STORE_BACKEND`, which defaults to `STORAGE_BACKEND`, returns 422):
 
 | Backend | Connection string (CLI / host server) |
 |---------|--------------------------------|
@@ -117,12 +117,12 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/db/postgres/postgres_store.py` | Postgres `StorageBackend` impl (Supabase / local pgvector) |
 | `server/db/postgres/postgres_stats.py` | Postgres stats / explore helpers (delegated by `PostgresStorageBackend`) |
 | `server/db/postgres/schema.sql` | Postgres DDL — 4 tables, FK cascade, `embedding_384` / `embedding_1024` |
-| `server/db/ports/store_factory.py` | `get_storage_backend()` / `get_retriever_backend()` from settings |
+| `server/db/ports/store_factory.py` | `get_storage_backend()` (run state) / `get_vector_store()` (chunks); `get_retriever_backend()` delegates to the vector store |
 | `server/core/pipeline/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
 | `server/core/guards/search_index_plan.py` | Pure logic: required Atlas indexes from config + capacity assessment; required Postgres catalog objects (`vector` extension, HNSW/GIN names) |
-| `server/core/guards/search_index_guard.py` | Backend-aware preflight — Atlas snapshot + ensure_indexes retry, or Postgres catalog introspection; raises on mismatch (HTTP 422) |
-| `server/core/guards/health_check.py` | `/healthz` storage ping + `resolve_storage_mode()` four-value compound; Postgres error remediation substring |
-| `server/core/guards/config_backend_guard.py` | Config↔server engine mismatch 422 (before index/SIE preflight) |
+| `server/core/guards/search_index_guard.py` | Backend-aware preflight — Atlas snapshot + ensure_indexes retry, or Postgres catalog introspection; `preflight_stores()` checks the vector store first and fails closed (HTTP 422) when a store publishes no index plan |
+| `server/core/guards/health_check.py` | `/healthz` ping for both stores (503 if either is down) + `resolve_storage_mode()`; added keys `vector_store_backend`, `run_state_mode`, `stores` |
+| `server/core/guards/config_backend_guard.py` | YAML `database_provider` must match `VECTOR_STORE_BACKEND` or submit returns 422 before index/SIE preflight |
 | `scripts/lib/storage_mode.sh` | Four-flag `(db_type, location)` resolver for `start-services.sh` |
 | `server/core/pipeline/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
 | `server/db/mongo/mongodb_uri.py` | Cloud vs local URI detection (`is_atlas_uri`, `parse_atlas_cluster_name`); `mongodb_storage_mode()` → `mongodb-local` \| `mongodb-cloud` |

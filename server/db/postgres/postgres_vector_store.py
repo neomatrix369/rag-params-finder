@@ -91,5 +91,6 @@ class PostgresVectorStore:
     def storage_mode(self) -> str:
         return postgres_storage_mode(settings.database_url or "")
 
-    def capabilities(self) -> VectorCapabilities:
+    @classmethod
+    def capabilities(cls) -> VectorCapabilities:
         return _CAPABILITIES

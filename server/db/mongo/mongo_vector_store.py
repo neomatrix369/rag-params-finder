@@ -102,5 +102,6 @@ class MongoVectorStore:
     def storage_mode(self) -> str:
         return mongodb_storage_mode(settings.mongodb_uri or "")
 
-    def capabilities(self) -> VectorCapabilities:
+    @classmethod
+    def capabilities(cls) -> VectorCapabilities:
         return _CAPABILITIES

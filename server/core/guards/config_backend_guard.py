@@ -1,8 +1,9 @@
-"""Reject config engine ↔ server STORAGE_BACKEND mismatches before preflight I/O.
+"""Reject YAML engine ↔ active vector-store mismatches before preflight I/O.
 
 Distinct from catalog/index preflight 422 (``SearchIndexMismatchError``): this
-guard only compares YAML ``database_provider`` (after normalize) to the live
-process backend and never touches Atlas Admin or Postgres catalogs.
+guard only compares YAML ``database_provider`` (after normalize) to
+``VECTOR_STORE_BACKEND`` (default ``STORAGE_BACKEND``) and never touches Atlas
+Admin or Postgres catalogs.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ from server.settings import normalize_storage_backend, settings
 
 
 class ConfigBackendMismatchError(Exception):
-    """Config engine does not match the running server's STORAGE_BACKEND."""
+    """Config engine does not match the active vector store."""
 
 
 def _location_suffix(storage_mode: str) -> str:
