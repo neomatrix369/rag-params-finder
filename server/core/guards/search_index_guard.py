@@ -29,6 +29,7 @@ from server.db.mongo.indexes import (
     prune_unknown_search_indexes,
     reconcile_chunks_search_indexes,
 )
+from server.db.ports.registry import resolve_adapter
 from server.db.postgres.postgres import fetch_all, fetch_one
 from server.models.config import ExperimentConfig
 from server.settings import normalize_storage_backend, settings
@@ -140,11 +141,16 @@ def validate_experiment_search_indexes(
     Postgres: catalog introspection only (schema bootstrap remains the ensure path).
     """
     backend = normalize_storage_backend(settings.storage_backend)
-    if backend == "postgres":
+    try:
+        adapter_class: type | None = resolve_adapter(backend)
+    except ValueError:
+        adapter_class = None
+
+    if adapter_class is resolve_adapter("postgres"):
         logger.info("search index preflight — postgres catalog introspection")
         return validate_postgres_experiment_indexes(config)
 
-    if backend != "mongodb":
+    if adapter_class is not resolve_adapter("mongodb"):
         logger.info(
             "search index preflight skipped — unknown backend=%s",
             settings.storage_backend,

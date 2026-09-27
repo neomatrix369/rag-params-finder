@@ -12,6 +12,7 @@ from server.core.pipeline.executors import shutdown_executors
 from server.core.pipeline.startup_reconciliation import reconcile_orphaned_experiments
 from server.core.sie_guard import check_sie_health
 from server.db.mongo.indexes import bootstrap_indexes
+from server.db.ports.registry import resolve_adapter
 from server.settings import LOCALHOST_CORS_ORIGIN_REGEX, normalize_storage_backend, settings
 from server.utils.logger import get_logger
 
@@ -29,7 +30,12 @@ async def lifespan(app: FastAPI):
     # (including HNSW) when its pool opens — reaching for Mongo here would fail
     # a --postgres-local / --postgres-cloud stack that has no MONGODB_URI
     # and no Atlas Local container.
-    if normalize_storage_backend(settings.storage_backend) == "mongodb":
+    _backend = normalize_storage_backend(settings.storage_backend)
+    try:
+        _is_mongodb = resolve_adapter(_backend) is resolve_adapter("mongodb")
+    except ValueError:
+        _is_mongodb = False
+    if _is_mongodb:
         try:
             bootstrap_indexes()
         except Exception as e:

@@ -13,6 +13,7 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
 from server.db.mongo.mongodb_uri import mongo_client_kwargs, mongodb_storage_mode
+from server.db.ports.registry import resolve_adapter
 from server.db.postgres.postgres_uri import postgres_connect_kwargs, postgres_storage_mode
 from server.settings import normalize_storage_backend, settings
 from server.utils.logger import get_logger
@@ -36,10 +37,32 @@ _POSTGRES_CLOUD_ERROR_REMEDIATION = (
 )
 
 
+def _is_postgres_backend(backend: str) -> bool:
+    """Route the engine decision through the registry — no literal comparison.
+
+    Compares the resolved adapter *class* (not the backend string) so this
+    stops being a `== "postgres"` / `== "mongodb"` branch (Slice 49A output
+    contract). An unrecognised backend degrades to False (today's implicit
+    "anything that isn't postgres falls to the mongo path" behaviour).
+    """
+    try:
+        return resolve_adapter(backend) is resolve_adapter("postgres")
+    except ValueError:
+        return False
+
+
+def _is_mongodb_backend(backend: str) -> bool:
+    """Same registry-routed decision for the Mongo side (see ``_is_postgres_backend``)."""
+    try:
+        return resolve_adapter(backend) is resolve_adapter("mongodb")
+    except ValueError:
+        return False
+
+
 def resolve_storage_mode() -> str:
     """Return the four-value storage_mode for the active backend + URI."""
     backend = normalize_storage_backend(settings.storage_backend or "mongodb")
-    if backend == "postgres":
+    if _is_postgres_backend(backend):
         return postgres_storage_mode(settings.database_url or "")
     return mongodb_storage_mode(settings.mongodb_uri or "")
 
@@ -92,7 +115,7 @@ def storage_health() -> dict[str, str | bool]:
     """
     backend = normalize_storage_backend(settings.storage_backend or "mongodb")
     mode = resolve_storage_mode()
-    if backend == "postgres":
+    if _is_postgres_backend(backend):
         postgres = postgres_health_status()
         body: dict[str, str | bool] = {
             "ok": postgres == "ok",
@@ -104,7 +127,7 @@ def storage_health() -> dict[str, str | bool]:
             body["remediation"] = _POSTGRES_CLOUD_ERROR_REMEDIATION
             logger.warning("%s storage_mode=%s", _POSTGRES_CLOUD_ERROR_REMEDIATION, mode)
         return body
-    if backend == "mongodb":
+    if _is_mongodb_backend(backend):
         mongodb = mongodb_health_status()
         return {
             "ok": mongodb in ("ok", "skipped"),
