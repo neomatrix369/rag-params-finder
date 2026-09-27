@@ -82,12 +82,13 @@ class TestStoreFactoryShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "mongodb"),
+            patch("server.settings.settings.vector_store_backend", "mongodb"),
             patch(
                 "server.settings.settings.mongodb_uri",
                 "mongodb://localhost:27017/rag_params_finder?directConnection=true",
             ),
             patch(
-                "server.db.mongo.mongo_store.get_mongo_retriever",
+                "server.db.mongo.mongo_vector_store.get_mongo_retriever",
                 return_value=mock_retriever,
             ),
         ):
@@ -232,7 +233,8 @@ class TestStoreFactoryShould:
         ### Given / When / Then
         with (
             patch("server.settings.settings.storage_backend", "redis"),
-            pytest.raises(ValueError, match="Unknown storage backend 'redis'"),
+            patch("server.settings.settings.vector_store_backend", "redis"),
+            pytest.raises(ValueError, match="Unknown vector store 'redis'"),
         ):
             get_retriever_backend()
 
@@ -298,12 +300,13 @@ class TestStoreFactoryShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
+            patch("server.settings.settings.vector_store_backend", "postgres"),
             patch(
                 "server.settings.settings.database_url",
                 "postgresql://rag:rag@localhost:5433/rag_params_finder",
             ),
             patch(
-                "server.db.postgres.postgres_store.get_postgres_retriever",
+                "server.db.postgres.postgres_vector_store.get_postgres_retriever",
                 return_value=mock_retriever,
             ),
         ):

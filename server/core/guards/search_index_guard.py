@@ -7,6 +7,8 @@ Postgres: introspect ``pg_extension`` / ``pg_indexes`` for schema.sql objects
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from server.core.guards.search_index_plan import (
     POSTGRES_VECTOR_EXTENSION,
     SearchIndexAssessment,
@@ -20,19 +22,16 @@ from server.core.guards.search_index_plan import (
     required_search_indexes,
     validate_vector_index_feasibility,
 )
-from server.db.mongo.atlas import CHUNKS_COLLECTION, get_database
-from server.db.mongo.indexes import (
-    M0_SEARCH_INDEX_LIMIT,
-    SearchIndexInfo,
-    ensure_required_search_indexes,
-    list_cluster_search_indexes,
-    prune_unknown_search_indexes,
-    reconcile_chunks_search_indexes,
-)
-from server.db.postgres.postgres import fetch_all, fetch_one
+from server.db.ports.registry import resolve_adapter
 from server.models.config import ExperimentConfig
 from server.settings import normalize_storage_backend, settings
 from server.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    # Type-only — under `from __future__ import annotations` this never
+    # forces a runtime import, so it does not reintroduce the pymongo leak
+    # the lazy imports below exist to avoid.
+    from server.db.mongo.indexes import SearchIndexInfo
 
 logger = get_logger(__name__)
 
@@ -42,9 +41,21 @@ _CHUNKS_TABLE = "chunks"
 
 def collect_search_index_snapshot(
     *,
-    cluster_limit: int = M0_SEARCH_INDEX_LIMIT,
+    cluster_limit: int | None = None,
 ) -> SearchIndexSnapshot:
     """Build a snapshot of search-index readiness from the live Atlas cluster."""
+    # Lazy import (same convention as postgres_vector_extension_present below,
+    # and the reciprocal of the psycopg leak fix in this same file): this
+    # module is shared by both backends' preflight paths — reached from the
+    # Postgres path too (PostgresVectorStore -> validate_postgres_experiment_indexes),
+    # so importing pymongo at module scope would leak the Mongo driver into a
+    # Postgres-only process (GWT-1 reciprocal).
+    from server.db.mongo.atlas import CHUNKS_COLLECTION, get_database
+    from server.db.mongo.indexes import M0_SEARCH_INDEX_LIMIT, list_cluster_search_indexes
+
+    if cluster_limit is None:
+        cluster_limit = M0_SEARCH_INDEX_LIMIT
+
     db_name = get_database().name
     rows = list_cluster_search_indexes()
 
@@ -73,6 +84,11 @@ def collect_search_index_snapshot(
 
 def postgres_vector_extension_present() -> bool:
     """True when the ``vector`` extension is installed in the current database."""
+    # Lazy import (same convention as store_factory.py): this module is shared
+    # by both backends' preflight paths, so importing psycopg at module scope
+    # would leak the Postgres driver into a Mongo-only process (GWT-1).
+    from server.db.postgres.postgres import fetch_one
+
     row = fetch_one(
         "SELECT 1 AS ok FROM pg_extension WHERE extname = %s",
         (POSTGRES_VECTOR_EXTENSION,),
@@ -87,6 +103,9 @@ def collect_postgres_index_snapshot(
     if not required:
         present: frozenset[str] = frozenset()
     else:
+        # Lazy import — see postgres_vector_extension_present() above.
+        from server.db.postgres.postgres import fetch_all
+
         rows = fetch_all(
             """
             SELECT indexname
@@ -132,7 +151,7 @@ def validate_experiment_search_indexes(
     config: ExperimentConfig,
     *,
     attempt_ensure: bool = True,
-    cluster_limit: int = M0_SEARCH_INDEX_LIMIT,
+    cluster_limit: int | None = None,
 ) -> SearchIndexAssessment:
     """Ensure required indexes exist or raise SearchIndexMismatchError.
 
@@ -140,16 +159,30 @@ def validate_experiment_search_indexes(
     Postgres: catalog introspection only (schema bootstrap remains the ensure path).
     """
     backend = normalize_storage_backend(settings.storage_backend)
-    if backend == "postgres":
+    try:
+        adapter_class: type | None = resolve_adapter(backend)
+    except ValueError:
+        adapter_class = None
+
+    if adapter_class is resolve_adapter("postgres"):
         logger.info("search index preflight — postgres catalog introspection")
         return validate_postgres_experiment_indexes(config)
 
-    if backend != "mongodb":
+    if adapter_class is not resolve_adapter("mongodb"):
         logger.info(
             "search index preflight skipped — unknown backend=%s",
             settings.storage_backend,
         )
         return preflight_not_applicable()
+
+    # Lazy import — see collect_search_index_snapshot() above. Only reached
+    # once the backend is confirmed to be mongodb, so a Postgres-only process
+    # never executes this line.
+    from server.db.mongo.indexes import (
+        ensure_required_search_indexes,
+        prune_unknown_search_indexes,
+        reconcile_chunks_search_indexes,
+    )
 
     required = required_search_indexes(config)
 

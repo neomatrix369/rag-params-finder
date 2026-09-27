@@ -73,9 +73,11 @@ def test_given_valid_uri_when_ping_succeeds_then_return_ok() -> None:
     mock_client = MagicMock()
     with (
         patch("server.core.guards.health_check.settings") as mock_settings,
-        patch(
-            "server.core.guards.health_check.MongoClient", return_value=mock_client
-        ) as mock_mongo_client,
+        # Patched at its source (pymongo.MongoClient), not at
+        # server.core.guards.health_check.MongoClient — the import is now
+        # lazy (function-scoped, mirroring postgres_health_status's psycopg
+        # import) so the name no longer lives on the module object to patch.
+        patch("pymongo.MongoClient", return_value=mock_client) as mock_mongo_client,
     ):
         mock_settings.mongodb_uri = "mongodb+srv://user:pass@cluster.mongodb.net/db"
         mock_settings.health_check_mongodb_timeout_ms = 5000
@@ -124,7 +126,11 @@ def test_given_reachable_postgres_when_health_checked_then_return_ok() -> None:
     mock_conn.__exit__.return_value = False
     with (
         patch("server.core.guards.health_check.settings") as mock_settings,
-        patch("server.core.guards.health_check.psycopg.connect", return_value=mock_conn) as connect,
+        # psycopg is imported lazily inside postgres_health_status() (GWT-1 —
+        # a Mongo-only process must never load the Postgres driver), so there
+        # is no module-level "health_check.psycopg" attribute to patch; patch
+        # the real psycopg module's connect() instead.
+        patch("psycopg.connect", return_value=mock_conn) as connect,
     ):
         mock_settings.database_url = "postgresql://rag:rag@localhost:5433/rag_params_finder"
 
@@ -149,8 +155,10 @@ def test_given_unreachable_postgres_when_health_checked_then_return_error() -> N
     ### Given
     with (
         patch("server.core.guards.health_check.settings") as mock_settings,
+        # See test_given_reachable_postgres_when_health_checked_then_return_ok
+        # — psycopg is imported lazily, so patch the real module directly.
         patch(
-            "server.core.guards.health_check.psycopg.connect",
+            "psycopg.connect",
             side_effect=psycopg.OperationalError("connection refused"),
         ),
     ):

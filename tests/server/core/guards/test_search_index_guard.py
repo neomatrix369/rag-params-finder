@@ -108,12 +108,10 @@ def test_validate_attempts_ensure_when_slots_available() -> None:
         side_effect=[before, after],
     ):
         with patch(
-            "server.core.guards.search_index_guard.reconcile_chunks_search_indexes",
+            "server.db.mongo.indexes.reconcile_chunks_search_indexes",
             return_value=[],
         ):
-            with patch(
-                "server.core.guards.search_index_guard.ensure_required_search_indexes"
-            ) as ensure_mock:
+            with patch("server.db.mongo.indexes.ensure_required_search_indexes") as ensure_mock:
                 assessment = validate_experiment_search_indexes(config)
 
     ensure_mock.assert_called_once_with(frozenset({"vector_index_384", "text_search_index"}))
@@ -168,12 +166,10 @@ def test_validate_reconciles_surplus_indexes_before_ensure() -> None:
         side_effect=[blocked, after_reconcile, after_ensure],
     ):
         with patch(
-            "server.core.guards.search_index_guard.reconcile_chunks_search_indexes",
+            "server.db.mongo.indexes.reconcile_chunks_search_indexes",
             return_value=["vector_index_384 (surplus)"],
         ) as reconcile_mock:
-            with patch(
-                "server.core.guards.search_index_guard.ensure_required_search_indexes"
-            ) as ensure_mock:
+            with patch("server.db.mongo.indexes.ensure_required_search_indexes") as ensure_mock:
                 assessment = validate_experiment_search_indexes(config)
 
     reconcile_mock.assert_called_once()
@@ -231,9 +227,9 @@ class TestCollectSearchIndexSnapshot:
         db_mock.name = "rag_params_finder"
 
         ### When
-        with patch("server.core.guards.search_index_guard.get_database", return_value=db_mock):
+        with patch("server.db.mongo.atlas.get_database", return_value=db_mock):
             with patch(
-                "server.core.guards.search_index_guard.list_cluster_search_indexes",
+                "server.db.mongo.indexes.list_cluster_search_indexes",
                 return_value=rows,
             ):
                 snapshot = collect_search_index_snapshot()
@@ -273,9 +269,9 @@ class TestCollectSearchIndexSnapshot:
         db_mock.name = "rag_params_finder"
 
         ### When
-        with patch("server.core.guards.search_index_guard.get_database", return_value=db_mock):
+        with patch("server.db.mongo.atlas.get_database", return_value=db_mock):
             with patch(
-                "server.core.guards.search_index_guard.list_cluster_search_indexes",
+                "server.db.mongo.indexes.list_cluster_search_indexes",
                 return_value=rows,
             ):
                 snapshot = collect_search_index_snapshot()
@@ -305,9 +301,9 @@ class TestCollectSearchIndexSnapshot:
         db_mock.name = "rag_params_finder"
 
         ### When
-        with patch("server.core.guards.search_index_guard.get_database", return_value=db_mock):
+        with patch("server.db.mongo.atlas.get_database", return_value=db_mock):
             with patch(
-                "server.core.guards.search_index_guard.list_cluster_search_indexes",
+                "server.db.mongo.indexes.list_cluster_search_indexes",
                 return_value=rows,
             ):
                 snapshot = collect_search_index_snapshot()
@@ -336,9 +332,9 @@ class TestCollectSearchIndexSnapshot:
         db_mock.name = "rag_params_finder"
 
         ### When
-        with patch("server.core.guards.search_index_guard.get_database", return_value=db_mock):
+        with patch("server.db.mongo.atlas.get_database", return_value=db_mock):
             with patch(
-                "server.core.guards.search_index_guard.list_cluster_search_indexes",
+                "server.db.mongo.indexes.list_cluster_search_indexes",
                 return_value=rows,
             ):
                 snapshot = collect_search_index_snapshot()
@@ -381,9 +377,7 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
             "server.core.guards.search_index_guard.collect_search_index_snapshot",
             return_value=satisfied,
         ):
-            with patch(
-                "server.core.guards.search_index_guard.reconcile_chunks_search_indexes"
-            ) as reconcile_mock:
+            with patch("server.db.mongo.indexes.reconcile_chunks_search_indexes") as reconcile_mock:
                 assessment = validate_experiment_search_indexes(config)
 
         ### Then
@@ -429,12 +423,10 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
             side_effect=[before, after_reconcile],
         ):
             with patch(
-                "server.core.guards.search_index_guard.reconcile_chunks_search_indexes",
+                "server.db.mongo.indexes.reconcile_chunks_search_indexes",
                 return_value=["stale_index"],
             ):
-                with patch(
-                    "server.core.guards.search_index_guard.ensure_required_search_indexes"
-                ) as ensure_mock:
+                with patch("server.db.mongo.indexes.ensure_required_search_indexes") as ensure_mock:
                     assessment = validate_experiment_search_indexes(config)
 
         ### Then
@@ -488,16 +480,14 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
             side_effect=[full, after_prune, after_ensure],
         ):
             with patch(
-                "server.core.guards.search_index_guard.reconcile_chunks_search_indexes",
+                "server.db.mongo.indexes.reconcile_chunks_search_indexes",
                 return_value=[],
             ):
                 with patch(
-                    "server.core.guards.search_index_guard.prune_unknown_search_indexes",
+                    "server.db.mongo.indexes.prune_unknown_search_indexes",
                     return_value=["unknown_1", "unknown_2"],
                 ) as prune_mock:
-                    with patch(
-                        "server.core.guards.search_index_guard.ensure_required_search_indexes"
-                    ):
+                    with patch("server.db.mongo.indexes.ensure_required_search_indexes"):
                         assessment = validate_experiment_search_indexes(config)
 
         ### Then
@@ -536,11 +526,11 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
             return_value=full,
         ):
             with patch(
-                "server.core.guards.search_index_guard.reconcile_chunks_search_indexes",
+                "server.db.mongo.indexes.reconcile_chunks_search_indexes",
                 return_value=[],
             ):
                 with patch(
-                    "server.core.guards.search_index_guard.prune_unknown_search_indexes",
+                    "server.db.mongo.indexes.prune_unknown_search_indexes",
                     return_value=[],
                 ):
                     with pytest.raises(SearchIndexMismatchError):
@@ -585,10 +575,10 @@ class TestValidateExperimentSearchIndexesAdditionalPaths:
             side_effect=[before, still_building],
         ):
             with patch(
-                "server.core.guards.search_index_guard.reconcile_chunks_search_indexes",
+                "server.db.mongo.indexes.reconcile_chunks_search_indexes",
                 return_value=[],
             ):
-                with patch("server.core.guards.search_index_guard.ensure_required_search_indexes"):
+                with patch("server.db.mongo.indexes.ensure_required_search_indexes"):
                     with pytest.raises(SearchIndexMismatchError):
                         validate_experiment_search_indexes(config)
 
@@ -668,7 +658,7 @@ class TestPreflightBackendScopeShould:
                 return_value=ready,
             ) as pg_snapshot,
             patch("server.core.guards.search_index_guard.collect_search_index_snapshot") as atlas,
-            patch("server.core.guards.search_index_guard.ensure_required_search_indexes") as ensure,
+            patch("server.db.mongo.indexes.ensure_required_search_indexes") as ensure,
         ):
             actual = validate_experiment_search_indexes(config)
 

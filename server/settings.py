@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from server.db.ports.registry import known_vector_stores
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -22,6 +23,11 @@ LOCALHOST_CORS_ORIGIN_REGEX: str = r"^https?://" r"(localhost|127\.0\.0\.1|\[::1
 # normalized to ``mongodb`` so STORAGE_BACKEND matches database_provider labels.
 _STORAGE_BACKEND_ALIASES: dict[str, str] = {"mongo": "mongodb"}
 _KNOWN_STORAGE_BACKENDS: frozenset[str] = frozenset({"mongodb", "postgres"})
+# Vector stores additionally allow "elasticsearch" (Slice 50) — it cannot host
+# run state, so it is rejected for STORAGE_BACKEND but accepted for
+# VECTOR_STORE_BACKEND. Slice 49A locks VECTOR_STORE_BACKEND == STORAGE_BACKEND,
+# so elasticsearch cannot actually be selected as a vector store until 49B.
+_KNOWN_VECTOR_STORE_BACKENDS: frozenset[str] = _KNOWN_STORAGE_BACKENDS | {"elasticsearch"}
 
 
 def normalize_storage_backend(value: str) -> str:
@@ -103,6 +109,13 @@ class Settings(BaseSettings):
     # Legacy alias: STORAGE_BACKEND=mongo → normalized to mongodb.
     storage_backend: str = "mongodb"
 
+    # Active vector store. Defaults to storage_backend when unset (empty string
+    # sentinel). Slice 49A locks this equal to storage_backend — a split
+    # store (vectors in one engine, run state in another) arrives in Slice 49B.
+    # "elasticsearch" is a valid value here (vector-only) but is currently
+    # unreachable because of the equality lock.
+    vector_store_backend: str = ""
+
     # Postgres connection string — required when STORAGE_BACKEND=postgres.
     # Hosted Supabase: Settings → Database → Connection string (Session mode pooler).
     # Local Docker: postgresql://rag:rag@localhost:5433/rag_params_finder
@@ -128,8 +141,14 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def storage_backend_must_be_known(self) -> Settings:
-        """Normalize aliases and reject unknown STORAGE_BACKEND values."""
+        """Normalize aliases and reject unknown/vector-store-only STORAGE_BACKEND values."""
         backend = normalize_storage_backend(self.storage_backend)
+        if backend == "elasticsearch":
+            raise ValueError(
+                "STORAGE_BACKEND=elasticsearch is not supported: elasticsearch is "
+                "vector-store-only and cannot host run state. Set STORAGE_BACKEND to "
+                "'mongodb' or 'postgres'."
+            )
         if backend not in _KNOWN_STORAGE_BACKENDS:
             raise ValueError(
                 f"Unknown STORAGE_BACKEND={self.storage_backend!r}. "
@@ -137,6 +156,29 @@ class Settings(BaseSettings):
                 "(legacy alias: 'mongo')."
             )
         self.storage_backend = backend
+        return self
+
+    @model_validator(mode="after")
+    def vector_store_backend_must_be_known_and_locked(self) -> Settings:
+        """Default VECTOR_STORE_BACKEND to storage_backend; reject unknown/mismatched values.
+
+        Slice 49A locks vector_store_backend == storage_backend (DECISIONS #241):
+        a split setup (vectors and run state in different engines) has no wired
+        data path yet, so it is rejected here rather than allowed to silently
+        half-work. Slice 49B replaces this lock with pairing rule (ii).
+        """
+        raw = self.vector_store_backend.strip()
+        backend = normalize_storage_backend(raw) if raw else self.storage_backend
+        if backend not in _KNOWN_VECTOR_STORE_BACKENDS:
+            known = ", ".join(sorted(known_vector_stores()))
+            raise ValueError(f"Unknown VECTOR_STORE_BACKEND={raw!r}. Known vector stores: {known}.")
+        if backend != self.storage_backend:
+            raise ValueError(
+                f"VECTOR_STORE_BACKEND={backend!r} does not match "
+                f"STORAGE_BACKEND={self.storage_backend!r}: split stores arrive in "
+                "Slice 49B. Set VECTOR_STORE_BACKEND to match STORAGE_BACKEND for now."
+            )
+        self.vector_store_backend = backend
         return self
 
     @model_validator(mode="after")
@@ -188,9 +230,10 @@ class Settings(BaseSettings):
 settings = Settings()
 
 logger.info(
-    "settings loaded — server_url=%s storage_backend=%s",
+    "settings loaded — server_url=%s storage_backend=%s vector_store_backend=%s",
     settings.server_url,
     settings.storage_backend,
+    settings.vector_store_backend,
 )
 logger.debug(
     "settings detail — mongodb_uri=%s database_url=%s voyage_api_key=%s recover_on_boot=%s "

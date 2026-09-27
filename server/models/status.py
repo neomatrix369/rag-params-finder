@@ -3,11 +3,10 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from server.models.config import RetrieverConfig
+from server.models.config import DatabaseProvider, RetrieverConfig
 from server.models.enums import ChunkingMethod, Phase, RetrievalMethod
 
 Provider = Literal["local", "voyage", "sie", "kimchi"]
-DatabaseProvider = Literal["mongodb", "postgres", "supabase"]  # Future: pinecone, weaviate, qdrant
 
 
 class RunStatus(BaseModel):

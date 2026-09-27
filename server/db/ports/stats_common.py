@@ -12,6 +12,9 @@ from __future__ import annotations
 from typing import Any
 
 from server.core.model_registry import EMBEDDING_MODELS, get_dimensions
+from server.models.config import (
+    normalize_stats_database_provider as _normalize_stats_database_provider,
+)
 
 _METADATA_BYTES_PER_CHUNK = 500
 _BYTES_PER_FLOAT32 = 4
@@ -103,13 +106,15 @@ def assemble_experiment_db_stats(
 
 
 def normalize_stats_database_provider(value: str | None, *, fallback: str) -> str:
-    """Canonical engine label for stats (never emit ``supabase``)."""
-    raw = (value or fallback).strip().lower()
-    if raw in {"supabase", "postgres"}:
-        return "postgres"
-    if raw in {"mongo", "mongodb"}:
-        return "mongodb"
-    return fallback
+    """Canonical engine label for stats (never emit ``supabase``).
+
+    Thin re-export (Slice 49A Stream 6): the alias table lives in
+    ``server.models.config`` alongside ``normalize_database_provider`` — one
+    owner for provider-label normalisation — kept importable from here so
+    ``mongo_stats.py`` / ``postgres_stats.py`` don't need an import-path
+    change.
+    """
+    return _normalize_stats_database_provider(value, fallback=fallback)
 
 
 def resolve_experiment_storage_mode(

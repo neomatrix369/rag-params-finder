@@ -1,0 +1,46 @@
+{
+  "slice": "49A",
+  "gate_status": "ON_BRANCH",
+  "branch": "slice/49a-vector-store-port-registry",
+  "head": "442fcba",
+  "note": "VectorStore port + registry seam, zero behaviour change; gates green locally, PR not yet merged",
+  "quality_gates": {
+    "command": "uv run pytest --ignore=tests/contract --ignore=tests/server/db/test_postgres_store_integration.py --ignore=tests/server/db/test_postgres_dense_retrieval.py --ignore=tests/server/db/test_postgres_sparse_hybrid.py -m \"not integration\" --cov=server --cov=cli --cov-fail-under=70",
+    "exit_code": 0,
+    "measured_at": "2026-09-27",
+    "backend": {
+      "tests": 537,
+      "total_cover": 70.70,
+      "cover_target": 70
+    },
+    "ruff": "clean",
+    "mypy": "clean (112 files)",
+    "ast_store_string_guard": "green — all 23 baseline sites (docs/plan/gate-evidence/slice-49a-store-string-inventory.md) reconciled",
+    "characterization": "byte-identical, 16/16 tests green (tests/server/test_vector_store_characterization.py)",
+    "complexity": {
+      "tool": "xenon",
+      "policy": "enforcing",
+      "result": "pass — no new violations introduced by this slice"
+    },
+    "mutation": {
+      "target": "server/db/ports/registry.py",
+      "status": "waived",
+      "reason": "mutmut 3.8.0 fails on invocation without [tool.mutmut] config this repo lacks; biweekly mutation.yml (1st+15th, continue-on-error) remains the safety net",
+      "logged_at": "docs/plan/slices/PROGRESS.md Decision Log, 2026-09-27"
+    }
+  },
+  "code_review": {
+    "reviewers": {
+      "nw-software-crafter-reviewer": "APPROVED (one HIGH finding raised and fixed: reciprocal pymongo import leak on Postgres-only deployments — commit 442fcba)",
+      "nw-solution-architect-reviewer": "APPROVED",
+      "nw-system-designer-reviewer": "APPROVED"
+    },
+    "final_cross_check": "APPROVED by all three after commit 442fcba"
+  },
+  "verify_slice": {
+    "verdict": "COMPLETE",
+    "evidence_state": "VERIFIED",
+    "runs": 3,
+    "note": "PARTIAL on first pass (transitive psycopg leak + missing mutation waiver) — fixed (80de3d9), re-verified COMPLETE; Gate 4 found a reciprocal pymongo leak — fixed (442fcba), re-verified COMPLETE a final time"
+  }
+}

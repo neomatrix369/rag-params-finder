@@ -8,6 +8,7 @@ process backend and never touches Atlas Admin or Postgres catalogs.
 from __future__ import annotations
 
 from server.core.guards.health_check import resolve_storage_mode
+from server.db.ports.registry import resolve_adapter
 from server.models.config import ExperimentConfig, normalize_database_provider
 from server.settings import normalize_storage_backend, settings
 
@@ -21,7 +22,7 @@ def _location_suffix(storage_mode: str) -> str:
 
 
 def _example_config_for_engine(engine: str) -> str:
-    if engine == "postgres":
+    if resolve_adapter(engine) is resolve_adapter("postgres"):
         return "configs/supabase/example-local.yaml"
     return "configs/mongodb/example-local.yaml"
 
@@ -45,11 +46,17 @@ def format_config_backend_mismatch(
 
 
 def validate_config_backend_match(config: ExperimentConfig) -> None:
-    """Raise ConfigBackendMismatchError when YAML engine ≠ process backend.
+    """Raise ConfigBackendMismatchError when YAML engine ≠ the active vector store.
 
     Call **before** search-index / SIE preflight and before experiment persist.
+
+    Compares against ``VECTOR_STORE_BACKEND`` (D2), not ``STORAGE_BACKEND`` —
+    422 fires only on a mismatch between the YAML ``database_provider`` and
+    the active vector store. Slice 49A locks ``vector_store_backend`` equal
+    to ``storage_backend``, so today's behaviour is unchanged; Slice 49B
+    lets the two diverge under pairing rule (ii).
     """
-    server_backend = normalize_storage_backend(settings.storage_backend or "mongodb")
+    server_backend = normalize_storage_backend(settings.vector_store_backend or "mongodb")
     config_engine = normalize_database_provider(config.database_provider)
     if config_engine == server_backend:
         return

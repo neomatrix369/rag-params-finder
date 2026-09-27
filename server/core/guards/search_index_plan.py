@@ -9,13 +9,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from server.core.model_registry import get_index_name
-from server.db.mongo.indexes import (
-    ATLAS_MAX_VECTOR_DIMENSIONS,
-    M0_SEARCH_INDEX_LIMIT,
-    TEXT_SEARCH_INDEX_NAME,
-    vector_index_dimensions,
-)
 from server.models.config import ExperimentConfig
+
+# Lazy import (same convention as search_index_guard.py's psycopg/pymongo
+# imports): this module is imported by search_index_guard.py unconditionally
+# — reached from the Postgres path too (PostgresVectorStore ->
+# validate_postgres_experiment_indexes) — so importing server.db.mongo.indexes
+# (pymongo) at module scope would leak the Mongo driver into a Postgres-only
+# process (GWT-1 reciprocal). The Mongo-only constants/helper are imported
+# inside the functions that actually use them below.
 
 POSTGRES_VECTOR_EXTENSION = "vector"
 POSTGRES_HNSW_384_INDEX = "chunks_embedding_384_hnsw"
@@ -127,6 +129,13 @@ def format_postgres_mismatch_message(
 
 def validate_vector_index_feasibility(required: frozenset[str]) -> str | None:
     """Return an error message when required vector indexes exceed Atlas limits."""
+    # Lazy import — see module docstring note above.
+    from server.db.mongo.indexes import (
+        ATLAS_MAX_VECTOR_DIMENSIONS,
+        TEXT_SEARCH_INDEX_NAME,
+        vector_index_dimensions,
+    )
+
     oversized: list[str] = []
     for name in sorted(required):
         if name == TEXT_SEARCH_INDEX_NAME:
@@ -146,6 +155,9 @@ def validate_vector_index_feasibility(required: frozenset[str]) -> str | None:
 
 def required_search_indexes(config: ExperimentConfig) -> frozenset[str]:
     """Return Atlas Search index names this experiment config needs on chunks."""
+    # Lazy import — see module docstring note above.
+    from server.db.mongo.indexes import TEXT_SEARCH_INDEX_NAME
+
     names = {get_index_name(model) for model in config.embedding.models}
     needs_text = any(r.type in ("sparse", "hybrid") for r in config.retrieval.retrievers)
     if needs_text:
@@ -245,4 +257,7 @@ def _failure_reason(
 
 def default_cluster_limit() -> int:
     """Return the configured Atlas M0 search-index limit."""
+    # Lazy import — see module docstring note above.
+    from server.db.mongo.indexes import M0_SEARCH_INDEX_LIMIT
+
     return M0_SEARCH_INDEX_LIMIT

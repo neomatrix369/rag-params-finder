@@ -2,7 +2,7 @@
 
 **MoSCoW:** MUST
 **Target time:** ~4–6 h
-**Status:** 📋 PLANNED
+**Status:** 🔀 ON BRANCH — [PR #201](https://github.com/neomatrix369/rag-params-finder/pull/201)
 **Depends on:** 32 (Storage + Retriever ports on `main`), 33–38 (Mongo + Postgres adapters, dual-backend cutover pattern)
 **Branch:** `slice/49a-vector-store-port-registry`
 **Feature:** Elasticsearch vector-store adapter (Elasticsearch = ADR-006; ES code lands in Slice 50)
@@ -192,4 +192,4 @@ Scenario: Unknown vector store is rejected with guidance
 
 ## Gate Status
 
-📋 PLANNED — restructured 2026-09-25 after the round-3 desk-check (DECISIONS #240–#249); confirmation review pending before AT authoring (`nw-distill`).
+🔀 ON BRANCH — implemented 2026-09-27 on `slice/49a-vector-store-port-registry` ([PR #201](https://github.com/neomatrix369/rag-params-finder/pull/201)); `/verify-slice` COMPLETE, all Closing Gates reviewers APPROVED; `gate-evidence/slice-49a.json` recorded (`ON_BRANCH`); merge remains a manual next step.

@@ -117,6 +117,7 @@ class TestConfigBackendGuardShould:
         ### When / Then
         with patch("server.core.guards.config_backend_guard.settings") as mock_settings:
             mock_settings.storage_backend = "postgres"
+            mock_settings.vector_store_backend = "postgres"
             validate_config_backend_match(config)
 
     def test_given_mismatch_when_validated_then_raises_before_index_wording(self) -> None:
@@ -148,6 +149,7 @@ class TestConfigBackendGuardShould:
             ),
         ):
             mock_settings.storage_backend = "postgres"
+            mock_settings.vector_store_backend = "postgres"
             with pytest.raises(ConfigBackendMismatchError) as raised:
                 validate_config_backend_match(config)
 

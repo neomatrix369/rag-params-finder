@@ -300,6 +300,59 @@ Provider flows explicitly through `RunParams` → `orchestrator` → `embedder_f
 
 ---
 
+## 🧩 Storage Ports (C4 Component)
+
+Two ports split run state from vector data (Slice 49A, DECISIONS #240): `StorageBackend`
+owns experiments/runs/results CRUD + boot reconciliation; `VectorStore` owns chunk
+write/delete/stats, search (via `retriever()`), index planning, health, and declared
+`capabilities()`. A provider→adapter registry resolves the active vector store, so a
+new store is one registry entry (`server/db/ports/registry.py`), not a branch in the
+factory. Both `mongodb` and `postgres` currently resolve to the *same* engine for both
+ports (`VECTOR_STORE_BACKEND` is locked equal to `STORAGE_BACKEND` until Slice 49B) —
+no Elasticsearch or other third store exists yet.
+
+```mermaid
+C4Component
+    title Storage ports — StorageBackend + VectorStore (Slice 49A)
+    Container_Boundary(api, "API / orchestrator / guards") {
+        Component(caller, "Call sites", "orchestrator, guards, API helpers", "Depend on ports only — never pymongo/psycopg directly")
+    }
+    Container_Boundary(ports, "server/db/ports") {
+        Component(storage_port, "StorageBackend", "Protocol", "experiments · runs · results · reconciliation")
+        Component(vector_port, "VectorStore", "Protocol", "chunk write/delete/stats · retriever() · plan_indexes · health · capabilities")
+        Component(registry, "registry.py", "_VECTOR_STORE_REGISTRY", "provider -> dotted adapter path; lazy import")
+        Component(factory, "store_factory.py", "get_storage_backend() / get_vector_store()", "Reads STORAGE_BACKEND / VECTOR_STORE_BACKEND settings")
+    }
+    Container_Boundary(mongo, "server/db/mongo") {
+        Component(mongo_storage, "MongoStorageBackend", "Adapter", "mongo_store.py")
+        Component(mongo_vector, "MongoVectorStore", "Composite adapter", "mongo_vector_store.py — composes MongoStorageBackend chunk methods + MongoRetrieverBackend")
+    }
+    Container_Boundary(pg, "server/db/postgres") {
+        Component(pg_storage, "PostgresStorageBackend", "Adapter", "postgres_store.py")
+        Component(pg_vector, "PostgresVectorStore", "Composite adapter", "postgres_vector_store.py — composes PostgresStorageBackend chunk methods + PostgresRetrieverBackend")
+    }
+    Rel(caller, factory, "get_storage_backend() / get_vector_store()")
+    Rel(factory, registry, "resolve_adapter(provider)")
+    Rel(factory, storage_port, "returns")
+    Rel(registry, vector_port, "resolves to adapter satisfying")
+    Rel(storage_port, mongo_storage, "implemented by")
+    Rel(storage_port, pg_storage, "implemented by")
+    Rel(vector_port, mongo_vector, "implemented by")
+    Rel(vector_port, pg_vector, "implemented by")
+    Rel(mongo_vector, mongo_storage, "composes chunk methods from")
+    Rel(pg_vector, pg_storage, "composes chunk methods from")
+```
+
+`get_retriever_backend()` keeps its existing name and signature — it now delegates to
+`get_vector_store().retriever()` rather than branching on the backend string directly.
+Guards (`health_check.py`, `search_index_guard.py`, `config_backend_guard.py`) compare
+*resolved adapter classes* via the registry instead of `== "mongodb"` / `== "postgres"`
+string literals, so the same seam that adds a store also removes the last of that
+branching (an AST guard test enforces this — no store-string comparison outside
+adapters/registry/settings/config).
+
+---
+
 ## 🗄️ MongoDB Backend
 
 Two deployment modes share identical query syntax (`$vectorSearch`, `$search`):
