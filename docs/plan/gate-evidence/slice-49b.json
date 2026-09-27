@@ -1,0 +1,70 @@
+{
+  "slice": "49B",
+  "gate_status": "ON_BRANCH",
+  "branch": "slice/49b-vector-store-data-path-rewire",
+  "head": "0c2c141",
+  "note": "Chunk data path fully rewired onto the vector-store port (10/10 sites); pairing rule (ii) replaces the 49A equality lock; two-store /healthz + fail-closed preflight; gates green locally, PR not yet opened",
+  "red_run": {
+    "commit": "a490f406",
+    "test": "tests/server/test_split_store_e2e.py::TestSplitStoreSweepShould::test_given_split_store_config_when_sweep_runs_then_chunks_land_only_in_vector_store",
+    "failing_assertion": "AssertionError: expected chunks written to the vector store, found none — run-state store holds 5 chunk(s) instead (final experiment status=complete)\nassert 0 > 0\n +  where 0 = len([])\n +    where [] = MemoryVectorStore(chunks=[]).chunks"
+  },
+  "quality_gates": {
+    "command": "./scripts/ci/quality-gates.sh",
+    "exit_code": 0,
+    "measured_at": "2026-09-27",
+    "backend": {
+      "tests": 548,
+      "total_cover": 72.43,
+      "cover_target": 70
+    },
+    "frontend": {
+      "tests": 264,
+      "coverage": {
+        "stmts": 98.4,
+        "branch": 93.11,
+        "functions": 100,
+        "lines": 99.69
+      }
+    },
+    "ruff": "clean",
+    "mypy": "clean (112 files)",
+    "eslint": "clean",
+    "tsc": "clean",
+    "vite_build": "built in 2.31s",
+    "split_store_e2e": "green — tests/server/test_split_store_e2e.py (1 passed, xfail marker removed)",
+    "characterization": "byte-identical, 16/16 tests green (tests/server/test_vector_store_characterization.py), extended for two-store /healthz keys as additions-only",
+    "anti_test_theater_guard": "green — tests/test_no_run_state_chunk_expectations.py (AST scan; caught and required an allowlist fix during authoring, confirming it works)",
+    "ast_store_string_guard": "green (49A guard, extended to cover chunk-method-via-get_storage_backend rule)",
+    "complexity": {
+      "tool": "xenon",
+      "policy": "enforcing",
+      "result": "pass — exit 0, no new violations (orchestrator CC not raised, Slice 47 debt unaffected)"
+    },
+    "npm_audit": "3 moderate (pre-existing @vitest/mocker transitive dev-dependency advisory, unrelated to this slice)"
+  },
+  "streams": [
+    {"name": "test infra + RED", "commit": "a490f40", "summary": "MemoryVectorStore double, known-answer fixture, _patch_backends helper, RED split-store E2E test"},
+    {"name": "core rewire sites 1/3/4", "commit": "f4f5944", "summary": "orchestrator chunk-write via get_vector_store(), delete_experiment_data() use-case, db-stats composition, StorageBackend Protocol cleanup"},
+    {"name": "rewire sites 7-10", "commit": "d89ec1f", "summary": "main.py lifespan bootstrap, settings pairing rule (ii) + boot validation, two-store /healthz, dual-store fail-closed preflight"},
+    {"name": "docs exit", "commit": "6939cb9", "summary": "invariants.md, architecture.md split-store diagram, configuration.md, cli-reference.md /healthz shape, CHANGELOG, PROGRESS/TRAIL"},
+    {"name": "test migration + anti test-theater guard", "commit": "0c2c141", "summary": "migrated dual-factory test to _patch_backends, added AST-based theater guard"}
+  ],
+  "deferred": [
+    {"item": "orphan-vector reconciler (spec Should, CF-49B-1)", "owner": "Slice 51", "reason": "explicitly deferred by the spec itself"},
+    {"item": "preflight run-state 'required objects' check is health-only, no schema/collection-existence check", "owner": "follow-up", "reason": "no such concept exists outside StorageBackend's own lazy bootstrap yet"},
+    {"item": "vector-store capabilities check in preflight validates retrieval-method support only, not embedding dimensions", "owner": "follow-up", "reason": "adding a dims check risked new preflight failures for existing single-store configs not fully enumerated"},
+    {"item": "preflight call sites still invoke validate_experiment_search_indexes by name (wrapped by preflight_stores) rather than a renamed symbol", "owner": "n/a — deliberate", "reason": "~9 existing test files monkeypatch that exact attribute; renaming would silently disable those patches"}
+  ],
+  "code_review": {
+    "reviewers": {
+      "nw-software-crafter-reviewer": "PENDING",
+      "nw-solution-architect-reviewer": "PENDING",
+      "nw-system-designer-reviewer": "PENDING",
+      "nw-data-engineer-reviewer": "PENDING"
+    }
+  },
+  "verify_slice": {
+    "verdict": "PENDING"
+  }
+}
