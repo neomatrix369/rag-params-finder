@@ -125,7 +125,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/pipeline/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
 | `server/core/guards/search_index_plan.py` | Pure logic: required Atlas indexes from config + capacity assessment; required Postgres catalog objects (`vector` extension, HNSW/GIN names) |
 | `server/core/guards/search_index_guard.py` | Backend-aware preflight — Atlas snapshot + ensure_indexes retry, or Postgres catalog introspection; `preflight_stores()` checks the vector store first and fails closed (HTTP 422) when a store publishes no index plan |
-| `server/core/guards/health_check.py` | `/healthz` ping for both stores (503 if either is down) + `resolve_storage_mode()`; added keys `vector_store_backend`, `run_state_mode`, `stores` |
+| `server/core/guards/health_check.py` | `/healthz` ping for both stores (503 if either is down) + `resolve_storage_mode()`; keys `vector_store_backend`, `run_state_mode`, `stores`; local probes also include `container` and `image` |
 | `server/core/guards/config_backend_guard.py` | YAML `database_provider` must match `VECTOR_STORE_BACKEND` or submit returns 422 before index/SIE preflight |
 | `scripts/lib/storage_mode.sh` | Four-flag `(db_type, location)` resolver for `start-services.sh` |
 | `server/core/pipeline/startup_reconciliation.py` | Mark stale `running` experiments on server boot |

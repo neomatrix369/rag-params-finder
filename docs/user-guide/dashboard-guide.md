@@ -111,7 +111,10 @@ Pause, resume, and cancel controls appear **only in the overview header** — no
 | Preflight failed | Experiment `error_message` explains missing indexes or quota — check with `rag-params-finder indexes list`; on MongoDB Atlas fix with `indexes reset`, on Postgres restart the server so it re-applies `schema.sql` (see [postgres-setup.md → Index preflight](postgres-setup.md#index-preflight)); on Elasticsearch confirm the cluster is yellow or green and the `rpf-chunks` index exists (`./start-services.sh elasticsearch status`, [elasticsearch-setup.md](elasticsearch-setup.md)); see [Troubleshooting](troubleshooting.md#-search-index-preflight-failed) |
 | Interrupted runs | Amber panel listing interruption reason |
 
-**Vector DB stats card**: Collapsible operational-context panel after the run outcome, with per-experiment chunk counts, embedding model breakdown, estimated storage, and index names. Loaded from `GET /experiments/{id}/db-stats`.
+**Operational context** (after the run outcome): two panels that stay secondary to the sweep result.
+
+- **Store runtime**: collapsed by default. Expanded, it shows the vector-store and run-state backend, mode, and reachability from `GET /healthz`. Local modes also show the Compose container name and image pin. Cloud modes leave container and image blank. The collapsed header shows the two modes once health has loaded.
+- **Stored-result footprint**: collapsible per-experiment chunk counts, embedding model breakdown, estimated storage, and index names. Loaded from `GET /experiments/{id}/db-stats`.
 
 **Phase indicator dots**: one row of colored dots per run, representing each pipeline phase in order:
 

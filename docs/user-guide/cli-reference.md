@@ -241,7 +241,9 @@ Every key present before Slice 49B stays with the same meaning: `ok`,
 label), and the per-engine key (`mongodb` / `postgres`, including Mongo's
 `"skipped"` when `MONGODB_URI` is unset). Added: `vector_store_backend`,
 `run_state_mode`, and `stores: {vector: {...}, run_state: {...}}` (each with
-`provider`, `mode`, `ok`, `latency_ms`, and `remediation` when down).
+`provider`, `mode`, `ok`, `latency_ms`, and `remediation` when down). A mode
+ending in `-local` also includes `container` and `image`: the Compose default
+container name and image pin. Cloud modes omit those two fields.
 
 **Single-store** (e.g. local Postgres — vector and run-state are the same store):
 
@@ -254,8 +256,22 @@ label), and the per-engine key (`mongodb` / `postgres`, including Mongo's
   "vector_store_backend": "postgres",
   "run_state_mode": "postgres-local",
   "stores": {
-    "vector": {"provider": "postgres", "mode": "postgres-local", "ok": true, "latency_ms": 3},
-    "run_state": {"provider": "postgres", "mode": "postgres-local", "ok": true, "latency_ms": 3}
+    "vector": {
+      "provider": "postgres",
+      "mode": "postgres-local",
+      "ok": true,
+      "latency_ms": 3,
+      "container": "rag-params-finder-postgres-local",
+      "image": "pgvector/pgvector:0.8.5-pg16"
+    },
+    "run_state": {
+      "provider": "postgres",
+      "mode": "postgres-local",
+      "ok": true,
+      "latency_ms": 3,
+      "container": "rag-params-finder-postgres-local",
+      "image": "pgvector/pgvector:0.8.5-pg16"
+    }
   }
 }
 ```
@@ -276,9 +292,18 @@ label), and the per-engine key (`mongodb` / `postgres`, including Mongo's
       "mode": "elasticsearch-local",
       "ok": false,
       "latency_ms": null,
-      "remediation": "Check ELASTICSEARCH_URL / ./start-services.sh elasticsearch status"
+      "remediation": "Check ELASTICSEARCH_URL / ./start-services.sh elasticsearch status",
+      "container": "rag-params-finder-elasticsearch-local",
+      "image": "docker.elastic.co/elasticsearch/elasticsearch:9.5.0"
     },
-    "run_state": {"provider": "postgres", "mode": "postgres-local", "ok": true, "latency_ms": 4}
+    "run_state": {
+      "provider": "postgres",
+      "mode": "postgres-local",
+      "ok": true,
+      "latency_ms": 4,
+      "container": "rag-params-finder-postgres-local",
+      "image": "pgvector/pgvector:0.8.5-pg16"
+    }
   }
 }
 ```

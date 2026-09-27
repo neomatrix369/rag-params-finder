@@ -3,7 +3,7 @@
   "gate_status": "ON_BRANCH",
   "verified_at": "2026-09-27",
   "branch": "slice/51-elasticsearch-operability-ci-docs-adr",
-  "note": "Reviewers ran on 74efcb2. Four approved. Crafter and system-designer returned NEEDS_REVISION; both findings are now remediated in code and have not been re-reviewed. /verify-slice is PARTIAL. gate_status stays ON_BRANCH. The server image import, a dense top-3 overlap, and the nightly vector-store-integration URL are recorded. Still open: the 15-stage reader transcript and the full 120-run grid.",
+  "note": "Reviewers ran on 74efcb2. Four approved. Crafter and system-designer returned NEEDS_REVISION; both findings are remediated in code (resolve_catalog, cmd_store_*) and have not been re-reviewed. The unreachable-503 route, the cmd: probe, and the teardown profile list now have tests. A one-shot health probe with the default MongoDB pair returned run_state_mode=mongodb-local. /verify-slice stays PARTIAL and gate_status stays ON_BRANCH. Still open: the 15-stage reader transcript and the full 120-run grid.",
   "open": [
     "15-stage reader journey has no transcript",
     "full 120-run cross-backend grid was not repeated; dense top-3 on one chunk setting is recorded"
@@ -27,6 +27,7 @@
     "heap": "-Xms1g -Xmx1g",
     "pytest_live": "1 passed against this cluster",
     "healthz": "200 storage_mode=elasticsearch-local run_state_mode=postgres-local both stores ok",
+    "healthz_default_pair": "2026-09-27T22:50:35Z one-shot storage_health with STORAGE_BACKEND=mongodb VECTOR_STORE_BACKEND=elasticsearch against live Atlas Local and Elasticsearch 9.5.0: ok true, storage_mode=elasticsearch-local, run_state_mode=mongodb-local, both stores ok",
     "indexes_list": "rpf-chunks embedding_384 embedding_1024 hnsw",
     "health_check_sh": "all checks passed once the dashboard was on :5374, including the elasticsearch HTTP probe and the postgres cmd probe",
     "disk_watermark": "During the server image build the node hit 97.9% disk (1.2 GB free). rpf-chunks was created and its primary stayed unassigned (cluster red). The build was stopped and that empty index was deleted. Cluster returned to green."
@@ -121,9 +122,9 @@
     "labels_no_elasticsearch_branch": "frontend/src/utils/storageLabels.ts has no elasticsearch branch; quota hidden when limit is null",
     "indexes_list_via_catalog": "tests/cli/test_indexes_cmd.py reads the catalog payload",
     "clean_clone_image_import": "rag-params-finder-server:es-extras built with EXTRAS=elasticsearch imports elasticsearch 9.5.1",
-    "es_unreachable_503": "OPEN — no automated test for a failed elasticsearch container",
-    "cmd_health_probe_execution": "OPEN — health-check.sh was run live once; no unit test executes a cmd: probe",
-    "teardown_all_profiles": "OPEN — stop-services.sh iterates the manifest; no live teardown transcript",
+    "es_unreachable_503": "tests/server/core/guards/test_health_check.py::test_given_unreachable_elasticsearch_when_healthz_called_then_status_is_503 returns 503; tests/scripts/test_store_probes.py reports FAIL plus the elasticsearch status hint when the HTTP probe is down",
+    "cmd_health_probe_execution": "tests/scripts/test_store_probes.py sources health-check.sh and runs the postgres cmd: probe through a fake docker exec, including the failure hint",
+    "teardown_all_profiles": "store_down_profile_flags lists mongodb-local, postgres-local, and elasticsearch-local; stop-services.sh consumes that list. Live compose down was not run while those containers were in use",
     "nightly_matrix": "https://github.com/neomatrix369/rag-params-finder/actions/runs/36355146029 — postgres, mongodb, and elasticsearch legs success; summary job success",
     "cross_backend_overlap": "dense fixed/512/50, 376 chunks, 77 queries: mongodb-postgres 85.3%, mongodb-elasticsearch 85.3%, postgres-elasticsearch 100.0%. Not the 120-run grid.",
     "journey_15_stages": "OPEN — setup guide reviewed; no reader transcript of all 15 stages",
@@ -144,7 +145,7 @@
     "system_designer_remediation": "start-services.sh uses cmd_store_start/stop/reset/status. Volumes and example configs come from stores.tsv. wait_for_named_container_healthy is the shared docker-health wait; Mongo and Postgres keep their existing hint wrappers. run_mongodb_subcommand and run_postgres_subcommand are removed."
   },
   "at_completeness": {
-    "gwt_fence": "10 of 18 scenarios have a unit or component test. The other 8 are live, nightly, or reader transcripts and are listed in gwt_mapping as OPEN.",
+    "gwt_fence": "13 of 18 scenarios have a unit or component test. Still open as live evidence: the 15-stage reader transcript and the full 120-run grid.",
     "tier1": "ACCEPTABLE_WITH_DOCUMENTED_GAPS",
     "zero_obligation": "PASS for secret redaction — the catalog test asserts configured secrets are absent. No zero-obligation scenario is missing its test.",
     "tier2": "no BLOCK — S1 N/A (pytest, no step registry); S2 N/A (no des.domain package); S3 partial (catalog, 422, docs-parity red path exist; full stack and nightly do not)",
@@ -162,7 +163,7 @@
     "evidence_state": "IMPLEMENTED",
     "verified_at": "2026-09-27",
     "head": "14bc002",
-    "acceptance_criteria": "12/18 GWT scenarios passed. Failed: clean-clone mongodb-local healthz, unreachable 503, command probe, teardown, full 120-run sweep, 15-stage journey.",
+    "acceptance_criteria": "Earlier pass was 12/18. Unreachable 503, the cmd probe, teardown profile flags, and a mongodb-local health probe are now covered. Still open: the 15-stage reader transcript and the full 120-run grid.",
     "quality_gates": "pytest 607 and frontend 266 passed after the pairing change; pre-push gates passed on 529250d and 14bc002",
     "reviewers": "4 APPROVED, 2 NEEDS_REVISION later remediated in code and not re-reviewed. See code_review.",
     "note": "PARTIAL. Not COMPLETE and not PASSED. Image import, dense top-3, and the nightly URL are recorded. The 15-stage reader transcript and the full 120-run grid are still open."

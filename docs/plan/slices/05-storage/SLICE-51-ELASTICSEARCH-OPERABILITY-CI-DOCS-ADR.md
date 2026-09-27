@@ -261,4 +261,4 @@ Scenario: ADR-006 is Accepted and distinct from ADR-005
 - [x] `/verify-slice` — verdict **PARTIAL** (2026-09-27; not COMPLETE, not PASSED). See `gate-evidence/slice-51.json` → `verify_slice`.
 
 ## Gate Status
-🔨 IN PROGRESS — branch `slice/51-elasticsearch-operability-ci-docs-adr` at `14bc002`. `gate_status` is `ON_BRANCH`. `/verify-slice` is PARTIAL: the server image imports the Elasticsearch client, a dense top-3 overlap is recorded, and the nightly matrix URL is green. Still open: the 15-stage reader transcript and the full 120-run grid. Not PASSED.
+🔨 IN PROGRESS — branch `slice/51-elasticsearch-operability-ci-docs-adr`. `gate_status` is `ON_BRANCH`. `/verify-slice` stays PARTIAL. Unreachable Elasticsearch now returns HTTP 503 in a route test, the `cmd:` probe runs under test, teardown lists every local profile, and a default-pair health probe returned `run_state_mode=mongodb-local`. Still open: the 15-stage reader transcript and the full 120-run grid. Not PASSED.
