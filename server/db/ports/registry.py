@@ -21,6 +21,9 @@ import importlib
 _VECTOR_STORE_REGISTRY: dict[str, str] = {
     "mongodb": "server.db.mongo.mongo_vector_store:MongoVectorStore",
     "postgres": "server.db.postgres.postgres_vector_store:PostgresVectorStore",
+    "elasticsearch": (
+        "server.db.elasticsearch.elasticsearch_vector_store:ElasticsearchVectorStore"
+    ),
 }
 
 # Declarative mirror of each adapter's ``VectorCapabilities.can_host_run_state``
@@ -34,6 +37,7 @@ _VECTOR_STORE_REGISTRY: dict[str, str] = {
 _CAN_HOST_RUN_STATE: dict[str, bool] = {
     "mongodb": True,
     "postgres": True,
+    "elasticsearch": False,
 }
 
 

@@ -173,7 +173,45 @@ def _probe_store(backend: str) -> dict[str, object]:
             "_legacy_key": "mongodb",
             "_legacy_status": status,
         }
-    # Not-yet-registered vector-only store (Elasticsearch/Redis, Slice 50/53).
+    return _probe_registered_vector_store(backend, mode)
+
+
+def _probe_registered_vector_store(backend: str, fallback_mode: str) -> dict[str, object]:
+    """Probe a non-Mongo, non-Postgres vector store through its adapter.
+
+    Unregistered names stay not-ok. A registered adapter that cannot be
+    constructed or pinged is not-ok with a remediation string — ``/healthz``
+    stays 503 instead of crashing the probe.
+    """
+    try:
+        adapter_class = resolve_adapter(backend)
+    except ValueError:
+        return _unreachable_probe(backend, fallback_mode)
+    start = time.monotonic()
+    try:
+        store = adapter_class()
+        ok = bool(store.health_check())
+        mode = str(store.storage_mode())
+    except Exception:
+        ok = False
+        mode = fallback_mode
+    entry: dict[str, object] = {
+        "provider": backend,
+        "mode": mode,
+        "ok": ok,
+        "latency_ms": int((time.monotonic() - start) * 1000) if ok else None,
+        "_legacy_key": backend,
+        "_legacy_status": "ok" if ok else "error",
+    }
+    if not ok:
+        entry["remediation"] = (
+            f"Vector store {backend!r} is unreachable. Check its connection "
+            "settings and that the service is running."
+        )
+    return entry
+
+
+def _unreachable_probe(backend: str, mode: str) -> dict[str, object]:
     return {
         "provider": backend,
         "mode": mode,

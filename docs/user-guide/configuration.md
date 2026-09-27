@@ -461,14 +461,20 @@ postgres can hold run state, so it must hold both. Set VECTOR_STORE_BACKEND=mong
 or STORAGE_BACKEND=postgres.
 ```
 
-**Planned split-store shape (Slice 50 — not runnable until the Elasticsearch adapter is registered):**
+**Split store (Elasticsearch vectors, Postgres or Mongo run state):**
 
 ```bash
 STORAGE_BACKEND=postgres
 DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 VECTOR_STORE_BACKEND=elasticsearch
 ELASTICSEARCH_URL=http://localhost:9200
+# ELASTICSEARCH_API_KEY=   # optional, cloud only
+# ELASTICSEARCH_INDEX_PREFIX=rpf   # index name rpf-chunks
 ```
+
+Install the client with `pip install -e ".[elasticsearch]"`. Local Elasticsearch
+and the setup guide are Slice 51; without a reachable cluster, `/healthz` is
+503 and sweep preflight is 422.
 
 **Invalid split-store example** (both engines can host run state — rejected at boot):
 
@@ -490,7 +496,7 @@ Create a `.env` file in the project root to configure server behavior:
 ```bash
 # Storage backend: "mongodb" (permanent default — DECISIONS #130 Won't flip) or "postgres"
 # Legacy alias: mongo → mongodb
-# YAML database_provider (mongodb|postgres; supabase→postgres) is engine metadata —
+# YAML database_provider (mongodb|postgres|elasticsearch; supabase→postgres) is engine metadata —
 # this env selects the adapter.
 STORAGE_BACKEND=mongodb
 

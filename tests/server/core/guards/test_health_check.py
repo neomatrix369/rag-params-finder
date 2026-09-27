@@ -340,9 +340,8 @@ class TestStorageHealthShould:
         Scenario: Vector store unreachable (split-store /healthz).
 
         Given STORAGE_BACKEND=postgres (reachable) and
-              VECTOR_STORE_BACKEND=elasticsearch (not yet registered —
-              Slice 50 — so it degrades to the generic "unreachable"
-              probe branch),
+              VECTOR_STORE_BACKEND=elasticsearch (no reachable cluster in
+              this test — the adapter reports not-ok),
         When storage_health() is called,
         Then it reports ok=False with stores.vector.ok=False and a
              remediation string, while stores.run_state.ok stays True and

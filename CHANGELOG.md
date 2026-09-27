@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Slice 50 — Elasticsearch adapter core** — vector-only `ElasticsearchVectorStore` on one `rpf-chunks` index (explicit unquantized HNSW, `embedding_384` / `embedding_1024`), dense kNN + BM25 + shared client-side RRF. Optional extra `[elasticsearch]` (`elasticsearch>=9,<10`); `ELASTICSEARCH_API_KEY` and `ELASTICSEARCH_INDEX_PREFIX`. Docker, CI, and the setup guide stay in Slice 51 (**IMPLEMENTED**; unit tests **VERIFIED**; live cluster optional).
+
 - **Slice 22 — SIE Scooter** — SIE reranker `bge-reranker` via `SIEClient.score()`; `POST /api/v1/sweep` persists Tier-1 history through the active `StorageBackend` (`experiment_type=tier1_sweep`); `GET /api/v1/best-config?task=` returns the highest-scoring persisted config or **404**; SPLADE sparse-only Tier-1 path reuses existing `splade-v3` / `vector_index_30522` foundation. See [sie-setup.md](docs/user-guide/sie-setup.md) (**IMPLEMENTED**; unit tests **VERIFIED**; live SIE smoke optional).
 
 ### Security
