@@ -1,0 +1,68 @@
+{
+  "slice": "50",
+  "gate_status": "ON_BRANCH",
+  "branch": "slice/50-elasticsearch-adapter-core",
+  "head": "d14f0df",
+  "note": "Elasticsearch vector-only adapter: explicit unquantized HNSW, shared client-side RRF, DatabaseProvider widened. Live cluster was not running locally (connection refused on 127.0.0.1:9200); the live test skips unless RAG_REQUIRE_ELASTICSEARCH=1. gate_status stays ON_BRANCH until the PR merges. Do not read this as PASSED.",
+  "external_references": {
+    "loaded_at": "2026-09-27",
+    "source": "context7 /websites/elastic_co_reference dense_vector mapping",
+    "finding": "Elasticsearch 9.x float dense_vector defaults to quantized HNSW (int8_hnsw / bbq_hnsw for dims >= 384 since 9.1). Explicit index_options.type hnsw is required. ef_construction default 100. Spec and vendor agree. Server-side rrf retriever is not used (D3, client-side rrf_fuse k=60)."
+  },
+  "quality_gates": {
+    "command": "./scripts/ci/quality-gates.sh",
+    "exit_code": 0,
+    "measured_at": "2026-09-27",
+    "backend": {
+      "tests": 592,
+      "deselected": 1,
+      "total_cover": 73.4,
+      "statements": 75.75,
+      "branches": 63.57,
+      "lines": 75.75,
+      "floors": "72/59/72",
+      "cover_target": 70
+    },
+    "frontend": {
+      "tests": 264,
+      "coverage": {
+        "stmts": 98.4,
+        "branch": 93.11,
+        "functions": 100,
+        "lines": 99.69
+      }
+    },
+    "elasticsearch_retrieval": {
+      "modules": ["server/db/elasticsearch/retriever.py", "server/core/retrieval/fusion.py"],
+      "cover": 100.0,
+      "floor": 95
+    },
+    "complexity": {
+      "tool": "xenon",
+      "policy": "enforcing",
+      "result": "pass — quality-gates.sh step 5/11 exit 0; E/C/C ceiling unchanged"
+    },
+    "npm_audit": "3 moderate (pre-existing @vitest/mocker, unrelated)"
+  },
+  "runtime_smoke": {
+    "CAT-5": "quality-gates.sh exit 0",
+    "live_elasticsearch": "skipped — connect 127.0.0.1:9200 returned ECONNREFUSED. tests/server/db/test_elasticsearch_live.py skips unless RAG_REQUIRE_ELASTICSEARCH=1 (unit-tested fail-closed). Slice 51 owns the nightly cluster."
+  },
+  "mutation_testing": {
+    "status": "waived",
+    "decision": 259,
+    "reason": "mutmut is not installed and 3.8.0 fails without [tool.mutmut] config. retriever.py and fusion.py are at 100% branch coverage. mutation.yml remains the safety net."
+  },
+  "deferred": [
+    {
+      "item": "orchestrator+API split-store sweep against live Elasticsearch and Postgres",
+      "owner": "Slice 51",
+      "reason": "DECISIONS #248 nightly matrix runs the split-store acceptance test with RAG_REQUIRE_ELASTICSEARCH=1. This slice ships the live-only assertions (refresh, delete-by-query, BM25, unit score) in test_elasticsearch_live.py; they skip when the cluster is down. No local Elasticsearch 9.5.x was reachable."
+    },
+    {
+      "item": "Docker, start-services flags, GET /api/stores, CLI/FE, example configs, CI job, elasticsearch-setup.md, ADR-006",
+      "owner": "Slice 51",
+      "reason": "explicit non-goals of Slice 50"
+    }
+  ]
+}
