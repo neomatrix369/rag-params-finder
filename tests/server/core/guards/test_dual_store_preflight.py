@@ -30,6 +30,7 @@ from server.core.guards.search_index_guard import (
     preflight_stores,
     validate_experiment_search_indexes,
 )
+from server.core.guards.search_index_plan import SearchIndexAssessment, preflight_not_applicable
 from server.db.ports.vector_store import VectorCapabilities
 from server.models.config import (
     ChunkingConfig,
@@ -246,3 +247,124 @@ class TestPreflightStoresRunStateStepShould:
 
         ### Then
         run_state_probe.assert_not_called()
+
+
+def _unsatisfied() -> SearchIndexAssessment:
+    return SearchIndexAssessment(
+        required=frozenset({"rpf-chunks"}),
+        present_ready=frozenset(),
+        present_building=frozenset(),
+        missing=frozenset({"rpf-chunks"}),
+        cluster_total=0,
+        cluster_limit=0,
+        available_slots=0,
+        unknown_count=0,
+        is_satisfied=False,
+        failure_reason="index missing",
+    )
+
+
+class TestGenericVectorStoreRemainingPreflightBranchesShould:
+    """Remaining generic-dispatch branches the split-store happy path does not hit."""
+
+    def test_given_plan_stays_unsatisfied_when_ensure_runs_then_preflight_names_store(
+        self,
+    ) -> None:
+        """
+        Scenario: ensure_indexes does not make the plan satisfied.
+        Slice: 49B — generic vector-store preflight
+
+        Given a store whose plan stays unsatisfied after ensure_indexes,
+        When preflight runs,
+        Then it raises naming the store.
+        """
+
+        class _StillMissing:
+            def health_check(self) -> bool:
+                return True
+
+            def plan_indexes(self, config: ExperimentConfig) -> SearchIndexAssessment:
+                return _unsatisfied()
+
+            def ensure_indexes(self) -> None:
+                return None
+
+            def capabilities(self) -> VectorCapabilities:
+                return _EMPTY_CAPABILITIES
+
+        ### Given / When / Then
+        with (
+            patch("server.settings.settings.storage_backend", "postgres"),
+            patch("server.settings.settings.vector_store_backend", "stillmissing"),
+            patch("server.db.ports.store_factory.get_vector_store", return_value=_StillMissing()),
+            pytest.raises(SearchIndexMismatchError, match="stillmissing"),
+        ):
+            validate_experiment_search_indexes(_config())
+
+    def test_given_unsupported_retrieval_when_plan_is_satisfied_then_preflight_names_method(
+        self,
+    ) -> None:
+        """
+        Scenario: a satisfied plan still fails when a requested method is unsupported.
+        Slice: 49B — capabilities check
+        """
+
+        class _DenseOnly:
+            def health_check(self) -> bool:
+                return True
+
+            def plan_indexes(self, config: ExperimentConfig) -> SearchIndexAssessment:
+                return preflight_not_applicable()
+
+            def ensure_indexes(self) -> None:
+                return None
+
+            def capabilities(self) -> VectorCapabilities:
+                return _EMPTY_CAPABILITIES
+
+        config = _config().model_copy(
+            update={
+                "retrieval": RetrievalConfig(
+                    retrievers=[RetrieverConfig(type=RetrieverType.SPARSE)]
+                )
+            }
+        )
+
+        ### Given / When / Then
+        with (
+            patch("server.settings.settings.storage_backend", "postgres"),
+            patch("server.settings.settings.vector_store_backend", "denseonly"),
+            patch("server.db.ports.store_factory.get_vector_store", return_value=_DenseOnly()),
+            pytest.raises(SearchIndexMismatchError, match="sparse"),
+        ):
+            validate_experiment_search_indexes(config)
+
+    def test_given_unknown_run_state_when_vector_step_passes_then_preflight_names_run_state(
+        self,
+    ) -> None:
+        """
+        Scenario: a run-state backend that is neither Mongo nor Postgres fails health.
+        Slice: 49B — run-state step
+        """
+
+        class _Satisfied:
+            def health_check(self) -> bool:
+                return True
+
+            def plan_indexes(self, config: ExperimentConfig) -> SearchIndexAssessment:
+                return preflight_not_applicable()
+
+            def ensure_indexes(self) -> None:
+                return None
+
+            def capabilities(self) -> VectorCapabilities:
+                return _EMPTY_CAPABILITIES
+
+        ### Given / When / Then
+        with (
+            patch("server.settings.settings.storage_backend", "elasticsearch"),
+            patch("server.settings.settings.vector_store_backend", "memoryvec"),
+            patch("server.db.ports.store_factory.get_vector_store", return_value=_Satisfied()),
+            pytest.raises(SearchIndexMismatchError, match="elasticsearch"),
+        ):
+            preflight_stores(_config())

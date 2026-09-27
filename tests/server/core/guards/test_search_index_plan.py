@@ -9,7 +9,9 @@ from server.core.search_index_plan import (
     SearchIndexAssessment,
     SearchIndexSnapshot,
     assess_search_index_readiness,
+    default_cluster_limit,
     format_mismatch_message,
+    format_postgres_mismatch_message,
     required_search_indexes,
     validate_vector_index_feasibility,
 )
@@ -293,3 +295,82 @@ def test_format_mismatch_message_includes_reset_hint_for_unknown_indexes() -> No
     message = format_mismatch_message(assessment)
     assert "indexes reset --unknown-only" in message
     assert "text_search_index" in message
+
+
+def test_format_mismatch_message_when_satisfied_states_requirements_met() -> None:
+    """
+    Scenario: a satisfied assessment formats as requirements met.
+    Slice: 49B — pre-push coverage of the satisfied branch
+    """
+    ### Given
+    assessment = SearchIndexAssessment(
+        required=frozenset({"vector_index_384"}),
+        present_ready=frozenset({"vector_index_384"}),
+        present_building=frozenset(),
+        missing=frozenset(),
+        cluster_total=1,
+        cluster_limit=3,
+        available_slots=2,
+        unknown_count=0,
+        is_satisfied=True,
+        failure_reason=None,
+    )
+
+    ### When
+    message = format_mismatch_message(assessment)
+
+    ### Then
+    assert message == "Search indexes satisfy experiment requirements."
+
+
+def test_format_postgres_mismatch_names_missing_extension_and_falls_back() -> None:
+    """
+    Scenario: Postgres preflight text names a missing extension, and a
+    complete catalog with a failure reason uses that reason.
+    Slice: 49B — pre-push coverage of both message branches
+    """
+    ### Given
+    missing = SearchIndexAssessment(
+        required=frozenset({"chunks_embedding_384_hnsw"}),
+        present_ready=frozenset(),
+        present_building=frozenset(),
+        missing=frozenset({"chunks_embedding_384_hnsw"}),
+        cluster_total=0,
+        cluster_limit=0,
+        available_slots=0,
+        unknown_count=0,
+        is_satisfied=False,
+        failure_reason="missing",
+    )
+    complete = SearchIndexAssessment(
+        required=frozenset({"chunks_embedding_384_hnsw"}),
+        present_ready=frozenset({"chunks_embedding_384_hnsw"}),
+        present_building=frozenset(),
+        missing=frozenset(),
+        cluster_total=0,
+        cluster_limit=0,
+        available_slots=0,
+        unknown_count=0,
+        is_satisfied=False,
+        failure_reason="catalog looked complete",
+    )
+
+    ### When
+    missing_extension = format_postgres_mismatch_message(
+        extension_present=False, assessment=missing
+    )
+    fallback = format_postgres_mismatch_message(extension_present=True, assessment=complete)
+
+    ### Then
+    assert "vector" in missing_extension
+    assert "chunks_embedding_384_hnsw" in missing_extension
+    assert "catalog looked complete" in fallback
+
+
+def test_default_cluster_limit_matches_m0() -> None:
+    """
+    Scenario: the default Atlas search-index limit is the M0 constant.
+    Slice: 49B — pre-push coverage of the lazy import
+    """
+    ### Given / When / Then
+    assert default_cluster_limit() == M0_SEARCH_INDEX_LIMIT
