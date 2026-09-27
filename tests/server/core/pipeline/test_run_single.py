@@ -31,6 +31,7 @@ from server.models.results import Chunk, SearchResult
 from tests.helpers.pipeline_sweep import _fake_storage_backend, _run_param, _slice_config
 
 
+@patch("server.db.ports.store_factory.get_vector_store")
 @patch("server.core.orchestrator.AimLogger")
 @patch("server.core.orchestrator._search_traditional_retriever")
 @patch("server.core.orchestrator.get_embedder")
@@ -48,6 +49,7 @@ def test_run_single_happy_path_executes_pipeline(
     mock_get_embedder: MagicMock,
     mock_search_traditional: MagicMock,
     mock_aim_logger: MagicMock,
+    mock_get_vector_store: MagicMock,
 ) -> None:
     """
     Scenario: _run_single performs normal pipeline for a runnable configuration
@@ -55,7 +57,9 @@ def test_run_single_happy_path_executes_pipeline(
 
     Given a successful dense run configuration
     When _run_single executes
-    Then run_status, chunk docs, and query results are persisted.
+    Then run_status and query results are persisted through the run-state
+    store, and chunk docs are persisted through the vector store (Slice 49B —
+    chunk write moved off StorageBackend onto get_vector_store()).
 
     """
     ### Given
@@ -64,6 +68,8 @@ def test_run_single_happy_path_executes_pipeline(
     # Given
     storage = _fake_storage_backend()
     mock_get_storage_backend.return_value = storage
+    vector_store = MagicMock(name="VectorStore")
+    mock_get_vector_store.return_value = vector_store
     mock_check_control.return_value = None
     mock_load_all_files.return_value = "text content"
     mock_chunk_text.return_value = ["chunk-one", "chunk-two"]
@@ -99,12 +105,13 @@ def test_run_single_happy_path_executes_pipeline(
     # Then
     assert storage.insert_run_status.call_count == 1
     assert storage.insert_result.call_count >= 1
-    assert storage.insert_chunks.called
+    assert vector_store.insert_chunks.called
     assert storage.update_run_phase.call_count >= 3
     mock_search_traditional.assert_called_once()
     mock_aim_logger.log_run.assert_called_once()
 
 
+@patch("server.db.ports.store_factory.get_vector_store")
 @patch("server.core.orchestrator.AimLogger")
 @patch("server.core.orchestrator._search_reranker_retriever")
 @patch("server.core.orchestrator.get_embedder")
@@ -122,6 +129,7 @@ def test_run_single_reranker_path_executes_pipeline(
     mock_get_embedder: MagicMock,
     mock_search_reranker: MagicMock,
     mock_aim_logger: MagicMock,
+    mock_get_vector_store: MagicMock,
 ) -> None:
     """
     Scenario: _run_single executes reranker retrieval branch.
@@ -132,6 +140,7 @@ def test_run_single_reranker_path_executes_pipeline(
     ### Then
     storage = _fake_storage_backend()
     mock_get_storage_backend.return_value = storage
+    mock_get_vector_store.return_value = MagicMock(name="VectorStore")
     mock_check_control.return_value = None
     mock_load_all_files.return_value = "text content"
     mock_chunk_text.return_value = ["chunk-one"]
@@ -159,6 +168,7 @@ def test_run_single_reranker_path_executes_pipeline(
     mock_aim_logger.log_run.assert_called_once()
 
 
+@patch("server.db.ports.store_factory.get_vector_store")
 @patch("server.core.orchestrator.get_embedder")
 @patch("server.core.orchestrator.load_queries")
 @patch("server.core.orchestrator.chunk_text")
@@ -174,6 +184,7 @@ def test_run_single_failure_updates_failed_phase(
     mock_chunk_text: MagicMock,
     mock_load_queries: MagicMock,
     mock_get_embedder: MagicMock,
+    mock_get_vector_store: MagicMock,
 ) -> None:
     """
     Scenario: _run_single failure branch updates FAILED phase.
@@ -184,6 +195,7 @@ def test_run_single_failure_updates_failed_phase(
     ### Then
     storage = _fake_storage_backend()
     mock_get_storage_backend.return_value = storage
+    mock_get_vector_store.return_value = MagicMock(name="VectorStore")
     mock_check_control.return_value = None
     mock_load_all_files.return_value = "text content"
     mock_chunk_text.return_value = ["chunk-one"]
@@ -235,6 +247,7 @@ def test_run_sweep_paused_stops_new_scheduling_marking_paused(
     assert result["status"] == ExperimentStatus.PAUSED
 
 
+@patch("server.db.ports.store_factory.get_vector_store")
 @patch("server.core.orchestrator._update_phase")
 @patch("server.core.orchestrator._search_traditional_retriever")
 @patch("server.core.orchestrator.get_storage_backend")
@@ -242,6 +255,7 @@ def test_run_single_records_empty_parse_and_chunk(
     mock_get_storage_backend: MagicMock,
     mock_search_traditional: MagicMock,
     mock_update_phase: MagicMock,
+    mock_get_vector_store: MagicMock,
 ) -> None:
     """
     Scenario: _run_single logs and continues when parse/chunking are empty.
@@ -252,6 +266,8 @@ def test_run_single_records_empty_parse_and_chunk(
     ### Then
     storage = _fake_storage_backend()
     mock_get_storage_backend.return_value = storage
+    vector_store = MagicMock(name="VectorStore")
+    mock_get_vector_store.return_value = vector_store
     mock_update_phase.side_effect = lambda run_id, phase, error_message=None: None
     mock_search_traditional.return_value = ([], [])
     with (
@@ -280,7 +296,7 @@ def test_run_single_records_empty_parse_and_chunk(
 
     assert storage.insert_run_status.call_count == 1
     assert storage.insert_result.call_count == 1
-    assert storage.insert_chunks.called
+    assert vector_store.insert_chunks.called
 
 
 @patch("server.core.orchestrator.AimLogger")

@@ -46,11 +46,13 @@ from server.core.query_loader import load_queries
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
 from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
+from server.db.ports import store_factory
 from server.db.ports.store_factory import get_storage_backend
 from server.models.config import ExperimentConfig, RunParams, expand_sweep
 from server.models.enums import ExperimentStatus, Phase, RetrieverType
 from server.models.results import QueryResult
 from server.models.status import RunStatus
+from server.settings import settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -79,6 +81,28 @@ def _make_trial_log_entry(params: RunParams, state: str, score: float | None) ->
 
 def _experiment_cancelled_in_db(experiment_id: str) -> bool:
     return get_storage_backend().is_experiment_cancelled(experiment_id)
+
+
+def _store_chunks(chunk_docs: list[dict]) -> None:
+    """Write chunk documents through the vector-store port (DECISIONS #240).
+
+    Module-qualified access (``store_factory.get_vector_store()``, not a
+    directly-imported name) so ``patch("...store_factory.get_vector_store")``
+    at the test boundary affects this call site — see
+    ``tests/helpers/pipeline_sweep.py::_patch_backends``. Chunks used to be
+    written via ``get_storage_backend().insert_chunks(...)`` (Slice 49A
+    wiring); Slice 49B moves this one call site onto the vector store so
+    run-state and vector data never share a write path again.
+    """
+    start = time.monotonic()
+    vector_store = store_factory.get_vector_store()
+    vector_store.insert_chunks(chunk_docs)
+    logger.debug(
+        "vector store write — store=%s elapsed_ms=%s docs=%s",
+        vector_store.storage_mode(),
+        int((time.monotonic() - start) * 1000),
+        len(chunk_docs),
+    )
 
 
 def run_sweep(experiment_id: str, config: ExperimentConfig) -> dict:
@@ -918,7 +942,7 @@ def _run_single(
             }
             for i, (chunk, emb) in enumerate(zip(chunks, embeddings))
         ]
-        get_storage_backend().insert_chunks(chunk_docs)
+        _store_chunks(chunk_docs)
         logger.info("chunks stored — %s documents", len(chunk_docs))
 
         check_control(experiment_id)
@@ -1001,6 +1025,8 @@ def _run_single(
             {
                 "experiment_id": experiment_id,
                 "run_id": run_id,
+                "vector_store": settings.vector_store_backend or settings.storage_backend,
+                "run_state_store": settings.storage_backend,
                 "model_name": params.embedding_model,
                 "model_source": params.embedding_provider,
                 "retrieval_method": params.retrieval_method.value,

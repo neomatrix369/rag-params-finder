@@ -204,17 +204,6 @@ class TestSplitStoreSweepShould:
     through the vector store (SLICE-49B GWT, first scenario) — and its RED
     counterpart, "the same test fails on the 49A wiring"."""
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Slice 49B RED (DECISIONS #240/#242) — chunks are still written via "
-            "get_storage_backend().insert_chunks(...) at "
-            "server/core/pipeline/orchestrator.py's _run_single, not through "
-            "get_vector_store(). Stream 2 rewires that call site onto the vector "
-            "store; remove this marker once GREEN (gate-evidence/slice-49b.json "
-            "red_run captures this exact failure)."
-        ),
-    )
     def test_given_split_store_config_when_sweep_runs_then_chunks_land_only_in_vector_store(
         self,
         split_store_backends: tuple[FakeRunStateStore, MemoryVectorStore],

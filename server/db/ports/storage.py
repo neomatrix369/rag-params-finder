@@ -1,7 +1,14 @@
-"""StorageBackend Protocol — backend-agnostic interface for all persistent data I/O.
+"""StorageBackend Protocol — backend-agnostic interface for run-state data I/O.
 
 Call sites (orchestrator, experiments API, startup reconciliation) depend on this
 port, never on pymongo or psycopg directly.
+
+Chunk methods (``insert_chunks`` / ``delete_chunks_for_experiment``) are NOT part
+of this Protocol (Slice 49B, DECISIONS #240) — chunk write/delete/stats/search go
+only through ``server.db.ports.vector_store.VectorStore`` (``get_vector_store()``).
+The concrete Mongo/Postgres classes still implement both methods (the 49A
+``VectorStore`` composites delegate to them), but a ``StorageBackend``-typed
+caller has no business calling them.
 """
 
 from datetime import datetime
@@ -10,7 +17,7 @@ from typing import Protocol, runtime_checkable
 
 @runtime_checkable
 class StorageBackend(Protocol):
-    """Port for experiment/run/chunk/result CRUD, cascade delete, and boot reconciliation."""
+    """Port for experiment/run/result CRUD, cascade delete, and boot reconciliation."""
 
     # ── Experiment CRUD ───────────────────────────────────────────────────────
 
@@ -63,12 +70,6 @@ class StorageBackend(Protocol):
         updated_at: datetime,
         error_message: str,
     ) -> None: ...
-
-    # ── Chunks ────────────────────────────────────────────────────────────────
-
-    def insert_chunks(self, docs: list[dict]) -> None: ...
-
-    def delete_chunks_for_experiment(self, experiment_id: str) -> int: ...
 
     # ── Results ───────────────────────────────────────────────────────────────
 
