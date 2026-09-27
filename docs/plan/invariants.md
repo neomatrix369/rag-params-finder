@@ -40,6 +40,36 @@
 - Model split — Planning: claude-opus-4-8 · Execution: claude-sonnet-4-6 (TRAIL Original Material).
 → Source: `docs/plan/TRAIL.md` § Original Material; `CLAUDE.md` § Quality Gates Baseline
 
+## Baseline commands
+A fresh executor should be able to act from this file alone. Each command below is runnable as-is.
+
+| Stack | Baseline command | What it proves |
+|-------|------------------|----------------|
+| All gates | `./scripts/ci/quality-gates.sh` | Mirrors PR `ci.yml` — repo lint + backend + frontend + audits pass |
+| Repo lint | `bash scripts/ci/repo-lint.sh` | shellcheck + actionlint + markdownlint pass |
+| Backend tests | `uv run pytest --tb=short -q` | Unit-tier suite green (live Postgres/Mongo suites excluded) |
+| Backend lint/type | `uv run ruff check . && uv run mypy server/ cli/` | 0 lint + 0 type errors |
+| Server | `uvicorn server.main:app --reload --port 8001` | App boots; `/healthz` on `:8001` responds |
+| Frontend | `cd frontend && npm run test && npm run typecheck && npm run build` | Vitest green, 0 type errors, build ✓ |
+| CLI smoke | `rag-params-finder version` | CLI installed and importable |
+| CLI run | `rag-params-finder run --config configs/mongodb/example-local.yaml` | End-to-end sweep submits and runs |
+
+→ Source: project `CLAUDE.md` § Development Commands / Quality Gates Baseline; runnable map in [`docs/smoke-tests/SMOKE-REGISTRY.md`](../smoke-tests/SMOKE-REGISTRY.md)
+
+## Depends-on file mapping
+Resolves a slice stub's `Depends-on:` ids to the concrete outputs a fresh executor must build on (live tracks).
+
+| Prior slice | Key output files | Quick test command |
+|-------------|------------------|--------------------|
+| 32 — Storage/Retriever ports | `server/db/ports/storage.py`, `server/db/ports/retriever_backend.py`, `server/db/ports/store_factory.py` | `uv run pytest tests/server/db -q -m "not integration"` |
+| 34–38 — Postgres cutover | `server/db/postgres/*.py`, `server/db/postgres/schema.sql` | `uv run pytest tests/server/db/test_postgres_store_integration.py` (needs live pgvector) |
+| 49A/49B — Split vector store | `get_vector_store()` in `server/db/ports/store_factory.py`; `VECTOR_STORE_BACKEND` in `server/settings.py`; `DatabaseProvider` in `server/models/config.py` | `uv run pytest tests/server/db -q` + AST guard over `server/`+`cli/` |
+| 50/51 — Elasticsearch adapter | ES adapter under `server/db/` (per ADR-006, pending); `scripts/lib/stores.tsv` | nightly matrix job (skipped ≠ green) |
+| 48A — DoubleWord provider | `server/core/embedding/embedder_factory.py` dispatch; DoubleWord embedder module | `uv run pytest tests/server/core/embedding -q` |
+| 52 — Redis (docs-only) | `docs/plan/BRIEF-redis-evaluation.md` | n/a (brief) |
+
+→ Source: `CLAUDE.md` § Key Files; `docs/plan/slices/05-storage/`, `08-embedding-providers/`
+
 ## Project rules
 - Branch-per-slice: `slice/<N>-<name>`; never commit directly to `main`.
 - State machine: `📋 PLANNED → 🔨 IN PROGRESS → 🔀 ON BRANCH → ✅ PASSED | 🔴 BLOCKED | 📦 DEFERRED`.

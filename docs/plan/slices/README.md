@@ -34,3 +34,20 @@ docs/plan/slices/<NN>-<theme>/SLICE-<id>-<NAME>.md
 ```
 
 Example: Slice 40 → [`07-quality-craft/SLICE-40-DOCS-PLAN-SLICES-SSOT.md`](07-quality-craft/SLICE-40-DOCS-PLAN-SLICES-SSOT.md).
+
+## Gate evidence
+
+Every slice's gate JSON must satisfy the schema and close rule in [`../GATE_CONTRACT.md`](../GATE_CONTRACT.md)
+before `🔀 ON BRANCH → ✅ PASSED`. Runnable smoke categories: [`../../smoke-tests/SMOKE-REGISTRY.md`](../../smoke-tests/SMOKE-REGISTRY.md).
+
+## Abstraction Views (forward-only)
+
+Every non-trivial Must/Should slice publishes, in its stub, three views so a reviewer sees the shape of the
+change without reading the diff:
+
+- **L1 — Context**: the one-diagram system view, with the changed box/edge highlighted (Mermaid; `text` fallback).
+- **L2 — Process**: the affected process/pipeline/port path.
+- **Delta**: the structural before → after in one or two lines (+ **Data-Flow** only when the data path changes).
+
+At close, append the Delta as a `### <date> — Slice NN: <name>` entry to [`../GROWTH.md`](../GROWTH.md).
+This applies **forward only** — completed slices are not retrofitted; the GROWTH seed baseline is their collective L1.
