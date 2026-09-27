@@ -77,3 +77,13 @@ store_container_name() {
   fi
   echo "$fallback"
 }
+
+# Compose --profile flags for every registered local store, one token per line.
+store_down_profile_flags() {
+  local provider profile rest
+  while IFS=$'\t' read -r provider profile rest; do
+    _store_row_skipped "$provider" && continue
+    printf '%s\n' "--profile"
+    printf '%s\n' "$profile"
+  done < "$(store_manifest_path)"
+}

@@ -91,6 +91,7 @@ probe_local_db_containers() {
   each_store _probe_manifest_row
 }
 
+run_health_checks() {
 echo "=== rag-params-finder health check ==="
 
 health_json="$(curl -sf "${SERVER_URL}/healthz" 2>/dev/null || true)"
@@ -139,3 +140,8 @@ if [[ "$failures" -gt 0 ]]; then
   exit 1
 fi
 echo "All checks passed."
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  run_health_checks
+fi

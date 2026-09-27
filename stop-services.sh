@@ -16,12 +16,9 @@ source ./scripts/lib/store_manifest.sh
 compose_detect
 compose_files
 COMPOSE_DOWN_PROFILES=()
-_collect_down_profile() {
-  local _provider="$1"
-  local profile="$2"
-  COMPOSE_DOWN_PROFILES+=(--profile "$profile")
-}
-each_store _collect_down_profile
+while IFS= read -r flag; do
+  [[ -n "$flag" ]] && COMPOSE_DOWN_PROFILES+=("$flag")
+done < <(store_down_profile_flags)
 
 echo "=== Stop rag-params-finder services ==="
 "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" ps 2>/dev/null || true

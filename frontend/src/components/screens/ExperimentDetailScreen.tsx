@@ -13,6 +13,7 @@ import DashboardShell from '../chrome/DashboardShell';
 import LoadingFeedbackPanel from '../chrome/LoadingFeedbackPanel';
 import ExperimentProgressCard from '../experiment/ExperimentProgressCard';
 import ExperimentVectorDbStatsCard from '../stats/ExperimentVectorDbStatsCard';
+import OperationalRuntimeCard from '../stats/OperationalRuntimeCard';
 import ExperimentControlButtons from '../experiment/ExperimentControlButtons';
 import ConfirmDeleteModal from '../experiment/ConfirmDeleteModal';
 import CollapsibleCard from '../chrome/CollapsibleCard';
@@ -960,6 +961,7 @@ export default function ExperimentDetailScreen({
           <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Operational context</p>
           <h2 id="experiment-storage-context-title" className="mt-1 font-display text-xl font-semibold text-ink">Stored-result footprint</h2>
           <p className="mb-4 mt-1 text-sm text-muted">Storage metrics remain available after the run outcome, without competing with the primary decision path.</p>
+          <OperationalRuntimeCard experimentId={experimentId} />
           <ExperimentVectorDbStatsCard
             experimentId={experimentId}
             stats={dbStats ?? undefined}

@@ -9,6 +9,7 @@ Scope: mongodb_health_status, postgres_health_status, storage_health —
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import MagicMock, patch
 
 import psycopg
@@ -371,3 +372,78 @@ class TestStorageHealthShould:
         assert actual["stores"]["vector"]["latency_ms"] is None
         assert "remediation" in actual["stores"]["vector"]
         assert actual["stores"]["run_state"]["ok"] is True
+        assert actual["stores"]["run_state"]["container"] == "rag-params-finder-postgres-local"
+        assert actual["stores"]["run_state"]["image"] == "pgvector/pgvector:0.8.5-pg16"
+
+    def test_given_cloud_mode_when_storage_health_then_probe_omits_container(
+        self,
+    ) -> None:
+        """
+        Scenario: Cloud storage health does not claim a local container.
+
+        Given STORAGE_BACKEND=mongodb and storage_mode mongodb-cloud,
+        When storage_health runs,
+        Then the public probe has no container or image.
+        """
+        ### Given / When
+        with (
+            patch("server.core.guards.health_check.settings") as mock_settings,
+            patch("server.core.guards.health_check.mongodb_health_status", return_value="ok"),
+            patch(
+                "server.core.guards.health_check.resolve_storage_mode",
+                return_value="mongodb-cloud",
+            ),
+        ):
+            mock_settings.storage_backend = "mongodb"
+            mock_settings.vector_store_backend = "mongodb"
+            actual = storage_health()
+
+        ### Then
+        probe = actual["stores"]["vector"]
+        assert "container" not in probe
+        assert "image" not in probe
+
+
+def test_given_unreachable_elasticsearch_when_healthz_called_then_status_is_503() -> None:
+    """
+    Scenario: ES unreachable at startup degrades clearly.
+
+    Given the vector probe reports not-ok,
+    When GET /healthz runs,
+    Then the response is 503 and stores.vector.ok is false.
+    """
+    ### Given
+    from server.main import healthz
+
+    body = {
+        "ok": False,
+        "storage_backend": "mongodb",
+        "storage_mode": "elasticsearch-local",
+        "vector_store_backend": "elasticsearch",
+        "run_state_mode": "mongodb-local",
+        "stores": {
+            "vector": {
+                "provider": "elasticsearch",
+                "mode": "elasticsearch-local",
+                "ok": False,
+                "latency_ms": None,
+                "remediation": "Vector store 'elasticsearch' is unreachable.",
+            },
+            "run_state": {
+                "provider": "mongodb",
+                "mode": "mongodb-local",
+                "ok": True,
+                "latency_ms": 1,
+            },
+        },
+    }
+
+    ### When
+    with patch("server.main.storage_health", return_value=body):
+        response = asyncio.run(healthz())
+
+    ### Then
+    assert response.status_code == 503
+    payload = response.body
+    assert b'"ok":false' in payload or b'"ok": false' in payload
+    assert b'"provider":"elasticsearch"' in payload or b'"provider": "elasticsearch"' in payload

@@ -99,6 +99,42 @@ export type StoreCatalog = {
   stores: StoreCatalogEntry[];
 };
 
+export type StoreHealthProbe = {
+  provider: string;
+  mode: string;
+  ok: boolean;
+  latency_ms: number | null;
+  remediation?: string;
+  container?: string;
+  image?: string;
+};
+
+export type StorageHealth = {
+  ok: boolean;
+  storage_backend: string;
+  storage_mode: string;
+  vector_store_backend: string;
+  run_state_mode: string;
+  stores: {
+    vector: StoreHealthProbe;
+    run_state: StoreHealthProbe;
+  };
+};
+
+export async function getStorageHealth(signal?: AbortSignal): Promise<StorageHealth> {
+  const url = `${API_BASE_URL}/healthz`;
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(url, { signal }, API_FETCH_TIMEOUT_MS);
+  } catch (err) {
+    rethrowWithFetchHint(url, err);
+  }
+  if (!response.ok && response.status !== 503) {
+    await assertOk(response, url, 'Failed to load storage health');
+  }
+  return response.json() as Promise<StorageHealth>;
+}
+
 export async function getStores(signal?: AbortSignal): Promise<StoreCatalog> {
   const url = `${API_BASE_URL}/api/stores`;
   let response: Response;

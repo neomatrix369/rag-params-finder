@@ -17,6 +17,32 @@ import { Phase, type ExperimentStatus } from '../../types';
 import ExperimentDetailScreen from './ExperimentDetailScreen';
 import { calculateProgressMetrics } from '../experiment/experimentDetailProgress';
 
+const storageHealthFixture = {
+  ok: true,
+  storage_backend: 'mongodb',
+  storage_mode: 'elasticsearch-local',
+  vector_store_backend: 'elasticsearch',
+  run_state_mode: 'mongodb-local',
+  stores: {
+    vector: {
+      provider: 'elasticsearch',
+      mode: 'elasticsearch-local',
+      ok: true,
+      latency_ms: 4,
+      container: 'rag-params-finder-elasticsearch-local',
+      image: 'docker.elastic.co/elasticsearch/elasticsearch:9.5.0',
+    },
+    run_state: {
+      provider: 'mongodb',
+      mode: 'mongodb-local',
+      ok: true,
+      latency_ms: 3,
+      container: 'rag-params-finder-mongodb-local',
+      image: 'mongodb/mongodb-atlas-local:8.3.3',
+    },
+  },
+};
+
 const apiMocks = vi.hoisted(() => ({
   getExperiment: vi.fn(),
   getExperimentDbStats: vi.fn(),
@@ -25,6 +51,7 @@ const apiMocks = vi.hoisted(() => ({
   pauseExperiment: vi.fn(),
   resumeExperiment: vi.fn(),
   cancelExperiment: vi.fn(),
+  getStorageHealth: vi.fn(),
 }));
 
 vi.mock('../../services/apiClient', async () => {
@@ -60,6 +87,8 @@ function resetAllApiMocks() {
   apiMocks.pauseExperiment.mockReset();
   apiMocks.resumeExperiment.mockReset();
   apiMocks.cancelExperiment.mockReset();
+  apiMocks.getStorageHealth.mockReset();
+  apiMocks.getStorageHealth.mockResolvedValue(storageHealthFixture);
 }
 
 function renderedActionVisibility(): ActionVisibility {
@@ -174,6 +203,7 @@ describe('ExperimentDetailScreen lifecycle presentation', () => {
     apiMocks.getExperiment.mockReset();
     apiMocks.getExperimentDbStats.mockReset();
     apiMocks.getExperimentWithProgress.mockReset();
+    apiMocks.getStorageHealth.mockResolvedValue(storageHealthFixture);
     apiMocks.getExperiment.mockImplementation(async (experimentId: string) => {
       const matchingCase = lifecycleCases.find(
         ({ status }) => `detail-${status}` === experimentId,
