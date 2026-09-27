@@ -54,7 +54,7 @@ freshness:
   last_checked: "2026-09-10"
 ---
 # execution (recommend) — profile: low/high/"≤4h (~6 Pomos)"/interactive
-# Open Must/Should queue: 32C, 32B (gate-debt only — 32/33 code on main 2eb2990), 28, 31
+# Open Must/Should queue: 32B (gate-debt only — 32/33 code on main 2eb2990; 32C ✅ COMPLETE 2026-09-27), 28, 31
 extensions_applied: [blast_radius_high]
 recommendation:
   codex:
@@ -116,10 +116,10 @@ Each PCTO / migration slice lives in its own file below. Specs live under `docs/
 | 25 | [../plan/slices/03-platform/SLICE-25-ATLAS-LOCAL.md](../plan/slices/03-platform/SLICE-25-ATLAS-LOCAL.md) | Atlas Local Dev Mode — `mongodb-atlas-local` as opt-in backend | Should | ✅ PASSED | 21 | — | ~2 min | 2026-06-29 |
 | 25B | [../plan/slices/03-platform/SLICE-25B-ATLAS-SWITCHING.md](../plan/slices/03-platform/SLICE-25B-ATLAS-SWITCHING.md) | Atlas Backend Switching — single-flag cloud ↔ local switching | Should | ✅ PASSED | 25 | — | ~2 min | 2026-06-29 |
 | 29 | [../plan/slices/01-core-pipeline/SLICE-29-PADDING-PROPAGATION.md](../plan/slices/01-core-pipeline/SLICE-29-PADDING-PROPAGATION.md) | Padding cross-cutting propagation — config key, API, types, UI | Must | ✅ PASSED | none | — | ~2 min | 2026-07-05 |
-| 32 | [../plan/slices/05-storage/SLICE-32-STORAGE-BACKEND-PROTOCOL.md](../plan/slices/05-storage/SLICE-32-STORAGE-BACKEND-PROTOCOL.md) | Storage Protocol + Mongo adapter (Storage + Retriever ports) | Must | ✅ COMPLETE (code) · gate-debt→32C/32B | none | [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) | ~2 min | 2026-09-23 |
-| 32C | [../plan/slices/05-storage/SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md](../plan/slices/05-storage/SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md) | Storage Protocol review remediation — craft split, port schemas, index deferral, checklist hygiene | Must | 📋 PLANNED | 32 | [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) | ~2 min | 2026-07-25 |
+| 32 | [../plan/slices/05-storage/SLICE-32-STORAGE-BACKEND-PROTOCOL.md](../plan/slices/05-storage/SLICE-32-STORAGE-BACKEND-PROTOCOL.md) | Storage Protocol + Mongo adapter (Storage + Retriever ports) | Must | ✅ COMPLETE (code) · gate-debt→32B | none | [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) | ~2 min | 2026-09-27 |
+| 32C | [../plan/slices/05-storage/SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md](../plan/slices/05-storage/SLICE-32C-STORAGE-PROTOCOL-REVIEW-REMEDIATION.md) | Storage Protocol review remediation — craft split, port schemas, index deferral, checklist hygiene | Must | ✅ COMPLETE | 32 | [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) | ~2 min | 2026-09-27 |
 | 32B | [../plan/slices/05-storage/SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md](../plan/slices/05-storage/SLICE-32B-STORAGE-PROTOCOL-GATE-CLOSURE.md) | Storage Protocol gate closure — coverage, mutation/waiver, full gates, nw-review, tracker COMPLETE | Must | 📋 PLANNED | 32C | [#110](https://github.com/neomatrix369/rag-params-finder/pull/110) | ~2 min | 2026-07-25 |
-| 33 | [../plan/slices/05-storage/SLICE-33-POSTGRES-SCHEMA-CRUD.md](../plan/slices/05-storage/SLICE-33-POSTGRES-SCHEMA-CRUD.md) | Postgres schema + pool + CRUD (+ local pgvector Path A) | Must | ✅ COMPLETE (code) · gate-debt→32C/32B | 32B | — | ~2 min | 2026-09-23 |
+| 33 | [../plan/slices/05-storage/SLICE-33-POSTGRES-SCHEMA-CRUD.md](../plan/slices/05-storage/SLICE-33-POSTGRES-SCHEMA-CRUD.md) | Postgres schema + pool + CRUD (+ local pgvector Path A) | Must | ✅ COMPLETE (code) · gate-debt→32B | 32B | — | ~2 min | 2026-09-27 |
 | 34 | [../plan/slices/05-storage/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md](../plan/slices/05-storage/SLICE-34-POSTGRES-DENSE-RETRIEVAL.md) | Postgres dense retrieval (pgvector HNSW) | Must | ✅ COMPLETE | 33 | — | ~2 min | 2026-07-25 |
 | 35 | [../plan/slices/05-storage/SLICE-35-POSTGRES-SPARSE-HYBRID.md](../plan/slices/05-storage/SLICE-35-POSTGRES-SPARSE-HYBRID.md) | Postgres sparse + hybrid RRF (+ Mongo equivalence gate) | Must | ✅ COMPLETE | 34 | — | ~2 min | 2026-07-26 |
 | 36 | [../plan/slices/05-storage/SLICE-36-POSTGRES-PREFLIGHT-STATS.md](../plan/slices/05-storage/SLICE-36-POSTGRES-PREFLIGHT-STATS.md) | Preflight + db-stats + four-value storage_mode | Must | ✅ COMPLETE | 35 | — | ~2 min | 2026-07-26 |

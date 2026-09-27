@@ -1,0 +1,15 @@
+{
+  "slice": "32C",
+  "gate_status": "ON_BRANCH",
+  "inferred": false,
+  "branch": "slice/32c-storage-protocol-review-remediation",
+  "note": "Craft/architecture nw-review remediation for Slice 32. Discovery found M1 (checklist dedupe), M2 (index-seam deferral, superseded by Slice 36), M3 (StorageBackend docstrings), M4 (mongo_stats.py split), M5 (documented lazy imports), S1, S2 already shipped on main during the Slice 32/33 landing. Closed this run: M4 residual MongoStorageBackend class-size (~266 lines, mechanical CRUD + 4 stats delegations) justified in Decision Log (DECISIONS #256); S3 one-line search() param-object deferral note added to retriever_backend.py. Zero user-visible Mongo behavior change.",
+  "quality_gates": {
+    "command": "python -m pytest tests/server/db/test_mongo_store_acceptance.py tests/server/db/test_mongo_store_adapter.py tests/server/db/test_store_factory.py -q",
+    "result": "32 passed",
+    "coverage_note": "no regression beyond existing Slice 32 tests; docs/decision-only diff plus two one-line code comments"
+  },
+  "mutation_testing": "N/A — behavior-preserving docs/decision remediation; mutation coverage owned by 32B",
+  "review": "Applicable reviewers: nw-software-crafter-reviewer, nw-solution-architect-reviewer (Gate 4, this run)",
+  "deferred_could": "S3 already satisfied inline (one-line note); no further Could items open"
+}

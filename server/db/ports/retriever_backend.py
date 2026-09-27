@@ -14,6 +14,8 @@ from server.models.results import SearchResult
 class RetrieverBackend(Protocol):
     """Port for dense, sparse, and hybrid chunk retrieval."""
 
+    # `search`'s 7-parameter surface is a candidate for a `SearchParams` object;
+    # deferred to Slice 34 (DECISIONS #82 / SLICE-32C S3).
     def search(
         self,
         method: RetrievalMethod,
