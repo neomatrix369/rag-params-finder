@@ -121,7 +121,10 @@ def test_given_postgres_extension_row_when_present_then_true() -> None:
     Slice: 44 — BE coverage floor parity
     """
     # -- Given --
-    with patch("server.core.guards.search_index_guard.fetch_one", return_value={"ok": 1}):
+    # fetch_one is imported lazily inside postgres_vector_extension_present()
+    # (GWT-1 — a Mongo-only process must never load psycopg), so there is no
+    # module-level "search_index_guard.fetch_one" attribute; patch the source.
+    with patch("server.db.postgres.postgres.fetch_one", return_value={"ok": 1}):
         # -- When / Then --
         assert postgres_vector_extension_present() is True
 
@@ -147,8 +150,10 @@ def test_given_required_indexes_when_collect_postgres_snapshot_then_present_set(
     """
     # -- Given --
     required = frozenset({"chunks_embedding_384_hnsw"})
+    # See test_given_postgres_extension_row_when_present_then_true — fetch_all
+    # is imported lazily, so patch the source module directly.
     with patch(
-        "server.core.guards.search_index_guard.fetch_all",
+        "server.db.postgres.postgres.fetch_all",
         return_value=[{"indexname": "chunks_embedding_384_hnsw"}],
     ):
         # -- When --

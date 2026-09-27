@@ -178,6 +178,94 @@ class TestResolveAdapterMechanismShould:
         ### Then
         assert result.stdout.strip() == ""
 
+    def test_given_mongodb_backend_when_resolve_adapter_called_then_no_psycopg_loaded(
+        self,
+    ) -> None:
+        """
+        Scenario: resolving the *mongodb* adapter never transitively loads psycopg.
+
+        Given a fresh Python process with STORAGE_BACKEND=mongodb,
+        When resolve_adapter("mongodb") is called (as get_vector_store() does),
+        Then psycopg is not present in sys.modules afterward — a bare
+        ``import server.db.ports.registry`` alone cannot catch a leak that
+        only appears once the mongodb target module is actually imported
+        (e.g. through a shared guard file that also imports Postgres helpers
+        at module scope), so this test drives the real call path in a
+        subprocess, where mid-process imports cannot be undone.
+        """
+        ### Given
+        # "LEAKED::" marker isolates the assertion from unrelated stdout noise
+        # (e.g. the settings-loaded INFO log line server startup emits).
+        probe = (
+            "import os, sys; "
+            "os.environ['STORAGE_BACKEND'] = 'mongodb'; "
+            "os.environ['MONGODB_URI'] = 'mongodb://localhost:27017/test'; "
+            "from server.db.ports.registry import resolve_adapter; "
+            "resolve_adapter('mongodb'); "
+            "loaded = sorted(m for m in sys.modules if 'psycopg' in m or 'elasticsearch' in m); "
+            "print('LEAKED::' + ','.join(loaded))"
+        )
+
+        ### When
+        result = subprocess.run(
+            [sys.executable, "-c", probe],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        leaked = next(
+            line.removeprefix("LEAKED::")
+            for line in result.stdout.splitlines()
+            if line.startswith("LEAKED::")
+        )
+
+        ### Then
+        assert leaked == "", (
+            f"psycopg/elasticsearch leaked in via resolve_adapter('mongodb'): {leaked}"
+        )
+
+    def test_given_mongodb_backend_when_get_vector_store_called_then_no_psycopg_loaded(
+        self,
+    ) -> None:
+        """
+        Scenario: the real call path (get_vector_store) never loads psycopg
+        for a mongodb-only process.
+
+        Given a fresh Python process with STORAGE_BACKEND=mongodb,
+        When get_vector_store() is called,
+        Then psycopg is not present in sys.modules afterward. This exercises
+        the exact production entrypoint (store_factory.get_vector_store),
+        not just the registry's resolve_adapter mechanism.
+        """
+        ### Given
+        # "LEAKED::" marker isolates the assertion from unrelated stdout noise
+        # (e.g. the settings-loaded INFO log line server startup emits).
+        probe = (
+            "import os, sys; "
+            "os.environ['STORAGE_BACKEND'] = 'mongodb'; "
+            "os.environ['MONGODB_URI'] = 'mongodb://localhost:27017/test'; "
+            "from server.db.ports.store_factory import get_vector_store; "
+            "get_vector_store(); "
+            "loaded = sorted(m for m in sys.modules if 'psycopg' in m or 'elasticsearch' in m); "
+            "print('LEAKED::' + ','.join(loaded))"
+        )
+
+        ### When
+        result = subprocess.run(
+            [sys.executable, "-c", probe],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        leaked = next(
+            line.removeprefix("LEAKED::")
+            for line in result.stdout.splitlines()
+            if line.startswith("LEAKED::")
+        )
+
+        ### Then
+        assert leaked == "", f"psycopg/elasticsearch leaked in via get_vector_store(): {leaked}"
+
 
 class TestResolveAdapterRealTargetsShould:
     """Scenario: resolving the real registry entries (Stream 3 composites)."""

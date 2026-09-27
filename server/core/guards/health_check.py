@@ -8,7 +8,6 @@ is running on pgvector — marks a healthy stack as unhealthy and blocks Compose
 
 from __future__ import annotations
 
-import psycopg
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
@@ -95,6 +94,11 @@ def postgres_health_status() -> str:
     uri = (settings.database_url or "").strip()
     if not uri:
         return "skipped"
+    # Lazy import (same convention as store_factory.py): this module is shared
+    # by both backends' health probes, so importing psycopg at module scope
+    # would leak the Postgres driver into a Mongo-only process (GWT-1).
+    import psycopg
+
     try:
         with psycopg.connect(
             uri,

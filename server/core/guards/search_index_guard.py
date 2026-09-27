@@ -30,7 +30,6 @@ from server.db.mongo.indexes import (
     reconcile_chunks_search_indexes,
 )
 from server.db.ports.registry import resolve_adapter
-from server.db.postgres.postgres import fetch_all, fetch_one
 from server.models.config import ExperimentConfig
 from server.settings import normalize_storage_backend, settings
 from server.utils.logger import get_logger
@@ -74,6 +73,11 @@ def collect_search_index_snapshot(
 
 def postgres_vector_extension_present() -> bool:
     """True when the ``vector`` extension is installed in the current database."""
+    # Lazy import (same convention as store_factory.py): this module is shared
+    # by both backends' preflight paths, so importing psycopg at module scope
+    # would leak the Postgres driver into a Mongo-only process (GWT-1).
+    from server.db.postgres.postgres import fetch_one
+
     row = fetch_one(
         "SELECT 1 AS ok FROM pg_extension WHERE extname = %s",
         (POSTGRES_VECTOR_EXTENSION,),
@@ -88,6 +92,9 @@ def collect_postgres_index_snapshot(
     if not required:
         present: frozenset[str] = frozenset()
     else:
+        # Lazy import — see postgres_vector_extension_present() above.
+        from server.db.postgres.postgres import fetch_all
+
         rows = fetch_all(
             """
             SELECT indexname
