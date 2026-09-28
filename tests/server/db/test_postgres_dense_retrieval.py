@@ -559,6 +559,10 @@ class TestPostgresDenseRecallShould:
         ### When
         with postgres.connection() as conn:
             conn.execute("SET LOCAL enable_seqscan = off")
+            # The default cap is 20_000 tuples. A shared volume that also holds
+            # sweep corpora (hundreds of thousands of chunks) exhausts it before
+            # iterative scan finds every filtered row.
+            conn.execute("SET LOCAL hnsw.max_scan_tuples = 1000000")
             for index in ("chunks_model_idx", "chunks_experiment_idx", "chunks_run_idx"):
                 conn.execute(f"DROP INDEX {index}")
             with conn.cursor() as cur:

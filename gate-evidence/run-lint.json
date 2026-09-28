@@ -1,0 +1,14 @@
+{
+  "primitive": "run-lint",
+  "slice_id": "slice-51",
+  "invocation_id": "2523B150-636E-448A-9661-1A3281467B38",
+  "status": "passed",
+  "timestamp": "2026-09-28T00:16:16Z",
+  "input_fingerprint": "054b3e65d3ec82bf03cf8538d7b301aca474a5ef",
+  "evidence": {
+    "linter": "ruff+eslint",
+    "command_run": "uv run ruff check server/ cli/ && cd frontend && npm run lint",
+    "findings_count": 0,
+    "blocking_findings": []
+  }
+}

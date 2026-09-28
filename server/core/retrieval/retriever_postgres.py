@@ -5,7 +5,9 @@ different models share one ``chunks`` table, so comparing across models would
 produce silently meaningless scores. The filter is not optional — it is built
 into every WHERE clause, and an empty model is rejected before any SQL runs.
 
-Sparse uses ``tsvector`` / ``ts_rank_cd`` (BM25-equivalent keyword search).
+Sparse uses ``tsvector`` / ``ts_rank_cd``. Lexemes from the question are
+OR-combined so a long query matches any term, the same way Atlas Search and
+Elasticsearch ``match`` do. Rank is still ``ts_rank_cd``.
 Hybrid fuses dense + sparse ranks with Reciprocal Rank Fusion CTEs
 (Supabase-documented shape; ``rrf_k`` defaults to 60 to match Mongo).
 """
@@ -66,23 +68,37 @@ def _dense_query(vector_column: str) -> sql.Composed:
     """).format(column=column)
 
 
-def _sparse_query() -> sql.SQL:
+def _any_term_tsquery(param: str) -> sql.Composed:
+    """OR the websearch lexemes so one missing word does not drop the question.
+
+    ``websearch_to_tsquery`` AND-combines bare words. A full question then
+    matches only chunks that contain every content word. Atlas Search and
+    Elasticsearch ``match`` rank any term. Replacing `` & `` with `` | ``
+    keeps phrases (``<->``) and explicit negation.
+    """
+    return sql.SQL(
+        "to_tsquery('english', replace(websearch_to_tsquery('english', {})::text, ' & ', ' | '))"
+    ).format(sql.Placeholder(param))
+
+
+def _sparse_query() -> sql.Composed:
+    tsquery = _any_term_tsquery("query")
     return sql.SQL("""
         SELECT chunk_id,
                text,
                chunk_index AS index,
                embedding_model,
                chunk_method,
-               ts_rank_cd(text_search, websearch_to_tsquery('english', %(query)s))
+               ts_rank_cd(text_search, {tsquery})
                    AS score
           FROM chunks
          WHERE experiment_id = %(experiment_id)s
            AND embedding_model = %(embedding_model)s
            AND run_id = %(run_id)s
-           AND text_search @@ websearch_to_tsquery('english', %(query)s)
+           AND text_search @@ {tsquery}
          ORDER BY score DESC
          LIMIT %(top_k)s
-    """)
+    """).format(tsquery=tsquery)
 
 
 def _hybrid_query(vector_column: str) -> sql.Composed:
@@ -93,20 +109,18 @@ def _hybrid_query(vector_column: str) -> sql.Composed:
     per vector width.
     """
     column = sql.Identifier(vector_column)
+    tsquery = _any_term_tsquery("query_text")
     return sql.SQL("""
         WITH full_text AS (
             SELECT chunk_id,
                    row_number() OVER (
-                       ORDER BY ts_rank_cd(
-                           text_search,
-                           websearch_to_tsquery('english', %(query_text)s)
-                       ) DESC
+                       ORDER BY ts_rank_cd(text_search, {tsquery}) DESC
                    ) AS rank_ix
               FROM chunks
              WHERE experiment_id = %(experiment_id)s
                AND embedding_model = %(embedding_model)s
                AND run_id = %(run_id)s
-               AND text_search @@ websearch_to_tsquery('english', %(query_text)s)
+               AND text_search @@ {tsquery}
              ORDER BY rank_ix
              LIMIT %(candidate_limit)s
         ),
@@ -136,7 +150,7 @@ def _hybrid_query(vector_column: str) -> sql.Composed:
             ON c.chunk_id = coalesce(full_text.chunk_id, semantic.chunk_id)
          ORDER BY score DESC
          LIMIT %(top_k)s
-    """).format(column=column)
+    """).format(column=column, tsquery=tsquery)
 
 
 def dense_search(

@@ -1,0 +1,19 @@
+{
+  "primitive": "load-slice-spec",
+  "slice_id": "slice-51",
+  "invocation_id": "2523B150-636E-448A-9661-1A3281467B38",
+  "status": "skipped",
+  "timestamp": "2026-09-28T00:16:16Z",
+  "evidence": {
+    "spec_path": null,
+    "conventional_path": "docs/plan/slice-51.md",
+    "project_spec_path": "docs/plan/slices/05-storage/SLICE-51-ELASTICSEARCH-OPERABILITY-CI-DOCS-ADR.md",
+    "sections_found": [
+      "## Context",
+      "## Output contract",
+      "## Exit criteria"
+    ],
+    "missing_sections": [],
+    "note": "Primitive path docs/plan/slice-51.md is absent. Project spec has ## Context and ## Output contract. Exit criteria live under ## After-Checks and ## Spec (GWT), not a heading named ## Exit criteria. Verification used the project spec."
+  }
+}

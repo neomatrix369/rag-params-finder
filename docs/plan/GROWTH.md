@@ -64,3 +64,8 @@ Full list: [`invariants.md`](invariants.md).
 - **Delta**: `scripts/lib/stores.tsv` is the operator manifest for start, stop, and health probes. `GET /api/stores` is the public catalog (labels, example config, index summary; secrets omitted). The server image takes optional `EXTRAS=elasticsearch`. Nightly live tests are one `vector-store-integration` matrix.
 - **L1/L2 impact**: a fresh clone can start local Elasticsearch beside the existing Mongo and Postgres paths. The vector-store box is unchanged from Slice 50; the new edge is operator scripts and the catalog API.
 - **Data-Flow**: unchanged from Slice 50. `--elasticsearch-local` pairs Elasticsearch vectors with Postgres run state unless `STORAGE_BACKEND` is already `mongodb`.
+
+### 2026-09-28 — Slice 51: close
+- **Delta**: Postgres sparse and hybrid OR the `websearch_to_tsquery` lexemes, matching Atlas Search and Elasticsearch `match` any-term behaviour. Atlas Local's healthcheck requires a writable primary, and the compose hostname is the replica-set name for the life of the volume. `--elasticsearch-local` pairs MongoDB run state unless `STORAGE_BACKEND=postgres`.
+- **L1/L2 impact**: no new box. The Postgres retrieval edge now ranks partial question matches.
+- **Data-Flow**: unchanged.

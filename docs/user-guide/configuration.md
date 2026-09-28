@@ -427,7 +427,7 @@ Two independent axes select storage. Product names are **shorthand for the usual
 | `mongodb-local` | **Atlas Local** |
 | `postgres-cloud` | **Supabase-hosted Postgres** |
 | `postgres-local` | **local pgvector / Postgres** |
-| `elasticsearch-local` | **local Elasticsearch** (vector store only; run state stays on Postgres or Mongo) |
+| `elasticsearch-local` | **local Elasticsearch** (vector store only; run state defaults to MongoDB unless `STORAGE_BACKEND=postgres`) |
 | `elasticsearch-cloud` | **hosted Elasticsearch** (vector store only) |
 
 - YAML `database_provider` declares **engine intent** (`mongodb` \| `postgres` \| `elasticsearch`). Deprecated input `supabase` normalizes to `postgres` with a warning.

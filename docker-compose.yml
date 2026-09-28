@@ -135,6 +135,10 @@ services:
     # (exit 62) and Compose waits forever. Downgrade below volume FCV → mongodb reset.
     image: mongodb/mongodb-atlas-local:8.3.3
     container_name: ${MONGODB_LOCAL_CONTAINER_NAME:-rag-params-finder-mongodb-local}
+    # Atlas Local uses this hostname as the replica set name. It must stay the
+    # same for the life of the data volume. A new container id leaves the node
+    # as RSGhost: ping succeeds, but reads return NotPrimary.
+    hostname: ${MONGODB_LOCAL_HOSTNAME:-mongodb-local}
     ports:
       - "27017:27017"
     # All three paths must be named volumes — mounting only /data/db loses the
@@ -145,7 +149,7 @@ services:
       - mongodb_local_mongot:/data/mongot
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.hello().isWritablePrimary ? 0 : 1)"]
       interval: 10s
       timeout: 5s
       retries: 12

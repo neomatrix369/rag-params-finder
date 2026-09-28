@@ -198,6 +198,31 @@ class TestPostgresSparseSearchShould:
         assert actual[0].retrieval_method == "sparse"
         assert "unrelated-weather" not in {r.chunk.id for r in actual[:1]}
 
+    def test_given_extra_unmatched_words_when_sparse_searched_then_partial_match_hits(
+        self, keyword_corpus: PostgresStorageBackend
+    ) -> None:
+        """
+        Scenario: A long question still returns the chunk that contains some of its words.
+        Slice: 51 — Postgres sparse any-term match
+
+        Given a chunk that contains "Pell Grant deadline" and a question that
+        also contains words absent from that chunk,
+        When sparse_search runs,
+        Then the matching chunk is returned first.
+        """
+        ### Given
+        query = (
+            "What accommodations are available for borrowers who need the "
+            "Pell Grant deadline in an accessible format?"
+        )
+
+        ### When
+        actual = retriever_postgres.sparse_search(query, _EXP_ID, _MODEL_A, _RUN_A, top_k=5)
+
+        ### Then
+        assert actual, "Expected a partial-term sparse hit"
+        assert actual[0].chunk.id == "match-pell"
+
     def test_given_rival_model_same_text_when_sparse_searched_then_only_asked_model(
         self, keyword_corpus: PostgresStorageBackend
     ) -> None:
