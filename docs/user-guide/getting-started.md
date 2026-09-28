@@ -32,7 +32,7 @@ Everything you need to run your first RAG parameter sweep experiment.
 
 **Prefer Postgres?** See **[Postgres Setup](postgres-setup.md)** — local `./start-services.sh --postgres-local` or **Supabase-hosted Postgres** (`./start-services.sh --postgres-cloud`, same `STORAGE_BACKEND=postgres`); first prove with `configs/supabase/example-unified-retrievers.yaml`.
 
-**Prefer Elasticsearch for vectors?** See **[Elasticsearch Setup](elasticsearch-setup.md)** — `./start-services.sh --elasticsearch-local` pairs a local cluster with Postgres run state. First prove with `configs/elasticsearch/example-local.yaml`.
+**Prefer Elasticsearch for vectors?** See **[Elasticsearch Setup](elasticsearch-setup.md)** — `./start-services.sh --elasticsearch-local` pairs a local cluster with MongoDB run state unless `STORAGE_BACKEND=postgres`. First prove with `configs/elasticsearch/example-local.yaml`.
 
 **Using SIE (open-source BGE-M3 embeddings)?** See **[SIE Provider Setup](sie-setup.md)** — set `SIE_ENABLED=true` (on/off), then `SIE_ENDPOINT` (+ `SIE_API_KEY` if needed) for a remote gateway, or optional local Docker.
 

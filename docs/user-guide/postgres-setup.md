@@ -432,7 +432,7 @@ Stop the current stack, then start the other engine. Postgres and Mongo do not s
 ./start-services.sh --elasticsearch-local
 ```
 
-`--elasticsearch-local` keeps Postgres as the run-state store and points `VECTOR_STORE_BACKEND` at Elasticsearch. See [Elasticsearch setup](elasticsearch-setup.md).
+`--elasticsearch-local` points `VECTOR_STORE_BACKEND` at Elasticsearch. Run state stays MongoDB unless `STORAGE_BACKEND=postgres`. See [Elasticsearch setup](elasticsearch-setup.md).
 
 ## Sizing
 
