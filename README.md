@@ -75,6 +75,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 |---------|------------|------------------|
 | **New user — cloud accounts** | [MongoDB Setup](docs/user-guide/mongodb-setup.md) | Atlas + optional Voyage, then [QUICKSTART](QUICKSTART.md) |
 | **New user — Postgres (local or Supabase-hosted)** | [Postgres Setup](docs/user-guide/postgres-setup.md) | `./start-services.sh --postgres-local` + `configs/supabase/example-unified-retrievers.yaml` |
+| **New user — Elasticsearch (vector-only)** | [Elasticsearch Setup](docs/user-guide/elasticsearch-setup.md) | `./start-services.sh --elasticsearch-local` + `configs/elasticsearch/example-local.yaml` |
 | **New user — first sweep** | [QUICKSTART](QUICKSTART.md) | Install, run server + CLI, open dashboard |
 | **Operator — config & CLI** | [Configuration Reference](docs/user-guide/configuration.md) | YAML sweeps, env vars, `rag-params-finder` commands |
 | **Operator — dashboard** | [Dashboard Guide](docs/user-guide/dashboard-guide.md) | Live phases, Search Explorer, experiment controls |
@@ -160,7 +161,7 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 - **Search index preflight**: Validates required indexes before sweeps start and rejects with HTTP 422 — Atlas Search indexes plus cluster quota on MongoDB, `vector` extension plus HNSW/GIN catalog objects on Postgres
 - **Index CLI**: `indexes list` reports Atlas quota usage or the Postgres catalog depending on the active backend; `indexes reset` is Atlas-only (M0 quota troubleshooting)
 - **Result-led dashboard**: Experiment cards lead with lifecycle and sweep outcome; detail connects identity and configuration to run results and the next valid action
-- **Vector DB stats**: Cluster and per-experiment chunk/storage estimates; optional Atlas quota bar with tier, provider, and region when Admin API credentials are configured
+- **Vector DB stats**: The experiments list shows server-wide store runtime plus vector-database capacity (optional Atlas quota bar with tier, provider, and region). Each experiment’s detail page shows that sweep’s stored footprint (chunks, models, chunking, per-run counts)
 - **Progress feedback**: Byte-level network loading, circular progress with elapsed time and ETA, background polling with "Syncing..." badges
 - **Scoped logging**: Server and dashboard use `[rag-params-finder] [Scope] operation — details` format; set `LOG_LEVEL=DEBUG` for verbose server output
 - **Pagination**: All list views paginated (10 items per page for experiments/runs, 5 for configs); collapsible experiment rows

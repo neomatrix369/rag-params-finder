@@ -13,6 +13,7 @@ from server.db.elasticsearch.client import (
     import_elasticsearch_class,
     raise_if_unreachable,
 )
+from server.db.elasticsearch.elasticsearch_catalog import ElasticsearchCatalog
 from server.db.elasticsearch.mapping import (
     SUPPORTED_DIMS,
     UNQUANTIZED_HNSW_REQUIRED,
@@ -36,17 +37,6 @@ from server.models.results import SearchResult
 from server.settings import settings
 
 _PROVIDER = "elasticsearch"
-_CAPABILITIES = VectorCapabilities(
-    retrieval_methods=frozenset(
-        {RetrievalMethod.DENSE, RetrievalMethod.SPARSE, RetrievalMethod.HYBRID}
-    ),
-    similarity_metrics=frozenset({"cosine"}),
-    index_types=frozenset({"hnsw"}),
-    supported_embedding_dims=SUPPORTED_DIMS,
-    supports_metadata_filters=True,
-    can_host_run_state=False,
-    labels=frozenset({_PROVIDER}),
-)
 
 
 class ElasticsearchRetrieverBackend:
@@ -205,7 +195,15 @@ class ElasticsearchVectorStore:
 
     @classmethod
     def capabilities(cls) -> VectorCapabilities:
-        return _CAPABILITIES
+        return ElasticsearchCatalog.capabilities()
+
+    @classmethod
+    def ui_labels(cls) -> dict[str, str]:
+        return ElasticsearchCatalog.ui_labels()
+
+    @classmethod
+    def index_summary(cls) -> dict[str, object]:
+        return ElasticsearchCatalog.index_summary()
 
     def _label_stats(self, total_chunks: int) -> dict:
         return assemble_experiment_db_stats(

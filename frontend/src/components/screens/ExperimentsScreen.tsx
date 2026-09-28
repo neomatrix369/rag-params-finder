@@ -12,11 +12,11 @@ import LoadingFeedbackPanel, { type FeedEntry } from '../chrome/LoadingFeedbackP
 import PollingIndicator from '../chrome/PollingIndicator';
 import ConfirmDeleteModal from '../experiment/ConfirmDeleteModal';
 import ExperimentControlButtons from '../experiment/ExperimentControlButtons';
+import OperationalRuntimeCard from '../stats/OperationalRuntimeCard';
 import VectorDbStatsPanel from '../stats/VectorDbStatsPanel';
-import ExperimentVectorDbStatsCard from '../stats/ExperimentVectorDbStatsCard';
 import Pagination from '../chrome/Pagination';
 import { createStallWatcher, type FetchProgressUpdate } from '../../services/fetchWithProgress';
-import { deleteExperiment, getExperiments, getExperimentsWithProgress, getVectorDbStatsGrouped } from '../../services/apiClient';
+import { deleteExperiment, getExperiments, getExperimentsWithProgress, getStores, getVectorDbStatsGrouped, type StoreCatalogEntry } from '../../services/apiClient';
 import { Experiment, VectorDbStatsGroup } from '../../types';
 import { appendFeedEntry } from '../../utils/feedEntries';
 import { devInfo, devInfoThrottled, devWarn } from '../../utils/devLog';
@@ -78,6 +78,7 @@ export default function ExperimentsScreen({
   onCacheUpdate?: (update: { experiments: Experiment[]; vectorDbGroups: VectorDbStatsGroup[] }) => void;
 }) {
   const [experiments, setExperiments] = useState<Experiment[]>(() => cachedExperiments ?? []);
+  const [storeHints, setStoreHints] = useState<StoreCatalogEntry[]>([]);
   const [loading, setLoading] = useState(() => !cacheReady);
   const [initialLoadDone, setInitialLoadDone] = useState(() => cacheReady);
   const [isPolling, setIsPolling] = useState(false);
@@ -205,6 +206,20 @@ export default function ExperimentsScreen({
     vectorDbStatsInFlightRef.current = request;
     return request;
   }, [vectorDbGroups.length]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getStores()
+      .then((catalog) => {
+        if (!cancelled) setStoreHints(catalog.stores);
+      })
+      .catch(() => {
+        if (!cancelled) setStoreHints([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!initialLoadDone) return;
@@ -443,12 +458,13 @@ export default function ExperimentsScreen({
             The server is connected and returned an empty list. Submit the first sweep from the CLI, then return here to follow its lifecycle and inspect its results.
           </p>
           <div className="mx-auto mt-4 max-w-xl space-y-2 text-left text-xs text-ink">
-            <code className="block overflow-x-auto rounded-xl border border-line bg-canvas p-3">
-              MongoDB: rag-params-finder run --config configs/mongodb/example-local.yaml
-            </code>
-            <code className="block overflow-x-auto rounded-xl border border-line bg-canvas p-3">
-              Postgres: rag-params-finder run --config configs/supabase/example-local.yaml
-            </code>
+            {[...storeHints]
+              .sort((left, right) => Number(right.active) - Number(left.active))
+              .map((store) => (
+                <code key={store.provider} className="block overflow-x-auto rounded-xl border border-line bg-canvas p-3">
+                  {store.provider}: rag-params-finder run --config {store.example_config}
+                </code>
+              ))}
           </div>
         </div>
       )}
@@ -610,11 +626,6 @@ export default function ExperimentsScreen({
                               <div className="mt-2 text-sm text-ink">{new Date(exp.created_at).toLocaleString()}</div>
                             </div>
                           </div>
-                          <ExperimentVectorDbStatsCard
-                            experimentId={exp.experiment_id}
-                            stats={dbStats}
-                            loading={vectorDbLoading && !dbStats}
-                          />
                         </div>
                       )}
                     </div>
@@ -645,7 +656,10 @@ export default function ExperimentsScreen({
       <section className="mt-8 border-t border-line pt-6" aria-labelledby="operational-context-title">
         <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Progressive disclosure</p>
         <h2 id="operational-context-title" className="mt-1 font-display text-xl font-semibold text-ink">Operational storage context</h2>
-        <p className="mb-4 mt-1 text-sm text-muted">Storage metrics stay available without competing with experiment lifecycle and run outcomes.</p>
+        <p className="mb-4 mt-1 text-sm text-muted">
+          Vector database capacity and store runtime are shown once for this server, beside the experiment list.
+        </p>
+        <OperationalRuntimeCard />
         <VectorDbStatsPanel
           groups={vectorDbGroups}
           loading={vectorDbLoading}

@@ -311,11 +311,27 @@ rag-params-finder run --config configs/mongodb/example-voyage.yaml  # 40 runs, V
 # Postgres/Supabase (Path D — see postgres-setup.md)
 rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
 rag-params-finder run --config configs/supabase/example-local.yaml
+
+# Elasticsearch (Path E — see docs/user-guide/elasticsearch-setup.md)
+# Pairs a run-state store (default mongodb-local). No env vars by hand.
+./start-services.sh --elasticsearch-local
+rag-params-finder run --config configs/elasticsearch/example-local.yaml
 ```
 
 Open `http://localhost:5374` to watch progress and explore results. See [docs/images](https://github.com/neomatrix369/rag-params-finder#-screenshots).
 
 ---
+
+## Teardown
+
+Stop every local profile registered in `scripts/lib/stores.tsv` (MongoDB, Postgres, Elasticsearch). Volumes stay unless you choose the deep-cleanup option.
+
+```bash
+NONINTERACTIVE=1 ./stop-services.sh
+./start-services.sh mongodb reset
+./start-services.sh postgres reset
+./start-services.sh elasticsearch reset
+```
 
 ## Next steps
 

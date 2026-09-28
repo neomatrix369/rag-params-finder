@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import time
 
+from server.core.guards.local_runtime import local_runtime_fields
 from server.db.mongo.mongodb_uri import mongo_client_kwargs, mongodb_storage_mode
 from server.db.ports.registry import is_same_adapter, resolve_adapter
 from server.db.postgres.postgres_uri import postgres_connect_kwargs, postgres_storage_mode
@@ -233,6 +234,7 @@ def _public_probe(probe: dict[str, object]) -> dict[str, object]:
     }
     if "remediation" in probe:
         public["remediation"] = probe["remediation"]
+    public.update(local_runtime_fields(str(probe["provider"]), str(probe["mode"])))
     return public
 
 

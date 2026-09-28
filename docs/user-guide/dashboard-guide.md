@@ -36,20 +36,14 @@ The landing screen presents all submitted experiments as result-led cards, newes
 
 **Collapsible cards**: Click the chevron on a card to expand inline details without leaving the list. Expansion state is remembered per experiment (`localStorage`).
 
-**Operational storage context** (after the experiment list): Aggregated storage
-footprint for the **active** backend — total chunks, estimated embedding storage,
-index/schema names, and per-experiment breakdown. On **Mongo/Atlas**, when Admin
-API credentials or `MONGODB_STORAGE_LIMIT_MB` is configured, the section also
-shows cluster quota (used/free MB), instance tier (e.g. `M0 (shared)`), cloud
-provider, and region. On **Postgres** (local or Supabase-hosted), the same panel
-reports Postgres-mode labels and footprint without Atlas quota fields. It loads
-from `GET /experiments/vector-db-stats` on its own schedule (**every 60 s**,
-90 s fetch timeout) so a slow stats aggregation does not block the experiment
-list (2 s poll, 30 s timeout).
+**Operational storage context** (after the experiment list, once for the server):
+
+- **Store runtime**: collapsed by default. Expanded, it shows the vector-store and run-state backend, mode, reachability, container, and image from `GET /healthz`. Local modes show the Compose container name and image pin. Cloud modes show an em dash for those two rows. The collapsed header shows the two modes once health has loaded.
+- **Vector database**: aggregated storage footprint for the **active** backend — total chunks, estimated embedding storage, and index/schema names. On **Mongo/Atlas**, when Admin API credentials or `MONGODB_STORAGE_LIMIT_MB` is configured, the section also shows cluster quota (used/free MB), instance tier (e.g. `M0 (shared)`), cloud provider, and region. On **Postgres** (local or Supabase-hosted), the same panel reports Postgres-mode labels and footprint without Atlas quota fields. It loads from `GET /experiments/vector-db-stats` on its own schedule (**every 60 s**, 90 s fetch timeout) so a slow stats aggregation does not block the experiment list (2 s poll, 30 s timeout). Collapsed experiment cards still show a stored-result count when those stats include that experiment.
 
 **Actions**:
 - **View experiment**: Use the explicit action on a card to open the Experiment Detail screen
-- **Expand/collapse**: Use the labelled chevron button to reveal or hide inline metadata and per-experiment storage context
+- **Expand/collapse**: Use the labelled chevron button to reveal or hide inline metadata (id, run count, git commit, created time)
 - **Pause / Resume / Cancel**: Active-state controls remain available on the relevant experiment card
 - **Delete**: Select one or more deletable experiments, then use the **Delete N** action (confirmation required)
   - Cannot delete **running** experiments — pause or cancel first (**paused** experiments can be deleted)
@@ -73,7 +67,7 @@ list (2 s poll, 30 s timeout).
 
 Opened through a card's **View experiment** action. Polls every 2 seconds while status is non-terminal. List→detail navigation reuses cached experiment payloads when available to reduce duplicate fetches.
 
-**Overview panel** (top): Experiment identity, text-labelled lifecycle state, configured/completed run counts, the valid next step, and state-specific controls are grouped before configuration, run results, and storage context.
+**Overview panel** (top): Experiment identity, text-labelled lifecycle state, configured/completed run counts, the valid next step, and state-specific controls are grouped before configuration and run results.
 
 **Control buttons** (header, via `ExperimentControlButtons`):
 
@@ -108,10 +102,10 @@ Pause, resume, and cancel controls appear **only in the overview header** — no
 | `paused` | Violet — “Experiment Paused” banner with run count; resume via header controls |
 | `cancelled` | Gray — runs completed before cancellation |
 | Failed runs | Red panel listing `error_message` per run |
-| Preflight failed | Experiment `error_message` explains missing indexes or quota — check with `rag-params-finder indexes list`; on MongoDB Atlas fix with `indexes reset`, on Postgres restart the server so it re-applies `schema.sql` (see [postgres-setup.md → Index preflight](postgres-setup.md#index-preflight)); see [Troubleshooting](troubleshooting.md#-search-index-preflight-failed) |
+| Preflight failed | Experiment `error_message` explains missing indexes or quota — check with `rag-params-finder indexes list`; on MongoDB Atlas fix with `indexes reset`, on Postgres restart the server so it re-applies `schema.sql` (see [postgres-setup.md → Index preflight](postgres-setup.md#index-preflight)); on Elasticsearch confirm the cluster is yellow or green and the `rpf-chunks` index exists (`./start-services.sh elasticsearch status`, [elasticsearch-setup.md](elasticsearch-setup.md)); see [Troubleshooting](troubleshooting.md#-search-index-preflight-failed) |
 | Interrupted runs | Amber panel listing interruption reason |
 
-**Vector DB stats card**: Collapsible operational-context panel after the run outcome, with per-experiment chunk counts, embedding model breakdown, estimated storage, and index names. Loaded from `GET /experiments/{id}/db-stats`.
+**Stored footprint** (after the run outcome): this experiment’s chunk count, estimated storage, embedding models, chunking breakdown, and a short per-run list. Loaded from `GET /experiments/{id}/db-stats` (every 60 s). Host, quota, indexes, and store runtime stay on the experiments list.
 
 **Phase indicator dots**: one row of colored dots per run, representing each pipeline phase in order:
 
@@ -235,6 +229,7 @@ This allows direct comparison of configs that used different models or retrieval
 | Experiments List | Yes | Every 2 s (`GET /experiments`, 30 s timeout) | Never (always refreshes) |
 | Experiments List — Vector DB stats | Yes | Every 60 s (`GET /experiments/vector-db-stats`, 90 s timeout) | Never; may show "loading" while the list is already visible |
 | Experiment Detail | Yes | Every 2 s | Status reaches terminal state (`paused` is non-terminal — polling continues) |
+| Experiment Detail — stored footprint | Yes | Every 60 s (`GET /experiments/{id}/db-stats`) | While the detail screen is open |
 | Search Explorer | Yes | Every 15 s while experiment is running | Stops when experiment reaches a terminal status (`complete`, `failed`, `partial`, `cancelled`) |
 
 Terminal statuses: `complete`, `failed`, `partial`, `cancelled` (non-terminal: `running`, `paused`)

@@ -1,0 +1,24 @@
+{
+  "primitive": "run-tests",
+  "slice_id": "slice-51",
+  "invocation_id": "2523B150-636E-448A-9661-1A3281467B38",
+  "status": "passed",
+  "timestamp": "2026-09-28T00:16:16Z",
+  "input_fingerprint": "054b3e65d3ec82bf03cf8538d7b301aca474a5ef",
+  "evidence": {
+    "stacks_detected": [
+      "python",
+      "node"
+    ],
+    "commands_run": [
+      "uv run pytest --tb=line -q --ignore=tests/contract --ignore=tests/server/db/test_postgres_store_integration.py --ignore=tests/server/db/test_postgres_dense_retrieval.py --ignore=tests/server/db/test_postgres_sparse_hybrid.py -m 'not integration' --cov=server --cov=cli --cov-fail-under=70",
+      "cd frontend && npm run test -- --reporter=dot"
+    ],
+    "total": 876,
+    "passed_count": 876,
+    "failed_count": 0,
+    "failed_tests": [],
+    "coverage_pct": 74.61,
+    "detail": "backend 615 passed, 1 deselected; frontend 261 passed"
+  }
+}

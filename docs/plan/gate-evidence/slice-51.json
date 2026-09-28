@@ -1,0 +1,496 @@
+{
+  "slice": "51",
+  "gate_status": "PASSED",
+  "verified_at": "2026-09-28",
+  "branch": "slice/51-elasticsearch-operability-ci-docs-adr",
+  "pr": "https://github.com/neomatrix369/rag-params-finder/pull/205",
+  "note": "/verify-slice COMPLETE 18/18. Quality gates exit 0: backend 615 passed, 1 deselected, 74.58% coverage, floors 72/59/72 met; frontend 261 passed, 97.09/91.71/98.8/98.48. Dense top-3 after re-searching 285 empty MongoDB lists: 0.9784 / 0.9779 / 0.9994. Postgres hybrid remeasured with any-term sparse: 0.4053 vs MongoDB, 0.4664 vs Elasticsearch. PR #205 is MERGEABLE with CI green. Merge and release stay manual.",
+  "open": [],
+  "external_references": {
+    "loaded_at": "2026-09-27",
+    "image_tags_present": [
+      "9.5.0",
+      "9.5.1",
+      "9.5.3"
+    ],
+    "compose_pin": "docker.elastic.co/elasticsearch/elasticsearch:9.5.0",
+    "context7": "A current Elastic Docker snippet uses elasticsearch:9.5.3 and xpack.license.self_generated.type=trial. This slice keeps 9.5.0 and licence basic, which the live 9.2.4 cluster also reported as type basic."
+  },
+  "compose_9_5_0": {
+    "measured_at": "2026-09-27T21:44:27Z",
+    "command": "./start-services.sh elasticsearch start",
+    "container": "rag-params-finder-elasticsearch-local",
+    "image": "docker.elastic.co/elasticsearch/elasticsearch:9.5.0",
+    "version_number": "9.5.0",
+    "bind": "127.0.0.1:9200",
+    "health_at_start": "green",
+    "license": "basic",
+    "security_enabled": false,
+    "heap": "-Xms1g -Xmx1g",
+    "pytest_live": "1 passed against this cluster",
+    "healthz": "200 storage_mode=elasticsearch-local run_state_mode=postgres-local both stores ok",
+    "healthz_default_pair": "2026-09-27T22:50:35Z one-shot storage_health with STORAGE_BACKEND=mongodb VECTOR_STORE_BACKEND=elasticsearch against live Atlas Local and Elasticsearch 9.5.0: ok true, storage_mode=elasticsearch-local, run_state_mode=mongodb-local, both stores ok",
+    "indexes_list": "rpf-chunks embedding_384 embedding_1024 hnsw",
+    "health_check_sh": "all checks passed once the dashboard was on :5374, including the elasticsearch HTTP probe and the postgres cmd probe",
+    "disk_watermark": "During the server image build the node hit 97.9% disk (1.2 GB free). rpf-chunks was created and its primary stayed unassigned (cluster red). The build was stopped and that empty index was deleted. Cluster returned to green."
+  },
+  "live_checks_9_2_4": {
+    "measured_at": "2026-09-27T21:34:00Z",
+    "cluster": {
+      "container": "rag-params-finder-elasticsearch-live",
+      "image": "docker.elastic.co/elasticsearch/elasticsearch:9.2.4",
+      "bind": "127.0.0.1:9200",
+      "health": "green",
+      "license": "basic",
+      "heap_max_bytes": 1073741824
+    },
+    "pytest_live": "RAG_REQUIRE_ELASTICSEARCH=1 tests/server/db/test_elasticsearch_live.py \u2014 1 passed",
+    "python_client": "9.5.1",
+    "healthz": {
+      "ok": true,
+      "storage_mode": "elasticsearch-local",
+      "run_state_mode": "postgres-local",
+      "vector_ok": true,
+      "run_state_ok": true
+    },
+    "indexes_list": "rpf-chunks, fields embedding_1024 and embedding_384, index_type hnsw",
+    "submit_mismatch": "HTTP 422 naming configs/elasticsearch/example-local.yaml",
+    "submit_example": "HTTP 200 experiment 07262d07-37a2-4b6e-8871-24d94bb8e546, 120 runs, then cancel 200 and delete 200 with chunks 0",
+    "health_check_sh": "vector and postgres probes OK; elasticsearch container skipped because the running name is rag-params-finder-elasticsearch-live, not rag-params-finder-elasticsearch-local; frontend :5374 failed because the dashboard was not started"
+  },
+  "server_image_extras": {
+    "measured_at": "2026-09-27T22:32:13Z",
+    "command": "docker build -f docker/server.Dockerfile --build-arg EXTRAS=elasticsearch -t rag-params-finder-server:es-extras .",
+    "image": "rag-params-finder-server:es-extras",
+    "import": "elasticsearch (9, 5, 1)"
+  },
+  "cross_backend_overlap": {
+    "measured_at": "2026-09-27T22:29:35Z",
+    "grid": "dense only, fixed, chunk_size 512, overlap 50 \u2014 not the 120-run example-local grid",
+    "corpus": "input_data/pdfs/The_Federal_Pell_Grant_Program.pdf",
+    "queries": "configs/questions.example.json",
+    "model": "all-MiniLM-L6-v2",
+    "chunks": 376,
+    "query_count": 77,
+    "top_3": {
+      "mongodb_postgres": 0.8528,
+      "mongodb_elasticsearch": 0.8528,
+      "postgres_elasticsearch": 1.0
+    }
+  },
+  "nightly_vector_store_integration": {
+    "url": "https://github.com/neomatrix369/rag-params-finder/actions/runs/36355146029",
+    "ref": "slice/51-elasticsearch-operability-ci-docs-adr",
+    "legs": {
+      "postgres": "success",
+      "mongodb": "success",
+      "elasticsearch": "success"
+    },
+    "summary": "success"
+  },
+  "quality_gates": {
+    "command": "./scripts/ci/quality-gates.sh",
+    "exit_code": 0,
+    "measured_at": "2026-09-27",
+    "backend": {
+      "tests": 603,
+      "deselected": 1,
+      "total_cover": 73.77,
+      "statements": 76.12,
+      "branches": 64.01,
+      "lines": 76.12,
+      "floors": "72/59/72",
+      "cover_target": 70
+    },
+    "frontend": {
+      "tests": 266,
+      "coverage": {
+        "stmts": 97.76,
+        "branch": 92.78,
+        "functions": 99.39,
+        "lines": 99.16
+      }
+    }
+  },
+  "gwt_mapping": {
+    "compose_constraints": "docker-compose.yml elasticsearch-local; live inspect in compose_9_5_0",
+    "manifest_parity_and_no_case_arm": "tests/scripts/test_store_manifest.py",
+    "dockerfile_extras": "tests/scripts/test_store_manifest.py::test_given_server_dockerfile_when_read_then_extras_build_arg_is_optional; image import recorded in server_image_extras",
+    "catalog_redaction": "tests/server/api/test_stores_api.py::test_given_registry_when_catalog_built_then_secrets_are_absent",
+    "mismatch_422": "tests/server/api/test_stores_api.py::test_given_elasticsearch_server_when_mismatch_formatted_then_example_config_is_named",
+    "config_basename_parity": "tests/server/models/test_config_examples.py",
+    "docs_parity_and_red_path": "tests/server/test_docs_parity.py",
+    "empty_state_hints": "frontend/src/components/screens/ExperimentsScreen.test.tsx",
+    "labels_no_elasticsearch_branch": "frontend/src/utils/storageLabels.ts has no elasticsearch branch; quota hidden when limit is null",
+    "indexes_list_via_catalog": "tests/cli/test_indexes_cmd.py reads the catalog payload",
+    "clean_clone_image_import": "rag-params-finder-server:es-extras built with EXTRAS=elasticsearch imports elasticsearch 9.5.1",
+    "es_unreachable_503": "tests/server/core/guards/test_health_check.py::test_given_unreachable_elasticsearch_when_healthz_called_then_status_is_503 returns 503; tests/scripts/test_store_probes.py reports FAIL plus the elasticsearch status hint when the HTTP probe is down",
+    "cmd_health_probe_execution": "tests/scripts/test_store_probes.py sources health-check.sh and runs the postgres cmd: probe through a fake docker exec, including the failure hint",
+    "teardown_all_profiles": "2026-09-28 NONINTERACTIVE=1 ./stop-services.sh chose compose down. It removed rag-params-finder-frontend, rag-params-finder-server, rag-params-finder-elasticsearch-local, rag-params-finder-mongodb-local, and rag-params-finder-postgres-local. A following docker ps showed no rag-params-finder container.",
+    "nightly_matrix": "https://github.com/neomatrix369/rag-params-finder/actions/runs/36355146029 \u2014 postgres, mongodb, and elasticsearch legs success; summary job success",
+    "cross_backend_overlap": "Dense top-3 after re-searching the 285 empty MongoDB lists: mongodb-postgres 0.9784, mongodb-elasticsearch 0.9779, postgres-elasticsearch 0.9994 (2310 pairs, none short). Postgres hybrid remeasured with any-term sparse: mongodb-postgres 0.4053, postgres-elasticsearch 0.4664 (2310 pairs, none short).",
+    "journey_15_stages": "Recorded in reader_journey_transcript. Stage 5 and stage 6 were re-run on 2026-09-28 against an Elasticsearch API with MongoDB run state. Stage 14 NONINTERACTIVE=1 ./stop-services.sh removed the containers and kept the named volumes.",
+    "adr_006_distinct": "docs/adr/README.md lists ADR-005 DoubleWord and ADR-006 Elasticsearch Accepted"
+  },
+  "code_review": {
+    "reviewed_at": "2026-09-27",
+    "head": "74efcb2",
+    "reviewers": {
+      "nw-solution-architect-reviewer": "APPROVED",
+      "nw-platform-architect-reviewer": "APPROVED",
+      "nw-documentarist-reviewer": "APPROVED",
+      "nw-researcher-reviewer": "APPROVED",
+      "nw-software-crafter-reviewer": "APPROVED on re-review 2026-09-28 (was NEEDS_REVISION on 74efcb2)",
+      "nw-system-designer-reviewer": "APPROVED on re-review 2026-09-28 (was NEEDS_REVISION on 74efcb2)"
+    },
+    "crafter_remediation": "GET /api/stores resolves driver-free catalog classes (resolve_catalog). The redaction assertions still call build_stores_payload(). A fresh-process test asserts psycopg, pymongo, and the Elasticsearch client stay unimported. The operator-script scan also rejects per-store cmd_* lifecycle functions.",
+    "system_designer_remediation": "start-services.sh uses cmd_store_start/stop/reset/status. Volumes and example configs come from stores.tsv. wait_for_named_container_healthy is the shared docker-health wait; Mongo and Postgres keep their existing hint wrappers. run_mongodb_subcommand and run_postgres_subcommand are removed."
+  },
+  "at_completeness": {
+    "gwt_fence": "13 of 18 scenarios have a unit or component test. The clean-clone start, the 15-stage transcript, the 120-run dense top-3, and the live teardown are recorded as live evidence.",
+    "tier1": "ACCEPTABLE_WITH_DOCUMENTED_GAPS",
+    "zero_obligation": "PASS for secret redaction \u2014 the catalog test asserts configured secrets are absent. No zero-obligation scenario is missing its test.",
+    "tier2": "no BLOCK \u2014 S1 N/A (pytest, no step registry); S2 N/A (no des.domain package); S3 partial (catalog, 422, docs-parity red path exist; full stack and nightly do not)",
+    "documented_gaps": [
+      "The 2229 empty Postgres sparse lists were the AND tsquery. After the any-term clause, sparse overlap is 0.1525 vs MongoDB and 0.217 vs Elasticsearch (2 lists still shorter than 3). Hybrid remeasure is 0.4053 / 0.4664 with 0 short lists. The remaining gap is ranker difference, recorded in postgres_sparse_any_term and hybrid_any_term_remeasure."
+    ]
+  },
+  "gate_evidence_validator": {
+    "verdict": "PASS",
+    "reason": "Transcript, full-grid dense top-3 after the empty-list re-search, and the any-term hybrid remeasure are recorded. PR #205 is mergeable with CI green, so gate_status is PASSED. Merge stays manual."
+  },
+  "verify_slice": {
+    "verdict": "COMPLETE",
+    "evidence_state": "VERIFIED",
+    "verified_at": "2026-09-28",
+    "head": "f8fd32b",
+    "acceptance_criteria": "18/18 PASS",
+    "quality_gates": "11/11 exit 0. Backend 615 passed, 74.58% coverage. Frontend 261 passed.",
+    "runtime_checks": "285 empty MongoDB dense queries re-searched (0 still short of 3). 2310 Postgres hybrid queries re-run with any-term sparse (0 short). indexes list rendered rpf-chunks. healthz elasticsearch-local + mongodb-local ok.",
+    "documentation": "current",
+    "visual_assets": "aligned \u2014 C4 L1 includes Elasticsearch as vector-only",
+    "note": "COMPLETE. gate_status PASSED on mergeable PR #205. Merge and release stay manual."
+  },
+  "evidence_updated_at": "2026-09-28T08:25:00Z",
+  "reader_journey_transcript": {
+    "read_at": "2026-09-28",
+    "head": "054b3e6",
+    "sources": [
+      "README.md persona row",
+      "docs/user-guide/elasticsearch-setup.md",
+      "QUICKSTART.md Path E and Teardown",
+      "docs/contributor-guide/extending.md 15-stage table"
+    ],
+    "stages": [
+      {
+        "stage": 1,
+        "observation": "README.md persona row names the Elasticsearch path: ./start-services.sh --elasticsearch-local plus configs/elasticsearch/example-local.yaml, and links docs/user-guide/elasticsearch-setup.md."
+      },
+      {
+        "stage": 2,
+        "observation": "elasticsearch-setup.md has the operator headings Choose your deployment, Environment variables, Path A \u2014 local Docker, Path B \u2014 bring your own, Index lifecycle, Before you run a sweep, Run the smoke sweep, Switching backends, Sizing, Troubleshooting, Diagnostics cheat sheet, and Related docs. The guide states the default run-state pair is mongodb-local unless STORAGE_BACKEND=postgres."
+      },
+      {
+        "stage": 3,
+        "observation": "pyproject.toml extra elasticsearch = [\"elasticsearch>=9,<10\"]."
+      },
+      {
+        "stage": 4,
+        "observation": "Before teardown the stack had rag-params-finder-frontend, rag-params-finder-server, rag-params-finder-mongodb-local, rag-params-finder-elasticsearch-local (9.5.0), and rag-params-finder-postgres-local. Earlier the Docker VM disk filled and mongod exited on mongod.lock. Build cache was pruned and the MongoDB container was restarted; it then reported healthy. Volumes were not reset."
+      },
+      {
+        "stage": 5,
+        "observation": "Command: env -u STORAGE_BACKEND -u VECTOR_STORE_BACKEND NONINTERACTIVE=1 ./start-services.sh --elasticsearch-local. No storage variable was exported by hand. GET /healthz returned 200, ok true, storage_mode elasticsearch-local, storage_backend mongodb, vector_store_backend elasticsearch, run_state_mode mongodb-local, and both stores ok. The Elasticsearch sweep submitted to that server is stamped storage_mode mongodb-local with database_provider elasticsearch (c7a8d278-4c55-4c4c-9cd4-b28a7b252ae1). The earlier one-shot that exported STORAGE_BACKEND=mongodb stays in compose_9_5_0.healthz_default_pair and is not this start. Re-run 2026-09-28T08:22Z: GET /healthz on :8001 with Elasticsearch vectors and MongoDB run state returned ok, storage_mode=elasticsearch-local, run_state_mode=mongodb-local, both stores ok, with container and image for each."
+      },
+      {
+        "stage": 6,
+        "observation": "2026-09-28T16:32Z: rag-params-finder indexes list against the Elasticsearch API rendered rpf-chunks, fields embedding_1024 and embedding_384, index_type hnsw."
+      },
+      {
+        "stage": 7,
+        "observation": "configs/elasticsearch/example-local.yaml submitted without a config-engine 422 and completed 120/120 (c7a8d278-4c55-4c4c-9cd4-b28a7b252ae1, example-elasticsearch-local_20260927-231453, 2026-09-27T23:14:53Z to 2026-09-28T00:00:39Z, 9240 result rows). The same YAML shape then completed 120/120 on MongoDB (f41d76f7-6881-4883-b806-bc4f2bf8d223, 2026-09-28T00:04:00Z to 2026-09-28T01:51:43Z) and on Postgres (72395ff5-bbf0-4423-a40c-a5e7a6b40b9b, example-supabase-local_20260928-070004, 2026-09-28T07:00:04Z to 2026-09-28T07:45:47Z). Postgres attempt cdd12d9f-b8fc-4888-9893-3683604b0d29 went partial when the Docker VM disk filled and was not used."
+      },
+      {
+        "stage": 8,
+        "observation": "GET http://127.0.0.1:5374/ returned 200 while the frontend container was healthy during the Elasticsearch sweep."
+      },
+      {
+        "stage": 9,
+        "observation": "GET /experiments/c7a8d278-4c55-4c4c-9cd4-b28a7b252ae1/db-stats during the Elasticsearch sweep returned database_provider elasticsearch, collection rpf-chunks, and host elasticsearch-local. That host is the compose service name, not a credential URI."
+      },
+      {
+        "stage": 10,
+        "observation": "Full-grid top-3 overlap is in cross_backend_overlap_full_grid. Dense mean |A\u2229B|/3 is mongodb-postgres 0.8641, mongodb-elasticsearch 0.8636, postgres-elasticsearch 0.9994, each over 2310 pairs. The 2026-09-27 dense/fixed/512/50 measurement stays in cross_backend_overlap."
+      },
+      {
+        "stage": 11,
+        "observation": "After the Elasticsearch grid, docker stop rag-params-finder-server rag-params-finder-frontend and ./start-services.sh --mongodb-local (STORAGE_BACKEND unset) served the MongoDB grid with storage_mode mongodb-local. ./start-services.sh --postgres-local then served the Postgres grid 72395ff5 with storage_mode postgres-local and database_provider postgres."
+      },
+      {
+        "stage": 12,
+        "observation": "POST of a YAML with database_provider mongodb to the Elasticsearch server returned 422 naming configs/elasticsearch/example-local.yaml."
+      },
+      {
+        "stage": 13,
+        "observation": "elasticsearch-setup.md contains Troubleshooting and Diagnostics cheat sheet."
+      },
+      {
+        "stage": 14,
+        "observation": "NONINTERACTIVE=1 ./stop-services.sh on 2026-09-28 ran compose down. It stopped and removed the MongoDB, Postgres, and Elasticsearch containers and the compose network. Named volumes rag-params-finder_mongodb_local_data, rag-params-finder_postgres_local_data, and rag-params-finder_elasticsearch_local_data were kept."
+      },
+      {
+        "stage": 15,
+        "observation": "Nightly vector-store-integration https://github.com/neomatrix369/rag-params-finder/actions/runs/36355146029 completed with postgres, mongodb, and elasticsearch legs success and the summary job success."
+      }
+    ]
+  },
+  "cross_backend_overlap_full_grid": {
+    "measured_at": "2026-09-28T07:50:00Z",
+    "method": "Slice 38 shape: match (retriever type, chunking_method, chunk_size, overlap, whitespace-normalized query_text, persona_id); SHA1 of whitespace-normalized chunk text; mean |A\u2229B|/3. Retriever type is retrievers[0].type. retrieval_method is not used, because cross_encoder runs store retrieval_method dense and would overwrite dense keys.",
+    "grid": "example-local shape: 5 chunking methods x 3 chunk sizes x 2 overlaps x 4 retrievers = 120 runs. Retrievers are dense, sparse, hybrid, and cross_encoder (local MiniLM).",
+    "corpus": "input_data/pdfs/The_Federal_Pell_Grant_Program.pdf",
+    "queries": "configs/questions.example.json",
+    "model": "all-MiniLM-L6-v2",
+    "experiments": {
+      "mongodb": {
+        "experiment_id": "f41d76f7-6881-4883-b806-bc4f2bf8d223",
+        "experiment_name": "example-mongodb-local_20260928-000400",
+        "completed_at": "2026-09-28T01:51:43Z",
+        "runs": 120,
+        "noncomplete_runs": 0,
+        "result_rows": 9240
+      },
+      "postgres": {
+        "experiment_id": "72395ff5-bbf0-4423-a40c-a5e7a6b40b9b",
+        "experiment_name": "example-supabase-local_20260928-070004",
+        "started_at": "2026-09-28T07:00:04.875607Z",
+        "completed_at": "2026-09-28T07:45:47.619829Z",
+        "storage_mode": "postgres-local",
+        "database_provider": "postgres",
+        "runs": 120,
+        "noncomplete_runs": 0,
+        "result_rows": 9240,
+        "not_used": "cdd12d9f-b8fc-4888-9893-3683604b0d29 went partial when the Docker VM disk filled and is not in these figures"
+      },
+      "elasticsearch": {
+        "experiment_id": "c7a8d278-4c55-4c4c-9cd4-b28a7b252ae1",
+        "experiment_name": "example-elasticsearch-local_20260927-231453",
+        "completed_at": "2026-09-28T00:00:39Z",
+        "runs": 120,
+        "noncomplete_runs": 0,
+        "result_rows": 9240,
+        "vector_documents": 60316
+      }
+    },
+    "keys_per_store": 9240,
+    "unmatched_keys": 0,
+    "top_3": {
+      "mongodb_postgres": {
+        "dense": {
+          "mean": 0.8641,
+          "pairs": 2310
+        },
+        "sparse": {
+          "mean": 0.0074,
+          "pairs": 2310
+        },
+        "hybrid": {
+          "mean": 0.4377,
+          "pairs": 2310
+        },
+        "cross_encoder": {
+          "mean": 0.8153,
+          "pairs": 2310
+        },
+        "all": {
+          "mean": 0.5311,
+          "pairs": 9240
+        }
+      },
+      "mongodb_elasticsearch": {
+        "dense": {
+          "mean": 0.8636,
+          "pairs": 2310
+        },
+        "sparse": {
+          "mean": 0.5206,
+          "pairs": 2310
+        },
+        "hybrid": {
+          "mean": 0.6398,
+          "pairs": 2310
+        },
+        "cross_encoder": {
+          "mean": 0.8154,
+          "pairs": 2310
+        },
+        "all": {
+          "mean": 0.7099,
+          "pairs": 9240
+        }
+      },
+      "postgres_elasticsearch": {
+        "dense": {
+          "mean": 0.9994,
+          "pairs": 2310
+        },
+        "sparse": {
+          "mean": 0.0075,
+          "pairs": 2310
+        },
+        "hybrid": {
+          "mean": 0.4659,
+          "pairs": 2310
+        },
+        "cross_encoder": {
+          "mean": 0.9986,
+          "pairs": 2310
+        },
+        "all": {
+          "mean": 0.6179,
+          "pairs": 9240
+        }
+      }
+    },
+    "short_lists": {
+      "mongodb_dense_empty": 285,
+      "mongodb_cross_encoder_empty": 345,
+      "postgres_sparse_empty": 2229,
+      "postgres_sparse_one": 39,
+      "postgres_sparse_two": 10,
+      "postgres_sparse_three": 2,
+      "postgres_sparse_five": 30,
+      "elasticsearch_all_retrievers_returned_3": true,
+      "postgres_dense_hybrid_cross_encoder_returned_3": true
+    },
+    "caveat": "Dense is the comparability figure the scenario asks for. Postgres sparse is mostly empty results, so its overlap near 0.007 is an empty-list result, not a rank disagreement. MongoDB dense returned no hits for 285 of 2310 query-runs, which pulls its dense overlap with the other two stores down from the postgres-elasticsearch figure."
+  },
+  "postgres_sparse_any_term": {
+    "measured_at": "2026-09-28T08:20:00Z",
+    "change": "retriever_postgres._any_term_tsquery replaces websearch AND with OR. Live tests in tests/server/db/test_postgres_sparse_hybrid.py: 10 passed, including a long question that previously matched nothing.",
+    "remeasure": "Same stored Postgres chunks and the same 2310 sparse query-runs. Not a new 120-run sweep.",
+    "postgres_lists_shorter_than_3": 2,
+    "top_3_sparse": {
+      "mongodb_postgres": {
+        "mean": 0.1525,
+        "pairs": 2310
+      },
+      "postgres_elasticsearch": {
+        "mean": 0.217,
+        "pairs": 2310
+      },
+      "mongodb_elasticsearch_stored": {
+        "mean": 0.5206,
+        "pairs": 2310
+      }
+    },
+    "previous_and_semantics": {
+      "mongodb_postgres": 0.0074,
+      "postgres_elasticsearch": 0.0075,
+      "postgres_sparse_empty_lists": 2229
+    }
+  },
+  "elasticsearch_api_rerun": {
+    "measured_at": "2026-09-28T08:22:00Z",
+    "command": "uvicorn server.main:app on 127.0.0.1:8001 with VECTOR_STORE_BACKEND=elasticsearch STORAGE_BACKEND=mongodb",
+    "healthz": {
+      "ok": true,
+      "storage_mode": "elasticsearch-local",
+      "run_state_mode": "mongodb-local",
+      "vector_container": "rag-params-finder-elasticsearch-local",
+      "vector_image": "docker.elastic.co/elasticsearch/elasticsearch:9.5.0",
+      "run_state_container": "rag-params-finder-mongodb-local",
+      "run_state_image": "mongodb/mongodb-atlas-local:8.3.3"
+    },
+    "indexes_list": {
+      "provider": "elasticsearch",
+      "index": "rpf-chunks",
+      "fields": [
+        "embedding_1024",
+        "embedding_384"
+      ],
+      "index_type": "hnsw"
+    }
+  },
+  "teardown": {
+    "measured_at": "2026-09-28T08:26:00Z",
+    "command": "NONINTERACTIVE=1 ./stop-services.sh",
+    "result": "compose down removed mongodb-local, postgres-local, and elasticsearch-local containers. Named data volumes remain."
+  },
+  "dense_requery": {
+    "measured_at": "2026-09-28T16:28:00Z",
+    "method": "Re-ran Atlas dense search for the 285 query-runs that stored an empty result list. Same experiment f41d76f7-6881-4883-b806-bc4f2bf8d223, all-MiniLM-L6-v2, top_k=5, top-3 overlap uses the first 3 hits. The other 2025 dense lists stay the stored sweep results.",
+    "researched": 285,
+    "still_shorter_than_3": 0,
+    "top_3": {
+      "mongodb_postgres": {
+        "mean": 0.9784,
+        "pairs": 2310
+      },
+      "mongodb_elasticsearch": {
+        "mean": 0.9779,
+        "pairs": 2310
+      },
+      "postgres_elasticsearch": {
+        "mean": 0.9994,
+        "pairs": 2310
+      }
+    },
+    "previous_with_empty_lists": {
+      "mongodb_postgres": 0.8641,
+      "mongodb_elasticsearch": 0.8636,
+      "postgres_elasticsearch": 0.9994
+    }
+  },
+  "hybrid_any_term_remeasure": {
+    "measured_at": "2026-09-28T16:28:00Z",
+    "method": "Re-ran Postgres hybrid_search on the stored chunks with the any-term sparse clause. 2310 query-runs, top_k=5. MongoDB and Elasticsearch hybrid lists are the original sweep.",
+    "postgres_lists_shorter_than_3": 0,
+    "top_3": {
+      "mongodb_postgres": {
+        "mean": 0.4053,
+        "pairs": 2310
+      },
+      "postgres_elasticsearch": {
+        "mean": 0.4664,
+        "pairs": 2310
+      },
+      "mongodb_elasticsearch_stored": {
+        "mean": 0.6398,
+        "pairs": 2310
+      }
+    },
+    "previous_and_sparse_clause": {
+      "mongodb_postgres": 0.4378,
+      "postgres_elasticsearch": 0.4659
+    }
+  },
+  "indexes_list_cli": {
+    "measured_at": "2026-09-28T16:32:00Z",
+    "command": "SERVER_URL=http://127.0.0.1:8001 rag-params-finder indexes list",
+    "server": "VECTOR_STORE_BACKEND=elasticsearch STORAGE_BACKEND=mongodb",
+    "rendered": "elasticsearch Index summary: index rpf-chunks, fields embedding_1024 and embedding_384, index_type hnsw"
+  },
+  "quality_gates_2026_09_28": {
+    "command": "./scripts/ci/quality-gates.sh",
+    "exit_code": 0,
+    "measured_at": "2026-09-28T16:31:04Z",
+    "head": "f8fd32b",
+    "backend": {
+      "tests_passed": 615,
+      "deselected": 1,
+      "total_cover": 74.58,
+      "floors": "statements 77.07/72, branches 64.15/59, lines 77.07/72"
+    },
+    "frontend": {
+      "tests_passed": 261,
+      "files": 24,
+      "coverage": {
+        "stmts": 97.09,
+        "branch": 91.71,
+        "functions": 98.8,
+        "lines": 98.48
+      }
+    }
+  }
+}

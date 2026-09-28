@@ -122,6 +122,17 @@ def submit_experiment(config: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
+def get_stores() -> dict[str, Any]:
+    """Fetch the public store catalog (capabilities, labels, index summary)."""
+    server_url = get_server_url()
+    url = f"{server_url}/api/stores"
+    logger.debug("stores — %s", _http_label("GET", url))
+    response = _request("GET", url)
+    _ensure_ok(response, method="GET", url=url)
+    data: dict[str, Any] = cast(dict[str, Any], response.json())
+    return data
+
+
 def get_experiment(experiment_id: str) -> dict[str, Any]:
     """Get experiment details including run statuses."""
     server_url = get_server_url()

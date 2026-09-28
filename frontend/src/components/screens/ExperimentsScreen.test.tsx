@@ -19,10 +19,40 @@ const apiMocks = vi.hoisted(() => ({
   getExperiments: vi.fn(),
   getExperimentsWithProgress: vi.fn(),
   getVectorDbStatsGrouped: vi.fn(),
+  getStores: vi.fn().mockResolvedValue({
+    active: 'mongodb',
+    stores: [
+      {
+        provider: 'mongodb',
+        active: true,
+        example_config: 'configs/mongodb/example-local.yaml',
+        can_host_run_state: true,
+        labels: { index: 'Collection', host: 'Atlas host', section: 'Cluster & Collection' },
+      },
+      {
+        provider: 'postgres',
+        active: false,
+        example_config: 'configs/supabase/example-local.yaml',
+        can_host_run_state: true,
+        labels: { index: 'Table', host: 'Host', section: 'Host & Table' },
+      },
+    ],
+  }),
   deleteExperiment: vi.fn(),
   pauseExperiment: vi.fn(),
   resumeExperiment: vi.fn(),
   cancelExperiment: vi.fn(),
+  getStorageHealth: vi.fn().mockResolvedValue({
+    ok: true,
+    storage_backend: 'mongodb',
+    storage_mode: 'mongodb-local',
+    vector_store_backend: 'mongodb',
+    run_state_mode: 'mongodb-local',
+    stores: {
+      vector: { provider: 'mongodb', mode: 'mongodb-local', ok: true, latency_ms: 1 },
+      run_state: { provider: 'mongodb', mode: 'mongodb-local', ok: true, latency_ms: 1 },
+    },
+  }),
 }));
 
 vi.mock('../../services/apiClient', async () => {
@@ -187,6 +217,48 @@ describe('ExperimentsScreen lifecycle presentation', () => {
     expect(await screen.findByText('No experiments yet')).toBeInTheDocument();
     expect(screen.getByText(/configs\/mongodb\/example-local\.yaml/)).toBeInTheDocument();
     expect(screen.getByText(/configs\/supabase\/example-local\.yaml/)).toBeInTheDocument();
+  });
+
+  it('Given a registry fixture with an extra store, when the empty state renders, then that store line appears', async () => {
+    /**
+     * Scenario: Empty-state run hints come from the store registry.
+     * Slice: 51 — Elasticsearch operability.
+     * Given no experiments and a catalog that includes an extra store,
+     * When the empty state renders,
+     * Then every example_config is shown and the active store is first.
+     */
+    // -- Given --
+    apiMocks.getExperiments.mockResolvedValue([]);
+    apiMocks.getExperimentsWithProgress.mockResolvedValue([]);
+    apiMocks.getStores.mockResolvedValue({
+      active: 'elasticsearch',
+      stores: [
+        {
+          provider: 'redis',
+          active: false,
+          example_config: 'configs/redis/example-local.yaml',
+          can_host_run_state: false,
+          labels: { index: 'Index', host: 'Host', section: 'Index & Host' },
+        },
+        {
+          provider: 'elasticsearch',
+          active: true,
+          example_config: 'configs/elasticsearch/example-local.yaml',
+          can_host_run_state: false,
+          labels: { index: 'Index', host: 'Host', section: 'Index & Host' },
+        },
+      ],
+    });
+
+    // -- When --
+    render(
+      <ExperimentsScreen cacheReady cachedExperiments={[]} cachedVectorDbGroups={[]} />,
+    );
+
+    // -- Then --
+    expect(await screen.findByText(/configs\/redis\/example-local\.yaml/)).toBeInTheDocument();
+    const lines = screen.getAllByText(/rag-params-finder run --config/);
+    expect(lines[0]?.textContent).toContain('configs/elasticsearch/example-local.yaml');
   });
 });
 

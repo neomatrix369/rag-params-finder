@@ -3,8 +3,8 @@ import { devInfo } from './utils/devLog';
 import ExperimentsScreen from './components/screens/ExperimentsScreen';
 import ExperimentDetailScreen from './components/screens/ExperimentDetailScreen';
 import SearchExplorerScreen from './components/screens/SearchExplorerScreen';
-import type { Experiment, ExperimentDbStatsSummary, VectorDbStatsGroup } from './types';
-import { findDbStatsInGroups } from './utils/experimentDbStats';
+import { experimentStatsMap } from './components/experiment/experimentList/labels';
+import type { Experiment, ExperimentDbStats, VectorDbStatsGroup } from './types';
 
 export type ListCache = {
   experiments: Experiment[];
@@ -14,7 +14,7 @@ export type ListCache = {
 
 type DetailNav = {
   initialExperiment?: Experiment;
-  initialDbStats?: ExperimentDbStatsSummary;
+  initialFootprint?: ExperimentDbStats;
 };
 
 type Screen =
@@ -23,7 +23,7 @@ type Screen =
       kind: 'detail';
       experimentId: string;
       initialExperiment?: Experiment;
-      initialDbStats?: ExperimentDbStatsSummary;
+      initialFootprint?: ExperimentDbStats;
     }
   | { kind: 'explore'; experimentId: string };
 
@@ -50,14 +50,14 @@ export default function App() {
 
   const openDetail = useCallback(
     (experiment: Experiment) => {
-      const initialDbStats = findDbStatsInGroups(listCache.vectorDbGroups, experiment.experiment_id);
-      const nav: DetailNav = { initialExperiment: experiment, initialDbStats };
+      const initialFootprint = experimentStatsMap(listCache.vectorDbGroups).get(experiment.experiment_id);
+      const nav: DetailNav = { initialExperiment: experiment, initialFootprint };
       setDetailNav(nav);
       setScreen({
         kind: 'detail',
         experimentId: experiment.experiment_id,
         initialExperiment: experiment,
-        initialDbStats,
+        initialFootprint,
       });
     },
     [listCache.vectorDbGroups],
@@ -85,7 +85,7 @@ export default function App() {
             kind: 'detail',
             experimentId: screen.experimentId,
             initialExperiment: detailNav.initialExperiment,
-            initialDbStats: detailNav.initialDbStats,
+            initialFootprint: detailNav.initialFootprint,
           })
         }
       />
@@ -97,7 +97,7 @@ export default function App() {
       <ExperimentDetailScreen
         experimentId={screen.experimentId}
         initialExperiment={screen.initialExperiment ?? detailNav.initialExperiment}
-        initialDbStats={screen.initialDbStats ?? detailNav.initialDbStats}
+        initialFootprint={screen.initialFootprint ?? detailNav.initialFootprint}
         onBack={() => setScreen({ kind: 'list' })}
         onExplore={() => setScreen({ kind: 'explore', experimentId: screen.experimentId })}
       />

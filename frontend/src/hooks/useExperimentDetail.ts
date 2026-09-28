@@ -1,5 +1,5 @@
 /**
- * Hydrate + poll + db-stats controller for ExperimentDetailScreen.
+ * Hydrate + poll controller for ExperimentDetailScreen.
  * API client functions are injected for testability.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -20,9 +20,8 @@ import {
   type ExperimentProgressCallback,
 } from '../services/apiClient';
 import { createStallWatcher, type FetchProgressUpdate } from '../services/fetchWithProgress';
-import type { Experiment, ExperimentDbStatsSummary, ExperimentStatus } from '../types';
+import type { Experiment, ExperimentDbStats, ExperimentStatus } from '../types';
 import { appendFeedEntry } from '../utils/feedEntries';
-import { toExperimentDbStatsSummary } from '../utils/experimentDbStats';
 import { devInfo, devInfoThrottled, devWarn } from '../utils/devLog';
 import {
   isRunningExperimentStatus,
@@ -32,14 +31,14 @@ import {
 export type UseExperimentDetailArgs = {
   experimentId: string;
   initialExperiment?: Experiment;
-  initialDbStats?: ExperimentDbStatsSummary;
+  initialFootprint?: ExperimentDbStats;
   onDeleted?: () => void;
 };
 
 export function useExperimentDetail({
   experimentId,
   initialExperiment,
-  initialDbStats,
+  initialFootprint,
   onDeleted,
 }: UseExperimentDetailArgs) {
   const seededDetail =
@@ -57,8 +56,8 @@ export function useExperimentDetail({
   const [receivedBytes, setReceivedBytes] = useState<number | null>(null);
   const [totalBytes, setTotalBytes] = useState<number | null>(null);
 
-  const [dbStats, setDbStats] = useState<ExperimentDbStatsSummary | null>(initialDbStats ?? null);
-  const [dbStatsLoading, setDbStatsLoading] = useState(initialDbStats === undefined);
+  const [footprint, setFootprint] = useState<ExperimentDbStats | null>(initialFootprint ?? null);
+  const [footprintLoading, setFootprintLoading] = useState(initialFootprint === undefined);
 
   const [runsCurrentPage, setRunsCurrentPage] = useState(1);
   const [runsItemsPerPage, setRunsItemsPerPage] = useState(15);
@@ -71,59 +70,33 @@ export function useExperimentDetail({
   const aliveRef = useRef(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollDevLogAtRef = useRef(new Map<string, number>());
-  const dbStatsInFlightRef = useRef<Promise<void> | null>(null);
-
-  const experimentMeta = useCallback((): Pick<Experiment, 'experiment_id' | 'experiment_name' | 'status' | 'created_at'> | null => {
-    if (detail) {
-      return {
-        experiment_id: detail.experiment_id,
-        experiment_name: detail.experiment_name,
-        status: detail.status,
-        created_at: detail.created_at ?? initialExperiment?.created_at ?? new Date(0).toISOString(),
-      };
-    }
-    if (initialExperiment?.experiment_id === experimentId) return initialExperiment;
-    return null;
-  }, [detail, initialExperiment, experimentId]);
-
-  const loadDbStats = useCallback(
-    async (options?: { showLoading?: boolean }) => {
-      if (dbStatsInFlightRef.current !== null) {
-        return dbStatsInFlightRef.current;
-      }
-
-      const request = (async () => {
-        const meta = experimentMeta();
-        if (!meta) return;
-        if (options?.showLoading) setDbStatsLoading(true);
-        try {
-          const response = await getExperimentDbStats(experimentId);
-          setDbStats(toExperimentDbStatsSummary(meta, response.db_stats));
-        } catch (err) {
-          devWarn('ExperimentDetailScreen', `db stats load failed — ${experimentId.slice(0, 8)}…`, err);
-        } finally {
-          dbStatsInFlightRef.current = null;
-          setDbStatsLoading(false);
-        }
-      })();
-
-      dbStatsInFlightRef.current = request;
-      return request;
-    },
-    [experimentId, experimentMeta],
-  );
-
   useEffect(() => {
-    if (!initialDbStats) {
-      void loadDbStats({ showLoading: true });
+    let alive = true;
+
+    async function loadFootprint(showLoading: boolean) {
+      if (showLoading) setFootprintLoading(true);
+      try {
+        const response = await getExperimentDbStats(experimentId);
+        if (!alive) return;
+        setFootprint(response.db_stats);
+      } catch (err) {
+        if (!alive) return;
+        devWarn('ExperimentDetailScreen', `stored footprint load failed — ${experimentId.slice(0, 8)}…`, err);
+      } finally {
+        if (alive) setFootprintLoading(false);
+      }
     }
 
-    const statsTimer = window.setInterval(() => {
-      void loadDbStats();
+    void loadFootprint(initialFootprint === undefined);
+    const timer = window.setInterval(() => {
+      void loadFootprint(false);
     }, VECTOR_DB_STATS_POLL_MS);
 
-    return () => window.clearInterval(statsTimer);
-  }, [experimentId, initialDbStats, loadDbStats]);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [experimentId, initialFootprint]);
 
   const stopDetailPoll = useCallback(() => {
     if (pollRef.current !== null) {
@@ -316,8 +289,8 @@ export function useExperimentDetail({
     loadFeed,
     receivedBytes,
     totalBytes,
-    dbStats,
-    dbStatsLoading,
+    footprint,
+    footprintLoading,
     runsCurrentPage,
     setRunsCurrentPage,
     runsItemsPerPage,

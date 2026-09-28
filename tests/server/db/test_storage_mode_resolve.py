@@ -562,6 +562,80 @@ def _unguarded_array_expansions(source: str) -> list[str]:
     ]
 
 
+def test_given_elasticsearch_local_when_storage_backend_unset_then_run_state_is_mongodb() -> None:
+    """
+    Scenario: Local Elasticsearch pairs MongoDB run state unless postgres is chosen.
+    Slice: 51
+
+    Given --elasticsearch-local and no STORAGE_BACKEND,
+    When the stack exports its backends,
+    Then run state is mongodb and the Postgres container is not selected.
+    """
+    ### Given
+    script = f"""
+set -euo pipefail
+source '{_LIB}'
+resolve_stack_mode --elasticsearch-local
+export_storage_backend_for_stack
+printf 'storage=%s\\n' "$STORAGE_BACKEND"
+printf 'vector=%s\\n' "$VECTOR_STORE_BACKEND"
+printf 'atlas=%s\\n' "$LOCAL_ATLAS"
+printf 'pg=%s\\n' "$LOCAL_POSTGRES"
+"""
+
+    ### When
+    result = subprocess.run(
+        ["bash", "-c", script],
+        capture_output=True,
+        text=True,
+        cwd=_REPO,
+        env=_clean_env(),
+        check=False,
+    )
+
+    ### Then
+    assert result.returncode == 0, result.stderr
+    data = _kv(result.stdout)
+    assert data["storage"] == "mongodb"
+    assert data["vector"] == "elasticsearch"
+    assert data["atlas"] == "1"
+    assert data["pg"] == "0"
+
+
+def test_given_elasticsearch_local_when_storage_backend_is_postgres_then_postgres_stays() -> None:
+    """
+    Scenario: An explicit Postgres run-state choice still pairs with Elasticsearch.
+    Slice: 51
+
+    Given STORAGE_BACKEND=postgres and --elasticsearch-local,
+    When the stack exports its backends,
+    Then run state stays postgres.
+    """
+    ### Given / When
+    script = f"""
+set -euo pipefail
+source '{_LIB}'
+resolve_stack_mode --elasticsearch-local
+export_storage_backend_for_stack
+printf 'storage=%s\\n' "$STORAGE_BACKEND"
+printf 'pg=%s\\n' "$LOCAL_POSTGRES"
+"""
+    result = subprocess.run(
+        ["bash", "-c", script],
+        capture_output=True,
+        text=True,
+        cwd=_REPO,
+        env=_clean_env(STORAGE_BACKEND="postgres"),
+        check=False,
+    )
+
+    ### Then
+    assert result.returncode == 0, result.stderr
+    data = _kv(result.stdout)
+    assert data["storage"] == "postgres"
+    assert data["pg"] == "1"
+
+
 @pytest.mark.parametrize(
     "lib",
     sorted((_REPO / "scripts" / "lib").glob("*.sh")),

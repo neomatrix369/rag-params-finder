@@ -54,9 +54,12 @@ npm run build
 ./start-services.sh --mongodb-local    # server + dashboard + MongoDB Atlas Local (no cloud account)
 ./start-services.sh --postgres-local   # server + dashboard + local pgvector (STORAGE_BACKEND=postgres)
 ./start-services.sh --postgres-cloud   # hosted Supabase (DATABASE_URL or SUPABASE_URI; no MONGODB_URI)
+./start-services.sh --elasticsearch-local  # local Elasticsearch; run state defaults to local MongoDB unless STORAGE_BACKEND=postgres
+./start-services.sh --elasticsearch-cloud  # hosted Elasticsearch (ELASTICSEARCH_URL)
 RAG_MONGODB_LOCAL=1 ./start-services.sh  # same as --mongodb-local via env var
 ./start-services.sh mongodb [start|stop|reset|status]  # manage local Atlas container standalone
 ./start-services.sh postgres [start|stop|reset|status]  # manage local pgvector container standalone
+./start-services.sh elasticsearch [start|stop|reset|status]
 ./scripts/docker/health-check.sh
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build  # dev HMR
 ```
@@ -69,6 +72,7 @@ Backend switching — the start command and the example config change (a YAML `d
 | Atlas Local | `MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true` |
 | Local pgvector | `STORAGE_BACKEND=postgres` + `DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder` |
 | Hosted Supabase | `STORAGE_BACKEND=postgres` + `DATABASE_URL` (or optional `SUPABASE_URI` alias) — Session-mode pooler |
+| Local Elasticsearch | `./start-services.sh --elasticsearch-local` — `VECTOR_STORE_BACKEND=elasticsearch`, `ELASTICSEARCH_URL=http://elasticsearch-local:9200`; run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres` |
 
 Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md`, `docs/user-guide/mongodb-setup.md`, and `docs/user-guide/postgres-setup.md`.
 
@@ -78,13 +82,13 @@ Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/03
 rag-params-finder run --config configs/mongodb/example-local.yaml
 rag-params-finder run --config configs/mongodb/example-local.yaml --detach
 rag-params-finder run --config configs/mongodb/example-sie.yaml   # SIE BGE-M3/Stella/SPLADE — see docs/user-guide/sie-setup.md
-rag-params-finder run --config configs/supabase/example-local.yaml  # pgvector — see docs/user-guide/postgres-setup.md
+rag-params-finder run --config configs/elasticsearch/example-local.yaml  # ES vectors — see docs/user-guide/elasticsearch-setup.md
 rag-params-finder cancel <experiment-id>
 rag-params-finder pause <experiment-id>
 rag-params-finder resume <experiment-id>
 rag-params-finder delete <experiment-id>           # Delete experiment and all data
 rag-params-finder delete <experiment-id> --force   # Skip confirmation
-rag-params-finder indexes list                     # Atlas known/unknown OR Postgres PRESENT/MISSING
+rag-params-finder indexes list                     # GET /api/stores index summary for the active store
 rag-params-finder indexes reset                    # Atlas only — drop unknown + ensure required
 rag-params-finder indexes reset --all              # Atlas only — rebuild all chunks search indexes
 rag-params-finder version
@@ -121,7 +125,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/pipeline/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
 | `server/core/guards/search_index_plan.py` | Pure logic: required Atlas indexes from config + capacity assessment; required Postgres catalog objects (`vector` extension, HNSW/GIN names) |
 | `server/core/guards/search_index_guard.py` | Backend-aware preflight — Atlas snapshot + ensure_indexes retry, or Postgres catalog introspection; `preflight_stores()` checks the vector store first and fails closed (HTTP 422) when a store publishes no index plan |
-| `server/core/guards/health_check.py` | `/healthz` ping for both stores (503 if either is down) + `resolve_storage_mode()`; added keys `vector_store_backend`, `run_state_mode`, `stores` |
+| `server/core/guards/health_check.py` | `/healthz` ping for both stores (503 if either is down) + `resolve_storage_mode()`; keys `vector_store_backend`, `run_state_mode`, `stores`; local probes also include `container` and `image` |
 | `server/core/guards/config_backend_guard.py` | YAML `database_provider` must match `VECTOR_STORE_BACKEND` or submit returns 422 before index/SIE preflight |
 | `scripts/lib/storage_mode.sh` | Four-flag `(db_type, location)` resolver for `start-services.sh` |
 | `server/core/pipeline/startup_reconciliation.py` | Mark stale `running` experiments on server boot |
@@ -156,8 +160,8 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `frontend/src/components/screens/` | Feature screens (`Experiments`, `Detail`, `SearchExplorer`) + co-located tests |
 | `frontend/src/components/chrome/` | Shell chrome (`DashboardShell`, `AppPageChrome`, `Pagination`, `CollapsibleCard`, …) |
 | `frontend/src/components/experiment/` | Experiment controls/progress/modals + detail chrome |
-| `frontend/src/components/stats/` | Vector DB stats panels + `StatTile`/`StatRow` |
-| `frontend/src/hooks/useExperimentDetail.ts` | Detail hydrate/poll/db-stats controller (Slice 45) |
+| `frontend/src/components/stats/` | List: vector-database panel + store runtime. Detail: `ExperimentStoredFootprint`. Shared `StatTile`/`StatRow` |
+| `frontend/src/hooks/useExperimentDetail.ts` | Detail hydrate/poll plus stored-footprint db-stats (Slice 45) |
 | `frontend/src/test/helpers/` | Shared Vitest builders (`experiments`, `vectorDbStats`, `explore`, `experimentDetail`) |
 | `frontend/src/components/explore/ExplorePanels.tsx` | Search Explorer tabs + sidebar panels |
 | `frontend/src/utils/experimentStatus.ts` | Run outcome summarization + terminal status helpers |

@@ -87,6 +87,7 @@ One-command stack for server + dashboard (MongoDB Atlas stays external). The **C
 **Prerequisites:** Docker Desktop (or engine + Compose v2), plus either:
 - **Mongo:** `MONGODB_URI` (Atlas cloud) or `./start-services.sh --mongodb-local` — search indexes per [mongodb-setup](../user-guide/mongodb-setup.md)
 - **Postgres:** `STORAGE_BACKEND=postgres` + `DATABASE_URL`, or `./start-services.sh --postgres-local` / `--postgres-cloud` — [postgres-setup](../user-guide/postgres-setup.md)
+- **Elasticsearch:** `./start-services.sh --elasticsearch-local` (run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres`) or `--elasticsearch-cloud` with `ELASTICSEARCH_URL` — [elasticsearch-setup](../user-guide/elasticsearch-setup.md)
 
 ```bash
 cp .env.example .env
@@ -143,7 +144,7 @@ Prefer `scripts/{ci,docker,release,security}/` paths above. Flat `scripts/*.sh` 
 
 Backend pytest in those scripts is the **unit tier**: it ignores live Mongo/Postgres suites
 (`tests/contract/`, `tests/server/db/test_postgres_*.py`) and uses `-m "not integration"`. Live DB
-coverage runs in nightly jobs (`postgres-integration`, `mongo-integration` in `nightly.yml`).
+coverage runs in the nightly `vector-store-integration` matrix (`nightly.yml`; a skipped leg is not green).
 The unit tier must stay green with `MONGODB_URI` / `DATABASE_URL` unset (as on CI): factory
 tests supply a dummy URI when they exercise `ensure_storage_ready()`, and API detail tests
 must not open a storage backend when run rows are already on the payload.
@@ -314,10 +315,12 @@ failures when no database URI is configured.
 
 | Suite | Nightly job (`nightly.yml`) | Needs |
 |-------|-----------------------------|--------|
-| `tests/server/db/test_postgres_store_integration.py` | `postgres-integration` | pgvector on `:5433`; `RAG_REQUIRE_POSTGRES=1` |
+| `tests/server/db/test_postgres_store_integration.py` | `vector-store-integration` (postgres) | pgvector on `:5433`; `RAG_REQUIRE_POSTGRES=1` |
 | `tests/server/db/test_postgres_dense_retrieval.py` | same | ≥95% branch coverage on `retriever_postgres` |
 | `tests/server/db/test_postgres_sparse_hybrid.py` | same | sparse + hybrid + failure-path coverage |
-| `tests/contract/test_storage_backend_contract.py` | postgres **and** `mongo-integration` | Parametrized mongo/postgres; skips the missing backend locally |
+| `tests/contract/test_storage_backend_contract.py` | postgres and mongodb legs | Parametrized mongo/postgres; skips the missing backend locally |
+| `tests/server/db/test_elasticsearch_live.py` | elasticsearch leg | ES on `:9200`; `RAG_REQUIRE_ELASTICSEARCH=1` |
+| `tests/server/test_split_store_e2e.py` | elasticsearch leg | Vector-only split-store acceptance |
 
 One process-wide Postgres pool (`live_postgres_pool` session fixture) bootstraps schema
 once — per-test `close_pool()` was removed because re-running DDL deadlocked when
@@ -440,7 +443,7 @@ GitHub Actions splits PR gates from expensive scheduled work (see `.github/workf
 
 | Workflow | Cron | Jobs |
 |----------|------|------|
-| **A — `nightly.yml`** | daily `0 2 * * *` | unit/cov snapshots · complexity · **postgres-integration** · **mongo-integration** · **docker-build** · TruffleHog full · dep-audit · gitleaks full · **Semgrep SAST** · **OSV SCA** (waivers: `osv-scanner.toml`) · frontend knip/jscpd report (not a gate) |
+| **A — `nightly.yml`** | daily `0 2 * * *` | unit/cov snapshots · complexity · **vector-store-integration** (mongodb, postgres, elasticsearch; skipped ≠ green) · **docker-build** · TruffleHog full · dep-audit · gitleaks full · **Semgrep SAST** · **OSV SCA** (waivers: `osv-scanner.toml`) · frontend knip/jscpd report (not a gate) |
 | **B — `supply-chain.yml`** | Mondays `0 3 * * 1` | `sbom` (CycloneDX + Trivy license) · **Meterian** OSS SCA (`oss: true`; archives `meterian-<run>`; exclusions in [`.meterian`](../../.meterian); Trivy image parity [`.trivyignore`](../../.trivyignore)) · `container-scan` · `chalk` |
 | **C — `mutation.yml`** | 1st + 15th `0 2 1,15 * *` | `mutation-tests-python` (mutmut, advisory) · `mutation-tests-node` (Stryker) |
 | **D — `code-review-graph.yml`** | daily `0 2 * * *` | graph review (`fail-on-risk: none`; no PR comments) |
