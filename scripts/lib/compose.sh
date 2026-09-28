@@ -153,6 +153,9 @@ print_local_atlas_cli_hints() {
 print_mongodb_local_reset_hint() {
   echo "If logs mention 'keyfile' or 'Unable to acquire security key', reset stale volumes:" >&2
   echo "  ./start-services.sh mongodb reset && ./start-services.sh --mongodb-local" >&2
+  echo "If logs mention NodeNotFound, RSGhost, or a set name that differs from the hostname," >&2
+  echo "  the volume was initialized under another container hostname. Set MONGODB_LOCAL_HOSTNAME" >&2
+  echo "  to that replica set name and recreate the container. Do not reset the volume." >&2
 }
 
 print_postgres_local_reset_hint() {
