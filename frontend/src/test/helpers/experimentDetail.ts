@@ -1,5 +1,5 @@
 /**
- * Shared experiment-detail fixtures (runs, detail payload, per-experiment db stats).
+ * Shared experiment-detail fixtures (runs and detail payload).
  *
  * Author: RAG Params Finder contributors
  * Created: 2026-07-28
@@ -10,7 +10,6 @@ import {
   Phase,
   RetrievalMethod,
   type Experiment,
-  type ExperimentDbStatsSummary,
   type ExperimentStatus,
   type RunStatus,
 } from '../../types';
@@ -59,50 +58,4 @@ export function detailFixture(
     runs: phases.map((phase, index) => run(experimentId, index, phase)),
   };
   return { ...base, ...overrides };
-}
-
-/** Empty-ish db-stats summary keyed off a detail fixture (detail-screen default). */
-export function dbStats(fixture: DetailFixture): ExperimentDbStatsSummary {
-  return dbStatsSummary({
-    experiment_id: fixture.experiment_id,
-    experiment_name: fixture.experiment_name,
-    status: fixture.status,
-    created_at: fixture.created_at,
-  });
-}
-
-export function dbStatsResponse(fixture: DetailFixture): { db_stats: ExperimentDbStatsSummary } {
-  return { db_stats: dbStats(fixture) };
-}
-
-/** Standalone ExperimentDbStatsSummary builder for stats-card suites. */
-export function dbStatsSummary(
-  overrides: Partial<ExperimentDbStatsSummary> = {},
-): ExperimentDbStatsSummary {
-  return {
-    experiment_id: 'exp-vdb',
-    experiment_name: 'vdb demo',
-    status: 'complete',
-    created_at: '2026-07-27T00:00:00Z',
-    database_provider: 'mongodb',
-    collection_name: 'chunks',
-    cluster_host: null,
-    total_chunks: 0,
-    unique_documents: 0,
-    embedding_models: [],
-    embedding_dimensions: [],
-    index_names: [],
-    retrieval_methods: [],
-    chunking_methods: [],
-    chunking_breakdown: {},
-    estimated_storage_mb: 0,
-    estimated_embedding_mb: 0,
-    estimated_metadata_mb: 0,
-    runs_with_data: 0,
-    avg_chunks_per_run: 0,
-    total_results: 0,
-    unique_queries: 0,
-    run_breakdown: [],
-    ...overrides,
-  };
 }

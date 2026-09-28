@@ -5,10 +5,8 @@
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DETAIL_POLL_MS, VECTOR_DB_STATS_POLL_MS } from '../../constants';
+import { DETAIL_POLL_MS } from '../../constants';
 import {
-  dbStats,
-  dbStatsResponse,
   detailFixture,
   run,
   type DetailFixture,
@@ -17,9 +15,51 @@ import { Phase, type ExperimentStatus } from '../../types';
 import ExperimentDetailScreen from './ExperimentDetailScreen';
 import { calculateProgressMetrics } from '../experiment/experimentDetailProgress';
 
+const emptyDbStats = {
+  database_provider: 'mongodb',
+  collection_name: 'chunks',
+  cluster_host: null,
+  total_chunks: 0,
+  unique_documents: 0,
+  embedding_models: [],
+  embedding_dimensions: [],
+  index_names: [],
+  retrieval_methods: [],
+  chunking_methods: [],
+  chunking_breakdown: {},
+  estimated_storage_mb: 0,
+  estimated_embedding_mb: 0,
+  estimated_metadata_mb: 0,
+  runs_with_data: 0,
+  avg_chunks_per_run: 0,
+  total_results: 0,
+  unique_queries: 0,
+  run_breakdown: [],
+};
+
 const apiMocks = vi.hoisted(() => ({
   getExperiment: vi.fn(),
-  getExperimentDbStats: vi.fn(),
+  getExperimentDbStats: vi.fn().mockResolvedValue({ db_stats: {
+    database_provider: 'mongodb',
+    collection_name: 'chunks',
+    cluster_host: null,
+    total_chunks: 0,
+    unique_documents: 0,
+    embedding_models: [],
+    embedding_dimensions: [],
+    index_names: [],
+    retrieval_methods: [],
+    chunking_methods: [],
+    chunking_breakdown: {},
+    estimated_storage_mb: 0,
+    estimated_embedding_mb: 0,
+    estimated_metadata_mb: 0,
+    runs_with_data: 0,
+    avg_chunks_per_run: 0,
+    total_results: 0,
+    unique_queries: 0,
+    run_breakdown: [],
+  } }),
   getExperimentWithProgress: vi.fn(),
   deleteExperiment: vi.fn(),
   pauseExperiment: vi.fn(),
@@ -55,6 +95,7 @@ type LifecycleCase = {
 function resetAllApiMocks() {
   apiMocks.getExperiment.mockReset();
   apiMocks.getExperimentDbStats.mockReset();
+  apiMocks.getExperimentDbStats.mockResolvedValue({ db_stats: emptyDbStats });
   apiMocks.getExperimentWithProgress.mockReset();
   apiMocks.deleteExperiment.mockReset();
   apiMocks.pauseExperiment.mockReset();
@@ -172,7 +213,6 @@ const lifecycleCases: LifecycleCase[] = [
 describe('ExperimentDetailScreen lifecycle presentation', () => {
   beforeEach(() => {
     apiMocks.getExperiment.mockReset();
-    apiMocks.getExperimentDbStats.mockReset();
     apiMocks.getExperimentWithProgress.mockReset();
     apiMocks.getExperiment.mockImplementation(async (experimentId: string) => {
       const matchingCase = lifecycleCases.find(
@@ -201,7 +241,6 @@ describe('ExperimentDetailScreen lifecycle presentation', () => {
         <ExperimentDetailScreen
           experimentId={fixture.experiment_id}
           initialExperiment={fixture}
-          initialDbStats={dbStats(fixture)}
           onBack={vi.fn()}
           onExplore={vi.fn()}
         />,
@@ -249,7 +288,6 @@ describe('ExperimentDetailScreen lifecycle presentation', () => {
         <ExperimentDetailScreen
           experimentId={fixture.experiment_id}
           initialExperiment={fixture}
-          initialDbStats={dbStats(fixture)}
           onBack={vi.fn()}
           onExplore={vi.fn()}
         />,
@@ -349,7 +387,6 @@ describe('ExperimentDetailScreen delete flow', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -380,7 +417,6 @@ describe('ExperimentDetailScreen delete flow', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={onBack}
         onExplore={vi.fn()}
       />,
@@ -410,7 +446,6 @@ describe('ExperimentDetailScreen delete flow', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={onBack}
         onExplore={vi.fn()}
       />,
@@ -457,7 +492,6 @@ describe('ExperimentDetailScreen control-button wiring', () => {
       <ExperimentDetailScreen
         experimentId={runningFixture.experiment_id}
         initialExperiment={runningFixture}
-        initialDbStats={dbStats(runningFixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -486,7 +520,6 @@ describe('ExperimentDetailScreen control-button wiring', () => {
       <ExperimentDetailScreen
         experimentId={runningFixture.experiment_id}
         initialExperiment={runningFixture}
-        initialDbStats={dbStats(runningFixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -518,8 +551,6 @@ describe('ExperimentDetailScreen hydration without a seed', () => {
       onProgress?.({ type: 'downloading', receivedBytes: 50, totalBytes: 100 });
       return fixture;
     });
-    apiMocks.getExperimentDbStats.mockResolvedValue(dbStatsResponse(fixture));
-
     // -- When --
     render(<ExperimentDetailScreen experimentId={fixture.experiment_id} onBack={vi.fn()} onExplore={vi.fn()} />);
 
@@ -589,12 +620,10 @@ describe('ExperimentDetailScreen detail polling', () => {
     apiMocks.getExperiment
       .mockResolvedValueOnce(runningFixture)
       .mockResolvedValueOnce(stillRunningFixture);
-    apiMocks.getExperimentDbStats.mockResolvedValue(dbStatsResponse(runningFixture));
     render(
       <ExperimentDetailScreen
         experimentId={runningFixture.experiment_id}
         initialExperiment={runningFixture}
-        initialDbStats={dbStats(runningFixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -624,12 +653,10 @@ describe('ExperimentDetailScreen detail polling', () => {
     apiMocks.getExperiment
       .mockResolvedValueOnce(runningFixture)
       .mockRejectedValueOnce(new Error('poll connection reset'));
-    apiMocks.getExperimentDbStats.mockResolvedValue(dbStatsResponse(runningFixture));
     render(
       <ExperimentDetailScreen
         experimentId={runningFixture.experiment_id}
         initialExperiment={runningFixture}
-        initialDbStats={dbStats(runningFixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -663,12 +690,10 @@ describe('ExperimentDetailScreen detail polling', () => {
     apiMocks.getExperiment
       .mockResolvedValueOnce(runningFixture)
       .mockResolvedValueOnce(completedFixture);
-    apiMocks.getExperimentDbStats.mockResolvedValue(dbStatsResponse(runningFixture));
     render(
       <ExperimentDetailScreen
         experimentId={runningFixture.experiment_id}
         initialExperiment={runningFixture}
-        initialDbStats={dbStats(runningFixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -688,77 +713,6 @@ describe('ExperimentDetailScreen detail polling', () => {
 
     // -- Then --
     expect(apiMocks.getExperiment).toHaveBeenCalledTimes(2);
-  });
-});
-
-describe('ExperimentDetailScreen db-stats polling', () => {
-  beforeEach(() => {
-    resetAllApiMocks();
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('Given no initial db stats, when the load starts, then a loading placeholder shows until stats arrive', async () => {
-    /**
-     * Scenario: Without a seeded db-stats summary, the card shows a loading placeholder first.
-     * Slice: 44 Phase B — ExperimentDetailScreen loadDbStats (initial showLoading path).
-     */
-    // -- Given --
-    const fixture = detailFixture('complete', [Phase.COMPLETE]);
-    apiMocks.getExperiment.mockResolvedValue(fixture);
-    apiMocks.getExperimentDbStats.mockResolvedValue(dbStatsResponse(fixture));
-
-    // -- When --
-    render(
-      <ExperimentDetailScreen
-        experimentId={fixture.experiment_id}
-        initialExperiment={fixture}
-        onBack={vi.fn()}
-        onExplore={vi.fn()}
-      />,
-    );
-
-    // -- Then --
-    expect(screen.getByText('Loading vector database stats…')).toBeInTheDocument();
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-    expect(apiMocks.getExperimentDbStats).toHaveBeenCalledWith(fixture.experiment_id);
-  });
-
-  it('Given seeded db stats, when the poll interval elapses, then stats refresh silently', async () => {
-    /**
-     * Scenario: The slower vector-db stats poll re-fetches without disturbing the rest of the view.
-     * Slice: 44 Phase B — ExperimentDetailScreen loadDbStats poll (silent refresh path).
-     */
-    // -- Given --
-    const fixture = detailFixture('complete', [Phase.COMPLETE]);
-    apiMocks.getExperiment.mockResolvedValue(fixture);
-    apiMocks.getExperimentDbStats.mockResolvedValue(dbStatsResponse(fixture));
-    render(
-      <ExperimentDetailScreen
-        experimentId={fixture.experiment_id}
-        initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
-        onBack={vi.fn()}
-        onExplore={vi.fn()}
-      />,
-    );
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-    const callsBefore = apiMocks.getExperimentDbStats.mock.calls.length;
-
-    // -- When --
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(VECTOR_DB_STATS_POLL_MS);
-    });
-
-    // -- Then --
-    expect(apiMocks.getExperimentDbStats.mock.calls.length).toBeGreaterThan(callsBefore);
   });
 });
 
@@ -789,7 +743,6 @@ describe('ExperimentDetailScreen metadata and configuration rendering', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -823,7 +776,6 @@ describe('ExperimentDetailScreen metadata and configuration rendering', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -852,7 +804,6 @@ describe('ExperimentDetailScreen metadata and configuration rendering', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -879,7 +830,6 @@ describe('ExperimentDetailScreen metadata and configuration rendering', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -923,7 +873,6 @@ describe('ExperimentDetailScreen sweep-dimensions rendering', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -963,7 +912,6 @@ describe('ExperimentDetailScreen sweep-dimensions rendering', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -1011,7 +959,6 @@ describe('ExperimentDetailScreen sweep-dimensions rendering', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -1048,7 +995,6 @@ describe('ExperimentDetailScreen terminal-outcome sections', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -1086,7 +1032,6 @@ describe('ExperimentDetailScreen terminal-outcome sections', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -1115,7 +1060,6 @@ describe('ExperimentDetailScreen terminal-outcome sections', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -1140,7 +1084,6 @@ describe('ExperimentDetailScreen terminal-outcome sections', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -1166,7 +1109,6 @@ describe('ExperimentDetailScreen terminal-outcome sections', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -1208,7 +1150,6 @@ describe('ExperimentDetailScreen runs table pagination', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -1265,7 +1206,6 @@ describe('ExperimentDetailScreen interrupted and failed run details', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -1304,7 +1244,6 @@ describe('ExperimentDetailScreen interrupted and failed run details', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -1349,7 +1288,6 @@ describe('ExperimentDetailScreen duration formatting edge cases', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -1387,7 +1325,6 @@ describe('ExperimentDetailScreen duration formatting edge cases', () => {
       <ExperimentDetailScreen
         experimentId={fixture.experiment_id}
         initialExperiment={fixture}
-        initialDbStats={dbStats(fixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,
@@ -1477,12 +1414,10 @@ describe('ExperimentDetailScreen stall and post-control polling', () => {
       .mockResolvedValueOnce(pausedFixture)
       .mockResolvedValueOnce(runningFixture);
     apiMocks.resumeExperiment.mockResolvedValue({ status: 'running', message: 'ok' });
-    apiMocks.getExperimentDbStats.mockResolvedValue(dbStatsResponse(pausedFixture));
     render(
       <ExperimentDetailScreen
         experimentId={pausedFixture.experiment_id}
         initialExperiment={pausedFixture}
-        initialDbStats={dbStats(pausedFixture)}
         onBack={vi.fn()}
         onExplore={vi.fn()}
       />,

@@ -12,7 +12,6 @@ import AppPageChrome from '../chrome/AppPageChrome';
 import DashboardShell from '../chrome/DashboardShell';
 import LoadingFeedbackPanel from '../chrome/LoadingFeedbackPanel';
 import ExperimentProgressCard from '../experiment/ExperimentProgressCard';
-import ExperimentVectorDbStatsCard from '../stats/ExperimentVectorDbStatsCard';
 import ExperimentControlButtons from '../experiment/ExperimentControlButtons';
 import ConfirmDeleteModal from '../experiment/ConfirmDeleteModal';
 import CollapsibleCard from '../chrome/CollapsibleCard';
@@ -27,9 +26,9 @@ import {
   StatusBadge,
 } from '../experiment/experimentDetail';
 import { formatDurationFromRuns } from '../experiment/experimentDetailProgress';
+import ExperimentStoredFootprint from '../stats/ExperimentStoredFootprint';
 import { useExperimentDetail } from '../../hooks/useExperimentDetail';
-import { Phase, Experiment } from '../../types';
-import type { ExperimentDbStatsSummary } from '../../types';
+import { Phase, Experiment, type ExperimentDbStats } from '../../types';
 import {
   displayDatabaseProvider,
   experimentHydratingBlurb,
@@ -46,13 +45,13 @@ import { completionReasonLabel } from '../../utils/completionReason';
 export default function ExperimentDetailScreen({
   experimentId,
   initialExperiment,
-  initialDbStats,
+  initialFootprint,
   onBack,
   onExplore,
 }: {
   experimentId: string;
   initialExperiment?: Experiment;
-  initialDbStats?: ExperimentDbStatsSummary;
+  initialFootprint?: ExperimentDbStats;
   onBack: () => void;
   onExplore?: () => void;
 }) {
@@ -67,8 +66,8 @@ export default function ExperimentDetailScreen({
     loadFeed,
     receivedBytes,
     totalBytes,
-    dbStats,
-    dbStatsLoading,
+    footprint,
+    footprintLoading,
     runsCurrentPage,
     setRunsCurrentPage,
     runsItemsPerPage,
@@ -78,7 +77,7 @@ export default function ExperimentDetailScreen({
   } = useExperimentDetail({
     experimentId,
     initialExperiment,
-    initialDbStats,
+    initialFootprint,
     onDeleted: onBack,
   });
 
@@ -956,16 +955,7 @@ export default function ExperimentDetailScreen({
           </div>
         )}
 
-        <section className="mt-8 border-t border-line pt-6" aria-labelledby="experiment-storage-context-title">
-          <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Operational context</p>
-          <h2 id="experiment-storage-context-title" className="mt-1 font-display text-xl font-semibold text-ink">Stored-result footprint</h2>
-          <p className="mb-4 mt-1 text-sm text-muted">Storage metrics remain available after the run outcome, without competing with the primary decision path.</p>
-          <ExperimentVectorDbStatsCard
-            experimentId={experimentId}
-            stats={dbStats ?? undefined}
-            loading={dbStatsLoading && !dbStats}
-          />
-        </section>
+        <ExperimentStoredFootprint stats={footprint ?? undefined} loading={footprintLoading && !footprint} />
 
         {isRunning && (
           <div className="mt-4 text-center text-xs text-muted">

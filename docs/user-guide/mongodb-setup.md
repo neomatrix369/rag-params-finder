@@ -244,6 +244,8 @@ No code changes. Two things change between backends: how you start the stack, an
 
 Deprecated env alias (still works): `RAG_LOCAL_ATLAS=1` → `--mongodb-local`. The old `--local` / `-l` flags were removed — use `--mongodb-local`.
 
+To use Elasticsearch for vectors and keep Mongo as run state, set `STORAGE_BACKEND=mongodb` in `.env` and run `./start-services.sh --elasticsearch-local`. See [Elasticsearch setup](elasticsearch-setup.md).
+
 To switch back to cloud: restore `MONGODB_URI` in `.env` to the `mongodb+srv://...` string and run `./start-services.sh --mongodb-cloud` (or bare start with `STORAGE_BACKEND=mongodb`).
 
 Reset all local data: `docker compose --profile mongodb-local down -v` (alias profile: `local-atlas`).
@@ -374,3 +376,23 @@ Docker stack (optional): `./start-services.sh` (cloud) or `./start-services.sh -
 - [Troubleshooting](troubleshooting.md) — index not found, rate limits, dimension mismatch
 - [Getting Started](getting-started.md) — install, documents, pause/resume
 - [Postgres Setup](postgres-setup.md) — Postgres/pgvector alternative (local or Supabase-hosted)
+
+## Environment variables
+
+`MONGODB_URI` is the Atlas or Atlas Local connection string. `./start-services.sh --mongodb-local` injects the container URI into the server; the host CLI still exports `MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true`.
+
+## Index lifecycle
+
+Atlas Search indexes (`vector_index_384`, `vector_index_1024`, `text_search_index`) must exist before a sweep. Atlas Local creates them on boot. Cloud M0 needs the JSON definitions in [Before you run a sweep](#before-you-run-a-sweep). `rag-params-finder indexes list` shows known versus unknown indexes, and `indexes reset` rebuilds the chunks indexes.
+
+## Sizing
+
+An M0 cluster is 512 MB. A 1024-dimension embedding is about 4 KB per chunk before index overhead, so about 10k chunks fit comfortably. Raise the tier when storage or shared CPU becomes the limit.
+
+## Diagnostics cheat sheet
+
+```bash
+curl -sS http://127.0.0.1:8001/healthz | python3 -m json.tool
+rag-params-finder indexes list
+./start-services.sh mongodb status
+```

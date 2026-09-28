@@ -418,7 +418,7 @@ Two independent axes select storage. Product names are **shorthand for the usual
 
 | Axis | Values | Meaning |
 |------|--------|---------|
-| **Engine** (`STORAGE_BACKEND`) | `mongodb` \| `postgres` | Which adapter the server process speaks (`mongodb` is the permanent code default — #130) |
+| **Engine** (`STORAGE_BACKEND`) | `mongodb` \| `postgres` | Run-state adapter (`mongodb` is the permanent code default — #130). Elasticsearch cannot be this value |
 | **Location** (`storage_mode`) | `{engine}-local` \| `{engine}-cloud` | Where that engine lives |
 
 | `storage_mode` | Product wording |
@@ -427,8 +427,10 @@ Two independent axes select storage. Product names are **shorthand for the usual
 | `mongodb-local` | **Atlas Local** |
 | `postgres-cloud` | **Supabase-hosted Postgres** |
 | `postgres-local` | **local pgvector / Postgres** |
+| `elasticsearch-local` | **local Elasticsearch** (vector store only; run state stays on Postgres or Mongo) |
+| `elasticsearch-cloud` | **hosted Elasticsearch** (vector store only) |
 
-- YAML `database_provider` declares **engine intent** only (`mongodb` \| `postgres`). Deprecated input `supabase` normalizes to `postgres` with a warning.
+- YAML `database_provider` declares **engine intent** (`mongodb` \| `postgres` \| `elasticsearch`). Deprecated input `supabase` normalizes to `postgres` with a warning.
 - `configs/supabase/` is a **compatibility path** for Postgres examples — the folder name is not `STORAGE_BACKEND`.
 - Compose profiles match mode tokens (`mongodb-local`, `postgres-local`); legacy `local-atlas` / `local-postgres` remain aliases.
 - Config↔server **engine** mismatch returns HTTP 422 **before** catalog/index preflight — that 422 text is distinct from missing-extension / missing-index 422s.
@@ -436,7 +438,7 @@ Two independent axes select storage. Product names are **shorthand for the usual
 Someone says “I’m on Atlas” → ask: **cloud or Local?**
 Someone says “I’m on Supabase” → engine is Postgres cloud; local Postgres is `postgres-local`, not Supabase.
 
-Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud`. (The old `--local` / `--postgres` flag aliases were removed.)
+Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud` / `--elasticsearch-local|cloud`. `--elasticsearch-local` also starts the run-state store (default `mongodb-local`; set `STORAGE_BACKEND=postgres` to pair Postgres). The old `--local` / `--postgres` flag aliases were removed. Env asymmetry: Elasticsearch needs `ELASTICSEARCH_URL` (and `ELASTICSEARCH_API_KEY` on a secured cloud). It never uses `MONGODB_URI` or `DATABASE_URL` for the vector lane.
 
 ### Split-store: `VECTOR_STORE_BACKEND` (Slice 49B)
 
@@ -450,8 +452,8 @@ Mongo/Postgres setups need no change.
 run-state-capable store (e.g. `STORAGE_BACKEND=mongodb` +
 `VECTOR_STORE_BACKEND=postgres` is rejected). A **vector-only** store (one that
 cannot host run state) may pair with *either* run-state store. The registered
-vector-only store is Elasticsearch; Redis is Slice 53. Local Elasticsearch
-and the setup guide land in Slice 51.
+vector-only store is Elasticsearch; Redis is Slice 53. Local start is
+`./start-services.sh --elasticsearch-local` ([elasticsearch-setup.md](elasticsearch-setup.md)).
 
 Settings validation rejects an invalid pairing with:
 
@@ -472,9 +474,10 @@ ELASTICSEARCH_URL=http://localhost:9200
 # ELASTICSEARCH_INDEX_PREFIX=rpf   # index name rpf-chunks
 ```
 
-Install the client with `pip install -e ".[elasticsearch]"`. Local Elasticsearch
-and the setup guide are Slice 51; without a reachable cluster, `/healthz` is
-503 and sweep preflight is 422.
+Install the client with `pip install -e ".[elasticsearch]"`. The Docker server
+image does that when started with `--elasticsearch-local` or `--elasticsearch-cloud`
+(`EXTRAS=elasticsearch`). Without a reachable cluster, `/healthz` is 503 and
+sweep preflight is 422.
 
 **Invalid split-store example** (both engines can host run state — rejected at boot):
 
@@ -509,6 +512,7 @@ STORAGE_BACKEND=mongodb
 
 # /healthz and db-stats expose storage_mode (four compounds — matches start-services flags):
 #   mongodb-local | mongodb-cloud | postgres-local | postgres-cloud
+#   elasticsearch-local | elasticsearch-cloud  (vector store only)
 # Derived from STORAGE_BACKEND + URI host (Atlas *.mongodb.net vs local;
 # Supabase *.supabase.* vs local Docker). Not the same as YAML database_provider.
 

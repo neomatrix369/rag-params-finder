@@ -53,6 +53,23 @@ describe('storageLabels', () => {
     expect(isMongoProvider('postgres')).toBe(false);
   });
 
+  it('Given an elasticsearch provider, when labelling cluster fields, then Index/Host wording is used', () => {
+    /**
+     * Scenario: Elasticsearch labels come from the default Index/Host pair, with no store-name branch.
+     * Slice: 51 — Elasticsearch operability.
+     * Given provider elasticsearch,
+     * When cluster labels are resolved,
+     * Then Index and Host are shown and a passed-in label map wins.
+     */
+    // -- Given / When / Then --
+    expect(collectionOrTableLabel('elasticsearch')).toBe('Index');
+    expect(clusterHostLabel('elasticsearch')).toBe('Host');
+    expect(clusterSectionTitle('elasticsearch')).toBe('Index & Host');
+    expect(
+      collectionOrTableLabel('elasticsearch', { index: 'Index', host: 'Host', section: 'Index & Host' }),
+    ).toBe('Index');
+  });
+
   it('Given an unset provider, when displaying the provider name, then an em dash is shown', () => {
     /**
      * Scenario: Missing provider does not invent mongodb.

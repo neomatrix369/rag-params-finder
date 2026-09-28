@@ -522,6 +522,21 @@ so `schema.sql` re-runs on first pool open.
 
 ---
 
+## Elasticsearch
+
+Full steps: [elasticsearch-setup.md](elasticsearch-setup.md).
+
+| Symptom | Fix |
+|---|---|
+| Container stays unhealthy | Set `vm.max_map_count` to at least 262144 on Linux, then `./start-services.sh elasticsearch reset` |
+| 401 | Set `ELASTICSEARCH_API_KEY` for a secured cluster. Local Docker leaves security off |
+| TLS error | Use `https://` for cloud and `http://127.0.0.1:9200` for the local node |
+| 403 licence non-compliant | Keep `xpack.license.self_generated.type=basic` |
+| Zero hits just after insert | The adapter refreshes before search; a custom index that disables refresh will look empty until refresh |
+| Quantized preflight | Recreate `rpf-chunks` with unquantized `hnsw` from `index_mapping.json` |
+| Dimension mismatch | Only 384 and 1024 dimensions are accepted |
+| HTTP 422 | `database_provider` must match `VECTOR_STORE_BACKEND` (`configs/elasticsearch/example-local.yaml`) |
+
 ## 👉 See Also
 
 - [SIE Provider Setup](sie-setup.md) — remote gateway (preferred) or optional self-hosted Docker

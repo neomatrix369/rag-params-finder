@@ -11,6 +11,7 @@ services:
       dockerfile: docker/server.Dockerfile
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        EXTRAS: ${SERVER_EXTRAS:-}
     image: ${SERVER_IMAGE_NAME:-rag-params-finder-server}
     container_name: ${SERVER_CONTAINER_NAME:-rag-params-finder-server}
     ports:
@@ -27,6 +28,10 @@ services:
       # Mongo modes export STORAGE_BACKEND=mongodb so leftover postgres env cannot stick.
       STORAGE_BACKEND: ${STORAGE_BACKEND:-mongodb}
       DATABASE_URL: ${RAG_SERVER_DATABASE_URL:-${DATABASE_URL:-}}
+      # Empty VECTOR_STORE_BACKEND falls back to STORAGE_BACKEND in settings.
+      VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-}
+      ELASTICSEARCH_URL: ${RAG_SERVER_ELASTICSEARCH_URL:-${ELASTICSEARCH_URL:-}}
+      ELASTICSEARCH_API_KEY: ${ELASTICSEARCH_API_KEY:-}
       HF_HOME: ${HF_HOME:-/root/.cache/huggingface}
       # SIE is opt-in — remote gateway preferred (SIE_ENDPOINT + SIE_API_KEY in .env).
       # Self-hosted Docker fallback: docs/user-guide/sie-setup.md
@@ -46,6 +51,9 @@ services:
         condition: service_healthy
         required: false
       postgres-local:
+        condition: service_healthy
+        required: false
+      elasticsearch-local:
         condition: service_healthy
         required: false
     restart: unless-stopped
@@ -169,9 +177,35 @@ services:
       retries: 12
       start_period: 15s
 
+  # Local Elasticsearch — opt-in: ./start-services.sh --elasticsearch-local
+  # Vector-only. Run state stays on the paired store (default mongodb-local).
+  # Basic licence, security off, 1 GB heap, loopback bind. See ADR-006.
+  elasticsearch-local:
+    profiles: ["elasticsearch-local"]
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.0
+    container_name: ${ELASTICSEARCH_LOCAL_CONTAINER_NAME:-rag-params-finder-elasticsearch-local}
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.license.self_generated.type: basic
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+      cluster.name: rag-params-finder
+    ports:
+      - "127.0.0.1:9200:9200"
+    volumes:
+      - elasticsearch_local_data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 40s
+
 volumes:
   hf_cache:
   postgres_local_data:
   mongodb_local_data:
   mongodb_local_configdb:
   mongodb_local_mongot:
+  elasticsearch_local_data:

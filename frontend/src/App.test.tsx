@@ -2,14 +2,13 @@
  * Author: RAG Params Finder contributors
  * Created: 2026-07-27
  * Scope: Slice 44 Phase B — App screen-routing coverage. Verifies list → detail → explore → back
- * navigation, list-cache propagation (onCacheUpdate), and db-stats lookup (findDbStatsInGroups)
+ * navigation and list-cache propagation (onCacheUpdate)
  * without exercising the real screen components (each is stubbed to a minimal test double).
  */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type {
   Experiment,
-  ExperimentDbStatsSummary,
   VectorDbStatsGroup,
 } from './types';
 import App from './App';
@@ -20,32 +19,6 @@ const mockExperiment: Experiment = {
   config: {},
   created_at: '2026-07-27T00:00:00Z',
   status: 'complete',
-};
-
-const mockDbStats: ExperimentDbStatsSummary = {
-  experiment_id: mockExperiment.experiment_id,
-  experiment_name: mockExperiment.experiment_name,
-  status: 'complete',
-  created_at: mockExperiment.created_at,
-  database_provider: 'mongodb',
-  collection_name: 'chunks',
-  cluster_host: 'cluster0',
-  total_chunks: 42,
-  unique_documents: 3,
-  embedding_models: ['voyage-3.5-lite'],
-  embedding_dimensions: [1024],
-  index_names: ['vector_index_1024'],
-  retrieval_methods: ['dense'],
-  chunking_methods: ['recursive'],
-  chunking_breakdown: { recursive: 42 },
-  estimated_storage_mb: 1.2,
-  estimated_embedding_mb: 1.0,
-  estimated_metadata_mb: 0.2,
-  runs_with_data: 1,
-  avg_chunks_per_run: 42,
-  total_results: 10,
-  unique_queries: 3,
-  run_breakdown: [],
 };
 
 const mockVectorDbGroups: VectorDbStatsGroup[] = [
@@ -64,7 +37,7 @@ const mockVectorDbGroups: VectorDbStatsGroup[] = [
       estimated_embedding_mb: 1.0,
       estimated_metadata_mb: 0.2,
     },
-    experiments: [mockDbStats],
+    experiments: [],
   },
 ];
 
@@ -96,18 +69,15 @@ vi.mock('./components/screens/ExperimentsScreen', () => ({
 vi.mock('./components/screens/ExperimentDetailScreen', () => ({
   default: ({
     experimentId,
-    initialDbStats,
     onBack,
     onExplore,
   }: {
     experimentId: string;
-    initialDbStats?: ExperimentDbStatsSummary;
     onBack: () => void;
     onExplore: () => void;
   }) => (
     <div>
       <p>Detail Screen Stub — {experimentId}</p>
-      <p>dbStats total_chunks: {initialDbStats?.total_chunks ?? 'none'}</p>
       <button onClick={onBack}>Back To List</button>
       <button onClick={onExplore}>Go Explore</button>
     </div>
@@ -158,13 +128,13 @@ describe('App', () => {
     expect(screen.getByText(`Detail Screen Stub — ${mockExperiment.experiment_id}`)).toBeInTheDocument();
   });
 
-  it('Given a populated list cache, when an experiment matching a vector-db group is selected, then db stats are resolved onto the detail screen', () => {
+  it('Given a populated list cache, when an experiment is selected, then the detail screen still opens', () => {
     /**
-     * Scenario: findDbStatsInGroups resolves the matching db-stats summary for the opened experiment.
-     * Slice: 44 Phase B — App coverage (openDetail db-stats lookup via listCache.vectorDbGroups).
-     * Given onCacheUpdate has populated vectorDbGroups containing the target experiment,
+     * Scenario: A ready list cache does not block opening an experiment.
+     * Slice: 44 Phase B — App coverage (openDetail after onCacheUpdate).
+     * Given onCacheUpdate has marked the list cache ready,
      * When that experiment is opened,
-     * Then the detail screen stub receives the matching total_chunks value.
+     * Then the detail screen stub renders for the same experiment id.
      */
     // -- Given --
     render(<App />);
@@ -175,7 +145,7 @@ describe('App', () => {
     fireEvent.click(screen.getByText('Select Experiment'));
 
     // -- Then --
-    expect(screen.getByText('dbStats total_chunks: 42')).toBeInTheDocument();
+    expect(screen.getByText(`Detail Screen Stub — ${mockExperiment.experiment_id}`)).toBeInTheDocument();
   });
 
   it('Given the detail screen, when Explore is clicked, then the search explorer screen renders with the same experiment id', () => {
@@ -199,7 +169,7 @@ describe('App', () => {
 
   it('Given the search explorer screen, when its back link is clicked, then the detail screen renders again with the initial experiment restored', () => {
     /**
-     * Scenario: Explorer → detail back-navigation restores the detailNav snapshot (initialExperiment/initialDbStats).
+     * Scenario: Explorer → detail back-navigation restores the detailNav snapshot (initialExperiment).
      * Slice: 44 Phase B — App coverage (explore onBack callback restoring detailNav state).
      * Given navigation has gone list → detail → explore,
      * When the explorer's back link is clicked,
@@ -236,22 +206,4 @@ describe('App', () => {
     expect(screen.getByText('Experiments Screen Stub')).toBeInTheDocument();
   });
 
-  it('Given no cached vector db stats, when an experiment is opened, then the detail screen renders without broken layout', () => {
-    /**
-     * Scenario: Opening detail when db-stats is undefined (cache miss) does not crash the screen.
-     * Slice: 44 Phase B — App coverage (detail navigation with undefined initialDbStats).
-     * Given no populated vector db groups in cache,
-     * When an experiment is selected and opened,
-     * Then the detail screen stub renders with dbStats total_chunks as "none".
-     */
-    // -- Given --
-    render(<App />);
-
-    // -- When --
-    fireEvent.click(screen.getByText('Select Experiment'));
-
-    // -- Then --
-    expect(screen.getByText(`Detail Screen Stub — ${mockExperiment.experiment_id}`)).toBeInTheDocument();
-    expect(screen.getByText('dbStats total_chunks: none')).toBeInTheDocument();
-  });
 });

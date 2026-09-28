@@ -6,19 +6,9 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from server.core.search_index_guard import (
-    collect_postgres_index_snapshot,
-    postgres_vector_extension_present,
-)
-from server.core.search_index_plan import (
-    POSTGRES_REQUIRED_INDEXES,
-    POSTGRES_VECTOR_EXTENSION,
-    required_postgres_catalog_indexes,
-)
+from cli.api_client import get_stores
 from server.db.mongo.atlas import get_database
 from server.db.mongo.indexes import (
-    M0_SEARCH_INDEX_LIMIT,
-    SearchIndexInfo,
     ensure_indexes,
     list_cluster_search_indexes,
     prune_unknown_search_indexes,
@@ -33,86 +23,44 @@ console = Console()
 logger = get_logger(__name__)
 
 
-def _build_indexes_table(rows: list[SearchIndexInfo]) -> Table:
-    table = Table(title="Atlas Search Indexes", show_lines=True)
-    table.add_column("Status", max_width=8)
-    table.add_column("Database")
-    table.add_column("Collection")
-    table.add_column("Index")
-    table.add_column("Type")
-    table.add_column("State")
-
-    for row in rows:
-        tag = "[green]KNOWN[/green]" if row["known"] else "[yellow]UNKNOWN[/yellow]"
-        table.add_row(
-            tag,
-            row["database"],
-            row["collection"],
-            row["name"],
-            row["index_type"],
-            row["status"],
-        )
-    return table
-
-
-def _list_postgres_catalog_indexes() -> None:
-    """List required vs present HNSW/GIN indexes from the Postgres catalog."""
-    required = required_postgres_catalog_indexes()
-    extension_ok = postgres_vector_extension_present()
-    snapshot = collect_postgres_index_snapshot(required)
-    present = snapshot.chunks_ready
-    missing = required - present
-
-    table = Table(title="Postgres Catalog Indexes (chunks)", show_lines=True)
-    table.add_column("Status", max_width=10)
-    table.add_column("Object")
-    table.add_column("Kind")
-
-    ext_tag = "[green]PRESENT[/green]" if extension_ok else "[red]MISSING[/red]"
-    table.add_row(ext_tag, POSTGRES_VECTOR_EXTENSION, "extension")
-    for name in sorted(POSTGRES_REQUIRED_INDEXES):
-        if name in present:
-            table.add_row("[green]PRESENT[/green]", name, "index")
-        else:
-            table.add_row("[red]MISSING[/red]", name, "index")
-
+def _print_store_index_summary(store: dict[str, object]) -> None:
+    """Render the active store's mapping summary from GET /api/stores."""
+    provider = str(store.get("provider") or "")
+    labels = store.get("labels")
+    index_label = "Index"
+    if isinstance(labels, dict):
+        index_label = str(labels.get("index") or index_label)
+    summary = store.get("index_summary")
+    table = Table(title=f"{provider} {index_label} summary", show_lines=True)
+    table.add_column("Field")
+    table.add_column("Value")
+    if isinstance(summary, dict):
+        for key, value in summary.items():
+            if isinstance(value, list):
+                rendered = ", ".join(str(item) for item in value)
+            else:
+                rendered = str(value)
+            table.add_row(key, rendered)
     console.print(table)
-    console.print(
-        f"\nExtension vector: {'ok' if extension_ok else 'MISSING'} — "
-        f"[green]{len(present)} present[/green], "
-        f"[red]{len(missing)} missing[/red] of {len(required)} required indexes"
-    )
-    if missing or not extension_ok:
-        console.print(
-            "[yellow]Remediation:[/yellow] re-run schema bootstrap "
-            "(restart server / pool init) so schema.sql applies HNSW/GIN indexes."
-        )
 
 
 @indexes_app.command("list")
 def indexes_list() -> None:
-    """List search indexes for the active storage backend."""
-    backend = normalize_storage_backend(settings.storage_backend)
-    if is_same_adapter(backend, "postgres"):
-        _list_postgres_catalog_indexes()
-        return
-    if not is_same_adapter(backend, "mongodb"):
-        console.print(f"[yellow]indexes[/yellow] unsupported for STORAGE_BACKEND={backend!r}.")
-        raise typer.Exit(0)
-
-    rows = list_cluster_search_indexes()
-    if not rows:
-        console.print("[dim]No Atlas Search indexes found on this cluster.[/dim]")
-        return
-
-    console.print(_build_indexes_table(rows))
-    known_count = sum(1 for row in rows if row["known"])
-    unknown_count = len(rows) - known_count
-    console.print(
-        f"\nTotal: {len(rows)}/{M0_SEARCH_INDEX_LIMIT} (M0 free-tier limit) — "
-        f"[green]{known_count} known[/green], "
-        f"[yellow]{unknown_count} unknown[/yellow]"
+    """List the active vector store's index summary via GET /api/stores."""
+    catalog = get_stores()
+    active = str(catalog.get("active") or "")
+    stores = catalog.get("stores")
+    if not isinstance(stores, list):
+        console.print("[yellow]Store catalog did not include a stores list.[/yellow]")
+        raise typer.Exit(1)
+    current = next(
+        (row for row in stores if isinstance(row, dict) and row.get("provider") == active),
+        None,
     )
+    if not isinstance(current, dict):
+        console.print(f"[yellow]No catalog entry for active store {active!r}.[/yellow]")
+        raise typer.Exit(1)
+    _print_store_index_summary(current)
 
 
 @indexes_app.command("reset")

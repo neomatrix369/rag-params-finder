@@ -40,10 +40,57 @@ _CAN_HOST_RUN_STATE: dict[str, bool] = {
     "elasticsearch": False,
 }
 
+# Example sweep YAML for each provider. The 422 hint and the dashboard empty
+# state both read this map, so a new store cannot update one surface and
+# forget the other (Slice 51, DECISIONS #253).
+_EXAMPLE_CONFIG: dict[str, str] = {
+    "mongodb": "configs/mongodb/example-local.yaml",
+    "postgres": "configs/supabase/example-local.yaml",
+    "elasticsearch": "configs/elasticsearch/example-local.yaml",
+}
+
 
 def known_vector_stores() -> frozenset[str]:
     """Return the set of registered vector-store provider keys."""
     return frozenset(_VECTOR_STORE_REGISTRY)
+
+
+def example_config_for(provider: str) -> str:
+    """Return the example YAML path registered for ``provider``.
+
+    Raises ValueError (same shape as ``resolve_adapter``) when ``provider``
+    is not a registered vector store.
+    """
+    if provider not in _VECTOR_STORE_REGISTRY:
+        known = ", ".join(sorted(_VECTOR_STORE_REGISTRY)) or "<none>"
+        raise ValueError(f"Unknown vector store {provider!r}. Known vector stores: {known}.")
+    return _EXAMPLE_CONFIG[provider]
+
+
+# Catalog modules expose labels, capabilities, and index summaries without
+# importing pymongo, psycopg, or the Elasticsearch client. GET /api/stores
+# resolves these, not the full adapters.
+_CATALOG_REGISTRY: dict[str, str] = {
+    "mongodb": "server.db.mongo.mongo_catalog:MongoCatalog",
+    "postgres": "server.db.postgres.postgres_catalog:PostgresCatalog",
+    "elasticsearch": "server.db.elasticsearch.elasticsearch_catalog:ElasticsearchCatalog",
+}
+
+
+def resolve_catalog(provider: str) -> type:
+    """Lazily import the driver-free catalog class for ``provider``.
+
+    Same error shape as ``resolve_adapter``. The catalog class must stay
+    free of store drivers so listing stores does not require every extra.
+    """
+    if provider not in _VECTOR_STORE_REGISTRY:
+        known = ", ".join(sorted(_VECTOR_STORE_REGISTRY)) or "<none>"
+        raise ValueError(f"Unknown vector store {provider!r}. Known vector stores: {known}.")
+    target = _CATALOG_REGISTRY.get(provider)
+    if target is None:
+        known = ", ".join(sorted(_CATALOG_REGISTRY)) or "<none>"
+        raise ValueError(f"Unknown vector store {provider!r}. Known vector stores: {known}.")
+    return _load_registered_class(target)
 
 
 def resolve_adapter(provider: str) -> type:
@@ -58,10 +105,14 @@ def resolve_adapter(provider: str) -> type:
     if target is None:
         known = ", ".join(sorted(_VECTOR_STORE_REGISTRY)) or "<none>"
         raise ValueError(f"Unknown vector store {provider!r}. Known vector stores: {known}.")
+    return _load_registered_class(target)
+
+
+def _load_registered_class(target: str) -> type:
     module_path, _, class_name = target.partition(":")
     module = importlib.import_module(module_path)
-    adapter_class: type = getattr(module, class_name)
-    return adapter_class
+    registered: type = getattr(module, class_name)
+    return registered
 
 
 def vector_store_can_host_run_state(provider: str) -> bool:

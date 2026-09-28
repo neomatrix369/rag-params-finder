@@ -13,7 +13,6 @@ import pytest
 import typer
 
 from cli.indexes_cmd import indexes_list, indexes_reset
-from server.core.search_index_plan import SearchIndexSnapshot
 
 
 class TestIndexesCmdBackendGuardShould:
@@ -33,37 +32,29 @@ class TestIndexesCmdBackendGuardShould:
         HNSW/GIN index presence) and does not invoke Atlas list APIs
         """
         ### Given
-        required = frozenset(
-            {
-                "chunks_embedding_384_hnsw",
-                "chunks_embedding_1024_hnsw",
-                "chunks_text_search_gin",
-            }
-        )
-        ready = SearchIndexSnapshot(
-            chunks_ready=required,
-            chunks_building=frozenset(),
-            cluster_total=3,
-            cluster_limit=3,
-            unknown_count=0,
-        )
+        catalog = {
+            "active": "postgres",
+            "stores": [
+                {
+                    "provider": "postgres",
+                    "labels": {"index": "Table", "host": "Host"},
+                    "index_summary": {
+                        "extension": "vector",
+                        "indexes": ["chunks_embedding_384_hnsw"],
+                    },
+                }
+            ],
+        }
 
         ### When
         with (
-            patch("cli.indexes_cmd.settings.storage_backend", "postgres"),
+            patch("cli.indexes_cmd.get_stores", return_value=catalog) as get_stores,
             patch("cli.indexes_cmd.list_cluster_search_indexes") as list_indexes,
-            patch(
-                "cli.indexes_cmd.postgres_vector_extension_present",
-                return_value=True,
-            ),
-            patch(
-                "cli.indexes_cmd.collect_postgres_index_snapshot",
-                return_value=ready,
-            ),
         ):
             indexes_list()
 
         ### Then
+        get_stores.assert_called_once()
         list_indexes.assert_not_called()
 
     def test_indexes_reset_command_exits_when_backend_is_postgres(

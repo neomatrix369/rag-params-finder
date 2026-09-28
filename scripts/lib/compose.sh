@@ -12,12 +12,7 @@ RAG_MONGODB_LOCAL_CONTAINER="${MONGODB_LOCAL_CONTAINER_NAME:-rag-params-finder-m
 RAG_MONGODB_LOCAL_DB_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_mongodb_local_data"
 RAG_MONGODB_LOCAL_CONFIGDB_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_mongodb_local_configdb"
 RAG_MONGODB_LOCAL_MONGOT_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_mongodb_local_mongot"
-RAG_MONGODB_LOCAL_VOLUMES=(
-  "$RAG_MONGODB_LOCAL_DB_VOLUME"
-  "$RAG_MONGODB_LOCAL_CONFIGDB_VOLUME"
-  "$RAG_MONGODB_LOCAL_MONGOT_VOLUME"
-)
-# Back-compat alias (db volume only)
+# Back-compat alias (db volume only). Reset walks the volume names in stores.tsv.
 RAG_MONGODB_LOCAL_VOLUME="$RAG_MONGODB_LOCAL_DB_VOLUME"
 
 # ── Postgres / pgvector (Supabase stand-in) ───────────────────────────────────
@@ -29,6 +24,12 @@ RAG_LOCAL_DATABASE_URL_HOST="${RAG_LOCAL_DATABASE_URL_HOST:-postgresql://${RAG_P
 RAG_LOCAL_DATABASE_URL_DOCKER="${RAG_LOCAL_DATABASE_URL_DOCKER:-postgresql://${RAG_POSTGRES_USER}:${RAG_POSTGRES_PASSWORD}@postgres-local:5432/${RAG_POSTGRES_DB}}"
 RAG_POSTGRES_LOCAL_CONTAINER="${POSTGRES_LOCAL_CONTAINER_NAME:-rag-params-finder-postgres-local}"
 RAG_POSTGRES_LOCAL_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_postgres_local_data"
+
+# ── Elasticsearch (vector-only; run state is a separate store) ────────────────
+RAG_LOCAL_ELASTICSEARCH_URL_HOST="${RAG_LOCAL_ELASTICSEARCH_URL_HOST:-http://127.0.0.1:9200}"
+RAG_LOCAL_ELASTICSEARCH_URL_DOCKER="${RAG_LOCAL_ELASTICSEARCH_URL_DOCKER:-http://elasticsearch-local:9200}"
+RAG_ELASTICSEARCH_LOCAL_CONTAINER="${ELASTICSEARCH_LOCAL_CONTAINER_NAME:-rag-params-finder-elasticsearch-local}"
+RAG_ELASTICSEARCH_LOCAL_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_elasticsearch_local_data"
 
 compose_require_docker_daemon() {
   if ! docker info >/dev/null 2>&1; then
@@ -72,6 +73,20 @@ compose_local_postgres_active() {
 compose_local_postgres_profiles() {
   # Canonical profile matches storage_mode=postgres-local (local-postgres remains an alias).
   COMPOSE_PROFILES=(--profile postgres-local)
+}
+
+compose_local_elasticsearch_profiles() {
+  COMPOSE_PROFILES=(--profile elasticsearch-local)
+}
+
+compose_export_local_elasticsearch_env() {
+  export RAG_SERVER_ELASTICSEARCH_URL="$RAG_LOCAL_ELASTICSEARCH_URL_DOCKER"
+  export VECTOR_STORE_BACKEND=elasticsearch
+  export SERVER_EXTRAS=elasticsearch
+}
+
+compose_clear_local_elasticsearch_env() {
+  unset RAG_SERVER_ELASTICSEARCH_URL SERVER_EXTRAS
 }
 
 compose_export_local_postgres_env() {
@@ -145,35 +160,31 @@ print_postgres_local_reset_hint() {
   echo "  ./start-services.sh postgres reset && ./start-services.sh --postgres-local" >&2
 }
 
-wait_for_mongodb_local_healthy() {
+# Shared docker-health wait. on_fail is an optional function name; it receives the container.
+wait_for_named_container_healthy() {
+  local container="$1"
+  local label="$2"
+  local on_fail="${3:-}"
   local tries=0
   local health=""
   while true; do
-    health="$(docker inspect --format='{{.State.Health.Status}}' "$RAG_MONGODB_LOCAL_CONTAINER" 2>/dev/null || echo "")"
+    health="$(docker inspect --format='{{.State.Health.Status}}' "$container" 2>/dev/null || echo "")"
     if [[ "$health" == "healthy" ]]; then
       echo ""
       return 0
     fi
-    if [[ "$health" == "unhealthy" ]]; then
-      echo ""
-      echo "MongoDB Atlas Local is unhealthy." >&2
-      echo "  docker logs $RAG_MONGODB_LOCAL_CONTAINER 2>&1 | tail -20" >&2
-      if docker logs "$RAG_MONGODB_LOCAL_CONTAINER" 2>&1 | grep -q "Wrong mongod version\|featureCompatibilityVersion"; then
-        echo "Detected featureCompatibilityVersion / image mismatch (e.g. volumes from a newer" >&2
-        echo "Atlas Local image than the compose pin). Reset volumes, then restart:" >&2
-      fi
-      print_mongodb_local_reset_hint
-      return 1
-    fi
     tries=$((tries + 1))
-    if [[ $tries -ge 90 ]]; then
+    if [[ "$health" == "unhealthy" || $tries -ge 90 ]]; then
       echo ""
-      echo "Timed out waiting for $RAG_MONGODB_LOCAL_CONTAINER to become healthy." >&2
-      echo "  docker logs $RAG_MONGODB_LOCAL_CONTAINER 2>&1 | tail -20" >&2
-      if docker logs "$RAG_MONGODB_LOCAL_CONTAINER" 2>&1 | grep -q "Wrong mongod version\|featureCompatibilityVersion"; then
-        echo "Detected featureCompatibilityVersion / image mismatch — reset volumes:" >&2
+      if [[ "$health" == "unhealthy" ]]; then
+        echo "${label} is unhealthy." >&2
+      else
+        echo "Timed out waiting for ${container} to become healthy." >&2
       fi
-      print_mongodb_local_reset_hint
+      echo "  docker logs ${container} 2>&1 | tail -20" >&2
+      if [[ -n "$on_fail" ]] && declare -F "$on_fail" >/dev/null; then
+        "$on_fail" "$container"
+      fi
       return 1
     fi
     printf "."
@@ -181,31 +192,23 @@ wait_for_mongodb_local_healthy() {
   done
 }
 
+_mongodb_health_failed() {
+  local container="$1"
+  if docker logs "$container" 2>&1 | grep -q "Wrong mongod version\|featureCompatibilityVersion"; then
+    echo "Detected featureCompatibilityVersion / image mismatch (e.g. volumes from a newer" >&2
+    echo "Atlas Local image than the compose pin). Reset volumes, then restart:" >&2
+  fi
+  print_mongodb_local_reset_hint
+}
+
+_postgres_health_failed() {
+  print_postgres_local_reset_hint
+}
+
+wait_for_mongodb_local_healthy() {
+  wait_for_named_container_healthy "$RAG_MONGODB_LOCAL_CONTAINER" "MongoDB Atlas Local" _mongodb_health_failed
+}
+
 wait_for_postgres_local_healthy() {
-  local tries=0
-  local health=""
-  while true; do
-    health="$(docker inspect --format='{{.State.Health.Status}}' "$RAG_POSTGRES_LOCAL_CONTAINER" 2>/dev/null || echo "")"
-    if [[ "$health" == "healthy" ]]; then
-      echo ""
-      return 0
-    fi
-    if [[ "$health" == "unhealthy" ]]; then
-      echo ""
-      echo "Local Postgres + pgvector is unhealthy." >&2
-      echo "  docker logs $RAG_POSTGRES_LOCAL_CONTAINER 2>&1 | tail -20" >&2
-      print_postgres_local_reset_hint
-      return 1
-    fi
-    tries=$((tries + 1))
-    if [[ $tries -ge 90 ]]; then
-      echo ""
-      echo "Timed out waiting for $RAG_POSTGRES_LOCAL_CONTAINER to become healthy." >&2
-      echo "  docker logs $RAG_POSTGRES_LOCAL_CONTAINER 2>&1 | tail -20" >&2
-      print_postgres_local_reset_hint
-      return 1
-    fi
-    printf "."
-    sleep 2
-  done
+  wait_for_named_container_healthy "$RAG_POSTGRES_LOCAL_CONTAINER" "Local Postgres + pgvector" _postgres_health_failed
 }
