@@ -251,9 +251,9 @@ Scenario: ADR-006 is Accepted and distinct from ADR-005
 
 ### Closing Gates
 - [x] `nw-at-completeness-check` — run 2026-09-27: 10/18 scenarios tested; ACCEPTABLE_WITH_DOCUMENTED_GAPS; zero-obligation (secret redaction) PASS. Recorded in `gate-evidence/slice-51.json`.
-- [x] `nw-software-crafter-reviewer` — ran 2026-09-27: NEEDS_REVISION. Remediated: `resolve_catalog` lists stores without importing drivers; redaction assertions stay on `build_stores_payload()`. Not re-reviewed.
+- [x] `nw-software-crafter-reviewer` — NEEDS_REVISION on 2026-09-27. Re-reviewed 2026-09-28: **APPROVED**. `resolve_catalog` stays driver-free, redaction still calls `build_stores_payload()`, and the fresh-process and per-store `cmd_*` scans pass.
 - [x] `nw-solution-architect-reviewer` — APPROVED 2026-09-27 (`GET /api/stores`, registry, no case arms, pairing rule).
-- [x] `nw-system-designer-reviewer` — ran 2026-09-27: NEEDS_REVISION on `cmd_<store>_*` duplication. Remediated: one `cmd_store_*` lifecycle plus `wait_for_named_container_healthy`. Not re-reviewed.
+- [x] `nw-system-designer-reviewer` — NEEDS_REVISION on 2026-09-27. Re-reviewed 2026-09-28: **APPROVED**. One `cmd_store_*` lifecycle, `wait_for_named_container_healthy`, and manifest-driven teardown and probes. No new blockers.
 - [x] `nw-platform-architect-reviewer` — APPROVED 2026-09-27 (compose 9.5.0, EXTRAS arg, nightly matrix + summary job, docs-parity collected in unit CI).
 - [x] `nw-documentarist-reviewer` — APPROVED 2026-09-27 (`elasticsearch-setup.md` stays a how-to).
 - [x] `nw-researcher-reviewer` — APPROVED 2026-09-27 (ADR-006 claims match the adapter, mapping, and compose file).
@@ -261,4 +261,4 @@ Scenario: ADR-006 is Accepted and distinct from ADR-005
 - [x] `/verify-slice` — verdict **PARTIAL** (2026-09-27; not COMPLETE, not PASSED). See `gate-evidence/slice-51.json` → `verify_slice`.
 
 ## Gate Status
-🔨 IN PROGRESS — branch `slice/51-elasticsearch-operability-ci-docs-adr`. `gate_status` is `ON_BRANCH`. `/verify-slice` stays PARTIAL. Unreachable Elasticsearch now returns HTTP 503 in a route test, the `cmd:` probe runs under test, teardown lists every local profile, and a default-pair health probe returned `run_state_mode=mongodb-local`. Still open: the 15-stage reader transcript and the full 120-run grid. Not PASSED.
+🔨 IN PROGRESS — branch `slice/51-elasticsearch-operability-ci-docs-adr`. `gate_status` is `ON_BRANCH`. Crafter and system-designer re-reviewed APPROVED on 2026-09-28. `/verify-slice` stays PARTIAL. Unreachable Elasticsearch now returns HTTP 503 in a route test, the `cmd:` probe runs under test, teardown lists every local profile, and a default-pair health probe returned `run_state_mode=mongodb-local`. Still open: the 15-stage reader transcript and the full 120-run grid. Not PASSED.
