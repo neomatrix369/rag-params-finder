@@ -4,7 +4,7 @@ import { getStorageHealth, type StoreHealthProbe, type StorageHealth } from '../
 import StatRow from './StatRow';
 
 type OperationalRuntimeCardProps = {
-  experimentId: string;
+  storageKey?: string;
 };
 
 function probeStatus(probe: StoreHealthProbe): string {
@@ -24,7 +24,9 @@ function StoreProbePanel({ title, probe }: { title: string; probe: StoreHealthPr
   );
 }
 
-export default function OperationalRuntimeCard({ experimentId }: OperationalRuntimeCardProps) {
+export default function OperationalRuntimeCard({
+  storageKey = 'workspace-store-runtime',
+}: OperationalRuntimeCardProps) {
   const [health, setHealth] = useState<StorageHealth | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -54,7 +56,7 @@ export default function OperationalRuntimeCard({ experimentId }: OperationalRunt
         title="Store runtime"
         compact
         defaultOpen={false}
-        storageKey={`exp-store-runtime-${experimentId}`}
+        storageKey={storageKey}
         headerExtra={headerExtra}
       >
         <p className="mb-3 text-xs text-slate-500">

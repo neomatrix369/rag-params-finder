@@ -42,6 +42,17 @@ const apiMocks = vi.hoisted(() => ({
   pauseExperiment: vi.fn(),
   resumeExperiment: vi.fn(),
   cancelExperiment: vi.fn(),
+  getStorageHealth: vi.fn().mockResolvedValue({
+    ok: true,
+    storage_backend: 'mongodb',
+    storage_mode: 'mongodb-local',
+    vector_store_backend: 'mongodb',
+    run_state_mode: 'mongodb-local',
+    stores: {
+      vector: { provider: 'mongodb', mode: 'mongodb-local', ok: true, latency_ms: 1 },
+      run_state: { provider: 'mongodb', mode: 'mongodb-local', ok: true, latency_ms: 1 },
+    },
+  }),
 }));
 
 vi.mock('../../services/apiClient', async () => {

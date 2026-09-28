@@ -61,7 +61,7 @@ describe('OperationalRuntimeCard', () => {
     apiMocks.getStorageHealth.mockResolvedValue(localHealth);
 
     // -- When --
-    render(<OperationalRuntimeCard experimentId="exp-runtime" />);
+    render(<OperationalRuntimeCard />);
 
     // -- Then --
     expect(screen.queryByText('docker.elastic.co/elasticsearch/elasticsearch:9.5.0')).not.toBeInTheDocument();
@@ -84,7 +84,7 @@ describe('OperationalRuntimeCard', () => {
     apiMocks.getStorageHealth.mockRejectedValue(new Error('offline'));
 
     // -- When --
-    render(<OperationalRuntimeCard experimentId="exp-runtime-down" />);
+    render(<OperationalRuntimeCard />);
 
     // -- Then --
     fireEvent.click(screen.getByRole('button', { name: /Store runtime/i }));

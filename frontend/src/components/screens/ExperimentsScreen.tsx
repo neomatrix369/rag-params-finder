@@ -12,8 +12,8 @@ import LoadingFeedbackPanel, { type FeedEntry } from '../chrome/LoadingFeedbackP
 import PollingIndicator from '../chrome/PollingIndicator';
 import ConfirmDeleteModal from '../experiment/ConfirmDeleteModal';
 import ExperimentControlButtons from '../experiment/ExperimentControlButtons';
+import OperationalRuntimeCard from '../stats/OperationalRuntimeCard';
 import VectorDbStatsPanel from '../stats/VectorDbStatsPanel';
-import ExperimentVectorDbStatsCard from '../stats/ExperimentVectorDbStatsCard';
 import Pagination from '../chrome/Pagination';
 import { createStallWatcher, type FetchProgressUpdate } from '../../services/fetchWithProgress';
 import { deleteExperiment, getExperiments, getExperimentsWithProgress, getStores, getVectorDbStatsGrouped, type StoreCatalogEntry } from '../../services/apiClient';
@@ -626,11 +626,6 @@ export default function ExperimentsScreen({
                               <div className="mt-2 text-sm text-ink">{new Date(exp.created_at).toLocaleString()}</div>
                             </div>
                           </div>
-                          <ExperimentVectorDbStatsCard
-                            experimentId={exp.experiment_id}
-                            stats={dbStats}
-                            loading={vectorDbLoading && !dbStats}
-                          />
                         </div>
                       )}
                     </div>
@@ -661,7 +656,10 @@ export default function ExperimentsScreen({
       <section className="mt-8 border-t border-line pt-6" aria-labelledby="operational-context-title">
         <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Progressive disclosure</p>
         <h2 id="operational-context-title" className="mt-1 font-display text-xl font-semibold text-ink">Operational storage context</h2>
-        <p className="mb-4 mt-1 text-sm text-muted">Storage metrics stay available without competing with experiment lifecycle and run outcomes.</p>
+        <p className="mb-4 mt-1 text-sm text-muted">
+          Vector database capacity and store runtime are shown once for this server, beside the experiment list.
+        </p>
+        <OperationalRuntimeCard />
         <VectorDbStatsPanel
           groups={vectorDbGroups}
           loading={vectorDbLoading}
