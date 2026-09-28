@@ -160,8 +160,8 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `frontend/src/components/screens/` | Feature screens (`Experiments`, `Detail`, `SearchExplorer`) + co-located tests |
 | `frontend/src/components/chrome/` | Shell chrome (`DashboardShell`, `AppPageChrome`, `Pagination`, `CollapsibleCard`, …) |
 | `frontend/src/components/experiment/` | Experiment controls/progress/modals + detail chrome |
-| `frontend/src/components/stats/` | Vector DB stats panels + `StatTile`/`StatRow` |
-| `frontend/src/hooks/useExperimentDetail.ts` | Detail hydrate/poll/db-stats controller (Slice 45) |
+| `frontend/src/components/stats/` | List: vector-database panel + store runtime. Detail: `ExperimentStoredFootprint`. Shared `StatTile`/`StatRow` |
+| `frontend/src/hooks/useExperimentDetail.ts` | Detail hydrate/poll plus stored-footprint db-stats (Slice 45) |
 | `frontend/src/test/helpers/` | Shared Vitest builders (`experiments`, `vectorDbStats`, `explore`, `experimentDetail`) |
 | `frontend/src/components/explore/ExplorePanels.tsx` | Search Explorer tabs + sidebar panels |
 | `frontend/src/utils/experimentStatus.ts` | Run outcome summarization + terminal status helpers |

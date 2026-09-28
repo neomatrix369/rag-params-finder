@@ -423,7 +423,8 @@ Split-store mode:  Vector store != Run-state store (pairing rule (ii) governs
 failure completes the delete and reports true counts.
 
 **Health / preflight**: `/healthz` probes both stores independently
-(`vector_store_backend`, `run_state_mode`, `stores: {vector, run_state}` — see
+(`vector_store_backend`, `run_state_mode`, `stores: {vector, run_state}`; a
+`*-local` probe also includes `container` and `image` — see
 [CLI Reference → `/healthz`](../user-guide/cli-reference.md)); `preflight_stores()`
 checks the vector store first (health → index plan → capabilities, HTTP 422 on
 failure) and only probes the run-state store's health when it differs from the
@@ -518,12 +519,12 @@ See `docs/adr/` for Architecture Decision Records:
 | Cascade delete with confirmation | DELETE endpoint scrubs all collections (experiments, run_status, chunks, results); `ConfirmDeleteModal` shows experiment details + deletion statistics; prevents deletion of running experiments |
 | Boot orphan reconciliation | `BackgroundTasks` sweeps die on process exit; startup marks in-flight runs `interrupted` and sets terminal experiment status — separate from Slice 10 retry |
 | Pause / resume sweeps | Cooperative halt via `_SweepControl` threading events; `resume_sweep()` skips completed parameter signatures; status `paused` is non-terminal |
-| Vector DB stats API + dashboard | `GET /experiments/vector-db-stats` and `/{id}/db-stats`; estimated storage from chunk counts + model dimensions; optional Atlas quota bar with tier/provider/region via `resolve_tier_specs()` |
+| Vector DB stats API + dashboard | `GET /experiments/vector-db-stats` (list: capacity, indexes, optional Atlas quota via `resolve_tier_specs()`) and `/{id}/db-stats` (detail: that experiment’s chunks, models, chunking, per-run counts). Store runtime on the list reads `GET /healthz` |
 | Timezone-aware UTC timestamps | PyMongo `tz_aware=True`; all writes use `datetime.now(timezone.utc)` so JSON includes `Z` and browser elapsed/duration math is correct |
 | `started_at` on first run | Duration and ETA exclude queue time between submission and first pipeline phase |
 | Search index preflight | `required_search_indexes(config)` + cluster snapshot; fail before runs if missing/quota exhausted; HTTP 422 on submit |
 | Postgres index preflight | Same 422 contract via catalog introspection (`pg_extension`, `pg_indexes`) — no Atlas Admin API, no quota/reconcile step; indexes come from `schema.sql` at pool bootstrap |
-| Four-value `storage_mode` | `resolve_storage_mode()` composes `STORAGE_BACKEND` × URI host → `mongodb-local` \| `mongodb-cloud` \| `postgres-local` \| `postgres-cloud`; surfaced on `/healthz`, `/health`, and db-stats |
+| `storage_mode` | Run state stays four values via `resolve_storage_mode()`: `mongodb-local` \| `mongodb-cloud` \| `postgres-local` \| `postgres-cloud`. The vector store's `storage_mode()` also emits `elasticsearch-local` \| `elasticsearch-cloud`. `/healthz` `storage_mode` is the vector mode |
 | Index CLI | `indexes list` is backend-aware (Atlas quota view or Postgres catalog view); `indexes reset` stays Atlas-only — Postgres remediation is a schema-bootstrap restart |
 | Option A scoped logging | `[rag-params-finder] [Scope] operation — details` in server (`scope_log.py`) and dashboard dev console (`devLog.ts`) |
 | Dedicated thread pools (`executors.py`) | Sweeps and heavy Mongo aggregations no longer compete with lightweight `GET /experiments` on the default executor |
@@ -542,10 +543,11 @@ See `docs/adr/` for Architecture Decision Records:
 | Docker + Atlas Local | `./start-services.sh --mongodb-local` | Adds `mongodb/mongodb-atlas-local:8.3.3` container; auto-provisions search indexes |
 | Docker + local Postgres | `./start-services.sh --postgres-local` | Adds `pgvector/pgvector:0.8.5-pg16` (Supabase stand-in); host port **5433** |
 | Docker + hosted Supabase | `./start-services.sh --postgres-cloud` | No local DB container; requires `DATABASE_URL` or `SUPABASE_URI` |
-| DB container only | `./start-services.sh mongodb\|postgres start\|stop\|reset\|status` | Native server/frontend on host |
+| Docker + local Elasticsearch | `./start-services.sh --elasticsearch-local` | Vector-only Elasticsearch 9.5.0; run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres` |
+| DB container only | `./start-services.sh mongodb\|postgres\|elasticsearch start\|stop\|reset\|status` | Native server/frontend on host |
 | Docker (dev overlay) | `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build` | Bind mounts + HMR |
 
-Atlas / Postgres connection strings and API keys live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md), [MongoDB Setup](../user-guide/mongodb-setup.md), and [Postgres Setup](../user-guide/postgres-setup.md).
+Atlas, Postgres, and Elasticsearch connection settings live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md), [MongoDB Setup](../user-guide/mongodb-setup.md), [Postgres Setup](../user-guide/postgres-setup.md), and [Elasticsearch Setup](../user-guide/elasticsearch-setup.md).
 
 ---
 

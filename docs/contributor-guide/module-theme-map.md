@@ -90,7 +90,7 @@ Mild (optional later): `server/api/` → `experiments/` vs `sweep/`.
 | Chrome / shell | `chrome/DashboardShell.tsx`, `AppPageChrome.tsx`, `CollapsibleCard.tsx`, `PollingIndicator.tsx`, `LoadingFeedbackPanel.tsx`, `Pagination.tsx` | Function — **IMPLEMENTED** |
 | Experiment controls | `experiment/ExperimentControlButtons.tsx`, `ExperimentProgressCard.tsx`, `ConfirmDeleteModal.tsx`, `experimentDetailProgress.ts`, `experiment/experimentDetail/*` | Feature \| Behavior — **IMPLEMENTED** |
 | Explore panels | `explore/ExplorePanels.tsx`, `explore/formatChunkDimensions.ts` | Feature — **IMPLEMENTED** |
-| Vector DB stats | `stats/VectorDbStatsPanel.tsx`, `stats/ExperimentVectorDbStatsCard.tsx`, `stats/StatTile.tsx` | Feature \| Function — **IMPLEMENTED** |
+| Vector DB stats | `stats/VectorDbStatsPanel.tsx`, `stats/OperationalRuntimeCard.tsx`, `stats/ExperimentStoredFootprint.tsx`, `stats/StatTile.tsx` | Feature \| Function — **IMPLEMENTED** |
 | Shared test helpers | `frontend/src/test/helpers/{experiments,vectorDbStats,explore,experimentDetail}.ts` | Function — **IMPLEMENTED** |
 
 ---
