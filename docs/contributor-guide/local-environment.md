@@ -64,7 +64,7 @@ Schema / indexes come from `server/db/postgres/schema.sql` on first pool open (n
 → [Elasticsearch Setup](../user-guide/elasticsearch-setup.md)
 
 ```bash
-./start-services.sh --elasticsearch-local   # Elasticsearch + default Postgres run state
+./start-services.sh --elasticsearch-local   # Elasticsearch; run state defaults to local MongoDB unless STORAGE_BACKEND=postgres
 ./start-services.sh elasticsearch status
 ./start-services.sh elasticsearch reset     # wipe the local volume
 ```

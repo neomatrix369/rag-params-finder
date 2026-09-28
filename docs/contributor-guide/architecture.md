@@ -45,11 +45,13 @@ C4Context
     System_Ext(sie, "SIE gateway", "Open-source embeddings (BGE-M3 / Stella / SPLADE)")
     SystemDb_Ext(mongo, "MongoDB Atlas", "Vector + run state (cloud or local)")
     SystemDb_Ext(pg, "Postgres / pgvector", "Vector + run state (Supabase or local)")
+    SystemDb_Ext(es, "Elasticsearch", "Vector only (local or cloud); run state stays on MongoDB or Postgres")
     Rel(user, rpf, "Submits configs, views results")
     Rel(rpf, voyage, "Embeds / reranks", "HTTPS")
     Rel(rpf, sie, "Embeds", "HTTPS")
     Rel(rpf, mongo, "Reads / writes", "driver")
     Rel(rpf, pg, "Reads / writes", "SQL")
+    Rel(rpf, es, "Reads / writes vectors", "HTTP")
 ```
 
 ---

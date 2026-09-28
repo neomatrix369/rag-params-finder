@@ -39,7 +39,7 @@ python scripts/ci/check_integrity.py       # unit tests + import smoke
 ./start-services.sh --mongodb-local            # + MongoDB Atlas Local container
 ./start-services.sh --postgres-local           # + local pgvector (STORAGE_BACKEND=postgres)
 ./start-services.sh --postgres-cloud           # + hosted Supabase (DATABASE_URL or SUPABASE_URI; no MONGODB_URI)
-./start-services.sh --elasticsearch-local      # + local Elasticsearch (vector-only; default Postgres run state)
+./start-services.sh --elasticsearch-local      # + local Elasticsearch (vector-only; run state defaults to local MongoDB unless STORAGE_BACKEND=postgres)
 ./start-services.sh --elasticsearch-cloud      # hosted Elasticsearch (ELASTICSEARCH_URL in .env)
 ./start-services.sh mongodb start|stop|reset|status  # MongoDB container only
 ./start-services.sh postgres start|stop|reset|status # Postgres container only

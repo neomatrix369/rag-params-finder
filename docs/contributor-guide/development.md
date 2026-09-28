@@ -87,7 +87,7 @@ One-command stack for server + dashboard (MongoDB Atlas stays external). The **C
 **Prerequisites:** Docker Desktop (or engine + Compose v2), plus either:
 - **Mongo:** `MONGODB_URI` (Atlas cloud) or `./start-services.sh --mongodb-local` — search indexes per [mongodb-setup](../user-guide/mongodb-setup.md)
 - **Postgres:** `STORAGE_BACKEND=postgres` + `DATABASE_URL`, or `./start-services.sh --postgres-local` / `--postgres-cloud` — [postgres-setup](../user-guide/postgres-setup.md)
-- **Elasticsearch:** `./start-services.sh --elasticsearch-local` (pairs Postgres run state) or `--elasticsearch-cloud` with `ELASTICSEARCH_URL` — [elasticsearch-setup](../user-guide/elasticsearch-setup.md)
+- **Elasticsearch:** `./start-services.sh --elasticsearch-local` (run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres`) or `--elasticsearch-cloud` with `ELASTICSEARCH_URL` — [elasticsearch-setup](../user-guide/elasticsearch-setup.md)
 
 ```bash
 cp .env.example .env

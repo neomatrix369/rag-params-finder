@@ -257,8 +257,8 @@ Scenario: ADR-006 is Accepted and distinct from ADR-005
 - [x] `nw-platform-architect-reviewer` — APPROVED 2026-09-27 (compose 9.5.0, EXTRAS arg, nightly matrix + summary job, docs-parity collected in unit CI).
 - [x] `nw-documentarist-reviewer` — APPROVED 2026-09-27 (`elasticsearch-setup.md` stays a how-to).
 - [x] `nw-researcher-reviewer` — APPROVED 2026-09-27 (ADR-006 claims match the adapter, mapping, and compose file).
-- [ ] `nw-gate-evidence-validator` — FAIL: ON_BRANCH schema is valid. Image import, dense top-3, and the nightly URL are recorded. The 15-stage reader transcript and the full 120-run grid are still open.
-- [x] `/verify-slice` — verdict **PARTIAL** (2026-09-27; not COMPLETE, not PASSED). See `gate-evidence/slice-51.json` → `verify_slice`.
+- [ ] `nw-gate-evidence-validator` — not re-run after the 2026-09-28 evidence update. `gate_status` stays `ON_BRANCH`. Not PASSED.
+- [x] `/verify-slice` — verdict **COMPLETE** (2026-09-28 re-check). 18/18 scenarios pass on the recorded evidence. `gate_status` stays `ON_BRANCH` until merge. Not PASSED. See `gate-evidence/slice-51.json` → `verify_slice`.
 
 ## Gate Status
-🔨 IN PROGRESS — branch `slice/51-elasticsearch-operability-ci-docs-adr`. `gate_status` is `ON_BRANCH`. Crafter and system-designer re-reviewed APPROVED on 2026-09-28. `/verify-slice` stays PARTIAL. Unreachable Elasticsearch now returns HTTP 503 in a route test, the `cmd:` probe runs under test, teardown lists every local profile, and a default-pair health probe returned `run_state_mode=mongodb-local`. Still open: the 15-stage reader transcript and the full 120-run grid. Not PASSED.
+🔨 IN PROGRESS — branch `slice/51-elasticsearch-operability-ci-docs-adr`. `gate_status` is `ON_BRANCH`. `/verify-slice` on 2026-09-28 is **COMPLETE** (18/18). Dense mean top-3 overlap is mongodb–postgres 0.8641, mongodb–elasticsearch 0.8636, postgres–elasticsearch 0.9994. `NONINTERACTIVE=1 ./stop-services.sh` removed the three local store containers. Not PASSED until merge.

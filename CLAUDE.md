@@ -54,7 +54,7 @@ npm run build
 ./start-services.sh --mongodb-local    # server + dashboard + MongoDB Atlas Local (no cloud account)
 ./start-services.sh --postgres-local   # server + dashboard + local pgvector (STORAGE_BACKEND=postgres)
 ./start-services.sh --postgres-cloud   # hosted Supabase (DATABASE_URL or SUPABASE_URI; no MONGODB_URI)
-./start-services.sh --elasticsearch-local  # local Elasticsearch + default Postgres run state
+./start-services.sh --elasticsearch-local  # local Elasticsearch; run state defaults to local MongoDB unless STORAGE_BACKEND=postgres
 ./start-services.sh --elasticsearch-cloud  # hosted Elasticsearch (ELASTICSEARCH_URL)
 RAG_MONGODB_LOCAL=1 ./start-services.sh  # same as --mongodb-local via env var
 ./start-services.sh mongodb [start|stop|reset|status]  # manage local Atlas container standalone
@@ -72,7 +72,7 @@ Backend switching — the start command and the example config change (a YAML `d
 | Atlas Local | `MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true` |
 | Local pgvector | `STORAGE_BACKEND=postgres` + `DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder` |
 | Hosted Supabase | `STORAGE_BACKEND=postgres` + `DATABASE_URL` (or optional `SUPABASE_URI` alias) — Session-mode pooler |
-| Local Elasticsearch | `./start-services.sh --elasticsearch-local` — `VECTOR_STORE_BACKEND=elasticsearch`, `ELASTICSEARCH_URL=http://elasticsearch-local:9200`; run state defaults to local Postgres |
+| Local Elasticsearch | `./start-services.sh --elasticsearch-local` — `VECTOR_STORE_BACKEND=elasticsearch`, `ELASTICSEARCH_URL=http://elasticsearch-local:9200`; run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres` |
 
 Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md`, `docs/user-guide/mongodb-setup.md`, and `docs/user-guide/postgres-setup.md`.
 
