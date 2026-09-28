@@ -1,0 +1,15 @@
+{
+  "primitive": "run-coverage",
+  "slice_id": "slice-51",
+  "invocation_id": "2523B150-636E-448A-9661-1A3281467B38",
+  "status": "passed",
+  "timestamp": "2026-09-28T00:16:16Z",
+  "input_fingerprint": "054b3e65d3ec82bf03cf8538d7b301aca474a5ef",
+  "evidence": {
+    "coverage_pct": 74.61,
+    "threshold": 70.0,
+    "stack": "python",
+    "report_path": null,
+    "note": "CLAUDE.md fail_under=70. Frontend coverage floors were not remeasured in this invocation; pre-push gates on 054b3e6 exited 0 and include vitest coverage."
+  }
+}
