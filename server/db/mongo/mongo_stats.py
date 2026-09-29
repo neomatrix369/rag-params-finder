@@ -45,12 +45,20 @@ logger = get_logger(__name__)
 
 
 def _mongodb_cluster_hint() -> str | None:
+    """Return the cluster hostname, port stripped, for snapshot/stats display.
+
+    Strips the port to match ``postgres_stats._cluster_host()``'s behaviour
+    and the snapshot spec's "hostname only" requirement (Slice 55).
+    """
     uri = settings.mongodb_uri.strip()
     if not uri:
         return None
     without_scheme = uri.split("://", 1)[-1]
     host_part = without_scheme.split("@")[-1].split("/")[0].split("?")[0]
-    return host_part or None
+    # Strip port — e.g. "cluster.mongodb.net:27017" → "cluster.mongodb.net"
+    # For comma-separated SRV/seed hosts, strip port from each member.
+    hosts = [h.split(":")[0] for h in host_part.split(",") if h.split(":")[0]]
+    return hosts[0] if len(hosts) == 1 else ",".join(hosts) if hosts else None
 
 
 def _mongodb_cluster_storage_mb() -> dict[str, float | str | None]:

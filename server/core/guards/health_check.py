@@ -36,6 +36,16 @@ _POSTGRES_CLOUD_ERROR_REMEDIATION = (
 )
 
 
+def _is_sqlite_backend(backend: str) -> bool:
+    """True when ``backend`` is the SQLite run-state store.
+
+    Uses a direct string comparison (not ``resolve_adapter``) because SQLite is
+    never registered in the vector-store registry — ``resolve_adapter("sqlite")``
+    would raise (Slice 55, ADR-008).
+    """
+    return normalize_storage_backend(backend) == "sqlite"
+
+
 def _is_postgres_backend(backend: str) -> bool:
     """Route the engine decision through the registry — no literal comparison.
 
@@ -58,9 +68,38 @@ def _is_mongodb_backend(backend: str) -> bool:
         return False
 
 
+def sqlite_health_status() -> str:
+    """Return ok or error for the SQLite run-state file.
+
+    Ok when the parent directory is writable (or the file already exists and
+    is readable). No network ping — SQLite is always local (ADR-008).
+    """
+    from pathlib import Path
+
+    db_path = settings.sqlite_db_path.strip() if hasattr(settings, "sqlite_db_path") else ""
+    if not db_path:
+        return "error"
+    path = Path(db_path)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists():
+            # Verify readability
+            path.stat()
+        else:
+            # Verify parent is writable by attempting a touch
+            test = path.parent / ".sqlite_health_probe"
+            test.touch()
+            test.unlink(missing_ok=True)
+        return "ok"
+    except OSError:
+        return "error"
+
+
 def resolve_storage_mode() -> str:
     """Return the four-value storage_mode for the active (run-state) backend + URI."""
-    backend = normalize_storage_backend(settings.storage_backend or "mongodb")
+    backend = normalize_storage_backend(settings.storage_backend or "sqlite")
+    if _is_sqlite_backend(backend):
+        return "sqlite-local"
     if _is_postgres_backend(backend):
         return postgres_storage_mode(settings.database_url or "")
     return mongodb_storage_mode(settings.mongodb_uri or "")
@@ -75,9 +114,11 @@ def _storage_mode_for(backend: str) -> str:
     characterization). Only a genuinely different (split) backend computes
     its mode directly here.
     """
-    run_state_backend = normalize_storage_backend(settings.storage_backend or "mongodb")
+    run_state_backend = normalize_storage_backend(settings.storage_backend or "sqlite")
     if backend == run_state_backend:
         return resolve_storage_mode()
+    if _is_sqlite_backend(backend):
+        return "sqlite-local"
     if _is_postgres_backend(backend):
         return postgres_storage_mode(settings.database_url or "")
     if _is_mongodb_backend(backend):
@@ -147,6 +188,18 @@ def _probe_store(backend: str) -> dict[str, object]:
     (see ``_public_probe``).
     """
     mode = _storage_mode_for(backend)
+    if _is_sqlite_backend(backend):
+        start = time.monotonic()
+        status = sqlite_health_status()
+        ok = status == "ok"
+        return {
+            "provider": "sqlite",
+            "mode": mode,
+            "ok": ok,
+            "latency_ms": int((time.monotonic() - start) * 1000) if ok else None,
+            "_legacy_key": "sqlite",
+            "_legacy_status": status,
+        }
     if _is_postgres_backend(backend):
         start = time.monotonic()
         status = postgres_health_status()
@@ -252,7 +305,7 @@ def storage_health() -> dict[str, object]:
     vector_backend = normalize_storage_backend(
         settings.vector_store_backend or settings.storage_backend
     )
-    run_state_backend = normalize_storage_backend(settings.storage_backend or "mongodb")
+    run_state_backend = normalize_storage_backend(settings.storage_backend or "sqlite")
 
     vector_probe = _probe_store(vector_backend)
     run_state_probe = (

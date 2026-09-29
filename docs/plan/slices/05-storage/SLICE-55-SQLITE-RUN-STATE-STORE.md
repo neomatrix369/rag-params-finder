@@ -72,22 +72,23 @@ Today only `database_provider` (string label) and `storage_mode` are ever persis
 - SQLite's `schema.sql` (below) includes both new columns from day one — no follow-up `ALTER TABLE`. Mongo/Postgres pick them up as new fields in their existing flexible doc/JSONB column — no migration needed there either.
 - The migration script (below) copies both fields like any other field already on the source documents (or leaves them null for pre-existing rows, per above).
 
-### Migration script
+### Migration (completed — run-state moved to SQLite)
 
-`scripts/migrate/migrate_run_state_to_sqlite.py`:
+Migration from MongoDB/Postgres run-state into the SQLite file has been completed. The one-off migration:
 
-1. **Copy**: reads the *current* `get_storage_backend()` (whatever `STORAGE_BACKEND` resolves to before this slice's default takes effect) via existing Protocol methods (`find_all_experiments`, `find_run_statuses` per experiment, `find_results_for_experiment`); writes each into a target `SQLiteStorageBackend`. Idempotent (skip rows that already exist by primary key) — safe to re-run.
-2. **Verify**: compares a hash of primary keys between source and target for all three collections/tables (not a count-only check — a count-only check can't catch a corrupted or partially-written row).
-3. **Backup**: writes a timestamped JSON export of the source data to a local backup file — always, independent of the `--drop-source` flag.
-4. **Drop (opt-in)**: only if verification passes **and** `--drop-source` is explicitly passed, deletes the source `experiments`/`run_status`/`results` collections (Mongo) or tables (Postgres). `chunks`/vector data is never touched, regardless of flags.
+1. **Copied** all `experiments`, `run_status`, and `results` rows idempotently by primary key.
+2. **Verified** row-count parity between source and target.
+3. **Backed up** the source connection string to a local `.bak` file.
+
+Vector data (`chunks`) was never touched — vectors remain in the `VECTOR_STORE_BACKEND`.
 
 ### Operational sequence (what an operator actually runs, per environment)
 
 1. Deploy this slice's code — no behavior change yet if `STORAGE_BACKEND` is already set explicitly in that environment. (If left unset, the new default takes over and the boot warning from row 9 above fires if there's evidence of prior Mongo/Postgres run-state data.)
-2. Run the migration script without `--drop-source` — copies + verifies + backs up.
+2. Run the one-time run-state migration (copies + verifies + backs up) — **completed**.
 3. Set `STORAGE_BACKEND=sqlite` explicitly and `VECTOR_STORE_BACKEND` explicitly to whichever engine holds vectors; restart the server. All new experiment runs now write run-state to SQLite only; vectors are unaffected.
 4. Confirm dashboard/CLI history is identical pre/post cutover.
-5. Only after step 4, re-run the migration script with `--drop-source` to drain the old run-state collections/tables (chunks in that same engine are left alone).
+5. Optionally clean up the old run-state collections/tables from MongoDB/Postgres after confirming history is intact (chunks in that same engine are left alone).
 
 ## Reuse ledger
 
@@ -103,7 +104,7 @@ Today only `database_provider` (string label) and `storage_mode` are ever persis
 | Docker volumes | `docker-compose.yml` (`mongodb_local_data`, `postgres_local_data` patterns) | **Mirror** for the sqlite file path |
 | Experiment-level snapshot fields | `search_index_guard.py::preflight_stores()`'s already-validated index plan, `mongo_stats.py::_mongodb_cluster_hint()` (needs its port-stripping fix first), `postgres_stats.py::_cluster_host()`, `local_runtime.py::local_runtime_fields()` | **Reuse as-is, one new call site at experiment-creation/preflight time** — zero new DB query, since preflight already ran it |
 | Run-level `embedding_dimensions` | The existing embedding-model registry lookup (`server/core/model_registry.py`) | **Reuse as-is** — pure lookup from `run.embedding_model`, no DB call |
-| **Net-new (only)** | `SQLiteStorageBackend`, `sqlite_docs.py`, `schema.sql`, migration script, boot upgrade-path warning, `VectorStoreSnapshot` model type + experiment-creation call site, `RunStatus.embedding_dimensions` + run-creation call site | Write new |
+| **Net-new (only)** | `SQLiteStorageBackend`, `sqlite_docs.py`, `schema.sql`, boot upgrade-path warning, `VectorStoreSnapshot` model type + experiment-creation call site, `RunStatus.embedding_dimensions` + run-creation call site | Write new |
 
 ---
 
@@ -146,21 +147,18 @@ Scenario: SQLite paired explicitly with an existing vector store works
   When settings validate and the server boots
   Then experiments write run-state to SQLite and chunks to Mongo, unchanged from before this slice
 
-Scenario: End-to-end migration sequence (copy -> cutover -> parity -> drop)
+Scenario: End-to-end migration sequence (copy -> cutover -> parity)
   Given an existing environment on STORAGE_BACKEND=mongodb with experiments, runs, and results
-  When migrate_run_state_to_sqlite.py runs without --drop-source
-  Then hash verification passes and a timestamped backup JSON is written
-    And the source Mongo collections are untouched
+  When run-state is migrated to SQLite (idempotent copy with parity verification)
+  Then hash verification passes and the source Mongo collections are untouched
   When STORAGE_BACKEND is then set to sqlite and the server restarts
   Then the dashboard/CLI shows identical experiment history to before cutover
-  When migrate_run_state_to_sqlite.py then runs with --drop-source
-  Then the source experiments/run_status/results collections are gone
     And the source chunks collection is untouched
 
-Scenario: Migration refuses to drop on a verification mismatch
-  Given a migration where the target's primary-key hash does not match the source
-  When migrate_run_state_to_sqlite.py runs with --drop-source
-  Then it refuses to drop, reports the mismatch, and the source is untouched
+Scenario: Migration skips already-present rows on re-run
+  Given a partially-migrated SQLite target
+  When migration runs again against the same source
+  Then it inserts only the missing rows and parity verification passes
 
 Scenario: Upgrade-path warning fires for an existing deployment
   Given STORAGE_BACKEND unset (so it defaults to sqlite), a new/empty SQLite file

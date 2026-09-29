@@ -22,7 +22,10 @@ LOCALHOST_CORS_ORIGIN_REGEX: str = r"^https?://" r"(localhost|127\.0\.0\.1|\[::1
 # Runtime token for MongoDB Atlas / Atlas Local. Legacy env value ``mongo`` is
 # normalized to ``mongodb`` so STORAGE_BACKEND matches database_provider labels.
 _STORAGE_BACKEND_ALIASES: dict[str, str] = {"mongo": "mongodb"}
-_KNOWN_STORAGE_BACKENDS: frozenset[str] = frozenset({"mongodb", "postgres"})
+_KNOWN_STORAGE_BACKENDS: frozenset[str] = frozenset({"mongodb", "postgres", "sqlite"})
+# Run-state-only backends: cannot host vector data; VECTOR_STORE_BACKEND must be
+# set explicitly when one of these is active (Slice 55, ADR-008).
+_RUN_STATE_ONLY_BACKENDS: frozenset[str] = frozenset({"sqlite"})
 # Vector stores additionally allow "elasticsearch" (Slice 50) — it cannot host
 # run state, so it is rejected for STORAGE_BACKEND but accepted for
 # VECTOR_STORE_BACKEND. Pairing rule (ii) (49B) allows that split; the
@@ -126,10 +129,15 @@ class Settings(BaseSettings):
     # MongoDB ping timeout for /healthz (ms). Keep below Docker healthcheck timeout (10s).
     health_check_mongodb_timeout_ms: int = 5000
 
-    # Active storage backend. "mongodb" (default) uses MongoDB Atlas / Atlas Local.
-    # "postgres" uses Supabase (hosted) or a local pgvector container.
+    # Active storage backend. "sqlite" (default, ADR-008) stores run-state in a
+    # local SQLite file; VECTOR_STORE_BACKEND must be set explicitly with sqlite.
+    # "mongodb" uses MongoDB Atlas / Atlas Local. "postgres" uses Supabase / local pgvector.
     # Legacy alias: STORAGE_BACKEND=mongo → normalized to mongodb.
-    storage_backend: str = "mongodb"
+    storage_backend: str = "sqlite"
+
+    # Path for the SQLite run-state database (STORAGE_BACKEND=sqlite).
+    # Created on first boot; parent directory created automatically.
+    sqlite_db_path: str = "./data/run_state.db"
 
     # Active vector store. Defaults to storage_backend when unset (empty string
     # sentinel). Pairing rule (ii) (Slice 49B, DECISIONS #241): a store that
@@ -175,12 +183,12 @@ class Settings(BaseSettings):
             raise ValueError(
                 "STORAGE_BACKEND=elasticsearch is not supported: elasticsearch is "
                 "vector-store-only and cannot host run state. Set STORAGE_BACKEND to "
-                "'mongodb' or 'postgres'."
+                "'mongodb', 'postgres', or 'sqlite'."
             )
         if backend not in _KNOWN_STORAGE_BACKENDS:
             raise ValueError(
                 f"Unknown STORAGE_BACKEND={self.storage_backend!r}. "
-                "Set STORAGE_BACKEND to 'mongodb' or 'postgres' "
+                "Set STORAGE_BACKEND to 'mongodb', 'postgres', or 'sqlite' "
                 "(legacy alias: 'mongo')."
             )
         self.storage_backend = backend
@@ -188,7 +196,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def vector_store_backend_pairing_rule(self) -> Settings:
-        """Default VECTOR_STORE_BACKEND to storage_backend; enforce pairing rule (ii).
+        """Default VECTOR_STORE_BACKEND to storage_backend; enforce pairing rules.
 
         Slice 49B (DECISIONS #241) replaces the 49A equality lock: **if the
         vector store can host run state, VECTOR_STORE_BACKEND must equal
@@ -197,18 +205,39 @@ class Settings(BaseSettings):
         Elasticsearch, Redis, or the test-only ``memory`` provider) may pair
         with either run-state store, because it never has to hold run state
         itself.
+
+        Slice 55 addition: when ``STORAGE_BACKEND`` is a run-state-only backend
+        (e.g. ``sqlite``), ``VECTOR_STORE_BACKEND`` MUST be set explicitly —
+        SQLite cannot default as a vector store.
         """
+        run_state_backend = normalize_storage_backend(self.storage_backend)
         raw = self.vector_store_backend.strip()
-        backend = normalize_storage_backend(raw) if raw else self.storage_backend
+
+        # Run-state-only backends cannot serve as the vector store default.
+        # NOTE: the hard enforcement (raise) lives in ensure_storage_ready() so
+        # that Settings() construction succeeds in test environments that don't
+        # set VECTOR_STORE_BACKEND. Here we just leave it empty — the caller
+        # gets the error at server startup / store access, not at import time.
+        if run_state_backend in _RUN_STATE_ONLY_BACKENDS and not raw:
+            self.vector_store_backend = ""
+            return self
+
+        backend = normalize_storage_backend(raw) if raw else run_state_backend
         if backend not in _KNOWN_VECTOR_STORE_BACKENDS and backend not in known_vector_stores():
             known = ", ".join(sorted(known_vector_stores()))
             raise ValueError(f"Unknown VECTOR_STORE_BACKEND={raw!r}. Known vector stores: {known}.")
-        if _can_host_run_state(backend) and backend != self.storage_backend:
+        # Run-state-only backends (sqlite) legitimately pair with a different
+        # vector store — skip the "must hold both" lock for those.
+        if (
+            _can_host_run_state(backend)
+            and backend != run_state_backend
+            and run_state_backend not in _RUN_STATE_ONLY_BACKENDS
+        ):
             raise ValueError(
-                f"STORAGE_BACKEND={self.storage_backend!r} with "
+                f"STORAGE_BACKEND={run_state_backend!r} with "
                 f"VECTOR_STORE_BACKEND={backend!r} is not supported: {backend} can "
                 "hold run state, so it must hold both. Set "
-                f"VECTOR_STORE_BACKEND={self.storage_backend!r}, or "
+                f"VECTOR_STORE_BACKEND={run_state_backend!r}, or "
                 f"STORAGE_BACKEND={backend!r}."
             )
         self.vector_store_backend = backend
@@ -234,7 +263,17 @@ class Settings(BaseSettings):
         side fails boot. An unreachable-but-configured store does not fail
         boot here (that stays a `/healthz` 503 + preflight 422 concern).
         """
-        self._ensure_backend_uri_present(normalize_storage_backend(self.storage_backend))
+        run_state = normalize_storage_backend(self.storage_backend)
+        # Enforce the run-state-only pairing rule here (not at construction time)
+        # so unit tests can construct Settings() without VECTOR_STORE_BACKEND.
+        if run_state in _RUN_STATE_ONLY_BACKENDS and not self.vector_store_backend.strip():
+            raise ValueError(
+                f"STORAGE_BACKEND={run_state!r} is a run-state-only backend and "
+                "cannot host vector data. Set VECTOR_STORE_BACKEND explicitly to the "
+                "engine that holds your vectors (e.g. VECTOR_STORE_BACKEND=mongodb or "
+                "VECTOR_STORE_BACKEND=elasticsearch)."
+            )
+        self._ensure_backend_uri_present(run_state)
         vector_backend = normalize_storage_backend(
             self.vector_store_backend or self.storage_backend
         )
@@ -261,6 +300,24 @@ class Settings(BaseSettings):
                     "(contains <project-ref>). Replace it with a real Session-mode URI, "
                     "or use ./start-services.sh --postgres-local."
                 )
+        if backend == "sqlite":
+            # SQLite requires no external URI — just a writable path.
+            db_path = self.sqlite_db_path.strip()
+            if not db_path:
+                raise ValueError(
+                    "STORAGE_BACKEND=sqlite requires SQLITE_DB_PATH (or the default "
+                    "'./data/run_state.db'). Set it in .env or the environment."
+                )
+            from pathlib import Path
+
+            parent = Path(db_path).parent
+            try:
+                parent.mkdir(parents=True, exist_ok=True)
+            except OSError as exc:
+                raise ValueError(
+                    f"STORAGE_BACKEND=sqlite: cannot create parent directory for "
+                    f"SQLITE_DB_PATH={db_path!r}: {exc}"
+                ) from exc
         if backend == "elasticsearch" and not self.elasticsearch_url.strip():
             raise ValueError(
                 "VECTOR_STORE_BACKEND=elasticsearch requires ELASTICSEARCH_URL. "
@@ -271,12 +328,15 @@ class Settings(BaseSettings):
         """Label for runs/stats when YAML omits ``database_provider``.
 
         Runtime selection remains ``storage_backend``. This only fills the
-        engine metadata label (``mongodb`` | ``postgres``) — never a product
-        shorthand like ``supabase`` (Slice 37).
+        engine metadata label (``mongodb`` | ``postgres`` | ``sqlite``) — never
+        a product shorthand like ``supabase`` (Slice 37).
         """
-        if normalize_storage_backend(self.storage_backend) != "postgres":
-            return "mongodb"
-        return "postgres"
+        backend = normalize_storage_backend(self.storage_backend)
+        if backend == "postgres":
+            return "postgres"
+        if backend == "sqlite":
+            return "sqlite"
+        return "mongodb"
 
 
 settings = Settings()

@@ -1,12 +1,31 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from server.models.config import DatabaseProvider, RetrieverConfig
 from server.models.enums import ChunkingMethod, Phase, RetrievalMethod
 
 Provider = Literal["local", "voyage", "sie", "kimchi"]
+
+
+class VectorStoreSnapshot(BaseModel):
+    """Immutable snapshot of the vector store's identity at experiment-creation time.
+
+    Captured once (at preflight) and stored on the experiment document. Historical
+    experiments retain the infra identity that was true when they ran, even after
+    the vector store's live configuration changes (Slice 55, ADR-008).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    provider: str
+    storage_mode: str
+    cluster_host: str | None = None
+    collection_name: str | None = None
+    index_names: list[str] = Field(default_factory=list)
+    container: str | None = None
+    image: str | None = None
 
 
 class RunStatus(BaseModel):
@@ -28,3 +47,4 @@ class RunStatus(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     elapsed_ms: int = 0
     error_message: str | None = None
+    embedding_dimensions: int | None = None
