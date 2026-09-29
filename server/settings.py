@@ -226,7 +226,13 @@ class Settings(BaseSettings):
         if backend not in _KNOWN_VECTOR_STORE_BACKENDS and backend not in known_vector_stores():
             known = ", ".join(sorted(known_vector_stores()))
             raise ValueError(f"Unknown VECTOR_STORE_BACKEND={raw!r}. Known vector stores: {known}.")
-        if _can_host_run_state(backend) and backend != run_state_backend:
+        # Run-state-only backends (sqlite) legitimately pair with a different
+        # vector store — skip the "must hold both" lock for those.
+        if (
+            _can_host_run_state(backend)
+            and backend != run_state_backend
+            and run_state_backend not in _RUN_STATE_ONLY_BACKENDS
+        ):
             raise ValueError(
                 f"STORAGE_BACKEND={run_state_backend!r} with "
                 f"VECTOR_STORE_BACKEND={backend!r} is not supported: {backend} can "
