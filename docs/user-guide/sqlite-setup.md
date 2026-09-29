@@ -49,41 +49,6 @@ at startup if it is missing.
 | SQLite (default) | Local pgvector | `VECTOR_STORE_BACKEND=postgres` + `DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder` |
 | SQLite (default) | Elasticsearch | `VECTOR_STORE_BACKEND=elasticsearch` + `ELASTICSEARCH_URL=http://localhost:9200` |
 
-## Migrating from MongoDB or Postgres
-
-If you have existing experiments in MongoDB or Postgres, migrate them to SQLite before switching
-the default so the server can read them:
-
-```bash
-# Dry run — inspect what would be copied (no writes)
-uv run python scripts/migrate/migrate_run_state_to_sqlite.py \
-  --source mongodb \
-  --target ./data/run_state.db
-
-# Execute the migration
-uv run python scripts/migrate/migrate_run_state_to_sqlite.py \
-  --source mongodb \
-  --target ./data/run_state.db \
-  --execute
-
-# Verify parity, then optionally drop the source run-state collections
-# (chunks are NEVER touched — drop-source is opt-in and run-state only)
-uv run python scripts/migrate/migrate_run_state_to_sqlite.py \
-  --source mongodb \
-  --target ./data/run_state.db \
-  --execute \
-  --drop-source
-```
-
-The script:
-- Copies idempotently by primary key (safe to re-run)
-- Verifies row counts and a primary-key hash before any drop
-- Writes a JSON backup of the source data before `--drop-source` runs
-- Never touches `chunks` (vector data stays in the vector store)
-
-If the server boots with a new/empty SQLite file but `MONGODB_URI` or `DATABASE_URL` is configured,
-it logs a warning naming this migration script — check those logs after upgrading.
-
 ## Concurrency and WAL mode
 
 Every SQLite connection opens with `PRAGMA journal_mode=WAL` and `PRAGMA busy_timeout=5000`.
@@ -149,10 +114,6 @@ SQLite cannot store vectors. Set `VECTOR_STORE_BACKEND` to your vector engine in
 The path is unwritable. Change `SQLITE_DB_PATH` to a directory the server process can write, or
 fix filesystem permissions on the parent directory.
 
-**Experiments from before the SQLite migration are missing**
-Run the migration script (see above) and restart the server. The old data is still in
-MongoDB / Postgres and is never deleted without explicit `--drop-source`.
-
-**Dashboard shows old experiments as having no infra snapshot**
-Pre-migration experiments have `vector_store_snapshot: null`. The dashboard renders a graceful
-null state for those fields — this is expected and not an error.
+**Pre-SQLite experiments show no infra snapshot**
+Experiments created before the SQLite migration have `vector_store_snapshot: null`. The dashboard
+renders a graceful null state for those fields — this is expected and not an error.

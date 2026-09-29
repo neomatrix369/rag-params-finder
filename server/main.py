@@ -63,8 +63,8 @@ async def lifespan(app: FastAPI):
         if _sqlite_is_new and _has_source:
             logger.warning(
                 "boot — SQLite run-state file is new/empty but MONGODB_URI / DATABASE_URL "
-                "is configured. If you have existing experiments in MongoDB/Postgres, migrate "
-                "them first: uv run python scripts/migrate/migrate_run_state_to_sqlite.py"
+                "is configured. Existing experiments in MongoDB/Postgres are not visible "
+                "until their run-state data has been copied into the SQLite file."
             )
 
     try:
