@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from server.models.config import DatabaseProvider, RetrieverConfig
 from server.models.enums import ChunkingMethod, Phase, RetrievalMethod
@@ -16,6 +16,8 @@ class VectorStoreSnapshot(BaseModel):
     experiments retain the infra identity that was true when they ran, even after
     the vector store's live configuration changes (Slice 55, ADR-008).
     """
+
+    model_config = ConfigDict(frozen=True)
 
     provider: str
     storage_mode: str
