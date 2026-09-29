@@ -17,6 +17,7 @@ from server.core.aim_logger import AimLogger
 from server.core.chunkers import chunk_text
 from server.core.data_loader import load_all_files
 from server.core.embedding.embedder_factory import get_embedder
+from server.core.model_registry import EMBEDDING_MODELS
 from server.core.pipeline.experiment_control import (
     ExperimentCancelledError,
     ExperimentPausedError,
@@ -856,6 +857,7 @@ def _run_single(
         retriever_summary,
     )
 
+    _model_info = EMBEDDING_MODELS.get(params.embedding_model)
     run_status = RunStatus(
         run_id=run_id,
         experiment_id=experiment_id,
@@ -871,6 +873,7 @@ def _run_single(
         retrieval_method=params.retrieval_method,
         retrieval_provider=params.retrieval_provider,
         retrieval_model=params.retrieval_model,
+        embedding_dimensions=_model_info["dimensions"] if _model_info else None,
     )
     get_storage_backend().insert_run_status(run_status.model_dump())
 

@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -51,6 +52,21 @@ async def lifespan(app: FastAPI):
             "boot — skipping Atlas index bootstrap (storage_backend=%s)",
             settings.storage_backend,
         )
+    # Slice 55: warn when SQLite is new/empty but an older backend still has data.
+    _run_state = normalize_storage_backend(settings.storage_backend)
+    if _run_state == "sqlite":
+        _sqlite_path = Path(settings.sqlite_db_path)
+        _sqlite_is_new = not _sqlite_path.exists() or _sqlite_path.stat().st_size == 0
+        _has_source = bool(settings.mongodb_uri.strip()) or bool(
+            (settings.database_url or settings.supabase_uri).strip()
+        )
+        if _sqlite_is_new and _has_source:
+            logger.warning(
+                "boot — SQLite run-state file is new/empty but MONGODB_URI / DATABASE_URL "
+                "is configured. If you have existing experiments in MongoDB/Postgres, migrate "
+                "them first: uv run python scripts/migrate/migrate_run_state_to_sqlite.py"
+            )
+
     try:
         reconcile_orphaned_experiments()
     except Exception as e:

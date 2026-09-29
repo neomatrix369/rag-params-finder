@@ -42,6 +42,7 @@ from server.core.pipeline.orchestrator import resume_sweep, run_sweep
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
 from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
+from server.db.ports.store_factory import build_vector_store_snapshot
 from server.models.config import ExperimentConfig, expand_sweep
 from server.models.enums import ExperimentStatus, RetrieverType
 from server.utils.log_throttle import info_throttled
@@ -65,7 +66,7 @@ async def create_experiment(config: ExperimentConfig):
     try:
         # Engine match before any catalog/SIE I/O (Slice 37).
         validate_config_backend_match(config)
-        await asyncio.to_thread(validate_experiment_search_indexes, config)
+        assessment = await asyncio.to_thread(validate_experiment_search_indexes, config)
         await asyncio.to_thread(validate_sie_readiness, config)
     except ConfigBackendMismatchError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -82,6 +83,8 @@ async def create_experiment(config: ExperimentConfig):
     metadata = collect_experiment_metadata()
     now = datetime.now(UTC)
     storage_mode = resolve_storage_mode()
+    snapshot_index_names = sorted(assessment.required) if assessment is not None else []
+    vector_store_snapshot = build_vector_store_snapshot(snapshot_index_names)
 
     retrieval_methods_for_summary = [r.type.value for r in config.retrieval.retrievers]
     rerankers = [
@@ -125,6 +128,7 @@ async def create_experiment(config: ExperimentConfig):
             "paddings": config.chunking.params.paddings,
             "retrieval_methods": retrieval_methods_for_summary,
             "retrieval_provider": retrieval_provider_for_summary,
+            "vector_store_snapshot": vector_store_snapshot.model_dump(),
         },
     }
     await asyncio.to_thread(insert_experiment_doc, experiment_doc)

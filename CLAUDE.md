@@ -73,7 +73,7 @@ Backend switching — the start command and the example config change (a YAML `d
 | Local pgvector | `STORAGE_BACKEND=postgres` + `DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder` |
 | Hosted Supabase | `STORAGE_BACKEND=postgres` + `DATABASE_URL` (or optional `SUPABASE_URI` alias) — Session-mode pooler |
 | Local Elasticsearch | `./start-services.sh --elasticsearch-local` — `VECTOR_STORE_BACKEND=elasticsearch`, `ELASTICSEARCH_URL=http://elasticsearch-local:9200`; run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres` |
-| SQLite run-state (📋 PLANNED, Slice 55 / ADR-008) | `STORAGE_BACKEND=sqlite` — single-file, no separate service; will become the new default once Slice 55 ships. `VECTOR_STORE_BACKEND` must be set explicitly alongside it (sqlite is run-state-only, never a vector store). See [`SLICE-55-SQLITE-RUN-STATE-STORE.md`](docs/plan/slices/05-storage/SLICE-55-SQLITE-RUN-STATE-STORE.md) and [`ADR-008`](docs/adr/ADR-008-sqlite-central-run-state-store.md) |
+| SQLite run-state (**default**, ADR-008) | `STORAGE_BACKEND=sqlite` (default) + `VECTOR_STORE_BACKEND` required (mongodb/postgres/elasticsearch). Single-file, no separate service. See [`sqlite-setup.md`](docs/user-guide/sqlite-setup.md), [`SLICE-55`](docs/plan/slices/05-storage/SLICE-55-SQLITE-RUN-STATE-STORE.md), [`ADR-008`](docs/adr/ADR-008-sqlite-central-run-state-store.md) |
 
 Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md`, `docs/user-guide/mongodb-setup.md`, and `docs/user-guide/postgres-setup.md`.
 

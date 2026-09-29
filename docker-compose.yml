@@ -46,6 +46,9 @@ services:
       - ./input_data:/app/input_data:ro
       - ./.aim:/app/.aim
       - hf_cache:/root/.cache/huggingface
+      # SQLite run-state file (STORAGE_BACKEND=sqlite, Slice 55).
+      # Named volume persists the DB across container restarts.
+      - sqlite_run_state:/app/data
     depends_on:
       mongodb-local:
         condition: service_healthy
@@ -213,3 +216,4 @@ volumes:
   mongodb_local_configdb:
   mongodb_local_mongot:
   elasticsearch_local_data:
+  sqlite_run_state:
