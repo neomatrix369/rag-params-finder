@@ -91,7 +91,7 @@ One-command stack for server + dashboard (MongoDB Atlas stays external). The **C
 
 ```bash
 cp .env.example .env
-./start-services.sh              # prod: built frontend + uvicorn (ports 8001, 5374)
+./start-services.sh              # prod: built frontend + uvicorn (defaults 8001, 5374 — auto-bumped if taken)
 ./start-services.sh --force-build # rebuild images even when source unchanged
 ./scripts/docker/health-check.sh        # smoke: /healthz active backend + any local Mongo/Postgres containers + frontend
 
@@ -107,8 +107,8 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 | Port | Service |
 |------|---------|
-| 8001 | FastAPI server |
-| 5374 | React dashboard |
+| 8001 | FastAPI server (default — auto-increments if taken; override: `SERVER_PORT=<n>`) |
+| 5374 | React dashboard (default — auto-increments if taken; override: `FRONTEND_PORT=<n>` or `VITE_PORT=<n>` for `npm run dev`) |
 
 **Profiles:** default = production-like (`vite preview`); `dev` = bind-mounted source + `/api` proxy to `http://server:8001`.
 
