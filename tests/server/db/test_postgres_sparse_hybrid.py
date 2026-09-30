@@ -59,13 +59,9 @@ def _unit_vector(dimensions: int, hot_index: int) -> list[float]:
 
 @pytest.fixture
 def store(live_postgres_pool: None) -> Iterator[PostgresStorageBackend]:
-    from server.settings import settings
-
     reason = postgres_skip_reason()
     if reason is not None:
         pytest.skip(reason)
-
-    settings.database_url = TEST_DATABASE_URL
 
     backend = PostgresStorageBackend()
     postgres.execute("DELETE FROM experiments WHERE experiment_id = %s", (_EXP_ID,))

@@ -19,7 +19,7 @@ _REPO = repo_root_from(Path(__file__))
 _LIB = _REPO / "scripts" / "lib" / "storage_mode.sh"
 
 # Every env var that can steer mode resolution. Cleared before each scenario so a
-# developer's own .env / shell (e.g. an exported SUPABASE_URI) cannot change outcomes.
+# developer's own .env / shell cannot change outcomes.
 _MODE_ENV_KEYS = (
     "RAG_MONGODB_LOCAL",
     "RAG_MONGODB_CLOUD",
@@ -28,6 +28,13 @@ _MODE_ENV_KEYS = (
     "RAG_LOCAL_ATLAS",
     "RAG_LOCAL_POSTGRES",
     "STORAGE_BACKEND",
+    "MONGODB_ATLAS_CLOUD_URI",
+    "MONGODB_ATLAS_LOCAL_URI",
+    "POSTGRES_CLOUD_URL",
+    "POSTGRES_LOCAL_URL",
+    "ELASTICSEARCH_CLOUD_URL",
+    "ELASTICSEARCH_LOCAL_URL",
+    # Legacy — cleared for test isolation; still accepted by apply_postgres_uri_aliases
     "DATABASE_URL",
     "SUPABASE_URI",
     "MONGODB_URI",
@@ -172,9 +179,9 @@ def test_empty_database_url_resolves_postgres_cloud() -> None:
     Scenario: An empty DATABASE_URL is treated as unset, not as a local URI.
     Slice: slice-37-postgres-local-cloud-parity
 
-    Given STORAGE_BACKEND=postgres and DATABASE_URL set to an empty string
+    Given STORAGE_BACKEND=postgres and DATABASE_URL set to an empty string (legacy var)
     When resolve_stack_mode runs with no flags
-    Then the location falls back to cloud rather than matching localhost.
+    Then the location falls back to cloud (empty legacy var is not promoted to POSTGRES_LOCAL_URL).
     """
     ### Given / When
     result = _resolve(env={"STORAGE_BACKEND": "postgres", "DATABASE_URL": ""})
@@ -189,7 +196,7 @@ def test_local_postgres_hints_never_echo_operator_database_url() -> None:
     Scenario: Post-start hints never leak the operator's connection secret.
     Slice: slice-37-postgres-local-cloud-parity
 
-    Given DATABASE_URL holds a hosted URI containing a password
+    Given POSTGRES_CLOUD_URL holds a hosted URI containing a password
     When print_local_postgres_cli_hints renders the operator hints
     Then the password never appears in the output.
     """
@@ -204,7 +211,7 @@ source '{_LIB}'
 source '{_REPO / "scripts" / "lib" / "compose.sh"}'
 print_local_postgres_cli_hints
 """
-    env = _clean_env(DATABASE_URL=hosted_uri, SUPABASE_URI=hosted_uri)
+    env = _clean_env(POSTGRES_CLOUD_URL=hosted_uri)
 
     ### When
     result = subprocess.run(
@@ -296,7 +303,7 @@ def test_bare_start_respects_storage_backend_postgres() -> None:
     Scenario: Bare start resolves from STORAGE_BACKEND=postgres.
     Slice: slice-37-postgres-local-cloud-parity
 
-    Given STORAGE_BACKEND=postgres and a local DATABASE_URL
+    Given STORAGE_BACKEND=postgres and a local POSTGRES_LOCAL_URL
     When resolve_stack_mode runs with no flags
     Then mode is postgres-local and LOCAL_POSTGRES=1.
     """
@@ -304,7 +311,7 @@ def test_bare_start_respects_storage_backend_postgres() -> None:
     result = _resolve(
         env={
             "STORAGE_BACKEND": "postgres",
-            "DATABASE_URL": "postgresql://rag:rag@localhost:5433/rag_params_finder",
+            "POSTGRES_LOCAL_URL": "postgresql://rag:rag@localhost:5433/rag_params_finder",
         }
     )
 
@@ -335,12 +342,12 @@ def test_bare_start_defaults_to_mongodb_cloud() -> None:
 
 def test_ensure_postgres_cloud_requires_database_url_not_mongodb_uri() -> None:
     """
-    Scenario: Hosted postgres ensure_env demands DATABASE_URL only.
+    Scenario: Hosted postgres ensure_env demands POSTGRES_CLOUD_URL only.
     Slice: slice-37-postgres-local-cloud-parity
 
-    Given --postgres-cloud without DATABASE_URL
+    Given --postgres-cloud without POSTGRES_CLOUD_URL
     When ensure_stack_mode_env runs
-    Then it fails mentioning DATABASE_URL and not MONGODB_URI.
+    Then it fails mentioning POSTGRES_CLOUD_URL and not MONGODB_URI / MONGODB_ATLAS_CLOUD_URI.
     """
     ### Given
     script = f"""
@@ -363,18 +370,19 @@ ensure_stack_mode_env
 
     ### Then
     assert result.returncode == 1
-    assert "DATABASE_URL" in result.stderr or "SUPABASE_URI" in result.stderr
+    assert "POSTGRES_CLOUD_URL" in result.stderr
     assert "MONGODB_URI" not in result.stderr
+    assert "MONGODB_ATLAS" not in result.stderr
 
 
 def test_ensure_postgres_cloud_accepts_supabase_uri_alias() -> None:
     """
-    Scenario: SUPABASE_URI satisfies hosted postgres ensure_env when DATABASE_URL unset.
+    Scenario: Legacy SUPABASE_URI is promoted to POSTGRES_CLOUD_URL via apply_postgres_uri_aliases.
     Slice: slice-37-postgres-local-cloud-parity
 
-    Given --postgres-cloud with SUPABASE_URI only
+    Given --postgres-cloud with SUPABASE_URI only (legacy alias)
     When ensure_stack_mode_env runs
-    Then it succeeds and DATABASE_URL is exported from the alias.
+    Then it succeeds and POSTGRES_CLOUD_URL is exported from the alias.
     """
     ### Given
     script = f"""
@@ -382,7 +390,7 @@ set -euo pipefail
 source '{_LIB}'
 resolve_stack_mode --postgres-cloud
 ensure_stack_mode_env
-printf 'database_url=%s\\n' "$DATABASE_URL"
+printf 'postgres_cloud_url=%s\\n' "$POSTGRES_CLOUD_URL"
 """
     env = _clean_env(
         SUPABASE_URI="postgresql://postgres:secret@db.example.supabase.co:5432/postgres"
@@ -400,7 +408,9 @@ printf 'database_url=%s\\n' "$DATABASE_URL"
 
     ### Then
     assert result.returncode == 0, result.stderr
-    expected = "database_url=postgresql://postgres:secret@db.example.supabase.co:5432/postgres"
+    expected = (
+        "postgres_cloud_url=postgresql://postgres:secret@db.example.supabase.co:5432/postgres"
+    )
     assert expected in result.stdout
 
 
@@ -514,9 +524,9 @@ def test_ensure_postgres_cloud_rejects_project_ref_placeholder() -> None:
     Scenario: Placeholder Supabase URI fails closed with a clear remediation.
     Slice: slice-38-cutover-adr-004
 
-    Given --postgres-cloud and DATABASE_URL containing <project-ref>
+    Given --postgres-cloud and POSTGRES_CLOUD_URL containing <project-ref>
     When ensure_stack_mode_env runs
-    Then it exits non-zero and names DATABASE_URL / SUPABASE_URI.
+    Then it exits non-zero and names POSTGRES_CLOUD_URL / POSTGRES_LOCAL_URL.
     """
     ### Given
     placeholder = (
@@ -529,7 +539,7 @@ source '{_LIB}'
 resolve_stack_mode --postgres-cloud
 ensure_stack_mode_env
 """
-    env = _clean_env(DATABASE_URL=placeholder)
+    env = _clean_env(POSTGRES_CLOUD_URL=placeholder)
 
     ### When
     result = subprocess.run(
@@ -544,7 +554,7 @@ ensure_stack_mode_env
     ### Then
     assert result.returncode == 1
     assert "placeholder" in result.stderr.lower() or "<project-ref>" in result.stderr
-    assert "DATABASE_URL" in result.stderr or "SUPABASE_URI" in result.stderr
+    assert "POSTGRES_CLOUD_URL" in result.stderr or "POSTGRES_LOCAL_URL" in result.stderr
 
 
 # Bash 3.2 (macOS /bin/bash) treats "${arr[@]}" on an empty array as unbound under

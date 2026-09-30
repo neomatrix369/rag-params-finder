@@ -57,13 +57,13 @@ async def lifespan(app: FastAPI):
     if _run_state == "sqlite":
         _sqlite_path = Path(settings.sqlite_db_path)
         _sqlite_is_new = not _sqlite_path.exists() or _sqlite_path.stat().st_size == 0
-        _has_source = bool(settings.mongodb_uri.strip()) or bool(
-            (settings.database_url or settings.supabase_uri).strip()
-        )
+        _has_source = bool(settings.mongodb_uri.strip()) or bool(settings.database_url.strip())
         if _sqlite_is_new and _has_source:
             logger.warning(
-                "boot — SQLite run-state file is new/empty but MONGODB_URI / DATABASE_URL "
-                "is configured. Existing experiments in MongoDB/Postgres are not visible "
+                "boot — SQLite run-state file is new/empty but "
+                "MONGODB_ATLAS_CLOUD_URI / MONGODB_ATLAS_LOCAL_URI or "
+                "POSTGRES_CLOUD_URL / POSTGRES_LOCAL_URL is configured. "
+                "Existing experiments in MongoDB/Postgres are not visible "
                 "until their run-state data has been copied into the SQLite file."
             )
 

@@ -93,3 +93,4 @@ frontend/reports/
 node_modules/
 .omc
 data/
+*.bak

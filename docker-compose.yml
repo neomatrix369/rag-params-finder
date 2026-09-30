@@ -19,21 +19,24 @@ services:
     env_file:
       - .env
     environment:
-      # Cloud: MONGODB_URI from .env. Local Atlas: RAG_SERVER_MONGODB_URI set by start-services.sh --mongodb-local
-      MONGODB_URI: ${RAG_SERVER_MONGODB_URI:-${MONGODB_URI}}
+      # MongoDB: cloud URI from .env; local URI injected by start-services.sh --mongodb-local
+      MONGODB_ATLAS_CLOUD_URI: ${MONGODB_ATLAS_CLOUD_URI:-}
+      MONGODB_ATLAS_LOCAL_URI: ${RAG_SERVER_MONGODB_ATLAS_LOCAL_URI:-}
       MONGODB_STORAGE_LIMIT_MB: ${RAG_MONGODB_STORAGE_LIMIT_MB:-${MONGODB_STORAGE_LIMIT_MB:-}}
-      # Code default is mongodb permanently (DECISIONS #130 Won't — no flip to postgres).
-      # Local pgvector: RAG_SERVER_DATABASE_URL set by start-services.sh --postgres-local
-      # Supabase: DATABASE_URL (or SUPABASE_URI alias) from .env (Slice 37)
+      # Postgres: cloud URI (Supabase) or local URI (pgvector) from .env / start-services.sh
       # Mongo modes export STORAGE_BACKEND=mongodb so leftover postgres env cannot stick.
       STORAGE_BACKEND: ${STORAGE_BACKEND:-mongodb}
-      DATABASE_URL: ${RAG_SERVER_DATABASE_URL:-${DATABASE_URL:-}}
+      POSTGRES_CLOUD_URL: ${POSTGRES_CLOUD_URL:-}
+      POSTGRES_LOCAL_URL: ${RAG_SERVER_POSTGRES_LOCAL_URL:-}
       # Empty VECTOR_STORE_BACKEND falls back to STORAGE_BACKEND in settings.
       VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-}
-      ELASTICSEARCH_URL: ${RAG_SERVER_ELASTICSEARCH_URL:-${ELASTICSEARCH_URL:-}}
+      # Elasticsearch: cloud or local URL; local injected by start-services.sh --elasticsearch-local
+      ELASTICSEARCH_CLOUD_URL: ${ELASTICSEARCH_CLOUD_URL:-}
+      ELASTICSEARCH_LOCAL_URL: ${RAG_SERVER_ELASTICSEARCH_LOCAL_URL:-}
       ELASTICSEARCH_API_KEY: ${ELASTICSEARCH_API_KEY:-}
       HF_HOME: ${HF_HOME:-/root/.cache/huggingface}
       # SIE is opt-in — remote gateway preferred (SIE_ENDPOINT + SIE_API_KEY in .env).
+      # SIE_ENDPOINT is a single var (not split); set to remote URL or host.docker.internal for local Docker.
       # Self-hosted Docker fallback: docs/user-guide/sie-setup.md
       SIE_ENABLED: ${SIE_ENABLED:-false}
       SIE_ENDPOINT: ${SIE_ENDPOINT:-http://host.docker.internal:8720}

@@ -357,9 +357,13 @@ class TestStorageHealthShould:
                 "server.core.guards.health_check.resolve_storage_mode",
                 return_value="postgres-local",
             ),
+            patch(
+                "server.db.elasticsearch.elasticsearch_vector_store.settings"
+            ) as mock_es_settings,
         ):
             mock_settings.storage_backend = "postgres"
             mock_settings.vector_store_backend = "elasticsearch"
+            mock_es_settings.elasticsearch_url = ""
             actual = storage_health()
 
         ### Then

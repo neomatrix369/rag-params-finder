@@ -60,7 +60,8 @@ def _require_database_url() -> str:
     uri = settings.database_url.strip()
     if not uri:
         raise ValueError(
-            "DATABASE_URL not set in .env or environment — required when STORAGE_BACKEND=postgres"
+            "POSTGRES_CLOUD_URL or POSTGRES_LOCAL_URL not set in .env or environment"
+            " — required when STORAGE_BACKEND=postgres"
         )
     return uri
 

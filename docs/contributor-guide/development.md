@@ -85,9 +85,9 @@ rag-params-finder run --config configs/mongodb/example-local.yaml
 One-command stack for server + dashboard (MongoDB Atlas stays external). The **CLI runs on the host** at `SERVER_URL=http://localhost:8001` ([ADR-001](../adr/ADR-001-two-process-architecture.md)).
 
 **Prerequisites:** Docker Desktop (or engine + Compose v2), plus either:
-- **Mongo:** `MONGODB_URI` (Atlas cloud) or `./start-services.sh --mongodb-local` — search indexes per [mongodb-setup](../user-guide/mongodb-setup.md)
-- **Postgres:** `STORAGE_BACKEND=postgres` + `DATABASE_URL`, or `./start-services.sh --postgres-local` / `--postgres-cloud` — [postgres-setup](../user-guide/postgres-setup.md)
-- **Elasticsearch:** `./start-services.sh --elasticsearch-local` (run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres`) or `--elasticsearch-cloud` with `ELASTICSEARCH_URL` — [elasticsearch-setup](../user-guide/elasticsearch-setup.md)
+- **Mongo:** `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` (Atlas cloud) or `./start-services.sh --mongodb-local` — search indexes per [mongodb-setup](../user-guide/mongodb-setup.md)
+- **Postgres:** `STORAGE_BACKEND=postgres` + `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL`, or `./start-services.sh --postgres-local` / `--postgres-cloud` — [postgres-setup](../user-guide/postgres-setup.md)
+- **Elasticsearch:** `./start-services.sh --elasticsearch-local` (run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres`) or `--elasticsearch-cloud` with `ELASTICSEARCH_CLOUD_URL` / `ELASTICSEARCH_LOCAL_URL` — [elasticsearch-setup](../user-guide/elasticsearch-setup.md)
 
 ```bash
 cp .env.example .env
@@ -145,7 +145,7 @@ Prefer `scripts/{ci,docker,release,security}/` paths above. Flat `scripts/*.sh` 
 Backend pytest in those scripts is the **unit tier**: it ignores live Mongo/Postgres suites
 (`tests/contract/`, `tests/server/db/test_postgres_*.py`) and uses `-m "not integration"`. Live DB
 coverage runs in the nightly `vector-store-integration` matrix (`nightly.yml`; a skipped leg is not green).
-The unit tier must stay green with `MONGODB_URI` / `DATABASE_URL` unset (as on CI): factory
+The unit tier must stay green with `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` / `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL` unset (as on CI): factory
 tests supply a dummy URI when they exercise `ensure_storage_ready()`, and API detail tests
 must not open a storage backend when run rows are already on the payload.
 

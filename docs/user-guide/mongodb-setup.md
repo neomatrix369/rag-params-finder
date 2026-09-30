@@ -8,7 +8,7 @@
 
 **Essential, minimal steps** to run the example sweep commands on **Atlas Cloud** or **Atlas Local (Docker)**. Official vendor docs are linked; details you can skip are marked *optional*.
 
-> **Naming note:** MongoDB examples live under `configs/mongodb/`. `example-local.yaml` means **local embedding models** (sentence-transformers, 384-dim) — not local MongoDB. Any MongoDB example works on Atlas Cloud or Atlas Local; only `MONGODB_URI` (or `./start-services.sh --mongodb-local`) selects the database. Postgres/pgvector twins (local Docker or Supabase-hosted) live under `configs/supabase/` — same YAML keys, runtime `STORAGE_BACKEND=postgres` — see [Postgres Setup](postgres-setup.md).
+> **Naming note:** MongoDB examples live under `configs/mongodb/`. `example-local.yaml` means **local embedding models** (sentence-transformers, 384-dim) — not local MongoDB. Any MongoDB example works on Atlas Cloud or Atlas Local; only `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` (or `./start-services.sh --mongodb-local`) selects the database. Postgres/pgvector twins (local Docker or Supabase-hosted) live under `configs/supabase/` — same YAML keys, runtime `STORAGE_BACKEND=postgres` — see [Postgres Setup](postgres-setup.md).
 
 ---
 
@@ -57,7 +57,7 @@ Atlas UI → **Create** → **M0 (Free)** → pick region → **Create**.
 
 → [Configure IP Access List](https://www.mongodb.com/docs/atlas/security/ip-access-list/)
 
-### 5. Set `MONGODB_URI`
+### 5. Set `MONGODB_ATLAS_CLOUD_URI` or `MONGODB_ATLAS_LOCAL_URI`
 
 **Database** → **Connect** → **Drivers** → copy SRV string → replace `<password>` → set database to `rag_params_finder`:
 
@@ -68,7 +68,7 @@ mongodb+srv://<user>:<password>@<cluster>.mongodb.net/rag_params_finder?retryWri
 Paste into `.env`:
 
 ```bash
-MONGODB_URI=mongodb+srv://...
+MONGODB_ATLAS_CLOUD_URI=mongodb+srv://...
 ```
 
 → [Connect to Your Cluster](https://www.mongodb.com/docs/atlas/driver-connection/)
@@ -173,7 +173,7 @@ The server connects to `mongodb-local` automatically. All vector and text search
 ### Run a sweep from the host
 
 ```bash
-export MONGODB_URI="mongodb://localhost:27017/rag_params_finder?directConnection=true"
+export MONGODB_ATLAS_LOCAL_URI="mongodb://localhost:27017/rag_params_finder?directConnection=true"
 rag-params-finder run --config configs/mongodb/example-local.yaml
 ```
 
@@ -197,7 +197,7 @@ Use these separate flags as a runbook for local service validation:
 ./start-services.sh mongodb start
 
 # Terminal 2 — server
-export MONGODB_URI="mongodb://localhost:27017/rag_params_finder?directConnection=true"
+export MONGODB_ATLAS_LOCAL_URI="mongodb://localhost:27017/rag_params_finder?directConnection=true"
 uvicorn server.main:app --reload --port 8001
 
 # Terminal 3 — frontend
@@ -248,7 +248,7 @@ Deprecated env alias (still works): `RAG_LOCAL_ATLAS=1` → `--mongodb-local`. T
 
 To use Elasticsearch for vectors and keep Mongo as run state, leave `STORAGE_BACKEND` unset and run `./start-services.sh --elasticsearch-local`. See [Elasticsearch setup](elasticsearch-setup.md).
 
-To switch back to cloud: restore `MONGODB_URI` in `.env` to the `mongodb+srv://...` string and run `./start-services.sh --mongodb-cloud` (or bare start with `STORAGE_BACKEND=mongodb`).
+To switch back to cloud: restore `MONGODB_ATLAS_CLOUD_URI` in `.env` to the `mongodb+srv://...` string and run `./start-services.sh --mongodb-cloud` (or bare start with `STORAGE_BACKEND=mongodb`).
 
 Reset all local data: `docker compose --profile mongodb-local down -v` (alias profile: `local-atlas`).
 
@@ -357,7 +357,7 @@ VOYAGE_TPM_LIMIT=16000000
 ## Run the sweep
 
 ```bash
-cp .env.example .env          # once — then fill MONGODB_URI (+ Voyage vars if needed)
+cp .env.example .env          # once — then fill MONGODB_ATLAS_CLOUD_URI (or MONGODB_ATLAS_LOCAL_URI) — plus Voyage vars if needed
 uvicorn server.main:app --reload --port 8001
 
 # Local embeddings — 120 runs, no API key (needs vector_index_384 + text_search_index on cloud M0)
@@ -381,7 +381,7 @@ Docker stack (optional): `./start-services.sh` (cloud) or `./start-services.sh -
 
 ## Environment variables
 
-`MONGODB_URI` is the Atlas or Atlas Local connection string. `./start-services.sh --mongodb-local` injects the container URI into the server; the host CLI still exports `MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true`.
+`MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` is the Atlas or Atlas Local connection string. `./start-services.sh --mongodb-local` injects the container URI into the server; the host CLI still exports `MONGODB_ATLAS_LOCAL_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true`.
 
 ## Index lifecycle
 

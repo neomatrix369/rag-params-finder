@@ -154,7 +154,7 @@ rag-params-finder indexes list
 curl -sS http://127.0.0.1:8001/healthz | python3 -m json.tool
 ```
 
-`indexes reset` is **Atlas-only** — it does not apply to Postgres. If objects are still missing after a restart, check that `DATABASE_URL` points at the database you expect and that the role may `CREATE EXTENSION` (see [Postgres Setup](postgres-setup.md)).
+`indexes reset` is **Atlas-only** — it does not apply to Postgres. If objects are still missing after a restart, check that `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL` points at the database you expect and that the role may `CREATE EXTENSION` (see [Postgres Setup](postgres-setup.md)).
 
 ---
 
@@ -397,7 +397,7 @@ db.results.deleteMany({experiment_id: exp_id})
 | Cause | Fix |
 |---|---|
 | Docker not running | Start Docker Desktop; verify with `docker info` |
-| Placeholder `.env` | Set real `MONGODB_URI` (not `your_mongodb_atlas_uri_here`); use `NONINTERACTIVE=1` for fail-fast without prompts |
+| Placeholder `.env` | Set real `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` (not `your_mongodb_atlas_uri_here`); use `NONINTERACTIVE=1` for fail-fast without prompts |
 | Port 8001 or 5374 in use | Stop local `uvicorn` / `npm run dev`, or use `./start-services.sh` port-conflict menu |
 | Atlas unreachable from container | Atlas **Network Access** must allow your IP (or `0.0.0.0/0` for dev); check `curl http://localhost:8001/healthz` → `"mongodb": "ok"` |
 | Missing `input_data/` | Create `input_data/pdfs/` and add PDFs referenced in your config YAML |
@@ -427,12 +427,12 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-CO
 |---|---|---|---|
 | `STORAGE_BACKEND` | No | `mongodb` | Run-state adapter: `mongodb` (permanent default — DECISIONS #130 Won't flip; legacy alias `mongo`) or `postgres` (local Docker or Supabase-hosted Postgres) |
 | `VECTOR_STORE_BACKEND` | No | `STORAGE_BACKEND` | Chunk store. Pairing rule (ii): a store that can host run state must equal `STORAGE_BACKEND`. `elasticsearch` is a vector-only store (optional `[elasticsearch]` extra). Docker profiles and the setup guide land in Slice 51. See [configuration.md](configuration.md) |
-| `ELASTICSEARCH_URL` | When `VECTOR_STORE_BACKEND=elasticsearch` | — | Elasticsearch URL. Required at boot when that backend is selected |
+| `ELASTICSEARCH_CLOUD_URL` / `ELASTICSEARCH_LOCAL_URL` | When `VECTOR_STORE_BACKEND=elasticsearch` | — | Elasticsearch URL. Required at boot when that backend is selected |
 | `ELASTICSEARCH_API_KEY` | No | — | Optional Elasticsearch API key for cloud. Server-side only; never logged |
 | `ELASTICSEARCH_INDEX_PREFIX` | No | `rpf` | Chunks index name prefix (`rpf` → `rpf-chunks`) |
-| `MONGODB_URI` | When `STORAGE_BACKEND=mongodb` | — | MongoDB Atlas / Atlas Local connection string |
-| `DATABASE_URL` | When `STORAGE_BACKEND=postgres` | — | Canonical Postgres connection string (local or Supabase-hosted) |
-| `SUPABASE_URI` | No | — | Optional alias for `DATABASE_URL` (used only when `DATABASE_URL` is unset) |
+| `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` | When `STORAGE_BACKEND=mongodb` | — | MongoDB Atlas / Atlas Local connection string |
+| `POSTGRES_CLOUD_URL` | When `STORAGE_BACKEND=postgres` (cloud) | — | Hosted Postgres / Supabase connection string. Cloud wins when both URL vars are set |
+| `POSTGRES_LOCAL_URL` | When `STORAGE_BACKEND=postgres` (local) | — | Local pgvector Docker connection string |
 | `VOYAGE_API_KEY` | No | — | Voyage AI API key (only if using Voyage models) |
 | `SERVER_URL` | No | `http://localhost:8001` | FastAPI server URL (used by CLI) |
 | `VOYAGE_RPM_LIMIT` | No | `3` | Voyage requests-per-minute limit (throttle guard; free-tier default) |
@@ -440,7 +440,7 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-CO
 | `ATLAS_PUBLIC_KEY` | No | — | Atlas Admin API public key — enables cluster tier + storage quota in dashboard |
 | `ATLAS_PRIVATE_KEY` | No | — | Atlas Admin API private key |
 | `ATLAS_GROUP_ID` | No | — | 24-char Atlas **project** ID (from cloud.mongodb.com URL) |
-| `ATLAS_CLUSTER_NAME` | No | *(from URI)* | Cluster name for tier/quota lookup; parsed from `MONGODB_URI` host if omitted |
+| `ATLAS_CLUSTER_NAME` | No | *(from URI)* | Cluster name for tier/quota lookup; parsed from `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` host if omitted |
 | `MONGODB_STORAGE_LIMIT_MB` | No | `0` | Manual cluster quota override (MB). `0` = try Atlas API; omit quota/tier UI if unavailable |
 | `RECOVER_ON_BOOT` | No | `false` | Stored in experiment metadata for the dashboard. **Status reconciliation on boot always runs.** Automatic **retry** of interrupted runs is not implemented yet ([Slice 10](../plan/slices/01-core-pipeline/SLICE-10-RUN-RECOVERY.md)). |
 | `LOG_LEVEL` | No | `INFO` | Logging verbosity (`DEBUG` for verbose output) |
@@ -484,14 +484,14 @@ Use this section when `STORAGE_BACKEND=postgres` (local `./start-services.sh --p
 
 ### Connection refused / pool fails on boot
 
-**Symptom**: server logs `DATABASE_URL not set` or `connection refused` on port 5433.
+**Symptom**: server logs `POSTGRES_CLOUD_URL not set` or `connection refused` on port 5433.
 
-**Cause**: Postgres container not running, wrong port, or `STORAGE_BACKEND=postgres` without `DATABASE_URL`.
+**Cause**: Postgres container not running, wrong port, or `STORAGE_BACKEND=postgres` without `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL`.
 
 **Fix**:
 1. Start local pgvector: `./start-services.sh --postgres-local` (or container-only: `./start-services.sh postgres start`)
 2. Confirm health: `./start-services.sh postgres status` (or `./scripts/docker/health-check.sh`)
-3. Host CLI / native server: `export STORAGE_BACKEND=postgres` and `export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder`
+3. Host CLI / native server: `export STORAGE_BACKEND=postgres` and `export POSTGRES_LOCAL_URL=postgresql://rag:rag@localhost:5433/rag_params_finder`
 4. Confirm `GET http://localhost:8001/healthz` reports `"storage_backend": "postgres"` and postgres status `ok`
 
 ### Missing pgvector extension
@@ -518,7 +518,7 @@ so `schema.sql` re-runs on first pool open.
 
 **Cause**: Schema is applied when the Postgres pool opens (first storage I/O), not during Mongo-style Atlas index bootstrap. If the server never opened a pool against this database, tables are missing.
 
-**Fix**: Hit any storage endpoint (or submit a sweep) after setting `DATABASE_URL`. Or run the live integration tests: `RAG_REQUIRE_POSTGRES=1 pytest tests/server/db/test_postgres_store_integration.py -q`.
+**Fix**: Hit any storage endpoint (or submit a sweep) after setting `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL`. Or run the live integration tests: `RAG_REQUIRE_POSTGRES=1 pytest tests/server/db/test_postgres_store_integration.py -q`.
 
 ---
 

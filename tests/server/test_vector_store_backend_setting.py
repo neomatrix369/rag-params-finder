@@ -73,10 +73,10 @@ class TestVectorStoreBackendDefaultShould:
     @pytest.mark.parametrize(
         "storage_backend, connection_kwargs",
         [
-            ("mongodb", {"mongodb_uri": "mongodb://localhost:27017/db"}),
+            ("mongodb", {"mongodb_atlas_local_uri": "mongodb://localhost:27017/db"}),
             (
                 "postgres",
-                {"database_url": "postgresql://rag:rag@localhost:5433/rag_params_finder"},
+                {"postgres_local_url": "postgresql://rag:rag@localhost:5433/rag_params_finder"},
             ),
         ],
     )
@@ -133,9 +133,9 @@ class TestVectorStoreBackendLockShould:
         """
         ### Given
         connection_kwargs = (
-            {"mongodb_uri": "mongodb://localhost:27017/db"}
+            {"mongodb_atlas_local_uri": "mongodb://localhost:27017/db"}
             if storage_backend == "mongodb"
-            else {"database_url": "postgresql://rag:rag@localhost:5433/rag_params_finder"}
+            else {"postgres_local_url": "postgresql://rag:rag@localhost:5433/rag_params_finder"}
         )
 
         ### When / Then
@@ -162,9 +162,9 @@ class TestVectorStoreBackendLockShould:
         """
         ### Given
         connection_kwargs = (
-            {"mongodb_uri": "mongodb://localhost:27017/db"}
+            {"mongodb_atlas_local_uri": "mongodb://localhost:27017/db"}
             if storage_backend == "mongodb"
-            else {"database_url": "postgresql://rag:rag@localhost:5433/rag_params_finder"}
+            else {"postgres_local_url": "postgresql://rag:rag@localhost:5433/rag_params_finder"}
         )
 
         ### When
@@ -203,9 +203,9 @@ class TestVectorStoreBackendLockShould:
             "tests.helpers.memory_vector_store:MemoryVectorStore",
         )
         connection_kwargs = (
-            {"mongodb_uri": "mongodb://localhost:27017/db"}
+            {"mongodb_atlas_local_uri": "mongodb://localhost:27017/db"}
             if storage_backend == "mongodb"
-            else {"database_url": "postgresql://rag:rag@localhost:5433/rag_params_finder"}
+            else {"postgres_local_url": "postgresql://rag:rag@localhost:5433/rag_params_finder"}
         )
 
         ### When
@@ -268,7 +268,7 @@ class TestUnknownVectorStoreShould:
                 _env_file=None,
                 storage_backend="mongodb",
                 vector_store_backend="unknown",
-                mongodb_uri="mongodb://localhost:27017/db",
+                mongodb_atlas_local_uri="mongodb://localhost:27017/db",
             )
 
         ### Then
@@ -322,21 +322,21 @@ class TestEnsureStorageReadyTwoStoreShould:
         """
         Scenario: Vector store misconfigured.
 
-        Given VECTOR_STORE_BACKEND=elasticsearch and ELASTICSEARCH_URL unset
+        Given VECTOR_STORE_BACKEND=elasticsearch and ELASTICSEARCH_CLOUD_URL unset
               (STORAGE_BACKEND=postgres, configured),
         When ensure_storage_ready() runs (as it does from server lifespan),
-        Then it raises naming ELASTICSEARCH_URL.
+        Then it raises naming ELASTICSEARCH_CLOUD_URL.
         """
         ### Given
         loaded = Settings(
             _env_file=None,
             storage_backend="postgres",
             vector_store_backend="elasticsearch",
-            database_url="postgresql://rag:rag@localhost:5433/rag_params_finder",
+            postgres_local_url="postgresql://rag:rag@localhost:5433/rag_params_finder",
         )
 
         ### When / Then
-        with pytest.raises(ValueError, match="ELASTICSEARCH_URL"):
+        with pytest.raises(ValueError, match="ELASTICSEARCH_CLOUD_URL"):
             loaded.ensure_storage_ready()
 
     def test_given_split_store_with_both_uris_present_when_ensure_ready_then_does_not_raise(
@@ -346,7 +346,7 @@ class TestEnsureStorageReadyTwoStoreShould:
         Scenario: A configured split store passes the boot check.
 
         Given STORAGE_BACKEND=postgres (configured) and
-              VECTOR_STORE_BACKEND=elasticsearch with ELASTICSEARCH_URL set,
+              VECTOR_STORE_BACKEND=elasticsearch with ELASTICSEARCH_CLOUD_URL set,
         When ensure_storage_ready() runs,
         Then it does not raise (reachability is a /healthz + preflight concern,
              not a boot-time one).
@@ -356,8 +356,8 @@ class TestEnsureStorageReadyTwoStoreShould:
             _env_file=None,
             storage_backend="postgres",
             vector_store_backend="elasticsearch",
-            database_url="postgresql://rag:rag@localhost:5433/rag_params_finder",
-            elasticsearch_url="http://localhost:9200",
+            postgres_local_url="postgresql://rag:rag@localhost:5433/rag_params_finder",
+            elasticsearch_local_url="http://localhost:9200",
         )
 
         ### When / Then

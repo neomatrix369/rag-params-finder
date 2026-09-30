@@ -31,7 +31,9 @@ class TestResolveStorageLimitMbShould:
         """
         ### Given / When
         with patch("server.core.atlas_storage.settings.mongodb_storage_limit_mb", 1024.0):
-            with patch("server.core.atlas_storage.settings.mongodb_uri", "mongodb://localhost"):
+            with patch(
+                "server.core.atlas_storage.settings.mongodb_atlas_local_uri", "mongodb://localhost"
+            ):
                 result = resolve_storage_limit_mb()
 
         ### Then
@@ -49,7 +51,8 @@ class TestResolveStorageLimitMbShould:
         ### Given / When
         with patch("server.core.atlas_storage.settings.mongodb_storage_limit_mb", 0):
             with patch(
-                "server.core.atlas_storage.settings.mongodb_uri", "mongodb://localhost:27017"
+                "server.core.atlas_storage.settings.mongodb_atlas_local_uri",
+                "mongodb://localhost:27017",
             ):
                 with patch("server.core.atlas_storage.is_atlas_uri", return_value=False):
                     result = resolve_storage_limit_mb()
@@ -68,7 +71,9 @@ class TestResolveStorageLimitMbShould:
         """
         ### Given / When
         with patch("server.core.atlas_storage.settings.mongodb_storage_limit_mb", 0):
-            with patch("server.core.atlas_storage.settings.mongodb_uri", "mongodb+srv://cloud"):
+            with patch(
+                "server.core.atlas_storage.settings.mongodb_atlas_cloud_uri", "mongodb+srv://cloud"
+            ):
                 with patch("server.core.atlas_storage.is_atlas_uri", return_value=True):
                     with patch("server.core.atlas_storage.settings.atlas_public_key", ""):
                         result = resolve_storage_limit_mb()
@@ -134,7 +139,9 @@ class TestResolveTierSpecsShould:
         """
         ### Given / When
         with patch("server.core.atlas_storage._tier_cache", None):
-            with patch("server.core.atlas_storage.settings.mongodb_uri", "mongodb://localhost"):
+            with patch(
+                "server.core.atlas_storage.settings.mongodb_atlas_local_uri", "mongodb://localhost"
+            ):
                 with patch("server.core.atlas_storage.settings.mongodb_storage_limit_mb", 0):
                     with patch("server.core.atlas_storage.is_atlas_uri", return_value=False):
                         result = resolve_tier_specs()
@@ -153,7 +160,9 @@ class TestResolveTierSpecsShould:
         """
         ### Given / When
         with patch("server.core.atlas_storage._tier_cache", None):
-            with patch("server.core.atlas_storage.settings.mongodb_uri", "mongodb+srv://cloud"):
+            with patch(
+                "server.core.atlas_storage.settings.mongodb_atlas_cloud_uri", "mongodb+srv://cloud"
+            ):
                 with patch("server.core.atlas_storage.settings.mongodb_storage_limit_mb", 0):
                     with patch("server.core.atlas_storage.is_atlas_uri", return_value=True):
                         with patch(
@@ -175,7 +184,9 @@ class TestResolveTierSpecsShould:
         """
         ### Given / When
         with patch("server.core.atlas_storage._tier_cache", None):
-            with patch("server.core.atlas_storage.settings.mongodb_uri", "mongodb+srv://cloud"):
+            with patch(
+                "server.core.atlas_storage.settings.mongodb_atlas_cloud_uri", "mongodb+srv://cloud"
+            ):
                 with patch("server.core.atlas_storage.settings.mongodb_storage_limit_mb", 0):
                     with patch("server.core.atlas_storage.is_atlas_uri", return_value=True):
                         with patch(
@@ -230,7 +241,8 @@ class TestFetchAtlasStorageLimitShould:
                 with patch("server.core.atlas_storage.settings.atlas_public_key", "key"):
                     with patch("server.core.atlas_storage.settings.atlas_private_key", "secret"):
                         with patch(
-                            "server.core.atlas_storage.settings.mongodb_uri", "mongodb+srv://..."
+                            "server.core.atlas_storage.settings.mongodb_atlas_cloud_uri",
+                            "mongodb+srv://...",
                         ):
                             with patch("server.core.atlas_storage.httpx.Client", mock_client_cls):
                                 from server.core.atlas_storage import _fetch_atlas_storage_limit_mb

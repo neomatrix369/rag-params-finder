@@ -120,7 +120,7 @@ def _fetch_atlas_storage_limit_mb() -> float | None:
     )
     if not cluster_name:
         logger.warning(
-            "atlas storage quota skip — cluster name unavailable from MONGODB_URI",
+            "atlas storage quota skip — cluster name unavailable from MONGODB_ATLAS_CLOUD_URI",
         )
         return None
 
@@ -156,7 +156,7 @@ def _fetch_atlas_tier_specs() -> dict[str, str | float | None] | None:
     )
     if not cluster_name:
         logger.warning(
-            "atlas tier specs skip — cluster name unavailable from MONGODB_URI",
+            "atlas tier specs skip — cluster name unavailable from MONGODB_ATLAS_CLOUD_URI",
         )
         return None
 

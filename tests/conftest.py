@@ -41,15 +41,18 @@ def live_postgres_pool() -> Iterator[None]:
         yield
         return
 
-    original_url = settings.database_url
-    settings.database_url = TEST_DATABASE_URL
+    original_cloud = settings.postgres_cloud_url
+    original_local = settings.postgres_local_url
+    settings.postgres_cloud_url = ""
+    settings.postgres_local_url = TEST_DATABASE_URL
     postgres.close_pool()
     postgres.get_pool()
     try:
         yield
     finally:
         postgres.close_pool()
-        settings.database_url = original_url
+        settings.postgres_cloud_url = original_cloud
+        settings.postgres_local_url = original_local
 
 
 @pytest.fixture
@@ -63,7 +66,6 @@ def postgres_storage(live_postgres_pool: None) -> Iterator[object]:
         pytest.skip(reason)
 
     original_backend = settings.storage_backend
-    settings.database_url = TEST_DATABASE_URL
     settings.storage_backend = "postgres"
 
     backend = PostgresStorageBackend()
@@ -85,9 +87,11 @@ def mongo_storage() -> Iterator[object]:
     if reason is not None:
         pytest.skip(reason)
 
-    original_uri = settings.mongodb_uri
+    original_cloud = settings.mongodb_atlas_cloud_uri
+    original_local = settings.mongodb_atlas_local_uri
     original_backend = settings.storage_backend
-    settings.mongodb_uri = TEST_MONGODB_URI
+    settings.mongodb_atlas_cloud_uri = ""
+    settings.mongodb_atlas_local_uri = TEST_MONGODB_URI
     settings.storage_backend = "mongodb"
     reset_mongo_client()
 
@@ -98,7 +102,8 @@ def mongo_storage() -> Iterator[object]:
     finally:
         backend.delete_experiment_data(CONTRACT_EXP_ID)
         reset_mongo_client()
-        settings.mongodb_uri = original_uri
+        settings.mongodb_atlas_cloud_uri = original_cloud
+        settings.mongodb_atlas_local_uri = original_local
         settings.storage_backend = original_backend
 
 

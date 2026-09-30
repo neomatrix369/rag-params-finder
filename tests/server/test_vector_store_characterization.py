@@ -128,7 +128,9 @@ class TestChunkWriteCharacterizationShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "mongodb"),
-            patch("server.settings.settings.mongodb_uri", "mongodb://localhost:27017/db"),
+            patch(
+                "server.settings.settings.mongodb_atlas_local_uri", "mongodb://localhost:27017/db"
+            ),
             patch("server.db.mongo.mongo_store.get_mongo_storage", return_value=mock_storage),
         ):
             get_storage_backend().insert_chunks(docs)
@@ -155,7 +157,7 @@ class TestChunkWriteCharacterizationShould:
             patch("server.settings.settings.storage_backend", "postgres"),
             patch("server.settings.settings.vector_store_backend", "postgres"),
             patch(
-                "server.settings.settings.database_url",
+                "server.settings.settings.postgres_local_url",
                 "postgresql://rag:rag@localhost:5433/rag_params_finder",
             ),
             patch(
@@ -193,7 +195,9 @@ class TestSearchCharacterizationShould:
         with (
             patch("server.settings.settings.storage_backend", "mongodb"),
             patch("server.settings.settings.vector_store_backend", "mongodb"),
-            patch("server.settings.settings.mongodb_uri", "mongodb://localhost:27017/db"),
+            patch(
+                "server.settings.settings.mongodb_atlas_local_uri", "mongodb://localhost:27017/db"
+            ),
             patch(
                 "server.db.mongo.mongo_vector_store.get_mongo_retriever",
                 return_value=mock_retriever,
@@ -285,7 +289,9 @@ class TestChunkDeleteCharacterizationShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "mongodb"),
-            patch("server.settings.settings.mongodb_uri", "mongodb://localhost:27017/db"),
+            patch(
+                "server.settings.settings.mongodb_atlas_local_uri", "mongodb://localhost:27017/db"
+            ),
             patch("server.db.mongo.mongo_store.get_mongo_storage", return_value=mock_storage),
         ):
             actual = get_storage_backend().delete_chunks_for_experiment("exp-1")
@@ -313,7 +319,7 @@ class TestChunkDeleteCharacterizationShould:
             patch("server.settings.settings.storage_backend", "postgres"),
             patch("server.settings.settings.vector_store_backend", "postgres"),
             patch(
-                "server.settings.settings.database_url",
+                "server.settings.settings.postgres_local_url",
                 "postgresql://rag:rag@localhost:5433/rag_params_finder",
             ),
             patch(
@@ -350,7 +356,9 @@ class TestDbStatsCharacterizationShould:
         ### When
         with (
             patch("server.settings.settings.storage_backend", "mongodb"),
-            patch("server.settings.settings.mongodb_uri", "mongodb://localhost:27017/db"),
+            patch(
+                "server.settings.settings.mongodb_atlas_local_uri", "mongodb://localhost:27017/db"
+            ),
             patch("server.db.mongo.mongo_store.get_mongo_storage", return_value=mock_storage),
         ):
             actual = get_storage_backend().get_experiment_db_stats("exp-1")
@@ -379,7 +387,7 @@ class TestDbStatsCharacterizationShould:
             patch("server.settings.settings.storage_backend", "postgres"),
             patch("server.settings.settings.vector_store_backend", "postgres"),
             patch(
-                "server.settings.settings.database_url",
+                "server.settings.settings.postgres_local_url",
                 "postgresql://rag:rag@localhost:5433/rag_params_finder",
             ),
             patch(
@@ -572,23 +580,36 @@ class TestStorageModeCharacterizationShould:
     """
 
     @pytest.mark.parametrize(
-        ("storage_backend", "mongodb_uri", "database_url", "expected_mode"),
+        ("storage_backend", "mongo_cloud", "mongo_local", "pg_cloud", "pg_local", "expected_mode"),
         [
-            ("mongodb", "mongodb+srv://user:pass@cluster.mongodb.net/db", "", "mongodb-cloud"),
             (
                 "mongodb",
+                "mongodb+srv://user:pass@cluster.mongodb.net/db",
+                "",
+                "",
+                "",
+                "mongodb-cloud",
+            ),
+            (
+                "mongodb",
+                "",
                 "mongodb://localhost:27017/db?directConnection=true",
+                "",
                 "",
                 "mongodb-local",
             ),
             (
                 "postgres",
                 "",
+                "",
                 "postgresql://postgres.proj:pw@aws-1.pooler.supabase.com:5432/postgres",
+                "",
                 "postgres-cloud",
             ),
             (
                 "postgres",
+                "",
+                "",
                 "",
                 "postgresql://rag:rag@localhost:5433/rag_params_finder",
                 "postgres-local",
@@ -598,8 +619,10 @@ class TestStorageModeCharacterizationShould:
     def test_given_backend_and_uri_when_storage_mode_resolved_then_matches_golden_value(
         self,
         storage_backend: str,
-        mongodb_uri: str,
-        database_url: str,
+        mongo_cloud: str,
+        mongo_local: str,
+        pg_cloud: str,
+        pg_local: str,
         expected_mode: str,
     ) -> None:
         """
@@ -614,8 +637,10 @@ class TestStorageModeCharacterizationShould:
 
         with (
             patch("server.settings.settings.storage_backend", storage_backend),
-            patch("server.settings.settings.mongodb_uri", mongodb_uri),
-            patch("server.settings.settings.database_url", database_url),
+            patch("server.settings.settings.mongodb_atlas_cloud_uri", mongo_cloud),
+            patch("server.settings.settings.mongodb_atlas_local_uri", mongo_local),
+            patch("server.settings.settings.postgres_cloud_url", pg_cloud),
+            patch("server.settings.settings.postgres_local_url", pg_local),
         ):
             actual = resolve_storage_mode()
 

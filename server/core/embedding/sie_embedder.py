@@ -3,9 +3,10 @@
 Preferred: remote SIE gateway — set SIE_ENDPOINT + SIE_API_KEY in .env (no Docker).
 Fallback: self-hosted Docker on :8720 — see docs/user-guide/sie-setup.md.
 
-Configure via .env (same three vars for remote gateway and local Docker):
+Configure via .env (SIE_ENDPOINT is a single var — same for remote gateway and local Docker):
     SIE_ENABLED=true                              # master on/off
-    SIE_ENDPOINT=https://your-sie-gateway...      # where (or http://localhost:8720 for Docker)
+    SIE_ENDPOINT=https://your-sie-gateway...      # remote gateway URL
+    SIE_ENDPOINT=http://localhost:8720            # OR self-hosted Docker
     SIE_API_KEY=...                               # auth when gateway requires it
 
 Mirrors the interface of local_embedder.py — plain module-level functions so

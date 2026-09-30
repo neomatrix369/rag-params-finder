@@ -47,5 +47,6 @@ def raise_if_unreachable(exc: BaseException, url: str) -> None:
     if is_connection_failure(exc):
         raise ElasticsearchUnreachableError(
             f"Elasticsearch unreachable at {url}. "
-            "Check ELASTICSEARCH_URL and that the service is running."
+            "Check ELASTICSEARCH_CLOUD_URL or ELASTICSEARCH_LOCAL_URL "
+            "and that the service is running."
         ) from exc

@@ -53,13 +53,9 @@ def store(live_postgres_pool: None) -> Iterator[PostgresStorageBackend]:
     Deleting the experiment is enough — the FK cascade takes the children, which
     is also what the cascade test asserts explicitly.
     """
-    from server.settings import settings
-
     reason = postgres_skip_reason()
     if reason is not None:
         pytest.skip(reason)
-
-    settings.database_url = TEST_DATABASE_URL
 
     backend = PostgresStorageBackend()
     postgres.execute("DELETE FROM experiments WHERE experiment_id = %s", (_EXP_ID,))

@@ -19,7 +19,7 @@ backend — Postgres with the `pgvector` extension — instead of MongoDB Atlas.
 | **`database_provider`** | Engine intent only: `mongodb` \| `postgres`. Deprecated YAML input `supabase` **normalizes to `postgres`** (DeprecationWarning). Location (local vs cloud) comes from the URI → `storage_mode`. |
 
 There is **no** `STORAGE_BACKEND=supabase`. Runtime is always
-`STORAGE_BACKEND=postgres` + `DATABASE_URL` (or optional `SUPABASE_URI` alias).
+`STORAGE_BACKEND=postgres` + `POSTGRES_CLOUD_URL` (Supabase / hosted) or `POSTGRES_LOCAL_URL` (local Docker). Cloud wins when both are set.
 See [configuration.md → Engine × Location](configuration.md#-environment-variables-env).
 
 > **Scope today:** storage (schema, CRUD, cascade delete, db-stats) and
@@ -55,8 +55,8 @@ Same backend (`STORAGE_BACKEND=postgres`). Only where Postgres runs changes:
 | Variable | Role | Local Docker | Hosted Supabase |
 |---|---|---|---|
 | `STORAGE_BACKEND` | **Backend selector** — always `postgres` for both paths | `postgres` | `postgres` |
-| `DATABASE_URL` | Canonical Postgres connection string | `postgresql://rag:rag@localhost:5433/rag_params_finder` | Session-mode pooler URI (preferred) |
-| `SUPABASE_URI` | Optional alias for `DATABASE_URL` (used only when `DATABASE_URL` is unset) | — | Same URI as `DATABASE_URL` |
+| `POSTGRES_LOCAL_URL` | Local Docker connection string | `postgresql://rag:rag@localhost:5433/rag_params_finder` | — |
+| `POSTGRES_CLOUD_URL` | Hosted Postgres / Supabase connection string | — | Session-mode pooler URI (preferred). Cloud wins when both URL vars are set |
 | `sslmode` (in URI) | TLS override | Usually unset (TLS off) | Usually unset (TLS on for hosted hosts) |
 
 Submitting a `configs/supabase/*.yaml` file while the server still has
@@ -69,7 +69,7 @@ Use `./start-services.sh --postgres-local` or `--postgres-cloud`, or submit a
 
 | Concern | Mongo (today) | Postgres path (local **or** Supabase) |
 |---|---|---|
-| Connection string | `MONGODB_URI` | `DATABASE_URL` (canonical); optional `SUPABASE_URI` alias — no `POSTGRES_URI` |
+| Connection string | `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` | `POSTGRES_CLOUD_URL` (Supabase) or `POSTGRES_LOCAL_URL` (Docker) — cloud wins when both set |
 | Backend select | Often implicit (`STORAGE_BACKEND` defaults to `mongodb` permanently — #130) | Explicit: `STORAGE_BACKEND=postgres` (or `--postgres-*` flag) |
 | Config folder / YAML engine | `configs/mongodb/` · `database_provider: mongodb` | `configs/supabase/` · `database_provider: postgres` (`supabase` input → normalize) |
 | Runtime backend token | `mongodb` | `postgres` — Supabase is **not** a separate token |
@@ -98,7 +98,7 @@ working untouched.
 
 ```bash
 export STORAGE_BACKEND=postgres
-export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+export POSTGRES_LOCAL_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 ```
 
 ### Native dev (Postgres in Docker, server/frontend on host)
@@ -109,7 +109,7 @@ export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 
 # Terminal 2 — server
 export STORAGE_BACKEND=postgres
-export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+export POSTGRES_LOCAL_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 uvicorn server.main:app --reload --port 8001
 
 # Terminal 3 — frontend
@@ -142,7 +142,7 @@ judging the stack operational.
 | Action | Command |
 |--------|---------|
 | Full stack — local Postgres | `./start-services.sh --postgres-local` |
-| Full stack — hosted Supabase | `./start-services.sh --postgres-cloud` (requires `DATABASE_URL`; no `MONGODB_URI`) |
+| Full stack — hosted Supabase | `./start-services.sh --postgres-cloud` (requires `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL`; no `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI`) |
 | Postgres container only | `./start-services.sh postgres start` |
 | Stop local Postgres | `./start-services.sh postgres stop` |
 | Wipe local data (volume) | `./start-services.sh postgres reset` |
@@ -157,7 +157,7 @@ Deprecated env alias (still works): `RAG_LOCAL_POSTGRES=1` → `--postgres-local
 | From → To | Operator steps |
 |-----------|----------------|
 | Mongo local → Postgres local | `./start-services.sh --postgres-local` + `configs/supabase/example-local.yaml` |
-| Mongo cloud → Postgres cloud | put `DATABASE_URL` in `.env`, `./start-services.sh --postgres-cloud` + `configs/supabase/example-*.yaml` |
+| Mongo cloud → Postgres cloud | put `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL` in `.env`, `./start-services.sh --postgres-cloud` + `configs/supabase/example-*.yaml` |
 | Postgres → Mongo | `--mongodb-local` or `--mongodb-cloud` + matching `configs/mongodb/example-*.yaml` (forces `STORAGE_BACKEND=mongodb` even if `.env` still has a leftover `STORAGE_BACKEND=postgres`) |
 | Postgres local → Postgres cloud | `--postgres-cloud` (same `database_provider: postgres` YAML OK after normalize) |
 
@@ -168,7 +168,7 @@ YAML `database_provider: supabase` still loads but normalizes to `postgres`. A w
 ## Path B — hosted Supabase
 
 Supabase here means **managed Postgres in the cloud** (`storage_mode=postgres-cloud`). The app still uses
-`STORAGE_BACKEND=postgres` and talks Postgres over `DATABASE_URL` — the same
+`STORAGE_BACKEND=postgres` and talks Postgres over `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL` — the same
 adapter as Path A.
 
 ### 1. Create an account
@@ -206,10 +206,7 @@ Your project ref is on **Project Settings → General** (e.g. `wfdtjcbntxssnrull
 
 ```bash
 STORAGE_BACKEND=postgres
-# Canonical:
-DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
-# Or product-named alias (used only when DATABASE_URL is unset):
-# SUPABASE_URI=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+POSTGRES_CLOUD_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
 ```
 
 TLS is applied automatically for hosted Supabase hosts. Override with
@@ -223,7 +220,7 @@ No manual index creation — see [Schema](#schema) below.
 ./start-services.sh --postgres-cloud
 ```
 
-`ensure_env` requires `DATABASE_URL` or `SUPABASE_URI` and does **not** require `MONGODB_URI`. Bare
+`ensure_env` requires `POSTGRES_CLOUD_URL` or `POSTGRES_LOCAL_URL` and does **not** require `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI`. Bare
 `./start-services.sh` with `.env` `STORAGE_BACKEND=postgres` behaves the same.
 
 An unedited placeholder URI (one still containing `<project-ref>`, `<password>`, or `<region>`) is
@@ -235,7 +232,7 @@ or use `--postgres-local` (no cloud URI required).
 
 | Symptom | Likely cause | Action |
 |---------|--------------|--------|
-| "placeholder DATABASE_URL / SUPABASE_URI" on start | Copied `.env.example` URI unedited (`<project-ref>`) | Paste a real Session-mode URI, or use `--postgres-local` |
+| "placeholder POSTGRES_CLOUD_URL / POSTGRES_LOCAL_URL" on start | Copied `.env.example` URI unedited (`<project-ref>`) | Paste a real Session-mode URI, or use `--postgres-local` |
 | Prepared statement errors | Transaction pooler mode | Use **Session mode** URI from the dashboard |
 | Connection timeout on boot | Paused free-tier project | Resume in Supabase UI or upgrade tier; `/healthz` shows `"postgres": "error"` |
 | HNSW query failures | Wrong pooler or missing extension | Session mode + `CREATE EXTENSION vector` in SQL editor |
@@ -247,7 +244,7 @@ grids may be slow or hit plan limits. Check current quotas at
 [Supabase Pricing](https://supabase.com/pricing) before a large hosted sweep.
 
 Hosted Path B smoke is optional when credentials are unavailable — document the
-skip; unit gates for `--postgres-cloud` `ensure_env` (no `MONGODB_URI`) still apply.
+skip; unit gates for `--postgres-cloud` `ensure_env` (no `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI`) still apply.
 
 ---
 
@@ -305,7 +302,7 @@ Supabase: prefer the short config.
 | # | Step | Where |
 |---|---|---|
 | 1 | Postgres backend ready | [Path A](#path-a--local-docker) or [Path B](#path-b--hosted-supabase) |
-| 2 | `STORAGE_BACKEND=postgres` + `DATABASE_URL` | [Environment variables](#environment-variables) |
+| 2 | `STORAGE_BACKEND=postgres` + `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL` | [Environment variables](#environment-variables) |
 | 3 | Server healthy (`postgres: ok`) | [Operational checks](#operational-checks-required) |
 
 No Voyage or SIE account needed for local embeddings.
@@ -329,7 +326,7 @@ Complete the local checklist, then follow
 ```bash
 ./start-services.sh --postgres-local
 export STORAGE_BACKEND=postgres
-export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+export POSTGRES_LOCAL_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 
 # Preferred first prove — 16 runs
 rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
@@ -382,8 +379,8 @@ On a Postgres stack the probe must report `"storage_backend": "postgres"` and
 `STORAGE_BACKEND=postgres`. When Postgres is unreachable on a cloud URI,
 `/healthz` includes a `remediation` hint (resume paused Supabase / Session-mode pooler).
 
-**`DATABASE_URL not set ... required when STORAGE_BACKEND=postgres`**
-Export `DATABASE_URL`, or unset `STORAGE_BACKEND` to fall back to Mongo.
+**`POSTGRES_CLOUD_URL not set ... required when STORAGE_BACKEND=postgres`**
+Export `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL`, or unset `STORAGE_BACKEND` to fall back to Mongo.
 
 **`could not connect to server` on port 5433**
 Container not running or still starting. Check

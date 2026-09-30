@@ -80,22 +80,22 @@ compose_local_elasticsearch_profiles() {
 }
 
 compose_export_local_elasticsearch_env() {
-  export RAG_SERVER_ELASTICSEARCH_URL="$RAG_LOCAL_ELASTICSEARCH_URL_DOCKER"
+  export RAG_SERVER_ELASTICSEARCH_LOCAL_URL="$RAG_LOCAL_ELASTICSEARCH_URL_DOCKER"
   export VECTOR_STORE_BACKEND=elasticsearch
   export SERVER_EXTRAS=elasticsearch
 }
 
 compose_clear_local_elasticsearch_env() {
-  unset RAG_SERVER_ELASTICSEARCH_URL SERVER_EXTRAS
+  unset RAG_SERVER_ELASTICSEARCH_LOCAL_URL SERVER_EXTRAS
 }
 
 compose_export_local_postgres_env() {
-  export RAG_SERVER_DATABASE_URL="$RAG_LOCAL_DATABASE_URL_DOCKER"
+  export RAG_SERVER_POSTGRES_LOCAL_URL="$RAG_LOCAL_DATABASE_URL_DOCKER"
   export STORAGE_BACKEND=postgres
 }
 
 compose_clear_local_postgres_env() {
-  unset RAG_SERVER_DATABASE_URL STORAGE_BACKEND
+  unset RAG_SERVER_POSTGRES_LOCAL_URL STORAGE_BACKEND
 }
 
 print_local_postgres_cli_hints() {
@@ -105,10 +105,10 @@ print_local_postgres_cli_hints() {
   echo ""
   echo "  Connection string (CLI / host server):"
   echo "    export STORAGE_BACKEND=postgres"
-  echo "    export DATABASE_URL=\"$RAG_LOCAL_DATABASE_URL_HOST\""
+  echo "    export POSTGRES_LOCAL_URL=\"$RAG_LOCAL_DATABASE_URL_HOST\""
   echo ""
   echo "  Quick sweep:"
-  echo "    STORAGE_BACKEND=postgres DATABASE_URL=\"$RAG_LOCAL_DATABASE_URL_HOST\" \\"
+  echo "    STORAGE_BACKEND=postgres POSTGRES_LOCAL_URL=\"$RAG_LOCAL_DATABASE_URL_HOST\" \\"
   echo "      rag-params-finder run --config configs/supabase/example-local.yaml"
   if [[ "$include_full_stack" == "1" ]]; then
     echo ""
@@ -121,13 +121,13 @@ print_local_postgres_cli_hints() {
 }
 
 compose_export_local_atlas_env() {
-  export RAG_SERVER_MONGODB_URI="$RAG_LOCAL_MONGODB_URI_DOCKER"
+  export RAG_SERVER_MONGODB_ATLAS_LOCAL_URI="$RAG_LOCAL_MONGODB_URI_DOCKER"
   export RAG_MONGODB_STORAGE_LIMIT_MB=0
   export STORAGE_BACKEND=mongodb
 }
 
 compose_clear_local_atlas_env() {
-  unset RAG_SERVER_MONGODB_URI RAG_MONGODB_STORAGE_LIMIT_MB
+  unset RAG_SERVER_MONGODB_ATLAS_LOCAL_URI RAG_MONGODB_STORAGE_LIMIT_MB
 }
 
 print_local_atlas_cli_hints() {
@@ -136,10 +136,10 @@ print_local_atlas_cli_hints() {
   echo "MongoDB Atlas Local is ready."
   echo ""
   echo "  Connection string (CLI / host server):"
-  echo "    export MONGODB_URI=\"$RAG_LOCAL_MONGODB_URI_HOST\""
+  echo "    export MONGODB_ATLAS_LOCAL_URI=\"$RAG_LOCAL_MONGODB_URI_HOST\""
   echo ""
   echo "  Quick sweep:"
-  echo "    MONGODB_URI=\"$RAG_LOCAL_MONGODB_URI_HOST\" rag-params-finder run --config configs/mongodb/example-local.yaml"
+  echo "    MONGODB_ATLAS_LOCAL_URI=\"$RAG_LOCAL_MONGODB_URI_HOST\" rag-params-finder run --config configs/mongodb/example-local.yaml"
   if [[ "$include_full_stack" == "1" ]]; then
     echo ""
     echo "  Full stack with Atlas Local:"

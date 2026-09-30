@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import field_validator, model_validator
+from pydantic import computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from server.db.ports.registry import known_vector_stores, vector_store_can_host_run_state
@@ -74,7 +74,6 @@ class Settings(BaseSettings):
     )
 
     voyage_api_key: str = ""
-    mongodb_uri: str = ""
     server_url: str = "http://localhost:8001"
     recover_on_boot: bool = False
 
@@ -102,12 +101,14 @@ class Settings(BaseSettings):
     atlas_public_key: str = ""
     atlas_private_key: str = ""
     atlas_group_id: str = ""
-    # Leave blank to derive from MONGODB_URI host (e.g. thesandboxcluster.5uaqybx.mongodb.net).
+    # Leave blank to derive from MONGODB_ATLAS_CLOUD_URI host
+    # (e.g. thesandboxcluster.5uaqybx.mongodb.net).
     atlas_cluster_name: str = ""
 
     # SIE (Superlinked Inference Engine) — opt-in; disabled by default.
     # SIE_ENABLED: master on/off (same for remote gateway and local Docker).
-    # SIE_ENDPOINT: where to connect. SIE_API_KEY: auth when gateway requires it.
+    # SIE_ENDPOINT: where to connect (remote gateway or local Docker — same var for both).
+    # SIE_API_KEY: Bearer auth when gateway requires it (usually unset for local Docker).
     # See docs/user-guide/sie-setup.md.
     sie_enabled: bool = False
     sie_endpoint: str = "http://localhost:8720"
@@ -145,22 +146,50 @@ class Settings(BaseSettings):
     # (e.g. "elasticsearch") may pair with either run-state store.
     vector_store_backend: str = ""
 
-    # Elasticsearch — required URL when VECTOR_STORE_BACKEND=elasticsearch.
+    # Elasticsearch — required when VECTOR_STORE_BACKEND=elasticsearch.
+    # Set one (or both) of the cloud/local vars; cloud wins when both are non-empty.
     # API key is optional (cloud). Index prefix defaults to ``rpf`` → ``rpf-chunks``.
     # Never log elasticsearch_api_key.
-    elasticsearch_url: str = ""
+    elasticsearch_cloud_url: str = ""
+    elasticsearch_local_url: str = ""
     elasticsearch_api_key: str = ""
     elasticsearch_index_prefix: str = "rpf"
 
-    # Postgres connection string — required when STORAGE_BACKEND=postgres.
-    # Hosted Supabase: Settings → Database → Connection string (Session mode pooler).
-    # Local Docker: postgresql://rag:rag@localhost:5433/rag_params_finder
-    database_url: str = ""
-    # Optional alias for DATABASE_URL (hosted Supabase). Prefer DATABASE_URL when both set.
-    supabase_uri: str = ""
+    # MongoDB — required when STORAGE_BACKEND=mongodb or VECTOR_STORE_BACKEND=mongodb.
+    # Set one (or both) of the cloud/local vars; cloud wins when both are non-empty.
+    # Cloud: MONGODB_ATLAS_CLOUD_URI (Atlas connection string, mongodb+srv://...).
+    # Local: MONGODB_ATLAS_LOCAL_URI (Atlas Local Docker, mongodb://localhost:27017/...).
+    mongodb_atlas_cloud_uri: str = ""
+    mongodb_atlas_local_uri: str = ""
+
+    # Postgres — required when STORAGE_BACKEND=postgres.
+    # Set one (or both) of the cloud/local vars; cloud wins when both are non-empty.
+    # Cloud: POSTGRES_CLOUD_URL (Supabase Session-mode pooler URI).
+    # Local: POSTGRES_LOCAL_URL (local pgvector Docker, postgresql://rag:rag@localhost:5433/...).
+    postgres_cloud_url: str = ""
+    postgres_local_url: str = ""
     postgres_pool_max_size: int = 10
     # Seconds to wait for a free pooled connection before failing the request.
     postgres_pool_timeout_s: float = 30.0
+
+    # ── Resolved URLs (computed from cloud/local pairs above) ────────────────────
+    # Internal code uses these property names unchanged; the active env var wins.
+    # Cloud wins when both cloud and local vars are set.
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def mongodb_uri(self) -> str:
+        return self.mongodb_atlas_cloud_uri or self.mongodb_atlas_local_uri
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def database_url(self) -> str:
+        return self.postgres_cloud_url or self.postgres_local_url
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def elasticsearch_url(self) -> str:
+        return self.elasticsearch_cloud_url or self.elasticsearch_local_url
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -243,13 +272,6 @@ class Settings(BaseSettings):
         self.vector_store_backend = backend
         return self
 
-    @model_validator(mode="after")
-    def apply_supabase_uri_alias(self) -> Settings:
-        """Copy SUPABASE_URI into database_url when DATABASE_URL is unset."""
-        if not self.database_url.strip() and self.supabase_uri.strip():
-            self.database_url = self.supabase_uri.strip()
-        return self
-
     def ensure_storage_ready(self) -> None:
         """Raise when either store is missing its required connection URI.
 
@@ -284,19 +306,22 @@ class Settings(BaseSettings):
         """Raise naming the missing/placeholder setting for one engine's URI."""
         if backend == "mongodb" and not self.mongodb_uri.strip():
             raise ValueError(
-                "STORAGE_BACKEND=mongodb requires MONGODB_URI. "
-                "Set it in .env or the environment (Atlas cloud or Atlas Local)."
+                "STORAGE_BACKEND=mongodb requires MONGODB_ATLAS_CLOUD_URI "
+                "or MONGODB_ATLAS_LOCAL_URI. "
+                "Set the cloud URI (Atlas connection string) or the local URI "
+                "(Atlas Local Docker) in .env or the environment."
             )
         if backend == "postgres":
             uri = self.database_url.strip()
             if not uri:
                 raise ValueError(
-                    "STORAGE_BACKEND=postgres requires DATABASE_URL or SUPABASE_URI. "
-                    "Set it in .env (local pgvector or hosted Supabase)."
+                    "STORAGE_BACKEND=postgres requires POSTGRES_CLOUD_URL (Supabase) or "
+                    "POSTGRES_LOCAL_URL (local pgvector). Set one in .env or the environment."
                 )
             if _is_postgres_uri_placeholder(uri):
                 raise ValueError(
-                    "STORAGE_BACKEND=postgres has a placeholder DATABASE_URL / SUPABASE_URI "
+                    "STORAGE_BACKEND=postgres has a placeholder "
+                    "POSTGRES_CLOUD_URL / POSTGRES_LOCAL_URL "
                     "(contains <project-ref>). Replace it with a real Session-mode URI, "
                     "or use ./start-services.sh --postgres-local."
                 )
@@ -320,8 +345,9 @@ class Settings(BaseSettings):
                 ) from exc
         if backend == "elasticsearch" and not self.elasticsearch_url.strip():
             raise ValueError(
-                "VECTOR_STORE_BACKEND=elasticsearch requires ELASTICSEARCH_URL. "
-                "Set it in .env or the environment."
+                "VECTOR_STORE_BACKEND=elasticsearch requires ELASTICSEARCH_CLOUD_URL "
+                "or ELASTICSEARCH_LOCAL_URL. "
+                "Set the cloud URL or local URL in .env or the environment."
             )
 
     def default_database_provider(self) -> str:
@@ -348,10 +374,15 @@ logger.info(
     settings.vector_store_backend,
 )
 logger.debug(
-    "settings detail — mongodb_uri=%s database_url=%s voyage_api_key=%s recover_on_boot=%s "
+    "settings detail — "
+    "mongodb_atlas_cloud_uri=%s mongodb_atlas_local_uri=%s "
+    "postgres_cloud_url=%s postgres_local_url=%s "
+    "voyage_api_key=%s recover_on_boot=%s "
     "cors_origins=%s cors_allow_localhost_origin_regex=%s",
-    "***" if settings.mongodb_uri else "(not set)",
-    "***" if settings.database_url else "(not set)",
+    "***" if settings.mongodb_atlas_cloud_uri else "(not set)",
+    "***" if settings.mongodb_atlas_local_uri else "(not set)",
+    "***" if settings.postgres_cloud_url else "(not set)",
+    "***" if settings.postgres_local_url else "(not set)",
     "***" if settings.voyage_api_key else "(not set)",
     settings.recover_on_boot,
     settings.cors_origins,

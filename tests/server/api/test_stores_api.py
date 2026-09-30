@@ -33,8 +33,12 @@ def test_given_registry_when_catalog_built_then_secrets_are_absent(
     """
     ### Given
     monkeypatch.setattr(settings, "elasticsearch_api_key", "es-secret-key-value")
-    monkeypatch.setattr(settings, "mongodb_uri", "mongodb+srv://user:secretpass@cluster.example")
-    monkeypatch.setattr(settings, "database_url", "postgresql://rag:secretpass@localhost:5433/rag")
+    monkeypatch.setattr(
+        settings, "mongodb_atlas_cloud_uri", "mongodb+srv://user:secretpass@cluster.example"
+    )
+    monkeypatch.setattr(
+        settings, "postgres_cloud_url", "postgresql://rag:secretpass@localhost:5433/rag"
+    )
     monkeypatch.setattr(settings, "vector_store_backend", "elasticsearch")
 
     ### When
