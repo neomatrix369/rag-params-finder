@@ -69,3 +69,8 @@ Full list: [`invariants.md`](invariants.md).
 - **Delta**: Postgres sparse and hybrid OR the `websearch_to_tsquery` lexemes, matching Atlas Search and Elasticsearch `match` any-term behaviour. Atlas Local's healthcheck requires a writable primary, and the compose hostname is the replica-set name for the life of the volume. `--elasticsearch-local` pairs MongoDB run state unless `STORAGE_BACKEND=postgres`.
 - **L1/L2 impact**: no new box. The Postgres retrieval edge now ranks partial question matches.
 - **Data-Flow**: unchanged.
+
+### 2026-09-30 — Slice 52: Redis evaluation spike
+- **Delta**: Docs-only research (no product code). `docs/_internal/REDIS-EVALUATION.md` (6-stream research report: delta map, candidate free-gate verdicts, adoption metrics, PoC transcript, Branch B verdicts, weighted scoring). `docs/_internal/redis-evaluation.html` (self-contained interactive guide with live weight slider). `docs/adr/ADR-007-redis.md` (Proposed: Redis 8 or Valkey as vector-only store, mirrors ADR-006 shape). DECISIONS #272–#273 (GO/NO-GO stubs for Slices 53/54, PENDING owner decision).
+- **L1/L2 impact**: no code box changed. ADR-007 Proposed marks the intent to add Redis as a fourth vector-store option beside Mongo, Postgres, and Elasticsearch. The zero-changes criterion is verified: adding Redis requires only one `DatabaseProvider` token and Docker infra — no routes, sweep logic, UI, or CLI changes.
+- **Data-Flow**: no change. Slice 53 (Branch A GO) will add `VECTOR_STORE_BACKEND=redis` data path alongside the existing three. Branch B (embedding cache) remains Could pending Slice 54.

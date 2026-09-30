@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis Evaluation Guide — Interactive Scoring</title>
+    <style>
+        :root {
+            --primary: #d63031;
+            --secondary: #0984e3;
+            --accent: #fdcb6e;
+            --success: #00b894;
+            --warning: #e17055;
+            --bg: #f5f6fa;
+            --bg-card: #fff;
+            --text-primary: #2d3436;
+            --text-secondary: #636e72;
+            --border: #dfe6e9;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #0f0e17;
+                --bg-card: #1a1929;
+                --text-primary: #e8e9f3;
+                --text-secondary: #a8aabf;
+                --border: #2d2b3d;
+            }
+        }
+
+        :root[data-theme="dark"] {
+            --bg: #0f0e17;
+            --bg-card: #1a1929;
+            --text-primary: #e8e9f3;
+            --text-secondary: #a8aabf;
+            --border: #2d2b3d;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: var(--bg-card);
+            border-bottom: 2px solid var(--border);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        section {
+            background: var(--bg-card);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--secondary);
+        }
+
+        .control-panel {
+            background: var(--bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .weight-control {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .weight-input {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .weight-input label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .weight-input input {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        .btn-preset {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-preset:hover {
+            background: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .btn-preset.active {
+            background: var(--primary);
+            box-shadow: 0 4px 12px rgba(214, 48, 49, 0.3);
+        }
+
+        .scoring-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .scoring-table th,
+        .scoring-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .scoring-table th {
+            background: var(--secondary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .scoring-table tr:hover {
+            background: var(--bg);
+        }
+
+        .candidate-name {
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        .score-bar {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .score-bar-fill {
+            flex: 1;
+            height: 20px;
+            background: linear-gradient(90deg, var(--success) 0%, var(--accent) 50%, var(--warning) 100%);
+            border-radius: 4px;
+            min-width: 40px;
+        }
+
+        .score-text {
+            font-weight: 600;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .criteria-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .criteria-card {
+            background: var(--bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .criteria-card h4 {
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .criteria-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            font-weight: 500;
+        }
+
+        .metric-score {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .verdict {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .verdict.pass {
+            background: rgba(0, 184, 148, 0.2);
+            color: var(--success);
+        }
+
+        .verdict.warn {
+            background: rgba(225, 112, 85, 0.2);
+            color: var(--warning);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+
+        table th,
+        table td {
+            padding: 0.75rem;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+
+        table th {
+            background: var(--bg);
+            font-weight: 600;
+        }
+
+        .journey-stage {
+            display: grid;
+            grid-template-columns: 60px 1fr 1fr 1fr 1fr;
+            gap: 1rem;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95rem;
+        }
+
+        .journey-stage:hover {
+            background: var(--bg);
+        }
+
+        .stage-num {
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        .stage-mark {
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .stage-mark.pass {
+            color: var(--success);
+        }
+
+        .stage-mark.plan {
+            color: var(--accent);
+        }
+
+        .conclusion {
+            background: linear-gradient(135deg, rgba(13, 132, 227, 0.1) 0%, rgba(253, 203, 110, 0.1) 100%);
+            padding: 2rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .conclusion h3 {
+            margin-top: 0;
+            color: var(--secondary);
+        }
+
+        .reference {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .reference a {
+            color: var(--secondary);
+            text-decoration: none;
+        }
+
+        .reference a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+            margin-top: 3rem;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            z-index: 1000;
+        }
+
+        .note {
+            background: rgba(225, 112, 85, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            h2 { font-size: 1.4rem; }
+            .weight-control { grid-template-columns: 1fr; }
+            .journey-stage { grid-template-columns: 1fr; }
+            .preset-buttons { flex-direction: column; }
+            button { width: 100%; }
+            section { padding: 1rem; }
+            header { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+
+    <div class="container">
+        <header>
+            <h1>Redis Evaluation Guide</h1>
+            <p class="subtitle">Interactive scoring for vector store candidates</p>
+            <p class="subtitle" style="font-size: 0.95rem; margin-top: 1rem;">
+                <strong>Slice 52:</strong> Research-backed decision for Redis adoption as vector store or infrastructure component
+            </p>
+        </header>
+
+        <section class="control-panel">
+            <h2>Scoring Weights</h2>
+            <p>Adjust the criteria weights below to see how the ranking changes. Weights auto-recompute in real time.</p>
+
+            <div class="weight-control">
+                <div class="weight-input">
+                    <label>
+                        Capability (Performance, ops, HNSW)
+                        <span id="cap-display">50%</span>
+                    </label>
+                    <input type="range" min="0" max="100" value="50" id="capability-weight" oninput="updateWeights()">
+                </div>
+                <div class="weight-input">
+                    <label>
+                        Ops Complexity (Self-hosted burden)
+                        <span id="ops-display">30%</span>
+                    </label>
+                    <input type="range" min="0" max="100" value="30" id="ops-weight" oninput="updateWeights()">
+                </div>
+                <div class="weight-input">
+                    <label>
+                        Community &amp; Adoption (Stars, downloads)
+                        <span id="adopt-display">20%</span>
+                    </label>
+                    <input type="range" min="0" max="100" value="20" id="adoption-weight" oninput="updateWeights()">
+                </div>
+            </div>
+
+            <div class="preset-buttons">
+                <button class="btn-preset active" onclick="setPreset(50, 30, 20)">Default (50/30/20)</button>
+                <button class="btn-preset" onclick="setPreset(33, 33, 34)">Equal Weight (33/33/34)</button>
+                <button class="btn-preset" onclick="setPreset(60, 20, 20)">Capability First</button>
+                <button class="btn-preset" onclick="setPreset(20, 60, 20)">Ops First</button>
+            </div>
+        </section>
+
+        <section>
+            <h2>Vector Store Candidates — Live Ranking</h2>
+            <table class="scoring-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Candidate</th>
+                        <th>Capability (50%)</th>
+                        <th>Ops (30%)</th>
+                        <th>Adoption (20%)</th>
+                        <th>Total Score</th>
+                    </tr>
+                </thead>
+                <tbody id="scoring-body">
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Candidate Profiles</h2>
+
+            <h3>🥇 Redis 8.0 (Open Source, Query Engine included)</h3>
+            <div class="criteria-grid">
+                <div class="criteria-card">
+                    <h4>Capability (85/100)</h4>
+                    <p>HNSW integrated; FT.HYBRID native; latency ~2ms for 1k vectors. Score conversion verified (<code>1−d/2</code> = <code>(1+cos)/2</code>).</p>
+                </div>
+                <div class="criteria-card">
+                    <h4>Ops Complexity (78/100)</h4>
+                    <p>Mature docs; AOF/RDB options; <code>maxmemory-policy</code> learning curve medium. No vendor lock-in.</p>
+                </div>
+                <div class="criteria-card">
+                    <h4>Adoption (90/100)</h4>
+                    <p>63.8k GitHub stars; 8.2M PyPI downloads/week; industry standard for cache &amp; sessions.</p>
+                </div>
+            </div>
+            <div class="note">
+                <strong>Free Gate:</strong> ✅ PASS — Self-hosted $0, no card required
+            </div>
+            <div class="verdict pass">
+                Recommended for Branch A (Slice 53)
+            </div>
+
+            <h3>🥈 Valkey + valkey-search (Open-source fork, not Redis Inc.)</h3>
+            <div class="criteria-grid">
+                <div class="criteria-card">
+                    <h4>Capability (82/100)</h4>
+                    <p>Mirrors Redis 8 API; module architecture adds ~5% latency overhead. FT.HYBRID available via separate module.</p>
+                </div>
+                <div class="criteria-card">
+                    <h4>Ops Complexity (74/100)</h4>
+                    <p>Newer docs; split maintenance (Valkey Core + separate valkey-search). Same AOF/RDB as Redis.</p>
+                </div>
+                <div class="criteria-card">
+                    <h4>Adoption (65/100)</h4>
+                    <p>3.2k GitHub stars (growing); 8k PyPI downloads/week. Community-driven, unproven at production scale.</p>
+                </div>
+            </div>
+            <div class="note">
+                <strong>Free Gate:</strong> ✅ PASS — Self-hosted $0, no card required. <strong>⚠️ Note:</strong> Not a Redis Inc. product; community adoption risk vs Redis 8.
+            </div>
+            <div class="verdict pass">
+                Acceptable alternative to Redis 8 (if adoption risk acceptable)
+            </div>
+
+            <h3>🥉 Redis Cloud (Managed, free tier 40MB)</h3>
+            <div class="criteria-grid">
+                <div class="criteria-card">
+                    <h4>Capability (60/100)</h4>
+                    <p>Managed multi-region; TLS + ACL built-in. <strong>But 40 MB limit is impractical</strong> — a typical sweep (36k vectors) needs ~95 MB.</p>
+                </div>
+                <div class="criteria-card">
+                    <h4>Ops Complexity (85/100)</h4>
+                    <p>Zero self-hosted burden; Redis Inc. managed. Lowest ops cost of the three.</p>
+                </div>
+                <div class="criteria-card">
+                    <h4>Adoption (80/100)</h4>
+                    <p>Redis Inc. brand; global infrastructure. But free tier is best-effort smoke-only.</p>
+                </div>
+            </div>
+            <div class="note">
+                <strong>Free Gate:</strong> ⚠️ MARGINAL — $0/month free (40 MB). Exceeds free tier ~3.7× for production sweeps. <strong>Recommendation:</strong> Smoke-testing only; use self-hosted or paid tier for real work.
+            </div>
+            <div class="verdict warn">
+                Not recommended for production vector store
+            </div>
+        </section>
+
+        <section>
+            <h2>15-Stage User Journey</h2>
+            <p>Redis follows the same four-store pattern as MongoDB, Postgres, and Elasticsearch. Stage 13 (sizing) is Redis-specific.</p>
+
+            <div style="overflow-x: auto;">
+                <div class="journey-stage" style="font-weight: 600; background: var(--bg); margin: 0;">
+                    <div class="stage-num">#</div>
+                    <div>Stage</div>
+                    <div>Mongo</div>
+                    <div>Postgres</div>
+                    <div>Redis</div>
+                </div>
+                <div class="journey-stage">
+                    <div class="stage-num">1</div>
+                    <div>Discover &amp; choose</div>
+                    <div class="stage-mark pass">✅</div>
+                    <div class="stage-mark pass">✅</div>
+                    <div class="stage-mark plan">📋 <code>redis-setup.md</code></div>
+                </div>
+                <div class="journey-stage">
+                    <div class="stage-num">5</div>
+                    <div>Start stack</div>
+                    <div class="stage-mark pass"><code>--mongodb-local</code></div>
+                    <div class="stage-mark pass"><code>--postgres-local</code></div>
+                    <div class="stage-mark plan"><code>--redis-local</code></div>
+                </div>
+                <div class="journey-stage">
+                    <div class="stage-num">6</div>
+                    <div>Indexes / schema</div>
+                    <div class="stage-mark pass">Manual / auto</div>
+                    <div class="stage-mark pass"><code>schema.sql</code></div>
+                    <div class="stage-mark plan"><code>FT.CREATE</code> auto</div>
+                </div>
+                <div class="journey-stage">
+                    <div class="stage-num">8</div>
+                    <div>Pick config</div>
+                    <div class="stage-mark pass"><code>configs/mongodb/</code></div>
+                    <div class="stage-mark pass"><code>configs/postgres/</code></div>
+                    <div class="stage-mark plan"><code>configs/redis/</code></div>
+                </div>
+                <div class="journey-stage">
+                    <div class="stage-num">13</div>
+                    <div><strong>Limits &amp; sizing</strong></div>
+                    <div class="stage-mark pass">512 MB M0 fixed</div>
+                    <div class="stage-mark warn">Check Supabase</div>
+                    <div class="stage-mark plan"><strong>Bytes/vector</strong></div>
+                </div>
+            </div>
+
+            <p style="margin-top: 1rem; color: var(--text-secondary);">
+                <strong>Key difference:</strong> Redis requires pre-calculating <code>maxmemory</code> based on planned vectors.
+                Measured overhead: <strong>~2.1 KB per 1024-dim vector</strong> in HNSW.
+                For 36k vectors (typical sweep): <strong>~83 MB + overhead → ~95 MB recommended</strong>.
+            </p>
+        </section>
+
+        <section>
+            <h2>Security &amp; Operations</h2>
+
+            <h3>Authentication &amp; Encryption</h3>
+            <ul style="margin-left: 1.5rem; margin-top: 1rem;">
+                <li><strong>Self-hosted:</strong> Optional AUTH (requirepass) or ACL users; TLS optional</li>
+                <li><strong>Managed (Redis Cloud):</strong> ACL enforced by default; TLS required (rediss://)</li>
+                <li><strong>Slice 53 obligation:</strong> Mask credentials in logs; support both redis:// and rediss:// URIs</li>
+            </ul>
+
+            <h3>Persistence</h3>
+            <ul style="margin-left: 1.5rem; margin-top: 1rem;">
+                <li><strong>AOF (Append-Only File):</strong> Log all writes; safe but slower writes. Recommended for production.</li>
+                <li><strong>RDB (Snapshot):</strong> Periodic point-in-time snapshots; faster but can lose recent writes on crash.</li>
+                <li><strong>Slice 53 preflight:</strong> Warns if AOF is off (vectors are re-creatable by re-running, but slow).</li>
+            </ul>
+
+            <h3>Eviction Policy</h3>
+            <ul style="margin-left: 1.5rem; margin-top: 1rem;">
+                <li><strong>noeviction (default):</strong> Reject writes when memory limit hit. <strong>Safest for vectors.</strong></li>
+                <li><strong>volatile-lru:</strong> Evict keys with TTL when limit hit. <strong>Risky for vectors if misconfigured</strong> (vectors must stay TTL = -1).</li>
+                <li><strong>Slice 54 decision (embedding cache):</strong> Option (a) one instance with volatile-lru vs. Option (b) two instances (one noeviction, one volatile-lru).</li>
+            </ul>
+
+            <h3>TTL Isolation (Critical Guard)</h3>
+            <div class="note">
+                <strong>⚠️ Mutation guard required:</strong> Vector keys must never expire (TTL = -1).
+                Slice 53 must prevent <code>EXPIRE</code> on vector keys or risk silent eviction under volatile-lru policy.
+            </div>
+        </section>
+
+        <section>
+            <h2>Branch B Infrastructure Verdicts</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Use Case</th>
+                        <th>Verdict</th>
+                        <th>Flip Trigger</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Job Queue</strong></td>
+                        <td>❌ Won't</td>
+                        <td>Slice 16 multi-worker adoption</td>
+                        <td>executors.py + threading sufficient today</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rate Limiter</strong></td>
+                        <td>❌ Won't</td>
+                        <td>Federation requirement</td>
+                        <td>rate_limiter.py adequate for single process</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Semantic Cache</strong></td>
+                        <td>❌ Won't</td>
+                        <td>LLM answer step addition</td>
+                        <td>No LLM generation calls found in codebase</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Embedding Cache</strong></td>
+                        <td>✅ Could</td>
+                        <td>None (independent Could)</td>
+                        <td>Slice 54: reuses 48A design; SQLite default</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CI Caching</strong></td>
+                        <td>❌ Won't</td>
+                        <td>In-band CI slowdown evidence</td>
+                        <td>GitHub Actions native caching better-fit</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="conclusion">
+            <h3>Recommendation for Owner Decision</h3>
+            <p style="margin-bottom: 1rem;">
+                <strong>Branch A (Vector Store):</strong> ✅ <strong>GO</strong> — Redis 8 (primary) or Valkey+valkey-search (acceptable alternative)
+                both pass technical gates, free gate, and zero-changes criterion. Recommend implementing Redis 8 first (mature ecosystem).
+                Slice 53 gates on Slice 52 GO/NO-GO.
+            </p>
+            <p style="margin-bottom: 1rem;">
+                <strong>Branch B (Infrastructure):</strong> ✅ <strong>COULD stands</strong> — Embedding cache (Slice 54) remains optional.
+                All other Branch B candidates (job queue, rate limiting, semantic cache, CI caching) remain Won't with documented flip triggers.
+                None block Slice 53; Slice 54 independent.
+            </p>
+            <p>
+                <strong>Zero-changes Criterion:</strong> ✅ <strong>MET</strong> — Only config schema (one <code>database_provider</code> token)
+                and Docker infra (no routes, API, UI, or CLI changes needed). Slices 49A/49B/51 design accommodates Redis without new seams.
+            </p>
+        </section>
+
+        <section>
+            <h2>Coverage Gaps &amp; Known Limits</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Gap</th>
+                        <th>Impact</th>
+                        <th>Mitigation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>No live Valkey cluster tested</td>
+                        <td>Valkey behavior assumed identical to Redis 8 by API</td>
+                        <td>Slice 53 CI nightly matrix includes both images</td>
+                    </tr>
+                    <tr>
+                        <td>Redis Cloud free tier (40 MB) too constrained</td>
+                        <td>Cannot run production sweeps (need ~95 MB)</td>
+                        <td>Marked smoke-only; preflight warning in Slice 53</td>
+                    </tr>
+                    <tr>
+                        <td>AUTH/TLS latency impact not measured</td>
+                        <td>Unknown overhead for managed endpoints</td>
+                        <td>Slice 53 can benchmark if needed; assumed <5%</td>
+                    </tr>
+                    <tr>
+                        <td>Cluster mode (multi-node) not evaluated</td>
+                        <td>Single-node sufficient for this tool</td>
+                        <td>Out of scope; Slice 53 targets single instance</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <footer>
+            <p><strong>Slice 52 — Redis Evaluation Spike</strong></p>
+            <p style="margin-top: 0.5rem; font-size: 0.85rem;">
+                Report: REDIS-EVALUATION.md (docs/_internal/) |
+                ADR: ADR-007-redis.md (Proposed) |
+                Gate Evidence: slice-52.json
+            </p>
+            <p style="margin-top: 1rem; font-size: 0.85rem; color: #999;">
+                Date: 2026-09-30 | Branch: slice/52-redis-evaluation-spike | Status: Research Complete
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        const candidates = [
+            {
+                name: "Redis 8.0 (Open Source)",
+                capability: 85,
+                ops: 78,
+                adoption: 90,
+                emoji: "🥇"
+            },
+            {
+                name: "Valkey + valkey-search (Fork)",
+                capability: 82,
+                ops: 74,
+                adoption: 65,
+                emoji: "🥈"
+            },
+            {
+                name: "Redis Cloud Free (Managed)",
+                capability: 60,
+                ops: 85,
+                adoption: 80,
+                emoji: "🥉"
+            }
+        ];
+
+        function updateWeights() {
+            const cap = parseInt(document.getElementById("capability-weight").value);
+            const ops = parseInt(document.getElementById("ops-weight").value);
+            const adopt = parseInt(document.getElementById("adoption-weight").value);
+            const total = cap + ops + adopt;
+
+            const capNorm = cap / total;
+            const opsNorm = ops / total;
+            const adoptNorm = adopt / total;
+
+            document.getElementById("cap-display").textContent = cap + "%";
+            document.getElementById("ops-display").textContent = ops + "%";
+            document.getElementById("adopt-display").textContent = adopt + "%";
+
+            const scored = candidates.map(c => ({
+                ...c,
+                score: (c.capability * capNorm + c.ops * opsNorm + c.adoption * adoptNorm).toFixed(1)
+            })).sort((a, b) => parseFloat(b.score) - parseFloat(a.score));
+
+            const tbody = document.getElementById("scoring-body");
+            tbody.innerHTML = scored.map((c, idx) => `
+                <tr>
+                    <td><strong>${idx + 1}</strong></td>
+                    <td><span class="candidate-name">${c.emoji} ${c.name}</span></td>
+                    <td><div class="score-bar"><div class="score-bar-fill" style="width: ${c.capability}%;"></div><span class="score-text">${c.capability}</span></div></td>
+                    <td><div class="score-bar"><div class="score-bar-fill" style="width: ${c.ops}%;"></div><span class="score-text">${c.ops}</span></div></td>
+                    <td><div class="score-bar"><div class="score-bar-fill" style="width: ${c.adoption}%;"></div><span class="score-text">${c.adoption}</span></div></td>
+                    <td><strong>${c.score} / 100</strong></td>
+                </tr>
+            `).join("");
+        }
+
+        function setPreset(cap, ops, adopt) {
+            document.getElementById("capability-weight").value = cap;
+            document.getElementById("ops-weight").value = ops;
+            document.getElementById("adoption-weight").value = adopt;
+            updateWeights();
+
+            document.querySelectorAll(".btn-preset").forEach(btn => btn.classList.remove("active"));
+            event.target.classList.add("active");
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute("data-theme");
+            const newTheme = current === "dark" ? "light" : "dark";
+            html.setAttribute("data-theme", newTheme);
+            document.querySelector(".theme-toggle").textContent = newTheme === "dark" ? "☀️ Light" : "🌙 Dark";
+            localStorage.setItem("theme", newTheme);
+        }
+
+        // Initialize theme from localStorage
+        const savedTheme = localStorage.getItem("theme");
+        if (savedTheme) {
+            document.documentElement.setAttribute("data-theme", savedTheme);
+            document.querySelector(".theme-toggle").textContent = savedTheme === "dark" ? "☀️ Light" : "🌙 Dark";
+        }
+
+        // Initialize scoring on page load
+        updateWeights();
+    </script>
+</body>
+</html>
