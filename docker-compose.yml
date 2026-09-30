@@ -15,7 +15,7 @@ services:
     image: ${SERVER_IMAGE_NAME:-rag-params-finder-server}
     container_name: ${SERVER_CONTAINER_NAME:-rag-params-finder-server}
     ports:
-      - "8001:8001"
+      - "${SERVER_PORT:-8001}:8001"
     env_file:
       - .env
     environment:
@@ -75,12 +75,12 @@ services:
       context: .
       dockerfile: docker/frontend.Dockerfile
       args:
-        VITE_API_URL: http://localhost:8001
+        VITE_API_URL: "http://localhost:${SERVER_PORT:-8001}"
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
     image: ${FRONTEND_IMAGE_NAME:-rag-params-finder-frontend}
     container_name: ${FRONTEND_CONTAINER_NAME:-rag-params-finder-frontend}
     ports:
-      - "5374:5374"
+      - "${FRONTEND_PORT:-5374}:5374"
     depends_on:
       server:
         condition: service_healthy
@@ -102,7 +102,7 @@ services:
       server:
         condition: service_started
     ports:
-      - "43800:43800"
+      - "${AIM_UI_PORT:-43800}:43800"
     volumes:
       - ./.aim:/app/.aim
     working_dir: /app
@@ -146,7 +146,7 @@ services:
     # as RSGhost: ping succeeds, but reads return NotPrimary.
     hostname: ${MONGODB_LOCAL_HOSTNAME:-mongodb-local}
     ports:
-      - "27017:27017"
+      - "${MONGODB_PORT:-27017}:27017"
     # All three paths must be named volumes — mounting only /data/db loses the
     # replica-set keyfile in /data/configdb on restart (Unable to acquire security key[s]).
     volumes:
@@ -172,7 +172,7 @@ services:
     image: pgvector/pgvector:0.8.5-pg16
     container_name: ${POSTGRES_LOCAL_CONTAINER_NAME:-rag-params-finder-postgres-local}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-rag}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag}
@@ -201,7 +201,7 @@ services:
       ES_JAVA_OPTS: "-Xms1g -Xmx1g"
       cluster.name: rag-params-finder
     ports:
-      - "127.0.0.1:9200:9200"
+      - "127.0.0.1:${ELASTICSEARCH_PORT:-9200}:9200"
     volumes:
       - elasticsearch_local_data:/usr/share/elasticsearch/data
     restart: unless-stopped
