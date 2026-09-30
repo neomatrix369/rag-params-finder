@@ -243,7 +243,7 @@ class TestResolveAdapterMechanismShould:
         probe = (
             "import os, sys; "
             "os.environ['STORAGE_BACKEND'] = 'mongodb'; "
-            "os.environ['MONGODB_URI'] = 'mongodb://localhost:27017/test'; "
+            "os.environ['MONGODB_ATLAS_LOCAL_URI'] = 'mongodb://localhost:27017/test'; "
             "from server.db.ports.store_factory import get_vector_store; "
             "get_vector_store(); "
             "loaded = sorted(m for m in sys.modules if 'psycopg' in m or 'elasticsearch' in m); "
@@ -288,7 +288,7 @@ class TestResolveAdapterMechanismShould:
         probe = (
             "import os, sys; "
             "os.environ['STORAGE_BACKEND'] = 'postgres'; "
-            "os.environ['DATABASE_URL'] = 'postgresql://user:pass@localhost:5432/test'; "
+            "os.environ['POSTGRES_LOCAL_URL'] = 'postgresql://user:pass@localhost:5432/test'; "
             "from server.db.ports.registry import resolve_adapter; "
             "resolve_adapter('postgres'); "
             "loaded = sorted(m for m in sys.modules if 'pymongo' in m); "
@@ -331,7 +331,7 @@ class TestResolveAdapterMechanismShould:
         probe = (
             "import os, sys; "
             "os.environ['STORAGE_BACKEND'] = 'postgres'; "
-            "os.environ['DATABASE_URL'] = 'postgresql://user:pass@localhost:5432/test'; "
+            "os.environ['POSTGRES_LOCAL_URL'] = 'postgresql://user:pass@localhost:5432/test'; "
             "from server.db.ports.store_factory import get_vector_store; "
             "get_vector_store(); "
             "loaded = sorted(m for m in sys.modules if 'pymongo' in m); "
