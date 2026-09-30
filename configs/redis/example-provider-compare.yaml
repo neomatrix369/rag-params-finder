@@ -1,0 +1,51 @@
+# Redis — compare multiple providers in one experiment
+#
+# Mixed-provider axis (Slice 48A S1): one sweep compares different providers.
+# When `embedding.provider` is omitted, each model's provider is derived from
+# the registry. This config compares:
+#   - all-MiniLM-L6-v2 (local, 384-dim, no API key)
+#   - Qwen/Qwen3-Embedding-8B (doubleword, 1024-dim, requires DOUBLEWORD_API_KEY)
+#
+# Result: 2 embedding models × 1 chunking method × 1 chunk size × 1 overlap
+#         × 1 retriever = 2 runs. Local runs complete immediately;
+#         DoubleWord run waits for batch completion (watcher polls).
+#
+# Prerequisites:
+#   - ./start-services.sh --mongodb-local
+#   - DOUBLEWORD_API_KEY in .env (for Qwen3)
+#   - Optional: .rpf_cache/ and .rpf_state/ mounted for restart safety
+
+experiment_name: provider-comparison
+
+data_paths:
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+
+queries_file: ./configs/questions.example.json
+
+database_provider: redis
+
+embedding:
+  # provider omitted — each model's provider is looked up in the registry:
+  #   all-MiniLM-L6-v2 → local
+  #   Qwen/Qwen3-Embedding-8B → doubleword
+  models:
+    - all-MiniLM-L6-v2            # 384-dim, local (no API key)
+    - Qwen/Qwen3-Embedding-8B    # 1024-dim, doubleword (requires DOUBLEWORD_API_KEY)
+
+chunking:
+  methods:
+    - fixed
+  params:
+    chunk_sizes: [512]
+    overlaps: [0]
+    paddings: [0]
+
+retrieval:
+  top_k_initial: 20
+  top_k_final: 5
+  retrievers:
+    - type: dense
+
+execution:
+  parallelism: 1
+  on_error: continue
