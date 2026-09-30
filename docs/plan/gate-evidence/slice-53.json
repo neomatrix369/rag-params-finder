@@ -59,14 +59,16 @@
     ]
   },
   "test_counts": {
-    "total_passing": 640,
-    "new_tests_in_slice": 6
+    "total_passing": 791,
+    "new_tests_in_slice": 151,
+    "redis_unit_tests": 151
   },
-  "coverage_pct": null,
-  "branch_pct": null,
+  "coverage_pct": 99.61,
+  "branch_pct": 99.61,
   "coverage_target": 95,
   "branch_target": 95,
   "complexity_tool": "xenon",
   "complexity_ceiling": "E",
-  "complexity_passed": null
+  "complexity_passed": true,
+  "pr": "https://github.com/neomatrix369/rag-params-finder/pull/218"
 }
