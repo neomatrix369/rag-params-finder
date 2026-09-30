@@ -337,83 +337,71 @@ fi
 apply_stack_profiles
 echo "Resolved storage_mode=${STACK_STORAGE_MODE}"
 
-check_ports() {
-  # Ports are chosen to avoid common conflicts:
-  #   8001 — backend  (uncommon; not a standard framework default)
-  #   5374 — frontend (avoids 5173 which is Vite's own default, shared by every Vite project)
-  #   8720 — SIE      (avoids 8080 used by Jenkins, Tomcat, Hadoop, Spark, etc.)
-  #   27017 — MongoDB (local Atlas only)
-  #   5433  — Postgres (local pgvector only; 5432 left free for a developer's own Postgres)
-  local ports=(8001 5374)
-  if [[ "$LOCAL_ATLAS" == "1" ]]; then
-    ports+=(27017)
-  fi
-  if [[ "$LOCAL_POSTGRES" == "1" ]]; then
-    ports+=(5433)
-  fi
-  if [[ "$LOCAL_ELASTICSEARCH" == "1" ]]; then
-    ports+=(9200)
-  fi
-  local conflicts=()
-  for port in "${ports[@]}"; do
-    if lsof -ti:"$port" >/dev/null 2>&1; then
-      # Re-use an already-running Atlas Local container (e.g. after mongodb start)
-      if [[ "$port" == "27017" ]] && docker inspect --format='{{.State.Status}}' "$RAG_MONGODB_LOCAL_CONTAINER" 2>/dev/null | grep -q running; then
-        continue
-      fi
-      if [[ "$port" == "5433" ]] && docker inspect --format='{{.State.Status}}' "$RAG_POSTGRES_LOCAL_CONTAINER" 2>/dev/null | grep -q running; then
-        continue
-      fi
-      if [[ "$port" == "9200" ]] && docker inspect --format='{{.State.Status}}' "$RAG_ELASTICSEARCH_LOCAL_CONTAINER" 2>/dev/null | grep -q running; then
-        continue
-      fi
-      conflicts+=("$port")
+# Scan upward from $1 until a free port is found.
+# If $2 (container name) is provided and is currently running on that port, reuse it.
+# Ports 8001/5374 are chosen to avoid common conflicts:
+#   8001 — backend  (uncommon; not a standard framework default)
+#   5374 — frontend (avoids 5173 which is Vite's own default, shared by every Vite project)
+#   8720 — SIE      (avoids 8080 used by Jenkins, Tomcat, Hadoop, Spark, etc.)
+#   27017 — MongoDB (local Atlas only)
+#   5433  — Postgres (local pgvector only; 5432 left free for a developer's own Postgres)
+_resolve_one_port() {
+  local desired=$1
+  local own_container="${2:-}"
+  local port=$desired
+  local max=20
+  local i=0
+  while lsof -ti:"$port" >/dev/null 2>&1; do
+    # Our own container already holds this port — safe to reuse without incrementing
+    if [[ -n "$own_container" ]] && \
+       docker inspect --format='{{.State.Status}}' "$own_container" 2>/dev/null | grep -q running; then
+      break
+    fi
+    ((port++)) || true
+    ((i++)) || true
+    if [[ $i -ge $max ]]; then
+      echo "ERROR: no free port found starting from $desired (tried $max consecutive ports)" >&2
+      exit 1
     fi
   done
-  if [[ ${#conflicts[@]} -eq 0 ]]; then
-    return 0
+  echo "$port"
+}
+
+resolve_ports() {
+  SERVER_PORT=$(_resolve_one_port 8001 "${SERVER_CONTAINER_NAME:-rag-params-finder-server}")
+  FRONTEND_PORT=$(_resolve_one_port 5374 "${FRONTEND_CONTAINER_NAME:-rag-params-finder-frontend}")
+
+  if [[ "$LOCAL_ATLAS" == "1" ]]; then
+    MONGODB_PORT=$(_resolve_one_port 27017 "$RAG_MONGODB_LOCAL_CONTAINER")
+  else
+    MONGODB_PORT=27017
   fi
-  echo "Port conflict on: ${conflicts[*]}"
-  if [[ "${NONINTERACTIVE:-}" == "1" ]]; then
-    if [[ " ${conflicts[*]} " == *" 27017 "* ]]; then
-      echo "Port 27017 may be held by another MongoDB or a stale rag-params-finder container." >&2
-      echo "  ./start-services.sh mongodb status" >&2
-      echo "  ./start-services.sh mongodb reset   # wipe and recreate local Atlas volumes" >&2
-    fi
-    if [[ " ${conflicts[*]} " == *" 5433 "* ]]; then
-      echo "Port 5433 may be held by another Postgres or a stale rag-params-finder container." >&2
-      echo "  ./start-services.sh postgres status" >&2
-      echo "  ./start-services.sh postgres reset   # wipe and recreate local pgvector volume" >&2
-    fi
-    echo "Stop processes on those ports or set NONINTERACTIVE=0 for interactive menu." >&2
-    exit 1
+  if [[ "$LOCAL_POSTGRES" == "1" ]]; then
+    POSTGRES_PORT=$(_resolve_one_port 5433 "$RAG_POSTGRES_LOCAL_CONTAINER")
+  else
+    POSTGRES_PORT=5433
   fi
-  echo "1) Try to free ports (kill listeners)  2) Exit"
-  read -r -p "Choice [1/2]: " choice
-  case "$choice" in
-    1)
-      # First try a clean docker compose down — avoids killing Docker's own port proxies on macOS
-      if "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" down 2>/dev/null; then
-        echo "Stopped existing containers."
-      fi
-      # Kill any remaining non-Docker processes still holding the ports
-      for port in "${conflicts[@]}"; do
-        if lsof -ti:"$port" >/dev/null 2>&1; then
-          lsof -ti:"$port" | xargs kill -9 2>/dev/null || true
-        fi
-      done
-      ;;
-    *)
-      exit 1
-      ;;
-  esac
+  if [[ "$LOCAL_ELASTICSEARCH" == "1" ]]; then
+    ELASTICSEARCH_PORT=$(_resolve_one_port 9200 "$RAG_ELASTICSEARCH_LOCAL_CONTAINER")
+  else
+    ELASTICSEARCH_PORT=9200
+  fi
+
+  export SERVER_PORT FRONTEND_PORT MONGODB_PORT POSTGRES_PORT ELASTICSEARCH_PORT
+
+  # Announce any bumps so the operator knows what changed
+  [[ "$SERVER_PORT"        != "8001"  ]] && echo "Port 8001 in use — server will bind on $SERVER_PORT"
+  [[ "$FRONTEND_PORT"      != "5374"  ]] && echo "Port 5374 in use — frontend will bind on $FRONTEND_PORT"
+  [[ "$LOCAL_ATLAS"  == "1" && "$MONGODB_PORT"       != "27017" ]] && echo "Port 27017 in use — MongoDB will bind on $MONGODB_PORT"
+  [[ "$LOCAL_POSTGRES" == "1" && "$POSTGRES_PORT"    != "5433"  ]] && echo "Port 5433 in use — Postgres will bind on $POSTGRES_PORT"
+  [[ "$LOCAL_ELASTICSEARCH" == "1" && "$ELASTICSEARCH_PORT" != "9200" ]] && echo "Port 9200 in use — Elasticsearch will bind on $ELASTICSEARCH_PORT"
 }
 
 print_unhealthy_server_hint() {
   echo ""
   echo "Server did not become healthy (frontend waits on server healthcheck)."
   echo "Diagnose:"
-  echo "  curl -s http://localhost:8001/healthz"
+  echo "  curl -s http://localhost:${SERVER_PORT:-8001}/healthz"
   echo "  docker logs rag-params-finder-server 2>&1 | tail -30"
   echo ""
   if [[ "$LOCAL_POSTGRES" == "1" ]]; then
@@ -443,7 +431,18 @@ if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/n
   export GIT_COMMIT GIT_BRANCH
 fi
 docker_cleanup standard
-check_ports
+resolve_ports
+
+# Update host-side connection strings to reflect any remapped ports
+if [[ "${MONGODB_PORT}" != "27017" ]]; then
+  RAG_LOCAL_MONGODB_URI_HOST="mongodb://localhost:${MONGODB_PORT}/rag_params_finder?directConnection=true"
+fi
+if [[ "${POSTGRES_PORT}" != "5433" ]]; then
+  RAG_LOCAL_DATABASE_URL_HOST="postgresql://${RAG_POSTGRES_USER}:${RAG_POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${RAG_POSTGRES_DB}"
+fi
+if [[ "${ELASTICSEARCH_PORT}" != "9200" ]]; then
+  RAG_LOCAL_ELASTICSEARCH_URL_HOST="http://127.0.0.1:${ELASTICSEARCH_PORT}"
+fi
 
 UP_ARGS=(-d)
 if docker_compose_needs_build "$SCRIPT_DIR"; then
@@ -456,6 +455,11 @@ if [[ -n "${SERVER_EXTRAS:-}" ]]; then
   echo "Rebuilding the server image with EXTRAS=${SERVER_EXTRAS}"
   UP_ARGS=(--build -d)
 fi
+# VITE_API_URL is baked into the frontend image at build time — force rebuild when server port shifts
+if [[ "${SERVER_PORT}" != "8001" ]]; then
+  echo "Server port shifted to ${SERVER_PORT} — rebuilding frontend image to update VITE_API_URL"
+  UP_ARGS=(--build -d)
+fi
 
 if ! "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" "${PROFILES[@]}" up "${UP_ARGS[@]}"; then
   print_unhealthy_server_hint
@@ -466,22 +470,23 @@ echo "Waiting for services to become healthy..."
 sleep 15
 
 if [[ -x ./scripts/docker/health-check.sh ]]; then
-  if ! ./scripts/docker/health-check.sh; then
+  if ! SERVER_URL="http://localhost:${SERVER_PORT}" FRONTEND_URL="http://localhost:${FRONTEND_PORT}" \
+       ./scripts/docker/health-check.sh; then
     print_unhealthy_server_hint
     exit 1
   fi
 else
-  if ! curl -sf http://localhost:8001/healthz >/dev/null; then
+  if ! curl -sf "http://localhost:${SERVER_PORT}/healthz" >/dev/null; then
     print_unhealthy_server_hint
     exit 1
   fi
-  curl -sf http://localhost:5374/ >/dev/null
+  curl -sf "http://localhost:${FRONTEND_PORT}/" >/dev/null
 fi
 
 echo ""
 echo "Services ready:"
-echo "  Server:    http://localhost:8001  (docs: /docs)"
-echo "  Dashboard: http://localhost:5374"
+echo "  Server:    http://localhost:${SERVER_PORT}  (docs: /docs)"
+echo "  Dashboard: http://localhost:${FRONTEND_PORT}"
 echo ""
 echo "storage_mode=${STACK_STORAGE_MODE}"
 echo "STORAGE_BACKEND=${STORAGE_BACKEND:-}"

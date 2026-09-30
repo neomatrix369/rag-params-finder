@@ -39,7 +39,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5374,
+    port: parseInt(process.env.VITE_PORT ?? '5374'),
     proxy: {
       // Same-origin `/api/*` → FastAPI (127.0.0.1 on host; `server` service name in Docker dev).
       '/api': {
