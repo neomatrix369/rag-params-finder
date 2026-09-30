@@ -73,6 +73,8 @@ override-dependencies = [
     # sentence-transformers pulls torch 2.2.x (NumPy 1.x ABI). Force a build that
     # works with numpy>=2 required by sie-sdk (else: RuntimeError "Numpy is not available").
     "torch>=2.6.0",
+    # virtualenv PYSEC-2026-4011/4012/4013/4014 — fixed in 21.7.x (pre-commit transitive dep)
+    "virtualenv>=21.7.12",
 ]
 
 [build-system]
