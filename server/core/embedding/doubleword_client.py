@@ -141,6 +141,7 @@ async def submit_batch(
         job_key,
         window,
     )
+    assert isinstance(batch.id, str), f"expected str batch id, got {type(batch.id)}"
     return batch.id
 
 

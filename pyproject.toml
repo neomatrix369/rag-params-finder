@@ -29,6 +29,8 @@ dependencies = [
     "sie-sdk>=0.6.0",
     "aim>=3.0",
     "optuna>=3.0",
+    # DoubleWord batch embedding provider (OpenAI-compatible API)
+    "openai>=1.35.0",
 ]
 
 [project.optional-dependencies]
