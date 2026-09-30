@@ -156,7 +156,9 @@ def split_store_backends(monkeypatch: pytest.MonkeyPatch):
     # only fires at Settings(**kwargs) construction time).
     monkeypatch.setattr(settings, "storage_backend", "mongodb")
     monkeypatch.setattr(settings, "vector_store_backend", "memory")
-    monkeypatch.setattr(settings, "mongodb_uri", "mongodb://localhost:27017/split-store-e2e")
+    monkeypatch.setattr(
+        settings, "mongodb_atlas_local_uri", "mongodb://localhost:27017/split-store-e2e"
+    )
 
     # Register the in-memory adapter under "memory" for this test only —
     # production code (server/db/ports/registry.py) is never edited.

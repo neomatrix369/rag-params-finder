@@ -45,7 +45,7 @@ class TestStoreFactoryShould:
         with (
             patch("server.settings.settings.storage_backend", "mongodb"),
             patch(
-                "server.settings.settings.mongodb_uri",
+                "server.settings.settings.mongodb_atlas_local_uri",
                 "mongodb://localhost:27017/rag_params_finder?directConnection=true",
             ),
             patch(
@@ -84,7 +84,7 @@ class TestStoreFactoryShould:
             patch("server.settings.settings.storage_backend", "mongodb"),
             patch("server.settings.settings.vector_store_backend", "mongodb"),
             patch(
-                "server.settings.settings.mongodb_uri",
+                "server.settings.settings.mongodb_atlas_local_uri",
                 "mongodb://localhost:27017/rag_params_finder?directConnection=true",
             ),
             patch(
@@ -122,7 +122,7 @@ class TestStoreFactoryShould:
         with (
             patch("server.settings.settings.storage_backend", "mongo"),
             patch(
-                "server.settings.settings.mongodb_uri",
+                "server.settings.settings.mongodb_atlas_local_uri",
                 "mongodb://localhost:27017/rag_params_finder?directConnection=true",
             ),
             patch(
@@ -156,8 +156,9 @@ class TestStoreFactoryShould:
         ### Given / When / Then
         with (
             patch("server.settings.settings.storage_backend", "mongodb"),
-            patch("server.settings.settings.mongodb_uri", ""),
-            pytest.raises(ValueError, match="requires MONGODB_URI"),
+            patch("server.settings.settings.mongodb_atlas_cloud_uri", ""),
+            patch("server.settings.settings.mongodb_atlas_local_uri", ""),
+            pytest.raises(ValueError, match="MONGODB_ATLAS_CLOUD_URI"),
         ):
             get_storage_backend()
 
@@ -182,8 +183,9 @@ class TestStoreFactoryShould:
         ### Given / When / Then
         with (
             patch("server.settings.settings.storage_backend", "postgres"),
-            patch("server.settings.settings.database_url", ""),
-            pytest.raises(ValueError, match="requires DATABASE_URL"),
+            patch("server.settings.settings.postgres_cloud_url", ""),
+            patch("server.settings.settings.postgres_local_url", ""),
+            pytest.raises(ValueError, match="POSTGRES_CLOUD_URL"),
         ):
             get_storage_backend()
 
@@ -265,7 +267,7 @@ class TestStoreFactoryShould:
             patch("server.settings.settings.storage_backend", "postgres"),
             patch("server.settings.settings.vector_store_backend", "postgres"),
             patch(
-                "server.settings.settings.database_url",
+                "server.settings.settings.postgres_local_url",
                 "postgresql://rag:rag@localhost:5433/rag_params_finder",
             ),
             patch(
@@ -304,7 +306,7 @@ class TestStoreFactoryShould:
             patch("server.settings.settings.storage_backend", "postgres"),
             patch("server.settings.settings.vector_store_backend", "postgres"),
             patch(
-                "server.settings.settings.database_url",
+                "server.settings.settings.postgres_local_url",
                 "postgresql://rag:rag@localhost:5433/rag_params_finder",
             ),
             patch(

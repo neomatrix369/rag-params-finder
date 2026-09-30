@@ -17,7 +17,9 @@ def get_mongo_client() -> MongoClient:
     global _client
     if _client is None:
         if not settings.mongodb_uri:
-            raise ValueError("MONGODB_URI not set in .env or environment")
+            raise ValueError(
+                "MONGODB_ATLAS_CLOUD_URI or MONGODB_ATLAS_LOCAL_URI not set in .env or environment"
+            )
         _client = MongoClient(
             settings.mongodb_uri,
             **mongo_client_kwargs(settings.mongodb_uri),

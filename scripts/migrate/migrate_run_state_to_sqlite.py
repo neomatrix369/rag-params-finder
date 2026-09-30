@@ -345,9 +345,13 @@ def main() -> None:
 
     dry_run = not args.execute
 
-    # Detect source backend from environment.
-    mongodb_uri = os.environ.get("MONGODB_URI", "")
-    database_url = os.environ.get("DATABASE_URL", "") or os.environ.get("SUPABASE_URI", "")
+    # Detect source backend from environment (cloud wins when both are set).
+    mongodb_uri = os.environ.get("MONGODB_ATLAS_CLOUD_URI", "") or os.environ.get(
+        "MONGODB_ATLAS_LOCAL_URI", ""
+    )
+    database_url = os.environ.get("POSTGRES_CLOUD_URL", "") or os.environ.get(
+        "POSTGRES_LOCAL_URL", ""
+    )
     sqlite_db_path = os.environ.get("SQLITE_DB_PATH", "./data/run_state.db")
 
     if database_url:
@@ -359,7 +363,10 @@ def main() -> None:
         print(f"[{_now_iso()}] Source: MongoDB ({mongodb_uri[:40]}...)")
         source = _read_mongo(mongodb_uri)
     else:
-        print("ERROR: Set MONGODB_URI or DATABASE_URL to identify the source backend.")
+        print(
+            "ERROR: Set MONGODB_ATLAS_CLOUD_URI (or MONGODB_ATLAS_LOCAL_URI) "
+            "or POSTGRES_CLOUD_URL (or POSTGRES_LOCAL_URL) to identify the source backend."
+        )
         sys.exit(1)
 
     exps, runs, results = source

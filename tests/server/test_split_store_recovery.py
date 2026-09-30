@@ -125,7 +125,9 @@ def split_store_backends(monkeypatch: pytest.MonkeyPatch):
     """Register the memory vector store and patch storage plus vector factories."""
     monkeypatch.setattr(settings, "storage_backend", "mongodb")
     monkeypatch.setattr(settings, "vector_store_backend", "memory")
-    monkeypatch.setattr(settings, "mongodb_uri", "mongodb://localhost:27017/split-store-e2e")
+    monkeypatch.setattr(
+        settings, "mongodb_atlas_local_uri", "mongodb://localhost:27017/split-store-e2e"
+    )
     monkeypatch.setitem(
         vector_store_registry._VECTOR_STORE_REGISTRY,
         "memory",
@@ -350,7 +352,9 @@ class TestSplitStoreOnErrorShould:
         ### Given
         monkeypatch.setattr(settings, "storage_backend", "mongodb")
         monkeypatch.setattr(settings, "vector_store_backend", "memory")
-        monkeypatch.setattr(settings, "mongodb_uri", "mongodb://localhost:27017/split-store-e2e")
+        monkeypatch.setattr(
+            settings, "mongodb_atlas_local_uri", "mongodb://localhost:27017/split-store-e2e"
+        )
         monkeypatch.setitem(
             vector_store_registry._VECTOR_STORE_REGISTRY,
             "memory",
@@ -399,7 +403,9 @@ class TestSplitStoreResumeShould:
         ### Given
         monkeypatch.setattr(settings, "storage_backend", "mongodb")
         monkeypatch.setattr(settings, "vector_store_backend", "memory")
-        monkeypatch.setattr(settings, "mongodb_uri", "mongodb://localhost:27017/split-store-e2e")
+        monkeypatch.setattr(
+            settings, "mongodb_atlas_local_uri", "mongodb://localhost:27017/split-store-e2e"
+        )
         monkeypatch.setitem(
             vector_store_registry._VECTOR_STORE_REGISTRY,
             "memory",
@@ -457,7 +463,9 @@ class TestLegacyRunLabelShould:
         storage, _vector_store = split_store_backends
         monkeypatch.setattr(settings, "storage_backend", run_state)
         if run_state == "postgres":
-            monkeypatch.setattr(settings, "database_url", "postgresql://rag:rag@localhost/rag")
+            monkeypatch.setattr(
+                settings, "postgres_local_url", "postgresql://rag:rag@localhost/rag"
+            )
 
         ### Given
         config = _split_store_config()

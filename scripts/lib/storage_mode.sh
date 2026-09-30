@@ -62,11 +62,22 @@ _stack_mode_apply_token() {
 }
 
 # resolve_stack_mode [--flags...]
-# Map SUPABASE_URI → DATABASE_URL when the canonical var is unset.
-# Idempotent; prefer DATABASE_URL when both are set.
+# Map POSTGRES_LOCAL_URL → POSTGRES_CLOUD_URL precedence note: cloud wins when both set.
+# Also accepts legacy DATABASE_URL / SUPABASE_URI for backward compat during transition.
 apply_postgres_uri_aliases() {
-  if [[ -z "${DATABASE_URL:-}" && -n "${SUPABASE_URI:-}" ]]; then
-    export DATABASE_URL="${SUPABASE_URI}"
+  # Legacy: promote SUPABASE_URI → POSTGRES_CLOUD_URL when canonical cloud var is unset.
+  if [[ -z "${POSTGRES_CLOUD_URL:-}" && -n "${SUPABASE_URI:-}" ]]; then
+    export POSTGRES_CLOUD_URL="${SUPABASE_URI}"
+  fi
+  # Legacy: promote DATABASE_URL → POSTGRES_CLOUD_URL or POSTGRES_LOCAL_URL as applicable.
+  if [[ -n "${DATABASE_URL:-}" ]]; then
+    if [[ -z "${POSTGRES_CLOUD_URL:-}" && -z "${POSTGRES_LOCAL_URL:-}" ]]; then
+      if [[ "${DATABASE_URL}" == *"localhost"* || "${DATABASE_URL}" == *"127.0.0.1"* ]]; then
+        export POSTGRES_LOCAL_URL="${DATABASE_URL}"
+      else
+        export POSTGRES_CLOUD_URL="${DATABASE_URL}"
+      fi
+    fi
   fi
 }
 
@@ -190,10 +201,10 @@ resolve_stack_mode() {
     fi
     case "$backend" in
       postgres)
-        # Host decides location; default cloud when URI looks hosted, else local.
-        # Without URI yet, prefer cloud so ensure_env demands DATABASE_URL.
+        # Host decides location; prefer local when POSTGRES_LOCAL_URL is set, else cloud.
+        # Without any URI, default cloud so ensure_env demands POSTGRES_CLOUD_URL.
         STACK_DB_TYPE=postgres
-        if [[ -n "${DATABASE_URL:-}" ]] && [[ "${DATABASE_URL}" == *"localhost"* || "${DATABASE_URL}" == *"127.0.0.1"* ]]; then
+        if [[ -n "${POSTGRES_LOCAL_URL:-}" ]]; then
           STACK_LOCATION=local
         else
           STACK_LOCATION=cloud
@@ -245,20 +256,22 @@ ensure_stack_mode_env() {
       return 0
       ;;
     mongodb-cloud)
-      if [[ -z "${MONGODB_URI:-}" ]] || [[ "$MONGODB_URI" == *"your_mongodb_atlas_uri_here"* ]]; then
-        _stack_mode_error "Set a real MONGODB_URI in .env (Atlas connection string), or use --mongodb-local."
+      _mongo_uri="${MONGODB_ATLAS_CLOUD_URI:-}"
+      if [[ -z "$_mongo_uri" ]] || [[ "$_mongo_uri" == *"your_mongodb_atlas_uri_here"* ]]; then
+        _stack_mode_error "Set MONGODB_ATLAS_CLOUD_URI in .env (Atlas connection string), or use --mongodb-local."
         return 1
       fi
       return 0
       ;;
     postgres-local | postgres-cloud)
-      if _is_postgres_uri_placeholder "${DATABASE_URL:-}"; then
-        _stack_mode_error "Replace the placeholder DATABASE_URL / SUPABASE_URI in .env with a real Postgres URI,"
+      _pg_url="${POSTGRES_CLOUD_URL:-${POSTGRES_LOCAL_URL:-}}"
+      if _is_postgres_uri_placeholder "${_pg_url}"; then
+        _stack_mode_error "Replace the placeholder POSTGRES_CLOUD_URL / POSTGRES_LOCAL_URL in .env with a real Postgres URI,"
         _stack_mode_error "or use --postgres-local (no cloud URI required)."
         return 1
       fi
-      if [[ -z "${DATABASE_URL:-}" ]] && [[ "${STACK_LOCATION}" == "cloud" ]]; then
-        _stack_mode_error "Set DATABASE_URL or SUPABASE_URI in .env for --postgres-cloud (Supabase Session mode URI)."
+      if [[ -z "${POSTGRES_CLOUD_URL:-}" ]] && [[ "${STACK_LOCATION}" == "cloud" ]]; then
+        _stack_mode_error "Set POSTGRES_CLOUD_URL in .env for --postgres-cloud (Supabase Session mode URI)."
         return 1
       fi
       # Local compose exports DATABASE_URL for the server; host CLI still prints hints.
@@ -269,8 +282,8 @@ ensure_stack_mode_env() {
       return 0
       ;;
     elasticsearch-cloud)
-      if [[ -z "${ELASTICSEARCH_URL:-}" ]]; then
-        _stack_mode_error "Set ELASTICSEARCH_URL in .env for --elasticsearch-cloud."
+      if [[ -z "${ELASTICSEARCH_CLOUD_URL:-}" ]]; then
+        _stack_mode_error "Set ELASTICSEARCH_CLOUD_URL in .env for --elasticsearch-cloud."
         return 1
       fi
       return 0

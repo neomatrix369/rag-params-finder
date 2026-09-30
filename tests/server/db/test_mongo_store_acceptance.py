@@ -686,7 +686,7 @@ class TestMongoStorageBackendShould:
                 return_value=tier,
             ),
             patch(
-                "server.settings.settings.mongodb_uri",
+                "server.settings.settings.mongodb_atlas_cloud_uri",
                 "mongodb+srv://u:p@cluster0.abc.mongodb.net/rag?retryWrites=true",
             ),
         ):

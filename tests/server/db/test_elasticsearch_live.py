@@ -43,7 +43,8 @@ def test_given_live_cluster_when_upsert_then_search_and_delete_are_scoped(
     reason = elasticsearch_skip_reason(url)
     if reason:
         pytest.skip(reason)
-    monkeypatch.setattr(settings, "elasticsearch_url", url)
+    monkeypatch.setattr(settings, "elasticsearch_cloud_url", "")
+    monkeypatch.setattr(settings, "elasticsearch_local_url", url)
     monkeypatch.setattr(settings, "elasticsearch_index_prefix", "rpf-slice50-test")
     store = ElasticsearchVectorStore()
     vector = [0.1] * 384

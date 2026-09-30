@@ -37,11 +37,11 @@ Start server + dashboard via Docker Compose (default), or manage a local DB cont
 
 Stack options (pick one):
   --mongodb-local              Atlas Local container (no cloud account)
-  --mongodb-cloud              Atlas cloud — requires MONGODB_URI
+  --mongodb-cloud              Atlas cloud — requires MONGODB_ATLAS_CLOUD_URI
   --postgres-local             Local pgvector — STORAGE_BACKEND=postgres
-  --postgres-cloud             Hosted Supabase — requires DATABASE_URL or SUPABASE_URI; no MONGODB_URI
+  --postgres-cloud             Hosted Supabase — requires POSTGRES_CLOUD_URL; no MONGODB_ATLAS_CLOUD_URI
   --elasticsearch-local        Local Elasticsearch 9.5 + run-state store (default mongodb-local)
-  --elasticsearch-cloud        Bring-your-own Elasticsearch — requires ELASTICSEARCH_URL
+  --elasticsearch-cloud        Bring-your-own Elasticsearch — requires ELASTICSEARCH_CLOUD_URL
   --force-build, --build, -b   Rebuild images even when build context is unchanged
   -h, --help                   Show this help
 
@@ -64,12 +64,12 @@ Environment:
   NONINTERACTIVE=1             Fail fast on missing .env / port conflicts
 
 Modes (storage_mode = engine × location):
-  mongodb-cloud (default bare start): requires MONGODB_URI in .env
-  mongodb-local:  Atlas Local container; CLI export MONGODB_URI=$RAG_LOCAL_MONGODB_URI_HOST
-  postgres-local: pgvector container; CLI export STORAGE_BACKEND=postgres DATABASE_URL=$RAG_LOCAL_DATABASE_URL_HOST
-  postgres-cloud: hosted Supabase; requires DATABASE_URL or SUPABASE_URI; must not require MONGODB_URI
+  mongodb-cloud (default bare start): requires MONGODB_ATLAS_CLOUD_URI in .env
+  mongodb-local:  Atlas Local container; CLI export MONGODB_ATLAS_LOCAL_URI=$RAG_LOCAL_MONGODB_URI_HOST
+  postgres-local: pgvector container; CLI export STORAGE_BACKEND=postgres POSTGRES_LOCAL_URL=$RAG_LOCAL_DATABASE_URL_HOST
+  postgres-cloud: hosted Supabase; requires POSTGRES_CLOUD_URL; must not require MONGODB_ATLAS_CLOUD_URI
   elasticsearch-local: Elasticsearch on 127.0.0.1:9200 plus the paired run-state store
-  elasticsearch-cloud: ELASTICSEARCH_URL from .env; run state from STORAGE_BACKEND
+  elasticsearch-cloud: ELASTICSEARCH_CLOUD_URL from .env; run state from STORAGE_BACKEND
 EOF
 }
 
@@ -297,7 +297,7 @@ apply_stack_profiles() {
     echo "Local Postgres enabled — pgvector container, STORAGE_BACKEND=postgres"
   elif [[ "$STACK_DB_TYPE" == "postgres" ]]; then
     export STORAGE_BACKEND=postgres
-    echo "Hosted Postgres enabled — STORAGE_BACKEND=postgres; requires DATABASE_URL"
+    echo "Hosted Postgres enabled — STORAGE_BACKEND=postgres; requires POSTGRES_CLOUD_URL"
   elif [[ "$STACK_DB_TYPE" == "mongodb" ]]; then
     # Symmetric with postgres: override leftover STORAGE_BACKEND=postgres on rollback.
     export STORAGE_BACKEND=mongodb
@@ -312,7 +312,7 @@ apply_stack_profiles() {
   elif [[ "$STACK_DB_TYPE" == "elasticsearch" ]]; then
     export VECTOR_STORE_BACKEND=elasticsearch
     export SERVER_EXTRAS=elasticsearch
-    echo "Elasticsearch cloud enabled — VECTOR_STORE_BACKEND=elasticsearch; requires ELASTICSEARCH_URL"
+    echo "Elasticsearch cloud enabled — VECTOR_STORE_BACKEND=elasticsearch; requires ELASTICSEARCH_CLOUD_URL"
   fi
 }
 
@@ -419,7 +419,7 @@ print_unhealthy_server_hint() {
   if [[ "$LOCAL_POSTGRES" == "1" ]]; then
     echo "Local Postgres / pgvector hints:"
     echo "  docker logs rag-params-finder-postgres-local 2>&1 | tail -20"
-    echo "  Confirm STORAGE_BACKEND=postgres and DATABASE_URL in the server env"
+    echo "  Confirm STORAGE_BACKEND=postgres and POSTGRES_CLOUD_URL or POSTGRES_LOCAL_URL in the server env"
     echo "  Docs: docs/user-guide/postgres-setup.md · docs/user-guide/troubleshooting.md"
   elif [[ "$LOCAL_ATLAS" == "1" ]]; then
     echo "Local Atlas hints:"
