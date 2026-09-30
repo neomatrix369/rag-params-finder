@@ -211,7 +211,7 @@ class TestStoreFactoryShould:
         with (
             patch("server.settings.settings.storage_backend", "redis"),
             patch("server.settings.settings.vector_store_backend", "redis"),
-            pytest.raises(ValueError, match="Unknown storage backend 'redis'"),
+            pytest.raises(ValueError, match="vector-store-only"),
         ):
             get_storage_backend()
 
@@ -226,18 +226,22 @@ class TestStoreFactoryShould:
         ### When
         ### Then
         """
-        Scenario: Factory rejects unknown backend for retriever path.
-        Slice: slice-32-storage-backend-protocol
+        Scenario: Factory requires REDIS_URL when VECTOR_STORE_BACKEND=redis.
+        Slice: slice-53-redis-vector-store-adapter
 
-        Given STORAGE_BACKEND="redis",
+        Given VECTOR_STORE_BACKEND="redis" with no REDIS_URL and a valid run-state backend,
         When get_retriever_backend() is called,
-        Then a clear ValueError is raised.
+        Then a clear ValueError naming REDIS_URL is raised.
         """
         ### Given / When / Then
         with (
-            patch("server.settings.settings.storage_backend", "redis"),
+            patch("server.settings.settings.storage_backend", "mongodb"),
             patch("server.settings.settings.vector_store_backend", "redis"),
-            pytest.raises(ValueError, match="Unknown vector store 'redis'"),
+            patch(
+                "server.settings.settings.mongodb_atlas_local_uri",
+                "mongodb://localhost:27017/rag_params_finder?directConnection=true",
+            ),
+            pytest.raises(ValueError, match="REDIS_URL"),
         ):
             get_retriever_backend()
 

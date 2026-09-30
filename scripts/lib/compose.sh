@@ -31,6 +31,12 @@ RAG_LOCAL_ELASTICSEARCH_URL_DOCKER="${RAG_LOCAL_ELASTICSEARCH_URL_DOCKER:-http:/
 RAG_ELASTICSEARCH_LOCAL_CONTAINER="${ELASTICSEARCH_LOCAL_CONTAINER_NAME:-rag-params-finder-elasticsearch-local}"
 RAG_ELASTICSEARCH_LOCAL_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_elasticsearch_local_data"
 
+# ── Redis 8 (vector-only; run state is a separate store) ─────────────────────
+RAG_LOCAL_REDIS_URL_HOST="${RAG_LOCAL_REDIS_URL_HOST:-redis://127.0.0.1:6379}"
+RAG_LOCAL_REDIS_URL_DOCKER="${RAG_LOCAL_REDIS_URL_DOCKER:-redis://redis-local:6379}"
+RAG_REDIS_LOCAL_CONTAINER="${REDIS_LOCAL_CONTAINER_NAME:-rag-params-finder-redis-local}"
+RAG_REDIS_LOCAL_VOLUME="${COMPOSE_PROJECT_NAME:-rag-params-finder}_redis_local_data"
+
 compose_require_docker_daemon() {
   if ! docker info >/dev/null 2>&1; then
     echo "Cannot connect to the Docker daemon. Is Docker Desktop running?" >&2
@@ -87,6 +93,20 @@ compose_export_local_elasticsearch_env() {
 
 compose_clear_local_elasticsearch_env() {
   unset RAG_SERVER_ELASTICSEARCH_LOCAL_URL SERVER_EXTRAS
+}
+
+compose_local_redis_profiles() {
+  COMPOSE_PROFILES=(--profile redis-local)
+}
+
+compose_export_local_redis_env() {
+  export RAG_SERVER_REDIS_LOCAL_URL="$RAG_LOCAL_REDIS_URL_DOCKER"
+  export VECTOR_STORE_BACKEND=redis
+  export SERVER_EXTRAS=redis
+}
+
+compose_clear_local_redis_env() {
+  unset RAG_SERVER_REDIS_LOCAL_URL
 }
 
 compose_export_local_postgres_env() {

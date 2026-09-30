@@ -116,3 +116,52 @@ def test_given_elasticsearch_server_when_mismatch_formatted_then_example_config_
         "configs/elasticsearch/example-local.yaml" in detail
     )
     assert example_config_for("elasticsearch") in detail
+
+
+def test_given_redis_url_with_credentials_when_catalog_built_then_url_is_redacted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Scenario: Redis connection URL credentials do not appear in the public catalog.
+    Slice: 53
+
+    Given VECTOR_STORE_BACKEND=redis and a REDIS_URL containing credentials,
+    When the public catalog is built,
+    Then the raw URL (including password) is absent from the JSON payload.
+    """
+    ### Given
+    monkeypatch.setattr(settings, "vector_store_backend", "redis")
+    monkeypatch.setattr(
+        settings, "redis_url", "rediss://user:s3cr3tpass@managed-redis.example:6380"
+    )
+
+    ### When
+    payload = build_stores_payload()
+    dumped = json.dumps(payload)
+
+    ### Then
+    assert "s3cr3tpass" not in dumped, "Redis password must not appear in the store catalog"
+    assert "rediss://user:s3cr3tpass" not in dumped, "Full Redis URL must not be surfaced"
+    providers = {row["provider"] for row in payload["stores"]}  # type: ignore[index]
+    assert "redis" in providers
+
+
+def test_given_redis_server_when_mismatch_formatted_then_example_config_is_named() -> None:
+    """
+    Scenario: The config-engine 422 suggests the registry's Redis example config.
+    Slice: 53
+
+    Given a YAML engine that is not the active Redis vector store,
+    When the 422 detail is formatted,
+    Then it names configs/redis/example-local.yaml.
+    """
+    ### Given / When
+    detail = format_config_backend_mismatch(
+        config_engine="mongodb",
+        server_backend="redis",
+        storage_mode="redis-local",
+    )
+
+    ### Then
+    assert "configs/redis/example-local.yaml" in detail
+    assert example_config_for("redis") in detail

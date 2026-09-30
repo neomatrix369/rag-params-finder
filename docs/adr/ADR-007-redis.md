@@ -1,8 +1,8 @@
 # ADR-007: Redis (or Valkey) as a vector-only store
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-09-30
-**Slice**: 52 — Redis evaluation spike + ADR-007 (Proposed)
+**Slice**: 53 — Redis vector-store adapter (Accepted); originally Proposed in Slice 52
 **Depends on**: ADR-004 (dual backend), ADR-006 (Elasticsearch as third option), Slice 49A/49B (port + registry)
 
 ---

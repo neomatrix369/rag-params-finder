@@ -1,0 +1,72 @@
+{
+  "slice": "53",
+  "slice_name": "Redis Vector Store: Adapter + Full Journey",
+  "branch": "slice/53-redis-vector-store-adapter",
+  "gate_status": "ON_BRANCH",
+  "note": "53a adapter + 53b operability complete. All 640 unit tests green. Ruff + mypy clean. Docker profile, configs, docs, ADR-007 Accepted. Phase 2 gaps: (i) _configured_secrets() in stores.py does not include redis_url (server/api/ frozen); (ii) FT._LIST healthcheck format in docker-compose.yml may need Redis 8 image verification; (iii) no live integration test (requires running Redis 8).",
+  "decisions": {
+    "272": "GO: Redis 8 (redis:8 image) + redis-py client; MoSCoW promoted to Must",
+    "273": "Option (a): one shared volatile-lru instance"
+  },
+  "before_checks": {
+    "dependencies_on_main": "49A/49B/50/51/52 all PASSED on main",
+    "slice52_branch_a_go": "DECISIONS #272: GO — redis:8 + redis-py",
+    "walkthrough_gaps_g1_g4": "G3 no-skip-path confirmed (search_index_guard.py:219); G4 example_config in stores.py:72 and config_backend_guard.py:27; G1/G2 via 49B PASSED",
+    "stores_tsv_cmd_probe": "stores.tsv redis row added with cmd:redis-cli ping probe",
+    "slice52_poc_info_fields": "REDIS-EVALUATION.md R3: maxmemory, maxmemory_policy, used_memory from INFO memory; aof_enabled from INFO persistence; CONFIG GET blocked on managed tier",
+    "stop_services_registry_driven": "stop-services.sh uses store_down_profile_flags() — registry-driven",
+    "owner_deployment_decision": "DECISIONS #273: option (a) — one shared volatile-lru instance",
+    "redaction_test_mongo_postgres": "tests/server/api/test_stores_api.py Redis URI redaction test added in 53",
+    "contract_parity_baseline": "PASS — backend 640 tests, frontend 264 tests all green on branch (2026-09-30)"
+  },
+  "implementation_summary": {
+    "adapter_files": [
+      "server/db/redis/__init__.py",
+      "server/db/redis/client.py",
+      "server/db/redis/uri.py",
+      "server/db/redis/schema.py",
+      "server/db/redis/redis_catalog.py",
+      "server/db/redis/search.py",
+      "server/db/redis/preflight.py",
+      "server/db/redis/redis_store.py"
+    ],
+    "registry_wired": "server/db/ports/registry.py — redis in _VECTOR_STORE_REGISTRY, _CAN_HOST_RUN_STATE, _EXAMPLE_CONFIG, _CATALOG_REGISTRY",
+    "settings_wired": "server/settings.py — redis_url, redis_index_prefix, ensure_storage_ready guard, _ensure_backend_uri_present",
+    "models_wired": "server/models/config.py — DatabaseProvider includes redis",
+    "ops_files": [
+      "docker-compose.yml — redis-local profile",
+      "scripts/lib/compose.sh — RAG_REDIS_LOCAL_* constants + compose helpers",
+      "scripts/lib/storage_mode.sh — redis-local/redis-cloud tokens",
+      "scripts/lib/stores.tsv — redis row",
+      "start-services.sh — --redis-local / --redis-cloud flags"
+    ],
+    "config_files": "configs/redis/ — 9 YAML files mirroring mongodb/ names",
+    "docs_files": [
+      "docs/user-guide/redis-setup.md",
+      "docs/adr/ADR-007-redis.md — status Accepted",
+      "docs/adr/README.md — ADR-007 row",
+      ".env.example — Redis section",
+      "README.md — Redis row in user guide table",
+      "QUICKSTART.md — Path F + Teardown",
+      "docs/user-guide/troubleshooting.md — Redis section + See Also",
+      "docs/user-guide/cli-reference.md — Redis row"
+    ],
+    "test_files": [
+      "tests/server/api/test_stores_api.py — 2 Redis test cases",
+      "tests/server/db/ports/test_registry.py — redis in known_vector_stores",
+      "tests/server/db/test_store_factory.py — redis error message updates",
+      "tests/scripts/test_store_probes.py — redis-local in profile flags"
+    ]
+  },
+  "test_counts": {
+    "total_passing": 640,
+    "new_tests_in_slice": 6
+  },
+  "coverage_pct": null,
+  "branch_pct": null,
+  "coverage_target": 95,
+  "branch_target": 95,
+  "complexity_tool": "xenon",
+  "complexity_ceiling": "E",
+  "complexity_passed": null
+}

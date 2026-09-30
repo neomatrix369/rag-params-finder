@@ -11,6 +11,7 @@ smaller reversible choices live in the continuous log at [`../plan/DECISIONS.md`
 | [004](ADR-004-postgresql-pgvector-vector-store.md) | Dual-Backend Storage — PostgreSQL/pgvector (Supabase) alongside MongoDB Atlas | ✅ Accepted | 2026-07-26 |
 | [005](ADR-005-doubleword-embedding-provider.md) | DoubleWord Embedding Provider — Batch-First Architecture | 📋 Proposed | 2026-09-25 |
 | [006](ADR-006-elasticsearch-vector-store.md) | Elasticsearch as a vector-only store | ✅ Accepted | 2026-09-27 |
+| [007](ADR-007-redis.md) | Redis (or Valkey) as a vector-only store | ✅ Accepted | 2026-09-30 |
 
 ## Status vocabulary
 

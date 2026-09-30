@@ -10,7 +10,7 @@ from server.models.enums import ChunkingMethod, RetrievalMethod, RetrieverType
 Provider = Literal["local", "voyage", "sie", "kimchi"]
 # ``supabase`` remains a deprecated YAML input alias for Postgres (Slice 37).
 # After validation the field is ``mongodb`` | ``postgres`` | ``elasticsearch``.
-DatabaseProvider = Literal["mongodb", "postgres", "supabase", "elasticsearch"]
+DatabaseProvider = Literal["mongodb", "postgres", "supabase", "elasticsearch", "redis"]
 
 
 def normalize_database_provider(value: str) -> str:
@@ -40,6 +40,8 @@ def normalize_stats_database_provider(value: str | None, *, fallback: str) -> st
         return "mongodb"
     if raw == "elasticsearch":
         return "elasticsearch"
+    if raw == "redis":
+        return "redis"
     return fallback
 
 
