@@ -62,6 +62,11 @@ ML_IGNORE=(
   --ignore-vuln PYSEC-2026-3740  # nltk pathsec model-artifact APIs — false positive on fix version 3.10.3
   --ignore-vuln CVE-2026-81726   # alias of PYSEC-2026-3740
   --ignore-vuln GHSA-8mgp-746c-j5xp  # alias of PYSEC-2026-3740
+  # urllib3 2.7.0 — fix requires 2.8.0; blocked: boto3/botocore and other deps pin urllib3<2.8.
+  # Pre-existing on main before Slice 53. Unblock by upgrading boto3/botocore constraints.
+  --ignore-vuln CVE-2026-97687
+  --ignore-vuln CVE-2026-97688
+  --ignore-vuln CVE-2026-97689
 )
 
 # Prefer the project venv whenever it exists. A bare `command -v python` is unsafe
