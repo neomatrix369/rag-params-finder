@@ -34,6 +34,9 @@ services:
       ELASTICSEARCH_CLOUD_URL: ${ELASTICSEARCH_CLOUD_URL:-}
       ELASTICSEARCH_LOCAL_URL: ${RAG_SERVER_ELASTICSEARCH_LOCAL_URL:-}
       ELASTICSEARCH_API_KEY: ${ELASTICSEARCH_API_KEY:-}
+      # Redis: cloud or local URL; local injected by start-services.sh --redis-local
+      # Redis is vector-only (D1); run state stays on STORAGE_BACKEND.
+      REDIS_URL: ${REDIS_URL:-${RAG_SERVER_REDIS_LOCAL_URL:-}}
       HF_HOME: ${HF_HOME:-/root/.cache/huggingface}
       # SIE is opt-in — remote gateway preferred (SIE_ENDPOINT + SIE_API_KEY in .env).
       # SIE_ENDPOINT is a single var (not split); set to remote URL or host.docker.internal for local Docker.
@@ -60,6 +63,9 @@ services:
         condition: service_healthy
         required: false
       elasticsearch-local:
+        condition: service_healthy
+        required: false
+      redis-local:
         condition: service_healthy
         required: false
     restart: unless-stopped

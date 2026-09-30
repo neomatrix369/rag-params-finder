@@ -10,6 +10,7 @@ LOCAL_STORE_IMAGES: dict[str, str] = {
     "mongodb": "mongodb/mongodb-atlas-local:8.3.3",
     "postgres": "pgvector/pgvector:0.8.5-pg16",
     "elasticsearch": "docker.elastic.co/elasticsearch/elasticsearch:9.5.0",
+    "redis": "redis:8",
 }
 
 

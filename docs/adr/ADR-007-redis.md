@@ -90,9 +90,7 @@ Add **Redis 8.0 (or Valkey + valkey-search)** as a **vector-only** adapter behin
 
 ## Gate Status
 
-**Proposed** (2026-09-30). Awaiting owner **GO / NO-GO** decision for Slice 53 implementation. If GO, ADR-007 moves to **Accepted** at Slice 53 close. If NO-GO, stays Proposed and is deferred.
-
-**Decision record**: DECISIONS table row to be added (owner's GO/NO-GO verdict).
+**Accepted** (2026-09-30). Owner decision recorded in DECISIONS #272 (GO — Redis 8 + redis-py) and #273 (option (a) — one shared volatile-lru instance). Slice 53 implementation complete and on branch `slice/53-redis-vector-store-adapter`.
 
 ---
 
