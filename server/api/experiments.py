@@ -385,6 +385,13 @@ async def cancel_experiment(experiment_id: str):
     signalled = request_cancel(experiment_id)
     await asyncio.to_thread(mark_experiment_cancelled_now, experiment_id)
 
+    # Cancel any pending DoubleWord batches (Slice 48A, S4)
+    pre_embed = experiment.get("pre_embed")
+    if pre_embed and pre_embed.get("state") == "waiting":
+        from server.core.pipeline.doubleword_watcher import cancel_experiment_batches
+
+        await cancel_experiment_batches(experiment_id)
+
     logger.info("cancel OK — %s in-flight=%s", experiment_id, signalled)
     return {
         "status": "cancelled" if not signalled else "cancel_requested",

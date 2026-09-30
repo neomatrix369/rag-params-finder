@@ -2,8 +2,10 @@
 
 from datetime import UTC, datetime
 
+from server.core.pipeline.pre_embed import CheckpointStore
 from server.db.ports.store_factory import get_storage_backend
 from server.models.enums import ExperimentStatus, Phase
+from server.settings import settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -25,6 +27,9 @@ def reconcile_orphaned_experiments() -> int:
     Sweep tasks run in FastAPI BackgroundTasks and live only in memory.
     Any experiment still RUNNING when the server starts cannot be executing.
 
+    Experiments waiting for DoubleWord batches (pre_embed.state == "waiting")
+    are NOT marked as stale — the watcher will resume them.
+
     Returns the number of experiments reconciled.
     """
     storage = get_storage_backend()
@@ -32,9 +37,69 @@ def reconcile_orphaned_experiments() -> int:
     if not running:
         return 0
 
+    checkpoint_store = CheckpointStore()
+    all_checkpoint_entries = checkpoint_store.load()
+    checkpoint_experiment_ids = frozenset(
+        e.get("experiment_id") for e in all_checkpoint_entries if e.get("experiment_id")
+    )
+
     reconciled = 0
     for experiment in running:
         experiment_id = str(experiment["_id"])
+        pre_embed = experiment.get("pre_embed")
+
+        # Case 1: experiment is waiting for DoubleWord batches — exempt from reconciliation
+        if (
+            pre_embed
+            and pre_embed.get("state") == "waiting"
+            and experiment_id in checkpoint_experiment_ids
+        ):
+            logger.info(
+                "startup reconcile — exempting RUNNING experiment with active batches: id=%s",
+                experiment_id,
+            )
+            continue
+
+        # Case 2: experiment claims to be waiting but has no checkpoints — mark failed
+        if (
+            pre_embed
+            and pre_embed.get("state") == "waiting"
+            and experiment_id not in checkpoint_experiment_ids
+        ):
+            logger.warning(
+                "startup reconcile — marking failed: waiting state but no batches: id=%s",
+                experiment_id,
+            )
+            now = datetime.now(UTC)
+            storage.update_experiment_reconciled(
+                experiment_id,
+                status="failed",
+                failed_count=0,
+                completion_reason="pre_embed_batches_cannot_be_resumed",
+                completed_at=now,
+            )
+            reconciled += 1
+            continue
+
+        # Case 3: waiting but DOUBLEWORD_API_KEY removed — mark failed, keep checkpoints
+        if pre_embed and pre_embed.get("state") == "waiting":
+            if settings.doubleword_api_key is None:
+                logger.warning(
+                    "startup reconcile — marking failed: DOUBLEWORD_API_KEY removed: id=%s",
+                    experiment_id,
+                )
+                now = datetime.now(UTC)
+                storage.update_experiment_reconciled(
+                    experiment_id,
+                    status="failed",
+                    failed_count=0,
+                    completion_reason="doubleword_api_key_removed",
+                    completed_at=now,
+                )
+                reconciled += 1
+                continue
+
+        # Default: mark as orphaned
         _reconcile_one(experiment_id, experiment, storage)
         reconciled += 1
 
