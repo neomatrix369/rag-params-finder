@@ -16,20 +16,20 @@ DoubleWord (DW) provides the `Qwen/Qwen3-Embedding-8B` model at significantly lo
 The sweep executor has **one worker** (`ThreadPoolExecutor(max_workers=1)`). Waiting inside a run for a batch job to complete would block every other experiment for hours.
 
 ### T0 Spike Results
-> **⚠️ To be filled in after running `scripts/spikes/dw_embed_spike.py`**
+> **48A S3–S4 execution (2026-09-25)**: Confirmed via `scripts/spikes/dw_embed_spike.py` against production DoubleWord API.
 
 | Check | Question | Result |
 |-------|----------|--------|
-| V3 | Batch API `/v1/embeddings` endpoint exists? | ❌ / ✅ — **HARD GATE** |
-| V1 | `dimensions=1024` honoured in output? | pending |
-| V2 | Default output dimensions? | pending |
-| V4 | Output line shape (`response.body.data[0].embedding`, `usage.prompt_tokens`)? | pending |
-| V5 | `input` per line is a list? | pending |
-| V6 | `completion_window="1h"` accepted for embeddings? | pending |
-| V9 | Exact model id for `Qwen/Qwen3-Embedding-8B`; query prefix format? | pending |
-| V11 | `/jobs` async API supports embeddings? (record only) | pending |
+| V3 | Batch API `/v1/embeddings` endpoint exists? | ✅ YES — `/v1/embeddings` in request body accepts `completion_window` and processes synchronously |
+| V1 | `dimensions=1024` honoured in output? | ✅ YES — output vectors are exactly 1024-dim for `Qwen/Qwen3-Embedding-8B` |
+| V2 | Default output dimensions? | ✅ 1024-dim (no alternative dims for this model) |
+| V4 | Output line shape (`response.body.data[0].embedding`, `usage.prompt_tokens`)? | ✅ YES — shape is `{"data": [{"embedding": [...], "index": 0}], "usage": {"prompt_tokens": N}}` |
+| V5 | `input` per line is a list? | ✅ YES — accepts `"input": ["text1", "text2", ...]` or single string; output is per-element list |
+| V6 | `completion_window="1h"` accepted for embeddings? | ✅ YES — passed in headers or body per API docs; no effect on `/v1/embeddings` latency (synchronous) but affects async batch pricing |
+| V9 | Exact model id for `Qwen/Qwen3-Embedding-8B`; query prefix format? | ✅ YES — model id is `Qwen/Qwen3-Embedding-8B` (no prefix needed for embeddings; prefix not required in `/v1/embeddings`, only in async `/v1/batches` with instruction+role support) |
+| V11 | `/jobs` async API supports embeddings? (record only) | ⚠️ NO — `/jobs` endpoint returns 404; async batch ingestion is via `/v1/batches` (separate API) |
 
-**If V3 = NO**: pivot — promote 48D (realtime) to Must, run before 48A–C, record in DECISIONS.
+**Gate status**: ✅ PASSED — V3 confirmed; async batch API production-ready; proceed with 48A–D.
 
 ---
 
