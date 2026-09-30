@@ -32,6 +32,7 @@ from server.core.config_backend_guard import (
     validate_config_backend_match,
 )
 from server.core.health_check import resolve_storage_mode
+from server.core.model_registry import provider_for_model
 from server.core.pipeline.executors import HEAVY_READ_EXECUTOR, schedule_sweep
 from server.core.pipeline.experiment_control import (
     is_sweep_in_flight,
@@ -97,6 +98,12 @@ async def create_experiment(config: ExperimentConfig):
     )
     retrieval_model_for_doc = rerankers[0].model if rerankers else config.retrieval.retrieval_model
 
+    # Derive embedding providers per model (supports mixed-provider sweeps)
+    embedding_providers_list = sorted(set(provider_for_model(m) for m in config.embedding.models))
+    embedding_provider_for_summary = (
+        embedding_providers_list[0] if len(embedding_providers_list) == 1 else "mixed"
+    )
+
     experiment_doc = {
         "_id": experiment_id,
         "experiment_id": experiment_id,
@@ -120,7 +127,8 @@ async def create_experiment(config: ExperimentConfig):
         "sweep_summary": {
             "database_provider": config.database_provider,
             "storage_mode": storage_mode,
-            "embedding_provider": config.embedding.provider,
+            "embedding_provider": embedding_provider_for_summary,
+            "embedding_providers": embedding_providers_list,
             "models": config.embedding.models,
             "chunking_methods": [m.value for m in config.chunking.methods],
             "chunk_sizes": config.chunking.params.chunk_sizes,

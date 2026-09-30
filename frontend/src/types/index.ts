@@ -62,6 +62,7 @@ export interface RetrieverConfig {
 export interface SweepSummary {
   database_provider: string;
   embedding_provider: string;
+  embedding_providers?: string[];  // Sorted list of unique providers; present for mixed-provider sweeps
   models: string[];
   chunking_methods: string[];
   chunk_sizes: number[];

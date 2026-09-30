@@ -1,12 +1,9 @@
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from server.models.config import DatabaseProvider, RetrieverConfig
+from server.models.config import DatabaseProvider, Provider, RetrieverConfig
 from server.models.enums import ChunkingMethod, Phase, RetrievalMethod
-
-Provider = Literal["local", "voyage", "sie", "kimchi"]
 
 
 class VectorStoreSnapshot(BaseModel):

@@ -1,13 +1,13 @@
 import warnings
 from itertools import product
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from server.core.model_registry import EMBEDDING_MODELS, RERANKER_MODELS
+from server.core.model_registry import EMBEDDING_MODELS, RERANKER_MODELS, provider_for_model
 from server.models.enums import ChunkingMethod, RetrievalMethod, RetrieverType
 
-Provider = Literal["local", "voyage", "sie", "kimchi"]
+Provider = Literal["local", "voyage", "sie", "kimchi", "doubleword"]
 # ``supabase`` remains a deprecated YAML input alias for Postgres (Slice 37).
 # After validation the field is ``mongodb`` | ``postgres`` | ``elasticsearch``.
 DatabaseProvider = Literal["mongodb", "postgres", "supabase", "elasticsearch", "redis"]
@@ -78,7 +78,7 @@ class ChunkParams(BaseModel):
 
 
 class EmbeddingConfig(BaseModel):
-    provider: Provider = Field(default="local")
+    provider: Provider | None = Field(default=None)
     models: list[str] = Field(default=["all-MiniLM-L6-v2"])
 
     @model_validator(mode="after")
@@ -87,13 +87,16 @@ class EmbeddingConfig(BaseModel):
             if model_id not in EMBEDDING_MODELS:
                 known = ", ".join(EMBEDDING_MODELS)
                 raise ValueError(f"Unknown embedding model '{model_id}'. Known: {known}")
-            registered_provider = EMBEDDING_MODELS[model_id]["provider"]
-            if registered_provider != self.provider:
-                raise ValueError(
-                    f"Embedding model '{model_id}' belongs to provider "
-                    f"'{registered_provider}', but config specifies "
-                    f"provider '{self.provider}'"
-                )
+
+            # When provider is None, allow mixed providers (each model's provider is auto-derived)
+            if self.provider is not None:
+                registered_provider = EMBEDDING_MODELS[model_id]["provider"]
+                if registered_provider != self.provider:
+                    raise ValueError(
+                        f"Embedding model '{model_id}' belongs to provider "
+                        f"'{registered_provider}', but config specifies "
+                        f"provider '{self.provider}'"
+                    )
         return self
 
 
@@ -335,10 +338,12 @@ def expand_sweep(config: ExperimentConfig) -> list[RunParams]:
     runs: list[RunParams] = []
     for model, method, size, overlap, padding, retriever in combos:
         legacy_method, legacy_provider, legacy_model = _legacy_retrieval_fields(retriever)
+        # Derive embedding provider per model (supports mixed-provider sweeps)
+        embedding_provider = cast(Provider, provider_for_model(model))
         runs.append(
             RunParams(
                 database_provider=config.database_provider,
-                embedding_provider=config.embedding.provider,
+                embedding_provider=embedding_provider,
                 embedding_model=model,
                 chunking_method=method,
                 chunk_size=size,
