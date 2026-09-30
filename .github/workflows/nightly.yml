@@ -194,6 +194,22 @@ jobs:
               xpack.license.self_generated.type=basic
               ES_JAVA_OPTS=-Xms1g -Xmx1g
             install_spec: ".[dev,elasticsearch]"
+          - store: redis
+            image: redis:8
+            port: "6379:6379"
+            health_options: >-
+              --health-cmd "redis-cli ping"
+              --health-interval 5s --health-timeout 5s --health-retries 12
+              --health-start-period 10s
+            pytest_args: >-
+              tests/server/db/redis/
+              -m integration
+              --cov=server.db.redis
+              --cov-branch --cov-report=term-missing --cov-fail-under=95
+            require_env: RAG_REQUIRE_REDIS=1
+            extra_env: REDIS_URL=redis://127.0.0.1:6379
+            service_env: ""
+            install_spec: ".[dev,redis]"
     services:
       store:
         image: ${{ matrix.image }}
