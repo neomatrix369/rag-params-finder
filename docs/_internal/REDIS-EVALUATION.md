@@ -6,6 +6,19 @@
 
 ---
 
+## How to Read This Document
+
+This document serves two distinct audiences:
+
+| Purpose | Where to look |
+|---------|---------------|
+| **"Why Redis? Why these candidates?"** (research narrative) | § Executive Summary, § Stream R0–R2 |
+| **"What are the exact specs / commands / numbers?"** (lookup) | § Stream R3 PoC Transcript, § Stream R5 tables, § Appendix |
+
+**Streams R0–R2** are explanatory — they document research reasoning, candidate evaluation, and adoption signals. **Streams R3–R5** are reference material — concrete test transcripts, measured numbers, and scoring tables for use in Slice 53/54 planning. The [interactive HTML guide](redis-evaluation.html) provides a navigable reference view of R3–R5 content with live weight sliders.
+
+---
+
 ## Executive Summary
 
 This report evaluates **Redis** (Open Source 8.x + Query Engine) and **Valkey** (Linux Foundation fork with valkey-search) as **vector stores** for rag-params-finder, alongside supporting infrastructure use cases (embedding cache, job queue, rate limiting, CI caching).
@@ -641,9 +654,9 @@ database_provider: redis  # Slice 53 adds to DatabaseProvider Literal
 |-----|--------|-----------|
 | No live Valkey + valkey-search cluster tested | PoC used Redis 8 only; Valkey behavior assumed identical by API | Slice 53 CI nightly matrix includes both images (planned #248) |
 | Redis Cloud free tier (40 MB) too constrained for real sweep | Marked smoke-only in report | Slice 53 preflight warning; recommendation for self-hosted or paid tier |
-| AUTH / TLS latency impact not measured | Assumed <5% overhead vs unencrypted | Slice 53 can benchmark on CI nightly if needed |
-| Cluster mode (multi-node Redis) not evaluated | Out of scope; single-node sufficient for this tool | Slice 53 scope: single instance (local or managed) |
-| Lua scripting for atomic multi-key operations | PoC did not exercise Lua; chunk write is single HSET | Slice 53 can add if needed (currently not required by 49/51 design) |
+| AUTH / TLS latency impact not measured | Assumed <5% overhead vs unencrypted | Assumed <5% overhead; validate at Slice 53 if managed Redis tier chosen (benchmark `AUTH + TLS` latency on nightly CI). |
+| Cluster mode (multi-node Redis) not evaluated | Out of scope; single-node sufficient for this tool | Slice 53 scope: single instance (local or managed). |
+| Lua scripting for atomic multi-key operations | PoC did not exercise Lua; chunk write is single HSET | Out of scope — chunk writes are single `HSET`; no multi-key atomicity needed today. Revisit if pipeline changes to multi-key writes. |
 
 ---
 

@@ -21,6 +21,8 @@ This record formalizes the decision to support Redis as a third vector-only stor
 
 Add **Redis 8.0 (or Valkey + valkey-search)** as a **vector-only** adapter behind the existing `VectorStore` port.
 
+> **Summary**: Redis is vector-only (chunks and search only). Run state always remains on the configured storage backend (MongoDB, Postgres, or SQLite). No new API endpoints, CLI commands, or dashboard UI components are introduced — only one `DatabaseProvider` config token, one `VectorStore` adapter module, and Docker infra.
+
 | Concern | Choice |
 |---|---|
 | **Role** | Chunks and search only. Run state stays on MongoDB, Postgres, or SQLite (default local pair: `mongodb-local`) |
