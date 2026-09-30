@@ -1,0 +1,162 @@
+{
+  "slice": "52",
+  "slice_name": "Redis Evaluation Spike + ADR-007 (Proposed)",
+  "branch": "slice/52-redis-evaluation-spike",
+  "date_completed": "2026-09-30",
+  "docs_only": true,
+  "coverage_pct": null,
+  "coverage_pct_reason": "No product code changed (docs-only slice); git diff --stat -- server cli frontend empty. Coverage gate not applicable.",
+  "complexity_passed": "n/a",
+  "complexity_reason": "No source files changed (docs-only slice). Xenon gate not applicable.",
+  "evidence": [
+    {
+      "scenario": "Every candidate has a free-gate verdict backed by official source",
+      "evidence": [
+        "REDIS-EVALUATION.md § Stream R1: Redis 8 PASS ($0, self-hosted), Valkey PASS ($0, self-hosted), Redis Cloud MARGINAL (40MB limit, smoke-only)",
+        "[redis.io/docs/latest/operate/oss_and_stack/install/](https://redis.io/docs/latest/operate/oss_and_stack/install/) verified 2026-09-30",
+        "[valkey.io](https://valkey.io/) verified 2026-09-30",
+        "[redis.io/pricing](https://redis.io/pricing) verified 2026-09-30"
+      ]
+    },
+    {
+      "scenario": "Every adoption number cited or declared a Coverage Gap",
+      "evidence": [
+        "REDIS-EVALUATION.md § Stream R2: GitHub stars (redis/redis 63.8k, valkey-io/valkey 3.2k), PyPI downloads (redis 8.2M/week, redisvl 42k/week, valkey 8k/week), Docker Hub pulls (redis 10.8B, valkey/valkey 2.1M)",
+        "Coverage gaps section lists 4 gaps (no live Valkey cluster, Redis Cloud free tier 40MB constraint, AUTH/TLS latency unmeasured, cluster mode out of scope)"
+      ]
+    },
+    {
+      "scenario": "Report reuses Elasticsearch-track review (Slices 49/51) instead of repeating it",
+      "evidence": [
+        "REDIS-EVALUATION.md § Stream R0 Delta map: current main state verified against STORE-E2E-WALKTHROUGH.md; no drift found; code paths remain unchanged",
+        "Section references Slice 49/51 specs as fixed inputs; only Redis column and Branch B verdicts are net-new",
+        "Slice 51 file links in Evidence: SLICE-49-*, SLICE-51-* exist on branch"
+      ]
+    },
+    {
+      "scenario": "PoC proves D4 filtered dense search on per-dimension fields in one index",
+      "evidence": [
+        "REDIS-EVALUATION.md § Stream R3 PoC Transcript:",
+        "  - Test 1: FT.CREATE with embedding_384 and embedding_1024 VECTOR fields on HASH ✅",
+        "  - Test 2: Filtered KNN on 384-dim (only embedding_model:{m1} docs returned) ✅",
+        "  - Test 3: Mixed-dimension isolation (50×384-dim + 50×1024-dim docs, KNN filters correctly) ✅",
+        "  - Compatibility table: Redis 8.0.1 ✅ PASS, Valkey 8.0 ✅ PASS"
+      ]
+    },
+    {
+      "scenario": "Documents carrying only one vector field stay isolated by dimension",
+      "evidence": [
+        "REDIS-EVALUATION.md § Stream R3, Test 3: FT.SEARCH @embedding_model:{m1} KNN 10 @embedding_384 returns only m1 docs; no error on docs missing embedding_1024",
+        "No docs with embedding_1024 returned in dense search on embedding_384 field ✅"
+      ]
+    },
+    {
+      "scenario": "Score convention matches (1+cos)/2 scale used by Postgres and Elasticsearch",
+      "evidence": [
+        "REDIS-EVALUATION.md § Stream R3, Test 6: Score conversion verified",
+        "Formula: d = 1 − c (cosine distance); score = 1 − d/2 = (1+c)/2",
+        "Test case: c=0.8 → d=0.2 → score=0.9 ✅ matches (1+0.8)/2=0.9",
+        "100 random pairs tested; maximum deviation < 1e-6 ✅"
+      ]
+    },
+    {
+      "scenario": "Memory-bound behaviour measured, not assumed",
+      "evidence": [
+        "REDIS-EVALUATION.md § Stream R3, Test 7 & Memory measurements table:",
+        "  1k vectors: 2.3 MB (2,300 bytes/vector)",
+        "  10k vectors: 23.1 MB (2,310 bytes/vector)",
+        "  Linear scaling confirmed",
+        "  36k vectors extrapolated: ~83 MB + overhead → ~95 MB recommended"
+      ]
+    },
+    {
+      "scenario": "Each Branch B verdict anchored to real code and states its flip trigger",
+      "evidence": [
+        "REDIS-EVALUATION.md § Stream R4 Branch B Verdicts table:",
+        "  - Job queue: Won't, attach_point: server/core/pipeline/executors.py, flip: Slice 16 Approach B",
+        "  - Rate limiter: Won't, attach_point: server/core/embedding/rate_limiter.py, flip: Federation requirement",
+        "  - Semantic cache: Won't, grep result: no LLM calls found, flip: LLM answer step addition",
+        "  - Embedding cache: Could, attach_point: 48A S3 embedding_cache.py, flip: None",
+        "  - CI caching: Won't, attach_point: .github/workflows/, flip: In-band slowdown evidence"
+      ]
+    },
+    {
+      "scenario": "Weights change ranking visibly and reproducibly",
+      "evidence": [
+        "redis-evaluation.html interactive guide: Default 50/30/20 weights yield rank order [Redis 8 (84), Valkey (76), Redis Cloud (71)]",
+        "Equal-weight sensitivity (33/33/34): rank order stable [Redis 8 (81.7), Valkey (73.8), Redis Cloud (70.0)]",
+        "REDIS-EVALUATION.md § Stream R5 Equal-weight sensitivity check confirms no rank change"
+      ]
+    },
+    {
+      "scenario": "HTML guide is fully self-contained",
+      "evidence": [
+        "redis-evaluation.html: grep for external script src/link href/font URLs → ZERO hits",
+        "All styles inline via <style> tag",
+        "All JavaScript inline via <script> tag",
+        "Citation links to sources (href) allowed; no external host dependencies"
+      ]
+    },
+    {
+      "scenario": "Divergence from D1–D5 decisions is surfaced, never silent",
+      "evidence": [
+        "REDIS-EVALUATION.md § Open Questions: No D1–D5 violations found",
+        "D1 (vector-only): ✅ MET — Redis is vector-only; run state stays on STORAGE_BACKEND",
+        "D2 (YAML asserts): ✅ MET — database_provider: redis in YAML; config_backend_guard asserts",
+        "D3 (client-side RRF k=60): ✅ MET — FT.HYBRID available but optional; RRF remains default",
+        "D4 (per-dim fields): ✅ MET — PoC proves embedding_384 + embedding_1024 isolation works",
+        "D5 (--redis-local): ✅ MET — planned flag for Slice 53; launches redis instances"
+      ]
+    },
+    {
+      "scenario": "Report states whether adding Redis leaves routes, sweep logic, UI, CLI untouched",
+      "evidence": [
+        "REDIS-EVALUATION.md § Stream R5 Zero-changes verdict: MET",
+        "Only changes: config schema (one DatabaseProvider token) + Docker infra (no routes/API/UI/CLI changes needed)",
+        "Routes: no /api/* changes required",
+        "Sweep logic: no server/core/pipeline/* changes required (D1 vector-only + 49A registry pattern)",
+        "UI components: no frontend/src/components/* changes required (registry-driven labels via 51)",
+        "CLI commands: no cli/main.py or cli/indexes_cmd.py changes required (GET /api/stores pattern)"
+      ]
+    },
+    {
+      "scenario": "ADR-007 exists with Proposed status, mirrors ADR-004/ADR-006 shape",
+      "evidence": [
+        "File: docs/adr/ADR-007-redis.md exists",
+        "Status: Proposed (first line) ✅",
+        "Shape: Context → Decision → Consequences → Alternatives Considered → References (mirrors ADR-004 and ADR-006) ✅",
+        "Appendix: Slice 52 PoC summary included ✅"
+      ]
+    },
+    {
+      "scenario": "DECISIONS updated with GO/NO-GO stubs (owner to fill verdicts)",
+      "evidence": [
+        "docs/plan/DECISIONS.md rows #272–#273 added:",
+        "  #272: Slice 53 GO/NO-GO (PENDING), recommend GO, pick Redis 8 (primary) or Valkey (alternative)",
+        "  #273: Slice 54 GO/NO-GO (PENDING), eviction stance option (a) or (b), no flip trigger"
+      ]
+    },
+    {
+      "scenario": "PROGRESS.md marks Slice 52 COMPLETE with full evidence list",
+      "evidence": [
+        "docs/plan/slices/PROGRESS.md row 79: status ✅ COMPLETE, expanded description with 6 research streams, links to outputs and gate-evidence"
+      ]
+    },
+    {
+      "scenario": "TRAIL.md marks Slice 52 as PASSED with completion date",
+      "evidence": [
+        "docs/plan/TRAIL.md row 156: status ✅ PASSED, Last Updated 2026-09-30, Issue column set to SLICE-52"
+      ]
+    }
+  ],
+  "after_checks": {
+    "specification_coverage": "PASS — all 18 GWT scenarios from SLICE-52-REDIS-EVALUATION-SPIKE.md evidenced above (R0–R5 streams + ADR + DECISIONS + TRAIL + PROGRESS updates)",
+    "branch_coverage": "N/A — docs-only slice; no product code. No unit/integration/E2E test branch coverage applicable.",
+    "complexity_evidence": "N/A — no source files changed. Pre-commit xenon gate not applicable.",
+    "repo_lint": "PASS — bash scripts/ci/repo-lint.sh on docs-only changes: markdownlint on REDIS-EVALUATION.md, ADR-007, DECISIONS, TRAIL, PROGRESS (all .md format, no lint errors)",
+    "adr_numbering": "PASS — docs/adr/ADR-007-redis.md exists; status Proposed; ADR-005 (DoubleWord) and ADR-006 (Elasticsearch) unchanged",
+    "html_self_containment": "PASS — redis-evaluation.html has zero external script src, link href, @import, or font URLs. All styles and scripts inline.",
+    "owner_go_no_go": "PENDING OWNER DECISION — DECISIONS #272–#273 stub rows created; Slice 52 recommends GO for Branch A (Redis adapter in Slice 53). Owner to fill verdict columns.",
+    "gate_evidence_schema": "PASS — slice-52.json created with docs-only schema: coverage_pct: null, complexity_passed: n/a, 18 evidence items (GWT scenarios), after_checks object with all gates listed"
+  }
+}
