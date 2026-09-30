@@ -136,6 +136,7 @@ Backend-aware:
 | `mongodb` | Atlas Search indexes (known vs unknown) | Drop unknown / rebuild chunks indexes |
 | `postgres` | Catalog: `vector` extension + HNSW/GIN present vs missing | Not applicable — restart server / schema bootstrap |
 | `elasticsearch` | `GET /api/stores` mapping summary (`rpf-chunks`, HNSW fields) | Not applicable — Atlas-only |
+| `redis` | `GET /api/stores` index summary (`rpf:chunks`, HNSW TAG/VECTOR fields) | Not applicable — use `FT.DROPINDEX` + server restart |
 
 #### `indexes list`
 
@@ -148,6 +149,8 @@ rag-params-finder indexes list
 **Postgres:** Lists the `vector` extension and required `chunks` indexes (`chunks_embedding_384_hnsw`, `chunks_embedding_1024_hnsw`, `chunks_text_search_gin`) as PRESENT or MISSING.
 
 **Elasticsearch:** Prints the active store's `GET /api/stores` index summary (index name, HNSW fields). It does not open the cluster catalog directly.
+
+**Redis:** Prints the active store's `GET /api/stores` index summary (`rpf:chunks` HNSW fields, TAG filters). It does not open the FT catalog directly. Use `redis-cli FT.INFO rpf:chunks` for low-level index info.
 
 #### `GET /api/stores`
 

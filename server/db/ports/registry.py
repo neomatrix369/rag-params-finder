@@ -24,6 +24,7 @@ _VECTOR_STORE_REGISTRY: dict[str, str] = {
     "elasticsearch": (
         "server.db.elasticsearch.elasticsearch_vector_store:ElasticsearchVectorStore"
     ),
+    "redis": "server.db.redis.redis_store:RedisVectorStore",
 }
 
 # Declarative mirror of each adapter's ``VectorCapabilities.can_host_run_state``
@@ -38,6 +39,7 @@ _CAN_HOST_RUN_STATE: dict[str, bool] = {
     "mongodb": True,
     "postgres": True,
     "elasticsearch": False,
+    "redis": False,
 }
 
 # Example sweep YAML for each provider. The 422 hint and the dashboard empty
@@ -47,6 +49,7 @@ _EXAMPLE_CONFIG: dict[str, str] = {
     "mongodb": "configs/mongodb/example-local.yaml",
     "postgres": "configs/supabase/example-local.yaml",
     "elasticsearch": "configs/elasticsearch/example-local.yaml",
+    "redis": "configs/redis/example-local.yaml",
 }
 
 
@@ -74,6 +77,7 @@ _CATALOG_REGISTRY: dict[str, str] = {
     "mongodb": "server.db.mongo.mongo_catalog:MongoCatalog",
     "postgres": "server.db.postgres.postgres_catalog:PostgresCatalog",
     "elasticsearch": "server.db.elasticsearch.elasticsearch_catalog:ElasticsearchCatalog",
+    "redis": "server.db.redis.redis_catalog:RedisCatalog",
 }
 
 

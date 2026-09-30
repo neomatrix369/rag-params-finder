@@ -20,7 +20,7 @@ _stack_mode_conflict() {
   local left="$1"
   local right="$2"
   _stack_mode_error "ERROR: conflicting mode selectors: ${left} and ${right}"
-  _stack_mode_error "Pick one of: --mongodb-local | --mongodb-cloud | --postgres-local | --postgres-cloud | --elasticsearch-local | --elasticsearch-cloud"
+  _stack_mode_error "Pick one of: --mongodb-local | --mongodb-cloud | --postgres-local | --postgres-cloud | --elasticsearch-local | --elasticsearch-cloud | --redis-local | --redis-cloud"
   return 1
 }
 
@@ -51,6 +51,14 @@ _stack_mode_apply_token() {
       ;;
     elasticsearch-cloud)
       STACK_DB_TYPE=elasticsearch
+      STACK_LOCATION=cloud
+      ;;
+    redis-local)
+      STACK_DB_TYPE=redis
+      STACK_LOCATION=local
+      ;;
+    redis-cloud)
+      STACK_DB_TYPE=redis
       STACK_LOCATION=cloud
       ;;
     *)
@@ -93,6 +101,7 @@ resolve_stack_mode() {
   LOCAL_ATLAS=0
   LOCAL_POSTGRES=0
   LOCAL_ELASTICSEARCH=0
+  LOCAL_REDIS=0
 
   local selected=()
   local deprecations=()
@@ -122,6 +131,14 @@ resolve_stack_mode() {
         ;;
       --elasticsearch-cloud)
         selected+=("elasticsearch-cloud")
+        shift
+        ;;
+      --redis-local)
+        selected+=("redis-local")
+        shift
+        ;;
+      --redis-cloud)
+        selected+=("redis-cloud")
         shift
         ;;
       --force-build | --build | -b)
@@ -157,6 +174,12 @@ resolve_stack_mode() {
   fi
   if [[ "${RAG_ELASTICSEARCH_CLOUD:-}" == "1" ]]; then
     selected+=("elasticsearch-cloud")
+  fi
+  if [[ "${RAG_REDIS_LOCAL:-}" == "1" ]]; then
+    selected+=("redis-local")
+  fi
+  if [[ "${RAG_REDIS_CLOUD:-}" == "1" ]]; then
+    selected+=("redis-cloud")
   fi
   if [[ "${RAG_LOCAL_ATLAS:-}" == "1" ]]; then
     selected+=("mongodb-local")
@@ -232,6 +255,9 @@ resolve_stack_mode() {
   if [[ "$STACK_DB_TYPE" == "elasticsearch" && "$STACK_LOCATION" == "local" ]]; then
     LOCAL_ELASTICSEARCH=1
   fi
+  if [[ "$STACK_DB_TYPE" == "redis" && "$STACK_LOCATION" == "local" ]]; then
+    LOCAL_REDIS=1
+  fi
 
   FORCE_BUILD="${FORCE_BUILD:-0}"
   if [[ "$force_build" == "1" || "${RAG_FORCE_BUILD:-}" == "1" ]]; then
@@ -243,7 +269,7 @@ resolve_stack_mode() {
     echo "Deprecated: ${dep}" >&2
   done
 
-  export STACK_DB_TYPE STACK_LOCATION STACK_STORAGE_MODE LOCAL_ATLAS LOCAL_POSTGRES LOCAL_ELASTICSEARCH FORCE_BUILD
+  export STACK_DB_TYPE STACK_LOCATION STACK_STORAGE_MODE LOCAL_ATLAS LOCAL_POSTGRES LOCAL_ELASTICSEARCH LOCAL_REDIS FORCE_BUILD
   return 0
 }
 
@@ -288,6 +314,16 @@ ensure_stack_mode_env() {
       fi
       return 0
       ;;
+    redis-local)
+      return 0
+      ;;
+    redis-cloud)
+      if [[ -z "${REDIS_URL:-}" ]]; then
+        _stack_mode_error "Set REDIS_URL in .env for --redis-cloud (e.g. rediss://user:pass@host:6380)."
+        return 1
+      fi
+      return 0
+      ;;
     *)
       _stack_mode_error "ERROR: STACK_STORAGE_MODE unset — call resolve_stack_mode first"
       return 1
@@ -317,6 +353,10 @@ export_storage_backend_for_stack() {
     elasticsearch)
       export VECTOR_STORE_BACKEND=elasticsearch
       _pair_elasticsearch_run_state || return 1
+      ;;
+    redis)
+      export VECTOR_STORE_BACKEND=redis
+      _pair_redis_run_state || return 1
       ;;
     *)
       _stack_mode_error "ERROR: STACK_DB_TYPE unset — call resolve_stack_mode first"
@@ -355,6 +395,32 @@ _pair_elasticsearch_run_state() {
   return 0
 }
 
+_pair_redis_run_state() {
+  local run_state
+  run_state="$(printf '%s' "${STORAGE_BACKEND:-mongodb}" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$run_state" == "mongo" ]]; then
+    run_state=mongodb
+  fi
+  if [[ "$run_state" == "redis" ]]; then
+    _stack_mode_error "STORAGE_BACKEND=redis is not supported: redis is vector-store-only and cannot host run state. Set STORAGE_BACKEND to 'mongodb', 'postgres', or 'sqlite'."
+    return 1
+  fi
+  if [[ "$run_state" != "mongodb" && "$run_state" != "postgres" && "$run_state" != "sqlite" ]]; then
+    _stack_mode_error "ERROR: unknown STORAGE_BACKEND=${STORAGE_BACKEND:-} for a Redis vector store."
+    return 1
+  fi
+  export STORAGE_BACKEND="$run_state"
+  if [[ "${STACK_LOCATION:-}" == "local" && "$run_state" == "postgres" ]]; then
+    LOCAL_POSTGRES=1
+    export LOCAL_POSTGRES
+  fi
+  if [[ "${STACK_LOCATION:-}" == "local" && "$run_state" == "mongodb" ]]; then
+    LOCAL_ATLAS=1
+    export LOCAL_ATLAS
+  fi
+  return 0
+}
+
 example_config_for_stack_mode() {
   case "${STACK_STORAGE_MODE:-}" in
     mongodb-local | mongodb-cloud)
@@ -365,6 +431,9 @@ example_config_for_stack_mode() {
       ;;
     elasticsearch-local | elasticsearch-cloud)
       echo "configs/elasticsearch/example-local.yaml"
+      ;;
+    redis-local | redis-cloud)
+      echo "configs/redis/example-local.yaml"
       ;;
     *)
       echo "configs/mongodb/example-local.yaml"

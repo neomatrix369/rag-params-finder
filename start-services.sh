@@ -31,7 +31,7 @@ STACK_STORAGE_MODE=""
 usage() {
   cat <<EOF
 Usage: ./start-services.sh [OPTIONS]
-       ./start-services.sh mongodb|postgres start|stop|reset|status
+       ./start-services.sh mongodb|postgres|elasticsearch|redis start|stop|reset|status
 
 Start server + dashboard via Docker Compose (default), or manage a local DB container.
 
@@ -42,13 +42,16 @@ Stack options (pick one):
   --postgres-cloud             Hosted Supabase — requires POSTGRES_CLOUD_URL; no MONGODB_ATLAS_CLOUD_URI
   --elasticsearch-local        Local Elasticsearch 9.5 + run-state store (default mongodb-local)
   --elasticsearch-cloud        Bring-your-own Elasticsearch — requires ELASTICSEARCH_CLOUD_URL
+  --redis-local                Local Redis 8 + Query Engine — vector-only, run state on Postgres/MongoDB
+  --redis-cloud                Bring-your-own Redis/Valkey — requires REDIS_URL
   --force-build, --build, -b   Rebuild images even when build context is unchanged
   -h, --help                   Show this help
 
 Container-only:
-  mongodb start|stop|reset|status    Atlas Local container
-  postgres start|stop|reset|status   Local pgvector container
-  elasticsearch start|stop|reset|status   Local Elasticsearch container
+  mongodb start|stop|reset|status          Atlas Local container
+  postgres start|stop|reset|status         Local pgvector container
+  elasticsearch start|stop|reset|status    Local Elasticsearch container
+  redis start|stop|reset|status            Local Redis 8 container
 
 Environment:
   RAG_MONGODB_LOCAL=1          Same as --mongodb-local
@@ -57,6 +60,8 @@ Environment:
   RAG_POSTGRES_CLOUD=1         Same as --postgres-cloud
   RAG_ELASTICSEARCH_LOCAL=1    Same as --elasticsearch-local
   RAG_ELASTICSEARCH_CLOUD=1    Same as --elasticsearch-cloud
+  RAG_REDIS_LOCAL=1            Same as --redis-local
+  RAG_REDIS_CLOUD=1            Same as --redis-cloud
   RAG_LOCAL_ATLAS=1            Deprecated → --mongodb-local
   RAG_LOCAL_POSTGRES=1         Deprecated → --postgres-local
   RAG_FORCE_BUILD=1            Same as --force-build
@@ -70,6 +75,8 @@ Modes (storage_mode = engine × location):
   postgres-cloud: hosted Supabase; requires POSTGRES_CLOUD_URL; must not require MONGODB_ATLAS_CLOUD_URI
   elasticsearch-local: Elasticsearch on 127.0.0.1:9200 plus the paired run-state store
   elasticsearch-cloud: ELASTICSEARCH_CLOUD_URL from .env; run state from STORAGE_BACKEND
+  redis-local: Redis 8 on 127.0.0.1:6379 (vector-only); VECTOR_STORE_BACKEND=redis
+  redis-cloud: REDIS_URL from .env (rediss://...); VECTOR_STORE_BACKEND=redis
 EOF
 }
 
@@ -192,16 +199,17 @@ parse_args() {
   fi
   # resolve_stack_mode leaves STACK_STORAGE_MODE set; treat any explicit
   # flag/env selector as CLI-owned so .env STORAGE_BACKEND cannot override it.
-  if [[ "${RAG_MONGODB_LOCAL:-}${RAG_MONGODB_CLOUD:-}${RAG_POSTGRES_LOCAL:-}${RAG_POSTGRES_CLOUD:-}${RAG_ELASTICSEARCH_LOCAL:-}${RAG_ELASTICSEARCH_CLOUD:-}${RAG_LOCAL_ATLAS:-}${RAG_LOCAL_POSTGRES:-}" == *"1"* ]] \
+  if [[ "${RAG_MONGODB_LOCAL:-}${RAG_MONGODB_CLOUD:-}${RAG_POSTGRES_LOCAL:-}${RAG_POSTGRES_CLOUD:-}${RAG_ELASTICSEARCH_LOCAL:-}${RAG_ELASTICSEARCH_CLOUD:-}${RAG_REDIS_LOCAL:-}${RAG_REDIS_CLOUD:-}${RAG_LOCAL_ATLAS:-}${RAG_LOCAL_POSTGRES:-}" == *"1"* ]] \
     || [[ " $* " == *" --mongodb-"* ]] \
     || [[ " $* " == *" --postgres-"* ]] \
-    || [[ " $* " == *" --elasticsearch-"* ]]; then
+    || [[ " $* " == *" --elasticsearch-"* ]] \
+    || [[ " $* " == *" --redis-"* ]]; then
     STACK_MODE_FROM_CLI=1
   fi
   local arg
   for arg in "$@"; do
     case "$arg" in
-      --mongodb-local | --mongodb-cloud | --postgres-local | --postgres-cloud | --elasticsearch-local | --elasticsearch-cloud)
+      --mongodb-local | --mongodb-cloud | --postgres-local | --postgres-cloud | --elasticsearch-local | --elasticsearch-cloud | --redis-local | --redis-cloud)
         STACK_MODE_FROM_CLI=1
         ;;
     esac
@@ -281,6 +289,7 @@ apply_stack_profiles() {
   compose_clear_local_atlas_env
   compose_clear_local_postgres_env
   compose_clear_local_elasticsearch_env
+  compose_clear_local_redis_env
   export_storage_backend_for_stack
 
   if [[ "$LOCAL_ATLAS" == "1" ]]; then
@@ -313,6 +322,17 @@ apply_stack_profiles() {
     export VECTOR_STORE_BACKEND=elasticsearch
     export SERVER_EXTRAS=elasticsearch
     echo "Elasticsearch cloud enabled — VECTOR_STORE_BACKEND=elasticsearch; requires ELASTICSEARCH_CLOUD_URL"
+  fi
+
+  if [[ "${LOCAL_REDIS:-0}" == "1" ]]; then
+    compose_export_local_redis_env
+    compose_local_redis_profiles
+    PROFILES+=("${COMPOSE_PROFILES[@]}")
+    echo "Local Redis enabled — 127.0.0.1:6379, VECTOR_STORE_BACKEND=redis"
+  elif [[ "$STACK_DB_TYPE" == "redis" ]]; then
+    export VECTOR_STORE_BACKEND=redis
+    export SERVER_EXTRAS=redis
+    echo "Redis cloud enabled — VECTOR_STORE_BACKEND=redis; requires REDIS_URL"
   fi
 }
 
@@ -386,8 +406,13 @@ resolve_ports() {
   else
     ELASTICSEARCH_PORT=9200
   fi
+  if [[ "${LOCAL_REDIS:-0}" == "1" ]]; then
+    REDIS_PORT=$(_resolve_one_port 6379 "${RAG_REDIS_LOCAL_CONTAINER:-rag-params-finder-redis-local}")
+  else
+    REDIS_PORT=6379
+  fi
 
-  export SERVER_PORT FRONTEND_PORT MONGODB_PORT POSTGRES_PORT ELASTICSEARCH_PORT
+  export SERVER_PORT FRONTEND_PORT MONGODB_PORT POSTGRES_PORT ELASTICSEARCH_PORT REDIS_PORT
 
   # Announce any bumps so the operator knows what changed
   [[ "$SERVER_PORT"        != "8001"  ]] && echo "Port 8001 in use — server will bind on $SERVER_PORT"
@@ -395,6 +420,7 @@ resolve_ports() {
   [[ "$LOCAL_ATLAS"  == "1" && "$MONGODB_PORT"       != "27017" ]] && echo "Port 27017 in use — MongoDB will bind on $MONGODB_PORT"
   [[ "$LOCAL_POSTGRES" == "1" && "$POSTGRES_PORT"    != "5433"  ]] && echo "Port 5433 in use — Postgres will bind on $POSTGRES_PORT"
   [[ "$LOCAL_ELASTICSEARCH" == "1" && "$ELASTICSEARCH_PORT" != "9200" ]] && echo "Port 9200 in use — Elasticsearch will bind on $ELASTICSEARCH_PORT"
+  [[ "${LOCAL_REDIS:-0}" == "1" && "$REDIS_PORT" != "6379" ]] && echo "Port 6379 in use — Redis will bind on $REDIS_PORT"
 }
 
 print_unhealthy_server_hint() {

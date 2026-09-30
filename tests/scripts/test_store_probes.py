@@ -175,5 +175,7 @@ def test_given_manifest_when_down_flags_listed_then_every_local_profile_is_inclu
         "postgres-local",
         "--profile",
         "elasticsearch-local",
+        "--profile",
+        "redis-local",
     ]
     assert "store_down_profile_flags" in stop_script

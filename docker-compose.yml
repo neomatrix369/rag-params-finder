@@ -34,6 +34,9 @@ services:
       ELASTICSEARCH_CLOUD_URL: ${ELASTICSEARCH_CLOUD_URL:-}
       ELASTICSEARCH_LOCAL_URL: ${RAG_SERVER_ELASTICSEARCH_LOCAL_URL:-}
       ELASTICSEARCH_API_KEY: ${ELASTICSEARCH_API_KEY:-}
+      # Redis: cloud or local URL; local injected by start-services.sh --redis-local
+      # Redis is vector-only (D1); run state stays on STORAGE_BACKEND.
+      REDIS_URL: ${REDIS_URL:-${RAG_SERVER_REDIS_LOCAL_URL:-}}
       HF_HOME: ${HF_HOME:-/root/.cache/huggingface}
       # SIE is opt-in — remote gateway preferred (SIE_ENDPOINT + SIE_API_KEY in .env).
       # SIE_ENDPOINT is a single var (not split); set to remote URL or host.docker.internal for local Docker.
@@ -60,6 +63,9 @@ services:
         condition: service_healthy
         required: false
       elasticsearch-local:
+        condition: service_healthy
+        required: false
+      redis-local:
         condition: service_healthy
         required: false
     restart: unless-stopped
@@ -212,6 +218,31 @@ services:
       retries: 18
       start_period: 40s
 
+  # Local Redis 8 — opt-in: ./start-services.sh --redis-local
+  # Vector-only. Run state stays on the paired store (default mongodb-local).
+  # AOF on, volatile-lru eviction, 95 MB cap, loopback bind. See ADR-007.
+  redis-local:
+    profiles: ["redis-local"]
+    image: redis:8
+    container_name: ${REDIS_LOCAL_CONTAINER_NAME:-rag-params-finder-redis-local}
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 95mb
+      --maxmemory-policy volatile-lru
+      --bind 127.0.0.1
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_local_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG && redis-cli FT._LIST > /dev/null 2>&1 || redis-cli FT._LIST 2>&1 | grep -qv 'unknown command'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
 volumes:
   hf_cache:
   postgres_local_data:
@@ -219,4 +250,5 @@ volumes:
   mongodb_local_configdb:
   mongodb_local_mongot:
   elasticsearch_local_data:
+  redis_local_data:
   sqlite_run_state:

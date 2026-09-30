@@ -316,6 +316,11 @@ rag-params-finder run --config configs/supabase/example-local.yaml
 # Pairs a run-state store (default mongodb-local). No env vars by hand.
 ./start-services.sh --elasticsearch-local
 rag-params-finder run --config configs/elasticsearch/example-local.yaml
+
+# Redis (Path F — see docs/user-guide/redis-setup.md)
+# Vector-only, run state on Postgres or MongoDB. No env vars by hand.
+./start-services.sh --redis-local
+rag-params-finder run --config configs/redis/example-local.yaml
 ```
 
 Open `http://localhost:5374` to watch progress and explore results. See [docs/images](https://github.com/neomatrix369/rag-params-finder#-screenshots).
@@ -324,13 +329,14 @@ Open `http://localhost:5374` to watch progress and explore results. See [docs/im
 
 ## Teardown
 
-Stop every local profile registered in `scripts/lib/stores.tsv` (MongoDB, Postgres, Elasticsearch). Volumes stay unless you choose the deep-cleanup option.
+Stop every local profile registered in `scripts/lib/stores.tsv` (MongoDB, Postgres, Elasticsearch, Redis). Volumes stay unless you choose the deep-cleanup option.
 
 ```bash
 NONINTERACTIVE=1 ./stop-services.sh
 ./start-services.sh mongodb reset
 ./start-services.sh postgres reset
 ./start-services.sh elasticsearch reset
+./start-services.sh redis reset
 ```
 
 ## Next steps

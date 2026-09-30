@@ -537,11 +537,27 @@ Full steps: [elasticsearch-setup.md](elasticsearch-setup.md).
 | Dimension mismatch | Only 384 and 1024 dimensions are accepted |
 | HTTP 422 | `database_provider` must match `VECTOR_STORE_BACKEND` (`configs/elasticsearch/example-local.yaml`) |
 
+## Redis
+
+Full steps: [redis-setup.md](redis-setup.md).
+
+| Symptom | Fix |
+|---|---|
+| `FT._LIST` unknown command | Redis is running without the Query Engine. Use Redis 8+ or Valkey with valkey-search |
+| HTTP 422 — allkeys-lru policy | Change `maxmemory-policy` to `volatile-lru` (or `noeviction`) and restart Redis |
+| HTTP 422 — insufficient memory | Increase `--maxmemory`, reduce sweep size, or delete old experiments |
+| Dimension mismatch | Only 384-dim and 1024-dim are accepted (SPLADE 30522-dim is not supported) |
+| HTTP 422 on submit | `database_provider` must be `redis` while `VECTOR_STORE_BACKEND=redis` |
+| Vectors lost after restart | Enable AOF (`--appendonly yes`) before starting the sweep |
+| TLS errors | Use `rediss://` for managed endpoints and `redis://` for local |
+| `STORAGE_BACKEND=redis` rejected | Redis is vector-only; use `mongodb`, `postgres`, or `sqlite` for run state |
+
 ## 👉 See Also
 
 - [SIE Provider Setup](sie-setup.md) — remote gateway (preferred) or optional self-hosted Docker
 - [MongoDB Setup](mongodb-setup.md) — Atlas account, Voyage billing, search indexes
 - [Postgres Setup](postgres-setup.md) — local pgvector and hosted Supabase
+- [Redis Setup](redis-setup.md) — Redis 8 local or managed cloud
 - [Getting Started](getting-started.md) — install, configure, first run
 - [Configuration Reference](configuration.md) — fix provider/model mismatch errors
 - [Dashboard Guide](dashboard-guide.md) — understand what the UI is showing

@@ -1,0 +1,50 @@
+# Redis — local vector store (run state is a separate database)
+#
+# Prerequisite: ./start-services.sh --redis-local
+#   Starts Redis 8 on 127.0.0.1:6379 (volatile-lru eviction, AOF enabled)
+#   and the paired run-state store (default mongodb-local).
+#   Install the client extra: uv pip install -e ".[redis]"
+#   See docs/user-guide/redis-setup.md
+#
+experiment_name: example-redis-local-parallel
+
+data_paths:
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+
+queries_file: ./configs/questions.example.json
+
+database_provider: redis
+
+embedding:
+  provider: local
+  models:
+    - all-MiniLM-L6-v2    # 384-dim, no API key needed
+
+chunking:
+  methods:
+    - fixed       # character-window slicing
+    - recursive   # LangChain recursive splitter (splits on \n\n → \n → space)
+    - token       # LangChain TokenTextSplitter (cl100k_base, sizes in tokens)
+    - sentence    # NLTK sentence grouping with character budget
+    - semantic    # sentence-transformers cosine similarity grouping
+  params:
+    chunk_sizes: [256, 512, 1024]
+    overlaps: [50, 100]
+    paddings: [0]   # minimum chunk length (chars); undersized chunks merge forward. 0 = off.
+
+# NEW: Unified retriever configuration
+retrieval:
+  top_k_initial: 20  # Candidates from traditional retrieval
+  top_k_final: 5     # Final results after reranking
+  retrievers:
+    # Each entry is one sweep dimension — one retriever per run (never combined).
+    - type: dense    # Atlas $vectorSearch (cosine similarity)
+    - type: sparse   # Atlas $search BM25 full-text  ← requires text_search_index
+    - type: hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
+    - type: cross_encoder
+      provider: local
+      model: cross-encoder/ms-marco-MiniLM-L-6-v2
+
+execution:
+  parallelism: 4
+  on_error: continue

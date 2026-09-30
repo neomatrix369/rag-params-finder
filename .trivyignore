@@ -65,3 +65,8 @@ CVE-2026-81726
 #                         from user input are rejected, significantly narrowing the attack surface.
 #   Unblocked by: dedicated ML stack upgrade slice (sentence-transformers >= 4.0, torch >= 2.6.0).
 CVE-2025-32434
+# urllib3 2.7.0 — fix requires 2.8.0; blocked by boto3/botocore and other deps pinning urllib3<2.8.
+# Pre-existing on main before Slice 53. Unblock by upgrading boto3/botocore constraints.
+CVE-2026-97687
+CVE-2026-97688
+CVE-2026-97689

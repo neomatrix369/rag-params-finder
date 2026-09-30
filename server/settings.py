@@ -30,7 +30,7 @@ _RUN_STATE_ONLY_BACKENDS: frozenset[str] = frozenset({"sqlite"})
 # run state, so it is rejected for STORAGE_BACKEND but accepted for
 # VECTOR_STORE_BACKEND. Pairing rule (ii) (49B) allows that split; the
 # adapter is not registered yet, so selecting it fails when the store is resolved.
-_KNOWN_VECTOR_STORE_BACKENDS: frozenset[str] = _KNOWN_STORAGE_BACKENDS | {"elasticsearch"}
+_KNOWN_VECTOR_STORE_BACKENDS: frozenset[str] = _KNOWN_STORAGE_BACKENDS | {"elasticsearch", "redis"}
 
 # Vector-only providers named ahead of their adapter landing (Slice 50/53):
 # the registry cannot yet answer ``vector_store_can_host_run_state`` for
@@ -38,7 +38,7 @@ _KNOWN_VECTOR_STORE_BACKENDS: frozenset[str] = _KNOWN_STORAGE_BACKENDS | {"elast
 # pairing-rule validator below falls back to this declared-vector-only list.
 # Once an adapter registers, the registry lookup takes over and this entry
 # becomes redundant (harmless — same answer either way).
-_PENDING_VECTOR_ONLY_BACKENDS: frozenset[str] = frozenset({"elasticsearch"})
+_PENDING_VECTOR_ONLY_BACKENDS: frozenset[str] = frozenset({"elasticsearch", "redis"})
 
 
 def normalize_storage_backend(value: str) -> str:
@@ -155,6 +155,14 @@ class Settings(BaseSettings):
     elasticsearch_api_key: str = ""
     elasticsearch_index_prefix: str = "rpf"
 
+    # Redis — required when VECTOR_STORE_BACKEND=redis.
+    # redis:// for local / self-hosted; rediss:// for managed (TLS).
+    # Credentials are embedded in the URL (redis://user:pass@host:port).
+    # Never log REDIS_URL credentials.
+    # Index prefix defaults to ``rpf`` → ``rpf:chunks``.
+    redis_url: str = ""
+    redis_index_prefix: str = "rpf"
+
     # MongoDB — required when STORAGE_BACKEND=mongodb or VECTOR_STORE_BACKEND=mongodb.
     # Set one (or both) of the cloud/local vars; cloud wins when both are non-empty.
     # Cloud: MONGODB_ATLAS_CLOUD_URI (Atlas connection string, mongodb+srv://...).
@@ -211,6 +219,12 @@ class Settings(BaseSettings):
         if backend == "elasticsearch":
             raise ValueError(
                 "STORAGE_BACKEND=elasticsearch is not supported: elasticsearch is "
+                "vector-store-only and cannot host run state. Set STORAGE_BACKEND to "
+                "'mongodb', 'postgres', or 'sqlite'."
+            )
+        if backend == "redis":
+            raise ValueError(
+                "STORAGE_BACKEND=redis is not supported: redis is "
                 "vector-store-only and cannot host run state. Set STORAGE_BACKEND to "
                 "'mongodb', 'postgres', or 'sqlite'."
             )
@@ -286,6 +300,14 @@ class Settings(BaseSettings):
         boot here (that stays a `/healthz` 503 + preflight 422 concern).
         """
         run_state = normalize_storage_backend(self.storage_backend)
+        # Reject vector-store-only backends as run-state STORAGE_BACKEND here
+        # (not only at construction time) so patched unit tests also see the clear error.
+        if run_state in _PENDING_VECTOR_ONLY_BACKENDS:
+            raise ValueError(
+                f"STORAGE_BACKEND={run_state!r} is not supported: {run_state} is "
+                "vector-store-only and cannot host run state. "
+                "Set STORAGE_BACKEND to 'mongodb', 'postgres', or 'sqlite'."
+            )
         # Enforce the run-state-only pairing rule here (not at construction time)
         # so unit tests can construct Settings() without VECTOR_STORE_BACKEND.
         if run_state in _RUN_STATE_ONLY_BACKENDS and not self.vector_store_backend.strip():
@@ -348,6 +370,13 @@ class Settings(BaseSettings):
                 "VECTOR_STORE_BACKEND=elasticsearch requires ELASTICSEARCH_CLOUD_URL "
                 "or ELASTICSEARCH_LOCAL_URL. "
                 "Set the cloud URL or local URL in .env or the environment."
+            )
+        if backend == "redis" and not self.redis_url.strip():
+            raise ValueError(
+                "VECTOR_STORE_BACKEND=redis requires REDIS_URL. "
+                "Set REDIS_URL=redis://localhost:6379 (local) or "
+                "REDIS_URL=rediss://user:pass@host:port (managed/TLS) in .env or the environment. "
+                "See docs/user-guide/redis-setup.md."
             )
 
     def default_database_provider(self) -> str:
