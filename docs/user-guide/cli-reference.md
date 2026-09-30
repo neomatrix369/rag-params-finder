@@ -239,7 +239,7 @@ Every key present before Slice 49B stays with the same meaning: `ok`,
 `storage_backend` (the **run-state** store, i.e. `STORAGE_BACKEND`),
 `storage_mode` (the **vector** store's four-value mode — matches the dashboard
 label), and the per-engine key (`mongodb` / `postgres`, including Mongo's
-`"skipped"` when `MONGODB_URI` is unset). Added: `vector_store_backend`,
+`"skipped"` when `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` is unset). Added: `vector_store_backend`,
 `run_state_mode`, and `stores: {vector: {...}, run_state: {...}}` (each with
 `provider`, `mode`, `ok`, `latency_ms`, and `remediation` when down). A mode
 ending in `-local` also includes `container` and `image`: the Compose default
@@ -292,7 +292,7 @@ container name and image pin. Cloud modes omit those two fields.
       "mode": "elasticsearch-local",
       "ok": false,
       "latency_ms": null,
-      "remediation": "Check ELASTICSEARCH_URL / ./start-services.sh elasticsearch status",
+      "remediation": "Check ELASTICSEARCH_CLOUD_URL / ./start-services.sh elasticsearch status",
       "container": "rag-params-finder-elasticsearch-local",
       "image": "docker.elastic.co/elasticsearch/elasticsearch:9.5.0"
     },

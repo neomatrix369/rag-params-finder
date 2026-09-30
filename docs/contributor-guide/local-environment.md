@@ -52,10 +52,10 @@ Host CLI:
 
 ```bash
 export STORAGE_BACKEND=postgres
-export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+export POSTGRES_LOCAL_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 ```
 
-Schema / indexes come from `server/db/postgres/schema.sql` on first pool open (no Atlas UI). Hosted Supabase: `--postgres-cloud` + `DATABASE_URL` / `SUPABASE_URI` — [Path B](../user-guide/postgres-setup.md#path-b--hosted-supabase).
+Schema / indexes come from `server/db/postgres/schema.sql` on first pool open (no Atlas UI). Hosted Supabase: `--postgres-cloud` + `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL` / `POSTGRES_CLOUD_URL` — [Path B](../user-guide/postgres-setup.md#path-b--hosted-supabase).
 
 ---
 
@@ -69,7 +69,7 @@ Schema / indexes come from `server/db/postgres/schema.sql` on first pool open (n
 ./start-services.sh elasticsearch reset     # wipe the local volume
 ```
 
-`STORAGE_BACKEND` stays `postgres` or `mongodb`. `VECTOR_STORE_BACKEND=elasticsearch` is set by the start script. Cloud: `--elasticsearch-cloud` plus `ELASTICSEARCH_URL` in `.env`.
+`STORAGE_BACKEND` stays `postgres` or `mongodb`. `VECTOR_STORE_BACKEND=elasticsearch` is set by the start script. Cloud: `--elasticsearch-cloud` plus `ELASTICSEARCH_CLOUD_URL` / `ELASTICSEARCH_LOCAL_URL` in `.env`.
 
 Dual-container smoke: `./scripts/docker/health-check.sh` probes whichever of Atlas Local / pgvector is present.
 
@@ -152,9 +152,9 @@ Example sweep: `rag-params-finder run --config configs/mongodb/example-sie.yaml`
 
 ```bash
 # MongoDB Atlas (REQUIRED — cloud or Atlas Local)
-MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?retryWrites=true&w=majority
+MONGODB_ATLAS_CLOUD_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?retryWrites=true&w=majority
 # Atlas Local alternative:
-# MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true
+# MONGODB_ATLAS_LOCAL_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true
 
 # Voyage AI (OPTIONAL — only if using Voyage models)
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -175,7 +175,7 @@ SERVER_URL=http://localhost:8001
 # ATLAS_PUBLIC_KEY=
 # ATLAS_PRIVATE_KEY=
 # ATLAS_GROUP_ID=                         # 24-char project ID from Atlas URL
-# ATLAS_CLUSTER_NAME=                     # omit to parse from MONGODB_URI host
+# ATLAS_CLUSTER_NAME=                     # omit to parse from MONGODB_ATLAS_CLOUD_URI host
 # MONGODB_STORAGE_LIMIT_MB=512            # manual override (MB); 0 = try API
 
 # Optional — stored in experiment metadata / dashboard (“Recover on Boot”).

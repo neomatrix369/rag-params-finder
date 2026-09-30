@@ -53,9 +53,9 @@ npm run build
 ./start-services.sh                    # server + dashboard (Atlas cloud in .env)
 ./start-services.sh --mongodb-local    # server + dashboard + MongoDB Atlas Local (no cloud account)
 ./start-services.sh --postgres-local   # server + dashboard + local pgvector (STORAGE_BACKEND=postgres)
-./start-services.sh --postgres-cloud   # hosted Supabase (DATABASE_URL or SUPABASE_URI; no MONGODB_URI)
+./start-services.sh --postgres-cloud   # hosted Supabase (POSTGRES_CLOUD_URL; no MONGODB_ATLAS_CLOUD_URI)
 ./start-services.sh --elasticsearch-local  # local Elasticsearch; run state defaults to local MongoDB unless STORAGE_BACKEND=postgres
-./start-services.sh --elasticsearch-cloud  # hosted Elasticsearch (ELASTICSEARCH_URL)
+./start-services.sh --elasticsearch-cloud  # hosted Elasticsearch (ELASTICSEARCH_CLOUD_URL)
 RAG_MONGODB_LOCAL=1 ./start-services.sh  # same as --mongodb-local via env var
 ./start-services.sh mongodb [start|stop|reset|status]  # manage local Atlas container standalone
 ./start-services.sh postgres [start|stop|reset|status]  # manage local pgvector container standalone
@@ -68,11 +68,11 @@ Backend switching — the start command and the example config change (a YAML `d
 
 | Backend | Connection string (CLI / host server) |
 |---------|--------------------------------|
-| Atlas cloud | `MONGODB_URI=mongodb+srv://...` (from .env) |
-| Atlas Local | `MONGODB_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true` |
-| Local pgvector | `STORAGE_BACKEND=postgres` + `DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder` |
-| Hosted Supabase | `STORAGE_BACKEND=postgres` + `DATABASE_URL` (or optional `SUPABASE_URI` alias) — Session-mode pooler |
-| Local Elasticsearch | `./start-services.sh --elasticsearch-local` — `VECTOR_STORE_BACKEND=elasticsearch`, `ELASTICSEARCH_URL=http://elasticsearch-local:9200`; run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres` |
+| Atlas cloud | `MONGODB_ATLAS_CLOUD_URI=mongodb+srv://...` (from .env) |
+| Atlas Local | `MONGODB_ATLAS_LOCAL_URI=mongodb://localhost:27017/rag_params_finder?directConnection=true` |
+| Local pgvector | `STORAGE_BACKEND=postgres` + `POSTGRES_LOCAL_URL=postgresql://rag:rag@localhost:5433/rag_params_finder` |
+| Hosted Supabase | `STORAGE_BACKEND=postgres` + `POSTGRES_CLOUD_URL` (Session-mode pooler) |
+| Local Elasticsearch | `./start-services.sh --elasticsearch-local` — `VECTOR_STORE_BACKEND=elasticsearch`, `ELASTICSEARCH_LOCAL_URL=http://elasticsearch-local:9200`; run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres` |
 | SQLite run-state (**default**, ADR-008) | `STORAGE_BACKEND=sqlite` (default) + `VECTOR_STORE_BACKEND` required (mongodb/postgres/elasticsearch). Single-file, no separate service. See [`sqlite-setup.md`](docs/user-guide/sqlite-setup.md), [`SLICE-55`](docs/plan/slices/05-storage/SLICE-55-SQLITE-RUN-STATE-STORE.md), [`ADR-008`](docs/adr/ADR-008-sqlite-central-run-state-store.md) |
 
 Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md`, `docs/user-guide/mongodb-setup.md`, and `docs/user-guide/postgres-setup.md`.
@@ -291,7 +291,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 **Backend** (2026-08-07 — unit tier, full scope):
 - `ruff check .` → 0 errors
 - `mypy server/ cli/` → 0 errors
-- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **470** tests (2026-09-23); full backend (`server/ + cli/`) floors **72/59/n/a/72** (stmts/br/fn/lines) via `fail_under=70` (combined 70.1%) + `scripts/ci/check_backend_coverage_floors.py` (`backend_coverage_thresholds`) — DECISIONS #142; no `MONGODB_URI` required
+- `pytest` (ignores live contract/postgres suites, `-m "not integration"`) → **470** tests (2026-09-23); full backend (`server/ + cli/`) floors **72/59/n/a/72** (stmts/br/fn/lines) via `fail_under=70` (combined 70.1%) + `scripts/ci/check_backend_coverage_floors.py` (`backend_coverage_thresholds`) — DECISIONS #142; no `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` required
 - FE/BE threshold lock: `scripts/ci/check_coverage_threshold_drift.py` asserts Vitest `coverage.thresholds` match `[tool.rag_params_finder.coverage_thresholds]` (incl. `functions=95`) — DECISIONS #161
 
 **Frontend** (2026-08-07 — Slice 45 COMPLETE + floors #142 + 3 gap scenarios; harness #185):

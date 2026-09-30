@@ -20,7 +20,7 @@ The server reads these. The CLI configs do not contain them.
 | Variable | Local | Cloud |
 |---|---|---|
 | `VECTOR_STORE_BACKEND` | `elasticsearch` (set by the start script) | `elasticsearch` |
-| `ELASTICSEARCH_URL` | `http://elasticsearch-local:9200` inside Compose; `http://127.0.0.1:9200` on the host | Your cluster URL |
+| `ELASTICSEARCH_CLOUD_URL` / `ELASTICSEARCH_LOCAL_URL` | `http://elasticsearch-local:9200` inside Compose; `http://127.0.0.1:9200` on the host | Your cluster URL |
 | `ELASTICSEARCH_API_KEY` | Empty (security is off) | Set when the cluster requires a key |
 | `ELASTICSEARCH_INDEX_PREFIX` | `rpf` → index `rpf-chunks` | Same |
 | `STORAGE_BACKEND` | `mongodb` unless you set `postgres` | `mongodb` or `postgres` |
@@ -53,7 +53,7 @@ Point the server at an existing cluster. Security and TLS follow that cluster.
 ```bash
 # .env
 VECTOR_STORE_BACKEND=elasticsearch
-ELASTICSEARCH_URL=https://your-cluster.example:9200
+ELASTICSEARCH_CLOUD_URL=https://your-cluster.example:9200
 ELASTICSEARCH_API_KEY=your-api-key
 STORAGE_BACKEND=postgres
 ./start-services.sh --elasticsearch-cloud

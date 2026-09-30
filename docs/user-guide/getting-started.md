@@ -70,7 +70,7 @@ cp .env.example .env
 **Mongo (default)** — edit `.env`:
 
 ```bash
-MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?retryWrites=true&w=majority
+MONGODB_ATLAS_CLOUD_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?retryWrites=true&w=majority
 
 # Required for Voyage sweep only — see mongodb-setup.md checklist
 VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -81,19 +81,19 @@ VOYAGE_TPM_LIMIT=16000000
 SERVER_URL=http://localhost:8001
 ```
 
-**Postgres (local or Supabase-hosted)** — instead of `MONGODB_URI`:
+**Postgres (local or Supabase-hosted)** — instead of `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI`:
 
 ```bash
 STORAGE_BACKEND=postgres
 # Local Docker:
-DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+POSTGRES_LOCAL_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 # Or Supabase-hosted Postgres (TLS auto for *.supabase.co):
-# DATABASE_URL=postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres
+# POSTGRES_CLOUD_URL=postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres
 
 SERVER_URL=http://localhost:8001
 ```
 
-Optional `SUPABASE_URI` aliases `DATABASE_URL` when the canonical var is unset — see [Postgres Setup](postgres-setup.md#supabase-vs-postgres-read-this-first).
+Set either `POSTGRES_CLOUD_URL` (Supabase) or `POSTGRES_LOCAL_URL` (local Docker) — cloud wins when both are present. See [Postgres Setup](postgres-setup.md#supabase-vs-postgres-read-this-first).
 
 Full variable reference: [Troubleshooting → Environment Variables](troubleshooting.md#-environment-variables-reference). Optional Atlas Admin API keys enable cluster tier + storage quota in the dashboard — see `.env.example`.
 
@@ -163,7 +163,7 @@ Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) and `
 ./start-services.sh              # Atlas cloud URI from .env (Mongo default)
 ./start-services.sh --mongodb-local   # Atlas Local in Docker
 ./start-services.sh --postgres-local  # local pgvector (STORAGE_BACKEND=postgres)
-./start-services.sh --postgres-cloud  # Supabase-hosted (DATABASE_URL; no MONGODB_URI)
+./start-services.sh --postgres-cloud  # Supabase-hosted (POSTGRES_CLOUD_URL; no MONGODB_ATLAS_CLOUD_URI)
 ./start-services.sh --elasticsearch-local  # local Elasticsearch; run state defaults to local MongoDB unless STORAGE_BACKEND=postgres
 # Note: the old --local / --postgres flags were removed — use the canonical flags above
 ```
@@ -198,7 +198,7 @@ rag-params-finder run --config configs/mongodb/example-local.yaml --detach
 
 ```bash
 export STORAGE_BACKEND=postgres
-export DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+export POSTGRES_LOCAL_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
 ```
 

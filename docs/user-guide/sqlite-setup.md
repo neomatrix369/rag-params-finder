@@ -14,7 +14,7 @@ vectors (MongoDB Atlas, Postgres/pgvector, or Elasticsearch).
 STORAGE_BACKEND=sqlite          # already the default; explicit here for clarity
 SQLITE_DB_PATH=./data/run_state.db  # default path; override if needed
 VECTOR_STORE_BACKEND=mongodb    # or postgres, or elasticsearch
-MONGODB_URI=mongodb+srv://...   # required when VECTOR_STORE_BACKEND=mongodb
+MONGODB_ATLAS_CLOUD_URI=mongodb+srv://...   # required when VECTOR_STORE_BACKEND=mongodb
 ```
 
 Start the server — the SQLite file and its parent directory are created automatically on first boot:
@@ -44,10 +44,10 @@ at startup if it is missing.
 
 | Run state | Vectors | .env additions |
 |---|---|---|
-| SQLite (default) | MongoDB Atlas cloud | `VECTOR_STORE_BACKEND=mongodb` + `MONGODB_URI=...` |
-| SQLite (default) | MongoDB Atlas Local | `VECTOR_STORE_BACKEND=mongodb` + `MONGODB_URI=mongodb://localhost:27017/...` |
-| SQLite (default) | Local pgvector | `VECTOR_STORE_BACKEND=postgres` + `DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder` |
-| SQLite (default) | Elasticsearch | `VECTOR_STORE_BACKEND=elasticsearch` + `ELASTICSEARCH_URL=http://localhost:9200` |
+| SQLite (default) | MongoDB Atlas cloud | `VECTOR_STORE_BACKEND=mongodb` + `MONGODB_ATLAS_CLOUD_URI=...` |
+| SQLite (default) | MongoDB Atlas Local | `VECTOR_STORE_BACKEND=mongodb` + `MONGODB_ATLAS_LOCAL_URI=mongodb://localhost:27017/...` |
+| SQLite (default) | Local pgvector | `VECTOR_STORE_BACKEND=postgres` + `POSTGRES_LOCAL_URL=postgresql://rag:rag@localhost:5433/rag_params_finder` |
+| SQLite (default) | Elasticsearch | `VECTOR_STORE_BACKEND=elasticsearch` + `ELASTICSEARCH_CLOUD_URL=http://localhost:9200` |
 
 ## Concurrency and WAL mode
 
@@ -101,7 +101,7 @@ both stores were the same engine). No migration is needed — the original colle
 
 ```bash
 STORAGE_BACKEND=mongodb
-MONGODB_URI=mongodb+srv://...
+MONGODB_ATLAS_CLOUD_URI=mongodb+srv://...
 # VECTOR_STORE_BACKEND omitted → defaults to mongodb
 ```
 

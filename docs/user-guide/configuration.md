@@ -31,8 +31,8 @@ Place config files under `configs/mongodb/` or `configs/supabase/` (mirrored ste
 > **Supabase** is a hosted Postgres deployment (cloud URI / `storage_mode=postgres-cloud`), not a second adapter.
 > `configs/supabase/` holds example YAMLs for that path; YAML `database_provider: supabase`
 > normalizes to `postgres`. Dense, sparse, and hybrid (+ rerankers) all run. Sparse uses
-> `tsvector`/`ts_rank`; hybrid uses RRF (`rrf_k=60`). Connection URI is `DATABASE_URL`
-> (optional `SUPABASE_URI` alias when `DATABASE_URL` is unset).
+> `tsvector`/`ts_rank`; hybrid uses RRF (`rrf_k=60`). Connection URI is `POSTGRES_CLOUD_URL`
+> (Supabase / hosted) or `POSTGRES_LOCAL_URL` (local Docker) — cloud wins when both are set.
 > Engine mismatch vs the running server → HTTP 422 before index preflight
 > ([troubleshooting](troubleshooting.md#-config-engine-mismatch-database_provider--storage_backend)).
 > See [postgres-setup.md](postgres-setup.md) and [Engine × Location](#-environment-variables-env).
@@ -438,7 +438,7 @@ Two independent axes select storage. Product names are **shorthand for the usual
 Someone says “I’m on Atlas” → ask: **cloud or Local?**
 Someone says “I’m on Supabase” → engine is Postgres cloud; local Postgres is `postgres-local`, not Supabase.
 
-Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud` / `--elasticsearch-local|cloud`. `--elasticsearch-local` also starts the run-state store (default `mongodb-local`; set `STORAGE_BACKEND=postgres` to pair Postgres). The old `--local` / `--postgres` flag aliases were removed. Env asymmetry: Elasticsearch needs `ELASTICSEARCH_URL` (and `ELASTICSEARCH_API_KEY` on a secured cloud). It never uses `MONGODB_URI` or `DATABASE_URL` for the vector lane.
+Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud` / `--elasticsearch-local|cloud`. `--elasticsearch-local` also starts the run-state store (default `mongodb-local`; set `STORAGE_BACKEND=postgres` to pair Postgres). The old `--local` / `--postgres` flag aliases were removed. Env asymmetry: Elasticsearch needs `ELASTICSEARCH_CLOUD_URL` / `ELASTICSEARCH_LOCAL_URL` (and `ELASTICSEARCH_API_KEY` on a secured cloud). It never uses `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` or `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL` for the vector lane.
 
 ### Split-store: `VECTOR_STORE_BACKEND` (Slice 49B)
 
@@ -467,9 +467,9 @@ or STORAGE_BACKEND=postgres.
 
 ```bash
 STORAGE_BACKEND=postgres
-DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+POSTGRES_LOCAL_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 VECTOR_STORE_BACKEND=elasticsearch
-ELASTICSEARCH_URL=http://localhost:9200
+ELASTICSEARCH_CLOUD_URL=http://localhost:9200
 # ELASTICSEARCH_API_KEY=   # optional, cloud only
 # ELASTICSEARCH_INDEX_PREFIX=rpf   # index name rpf-chunks
 ```
@@ -488,7 +488,7 @@ VECTOR_STORE_BACKEND=postgres   # ✗ rejected: postgres can host run state
 
 A missing or placeholder connection URI for **either** store fails server boot
 with a `ValueError` naming the setting (e.g. `VECTOR_STORE_BACKEND=elasticsearch
-requires ELASTICSEARCH_URL`). An unreachable-but-configured store does **not**
+requires ELASTICSEARCH_CLOUD_URL`). An unreachable-but-configured store does **not**
 fail boot — it is reported by `GET /healthz` (HTTP 503) and by sweep-submit
 preflight (HTTP 422) instead. See
 [CLI Reference → `/healthz`](cli-reference.md#-api-endpoints) for the two-store
@@ -508,7 +508,7 @@ STORAGE_BACKEND=mongodb
 # state must equal STORAGE_BACKEND; a vector-only store (e.g. "elasticsearch")
 # may pair with either run-state store. See configuration.md → split-store.
 # VECTOR_STORE_BACKEND=elasticsearch
-# ELASTICSEARCH_URL=http://localhost:9200   # required when VECTOR_STORE_BACKEND=elasticsearch
+# ELASTICSEARCH_CLOUD_URL=http://localhost:9200   # required when VECTOR_STORE_BACKEND=elasticsearch
 
 # /healthz and db-stats expose storage_mode (four compounds — matches start-services flags):
 #   mongodb-local | mongodb-cloud | postgres-local | postgres-cloud
@@ -517,16 +517,16 @@ STORAGE_BACKEND=mongodb
 # Supabase *.supabase.* vs local Docker). Not the same as YAML database_provider.
 
 # MongoDB Atlas (REQUIRED when STORAGE_BACKEND=mongodb)
-MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder
+MONGODB_ATLAS_CLOUD_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder
 
 # Postgres/pgvector (REQUIRED when STORAGE_BACKEND=postgres)
 # One backend for local Docker and Supabase-hosted Postgres.
-# Canonical URI: DATABASE_URL. Optional alias: SUPABASE_URI (when DATABASE_URL unset).
+# Set POSTGRES_CLOUD_URL (Supabase) or POSTGRES_LOCAL_URL (Docker). Cloud wins when both are set.
 # Local container:  ./start-services.sh --postgres-local
-# DATABASE_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
+# POSTGRES_LOCAL_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
 # Supabase-hosted (TLS applied automatically for hosted hosts):
-# DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
-# SUPABASE_URI=...   # same URI; used only if DATABASE_URL is empty
+# POSTGRES_CLOUD_URL=postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+# POSTGRES_CLOUD_URL=...   # same URI; used only if POSTGRES_CLOUD_URL is empty
 # POSTGRES_POOL_MAX_SIZE=10
 # POSTGRES_POOL_TIMEOUT_S=30
 # Full checklist: docs/user-guide/postgres-setup.md
@@ -585,7 +585,7 @@ LOG_LEVEL=INFO  # DEBUG for verbose output
 ATLAS_PUBLIC_KEY=your-atlas-public-key
 ATLAS_PRIVATE_KEY=your-atlas-private-key
 ATLAS_GROUP_ID=24-char-project-id
-ATLAS_CLUSTER_NAME=YourClusterName  # leave blank to auto-detect from MONGODB_URI
+ATLAS_CLUSTER_NAME=YourClusterName  # leave blank to auto-detect from MONGODB_ATLAS_CLOUD_URI
 
 # Manual storage limit override (MB)
 # When > 0, skips Atlas API auto-detect

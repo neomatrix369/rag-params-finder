@@ -453,7 +453,7 @@ Detection: `server/db/mongo/mongodb_uri.py` (`is_atlas_uri`). TLS enabled only f
 `retriever_postgres.py`). Default remains `STORAGE_BACKEND=mongodb` (legacy
 alias `mongo` normalizes to `mongodb`). **One backend**, two deployments: local Docker
 (`./start-services.sh --postgres-local`) or **Supabase-hosted Postgres** (same adapter;
-cloud `DATABASE_URL`). Example YAMLs live under `configs/supabase/` — that folder
+cloud `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL`). Example YAMLs live under `configs/supabase/` — that folder
 name is not a second storage backend. Schema:
 [`server/db/postgres/schema.sql`](../../server/db/postgres/schema.sql).
 Operator setup: [Postgres Setup](../user-guide/postgres-setup.md).
@@ -544,7 +544,7 @@ See `docs/adr/` for Architecture Decision Records:
 | Docker (prod profile) | `./start-services.sh` | Server + dashboard containers; Atlas cloud from `.env` when `STORAGE_BACKEND=mongodb` |
 | Docker + Atlas Local | `./start-services.sh --mongodb-local` | Adds `mongodb/mongodb-atlas-local:8.3.3` container; auto-provisions search indexes |
 | Docker + local Postgres | `./start-services.sh --postgres-local` | Adds `pgvector/pgvector:0.8.5-pg16` (Supabase stand-in); host port **5433** |
-| Docker + hosted Supabase | `./start-services.sh --postgres-cloud` | No local DB container; requires `DATABASE_URL` or `SUPABASE_URI` |
+| Docker + hosted Supabase | `./start-services.sh --postgres-cloud` | No local DB container; requires `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL` or `POSTGRES_CLOUD_URL` |
 | Docker + local Elasticsearch | `./start-services.sh --elasticsearch-local` | Vector-only Elasticsearch 9.5.0; run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres` |
 | DB container only | `./start-services.sh mongodb\|postgres\|elasticsearch start\|stop\|reset\|status` | Native server/frontend on host |
 | Docker (dev overlay) | `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build` | Bind mounts + HMR |

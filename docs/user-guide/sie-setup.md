@@ -248,7 +248,7 @@ Use the ready-made example config for a full CLI pipeline sweep (Mongo **or** Po
 rag-params-finder run --config configs/mongodb/example-sie.yaml
 
 # Postgres path (local Docker or Supabase-hosted — no Atlas indexes)
-# export STORAGE_BACKEND=postgres && export DATABASE_URL=...
+# export STORAGE_BACKEND=postgres && export POSTGRES_CLOUD_URL=...
 rag-params-finder run --config configs/supabase/example-sie.yaml
 ```
 
