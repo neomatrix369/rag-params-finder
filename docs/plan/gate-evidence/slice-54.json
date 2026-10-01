@@ -1,0 +1,57 @@
+{
+  "slice": 54,
+  "slice_name": "Embedding-Cache Backend Port + Redis Cache Adapter",
+  "branch": "slice/54-cache-backend-port-redis",
+  "gate_status": "OPEN",
+  "note": "Implementation COMPLETE — tests pass, 100% branch coverage on cache modules. PR not yet opened.",
+  "decisions": {
+    "48A_on_main": "PR #219 merged 2026-10-01 — embedding_cache.py present",
+    "slice_52_branch_b_go": "DECISIONS #233 (Could on Branch B GO) + user explicit instruction 2026-10-01",
+    "combined_deployment_stance": "Option (a) — one shared Redis instance, volatile-lru, DECISIONS #273",
+    "redis_extra": "Reused from Slice 53 (PR #218 merged); no second [redis] extra introduced",
+    "external_references_loaded": {
+      "eviction_policies": "https://redis.io/docs/latest/develop/reference/eviction/ — volatile-lru option (a) TTL contract",
+      "persistence": "https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/ — cache durability",
+      "redis_py": "https://redis.readthedocs.io/en/stable/ — MGET / pipelined SET",
+      "tls": "https://redis.io/docs/latest/operate/oss_and_stack/management/security/encryption/ — managed endpoints"
+    }
+  },
+  "before_checks": {
+    "external_references_loaded": true,
+    "48a_on_main": true,
+    "slice_52_branch_b_go": true,
+    "redis_extra_confirmed_no_duplicate": true,
+    "harness_scout_detect_confirm": "SKIPPED — harness-scout not available in this session"
+  },
+  "implementation_summary": {
+    "protocol": "CacheBackend Protocol (runtime_checkable) with get_many/put_many/cached_keys",
+    "sqlite_adapter": "EmbeddingCache satisfies CacheBackend via structural duck typing; unchanged",
+    "redis_adapter": "RedisCacheBackend — MGET + pipelined SET with TTL; prefix rpf:emb:; fail-closed ping on construction",
+    "factory": "get_cache_backend() dispatches on settings.embedding_cache_backend; get_embedding_cache() compat alias",
+    "settings": "embedding_cache_backend (default sqlite) + embedding_cache_redis_ttl_s (7d) + ensure_cache_backend_ready()",
+    "startup_probe": "Lifespan probes non-sqlite cache backend; SystemExit(1) on unreachable Redis",
+    "callers_changed": false,
+    "key_namespace": "rpf:emb: prefix; vector keys remain rpf:chunk: — no collision possible"
+  },
+  "test_counts": {
+    "total_passed": 882,
+    "total_skipped": 7,
+    "cache_module_tests_passed": 34,
+    "cache_module_tests_skipped_no_redis_url": 7
+  },
+  "coverage_pct": {
+    "embedding_cache": 100.0,
+    "embedding_cache_redis": 100.0,
+    "overall_suite": 75.75
+  },
+  "branch_pct": {
+    "embedding_cache": 100.0,
+    "embedding_cache_redis": 100.0
+  },
+  "coverage_target": "100% line+branch on cache modules (spec After-Check)",
+  "branch_target": "100%",
+  "complexity_tool": "xenon",
+  "complexity_ceiling": "E/C/C",
+  "complexity_passed": true,
+  "pr": null
+}

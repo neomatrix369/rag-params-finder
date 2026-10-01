@@ -613,6 +613,38 @@ Query avg prevents high-scoring queries with many results from hiding poorly-per
 
 **When to use `chunk_avg`**: You have existing experiments ranked with the old method and want consistency for comparison. New experiments should use `query_avg`.
 
+### Embedding Cache Backend (Advanced)
+
+Controls where pre-computed DoubleWord embedding vectors are cached between
+runs (Slice 54). SQLite is the default and requires no extra service.
+
+| Variable | Default | Description |
+|---|---|---|
+| `EMBEDDING_CACHE_BACKEND` | `sqlite` | `sqlite` or `redis` — where to persist embedding vectors |
+| `EMBEDDING_CACHE_PATH` | `.rpf_cache/embeddings.sqlite` | SQLite file path (ignored when backend is `redis`) |
+| `EMBEDDING_CACHE_REDIS_TTL_S` | `604800` | Redis key TTL in seconds (default 7 days). Keys expire and re-embed on the next run. `0` disables TTL (keys never expire). |
+
+**When to use Redis:** your experiments run on multiple hosts that share a
+single Redis instance, and you want them to reuse each other's embedding cache.
+Single-host setups do not need Redis — SQLite WAL is sufficient.
+
+**Redis instance layout (option a — one instance, DECISIONS #273):**
+
+The same Redis instance can serve both the vector store (`VECTOR_STORE_BACKEND=redis`)
+and the embedding cache. Use `--maxmemory-policy volatile-lru` so only cache
+keys (which carry a TTL) are evictable; vector keys are written without a TTL
+and are never evicted.
+
+```bash
+EMBEDDING_CACHE_BACKEND=redis
+REDIS_URL=redis://localhost:6379
+EMBEDDING_CACHE_REDIS_TTL_S=604800  # 7 days
+```
+
+Install the client: `pip install -e ".[redis]"`. The `redis-local` Docker
+profile already includes `--maxmemory-policy volatile-lru` — see
+[redis-setup.md](redis-setup.md#embedding-cache).
+
 ### CORS Configuration (Advanced)
 
 **For production deployment only.** Local development defaults work out of the box.
