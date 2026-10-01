@@ -27,6 +27,8 @@ Everything you need to run your first RAG parameter sweep experiment.
 | Node.js | 22+ | Install via [nodejs.org](https://nodejs.org/) or `nvm install 22` |
 | MongoDB | Cloud M0 or local Docker | **Default path** — see [MongoDB Setup](mongodb-setup.md#choose-your-mongodb-backend) |
 | Postgres / pgvector | Local Docker or Supabase-hosted Postgres | **Alternative** — one backend (`STORAGE_BACKEND=postgres`); Supabase is hosted Postgres, not a separate adapter — [Postgres Setup](postgres-setup.md) |
+| Elasticsearch | Local Docker or BYO cloud cluster | **Alternative vector store** (vector-only, `VECTOR_STORE_BACKEND=elasticsearch`) — [Elasticsearch Setup](elasticsearch-setup.md) |
+| Redis | Local Docker or BYO cloud instance | **Alternative vector store** (vector-only, `VECTOR_STORE_BACKEND=redis`) — [Redis Setup](redis-setup.md) |
 | Voyage AI | Optional | Only for Voyage models — see [MongoDB Setup → Voyage AI](mongodb-setup.md#voyage-ai-required-for-voyage-sweep) |
 | Docker Desktop + HF_TOKEN | Optional | **Self-hosted SIE only** — remote gateway needs no Docker; see [SIE Provider Setup](sie-setup.md) |
 
