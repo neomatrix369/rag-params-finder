@@ -46,12 +46,16 @@ C4Context
     SystemDb_Ext(mongo, "MongoDB Atlas", "Vector + run state (cloud or local)")
     SystemDb_Ext(pg, "Postgres / pgvector", "Vector + run state (Supabase or local)")
     SystemDb_Ext(es, "Elasticsearch", "Vector only (local or cloud); run state stays on MongoDB or Postgres")
+    SystemDb_Ext(redis, "Redis", "Vector only (local or cloud) + optional embedding cache; run state stays on MongoDB, Postgres, or SQLite")
+    SystemDb_Ext(sqlite, "SQLite", "Run state only, default (ADR-008); single local file, no network service")
     Rel(user, rpf, "Submits configs, views results")
     Rel(rpf, voyage, "Embeds / reranks", "HTTPS")
     Rel(rpf, sie, "Embeds", "HTTPS")
     Rel(rpf, mongo, "Reads / writes", "driver")
     Rel(rpf, pg, "Reads / writes", "SQL")
     Rel(rpf, es, "Reads / writes vectors", "HTTP")
+    Rel(rpf, redis, "Reads / writes vectors + cache", "RESP")
+    Rel(rpf, sqlite, "Reads / writes run state", "file")
 ```
 
 ---
@@ -67,7 +71,7 @@ C4Container
         Container(api, "FastAPI server", "Python / FastAPI :8001", "Pipeline orchestration + REST API")
         Container(dash, "Dashboard", "React 19 / Vite :5374", "Observe + control sweeps")
     }
-    SystemDb_Ext(store, "Storage + vector store", "Mongo / pgvector / ES via ports")
+    SystemDb_Ext(store, "Storage + vector store", "SQLite / Mongo / pgvector / ES / Redis via ports")
     System_Ext(emb, "Embedders", "Voyage / local / SIE via embedder_factory")
     Rel(user, cli, "runs")
     Rel(user, dash, "views / controls")
@@ -106,12 +110,12 @@ FastAPI Server
 │  Pipeline (one run per config combination)│
 │                                          │
 │  PDF/TXT/MD/CSV → Chunk → Embed          │
-│       → Atlas write → Query → Rerank     │
+│       → vector write → Query → Rerank    │
 │       → Store results                    │
 └──────────────┬───────────────────────────┘
                │
                ▼
-    MongoDB (Atlas cloud or Atlas Local)
+    Storage + vector store (SQLite / Mongo / pgvector / ES / Redis)
          ┌────────────┐
          │ chunks     │  ← embeddings + vector index
          │ experiments│
@@ -153,6 +157,179 @@ sequenceDiagram
     API->>DB: read status + results
     API-->>UI: phases + results
 ```
+
+---
+
+## 🧭 End-to-end journey — pick a backend through a sweep
+
+The sequence diagram above is deliberately backend-agnostic. This diagram fills the gap: it
+follows one researcher from choosing a backend through running a sweep and troubleshooting it,
+and shows exactly where that choice forks into two independent axes — **vector store**
+(`VECTOR_STORE_BACKEND`) and **run-state store** (`STORAGE_BACKEND`) — per the pairing rule in
+[`server/db/ports/registry.py`](../../server/db/ports/registry.py) (`_CAN_HOST_RUN_STATE`:
+MongoDB/Postgres `True`, Elasticsearch/Redis `False`).
+
+```mermaid
+flowchart TD
+    START["Pick a vector store"] --> MONGO["MongoDB<br/>cloud or local"]
+    START --> PG["Postgres / pgvector<br/>Supabase or local"]
+    START --> ES["Elasticsearch<br/>vector only"]
+    START --> REDIS["Redis<br/>vector only + optional embedding cache"]
+
+    MONGO --> ROLE_MP["Can also host run state<br/>(or pair with a different store)"]
+    PG --> ROLE_MP
+    ES --> ROLE_ER["Must also pick a run-state store:<br/>Mongo / Postgres / SQLite (default)"]
+    REDIS --> ROLE_ER
+
+    ROLE_MP --> INSTALL["Install deps + start stack<br/>(start-services.sh)"]
+    ROLE_ER --> INSTALL
+
+    INSTALL --> CONFIG["Configure .env<br/>(connection vars per guide)"]
+    CONFIG --> RUN["Run a sweep — CLI"]
+
+    RUN --> CLI2["CLI: rag-params-finder run --config ..."]
+    CLI2 --> API2["FastAPI: POST /experiments<br/>config_backend_guard + index preflight"]
+    API2 --> PIPE2["Pipeline: parse → chunk → embed"]
+    PIPE2 --> DISPATCH_V["get_vector_store()<br/>→ chosen vector-store lane"]
+    PIPE2 --> DISPATCH_S["get_storage_backend()<br/>→ Mongo / Postgres / SQLite only"]
+
+    DISPATCH_V --> VIEW["View results — Dashboard<br/>poll GET /experiments/{id}"]
+    DISPATCH_S --> VIEW
+
+    VIEW --> TROUBLESHOOT["Troubleshoot<br/>(per-guide troubleshooting section)"]
+```
+
+<details>
+<summary>ASCII fallback (portable — renders anywhere)</summary>
+
+```
+Pick a vector store
+   ├── MongoDB (cloud or local) ─────┐
+   ├── Postgres / pgvector ──────────┤── can also host run state, or pair with a different store
+   ├── Elasticsearch (vector only) ──┐
+   └── Redis (vector only + cache) ──┤── must also pick a run-state store: Mongo / Postgres / SQLite (default)
+                                      │
+                                      ▼
+                    Install deps + start stack (start-services.sh)
+                                      │
+                                      ▼
+                       Configure .env (connection vars per guide)
+                                      │
+                                      ▼
+                              Run a sweep — CLI
+                                      │
+         CLI: rag-params-finder run --config ...
+                                      │
+         FastAPI: POST /experiments (config_backend_guard + index preflight)
+                                      │
+                Pipeline: parse → chunk → embed
+                                      │
+              ┌───────────────────────┴───────────────────────┐
+              ▼                                                ▼
+   get_vector_store()                                get_storage_backend()
+   → chosen vector-store lane                          → Mongo / Postgres / SQLite only
+              └───────────────────────┬───────────────────────┘
+                                      ▼
+                     View results — Dashboard (poll GET /experiments/{id})
+                                      │
+                                      ▼
+                  Troubleshoot (per-guide troubleshooting section)
+```
+
+See per-backend setup guides for detail: [mongodb-setup.md](../user-guide/mongodb-setup.md),
+[postgres-setup.md](../user-guide/postgres-setup.md),
+[elasticsearch-setup.md](../user-guide/elasticsearch-setup.md),
+[redis-setup.md](../user-guide/redis-setup.md).
+
+</details>
+
+---
+
+## 🎛️ Sweep-config axes — chunking, embedding, retrieval
+
+The diagram above covers **infrastructure** choices (which vector store, which run-state store).
+This one covers the **sweep-config** axes a researcher varies inside one experiment — chunking
+method, embedding provider/model, retrieval method — plus two real "oddities" worth knowing
+before you compose a sweep. Full reference tables live in
+[`configuration.md`](../user-guide/configuration.md); this diagram shows how the axes relate.
+
+```mermaid
+flowchart LR
+    subgraph CHUNK["Chunking method"]
+        FIXED["fixed"]
+        RECURSIVE["recursive"]
+        TOKEN["token"]
+        SENTENCE["sentence"]
+        SEMANTIC["semantic"]
+    end
+
+    subgraph EMBED["Embedding provider"]
+        LOCAL["local<br/>all-MiniLM-L6-v2"]
+        VOYAGE["voyage<br/>voyage-4, voyage-context-3, …"]
+        SIE["sie [gated, opt-in]<br/>BGE-M3, Stella-v5, SPLADE-v3"]
+        DOUBLEWORD["doubleword [batch-only]<br/>Qwen3-Embedding-8B"]
+    end
+
+    subgraph RETRIEVE["Retrieval method"]
+        DENSE["dense"]
+        SPARSE["sparse"]
+        HYBRID["hybrid"]
+    end
+
+    CHUNK -.->|compose freely| EMBED
+    EMBED -.->|compose freely| RETRIEVE
+
+    SEMANTIC ==>|"always loads local MiniLM<br/>to score chunk boundaries,<br/>regardless of provider above"| LOCAL
+    SPARSE -.->|"✗ NOT required —<br/>sparse is plain BM25/FTS<br/>on every store"| SIE
+
+    RETRIEVE -.-> INFRA["Infrastructure axes<br/>(vector store / run-state —<br/>see journey diagram above;<br/>embedding cache — ADR-009)"]
+```
+
+<details>
+<summary>ASCII fallback (portable — renders anywhere)</summary>
+
+```
+Chunking method            Embedding provider                  Retrieval method
+┌────────────┐             ┌──────────────────────────┐        ┌─────────┐
+│ fixed      │             │ local — all-MiniLM-L6-v2  │        │ dense   │
+│ recursive  │   ⟷ compose │ voyage — voyage-4,        │ ⟷      │ sparse  │
+│ token      │     freely  │   voyage-context-3, …     │ compose│ hybrid  │
+│ sentence   │             │ sie [gated] — BGE-M3,     │ freely │         │
+│ semantic ──┼─────┐       │   Stella-v5, SPLADE-v3    │        │         │
+└────────────┘     │       │ doubleword [batch-only] — │        │    ▲    │
+                    │       │   Qwen3-Embedding-8B      │        │    │    │
+                    ▼       └──────────────┬────────────┘        │    │    │
+          always loads local MiniLM        │                     sparse
+          to score chunk boundaries,       │                     │
+          regardless of provider above     │              ✗ NOT required —
+                    │                      │              sparse is plain
+                    ▼                      ▼              BM25/FTS on every
+                 (local)                  (sie)            store, not SPLADE
+
+Infrastructure axes:
+  vector store / run-state — see journey diagram above
+  embedding cache (sqlite default / redis, a third independent setting) — ADR-009
+```
+
+**Two oddities worth knowing:**
+- `chunking_method: semantic` always loads a local `all-MiniLM-L6-v2` model to score chunk
+  boundaries, even when `embedding.provider` is `voyage`, `sie`, or `doubleword`
+  ([`semantic.py:5-6,56-60`](../../server/core/chunkers/semantic.py)) — a hidden dependency the
+  config schema doesn't surface.
+- `retrieval.retrievers: [{type: sparse}]` does **not** require SIE or SPLADE — sparse retrieval
+  is plain BM25/full-text search on every store (Mongo Atlas Search, Postgres `ts_rank_cd`,
+  Elasticsearch BM25, Redis). SPLADE is a separate, optional sparse-vector *embedding* model, not
+  a retrieval-method prerequisite.
+
+See [`configuration.md`](../user-guide/configuration.md) for the full chunking/embedding/retrieval
+reference tables, [`model_registry.py`](../../server/core/model_registry.py) for every registered
+model, and [`sie_guard.py`](../../server/core/guards/sie_guard.py) for SIE's opt-in gating. The
+embedding cache (`EMBEDDING_CACHE_BACKEND`: sqlite default / redis) is a **third** independent
+setting — orthogonal to both `STORAGE_BACKEND` and `VECTOR_STORE_BACKEND` — not drawn in the
+journey diagram above; see [ADR-009](../adr/ADR-009-embedding-cache-backend-port.md) and
+[`redis-setup.md`](../user-guide/redis-setup.md#embedding-cache).
+
+</details>
 
 ---
 
@@ -336,7 +513,13 @@ C4Component
         Component(pg_vector, "PostgresVectorStore", "Composite adapter", "postgres_vector_store.py — composes PostgresStorageBackend chunk methods + PostgresRetrieverBackend")
     }
     Container_Boundary(es, "server/db/elasticsearch") {
-        Component(es_vector, "ElasticsearchVectorStore", "Vector-only adapter", "elasticsearch_vector_store.py — dense/sparse/hybrid; cannot host run state")
+        Component(es_vector, "ElasticsearchVectorStore", "Vector-only adapter", "elasticsearch_vector_store.py — dense/sparse/hybrid; cannot host run state (ADR-006)")
+    }
+    Container_Boundary(redis, "server/db/redis") {
+        Component(redis_vector, "RedisVectorStore", "Vector-only adapter", "redis_store.py — dense/sparse/hybrid; cannot host run state (ADR-007)")
+    }
+    Container_Boundary(sqlite, "server/db/sqlite") {
+        Component(sqlite_storage, "SQLiteStorageBackend", "Run-state-only adapter", "sqlite_store.py — experiments · runs · results; default STORAGE_BACKEND (ADR-008)")
     }
     Rel(caller, factory, "get_storage_backend() / get_vector_store()")
     Rel(factory, registry, "resolve_adapter(provider)")
@@ -344,9 +527,11 @@ C4Component
     Rel(registry, vector_port, "resolves to adapter satisfying")
     Rel(storage_port, mongo_storage, "implemented by")
     Rel(storage_port, pg_storage, "implemented by")
+    Rel(storage_port, sqlite_storage, "implemented by")
     Rel(vector_port, mongo_vector, "implemented by")
     Rel(vector_port, pg_vector, "implemented by")
     Rel(vector_port, es_vector, "implemented by")
+    Rel(vector_port, redis_vector, "implemented by")
     Rel(mongo_vector, mongo_storage, "composes chunk methods from")
     Rel(pg_vector, pg_storage, "composes chunk methods from")
 ```
