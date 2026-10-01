@@ -110,12 +110,12 @@ FastAPI Server
 │  Pipeline (one run per config combination)│
 │                                          │
 │  PDF/TXT/MD/CSV → Chunk → Embed          │
-│       → Atlas write → Query → Rerank     │
+│       → vector write → Query → Rerank    │
 │       → Store results                    │
 └──────────────┬───────────────────────────┘
                │
                ▼
-    MongoDB (Atlas cloud or Atlas Local)
+    Storage + vector store (SQLite / Mongo / pgvector / ES / Redis)
          ┌────────────┐
          │ chunks     │  ← embeddings + vector index
          │ experiments│
@@ -157,6 +157,91 @@ sequenceDiagram
     API->>DB: read status + results
     API-->>UI: phases + results
 ```
+
+---
+
+## 🧭 End-to-end journey — pick a backend through a sweep
+
+The sequence diagram above is deliberately backend-agnostic. This diagram fills the gap: it
+follows one researcher from choosing a backend through running a sweep and troubleshooting it,
+and shows exactly where that choice forks into two independent axes — **vector store**
+(`VECTOR_STORE_BACKEND`) and **run-state store** (`STORAGE_BACKEND`) — per the pairing rule in
+[`server/db/ports/registry.py`](../../server/db/ports/registry.py) (`_CAN_HOST_RUN_STATE`:
+MongoDB/Postgres `True`, Elasticsearch/Redis `False`).
+
+```mermaid
+flowchart TD
+    START["Pick a vector store"] --> MONGO["MongoDB<br/>cloud or local"]
+    START --> PG["Postgres / pgvector<br/>Supabase or local"]
+    START --> ES["Elasticsearch<br/>vector only"]
+    START --> REDIS["Redis<br/>vector only + optional embedding cache"]
+
+    MONGO --> ROLE_MP["Can also host run state<br/>(or pair with a different store)"]
+    PG --> ROLE_MP
+    ES --> ROLE_ER["Must also pick a run-state store:<br/>Mongo / Postgres / SQLite (default)"]
+    REDIS --> ROLE_ER
+
+    ROLE_MP --> INSTALL["Install deps + start stack<br/>(start-services.sh)"]
+    ROLE_ER --> INSTALL
+
+    INSTALL --> CONFIG["Configure .env<br/>(connection vars per guide)"]
+    CONFIG --> RUN["Run a sweep — CLI"]
+
+    RUN --> CLI2["CLI: rag-params-finder run --config ..."]
+    CLI2 --> API2["FastAPI: POST /experiments<br/>config_backend_guard + index preflight"]
+    API2 --> PIPE2["Pipeline: parse → chunk → embed"]
+    PIPE2 --> DISPATCH_V["get_vector_store()<br/>→ chosen vector-store lane"]
+    PIPE2 --> DISPATCH_S["get_storage_backend()<br/>→ Mongo / Postgres / SQLite only"]
+
+    DISPATCH_V --> VIEW["View results — Dashboard<br/>poll GET /experiments/{id}"]
+    DISPATCH_S --> VIEW
+
+    VIEW --> TROUBLESHOOT["Troubleshoot<br/>(per-guide troubleshooting section)"]
+```
+
+<details>
+<summary>ASCII fallback (portable — renders anywhere)</summary>
+
+```
+Pick a vector store
+   ├── MongoDB (cloud or local) ─────┐
+   ├── Postgres / pgvector ──────────┤── can also host run state, or pair with a different store
+   ├── Elasticsearch (vector only) ──┐
+   └── Redis (vector only + cache) ──┤── must also pick a run-state store: Mongo / Postgres / SQLite (default)
+                                      │
+                                      ▼
+                    Install deps + start stack (start-services.sh)
+                                      │
+                                      ▼
+                       Configure .env (connection vars per guide)
+                                      │
+                                      ▼
+                              Run a sweep — CLI
+                                      │
+         CLI: rag-params-finder run --config ...
+                                      │
+         FastAPI: POST /experiments (config_backend_guard + index preflight)
+                                      │
+                Pipeline: parse → chunk → embed
+                                      │
+              ┌───────────────────────┴───────────────────────┐
+              ▼                                                ▼
+   get_vector_store()                                get_storage_backend()
+   → chosen vector-store lane                          → Mongo / Postgres / SQLite only
+              └───────────────────────┬───────────────────────┘
+                                      ▼
+                     View results — Dashboard (poll GET /experiments/{id})
+                                      │
+                                      ▼
+                  Troubleshoot (per-guide troubleshooting section)
+```
+
+See per-backend setup guides for detail: [mongodb-setup.md](../user-guide/mongodb-setup.md),
+[postgres-setup.md](../user-guide/postgres-setup.md),
+[elasticsearch-setup.md](../user-guide/elasticsearch-setup.md),
+[redis-setup.md](../user-guide/redis-setup.md).
+
+</details>
 
 ---
 

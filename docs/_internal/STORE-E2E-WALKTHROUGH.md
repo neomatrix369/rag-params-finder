@@ -2,11 +2,13 @@
 
 > **Simulated desk-check, 2026-09-25, `main @ eb78855`.** MongoDB and Postgres/Supabase are traced through real code. Elasticsearch and Redis are traced **as if** Slices 49A → 49B → 50 → 51 (ES) and 53 (Redis) had shipped exactly as specified. Nothing here was executed against a live Elasticsearch or Redis. Live proof is owned by the 49B split-store acceptance test, the nightly `vector-store-integration` matrix (#248) and Slice 53's clean-clone journey gate.
 >
+> **Code-shipped vs. trace-verified (updated 2026-10-01):** per [`docs/plan/slices/PROGRESS.md`](../plan/slices/PROGRESS.md) — the status SSOT — Slices 49B/50/51/53/55 are now all **✅ PASSED / COMPLETE**: the Elasticsearch and Redis adapters described below are real, shipped code, not a future plan. That is a different claim from **trace-verified**: the ✅/◐/✗/*(planned)* verdicts in §2 and §3.1 below were written during the pre-ship desk-check above and have **not** been re-run against the shipped code hop-by-hop. Treat "shipped" and "this specific table was re-traced against live ES/Redis" as two separate facts — the second still depends on the nightly `vector-store-integration` matrix and Slice 53's journey gate named above, not on this document.
+>
 > **Builds on:** the Elasticsearch round-3 desk-check ([DECISIONS #240](../plan/DECISIONS.md)), which found the unwired split-store data path; this walkthrough doesn't repeat it. **Adds:** the Redis column, the gaps no slice owns (§4), and the 15-stage journey comparison.
 >
-> **Legend:** ✅ works · ◐ works with a caveat · ✗ breaks · *(planned: slice)* = behaviour the named slice specifies.
+> **Legend:** ✅ works · ◐ works with a caveat · ✗ breaks · *(planned: slice)* = behaviour the named slice specified at desk-check time (now shipped per PROGRESS.md — see note above; verdict not re-traced).
 >
-> **Evidence source:** MongoDB and Postgres cells cite **code** (file:line on `main`). Elasticsearch and Redis cells cite **specs** (slice sections and DECISIONS rows), so they are only as true as the slices once shipped.
+> **Evidence source:** MongoDB and Postgres cells cite **code** (file:line on `main`). Elasticsearch and Redis cells cite **specs** (slice sections and DECISIONS rows) as of the 2026-09-25 desk-check — they describe what the slices specified, not a re-trace against the now-shipped code.
 >
 > **Redis vs Valkey:** "Redis" here means a server with the Query Engine: Redis Open Source 8, or Valkey (the Linux Foundation fork) with valkey-search. Slice 52 picks one; the flow below is the same for both.
 
@@ -22,7 +24,7 @@
 
 ## 2. Hop-by-hop data flow
 
-| # | Hop (evidence) | MongoDB | Postgres / Supabase | Elasticsearch *(planned)* | Redis *(planned)* |
+| # | Hop (evidence) | MongoDB | Postgres / Supabase | Elasticsearch *(shipped, trace unverified)* | Redis *(shipped, trace unverified)* |
 |---|---|---|---|---|---|
 | 1 | CLI `run` → `POST /experiments` (`cli/main.py:28-42`, `cli/api_client.py:97-100`) | ✅ | ✅ | ✅ thin client | ✅ thin client. ◐ hint string at `api_client.py:117` names only mongodb/postgres (cosmetic) |
 | 2 | Config validation: `DatabaseProvider` Literal (`server/models/config.py:13`) | ✅ | ✅ `supabase` normalised (`:16-23`) | ✅ Slice 50 adds the token; 49A drift test (#240 item 5) | ✅ Slice 53 adds one token. This counts as config schema, which the criterion allows |
@@ -62,6 +64,83 @@
 - An adapter exception during chunk write or search fails **that run** (status FAILED, store named in the error). The experiment then follows `on_error` (`config.py:186`): `continue` runs the remaining runs, `stop` halts after the failure. 49B pins both for the vector store (#253).
 - A store that is down before the sweep starts is caught earlier: `/healthz` 503 and a preflight 422 at submit, with run-state checks not attempted when the vector store fails (49B).
 - Delete is vectors first and idempotent, so a partial failure is completed by retrying (#246).
+
+### 2.2 Unified hop-flow diagram
+
+The table above is the authoritative per-hop evidence. This diagram is a visual index into it —
+one spine for the hops that behave the same across all four stores, branching only at the two hops
+where the table shows real per-store divergence (index preflight, chunk write), then rejoining for
+the store-agnostic tail. It does not restate every row; use the table for hop-level detail.
+
+```mermaid
+flowchart TD
+    CLI["① CLI run → POST /experiments"] --> CFG["②③④ Config validation →<br/>boot settings → engine guard"]
+    CFG --> PREFLIGHT["⑤ Index preflight"]
+
+    subgraph MONGO_L["MongoDB"]
+        M1["Atlas ensure"]
+    end
+    subgraph PG_L["Postgres"]
+        P1["catalog introspection"]
+    end
+    subgraph ES_L["Elasticsearch"]
+        E1["preflight_stores() →<br/>vector store plan_indexes()"]
+    end
+    subgraph REDIS_L["Redis"]
+        R1["FT._LIST + maxmemory-policy +<br/>capacity check"]
+    end
+
+    PREFLIGHT --> MONGO_L
+    PREFLIGHT --> PG_L
+    PREFLIGHT --> ES_L
+    PREFLIGHT --> REDIS_L
+
+    MONGO_L -->|direct| WRITE["⑨ Chunk write"]
+    PG_L -->|direct| WRITE
+    ES_L -->|"rewired via 49B<br/>(was unwired, #240)"| WRITE
+    REDIS_L -->|"rewired via 49B<br/>(was unwired, #240)"| WRITE
+
+    WRITE --> SEARCH["⑩⑪⑫ Search → rerank →<br/>persist results/phases (store-agnostic)"]
+    SEARCH --> SCHED["⑬-⑲ Resume, list/detail, explore,<br/>db-stats, pause/resume, delete, reconciliation"]
+    SCHED --> HEALTH["⑳㉑㉒ /healthz, dashboard labels,<br/>empty-state hints"]
+    HEALTH --> POLL["Dashboard poll GET /experiments/{id}"]
+```
+
+<details>
+<summary>ASCII fallback (portable — renders anywhere)</summary>
+
+```
+① CLI run → POST /experiments
+          │
+          ▼
+②③④ Config validation → boot settings → engine guard
+          │
+          ▼
+⑤ Index preflight
+          ├── MongoDB    — Atlas ensure
+          ├── Postgres   — catalog introspection
+          ├── Elasticsearch — preflight_stores() → vector store plan_indexes()
+          └── Redis      — FT._LIST + maxmemory-policy + capacity check
+          │
+          ▼
+⑨ Chunk write
+          ├── MongoDB/Postgres — direct
+          └── Elasticsearch/Redis — rewired via 49B (was unwired, #240)
+          │
+          ▼
+⑩⑪⑫ Search → rerank → persist results/phases (store-agnostic)
+          │
+          ▼
+⑬-⑲ Resume, list/detail, explore, db-stats, pause/resume, delete, reconciliation
+          │
+          ▼
+⑳㉑㉒ /healthz, dashboard labels, empty-state hints
+          │
+          ▼
+Dashboard poll GET /experiments/{id}
+```
+
+</details>
 
 ## 3. User journey (15 stages)
 
