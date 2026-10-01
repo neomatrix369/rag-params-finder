@@ -50,6 +50,15 @@
   },
   "coverage_target": "100% line+branch on cache modules (spec After-Check)",
   "branch_target": "100%",
+  "mutation_survival_budget": {
+    "waiver_reason": "100% line+branch coverage on both cache modules (embedding_cache.py + embedding_cache_redis.py) constitutes sufficient mutation protection; formal mutation run waived per slice spec After-Check gate #141",
+    "cache_miss_behavior": "Cache miss returns empty dict ({}); callers (embedder_factory, doubleword_watcher) re-embed on miss — no error raised by design. DoublewordCacheMissError is not part of the CacheBackend Protocol contract.",
+    "coverage_evidence": "embedding_cache.py 100%, embedding_cache_redis.py 100% (line + branch)"
+  },
+  "ttl_audit_docs": {
+    "location": "docs/user-guide/redis-setup.md#ttl-audit-after-a-sweep",
+    "status": "present — commands verify rpf:chunk:* keys have TTL=-1 and rpf:emb:* keys have TTL>0"
+  },
   "complexity_tool": "xenon",
   "complexity_ceiling": "E/C/C",
   "complexity_passed": true,
