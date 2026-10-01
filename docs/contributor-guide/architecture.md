@@ -46,12 +46,16 @@ C4Context
     SystemDb_Ext(mongo, "MongoDB Atlas", "Vector + run state (cloud or local)")
     SystemDb_Ext(pg, "Postgres / pgvector", "Vector + run state (Supabase or local)")
     SystemDb_Ext(es, "Elasticsearch", "Vector only (local or cloud); run state stays on MongoDB or Postgres")
+    SystemDb_Ext(redis, "Redis", "Vector only (local or cloud) + optional embedding cache; run state stays on MongoDB, Postgres, or SQLite")
+    SystemDb_Ext(sqlite, "SQLite", "Run state only, default (ADR-008); single local file, no network service")
     Rel(user, rpf, "Submits configs, views results")
     Rel(rpf, voyage, "Embeds / reranks", "HTTPS")
     Rel(rpf, sie, "Embeds", "HTTPS")
     Rel(rpf, mongo, "Reads / writes", "driver")
     Rel(rpf, pg, "Reads / writes", "SQL")
     Rel(rpf, es, "Reads / writes vectors", "HTTP")
+    Rel(rpf, redis, "Reads / writes vectors + cache", "RESP")
+    Rel(rpf, sqlite, "Reads / writes run state", "file")
 ```
 
 ---
@@ -67,7 +71,7 @@ C4Container
         Container(api, "FastAPI server", "Python / FastAPI :8001", "Pipeline orchestration + REST API")
         Container(dash, "Dashboard", "React 19 / Vite :5374", "Observe + control sweeps")
     }
-    SystemDb_Ext(store, "Storage + vector store", "Mongo / pgvector / ES via ports")
+    SystemDb_Ext(store, "Storage + vector store", "SQLite / Mongo / pgvector / ES / Redis via ports")
     System_Ext(emb, "Embedders", "Voyage / local / SIE via embedder_factory")
     Rel(user, cli, "runs")
     Rel(user, dash, "views / controls")
@@ -336,7 +340,13 @@ C4Component
         Component(pg_vector, "PostgresVectorStore", "Composite adapter", "postgres_vector_store.py — composes PostgresStorageBackend chunk methods + PostgresRetrieverBackend")
     }
     Container_Boundary(es, "server/db/elasticsearch") {
-        Component(es_vector, "ElasticsearchVectorStore", "Vector-only adapter", "elasticsearch_vector_store.py — dense/sparse/hybrid; cannot host run state")
+        Component(es_vector, "ElasticsearchVectorStore", "Vector-only adapter", "elasticsearch_vector_store.py — dense/sparse/hybrid; cannot host run state (ADR-006)")
+    }
+    Container_Boundary(redis, "server/db/redis") {
+        Component(redis_vector, "RedisVectorStore", "Vector-only adapter", "redis_store.py — dense/sparse/hybrid; cannot host run state (ADR-007)")
+    }
+    Container_Boundary(sqlite, "server/db/sqlite") {
+        Component(sqlite_storage, "SQLiteStorageBackend", "Run-state-only adapter", "sqlite_store.py — experiments · runs · results; default STORAGE_BACKEND (ADR-008)")
     }
     Rel(caller, factory, "get_storage_backend() / get_vector_store()")
     Rel(factory, registry, "resolve_adapter(provider)")
@@ -344,9 +354,11 @@ C4Component
     Rel(registry, vector_port, "resolves to adapter satisfying")
     Rel(storage_port, mongo_storage, "implemented by")
     Rel(storage_port, pg_storage, "implemented by")
+    Rel(storage_port, sqlite_storage, "implemented by")
     Rel(vector_port, mongo_vector, "implemented by")
     Rel(vector_port, pg_vector, "implemented by")
     Rel(vector_port, es_vector, "implemented by")
+    Rel(vector_port, redis_vector, "implemented by")
     Rel(mongo_vector, mongo_storage, "composes chunk methods from")
     Rel(pg_vector, pg_storage, "composes chunk methods from")
 ```
