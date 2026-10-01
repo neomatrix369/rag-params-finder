@@ -139,7 +139,8 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/embedding/sie_embedder.py` | SIE embeddings (BGE-M3, Stella-v5, SPLADE-v3) via remote gateway or optional self-hosted Docker |
 | `server/core/guards/sie_guard.py` | SIE preflight guard — verifies `SIE_ENABLED` and gateway reachability before SIE embedding sweeps |
 | `server/core/pipeline/doubleword_watcher.py` | Supervised asyncio watcher — polls DoubleWord batches every 10s, caches vectors, triggers sweep |
-| `server/core/embedding/embedding_cache.py` | Thread-safe SQLite vector cache; key=sha256(provider, model, dim, role, text) |
+| `server/core/embedding/embedding_cache.py` | `CacheBackend` Protocol + factory `get_cache_backend()` (dispatches on `EMBEDDING_CACHE_BACKEND`); thread-safe SQLite default (`EmbeddingCache`); `get_embedding_cache()` compat alias |
+| `server/core/embedding/embedding_cache_redis.py` | `RedisCacheBackend` — MGET + pipelined SET, float32 BLOB, prefix `rpf:emb:`, configurable TTL, fail-closed ping on construction |
 | `server/core/pipeline/pre_embed.py` | Pure planning + effectful batch submission for DoubleWord pre-embedding |
 | `server/core/guards/doubleword_guard.py` | DoubleWord preflight — validates API key and model availability |
 | `server/core/embedding/doubleword_client.py` | DoubleWord async batch API client (submit, poll, download, cancel) |
