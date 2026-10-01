@@ -258,7 +258,7 @@ your adapter. Unknown values must raise `ValueError` (no silent fallback).
 
 ### 3. Settings
 
-`STORAGE_BACKEND` env var → `settings.storage_backend` (default `"mongodb"` permanently — DECISIONS #130 Won't flip; legacy alias `"mongo"`).
+`STORAGE_BACKEND` env var → `settings.storage_backend` (default `"sqlite"`, ADR-008; `"mongodb"`/`"postgres"` remain fully supported alternatives; legacy alias `"mongo"` → `"mongodb"`).
 Postgres is implemented (`STORAGE_BACKEND=postgres` + `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL`) — local Docker
 or Supabase-hosted Postgres share one adapter; see [Postgres Setup](../user-guide/postgres-setup.md).
 

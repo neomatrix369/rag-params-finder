@@ -11,7 +11,7 @@
 → Source: `docs/plan/interview_summary.md` § Constraints; DECISIONS #7–#10, #130
 
 ## Architecture decisions (non-negotiable)
-- **Dual-backend**: Postgres/pgvector + Mongo via `StorageBackend` / `RetrieverBackend` Protocols; code default stays `STORAGE_BACKEND=mongodb` permanently (#130 Won't flip).
+- **Dual-backend**: Postgres/pgvector + Mongo via `StorageBackend` / `RetrieverBackend` Protocols; both remain fully supported, explicit `STORAGE_BACKEND` choices. The run-state default itself flipped to `sqlite` in ADR-008 (2026-09-29), partially superseding #130's "Won't flip" clause — see ADR-008.
 - Backends are independent — neither is a fail-safe for the other (#129).
 - ADR-004 Accepted; ADR-003 Superseded (#127).
 - SIE is opt-in (`SIE_ENABLED` + endpoint/key); Voyage/local remain first-class.

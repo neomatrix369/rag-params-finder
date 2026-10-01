@@ -427,7 +427,7 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-CO
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `STORAGE_BACKEND` | No | `mongodb` | Run-state adapter: `mongodb` (permanent default — DECISIONS #130 Won't flip; legacy alias `mongo`) or `postgres` (local Docker or Supabase-hosted Postgres) |
+| `STORAGE_BACKEND` | No | `sqlite` | Run-state adapter: `sqlite` (default, automatic, ADR-008) or `mongodb` (legacy alias `mongo`) or `postgres` (local Docker or Supabase-hosted Postgres) — both remain fully supported alternatives |
 | `VECTOR_STORE_BACKEND` | No | `STORAGE_BACKEND` | Chunk store. Pairing rule (ii): a store that can host run state must equal `STORAGE_BACKEND`. `elasticsearch` is a vector-only store (optional `[elasticsearch]` extra). Docker profiles and the setup guide land in Slice 51. See [configuration.md](configuration.md) |
 | `ELASTICSEARCH_CLOUD_URL` / `ELASTICSEARCH_LOCAL_URL` | When `VECTOR_STORE_BACKEND=elasticsearch` | — | Elasticsearch URL. Required at boot when that backend is selected |
 | `ELASTICSEARCH_API_KEY` | No | — | Optional Elasticsearch API key for cloud. Server-side only; never logged |

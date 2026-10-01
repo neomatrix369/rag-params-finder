@@ -499,11 +499,11 @@ response shape.
 Create a `.env` file in the project root to configure server behavior:
 
 ```bash
-# Storage backend: "mongodb" (permanent default — DECISIONS #130 Won't flip) or "postgres"
-# Legacy alias: mongo → mongodb
+# Storage backend: "sqlite" (default, automatic, ADR-008) — or "mongodb"/"postgres" as fully
+# supported alternatives. Legacy alias: mongo → mongodb
 # YAML database_provider (mongodb|postgres|elasticsearch; supabase→postgres) is engine metadata —
 # this env selects the adapter.
-STORAGE_BACKEND=mongodb
+STORAGE_BACKEND=sqlite
 
 # Vector store backend (OPTIONAL — split-store, Slice 49B). Defaults to
 # STORAGE_BACKEND when unset. Pairing rule (ii): a store that can host run
