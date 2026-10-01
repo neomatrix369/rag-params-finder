@@ -3,6 +3,8 @@
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
 ![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?logo=elasticsearch&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
 ![sentence-transformers](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
@@ -497,11 +499,11 @@ response shape.
 Create a `.env` file in the project root to configure server behavior:
 
 ```bash
-# Storage backend: "mongodb" (permanent default — DECISIONS #130 Won't flip) or "postgres"
-# Legacy alias: mongo → mongodb
+# Storage backend: "sqlite" (default, automatic, ADR-008) — or "mongodb"/"postgres" as fully
+# supported alternatives. Legacy alias: mongo → mongodb
 # YAML database_provider (mongodb|postgres|elasticsearch; supabase→postgres) is engine metadata —
 # this env selects the adapter.
-STORAGE_BACKEND=mongodb
+STORAGE_BACKEND=sqlite
 
 # Vector store backend (OPTIONAL — split-store, Slice 49B). Defaults to
 # STORAGE_BACKEND when unset. Pairing rule (ii): a store that can host run

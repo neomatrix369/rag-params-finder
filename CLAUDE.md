@@ -64,7 +64,7 @@ RAG_MONGODB_LOCAL=1 ./start-services.sh  # same as --mongodb-local via env var
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build  # dev HMR
 ```
 
-Backend switching — the start command and the example config change (a YAML `database_provider` that doesn't match `VECTOR_STORE_BACKEND`, which defaults to `STORAGE_BACKEND`, returns 422):
+Backend switching — the start command and the example config change (a YAML `database_provider` that doesn't match `VECTOR_STORE_BACKEND`, which defaults to `STORAGE_BACKEND`, returns 422). Two independent choices: **run-state store** (`STORAGE_BACKEND`: sqlite default / mongodb / postgres) and **vector store** (`VECTOR_STORE_BACKEND`: mongodb / postgres / elasticsearch / redis) — see the pairing rule in `server/settings.py`.
 
 | Backend | Connection string (CLI / host server) |
 |---------|--------------------------------|
@@ -73,7 +73,8 @@ Backend switching — the start command and the example config change (a YAML `d
 | Local pgvector | `STORAGE_BACKEND=postgres` + `POSTGRES_LOCAL_URL=postgresql://rag:rag@localhost:5433/rag_params_finder` |
 | Hosted Supabase | `STORAGE_BACKEND=postgres` + `POSTGRES_CLOUD_URL` (Session-mode pooler) |
 | Local Elasticsearch | `./start-services.sh --elasticsearch-local` — `VECTOR_STORE_BACKEND=elasticsearch`, `ELASTICSEARCH_LOCAL_URL=http://elasticsearch-local:9200`; run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres` |
-| SQLite run-state (**default**, ADR-008) | `STORAGE_BACKEND=sqlite` (default) + `VECTOR_STORE_BACKEND` required (mongodb/postgres/elasticsearch). Single-file, no separate service. See [`sqlite-setup.md`](docs/user-guide/sqlite-setup.md), [`SLICE-55`](docs/plan/slices/05-storage/SLICE-55-SQLITE-RUN-STATE-STORE.md), [`ADR-008`](docs/adr/ADR-008-sqlite-central-run-state-store.md) |
+| Local Redis | `./start-services.sh --redis-local` — `VECTOR_STORE_BACKEND=redis`, `REDIS_URL=redis://localhost:6379`; run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres` |
+| SQLite run-state (**default**, ADR-008) | `STORAGE_BACKEND=sqlite` (default) + `VECTOR_STORE_BACKEND` required (mongodb/postgres/elasticsearch/redis). Single-file, no separate service. See [`sqlite-setup.md`](docs/user-guide/sqlite-setup.md), [`SLICE-55`](docs/plan/slices/05-storage/SLICE-55-SQLITE-RUN-STATE-STORE.md), [`ADR-008`](docs/adr/ADR-008-sqlite-central-run-state-store.md) |
 
 Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md`, `docs/user-guide/mongodb-setup.md`, and `docs/user-guide/postgres-setup.md`.
 
@@ -84,6 +85,7 @@ rag-params-finder run --config configs/mongodb/example-local.yaml
 rag-params-finder run --config configs/mongodb/example-local.yaml --detach
 rag-params-finder run --config configs/mongodb/example-sie.yaml   # SIE BGE-M3/Stella/SPLADE — see docs/user-guide/sie-setup.md
 rag-params-finder run --config configs/elasticsearch/example-local.yaml  # ES vectors — see docs/user-guide/elasticsearch-setup.md
+rag-params-finder run --config configs/redis/example-local.yaml   # Redis vectors — see docs/user-guide/redis-setup.md
 rag-params-finder cancel <experiment-id>
 rag-params-finder pause <experiment-id>
 rag-params-finder resume <experiment-id>
@@ -110,7 +112,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `scripts/release/` | `release.sh` + bump/GitHub helpers |
 | `scripts/security/` | `security-scan.sh` |
 | `server/main.py` | FastAPI app entry; lifespan ensures DB indexes + orphan reconciliation |
-| `server/settings.py` | Centralized pydantic-settings config (`storage_backend`: `mongodb` default permanently — DECISIONS #130 — or `postgres`) |
+| `server/settings.py` | Centralized pydantic-settings config; `storage_backend` defaults to `sqlite` (ADR-008) with `mongodb`/`postgres` as supported alternatives; `vector_store_backend` orthogonal (mongodb/postgres/elasticsearch/redis). See `sqlite-setup.md` |
 | `server/db/ports/storage.py` | `StorageBackend` Protocol — experiment/run/chunk/result CRUD + cascade + reconciliation |
 | `server/db/ports/retriever_backend.py` | `RetrieverBackend` Protocol — dense/sparse/hybrid search port |
 | `server/db/mongo/mongo_store.py` | Mongo adapters for both ports (Atlas / Atlas Local) |

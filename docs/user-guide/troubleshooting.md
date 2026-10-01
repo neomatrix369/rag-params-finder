@@ -2,6 +2,8 @@
 
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
 ![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?logo=elasticsearch&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
@@ -425,7 +427,7 @@ Spec: [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-CO
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `STORAGE_BACKEND` | No | `mongodb` | Run-state adapter: `mongodb` (permanent default — DECISIONS #130 Won't flip; legacy alias `mongo`) or `postgres` (local Docker or Supabase-hosted Postgres) |
+| `STORAGE_BACKEND` | No | `sqlite` | Run-state adapter: `sqlite` (default, automatic, ADR-008) or `mongodb` (legacy alias `mongo`) or `postgres` (local Docker or Supabase-hosted Postgres) — both remain fully supported alternatives |
 | `VECTOR_STORE_BACKEND` | No | `STORAGE_BACKEND` | Chunk store. Pairing rule (ii): a store that can host run state must equal `STORAGE_BACKEND`. `elasticsearch` is a vector-only store (optional `[elasticsearch]` extra). Docker profiles and the setup guide land in Slice 51. See [configuration.md](configuration.md) |
 | `ELASTICSEARCH_CLOUD_URL` / `ELASTICSEARCH_LOCAL_URL` | When `VECTOR_STORE_BACKEND=elasticsearch` | — | Elasticsearch URL. Required at boot when that backend is selected |
 | `ELASTICSEARCH_API_KEY` | No | — | Optional Elasticsearch API key for cloud. Server-side only; never logged |

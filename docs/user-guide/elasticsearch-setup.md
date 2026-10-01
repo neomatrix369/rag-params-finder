@@ -1,5 +1,8 @@
 # Elasticsearch setup
 
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?logo=elasticsearch&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+
 Use this guide when chunks should live in Elasticsearch and experiment run state stays on MongoDB or Postgres. It is the operator path from a clean clone to a smoke sweep and teardown.
 
 ## Choose your deployment

@@ -8,6 +8,8 @@
 ![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=nodedotjs&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
 ![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?logo=elasticsearch&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-hosted_Postgres-3ECF8E?logo=supabase&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
 ![sentence-transformers](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
@@ -140,7 +142,7 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 | Understand the system design | [Architecture](docs/contributor-guide/architecture.md) |
 | Add a new model, chunker, or endpoint | [Extending the System](docs/contributor-guide/extending.md) |
 | Set up a development environment | [Development Guide](docs/contributor-guide/development.md) |
-| Why these design choices? | [ADR-001](docs/adr/ADR-001-two-process-architecture.md) · [ADR-002](docs/adr/ADR-002-voyage-and-local-providers.md) · [ADR-003](docs/adr/ADR-003-mongodb-atlas-vector-store.md) · [ADR-004](docs/adr/ADR-004-postgresql-pgvector-vector-store.md) · [ADR-005](docs/adr/ADR-005-doubleword-embedding-provider.md) (Proposed) |
+| Why these design choices? | [ADR-001](docs/adr/ADR-001-two-process-architecture.md) · [ADR-002](docs/adr/ADR-002-voyage-and-local-providers.md) · [ADR-003](docs/adr/ADR-003-mongodb-atlas-vector-store.md) · [ADR-004](docs/adr/ADR-004-postgresql-pgvector-vector-store.md) · [ADR-005](docs/adr/ADR-005-doubleword-embedding-provider.md) (Proposed) · [ADR-006](docs/adr/ADR-006-elasticsearch-vector-store.md) · [ADR-007](docs/adr/ADR-007-redis.md) · [ADR-008](docs/adr/ADR-008-sqlite-central-run-state-store.md) · [ADR-009](docs/adr/ADR-009-embedding-cache-backend-port.md) (Accepted) |
 
 ---
 

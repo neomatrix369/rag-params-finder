@@ -1,9 +1,10 @@
 # ADR-008: SQLite as the Central Run-State Store
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-09-29
 **Slice**: 55 — SQLite Run-State Store
 **Supersedes (partial)**: [ADR-004](ADR-004-postgresql-pgvector-vector-store.md) — DECISIONS #130 only, the clause "the code default stays `mongodb` permanently... no default flip." ADR-004's dual-backend decision (Mongo and Postgres both first-class, independent engines) stands unchanged.
+**Decides**: DECISIONS #261 — see `docs/plan/DECISIONS.md` for the full override rationale and the rejected alternatives considered.
 
 ---
 
