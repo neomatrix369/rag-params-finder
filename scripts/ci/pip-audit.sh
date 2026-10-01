@@ -76,6 +76,8 @@ ML_IGNORE=(
   --ignore-vuln PYSEC-2026-4012
   --ignore-vuln PYSEC-2026-4013
   --ignore-vuln PYSEC-2026-4014
+  # transformers — CVE-2026-80047; fix requires ST 5+ major bump (current cap <4.0.0 for sie-sdk compat).
+  --ignore-vuln CVE-2026-80047
 )
 
 # Prefer the project venv whenever it exists. A bare `command -v python` is unsafe

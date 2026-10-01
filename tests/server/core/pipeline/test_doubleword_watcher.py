@@ -69,6 +69,10 @@ class TestDoubleWordWatcher:
         # Mock the async operations
         with (
             patch(
+                "server.core.pipeline.doubleword_watcher.create_async_client",
+                return_value=AsyncMock(),
+            ),
+            patch(
                 "server.core.pipeline.doubleword_watcher.poll_batch", new_callable=AsyncMock
             ) as mock_poll,
             patch(

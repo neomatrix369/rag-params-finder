@@ -182,6 +182,9 @@ async def submit_pre_embed(
     if checkpoint_store is None:
         checkpoint_store = CheckpointStore()
 
+    if plan.is_empty:
+        return []
+
     client = create_async_client()
     submitted: list[SubmittedJob] = []
 
