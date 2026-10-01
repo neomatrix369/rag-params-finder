@@ -77,7 +77,7 @@ The two settings are orthogonal. A deployment can use:
 
 ## References
 
-- Slice: [`docs/plan/slices/05-storage/SLICE-54-EMBEDDING-CACHE-BACKEND-PORT.md`](../plan/slices/05-storage/SLICE-54-EMBEDDING-CACHE-BACKEND-PORT.md)
+- Slice: [`docs/plan/slices/08-embedding-providers/SLICE-54-CACHE-BACKEND-PORT-REDIS.md`](../plan/slices/08-embedding-providers/SLICE-54-CACHE-BACKEND-PORT-REDIS.md)
 - Code: [`server/core/embedding/embedding_cache.py`](../../server/core/embedding/embedding_cache.py), [`server/core/embedding/embedding_cache_redis.py`](../../server/core/embedding/embedding_cache_redis.py)
 - Redis vector store (distinct): [ADR-007](ADR-007-redis.md)
 - Shared Redis instance design: DECISIONS #273 option (a)
