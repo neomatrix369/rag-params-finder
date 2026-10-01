@@ -67,6 +67,19 @@ async def lifespan(app: FastAPI):
                 "until their run-state data has been copied into the SQLite file."
             )
 
+    # Probe the embedding cache backend — fail-closed when EMBEDDING_CACHE_BACKEND=redis
+    # and the service is unreachable (GWT: "process exits non-zero").
+    settings.ensure_cache_backend_ready()
+    if settings.embedding_cache_backend.strip().lower() != "sqlite":
+        from server.core.embedding.embedding_cache import get_cache_backend
+
+        try:
+            get_cache_backend()
+            logger.info("boot — embedding cache backend=%s ready", settings.embedding_cache_backend)
+        except Exception as _cache_exc:
+            logger.error("boot — embedding cache backend unreachable: %s", _cache_exc)
+            raise SystemExit(1) from _cache_exc
+
     try:
         reconcile_orphaned_experiments()
     except Exception as e:

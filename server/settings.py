@@ -171,12 +171,19 @@ class Settings(BaseSettings):
     # DOUBLEWORD_COMPLETION_WINDOW: batch completion window ("1h" or "24h", default "1h").
     # EMBEDDING_CACHE_PATH: SQLite cache for embedding vectors (default
     # ".rpf_cache/embeddings.sqlite").
+    # EMBEDDING_CACHE_BACKEND: "sqlite" (default) or "redis".
+    #   "redis" reuses REDIS_URL; cache keys carry prefix rpf:emb: and a TTL so
+    #   they are evictable under volatile-lru (DECISIONS #273 option a).
+    # EMBEDDING_CACHE_REDIS_TTL_S: seconds before a Redis cache key expires
+    #   (default 604800 = 7 days). A zero value disables TTL (keys never expire).
     doubleword_api_key: SecretStr | None = None
     doubleword_base_url: str = "https://api.doubleword.ai/v1"
     doubleword_poll_interval_s: int = 10
     doubleword_poll_timeout_s: int = 5
     doubleword_completion_window: str = "1h"
     embedding_cache_path: str = ".rpf_cache/embeddings.sqlite"
+    embedding_cache_backend: str = "sqlite"
+    embedding_cache_redis_ttl_s: int = 604800
 
     # MongoDB — required when STORAGE_BACKEND=mongodb or VECTOR_STORE_BACKEND=mongodb.
     # Set one (or both) of the cloud/local vars; cloud wins when both are non-empty.
@@ -389,6 +396,22 @@ class Settings(BaseSettings):
         if backend == "redis" and not self.redis_url.strip():
             raise ValueError(
                 "VECTOR_STORE_BACKEND=redis requires REDIS_URL. "
+                "Set REDIS_URL=redis://localhost:6379 (local) or "
+                "REDIS_URL=rediss://user:pass@host:port (managed/TLS) in .env or the environment. "
+                "See docs/user-guide/redis-setup.md."
+            )
+
+    def ensure_cache_backend_ready(self) -> None:
+        """Raise when EMBEDDING_CACHE_BACKEND=redis but REDIS_URL is missing.
+
+        Called from the server lifespan so misconfiguration fails with one clear
+        message before any I/O. Not checked at construction time so unit tests
+        can import the module without a Redis service.
+        """
+        backend = self.embedding_cache_backend.strip().lower()
+        if backend == "redis" and not self.redis_url.strip():
+            raise ValueError(
+                "EMBEDDING_CACHE_BACKEND=redis requires REDIS_URL. "
                 "Set REDIS_URL=redis://localhost:6379 (local) or "
                 "REDIS_URL=rediss://user:pass@host:port (managed/TLS) in .env or the environment. "
                 "See docs/user-guide/redis-setup.md."
