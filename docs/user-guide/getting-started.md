@@ -4,6 +4,8 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
 ![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?logo=elasticsearch&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
 ![sentence-transformers](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
@@ -57,9 +59,11 @@ cd frontend && npm install && cd ..
 
 ## ⚙️ Configure
 
-Pick **one** storage backend. Mongo is the permanent code default (`STORAGE_BACKEND=mongodb`);
-Postgres is the alternative (`STORAGE_BACKEND=postgres` or `./start-services.sh --postgres-*` —
-local Docker or Supabase-hosted, same adapter). There is no planned flip of the default.
+Pick **one** run-state backend. The default is **SQLite** (`STORAGE_BACKEND=sqlite`, [ADR-008](../adr/ADR-008-sqlite-central-run-state-store.md),
+automatic — no setup needed). MongoDB (`STORAGE_BACKEND=mongodb`) and Postgres
+(`STORAGE_BACKEND=postgres` or `./start-services.sh --postgres-*` — local Docker or
+Supabase-hosted, same adapter) remain fully supported alternatives. This is independent of which
+**vector store** you pick below (MongoDB/Postgres/Elasticsearch/Redis).
 
 ### 1. Set environment variables
 
@@ -94,6 +98,37 @@ SERVER_URL=http://localhost:8001
 ```
 
 Set either `POSTGRES_CLOUD_URL` (Supabase) or `POSTGRES_LOCAL_URL` (local Docker) — cloud wins when both are present. See [Postgres Setup](postgres-setup.md#supabase-vs-postgres-read-this-first).
+
+**Elasticsearch (vector store only; run state defaults to MongoDB)** — optional alternative vector store:
+
+```bash
+VECTOR_STORE_BACKEND=elasticsearch
+ELASTICSEARCH_LOCAL_URL=http://localhost:9200
+# or for hosted Elasticsearch:
+# ELASTICSEARCH_CLOUD_URL=https://your-elasticsearch-host:9200
+# ELASTICSEARCH_API_KEY=optional_api_key_for_secured_cloud
+```
+
+See [Elasticsearch Setup](elasticsearch-setup.md) for connection details and index lifecycle management.
+
+**Redis (vector store only; run state defaults to MongoDB unless `STORAGE_BACKEND=postgres`/`sqlite`)** — optional alternative vector store:
+
+```bash
+VECTOR_STORE_BACKEND=redis
+REDIS_URL=redis://localhost:6379
+```
+
+See [Redis Setup](redis-setup.md) for Docker, managed instances, and schema details.
+
+**Redis (embedding cache backend only)** — optional cache for DoubleWord embeddings shared across multiple hosts:
+
+```bash
+EMBEDDING_CACHE_BACKEND=redis
+REDIS_URL=redis://localhost:6379
+EMBEDDING_CACHE_REDIS_TTL_S=604800  # 7 days (default)
+```
+
+See [Redis Setup](redis-setup.md) for configuration and embedding cache details. Note: Redis can also serve as a vector store (`VECTOR_STORE_BACKEND=redis`) for vector data — these are separate roles.
 
 Full variable reference: [Troubleshooting → Environment Variables](troubleshooting.md#-environment-variables-reference). Optional Atlas Admin API keys enable cluster tier + storage quota in the dashboard — see `.env.example`.
 
@@ -204,6 +239,18 @@ rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
 
 Mirrored stems (same grids as `configs/mongodb/`): `configs/supabase/example-local.yaml`, `example-voyage.yaml`, `example-sie.yaml`.
 
+**Elasticsearch path** (vector store; run state on MongoDB by default): see **[Elasticsearch Setup](elasticsearch-setup.md)** for index creation. Pairs with MongoDB run state unless `STORAGE_BACKEND=postgres`.
+
+```bash
+rag-params-finder run --config configs/elasticsearch/example-local.yaml
+```
+
+**Redis path** (embedding cache backend): see **[Redis Setup](redis-setup.md)** for cache configuration. Redis can also serve as a vector-only store; verify your setup in [Configuration reference → Split-store](configuration.md#split-store-vector_store_backend-slice-49b).
+
+```bash
+rag-params-finder run --config configs/redis/example-local.yaml
+```
+
 ### ⚡ Enable parallel sweeps (throughput boost)
 
 Set `execution.parallelism` in the config YAML to run sweep combinations concurrently.
@@ -265,6 +312,8 @@ Models are cached in `~/.cache/huggingface/hub/` after the first download.
 
 - [MongoDB Setup](mongodb-setup.md) — Atlas cloud or local Docker, Voyage billing, search indexes
 - [Postgres Setup](postgres-setup.md) — local pgvector or hosted Supabase
+- [Elasticsearch Setup](elasticsearch-setup.md) — local cluster or hosted, index configuration, vector store backend
+- [Redis Setup](redis-setup.md) — embedding cache backend configuration and optional vector store
 - [SIE Provider Setup](sie-setup.md) — remote gateway (preferred) or optional self-hosted Docker
 - [Configuration reference](configuration.md) — all YAML fields, sweep expansion, queries format
 - [CLI reference](cli-reference.md) — all commands and flags

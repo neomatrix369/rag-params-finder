@@ -10,7 +10,7 @@ trying to do right now**. Pick the mode that matches your goal.
 | Step | Resource | Location | Time | Intent |
 |------|----------|----------|------|--------|
 | 1 | Project entry | [README.md](../README.md) | 5 min | What the tool is + fastest path |
-| 2 | Pick a backend | [user-guide/mongodb-setup.md](user-guide/mongodb-setup.md) · [postgres-setup.md](user-guide/postgres-setup.md) | 10 min | Stand up a store (cloud or local) |
+| 2 | Pick a backend | [user-guide/mongodb-setup.md](user-guide/mongodb-setup.md) · [postgres-setup.md](user-guide/postgres-setup.md) · [elasticsearch-setup.md](user-guide/elasticsearch-setup.md) · [redis-setup.md](user-guide/redis-setup.md) | 10 min | Stand up a store (cloud or local) |
 | 3 | First sweep | [QUICKSTART.md](../QUICKSTART.md) → [user-guide/getting-started.md](user-guide/getting-started.md) | 10 min | Submit a config, watch it run |
 | 4 | See results | dashboard at `http://localhost:5374` | 5 min | Confirm runs + explore output |
 
@@ -40,7 +40,7 @@ contract in [plan/slices/README.md](plan/slices/README.md).
 | Fix an error / failure | [user-guide/troubleshooting.md](user-guide/troubleshooting.md) |
 | A config field's meaning | [user-guide/configuration.md](user-guide/configuration.md) |
 | A CLI command | [user-guide/cli-reference.md](user-guide/cli-reference.md) |
-| Switch backend (Mongo/Postgres, local/cloud) | [user-guide/mongodb-setup.md](user-guide/mongodb-setup.md) · [postgres-setup.md](user-guide/postgres-setup.md) |
+| Switch backend (Mongo/Postgres/Elasticsearch/Redis, local/cloud) | [user-guide/mongodb-setup.md](user-guide/mongodb-setup.md) · [postgres-setup.md](user-guide/postgres-setup.md) · [elasticsearch-setup.md](user-guide/elasticsearch-setup.md) · [redis-setup.md](user-guide/redis-setup.md) |
 | SIE setup (BGE-M3 / Stella / SPLADE) | [user-guide/sie-setup.md](user-guide/sie-setup.md) |
 | Current slice status | [plan/slices/PROGRESS.md](plan/slices/PROGRESS.md) |
 | Verify something works (runnable) | [smoke-tests/SMOKE-REGISTRY.md](smoke-tests/SMOKE-REGISTRY.md) |

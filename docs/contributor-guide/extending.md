@@ -3,6 +3,8 @@
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Pydantic](https://img.shields.io/badge/Pydantic-E92063?logo=pydantic&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?logo=elasticsearch&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
 ![Voyage AI](https://img.shields.io/badge/Voyage_AI-FF6B6B)
 ![sentence-transformers](https://img.shields.io/badge/sentence--transformers-FF9D00?logo=huggingface&logoColor=white)
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
@@ -25,6 +27,7 @@ Use this checklist when a new engine should sit behind `VectorStore`. Elasticsea
 9. A QUICKSTART path and a teardown line.
 10. A nightly `vector-store-integration` matrix leg with `RAG_REQUIRE_<STORE>=1`.
 11. The docs-parity check stays green.
+12. Update `docs/TRAVERSAL.md`'s onboarding 'Pick a backend' step and 'Switch backend' lookup row, and `docs/user-guide/getting-started.md`'s Configure/Run/Next-Steps sections, to include the new backend — these are NOT covered by the README persona-table step above and are commonly missed.
 
 ### 15-stage user journey
 
@@ -32,7 +35,7 @@ This table is the reference for "a fresh reader can finish the journey from the 
 
 | Stage | User action | Surface | Doc | Test |
 |---|---|---|---|---|
-| 1 | Choose a backend | README persona row | `docs/README.md` | docs-parity mentions |
+| 1 | Choose a backend | README persona row + TRAVERSAL.md + getting-started.md | `docs/README.md`, `docs/TRAVERSAL.md`, `docs/user-guide/getting-started.md` | docs-parity mentions |
 | 2 | Read the setup guide | `<provider>-setup.md` | user guide | docs-parity headings |
 | 3 | Install the extra | `uv pip install -e ".[elasticsearch]"` | elasticsearch-setup | extra in pyproject |
 | 4 | Start the stack | `./start-services.sh --elasticsearch-local` | QUICKSTART Path E | manifest parity |
@@ -42,7 +45,7 @@ This table is the reference for "a fresh reader can finish the journey from the 
 | 8 | Watch the dashboard | `http://localhost:5374` | dashboard guide | empty-state hints |
 | 9 | Read Index/Host labels | stats panel | storage labels | storageLabels test |
 | 10 | Compare dense scores | same YAML, three stores | ADR-006 | overlap note in setup guide |
-| 11 | Switch engines | start flags | configuration / setup | storage_mode tokens |
+| 11 | Switch engines | start flags | configuration / setup / getting-started | storage_mode tokens |
 | 12 | Hit a 422 | wrong `database_provider` | troubleshooting | config guard |
 | 13 | Read diagnostics | cheat sheet | setup guide | docs-parity content |
 | 14 | Tear down | `./stop-services.sh` | QUICKSTART Teardown | manifest profiles |

@@ -5,6 +5,8 @@
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
 ![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?logo=elasticsearch&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
 ![SIE](https://img.shields.io/badge/SIE-Superlinked_Inference_Engine-blue)
 [![CI](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/ci.yml)
 [![Nightly](https://img.shields.io/github/actions/workflow/status/neomatrix369/rag-params-finder/nightly.yml?branch=main&label=Nightly&logo=githubactions&logoColor=white)](https://github.com/neomatrix369/rag-params-finder/actions/workflows/nightly.yml)
@@ -30,6 +32,7 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | **New user — MongoDB + providers** | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) | [QUICKSTART.md](../QUICKSTART.md) → [user-guide/getting-started.md](./user-guide/getting-started.md) |
 | **New user — Postgres (local or Supabase-hosted)** | [user-guide/postgres-setup.md](./user-guide/postgres-setup.md) | [QUICKSTART.md](../QUICKSTART.md) Path D → `configs/supabase/example-unified-retrievers.yaml` |
 | **New user — Elasticsearch (vector-only)** | [user-guide/elasticsearch-setup.md](./user-guide/elasticsearch-setup.md) | [QUICKSTART.md](../QUICKSTART.md) Path E → `configs/elasticsearch/example-local.yaml` |
+| **New user — Redis (vector-only)** | [user-guide/redis-setup.md](./user-guide/redis-setup.md) | `./start-services.sh --redis-local` + `configs/redis/example-local.yaml` |
 | **New user — first sweep** | [QUICKSTART.md](../QUICKSTART.md) | [user-guide/getting-started.md](./user-guide/getting-started.md) → dashboard at `http://localhost:5374` |
 | **Operator — config & CLI** | [user-guide/configuration.md](./user-guide/configuration.md) | [user-guide/cli-reference.md](./user-guide/cli-reference.md) |
 | **Operator — dashboard** | [user-guide/dashboard-guide.md](./user-guide/dashboard-guide.md) | [user-guide/configuration.md](./user-guide/configuration.md) (tiebreaker, env vars) |
@@ -48,6 +51,9 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 |-----|----------------|
 | [user-guide/mongodb-setup.md](./user-guide/mongodb-setup.md) | MongoDB Atlas cloud or local Docker, Voyage AI, search indexes |
 | [user-guide/postgres-setup.md](./user-guide/postgres-setup.md) | Postgres + pgvector — local Docker or Supabase-hosted Postgres (same backend) |
+| [user-guide/elasticsearch-setup.md](./user-guide/elasticsearch-setup.md) | Elasticsearch — local cluster or BYO cloud, vector-only store |
+| [user-guide/redis-setup.md](./user-guide/redis-setup.md) | Redis — local instance or BYO cloud, vector-only store |
+| [user-guide/sqlite-setup.md](./user-guide/sqlite-setup.md) | SQLite run-state store — automatic default; override only if choosing Mongo/Postgres for run-state instead |
 | [user-guide/getting-started.md](./user-guide/getting-started.md) | Install, configure, first experiment (step-by-step) |
 | [user-guide/sie-setup.md](./user-guide/sie-setup.md) | SIE setup — remote gateway (preferred) or optional self-hosted Docker; warm-up, Aim UI, known issues |
 | [user-guide/configuration.md](./user-guide/configuration.md) | Full YAML config reference, env vars, sweep dimensions |
@@ -79,6 +85,10 @@ All guides for **rag-params-finder**, organized by **who you are** and **what yo
 | [adr/ADR-003-mongodb-atlas-vector-store.md](./adr/ADR-003-mongodb-atlas-vector-store.md) | MongoDB Atlas as vector store (**Superseded** by ADR-004; Mongo still supported) |
 | [adr/ADR-004-postgresql-pgvector-vector-store.md](./adr/ADR-004-postgresql-pgvector-vector-store.md) | Dual-backend: Postgres/pgvector (Supabase) **and** MongoDB |
 | [adr/ADR-005-doubleword-embedding-provider.md](./adr/ADR-005-doubleword-embedding-provider.md) | DoubleWord batch-first embedding provider (**Proposed** — Slice 48, not yet implemented) |
+| [adr/ADR-006-elasticsearch-vector-store.md](./adr/ADR-006-elasticsearch-vector-store.md) | Elasticsearch vector store (Accepted) |
+| [adr/ADR-007-redis.md](./adr/ADR-007-redis.md) | Redis vector store (Accepted) |
+| [adr/ADR-008-sqlite-central-run-state-store.md](./adr/ADR-008-sqlite-central-run-state-store.md) | SQLite run-state store — automatic default (Accepted) |
+| [adr/ADR-009-embedding-cache-backend-port.md](./adr/ADR-009-embedding-cache-backend-port.md) | Embedding cache backend port — SQLite default, Redis opt-in (Accepted) |
 | [plan/slices/PROGRESS.md](./plan/slices/PROGRESS.md) | Slice status, decision log, forward roadmap (**status SSOT**) |
 | [plan/TRAIL.md](./plan/TRAIL.md) | Plan trail, harness-scout YAML, execution order |
 | [plan/invariants.md](./plan/invariants.md) | Self-contained constraints for slice executors |

@@ -11,6 +11,10 @@
 ![ESLint](https://img.shields.io/badge/ESLint-4B32C3?logo=eslint&logoColor=white)
 ![pre-commit](https://img.shields.io/badge/pre--commit-hooks-FAB040)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?logo=mongodb&logoColor=white)
+![Postgres](https://img.shields.io/badge/Postgres_pgvector-4169E1?logo=postgresql&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?logo=elasticsearch&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
 
 ![Trivy](https://img.shields.io/badge/Trivy-SCA-1904DA?logo=aquasecurity&logoColor=white)
 ![gitleaks](https://img.shields.io/badge/gitleaks-secrets-1E2327)

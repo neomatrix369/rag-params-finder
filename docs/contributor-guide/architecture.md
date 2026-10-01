@@ -450,8 +450,9 @@ Detection: `server/db/mongo/mongodb_uri.py` (`is_atlas_uri`). TLS enabled only f
 ## 🗄️ Postgres / pgvector Backend
 
 `STORAGE_BACKEND=postgres` selects the Postgres adapters (`postgres_store.py`,
-`retriever_postgres.py`). Default remains `STORAGE_BACKEND=mongodb` (legacy
-alias `mongo` normalizes to `mongodb`). **One backend**, two deployments: local Docker
+`retriever_postgres.py`). **SQLite is the default run-state backend** (`STORAGE_BACKEND=sqlite`, ADR-008);
+`mongodb` and `postgres` remain fully supported non-default choices (legacy alias `mongo` normalizes
+to `mongodb`). Postgres offers two deployments: local Docker
 (`./start-services.sh --postgres-local`) or **Supabase-hosted Postgres** (same adapter;
 cloud `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL`). Example YAMLs live under `configs/supabase/` — that folder
 name is not a second storage backend. Schema:
@@ -501,7 +502,7 @@ See `docs/adr/` for Architecture Decision Records:
 - [ADR-001](../adr/ADR-001-two-process-architecture.md): Why CLI + Server (two-process architecture)
 - [ADR-002](../adr/ADR-002-voyage-and-local-providers.md): Why dual embedding/reranking providers
 - [ADR-003](../adr/ADR-003-mongodb-atlas-vector-store.md): MongoDB Atlas as original sole vector store (**Superseded**)
-- [ADR-004](../adr/ADR-004-postgresql-pgvector-vector-store.md): Dual-backend Postgres/pgvector (Supabase) **and** MongoDB — code default stays `mongodb` (DECISIONS #130 Won't flip)
+- [ADR-004](../adr/ADR-004-postgresql-pgvector-vector-store.md): Dual-backend Postgres/pgvector (Supabase) **and** MongoDB — run-state default later changed to SQLite by [ADR-008](../adr/ADR-008-sqlite-central-run-state-store.md)
 - [ADR-005](../adr/ADR-005-doubleword-embedding-provider.md): DoubleWord batch-first embedding provider (**Proposed** — Slice 48, not yet implemented)
 
 **Key design choices not covered by ADRs**:

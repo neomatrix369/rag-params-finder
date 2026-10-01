@@ -1,5 +1,8 @@
 # Redis setup
 
+![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+
 Use this guide when chunks should live in Redis and experiment run state stays on MongoDB, Postgres, or SQLite. It is the operator path from a clean clone to a smoke sweep and teardown. Redis is a **vector-only** store: `STORAGE_BACKEND=redis` is rejected.
 
 ## Choose your deployment

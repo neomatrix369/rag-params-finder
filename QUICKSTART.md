@@ -144,6 +144,8 @@ The `.env.example` file contains the available settings and safe placeholders. T
 
 Keep credentials in `.env`; never put them in committed YAML configs.
 
+For the complete YAML and environment variable reference, see [Configuration Reference](docs/user-guide/configuration.md).
+
 > **Naming note:** `configs/mongodb/example-local.yaml` uses **local embedding models** (sentence-transformers), not local MongoDB. Any MongoDB example works with either Atlas backend — only `MONGODB_URI` (or `./start-services.sh --mongodb-local`) picks the database. Matching Supabase/pgvector examples live under `configs/supabase/`.
 
 ---
