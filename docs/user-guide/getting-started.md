@@ -73,68 +73,19 @@ Supabase-hosted, same adapter) remain fully supported alternatives. This is inde
 cp .env.example .env
 ```
 
-**Mongo (default)** — edit `.env`:
+Pick your **vector store** — each guide takes you from this point to a first smoke sweep:
 
-```bash
-MONGODB_ATLAS_CLOUD_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/rag_params_finder?retryWrites=true&w=majority
-
-# Required for Voyage sweep only — see mongodb-setup.md checklist
-VOYAGE_API_KEY=vo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-# Uncomment Tier 1 limits in .env.example (comment out free-tier defaults first)
-VOYAGE_RPM_LIMIT=2000
-VOYAGE_TPM_LIMIT=16000000
-
-SERVER_URL=http://localhost:8001
-```
-
-**Postgres (local or Supabase-hosted)** — instead of `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI`:
-
-```bash
-STORAGE_BACKEND=postgres
-# Local Docker:
-POSTGRES_LOCAL_URL=postgresql://rag:rag@localhost:5433/rag_params_finder
-# Or Supabase-hosted Postgres (TLS auto for *.supabase.co):
-# POSTGRES_CLOUD_URL=postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres
-
-SERVER_URL=http://localhost:8001
-```
-
-Set either `POSTGRES_CLOUD_URL` (Supabase) or `POSTGRES_LOCAL_URL` (local Docker) — cloud wins when both are present. See [Postgres Setup](postgres-setup.md#supabase-vs-postgres-read-this-first).
-
-**Elasticsearch (vector store only; run state defaults to MongoDB)** — optional alternative vector store:
-
-```bash
-VECTOR_STORE_BACKEND=elasticsearch
-ELASTICSEARCH_LOCAL_URL=http://localhost:9200
-# or for hosted Elasticsearch:
-# ELASTICSEARCH_CLOUD_URL=https://your-elasticsearch-host:9200
-# ELASTICSEARCH_API_KEY=optional_api_key_for_secured_cloud
-```
-
-See [Elasticsearch Setup](elasticsearch-setup.md) for connection details and index lifecycle management.
-
-**Redis (vector store only; run state defaults to MongoDB unless `STORAGE_BACKEND=postgres`/`sqlite`)** — optional alternative vector store:
-
-```bash
-VECTOR_STORE_BACKEND=redis
-REDIS_URL=redis://localhost:6379
-```
-
-See [Redis Setup](redis-setup.md) for Docker, managed instances, and schema details.
-
-**Redis (embedding cache backend only)** — optional cache for DoubleWord embeddings shared across multiple hosts:
-
-```bash
-EMBEDDING_CACHE_BACKEND=redis
-REDIS_URL=redis://localhost:6379
-EMBEDDING_CACHE_REDIS_TTL_S=604800  # 7 days (default)
-```
-
-See [Redis Setup](redis-setup.md) for configuration and embedding cache details. Note: Redis can also serve as a vector store (`VECTOR_STORE_BACKEND=redis`) for vector data — these are separate roles.
+| Backend | Key environment variables | Setup guide | Notes |
+|---|---|---|---|
+| **MongoDB** (default) | `MONGODB_ATLAS_CLOUD_URI` or `MONGODB_ATLAS_LOCAL_URI` | [MongoDB Setup](mongodb-setup.md) | For Voyage sweeps: add `VOYAGE_API_KEY` + Tier 1 limits |
+| **Postgres** | `STORAGE_BACKEND=postgres`; then **`POSTGRES_CLOUD_URL`** (Supabase) **or `POSTGRES_LOCAL_URL`** (Docker) | [Postgres Setup](postgres-setup.md#environment-variables) | ⚠️ **Cloud wins if both are set** — use one or the other |
+| **Elasticsearch** | `VECTOR_STORE_BACKEND=elasticsearch`; `ELASTICSEARCH_LOCAL_URL` or `ELASTICSEARCH_CLOUD_URL` (optional `ELASTICSEARCH_API_KEY`) | [Elasticsearch Setup](elasticsearch-setup.md#environment-variables) | Vector store only; run state defaults to MongoDB |
+| **Redis** (vector store) | `VECTOR_STORE_BACKEND=redis`, `REDIS_URL` | [Redis Setup](redis-setup.md#environment-variables) | Vector store only; pairs with MongoDB/Postgres/SQLite run state |
+| **Redis** (embedding cache) | `EMBEDDING_CACHE_BACKEND=redis`, `REDIS_URL`, `EMBEDDING_CACHE_REDIS_TTL_S` | [Redis Setup](redis-setup.md#embedding-cache) | Optional shared cache for DoubleWord embeddings — separate from Redis's vector-store role; use one, both, or neither |
 
 Full variable reference: [Troubleshooting → Environment Variables](troubleshooting.md#-environment-variables-reference). Optional Atlas Admin API keys enable cluster tier + storage quota in the dashboard — see `.env.example`.
 
-### 2. Search indexes (Mongo only — skip on Postgres)
+### 2. Search indexes (Mongo only — Postgres/Elasticsearch/Redis auto-create theirs)
 
 On **Mongo/Atlas**, both example configs use dense + sparse + hybrid — create
 **`vector_index_384`** (local) or **`vector_index_1024`** (Voyage or SIE) **and**
