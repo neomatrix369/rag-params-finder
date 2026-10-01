@@ -12,6 +12,8 @@ smaller reversible choices live in the continuous log at [`../plan/DECISIONS.md`
 | [005](ADR-005-doubleword-embedding-provider.md) | DoubleWord Embedding Provider — Batch-First Architecture | 📋 Proposed | 2026-09-25 |
 | [006](ADR-006-elasticsearch-vector-store.md) | Elasticsearch as a vector-only store | ✅ Accepted | 2026-09-27 |
 | [007](ADR-007-redis.md) | Redis (or Valkey) as a vector-only store | ✅ Accepted | 2026-09-30 |
+| [008](ADR-008-sqlite-central-run-state-store.md) | SQLite as the Central Run-State Store | ✅ Accepted | 2026-09-29 |
+| [009](ADR-009-embedding-cache-backend-port.md) | Embedding Cache Backend Port — SQLite Default, Redis Opt-In | ✅ Accepted | 2026-10-01 |
 
 ## Status vocabulary
 

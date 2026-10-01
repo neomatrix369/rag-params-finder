@@ -88,3 +88,12 @@ Mongo is **not** deleted. Dual-backend is intentional through cutover and beyond
 - Slice: [`docs/plan/slices/05-storage/SLICE-38-CUTOVER-ADR-004.md`](../plan/slices/05-storage/SLICE-38-CUTOVER-ADR-004.md)
 - Operator: [`docs/user-guide/postgres-setup.md`](../user-guide/postgres-setup.md), [`docs/user-guide/mongodb-setup.md`](../user-guide/mongodb-setup.md)
 - Prior ADR: [`ADR-003`](ADR-003-mongodb-atlas-vector-store.md)
+
+---
+
+## Note: Partial Supersession (2026-09-29)
+
+The "permanent, no default flip" clause in this ADR's original decision (DECISIONS #130) is now
+superseded by [ADR-008](ADR-008-sqlite-central-run-state-store.md), which moves the run-state
+default to SQLite. The dual-backend decision itself (MongoDB and Postgres both first-class,
+independent engines) stands unchanged.
