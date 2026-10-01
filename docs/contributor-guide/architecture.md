@@ -282,7 +282,7 @@ flowchart LR
     SEMANTIC ==>|"always loads local MiniLM<br/>to score chunk boundaries,<br/>regardless of provider above"| LOCAL
     SPARSE -.->|"✗ NOT required —<br/>sparse is plain BM25/FTS<br/>on every store"| SIE
 
-    RETRIEVE -.-> INFRA["Infrastructure axes<br/>(vector store / run-state / embedding cache)<br/>— see journey diagram above"]
+    RETRIEVE -.-> INFRA["Infrastructure axes<br/>(vector store / run-state —<br/>see journey diagram above;<br/>embedding cache — ADR-009)"]
 ```
 
 <details>
@@ -306,7 +306,9 @@ Chunking method            Embedding provider                  Retrieval method
                     ▼                      ▼              BM25/FTS on every
                  (local)                  (sie)            store, not SPLADE
 
-Infrastructure axes (vector store / run-state / embedding cache) — see journey diagram above
+Infrastructure axes:
+  vector store / run-state — see journey diagram above
+  embedding cache (sqlite default / redis, a third independent setting) — ADR-009
 ```
 
 **Two oddities worth knowing:**
@@ -321,7 +323,11 @@ Infrastructure axes (vector store / run-state / embedding cache) — see journey
 
 See [`configuration.md`](../user-guide/configuration.md) for the full chunking/embedding/retrieval
 reference tables, [`model_registry.py`](../../server/core/model_registry.py) for every registered
-model, and [`sie_guard.py`](../../server/core/guards/sie_guard.py) for SIE's opt-in gating.
+model, and [`sie_guard.py`](../../server/core/guards/sie_guard.py) for SIE's opt-in gating. The
+embedding cache (`EMBEDDING_CACHE_BACKEND`: sqlite default / redis) is a **third** independent
+setting — orthogonal to both `STORAGE_BACKEND` and `VECTOR_STORE_BACKEND` — not drawn in the
+journey diagram above; see [ADR-009](../adr/ADR-009-embedding-cache-backend-port.md) and
+[`redis-setup.md`](../user-guide/redis-setup.md#embedding-cache).
 
 </details>
 
