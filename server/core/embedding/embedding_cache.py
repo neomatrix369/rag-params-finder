@@ -1,4 +1,10 @@
-"""Thread-safe SQLite cache for pre-computed embedding vectors."""
+"""Thread-safe embedding vector cache with a swappable backend.
+
+Default backend: SQLite WAL (``EMBEDDING_CACHE_BACKEND=sqlite``).
+Optional backend: Redis with TTL-tagged keys (``EMBEDDING_CACHE_BACKEND=redis``;
+  compatible with ``volatile-lru`` eviction when one Redis instance serves both
+  vectors and the cache — DECISIONS #273 option a).
+"""
 
 from __future__ import annotations
 
@@ -9,13 +15,30 @@ import struct
 import threading
 import warnings
 from pathlib import Path
+from typing import Protocol, runtime_checkable
 
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-_GLOBAL_CACHE: EmbeddingCache | None = None
+_GLOBAL_CACHE: CacheBackend | None = None
 _CACHE_LOCK = threading.Lock()
+
+
+@runtime_checkable
+class CacheBackend(Protocol):
+    """Structural protocol satisfied by any embedding-cache adapter."""
+
+    def get_many(self, keys: list[str]) -> dict[str, list[float]]: ...
+
+    def put_many(
+        self,
+        entries: dict[str, list[float]],
+        *,
+        prompt_tokens: dict[str, int] | None = None,
+    ) -> None: ...
+
+    def cached_keys(self, keys: list[str]) -> frozenset[str]: ...
 
 
 def cache_key(
@@ -106,22 +129,41 @@ class EmbeddingCache:
         return frozenset(self.get_many(keys).keys())
 
 
-def get_embedding_cache() -> EmbeddingCache:
-    """Singleton: open once, reuse for the process lifetime."""
+def get_cache_backend() -> CacheBackend:
+    """Singleton factory: dispatches to SQLite or Redis per settings."""
     global _GLOBAL_CACHE
     with _CACHE_LOCK:
         if _GLOBAL_CACHE is None:
             from server.settings import settings
 
-            path = settings.embedding_cache_path
-            cache = EmbeddingCache(path)
-            cache.init_db()
-            _GLOBAL_CACHE = cache
+            backend = settings.embedding_cache_backend.strip().lower()
+            if backend == "redis":
+                from server.core.embedding.embedding_cache_redis import RedisCacheBackend
+
+                _GLOBAL_CACHE = RedisCacheBackend(
+                    url=settings.redis_url,
+                    ttl_s=settings.embedding_cache_redis_ttl_s,
+                )
+            else:
+                path = settings.embedding_cache_path
+                cache = EmbeddingCache(path)
+                cache.init_db()
+                _GLOBAL_CACHE = cache
         return _GLOBAL_CACHE
 
 
-def reset_embedding_cache() -> None:
+def get_embedding_cache() -> CacheBackend:
+    """Compat alias for ``get_cache_backend()``."""
+    return get_cache_backend()
+
+
+def reset_cache_backend() -> None:
     """Reset the singleton — test helper only."""
     global _GLOBAL_CACHE
     with _CACHE_LOCK:
         _GLOBAL_CACHE = None
+
+
+def reset_embedding_cache() -> None:
+    """Compat alias for ``reset_cache_backend()``."""
+    reset_cache_backend()

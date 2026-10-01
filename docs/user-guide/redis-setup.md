@@ -152,3 +152,54 @@ redis-cli -u "$REDIS_URL" INFO persistence | grep aof_enabled
 redis-cli -u "$REDIS_URL" BGSAVE
 redis-cli -u "$REDIS_URL" LASTSAVE
 ```
+
+---
+
+## Embedding Cache
+
+Slice 54 adds an optional Redis backend for DoubleWord's pre-computed embedding
+cache (`EMBEDDING_CACHE_BACKEND=redis`). By default the cache uses SQLite and
+requires no extra service.
+
+### When to use
+
+Use Redis only when multiple server processes (different hosts, Docker replicas)
+need to share the same embedding cache. Single-host setups should keep the
+default SQLite.
+
+### One instance, two roles (option a — DECISIONS #273)
+
+The same Redis instance can serve both vector storage and the embedding cache.
+Vector keys are written **without a TTL**; cache keys are written **with a TTL**
+(default 7 days). `volatile-lru` eviction then only evicts cache keys:
+
+```
+# already set by redis-local profile
+--maxmemory-policy volatile-lru
+```
+
+```bash
+VECTOR_STORE_BACKEND=redis
+REDIS_URL=redis://localhost:6379
+EMBEDDING_CACHE_BACKEND=redis
+EMBEDDING_CACHE_REDIS_TTL_S=604800   # 7 days (default)
+```
+
+### TTL audit (after a sweep)
+
+Confirm that no vector key has accidentally received a TTL — only `rpf:emb:*`
+keys should be evictable:
+
+```bash
+# Should print nothing (no rpf:chunk: key with a TTL)
+redis-cli -u "$REDIS_URL" --scan --pattern "rpf:chunk:*" | \
+  while read k; do ttl=$(redis-cli -u "$REDIS_URL" TTL "$k"); [ "$ttl" -gt -1 ] && echo "WARN: $k ttl=$ttl"; done
+
+# Should print TTL values (all > 0) for cache keys
+redis-cli -u "$REDIS_URL" --scan --pattern "rpf:emb:*" | \
+  while read k; do ttl=$(redis-cli -u "$REDIS_URL" TTL "$k"); echo "$k ttl=$ttl"; done | head -5
+```
+
+If `rpf:chunk:*` keys show a TTL they will be evicted under `volatile-lru`,
+causing retrieval failures. Remove any stray TTL with
+`redis-cli PERSIST <key>` or wipe and re-run the affected experiment.
