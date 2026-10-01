@@ -259,6 +259,8 @@ See [Troubleshooting — voyage-context-3 token limit](troubleshooting.md#-voyag
 
 ## ✂️ Chunking Methods
 
+> See [architecture.md § Sweep-config axes](../contributor-guide/architecture.md#sweep-config-axes--chunking-embedding-retrieval) for how this axis relates to embedding provider and retrieval method — including the `semantic` chunker's hidden local-model dependency.
+
 | Method | Algorithm | Best For |
 |---|---|---|
 | `recursive` | LangChain `RecursiveCharacterTextSplitter` — splits on `\n\n` → `\n` → space | General prose (default) |
@@ -272,6 +274,8 @@ See [Troubleshooting — voyage-context-3 token limit](troubleshooting.md#-voyag
 ---
 
 ## 🔍 Retrieval Configuration
+
+> See [architecture.md § Sweep-config axes](../contributor-guide/architecture.md#sweep-config-axes--chunking-embedding-retrieval) for how this axis relates to chunking and embedding provider — including why `sparse` does **not** require SIE or SPLADE.
 
 **Unified retriever format** (recommended):
 ```yaml

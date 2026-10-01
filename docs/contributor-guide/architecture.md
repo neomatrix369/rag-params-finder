@@ -245,6 +245,88 @@ See per-backend setup guides for detail: [mongodb-setup.md](../user-guide/mongod
 
 ---
 
+## 🎛️ Sweep-config axes — chunking, embedding, retrieval
+
+The diagram above covers **infrastructure** choices (which vector store, which run-state store).
+This one covers the **sweep-config** axes a researcher varies inside one experiment — chunking
+method, embedding provider/model, retrieval method — plus two real "oddities" worth knowing
+before you compose a sweep. Full reference tables live in
+[`configuration.md`](../user-guide/configuration.md); this diagram shows how the axes relate.
+
+```mermaid
+flowchart LR
+    subgraph CHUNK["Chunking method"]
+        FIXED["fixed"]
+        RECURSIVE["recursive"]
+        TOKEN["token"]
+        SENTENCE["sentence"]
+        SEMANTIC["semantic"]
+    end
+
+    subgraph EMBED["Embedding provider"]
+        LOCAL["local<br/>all-MiniLM-L6-v2"]
+        VOYAGE["voyage<br/>voyage-4, voyage-context-3, …"]
+        SIE["sie [gated, opt-in]<br/>BGE-M3, Stella-v5, SPLADE-v3"]
+        DOUBLEWORD["doubleword [batch-only]<br/>Qwen3-Embedding-8B"]
+    end
+
+    subgraph RETRIEVE["Retrieval method"]
+        DENSE["dense"]
+        SPARSE["sparse"]
+        HYBRID["hybrid"]
+    end
+
+    CHUNK -.->|compose freely| EMBED
+    EMBED -.->|compose freely| RETRIEVE
+
+    SEMANTIC ==>|"always loads local MiniLM<br/>to score chunk boundaries,<br/>regardless of provider above"| LOCAL
+    SPARSE -.->|"✗ NOT required —<br/>sparse is plain BM25/FTS<br/>on every store"| SIE
+
+    RETRIEVE -.-> INFRA["Infrastructure axes<br/>(vector store / run-state / embedding cache)<br/>— see journey diagram above"]
+```
+
+<details>
+<summary>ASCII fallback (portable — renders anywhere)</summary>
+
+```
+Chunking method            Embedding provider                  Retrieval method
+┌────────────┐             ┌──────────────────────────┐        ┌─────────┐
+│ fixed      │             │ local — all-MiniLM-L6-v2  │        │ dense   │
+│ recursive  │   ⟷ compose │ voyage — voyage-4,        │ ⟷      │ sparse  │
+│ token      │     freely  │   voyage-context-3, …     │ compose│ hybrid  │
+│ sentence   │             │ sie [gated] — BGE-M3,     │ freely │         │
+│ semantic ──┼─────┐       │   Stella-v5, SPLADE-v3    │        │         │
+└────────────┘     │       │ doubleword [batch-only] — │        │    ▲    │
+                    │       │   Qwen3-Embedding-8B      │        │    │    │
+                    ▼       └──────────────┬────────────┘        │    │    │
+          always loads local MiniLM        │                     sparse
+          to score chunk boundaries,       │                     │
+          regardless of provider above     │              ✗ NOT required —
+                    │                      │              sparse is plain
+                    ▼                      ▼              BM25/FTS on every
+                 (local)                  (sie)            store, not SPLADE
+
+Infrastructure axes (vector store / run-state / embedding cache) — see journey diagram above
+```
+
+**Two oddities worth knowing:**
+- `chunking_method: semantic` always loads a local `all-MiniLM-L6-v2` model to score chunk
+  boundaries, even when `embedding.provider` is `voyage`, `sie`, or `doubleword`
+  ([`semantic.py:5-6,56-60`](../../server/core/chunkers/semantic.py)) — a hidden dependency the
+  config schema doesn't surface.
+- `retrieval.retrievers: [{type: sparse}]` does **not** require SIE or SPLADE — sparse retrieval
+  is plain BM25/full-text search on every store (Mongo Atlas Search, Postgres `ts_rank_cd`,
+  Elasticsearch BM25, Redis). SPLADE is a separate, optional sparse-vector *embedding* model, not
+  a retrieval-method prerequisite.
+
+See [`configuration.md`](../user-guide/configuration.md) for the full chunking/embedding/retrieval
+reference tables, [`model_registry.py`](../../server/core/model_registry.py) for every registered
+model, and [`sie_guard.py`](../../server/core/guards/sie_guard.py) for SIE's opt-in gating.
+
+</details>
+
+---
+
 ## 🧱 Technology Stack
 
 ### Backend (Server + CLI)
