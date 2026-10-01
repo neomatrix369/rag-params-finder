@@ -32,7 +32,7 @@ def load_config(config_path: str) -> dict[str, Any]:
 def _validate_models(config: dict) -> None:
     """Validate embedding and reranker models against declared providers."""
     embedding_cfg = config.get("embedding", {})
-    declared_provider = embedding_cfg.get("provider", "local")
+    declared_provider = embedding_cfg.get("provider")  # None means derive per model
     embedding_models = embedding_cfg.get("models", [])
 
     for model_id in embedding_models:
@@ -40,15 +40,16 @@ def _validate_models(config: dict) -> None:
         if info is None:
             known = ", ".join(EMBEDDING_MODELS)
             raise ValueError(f"Unknown embedding model '{model_id}' in config. Known: {known}")
-        if info["provider"] != declared_provider:
+        model_provider = info["provider"]
+        if declared_provider is not None and model_provider != declared_provider:
             raise ValueError(
                 f"Embedding model '{model_id}' belongs to provider "
-                f"'{info['provider']}', but config declares provider '{declared_provider}'"
+                f"'{model_provider}', but config declares provider '{declared_provider}'"
             )
         logger.info(
             "config validate — embedding model %s → provider=%s dim=%s",
             model_id,
-            declared_provider,
+            declared_provider or model_provider,
             info["dimensions"],
         )
 

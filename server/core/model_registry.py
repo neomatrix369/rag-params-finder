@@ -15,11 +15,12 @@ logger = get_logger(__name__)
 
 
 class EmbeddingModelInfo(TypedDict):
-    provider: str  # "voyage" | "local" | "sie"
+    provider: str  # "voyage" | "local" | "sie" | "doubleword"
     dimensions: int
     huggingface_id: str | None
     description: str
     contextualized: bool  # uses contextualized_embed() API (e.g. voyage-context-3)
+    batch_only: bool  # model requires batch processing (cannot be embedded alone)
 
 
 class RerankerModelInfo(TypedDict):
@@ -36,6 +37,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": None,
         "description": "Voyage 4 flagship embedding (1024-dim)",
         "contextualized": False,
+        "batch_only": False,
     },
     "voyage-4": {
         "provider": "voyage",
@@ -43,6 +45,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": None,
         "description": "Voyage 4 general-purpose embedding (1024-dim)",
         "contextualized": False,
+        "batch_only": False,
     },
     "voyage-4-lite": {
         "provider": "voyage",
@@ -50,6 +53,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": None,
         "description": "Voyage 4 latency/cost-optimized embedding (1024-dim)",
         "contextualized": False,
+        "batch_only": False,
     },
     # Domain-specific (1024-dim)
     "voyage-code-3": {
@@ -58,6 +62,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": None,
         "description": "Voyage code retrieval embedding (1024-dim)",
         "contextualized": False,
+        "batch_only": False,
     },
     "voyage-finance-2": {
         "provider": "voyage",
@@ -65,6 +70,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": None,
         "description": "Voyage finance domain embedding (1024-dim)",
         "contextualized": False,
+        "batch_only": False,
     },
     "voyage-law-2": {
         "provider": "voyage",
@@ -72,6 +78,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": None,
         "description": "Voyage legal domain embedding (1024-dim)",
         "contextualized": False,
+        "batch_only": False,
     },
     "voyage-context-3": {
         "provider": "voyage",
@@ -79,6 +86,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": None,
         "description": "Voyage contextualized chunk embedding (1024-dim)",
         "contextualized": True,
+        "batch_only": False,
     },
     # Voyage 3 series (legacy API; 1024-dim default)
     "voyage-3-large": {
@@ -87,6 +95,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": None,
         "description": "Voyage 3 large embedding (1024-dim, legacy)",
         "contextualized": False,
+        "batch_only": False,
     },
     "voyage-3.5-lite": {
         "provider": "voyage",
@@ -94,6 +103,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": None,
         "description": "Voyage 3.5 lightweight embedding (1024-dim, legacy)",
         "contextualized": False,
+        "batch_only": False,
     },
     "voyage-3.5": {
         "provider": "voyage",
@@ -101,6 +111,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": None,
         "description": "Voyage 3.5 standard embedding (1024-dim, legacy)",
         "contextualized": False,
+        "batch_only": False,
     },
     "voyage-3": {
         "provider": "voyage",
@@ -108,6 +119,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": None,
         "description": "Voyage 3 general-purpose embedding (1024-dim, legacy)",
         "contextualized": False,
+        "batch_only": False,
     },
     "voyage-multilingual-2": {
         "provider": "voyage",
@@ -115,6 +127,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": None,
         "description": "Voyage multilingual retrieval embedding (1024-dim, legacy)",
         "contextualized": False,
+        "batch_only": False,
     },
     # Local
     "all-MiniLM-L6-v2": {
@@ -123,6 +136,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": "sentence-transformers/all-MiniLM-L6-v2",
         "description": "Fast general-purpose sentence embeddings (384-dim, ~23MB)",
         "contextualized": False,
+        "batch_only": False,
     },
     # SIE (Superlinked Inference Engine) — remote gateway or optional self-hosted Docker
     "bge-m3": {
@@ -131,6 +145,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": "BAAI/bge-m3",
         "description": "BGE-M3 multi-lingual dense+sparse+multi-vector (1024-dim, SIE)",
         "contextualized": False,
+        "batch_only": False,
     },
     "stella-v5": {
         "provider": "sie",
@@ -138,6 +153,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": "NovaSearch/stella_en_1.5B_v5",
         "description": "Stella v5 1.5B English dense embeddings (1024-dim, SIE)",
         "contextualized": False,
+        "batch_only": False,
     },
     "splade-v3": {
         "provider": "sie",
@@ -145,6 +161,16 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelInfo] = {
         "huggingface_id": "naver/splade-v3",
         "description": "SPLADE v3 learned sparse embeddings (30522-dim, SIE)",
         "contextualized": False,
+        "batch_only": False,
+    },
+    # DoubleWord (batch-processing provider)
+    "Qwen/Qwen3-Embedding-8B": {
+        "provider": "doubleword",
+        "dimensions": 1024,
+        "huggingface_id": None,
+        "description": "Qwen3 8B embeddings (1024-dim, DoubleWord batch-only)",
+        "contextualized": False,
+        "batch_only": True,
     },
 }
 
@@ -202,6 +228,11 @@ def get_model_info(model_id: str) -> EmbeddingModelInfo:
 
 def get_provider(model_id: str) -> str:
     return get_model_info(model_id)["provider"]
+
+
+def provider_for_model(model_id: str) -> str:
+    """Alias for get_provider() for clarity when deriving provider from model."""
+    return get_provider(model_id)
 
 
 def get_dimensions(model_id: str) -> int:

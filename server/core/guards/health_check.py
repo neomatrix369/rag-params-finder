@@ -11,6 +11,7 @@ from __future__ import annotations
 import time
 
 from server.core.guards.local_runtime import local_runtime_fields
+from server.core.pipeline.doubleword_watcher import get_watcher_status
 from server.db.mongo.mongodb_uri import mongo_client_kwargs, mongodb_storage_mode
 from server.db.ports.registry import is_same_adapter, resolve_adapter
 from server.db.postgres.postgres_uri import postgres_connect_kwargs, postgres_storage_mode
@@ -330,4 +331,7 @@ def storage_health() -> dict[str, object]:
         "vector": _public_probe(vector_probe),
         "run_state": _public_probe(run_state_probe),
     }
+
+    body["doubleword_watcher"] = get_watcher_status()
+
     return body

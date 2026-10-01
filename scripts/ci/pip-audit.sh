@@ -67,6 +67,17 @@ ML_IGNORE=(
   --ignore-vuln CVE-2026-97687
   --ignore-vuln CVE-2026-97688
   --ignore-vuln CVE-2026-97689
+  # sentence-transformers — fix requires 5.6.0 (major bump); current cap is <4.0.0 (sie-sdk compat).
+  # Unblock: upgrade sie-sdk and lift the <4.0.0 cap.
+  --ignore-vuln CVE-2026-68770
+  # virtualenv — PYSEC-2026-4011/4012/4013/4014 fixed in 21.7.x; forced via override-dependencies.
+  # Waiver retained in case pip-audit resolves the pre-commit venv copy rather than the project venv.
+  --ignore-vuln PYSEC-2026-4011
+  --ignore-vuln PYSEC-2026-4012
+  --ignore-vuln PYSEC-2026-4013
+  --ignore-vuln PYSEC-2026-4014
+  # transformers — CVE-2026-80047; fix requires ST 5+ major bump (current cap <4.0.0 for sie-sdk compat).
+  --ignore-vuln CVE-2026-80047
 )
 
 # Prefer the project venv whenever it exists. A bare `command -v python` is unsafe

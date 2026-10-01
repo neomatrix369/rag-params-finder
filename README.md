@@ -60,7 +60,7 @@ shows you exactly which configuration performs best.
 
 ## What it sweeps
 
-- **Embedding models**: 13 Voyage models (voyage-4 series, domain, context, voyage-3 legacy) — see `server/core/model_registry.py`
+- **Embedding models**: 13 Voyage models (voyage-4 series, domain, context, voyage-3 legacy) · local `all-MiniLM-L6-v2` · SIE open-source (BGE-M3, Stella-v5, SPLADE-v3) · DoubleWord `Qwen/Qwen3-Embedding-8B` (async batch) — see `server/core/model_registry.py`
 - **Chunking methods**: Fixed · Recursive · Token · Sentence · Semantic
 - **Retrieval methods**: Dense · Sparse · Hybrid
 - **Questions**: Persona-organised — user provided or generated as part of golden master generation process
@@ -77,6 +77,7 @@ One YAML. N experiments. Evidence-based decision. Ship the right config first.
 | **New user — Postgres (local or Supabase-hosted)** | [Postgres Setup](docs/user-guide/postgres-setup.md) | `./start-services.sh --postgres-local` + `configs/supabase/example-unified-retrievers.yaml` |
 | **New user — Elasticsearch (vector-only)** | [Elasticsearch Setup](docs/user-guide/elasticsearch-setup.md) | `./start-services.sh --elasticsearch-local` + `configs/elasticsearch/example-local.yaml` |
 | **New user — Redis (vector-only)** | [Redis Setup](docs/user-guide/redis-setup.md) | `./start-services.sh --redis-local` + `configs/redis/example-local.yaml` |
+| **New user — DoubleWord (batch embeddings)** | [DoubleWord Setup](docs/user-guide/doubleword-setup.md) | `DOUBLEWORD_API_KEY` in `.env` + `configs/mongodb/example-doubleword.yaml` (async batch API) |
 | **New user — first sweep** | [QUICKSTART](QUICKSTART.md) | Install, run server + CLI, open dashboard |
 | **Operator — config & CLI** | [Configuration Reference](docs/user-guide/configuration.md) | YAML sweeps, env vars, `rag-params-finder` commands |
 | **Operator — dashboard** | [Dashboard Guide](docs/user-guide/dashboard-guide.md) | Live phases, Search Explorer, experiment controls |
@@ -129,6 +130,7 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 |---|---|
 | Run entirely offline (no Atlas cloud account) | [MongoDB Setup → Path B](docs/user-guide/mongodb-setup.md#path-b--atlas-local-docker) · `./start-services.sh --mongodb-local` |
 | Run on Postgres/pgvector instead of Atlas | [Postgres Setup](docs/user-guide/postgres-setup.md) · `./start-services.sh --postgres-local` |
+| Use DoubleWord for cost-effective batch embeddings | [DoubleWord Setup](docs/user-guide/doubleword-setup.md) · `DOUBLEWORD_API_KEY` + `configs/mongodb/example-doubleword.yaml` |
 | Set up MongoDB Atlas or Voyage AI accounts | [MongoDB Setup](docs/user-guide/mongodb-setup.md) |
 | Run my first experiment | [Getting Started](docs/user-guide/getting-started.md) |
 | Understand all config options | [Configuration Reference](docs/user-guide/configuration.md) |
@@ -155,6 +157,8 @@ See **[QUICKSTART.md](QUICKSTART.md)** for install, `.env`, server, dashboard, a
 - **3 retrieval methods**: Dense (vector search), Sparse (BM25), Hybrid (Reciprocal Rank Fusion)
 - **Voyage AI models**: all registered embeddings in `model_registry.py` (voyage-4/3/domain/context) + rerankers `rerank-2.5-lite`, `rerank-2.5`, and legacy rerank APIs
 - **Local models** (no API key): `all-MiniLM-L6-v2` + `cross-encoder/ms-marco-MiniLM-L-6-v2`
+- **SIE models** (open-source): BGE-M3, Stella-v5 (1024-dim dense), SPLADE-v3 (sparse) via remote gateway or self-hosted Docker
+- **DoubleWord models** (cost-effective): `Qwen/Qwen3-Embedding-8B` (1024-dim, ~$0.003 per 1M tokens) via async batch API with automatic polling
 - **Multi-format data loading**: PDF, TXT, Markdown, CSV — files or directories
 - **Cartesian sweep**: one YAML config → N models × M methods × P sizes × Q overlaps runs
 - **Live phase tracking**: QUEUED → PARSING → CHUNKING → EMBEDDING → STORING → QUERYING → RERANKING → COMPLETE

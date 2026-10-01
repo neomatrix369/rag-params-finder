@@ -1,0 +1,53 @@
+# MongoDB Atlas — DoubleWord batch embedding provider
+#
+# Qwen/Qwen3-Embedding-8B (1024-dim) via async batch API.
+# Requires: DOUBLEWORD_API_KEY env var + ./start-services.sh --mongodb-local
+#
+# DoubleWord provides a **batch-async** API: experiments submit documents for
+# embedding, a watcher polls for completion, and the server resumes runs once
+# vectors are cached locally. No blocking — other experiments proceed while
+# batches complete.
+#
+# See docs/user-guide/doubleword-setup.md for setup and troubleshooting.
+#
+# Time: typical batch completion is 1–5 min for < 10k texts, up to 1 h for 100k+.
+# Cost: ~$0.003 per 1M tokens (lowest-cost 8B model; no per-request charges).
+# Availability: free tier allows up to 2 concurrent batch jobs.
+#
+# Prerequisites:
+#   - DOUBLEWORD_API_KEY set in .env
+#   - ./start-services.sh --mongodb-local (or MONGODB_ATLAS_LOCAL_URI in .env)
+#   - Optional: .rpf_cache/ and .rpf_state/ mounted for restart safety
+
+experiment_name: doubleword-qwen3-test
+
+data_paths:
+  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+
+queries_file: ./configs/questions.example.json
+
+database_provider: mongodb
+
+embedding:
+  # provider is omitted — derived from model_registry per model
+  # Qwen/Qwen3-Embedding-8B → doubleword (batch async)
+  models:
+    - Qwen/Qwen3-Embedding-8B    # 1024-dim, requires DOUBLEWORD_API_KEY
+
+chunking:
+  methods:
+    - fixed
+  params:
+    chunk_sizes: [512]
+    overlaps: [0]
+    paddings: [0]
+
+retrieval:
+  top_k_initial: 20
+  top_k_final: 5
+  retrievers:
+    - type: dense
+
+execution:
+  parallelism: 1
+  on_error: continue

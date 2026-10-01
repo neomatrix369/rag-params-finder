@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import httpx
 
+from server.core.model_registry import provider_for_model
 from server.models.config import ExperimentConfig
 from server.settings import settings
 from server.utils.logger import get_logger
@@ -25,8 +26,12 @@ class SIEUnavailableError(Exception):
 
 
 def requires_sie(config: ExperimentConfig) -> bool:
-    """Return True when the experiment config uses the SIE embedding provider."""
-    return config.embedding.provider == "sie"
+    """Return True when any embedding model belongs to the SIE provider.
+
+    Works with both explicit provider setting and mixed-provider configs where
+    provider is derived per-model from the registry.
+    """
+    return any(provider_for_model(m) == "sie" for m in config.embedding.models)
 
 
 def probe_sie_reachable() -> bool:

@@ -138,6 +138,11 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/embedding/local_embedder.py` | sentence-transformers embedding (lazy-load) |
 | `server/core/embedding/sie_embedder.py` | SIE embeddings (BGE-M3, Stella-v5, SPLADE-v3) via remote gateway or optional self-hosted Docker |
 | `server/core/guards/sie_guard.py` | SIE preflight guard — verifies `SIE_ENABLED` and gateway reachability before SIE embedding sweeps |
+| `server/core/pipeline/doubleword_watcher.py` | Supervised asyncio watcher — polls DoubleWord batches every 10s, caches vectors, triggers sweep |
+| `server/core/embedding/embedding_cache.py` | Thread-safe SQLite vector cache; key=sha256(provider, model, dim, role, text) |
+| `server/core/pipeline/pre_embed.py` | Pure planning + effectful batch submission for DoubleWord pre-embedding |
+| `server/core/guards/doubleword_guard.py` | DoubleWord preflight — validates API key and model availability |
+| `server/core/embedding/doubleword_client.py` | DoubleWord async batch API client (submit, poll, download, cancel) |
 | `server/core/aim_logger.py` | Aim experiment run logging wrapper; `AimLogger.log_run()` — no-op if Aim init fails |
 | `scripts/docker/aim-ui.sh` | Start Aim UI on :43800 via Docker (shared `./.aim` repo with server) |
 | `scripts/lib/compose.sh` | Shared Docker Compose helpers + local/cloud MongoDB URI constants; `start-services.sh mongodb` subcommands |
@@ -179,12 +184,13 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 
 ## Provider System
 
-**Two independent provider settings**:
-- `embedding.provider`: "local", "voyage", or "sie"
-  - Local → `server/core/embedding/local_embedder.py` → `all-MiniLM-L6-v2` (384-dim)
-  - Voyage → `server/core/embedding/embedder.py` → all models in `EMBEDDING_MODELS` with `provider: voyage` (1024-dim; `voyage-context-3` uses `contextualized_embed()` with automatic segment splitting for long documents)
-  - SIE → `server/core/embedding/sie_embedder.py` → BGE-M3, Stella-v5 (1024-dim dense), SPLADE-v3 (30522-dim sparse); **opt-in** — remote gateway via `SIE_ENDPOINT` + `SIE_API_KEY` (no Docker), or self-hosted Docker fallback (`docs/user-guide/sie-setup.md`)
-  - Dispatch: `server/core/embedding/embedder_factory.py` — `get_embedder(provider)` returns the right functions; orchestrator never does if/elif on provider
+**Four embedding providers**:
+- `embedding.provider`: "local", "voyage", "sie", or "doubleword" (optional; auto-derived per model when omitted)
+  - **Local** → `server/core/embedding/local_embedder.py` → `all-MiniLM-L6-v2` (384-dim, no API key)
+  - **Voyage** → `server/core/embedding/embedder.py` → all models in `EMBEDDING_MODELS` with `provider: voyage` (1024-dim; `voyage-context-3` uses `contextualized_embed()` with automatic segment splitting for long documents)
+  - **SIE** → `server/core/embedding/sie_embedder.py` → BGE-M3, Stella-v5 (1024-dim dense), SPLADE-v3 (30522-dim sparse); **opt-in** — remote gateway via `SIE_ENDPOINT` + `SIE_API_KEY` (no Docker), or self-hosted Docker fallback (`docs/user-guide/sie-setup.md`)
+  - **DoubleWord** → `server/core/embedding/embedder_factory.py` (cache-reader only at run time) + `server/core/pipeline/doubleword_watcher.py` + `server/core/embedding/doubleword_client.py` → `Qwen/Qwen3-Embedding-8B` (1024-dim dense); **opt-in** — requires `DOUBLEWORD_API_KEY` env var; batch-only (async, not for on-demand embedding); see `docs/user-guide/doubleword-setup.md`
+  - **Dispatch**: `server/core/embedding/embedder_factory.py` — `get_embedder(provider)` returns the right functions; orchestrator never does if/elif on provider. Mixed-provider axis (48A S1): when `embedding.provider` is omitted, each model's provider is looked up in the registry, enabling one sweep to compare Local + Voyage + DoubleWord models
 - **`retrieval.retrievers`** (unified format):
   - Each list entry is one sweep dimension — one retriever per run
   - Traditional: `{type: dense|sparse|hybrid}` — no provider/model needed

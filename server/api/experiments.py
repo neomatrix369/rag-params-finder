@@ -31,7 +31,9 @@ from server.core.config_backend_guard import (
     ConfigBackendMismatchError,
     validate_config_backend_match,
 )
+from server.core.guards.doubleword_guard import validate_doubleword_readiness
 from server.core.health_check import resolve_storage_mode
+from server.core.model_registry import provider_for_model
 from server.core.pipeline.executors import HEAVY_READ_EXECUTOR, schedule_sweep
 from server.core.pipeline.experiment_control import (
     is_sweep_in_flight,
@@ -42,7 +44,7 @@ from server.core.pipeline.orchestrator import resume_sweep, run_sweep
 from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
 from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
-from server.db.ports.store_factory import build_vector_store_snapshot
+from server.db.ports.store_factory import build_vector_store_snapshot, get_storage_backend
 from server.models.config import ExperimentConfig, expand_sweep
 from server.models.enums import ExperimentStatus, RetrieverType
 from server.utils.log_throttle import info_throttled
@@ -60,6 +62,103 @@ async def _run_heavy_read[R](fn: Callable[[], R]) -> R:
     return await loop.run_in_executor(HEAVY_READ_EXECUTOR, fn)
 
 
+async def _maybe_pre_embed_and_schedule(experiment_id: str, config: ExperimentConfig) -> None:
+    """If config uses doubleword, pre-embed first; otherwise schedule immediately."""
+    uses_doubleword = any(provider_for_model(m) == "doubleword" for m in config.embedding.models)
+    if not uses_doubleword:
+        schedule_sweep(run_sweep, experiment_id, config)
+        return
+    # DoubleWord path — plan and submit batches
+    from server.core.data_loader import load_all_files
+    from server.core.embedding.embedding_cache import cache_key, get_embedding_cache
+    from server.core.model_registry import get_dimensions
+    from server.core.pipeline.pre_embed import plan_pre_embed, submit_pre_embed
+    from server.core.query_loader import load_queries
+    from server.settings import settings
+
+    # Find the doubleword model
+    dw_models = [m for m in config.embedding.models if provider_for_model(m) == "doubleword"]
+    dw_model = dw_models[0]  # one doubleword model per S1 design
+    dim = get_dimensions(dw_model)
+
+    # Load data to compute cache keys
+    source_texts_str = await asyncio.to_thread(load_all_files, config.data_paths)
+    # Split on double newlines to get individual text chunks
+    source_texts = [t.strip() for t in source_texts_str.split("\n\n") if t.strip()]
+
+    queries_data = await asyncio.to_thread(load_queries, config.queries_file)
+    queries = [q.text for q in queries_data]
+
+    # Check cache
+    cache = get_embedding_cache()
+    doc_keys = [
+        cache_key(
+            t,
+            provider="doubleword",
+            model=dw_model,
+            dim=dim,
+            instruction="",
+            role="doc",
+        )
+        for t in source_texts
+    ]
+    query_instruction = "Instruct: Retrieve relevant passages for the query.\nQuery: "
+    query_keys = [
+        cache_key(
+            t,
+            provider="doubleword",
+            model=dw_model,
+            dim=dim,
+            instruction=query_instruction,
+            role="query",
+        )
+        for t in queries
+    ]
+    all_keys = doc_keys + query_keys
+    cached = cache.cached_keys(all_keys)
+
+    plan = plan_pre_embed(
+        experiment_id,
+        dw_model,
+        source_texts,
+        queries,
+        cached,
+        dimensions=dim,
+        instruction=query_instruction,
+    )
+
+    if plan.is_empty:
+        # Everything cached — proceed immediately
+        schedule_sweep(run_sweep, experiment_id, config)
+        return
+
+    # Submit batches and set pre_embed.state = "waiting"
+    submitted = await submit_pre_embed(
+        plan, dimensions=dim, window=settings.doubleword_completion_window
+    )
+    batch_records = [
+        {
+            "batch_id": j.batch_id,
+            "role": j.role,
+            "status": "in_progress",
+            "completed": 0,
+            "total": j.n,
+            "dashboard_url": f"https://app.doubleword.ai/batches/{j.batch_id}",
+        }
+        for j in submitted
+    ]
+
+    get_storage_backend().update_experiment(
+        experiment_id, {"pre_embed": {"state": "waiting", "batches": batch_records}}
+    )
+
+    logger.info(
+        "experiment pre_embed waiting — experiment=%s batches=%s",
+        experiment_id,
+        len(submitted),
+    )
+
+
 @router.post("")
 async def create_experiment(config: ExperimentConfig):
     """Submit a new experiment sweep configuration."""
@@ -68,6 +167,7 @@ async def create_experiment(config: ExperimentConfig):
         validate_config_backend_match(config)
         assessment = await asyncio.to_thread(validate_experiment_search_indexes, config)
         await asyncio.to_thread(validate_sie_readiness, config)
+        await asyncio.to_thread(validate_doubleword_readiness, config)
     except ConfigBackendMismatchError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except SearchIndexMismatchError as exc:
@@ -97,6 +197,12 @@ async def create_experiment(config: ExperimentConfig):
     )
     retrieval_model_for_doc = rerankers[0].model if rerankers else config.retrieval.retrieval_model
 
+    # Derive embedding providers per model (supports mixed-provider sweeps)
+    embedding_providers_list = sorted(set(provider_for_model(m) for m in config.embedding.models))
+    embedding_provider_for_summary = (
+        embedding_providers_list[0] if len(embedding_providers_list) == 1 else "mixed"
+    )
+
     experiment_doc = {
         "_id": experiment_id,
         "experiment_id": experiment_id,
@@ -120,7 +226,8 @@ async def create_experiment(config: ExperimentConfig):
         "sweep_summary": {
             "database_provider": config.database_provider,
             "storage_mode": storage_mode,
-            "embedding_provider": config.embedding.provider,
+            "embedding_provider": embedding_provider_for_summary,
+            "embedding_providers": embedding_providers_list,
             "models": config.embedding.models,
             "chunking_methods": [m.value for m in config.chunking.methods],
             "chunk_sizes": config.chunking.params.chunk_sizes,
@@ -140,7 +247,7 @@ async def create_experiment(config: ExperimentConfig):
         runs,
         len(expand_sweep(config)),
     )
-    schedule_sweep(run_sweep, experiment_id, config)
+    await _maybe_pre_embed_and_schedule(experiment_id, config)
 
     return {
         "status": "submitted",
@@ -277,6 +384,13 @@ async def cancel_experiment(experiment_id: str):
 
     signalled = request_cancel(experiment_id)
     await asyncio.to_thread(mark_experiment_cancelled_now, experiment_id)
+
+    # Cancel any pending DoubleWord batches (Slice 48A, S4)
+    pre_embed = experiment.get("pre_embed")
+    if pre_embed and pre_embed.get("state") == "waiting":
+        from server.core.pipeline.doubleword_watcher import cancel_experiment_batches
+
+        await cancel_experiment_batches(experiment_id)
 
     logger.info("cancel OK — %s in-flight=%s", experiment_id, signalled)
     return {

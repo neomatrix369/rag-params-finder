@@ -451,3 +451,36 @@ def test_given_unreachable_elasticsearch_when_healthz_called_then_status_is_503(
     payload = response.body
     assert b'"ok":false' in payload or b'"ok": false' in payload
     assert b'"provider":"elasticsearch"' in payload or b'"provider": "elasticsearch"' in payload
+
+
+def test_given_storage_health_when_called_then_includes_watcher_status() -> None:
+    """
+    Scenario: storage_health includes DoubleWord watcher status.
+    Slice: 48A — detached watcher + resume (S4)
+
+    Given storage_health is called,
+    When the watcher is running,
+    Then the response includes doubleword_watcher field.
+    """
+    ### Given
+    with (
+        patch("server.core.guards.health_check.settings") as mock_settings,
+        patch("server.core.guards.health_check.mongodb_health_status", return_value="ok"),
+        patch(
+            "server.core.guards.health_check.resolve_storage_mode",
+            return_value="mongodb-cloud",
+        ),
+        patch(
+            "server.core.guards.health_check.get_watcher_status",
+            return_value="running",
+        ),
+    ):
+        mock_settings.storage_backend = "mongodb"
+        mock_settings.vector_store_backend = "mongodb"
+
+        ### When
+        actual = storage_health()
+
+    ### Then
+    assert "doubleword_watcher" in actual
+    assert actual["doubleword_watcher"] == "running"

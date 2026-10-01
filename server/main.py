@@ -76,9 +76,16 @@ async def lifespan(app: FastAPI):
             "boot — RECOVER_ON_BOOT enabled; automatic retry not implemented "
             "(see docs/plan/slices/01-core-pipeline/SLICE-10-RUN-RECOVERY.md)"
         )
+
+    # Start the DoubleWord watcher (if DOUBLEWORD_API_KEY is set)
+    from server.core.pipeline.doubleword_watcher import start_watcher, stop_watcher
+
+    start_watcher()
+
     logger.info("boot OK — server ready")
     yield
     logger.info("shutdown — server stopping")
+    stop_watcher()
     shutdown_executors()
 
 

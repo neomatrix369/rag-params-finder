@@ -105,3 +105,82 @@ class TestStartupReconciliationShould:
         assert actual_count == 0
         storage.mark_runs_interrupted.assert_not_called()
         storage.update_experiment_reconciled.assert_not_called()
+
+    def test_given_waiting_experiment_with_checkpoints_when_reconciled_then_exempts(self) -> None:
+        """
+        Scenario: Waiting experiment with active DoubleWord batches is exempted from reconciliation.
+        Slice: 48A — detached watcher + resume (S4)
+
+        Given a RUNNING experiment with pre_embed.state="waiting" and active checkpoints,
+        When reconcile_orphaned_experiments runs,
+        Then the experiment is not marked as stale (exempted for watcher to resume).
+        """
+        ### Given
+        storage = MagicMock()
+        experiment = {
+            "_id": "exp-doubleword-waiting",
+            "run_count": 1,
+            "pre_embed": {"state": "waiting"},
+            "status": "running",
+        }
+        storage.find_running_experiments.return_value = [experiment]
+
+        checkpoint_store_mock = MagicMock()
+        checkpoint_store_mock.load.return_value = [
+            {"batch_id": "batch1", "experiment_id": "exp-doubleword-waiting"}
+        ]
+
+        ### When
+        with (
+            patch("server.core.startup_reconciliation.get_storage_backend", return_value=storage),
+            patch(
+                "server.core.startup_reconciliation.CheckpointStore",
+                return_value=checkpoint_store_mock,
+            ),
+        ):
+            actual_count = reconcile_orphaned_experiments()
+
+        ### Then
+        assert actual_count == 0
+        storage.update_experiment_reconciled.assert_not_called()
+
+    def test_given_waiting_experiment_without_checkpoints_when_reconciled_then_marks_failed(
+        self,
+    ) -> None:
+        """
+        Scenario: Waiting experiment with no checkpoints is marked failed.
+        Slice: 48A — detached watcher + resume (S4)
+
+        Given a RUNNING experiment with pre_embed.state="waiting" but no checkpoints,
+        When reconcile_orphaned_experiments runs,
+        Then the experiment is marked as failed (batches cannot be resumed).
+        """
+        ### Given
+        storage = MagicMock()
+        experiment = {
+            "_id": "exp-doubleword-orphaned",
+            "run_count": 1,
+            "pre_embed": {"state": "waiting"},
+            "status": "running",
+        }
+        storage.find_running_experiments.return_value = [experiment]
+
+        checkpoint_store_mock = MagicMock()
+        checkpoint_store_mock.load.return_value = []  # No checkpoints
+
+        ### When
+        with (
+            patch("server.core.startup_reconciliation.get_storage_backend", return_value=storage),
+            patch(
+                "server.core.startup_reconciliation.CheckpointStore",
+                return_value=checkpoint_store_mock,
+            ),
+        ):
+            actual_count = reconcile_orphaned_experiments()
+
+        ### Then
+        assert actual_count == 1
+        storage.update_experiment_reconciled.assert_called_once()
+        call_kwargs = storage.update_experiment_reconciled.call_args.kwargs
+        assert call_kwargs["status"] == "failed"
+        assert call_kwargs["completion_reason"] == "pre_embed_batches_cannot_be_resumed"

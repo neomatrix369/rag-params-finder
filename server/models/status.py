@@ -3,10 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from server.models.config import DatabaseProvider, RetrieverConfig
+from server.models.config import DatabaseProvider, Provider, RetrieverConfig
 from server.models.enums import ChunkingMethod, Phase, RetrievalMethod
-
-Provider = Literal["local", "voyage", "sie", "kimchi"]
 
 
 class VectorStoreSnapshot(BaseModel):
@@ -26,6 +24,25 @@ class VectorStoreSnapshot(BaseModel):
     index_names: list[str] = Field(default_factory=list)
     container: str | None = None
     image: str | None = None
+
+
+class PreEmbedBatchRecord(BaseModel):
+    """Record of a DoubleWord pre-embedding batch."""
+
+    batch_id: str
+    role: str  # "doc" | "query"
+    status: str  # "in_progress" | "completed" | "failed"
+    completed: int = 0
+    total: int = 0
+    dashboard_url: str | None = None
+
+
+class PreEmbedStatus(BaseModel):
+    """Status of DoubleWord pre-embedding for an experiment."""
+
+    state: Literal["waiting", "ready", "failed"]
+    batches: list[PreEmbedBatchRecord] = Field(default_factory=list)
+    reason: str | None = None  # for failed state
 
 
 class RunStatus(BaseModel):

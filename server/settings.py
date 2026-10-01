@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import computed_field, field_validator, model_validator
+from pydantic import SecretStr, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from server.db.ports.registry import known_vector_stores, vector_store_can_host_run_state
@@ -162,6 +162,21 @@ class Settings(BaseSettings):
     # Index prefix defaults to ``rpf`` → ``rpf:chunks``.
     redis_url: str = ""
     redis_index_prefix: str = "rpf"
+
+    # DoubleWord — batch embedding provider (Slice 48A, ADR-005).
+    # DOUBLEWORD_API_KEY: required when any model uses provider="doubleword".
+    # DOUBLEWORD_BASE_URL: override for non-production environments.
+    # DOUBLEWORD_POLL_INTERVAL_S: watcher poll cadence in seconds (default 10).
+    # DOUBLEWORD_POLL_TIMEOUT_S: per-batch poll timeout in seconds (default 5).
+    # DOUBLEWORD_COMPLETION_WINDOW: batch completion window ("1h" or "24h", default "1h").
+    # EMBEDDING_CACHE_PATH: SQLite cache for embedding vectors (default
+    # ".rpf_cache/embeddings.sqlite").
+    doubleword_api_key: SecretStr | None = None
+    doubleword_base_url: str = "https://api.doubleword.ai/v1"
+    doubleword_poll_interval_s: int = 10
+    doubleword_poll_timeout_s: int = 5
+    doubleword_completion_window: str = "1h"
+    embedding_cache_path: str = ".rpf_cache/embeddings.sqlite"
 
     # MongoDB — required when STORAGE_BACKEND=mongodb or VECTOR_STORE_BACKEND=mongodb.
     # Set one (or both) of the cloud/local vars; cloud wins when both are non-empty.
@@ -407,7 +422,8 @@ logger.debug(
     "mongodb_atlas_cloud_uri=%s mongodb_atlas_local_uri=%s "
     "postgres_cloud_url=%s postgres_local_url=%s "
     "voyage_api_key=%s recover_on_boot=%s "
-    "cors_origins=%s cors_allow_localhost_origin_regex=%s",
+    "cors_origins=%s cors_allow_localhost_origin_regex=%s "
+    "doubleword_api_key=%s",
     "***" if settings.mongodb_atlas_cloud_uri else "(not set)",
     "***" if settings.mongodb_atlas_local_uri else "(not set)",
     "***" if settings.postgres_cloud_url else "(not set)",
@@ -416,4 +432,5 @@ logger.debug(
     settings.recover_on_boot,
     settings.cors_origins,
     settings.cors_allow_localhost_origin_regex,
+    "***" if settings.doubleword_api_key else "(not set)",
 )
