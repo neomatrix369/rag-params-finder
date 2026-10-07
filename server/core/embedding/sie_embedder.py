@@ -81,6 +81,8 @@ def _is_retryable_sie_error(exc: Exception) -> bool:
         or "rate limit" in message
         or "too many requests" in message
         or "503" in message
+        or "504" in message
+        or "gateway timeout" in message
         or "unavailable" in message
         or "service unavailable" in message
     )

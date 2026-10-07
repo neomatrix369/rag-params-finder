@@ -555,7 +555,7 @@ SIE_ENABLED=false
 # Path B — self-hosted Docker on :8720 (only when no remote gateway):
 # SIE_ENDPOINT=http://localhost:8720
 # SIE_ENDPOINT=http://host.docker.internal:8720   # server in Docker, SIE on host
-# HF_TOKEN=hf_...   # Docker path only — HuggingFace token for container model downloads
+# HF_TOKEN=hf_...   # Docker path only — optional for ungated models (BGE-M3, Stella-v5); required for gated models (e.g. naver/splade-v3)
 
 # Aim experiment tracking (OPTIONAL — UI via ./scripts/docker/aim-ui.sh)
 # AIM_REPO=.aim      # Docker sets /app/.aim automatically
@@ -662,7 +662,7 @@ profile already includes `--maxmemory-policy volatile-lru` — see
 | `SIE_ENABLED` | `false` | **Master on/off** for SIE — not local-vs-remote; set `true` when you want the server to use SIE (either path) |
 | `SIE_ENDPOINT` | `http://localhost:8720` | **Where** to connect — remote gateway URL or local Docker (`host.docker.internal:8720` when server is in Docker) |
 | `SIE_API_KEY` | — | **Auth** — Bearer token when gateway requires it; usually empty for local Docker |
-| `HF_TOKEN` | — | HuggingFace token for **self-hosted Docker only** — not used when pointing at a remote gateway |
+| `HF_TOKEN` | — | HuggingFace token for **self-hosted Docker only** — **optional** for ungated models (BGE-M3, Stella-v5); **required** for gated models such as `naver/splade-v3` |
 | `AIM_REPO` | `.aim` | Path to Aim experiment repo (Docker: `/app/.aim`; UI: `./scripts/docker/aim-ui.sh`) |
 | `HEALTH_CHECK_MONGODB_TIMEOUT_MS` | `5000` | MongoDB ping timeout for `/healthz` (ms) |
 
