@@ -248,6 +248,37 @@ class TestSIEEmbedderFallback:
         assert len(result) == 1
         assert attempts == 2
 
+    def test_embed_documents_retries_on_504_like_errors(self, monkeypatch: pytest.MonkeyPatch):
+        """
+        Scenario: embed documents retries on 504 like errors.
+        Slice: 45 — GWT-on-touch (module theme separation)
+        Given SIE encode returns a transient 504 Gateway Timeout error
+        When embed_documents_sie is called
+        Then requests are retried and eventually succeed.
+        """
+        ### Given
+        ### When
+        ### Then
+        attempts = 0
+
+        def _encode_side_effect(*_args: object, **_kwargs: object) -> list[dict]:
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1:
+                raise Exception("504 Gateway Timeout")
+            return [{"dense": np.zeros(1024, dtype=np.float32)}]
+
+        monkeypatch.setattr("server.core.sie_embedder._SIE_INITIAL_RETRY_DELAY_S", 0.0)
+        with patch("server.core.sie_embedder.SIEClient") as mock_client_cls:
+            mock_client_cls.return_value.encode.side_effect = _encode_side_effect
+
+            from server.core.sie_embedder import embed_documents_sie
+
+            result = embed_documents_sie(["test"], "bge-m3")
+
+        assert len(result) == 1
+        assert attempts == 2
+
     def test_embed_documents_retries_on_429_with_retry_after_header(
         self, monkeypatch: pytest.MonkeyPatch
     ):

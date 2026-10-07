@@ -47,7 +47,7 @@ Three server `.env` variables control SIE. They are **not** split into “local�
 | Path | When to use | What you need |
 |---|---|---|
 | **A — Remote gateway** *(recommended if available)* | Your org runs SIE (Helm/K8s, managed gateway, hackathon endpoint) | `SIE_ENABLED=true`, `SIE_ENDPOINT`, `SIE_API_KEY` in server `.env` — **no Docker** |
-| **B — Self-hosted Docker** | No remote gateway; you run SIE locally on `:8720` | Docker Desktop, `HF_TOKEN`, warm-up per [§ Self-hosted Docker](#self-hosted-docker-optional) below |
+| **B — Self-hosted Docker** | No remote gateway; you run SIE locally on `:8720` | Docker Desktop, `HF_TOKEN` (required for gated models; optional for BGE-M3/Stella-v5), warm-up per [§ Self-hosted Docker](#self-hosted-docker-optional) below |
 
 ### Path A — Remote gateway (no Docker)
 
@@ -92,7 +92,7 @@ first-run model download and warm-up can take 10–30+ minutes on Apple Silicon.
 | Requirement | Notes |
 |---|---|
 | Docker Desktop | 4 GB+ of free disk space |
-| `HF_TOKEN` | HuggingFace read token — required for model downloads inside the container |
+| `HF_TOKEN` | HuggingFace read token — **optional** for ungated models (BGE-M3, Stella-v5); **required** for gated models such as `naver/splade-v3` |
 | Apple Silicon (M1/M2/M3) | Extra `--platform linux/amd64` flag required (see below) |
 
 > **`HF_TOKEN` is only for the Docker path.** Remote gateways manage their own model weights;
@@ -111,6 +111,10 @@ export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
 > **Note:** `HF_TOKEN` is only needed by the SIE container for model downloads. It does not
 > go into the server's `.env` (the server never calls HuggingFace directly). You can pass it
 > as a shell export or add `HF_TOKEN=hf_...` to `.env` and source it.
+>
+> **Ungated models** (BGE-M3 `BAAI/bge-m3`, Stella-v5 `dunzhang/stella_en_1.5B_v5`) do not
+> require `HF_TOKEN`. **Gated models** such as `naver/splade-v3` require an accepted HuggingFace
+> license agreement and a token with read access to that repo.
 
 ---
 
@@ -196,17 +200,32 @@ When tailing `docker logs -f sie-server`, you will typically see this progressio
 If phase 2 appears without phase 3 within a few minutes, confirm the volume mount:
 `-v sie-hf-cache:/app/.cache/huggingface` (see [Disk cache warning on first start](#disk-cache-warning-on-first-start)).
 
-Poll until the model is ready:
+Poll until the model is ready (bounded: 60 attempts × 40 s ≈ 40 min max):
 
 ```bash
-until curl -sf -o /dev/null -X POST http://localhost:8720/v1/encode/BAAI/bge-m3 \
-  -H "Content-Type: application/json" \
-  -d '{"items":[{"text":"readiness probe"}]}'; do
-  echo "SIE not ready yet — waiting 10s..."
-  sleep 10
-done
-echo "SIE model ready"
+(
+  attempt=0; max=60
+  until [ "$attempt" -ge "$max" ]; do
+    status=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8720/v1/encode/BAAI/bge-m3 \
+      -H "Content-Type: application/json" \
+      -d '{"items":[{"text":"readiness probe"}]}')
+    if [ "$status" = "200" ]; then echo "SIE model ready"; exit 0; fi
+    if [ "$status" = "502" ]; then
+      echo "SIE returned 502 — terminal load failure. Check: docker logs sie-server"
+      exit 1
+    fi
+    attempt=$((attempt + 1))
+    echo "SIE not ready (HTTP $status) — attempt $attempt/$max, waiting 40s..."
+    sleep 40
+  done
+  echo "Timed out after $((max * 40))s. Check: docker logs -f sie-server"
+  exit 1
+)
 ```
+
+> **503 and 504 are retryable** (model loading / gateway timeout). **502 is terminal** (load
+> failed permanently — restart required). The loop is wrapped in a subshell `( ... )` so that
+> `exit 1` does not close your terminal if you paste the block into an interactive session.
 
 Watch the container logs for:
 ```
@@ -543,7 +562,7 @@ docker run -d \
   ghcr.io/superlinked/sie-server:latest-cpu-default
 ```
 
-Confirm `HF_TOKEN` is set before Step B — downloads require HuggingFace read access.
+Confirm `HF_TOKEN` is set before Step B if using gated models (e.g. `naver/splade-v3`); it is optional for BGE-M3 and Stella-v5.
 Watch `docker logs -f sie-server` until `Fetching 30 files` completes **without** the
 `Background writer channel closed` error, then poll encode to 200.
 
@@ -818,7 +837,8 @@ python3 -c "import os; print(os.getenv('SIE_ENDPOINT', 'http://localhost:8720'))
 
 ```
 [ ] Docker Desktop installed and running
-[ ] HF_TOKEN exported: export HF_TOKEN=hf_...
+[ ] HF_TOKEN exported if using gated models (e.g. naver/splade-v3): export HF_TOKEN=hf_...
+  (optional for ungated models BGE-M3 / Stella-v5)
 [ ] SIE container started (with --platform linux/amd64 on Apple Silicon)
 [ ] curl http://localhost:8720/healthz → ok
 [ ] Model warm-up poll passes (HTTP 200 from POST /v1/encode/BAAI/bge-m3)
