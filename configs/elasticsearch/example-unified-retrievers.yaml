@@ -35,7 +35,7 @@ retrieval:
   retrievers:
     # Each entry is one sweep dimension — one retriever per run (never combined).
     - type: dense
-    - type: sparse   # requires text_search_index
+    - type: sparse   # ES BM25 full-text search
     - type: hybrid
     - type: cross_encoder
       provider: local

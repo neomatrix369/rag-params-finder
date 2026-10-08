@@ -20,7 +20,7 @@ embedding:
   models:
     - bge-m3       # 1024-dim dense+sparse+multi-vector; flagship multilingual
     - stella-v5    # 1024-dim dense; strong English retrieval
-    # splade-v3: Slice 22 — sparse output + Atlas storage (30522-dim exceeds 4096 limit)
+    # splade-v3: 30522-dim sparse — exceeds ES SUPPORTED_DIMS (384, 1024)
 
 chunking:
   methods:

@@ -1,0 +1,41 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 976 >>
+stream
+BT /F1 12 Tf 72 720 Td (RAG Parameters Finder - Sample Document) Tj ET
+BT /F1 12 Tf 72 700 Td (This is a sample PDF for testing the RAG parameter sweep pipeline.) Tj ET
+BT /F1 12 Tf 72 680 Td (It contains enough text to demonstrate chunking, embedding, and retrieval.) Tj ET
+BT /F1 12 Tf 72 660 Td (The Federal Pell Grant Program provides need-based grants to low-income) Tj ET
+BT /F1 12 Tf 72 640 Td (undergraduate and certain post-baccalaureate students to promote access) Tj ET
+BT /F1 12 Tf 72 620 Td (to postsecondary education. Students may use their grants at any one of) Tj ET
+BT /F1 12 Tf 72 600 Td (approximately 5,400 participating postsecondary institutions.) Tj ET
+BT /F1 12 Tf 72 580 Td (Grant amounts are dependent on the student expected family contribution.) Tj ET
+BT /F1 12 Tf 72 560 Td (The maximum Pell Grant for the 2024-25 award year is 7,395 dollars.) Tj ET
+BT /F1 12 Tf 72 540 Td (Financial aid applications require completion of the FAFSA form.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000001267 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1337
+%%EOF
