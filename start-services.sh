@@ -421,6 +421,7 @@ resolve_ports() {
   [[ "$LOCAL_POSTGRES" == "1" && "$POSTGRES_PORT"    != "5433"  ]] && echo "Port 5433 in use — Postgres will bind on $POSTGRES_PORT"
   [[ "$LOCAL_ELASTICSEARCH" == "1" && "$ELASTICSEARCH_PORT" != "9200" ]] && echo "Port 9200 in use — Elasticsearch will bind on $ELASTICSEARCH_PORT"
   [[ "${LOCAL_REDIS:-0}" == "1" && "$REDIS_PORT" != "6379" ]] && echo "Port 6379 in use — Redis will bind on $REDIS_PORT"
+  return 0  # bash 3.2: [[ false ]] && echo exits 1; guard callers from set -e
 }
 
 print_unhealthy_server_hint() {
