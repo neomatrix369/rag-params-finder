@@ -73,7 +73,9 @@ def _api_error_status(exc: BaseException) -> int | None:
         return status
     meta = getattr(exc, "meta", None)
     if meta is not None:
-        return getattr(meta, "status", None)
+        st = getattr(meta, "status", None)
+        if isinstance(st, int):
+            return st
     return None
 
 
@@ -101,4 +103,8 @@ def raise_if_unreachable(exc: BaseException, url: str) -> None:
         raise ElasticsearchServiceUnavailableError(
             f"Elasticsearch unavailable (HTTP 503) at {safe_url}. "
             "Cluster may be starting up or in a red state."
+        ) from exc
+    if status is not None:
+        raise ElasticsearchUnreachableError(
+            f"Elasticsearch error (HTTP {status}) at {safe_url}. See server logs for details."
         ) from exc

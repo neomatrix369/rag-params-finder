@@ -228,6 +228,7 @@ class ElasticsearchVectorStore:
             return False
         except Exception as exc:
             raise_if_unreachable(exc, self.url)
+            log.warning("ES health_check failed: %s", exc)
             return False
 
     def storage_mode(self) -> str:
