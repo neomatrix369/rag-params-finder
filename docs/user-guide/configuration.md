@@ -435,7 +435,7 @@ Two independent axes select storage. Product names are **shorthand for the usual
 | `mongodb-local` | **Atlas Local** |
 | `postgres-cloud` | **Supabase-hosted Postgres** |
 | `postgres-local` | **local pgvector / Postgres** |
-| `elasticsearch-local` | **local Elasticsearch** (vector store only; run state defaults to MongoDB unless `STORAGE_BACKEND=postgres`) |
+| `elasticsearch-local` | **local Elasticsearch** (vector store only; run state defaults to SQLite (ADR-008) unless `STORAGE_BACKEND=mongodb` or `postgres`) |
 | `elasticsearch-cloud` | **hosted Elasticsearch** (vector store only) |
 
 - YAML `database_provider` declares **engine intent** (`mongodb` \| `postgres` \| `elasticsearch`). Deprecated input `supabase` normalizes to `postgres` with a warning.
@@ -446,7 +446,7 @@ Two independent axes select storage. Product names are **shorthand for the usual
 Someone says “I’m on Atlas” → ask: **cloud or Local?**
 Someone says “I’m on Supabase” → engine is Postgres cloud; local Postgres is `postgres-local`, not Supabase.
 
-Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud` / `--elasticsearch-local|cloud`. `--elasticsearch-local` also starts the run-state store (default `mongodb-local`; set `STORAGE_BACKEND=postgres` to pair Postgres). The old `--local` / `--postgres` flag aliases were removed. Env asymmetry: Elasticsearch needs `ELASTICSEARCH_CLOUD_URL` / `ELASTICSEARCH_LOCAL_URL` (and `ELASTICSEARCH_API_KEY` on a secured cloud). It never uses `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` or `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL` for the vector lane.
+Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud` / `--elasticsearch-local|cloud` / `--redis-local`. `--elasticsearch-local` also starts the run-state store (default `sqlite`, ADR-008; set `STORAGE_BACKEND=mongodb` or `STORAGE_BACKEND=postgres` to override). The old `--local` / `--postgres` flag aliases were removed. Env asymmetry: Elasticsearch needs `ELASTICSEARCH_CLOUD_URL` / `ELASTICSEARCH_LOCAL_URL` (and `ELASTICSEARCH_API_KEY` on a secured cloud). It never uses `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` or `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL` for the vector lane.
 
 ### Split-store: `VECTOR_STORE_BACKEND` (Slice 49B)
 

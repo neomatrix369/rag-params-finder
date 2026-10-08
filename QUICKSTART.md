@@ -26,6 +26,8 @@
   - [Path B — Docker + Atlas cloud](#path-b--docker--atlas-cloud-one-command)
   - [Path C — Manual](#path-c--manual-two-terminals-any-mongodb-backend)
   - [Path D — Docker + Postgres/pgvector](#path-d--docker--postgrespgvector-dense-retrieval)
+  - [Path E — Docker + Elasticsearch](#path-e--docker--elasticsearch-vector-only)
+  - [Path F — Docker + Redis](#path-f--docker--redis-vector-only)
 - [Verify the stack](#verify-the-stack)
 - [Run a sweep](#run-a-sweep)
 - [Next steps](#next-steps)
@@ -155,10 +157,12 @@ For the complete YAML and environment variable reference, see [Configuration Ref
 
 | Service | URL / port | Required? | Started by |
 |---------|------------|-----------|------------|
-| FastAPI server | `http://localhost:8001` | Yes | `./start-services.sh --mongodb-local` / `--postgres-local` / default / `uvicorn` |
+| FastAPI server | `http://localhost:8001` | Yes | `./start-services.sh --mongodb-local` / `--postgres-local` / `--elasticsearch-local` / `--redis-local` / default / `uvicorn` |
 | Dashboard | `http://localhost:5374` | Recommended | same as server row, or `npm run dev` |
 | MongoDB | `localhost:27017` (local) or Atlas cloud | Mongo path | `./start-services.sh --mongodb-local`, `mongodb start`, or Atlas |
 | Postgres/pgvector | `localhost:5433` | Postgres path | `./start-services.sh --postgres-local`, `postgres start`, or hosted URI |
+| Elasticsearch | `localhost:9200` | ES path | `./start-services.sh --elasticsearch-local`, `elasticsearch start`, or hosted URL |
+| Redis | `localhost:6379` | Redis path | `./start-services.sh --redis-local`, `redis start`, or hosted URL |
 | SIE gateway | `http://localhost:8720` | SIE sweeps only | Manual — **not** in `start-services.sh`; see [sie-setup.md](docs/user-guide/sie-setup.md) |
 
 CLI on the host always uses `SERVER_URL=http://localhost:8001` (default in `.env`).
@@ -273,6 +277,39 @@ button (not Project Settings → Database). Details:
 
 Full setup: [postgres-setup.md](docs/user-guide/postgres-setup.md).
 
+### Path E — Docker + Elasticsearch (vector-only)
+
+No Atlas account. Elasticsearch 9.5 runs in Docker; run state defaults to SQLite (ADR-008) — no extra run-state container needed.
+
+**Prerequisites:** Docker running, `uv pip install -e ".[elasticsearch]"`. On Linux, set `vm.max_map_count ≥ 262144` first (see [elasticsearch-setup.md](docs/user-guide/elasticsearch-setup.md#prerequisites-linux-only)).
+
+```bash
+cp .env.example .env   # no values need editing for local ES
+./start-services.sh --elasticsearch-local
+```
+
+Wait for Elasticsearch and the server to report healthy, then:
+
+```bash
+rag-params-finder run --config configs/elasticsearch/example-local.yaml
+```
+
+**If Elasticsearch stays unhealthy:** check `docker logs elasticsearch-local`. On Linux, ensure `vm.max_map_count ≥ 262144`. Reset: `./start-services.sh elasticsearch reset && ./start-services.sh --elasticsearch-local`.
+
+Full setup: [elasticsearch-setup.md](docs/user-guide/elasticsearch-setup.md).
+
+### Path F — Docker + Redis (vector-only)
+
+No Atlas account. Redis 8 runs in Docker; run state defaults to SQLite (ADR-008).
+
+```bash
+cp .env.example .env
+./start-services.sh --redis-local
+rag-params-finder run --config configs/redis/example-local.yaml
+```
+
+Full setup: [redis-setup.md](docs/user-guide/redis-setup.md).
+
 ---
 </details>
 
@@ -283,9 +320,10 @@ Full setup: [postgres-setup.md](docs/user-guide/postgres-setup.md).
 curl -s http://localhost:8001/healthz | python3 -m json.tool
 ```
 
-Expect `"ok": true` plus either `"mongodb": "ok"` (Mongo path) or
-`"storage_backend": "postgres"` / `"postgres": "ok"` (Postgres path).
-When both local DB containers are running, `health-check.sh` also reports each as healthy.
+Expect `"ok": true` plus the active backend: `"mongodb": "ok"` (Mongo path),
+`"storage_backend": "postgres"` / `"postgres": "ok"` (Postgres path),
+or `"storage_mode": "elasticsearch-local"` (ES path).
+When local containers are running, `health-check.sh` also reports each as healthy.
 If the server is unhealthy, see [troubleshooting → Docker](docs/user-guide/troubleshooting.md#docker).
 
 Dev hot reload (Docker): `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build` — details in [development.md → Docker Compose](docs/contributor-guide/development.md#docker-compose).
@@ -314,14 +352,10 @@ rag-params-finder run --config configs/mongodb/example-voyage.yaml  # 40 runs, V
 rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
 rag-params-finder run --config configs/supabase/example-local.yaml
 
-# Elasticsearch (Path E — see docs/user-guide/elasticsearch-setup.md)
-# Vector-only, run state on sqlite (default, ADR-008). No env vars by hand.
-./start-services.sh --elasticsearch-local
+# Elasticsearch (Path E — start services first, then run)
 rag-params-finder run --config configs/elasticsearch/example-local.yaml
 
-# Redis (Path F — see docs/user-guide/redis-setup.md)
-# Vector-only, run state on sqlite (default, ADR-008). No env vars by hand.
-./start-services.sh --redis-local
+# Redis (Path F — start services first, then run)
 rag-params-finder run --config configs/redis/example-local.yaml
 ```
 
@@ -346,5 +380,7 @@ NONINTERACTIVE=1 ./stop-services.sh
 - **Step-by-step first experiment:** [Getting Started](docs/user-guide/getting-started.md)
 - **MongoDB cloud vs local:** [mongodb-setup.md](docs/user-guide/mongodb-setup.md)
 - **Postgres/pgvector:** [postgres-setup.md](docs/user-guide/postgres-setup.md)
+- **Elasticsearch:** [elasticsearch-setup.md](docs/user-guide/elasticsearch-setup.md)
+- **Redis:** [redis-setup.md](docs/user-guide/redis-setup.md)
 - **Full documentation map:** [docs/README.md](docs/README.md)
 - **Choose your path (lookup table):** [README → Choose Your Path](README.md#-choose-your-path)
