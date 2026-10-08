@@ -79,8 +79,7 @@ if [[ "$BACKEND_CHANGED" -gt 0 ]]; then
     --cov=server.core.results_analyzer \
     --cov=server.models.config \
     --cov-report=term-missing \
-    --cov-report=json:.reports/coverage-backend-unit.json \
-    --cov-fail-under=95
+    --cov-report=json:.reports/coverage-backend-unit.json
   uv run python scripts/ci/check_backend_coverage_floors.py .reports/coverage-backend-unit.json
   uv run python scripts/ci/check_coverage_threshold_drift.py
 else
