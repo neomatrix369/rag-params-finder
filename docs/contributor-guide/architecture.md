@@ -45,7 +45,7 @@ C4Context
     System_Ext(sie, "SIE gateway", "Open-source embeddings (BGE-M3 / Stella / SPLADE)")
     SystemDb_Ext(mongo, "MongoDB Atlas", "Vector + run state (cloud or local)")
     SystemDb_Ext(pg, "Postgres / pgvector", "Vector + run state (Supabase or local)")
-    SystemDb_Ext(es, "Elasticsearch", "Vector only (local or cloud); run state stays on MongoDB or Postgres")
+    SystemDb_Ext(es, "Elasticsearch", "Vector only (local or cloud); run state stays on SQLite (default), MongoDB, or Postgres")
     SystemDb_Ext(redis, "Redis", "Vector only (local or cloud) + optional embedding cache; run state stays on MongoDB, Postgres, or SQLite")
     SystemDb_Ext(sqlite, "SQLite", "Run state only, default (ADR-008); single local file, no network service")
     Rel(user, rpf, "Submits configs, views results")
@@ -731,8 +731,9 @@ See `docs/adr/` for Architecture Decision Records:
 | Docker + Atlas Local | `./start-services.sh --mongodb-local` | Adds `mongodb/mongodb-atlas-local:8.3.3` container; auto-provisions search indexes |
 | Docker + local Postgres | `./start-services.sh --postgres-local` | Adds `pgvector/pgvector:0.8.5-pg16` (Supabase stand-in); host port **5433** |
 | Docker + hosted Supabase | `./start-services.sh --postgres-cloud` | No local DB container; requires `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL` or `POSTGRES_CLOUD_URL` |
-| Docker + local Elasticsearch | `./start-services.sh --elasticsearch-local` | Vector-only Elasticsearch 9.5.0; run state defaults to local MongoDB unless `STORAGE_BACKEND=postgres` |
-| DB container only | `./start-services.sh mongodb\|postgres\|elasticsearch start\|stop\|reset\|status` | Native server/frontend on host |
+| Docker + local Elasticsearch | `./start-services.sh --elasticsearch-local` | Vector-only Elasticsearch 9.5.0; run state defaults to sqlite (ADR-008) unless `STORAGE_BACKEND=mongodb` or `STORAGE_BACKEND=postgres` |
+| Docker + local Redis | `./start-services.sh --redis-local` | Vector-only Redis 8 with Query Engine; run state defaults to sqlite (ADR-008) unless `STORAGE_BACKEND=mongodb` or `STORAGE_BACKEND=postgres` |
+| DB container only | `./start-services.sh mongodb\|postgres\|elasticsearch\|redis start\|stop\|reset\|status` | Native server/frontend on host |
 | Docker (dev overlay) | `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build` | Bind mounts + HMR |
 
 Atlas, Postgres, and Elasticsearch connection settings live in `.env` on the host (mounted into the server container). See [SLICE-14-DOCKER-COMPOSE.md](../plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md), [MongoDB Setup](../user-guide/mongodb-setup.md), [Postgres Setup](../user-guide/postgres-setup.md), and [Elasticsearch Setup](../user-guide/elasticsearch-setup.md).
