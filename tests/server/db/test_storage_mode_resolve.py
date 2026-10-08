@@ -646,6 +646,46 @@ printf 'pg=%s\\n' "$LOCAL_POSTGRES"
     assert data["pg"] == "1"
 
 
+def test_given_redis_local_when_storage_backend_unset_then_run_state_is_sqlite() -> None:
+    """
+    Scenario: Local Redis defaults to sqlite run state (ADR-008).
+    Slice: 53
+
+    Given --redis-local and no STORAGE_BACKEND,
+    When the stack exports its backends,
+    Then run state is sqlite (no extra service needed).
+    """
+    ### Given
+    script = f"""
+set -euo pipefail
+source '{_LIB}'
+resolve_stack_mode --redis-local
+export_storage_backend_for_stack
+printf 'storage=%s\\n' "$STORAGE_BACKEND"
+printf 'vector=%s\\n' "$VECTOR_STORE_BACKEND"
+printf 'atlas=%s\\n' "$LOCAL_ATLAS"
+printf 'pg=%s\\n' "$LOCAL_POSTGRES"
+"""
+
+    ### When
+    result = subprocess.run(
+        ["bash", "-c", script],
+        capture_output=True,
+        text=True,
+        cwd=_REPO,
+        env=_clean_env(),
+        check=False,
+    )
+
+    ### Then
+    assert result.returncode == 0, result.stderr
+    data = _kv(result.stdout)
+    assert data["storage"] == "sqlite"
+    assert data["vector"] == "redis"
+    assert data["atlas"] == "0"
+    assert data["pg"] == "0"
+
+
 @pytest.mark.parametrize(
     "lib",
     sorted((_REPO / "scripts" / "lib").glob("*.sh")),

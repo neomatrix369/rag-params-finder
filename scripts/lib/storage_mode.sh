@@ -397,15 +397,15 @@ _pair_elasticsearch_run_state() {
 
 _pair_redis_run_state() {
   local run_state
-  run_state="$(printf '%s' "${STORAGE_BACKEND:-mongodb}" | tr '[:upper:]' '[:lower:]')"
+  run_state="$(printf '%s' "${STORAGE_BACKEND:-sqlite}" | tr '[:upper:]' '[:lower:]')"
   if [[ "$run_state" == "mongo" ]]; then
     run_state=mongodb
   fi
   if [[ "$run_state" == "redis" ]]; then
-    _stack_mode_error "STORAGE_BACKEND=redis is not supported: redis is vector-store-only and cannot host run state. Set STORAGE_BACKEND to 'mongodb', 'postgres', or 'sqlite'."
+    _stack_mode_error "STORAGE_BACKEND=redis is not supported: redis is vector-store-only and cannot host run state. Set STORAGE_BACKEND to 'sqlite', 'mongodb', or 'postgres'."
     return 1
   fi
-  if [[ "$run_state" != "mongodb" && "$run_state" != "postgres" && "$run_state" != "sqlite" ]]; then
+  if [[ "$run_state" != "sqlite" && "$run_state" != "mongodb" && "$run_state" != "postgres" ]]; then
     _stack_mode_error "ERROR: unknown STORAGE_BACKEND=${STORAGE_BACKEND:-} for a Redis vector store."
     return 1
   fi

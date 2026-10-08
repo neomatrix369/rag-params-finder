@@ -2,7 +2,7 @@
 #
 # Prerequisite: ./start-services.sh --redis-local
 #   Starts Redis 8 on 127.0.0.1:6379 (volatile-lru eviction, AOF enabled)
-#   and the paired run-state store (default mongodb-local).
+#   and the paired run-state store (default sqlite, ADR-008).
 #   Install the client extra: uv pip install -e ".[redis]"
 #   See docs/user-guide/redis-setup.md
 #
