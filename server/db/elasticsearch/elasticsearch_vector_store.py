@@ -109,17 +109,44 @@ class ElasticsearchVectorStore:
     def insert_chunks(self, docs: list[dict]) -> None:
         if not docs:
             return
-        for start in range(0, len(docs), _BULK_BATCH_SIZE):
-            batch = docs[start : start + _BULK_BATCH_SIZE]
-            operations = _bulk_operations(self._index, batch)
-            response = self.call(
-                lambda: self.client().bulk(
-                    operations=operations,
-                    refresh="wait_for",
-                    request_timeout=60,
+        run_id: str | None = docs[0].get("run_id") if docs else None
+        batches_indexed = 0
+        try:
+            for start in range(0, len(docs), _BULK_BATCH_SIZE):
+                batch = docs[start : start + _BULK_BATCH_SIZE]
+                operations = _bulk_operations(self._index, batch)
+                response = self.call(
+                    lambda: self.client().bulk(
+                        operations=operations,
+                        refresh="wait_for",
+                        request_timeout=60,
+                    )
                 )
-            )
-            _raise_on_bulk_errors(response, len(batch))
+                _raise_on_bulk_errors(response, len(batch))
+                batches_indexed += 1
+        except Exception:
+            if run_id and batches_indexed > 0:
+                # Delete partial writes so a retry starts clean.
+                try:
+                    self.call(
+                        lambda: self.client().delete_by_query(
+                            index=self._index,
+                            query={"term": {"run_id": run_id}},
+                            refresh=True,
+                        )
+                    )
+                    log.warning(
+                        "ES insert_chunks partial-write cleanup — run_id=%s batches_indexed=%d",
+                        run_id,
+                        batches_indexed,
+                    )
+                except Exception as cleanup_exc:
+                    log.error(
+                        "ES insert_chunks cleanup failed — run_id=%s error=%s",
+                        run_id,
+                        cleanup_exc,
+                    )
+            raise
 
     def delete_chunks_for_experiment(self, experiment_id: str) -> int:
         response = self.call(

@@ -67,6 +67,36 @@ async def lifespan(app: FastAPI):
                 "until their run-state data has been copied into the SQLite file."
             )
 
+    # Warn (non-fatal) when the vector store is Elasticsearch and the cluster
+    # is not reachable — lazy init means the first experiment submit would fail
+    # mid-pipeline without this early signal.
+    _vs_backend = normalize_storage_backend(
+        settings.vector_store_backend or settings.storage_backend
+    )
+    try:
+        _is_elasticsearch = resolve_adapter(_vs_backend) is resolve_adapter("elasticsearch")
+    except ValueError:
+        _is_elasticsearch = False
+    if _is_elasticsearch:
+        try:
+            from server.db.ports.store_factory import get_vector_store
+
+            _es_store = get_vector_store()
+            if not _es_store.health_check():
+                logger.warning(
+                    "boot — Elasticsearch unreachable at %s; "
+                    "sweep submissions will fail until the cluster is reachable.",
+                    settings.elasticsearch_url,
+                )
+            else:
+                logger.info("boot — Elasticsearch reachable at %s", settings.elasticsearch_url)
+        except Exception as _es_boot_exc:
+            logger.warning(
+                "boot — Elasticsearch connectivity check failed: %s "
+                "(server starts but sweep submissions may fail)",
+                _es_boot_exc,
+            )
+
     # Probe the embedding cache backend — fail-closed when EMBEDDING_CACHE_BACKEND=redis
     # and the service is unreachable (GWT: "process exits non-zero").
     settings.ensure_cache_backend_ready()

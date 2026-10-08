@@ -128,6 +128,15 @@ rag-params-finder indexes list
 ./start-services.sh elasticsearch status
 ```
 
+## Known limitations
+
+- **ES version**: Tested with Elasticsearch 9.x (the local Docker profile pins 9.5). ES 8.x is supported by the client library (`>=8.0.0`) and may work, but is not officially tested — quantized-index detection (`bbq_hnsw`/`bbq_flat`) and kNN API shape were verified against 9.x only.
+- **Sparse score comparability**: BM25 sparse scores are unbounded floats and are **not** comparable across stores (MongoDB uses `$searchScore`, Postgres uses `ts_rank`). Dense cosine scores share the `(1+cos)/2` scale and are cross-store comparable.
+- **Aggregation cap**: Dashboard term aggregations are capped at 100 unique values per field. Experiments with >100 distinct values for a field (e.g. >100 runs) silently drop the tail in stats.
+- **Refresh latency**: `refresh: wait_for` blocks until the next index refresh makes indexed documents visible. Correct for correctness-sensitive workloads; high-throughput production deployments may want to tune this setting.
+- **Bulk ingestion timeout**: Very large PDFs (10k+ chunks) may require increasing the ES client timeout beyond the default 10 seconds. Override `request_timeout` in `client.py` if needed.
+- **Contract tests**: The ES adapter has no automated integration tests. MongoDB and Postgres have dedicated integration test suites; ES coverage is static analysis only (ruff/mypy).
+
 ## Related docs
 
 - [Getting Started](getting-started.md)
