@@ -1,7 +1,7 @@
 # Elasticsearch — DoubleWord batch embedding provider
 #
 # Qwen/Qwen3-Embedding-8B (1024-dim) via async batch API.
-# Requires: DOUBLEWORD_API_KEY env var + ./start-services.sh --mongodb-local
+# Requires: DOUBLEWORD_API_KEY env var + ./start-services.sh --elasticsearch-local
 #
 # DoubleWord provides a **batch-async** API: experiments submit documents for
 # embedding, a watcher polls for completion, and the server resumes runs once
@@ -16,7 +16,7 @@
 #
 # Prerequisites:
 #   - DOUBLEWORD_API_KEY set in .env
-#   - ./start-services.sh --mongodb-local (or MONGODB_ATLAS_LOCAL_URI in .env)
+#   - ./start-services.sh --elasticsearch-local
 #   - Optional: .rpf_cache/ and .rpf_state/ mounted for restart safety
 
 experiment_name: doubleword-qwen3-test
