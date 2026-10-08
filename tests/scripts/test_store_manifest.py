@@ -109,13 +109,23 @@ def test_given_server_dockerfile_when_read_then_extras_build_arg_is_optional() -
     Scenario: Server image extra is opt-in.
     Slice: 51
 
-    Given docker/server.Dockerfile,
-    When the deps stage is read,
-    Then EXTRAS defaults empty and uv sync adds --extra only when set.
+    Given docker/server.Dockerfile (base+derived stage pattern),
+    When the deps stages are read,
+    Then the default server target installs no VDB extras,
+    and each VDB extra gets its own named deps stage.
     """
     ### Given
     text = (_REPO / "docker" / "server.Dockerfile").read_text()
 
     ### When / Then
-    assert 'ARG EXTRAS=""' in text
-    assert "${EXTRAS:+--extra $EXTRAS}" in text
+    # Default core-deps stage has no --extra flag
+    assert "AS core-deps" in text
+    assert (
+        "--extra elasticsearch"
+        not in text.split("AS core-deps")[1].split("AS elasticsearch-deps")[0]
+    )
+    # VDB-specific extras go in dedicated named stages
+    assert "AS elasticsearch-deps" in text
+    assert "--extra elasticsearch" in text
+    assert "AS redis-deps" in text
+    assert "--extra redis" in text
