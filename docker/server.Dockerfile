@@ -1,56 +1,79 @@
 # FastAPI server — Python 3.12 + uv
-# Multi-stage: deps stage installs packages in isolation; runtime stage copies the environment
+# Multi-stage layered build:
+#   base-builder          — uv + build tools (shared cache stage)
+#     ├── core-deps        — .venv with no extras (mongodb / postgres / sqlite)
+#     ├── elasticsearch-deps — .venv with --extra elasticsearch
+#     └── redis-deps       — .venv with --extra redis
+#   runtime-base          — minimal Python image, source code, ENV, HEALTHCHECK, CMD
+#     ├── server           — runtime-base + core-deps .venv  (default target)
+#     ├── server-elasticsearch — runtime-base + elasticsearch-deps .venv
+#     └── server-redis     — runtime-base + redis-deps .venv
+#
+# Select the final image at build time with --target (or build.target in docker-compose.yml).
+# Default: server (no VDB-specific extras).
+
 ARG PYTHON_VERSION=3.12
-FROM python:${PYTHON_VERSION}-slim AS deps
+
+# ── base-builder ──────────────────────────────────────────────────────────────
+# uv binary + system build tools. Nothing VDB-specific lives here.
+FROM python:${PYTHON_VERSION}-slim AS base-builder
 
 WORKDIR /app
 
-# Install system build dependencies (only needed for compilation, not in runtime stage)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy uv binary from official image
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy only dependency files (pyproject.toml and uv.lock)
-# This layer is cached as long as dependencies don't change
+# Dependency files only — this layer is cached as long as they don't change.
 COPY pyproject.toml uv.lock ./
 
-# Install all deps from lock file (cached unless pyproject.toml/uv.lock changes).
-# On aarch64 (Apple Silicon / ARM CI), torch from PyPI is already CPU-only (~82 MB).
-# On x86_64 production hosts, torch from PyPI ships with CUDA; a future slice can
-# add the pytorch-cpu index override via [tool.uv.sources] once x86_64 CI is needed.
-# EXTRAS selects an optional dependency group (Slice 51, DECISIONS #243).
-# Empty keeps the default image the same size. elasticsearch-local sets EXTRAS=elasticsearch.
-ARG EXTRAS=""
-RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
-    uv sync --frozen --no-install-project ${EXTRAS:+--extra $EXTRAS} --python ${PYTHON_VERSION} --python-preference=only-system
+# ── core-deps ─────────────────────────────────────────────────────────────────
+# Default .venv: mongodb, postgres, sqlite clients — no VDB-specific extras.
+FROM base-builder AS core-deps
 
-# Runtime stage — minimal, compiler-free
-FROM python:${PYTHON_VERSION}-slim
+ARG PYTHON_VERSION=3.12
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    uv sync --frozen --no-install-project --python ${PYTHON_VERSION} --python-preference=only-system
+
+# ── elasticsearch-deps ────────────────────────────────────────────────────────
+FROM base-builder AS elasticsearch-deps
+
+ARG PYTHON_VERSION=3.12
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    uv sync --frozen --no-install-project --extra elasticsearch \
+        --python ${PYTHON_VERSION} --python-preference=only-system
+
+# ── redis-deps ────────────────────────────────────────────────────────────────
+FROM base-builder AS redis-deps
+
+ARG PYTHON_VERSION=3.12
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    uv sync --frozen --no-install-project --extra redis \
+        --python ${PYTHON_VERSION} --python-preference=only-system
+
+# ── runtime-base ──────────────────────────────────────────────────────────────
+# Minimal runtime image: curl (HEALTHCHECK only), ENV vars, source code.
+# No .venv yet — each derived target layers its own.
+FROM python:${PYTHON_VERSION}-slim AS runtime-base
 
 ARG GIT_COMMIT=unknown
 LABEL org.opencontainers.image.revision="${GIT_COMMIT}"
 
 WORKDIR /app
 
-# curl needed for HEALTHCHECK only (not for build toolchain)
+# curl needed for HEALTHCHECK only
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the virtual environment from deps stage
-# This brings in all installed packages without the build tools
-COPY --from=deps /app/.venv /app/.venv
-
-# Set PATH to use the venv; PYTHONPATH lets uvicorn find server/cli packages directly
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONPATH="/app" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-# Copy source code — no install step needed: packages are importable via PYTHONPATH
+# Copy source code — packages are importable via PYTHONPATH; no install step needed.
 COPY pyproject.toml README.md ./
 COPY server ./server
 COPY cli ./cli
@@ -64,3 +87,19 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
 # CHANGELOG (Unreleased/Security) — needs a Docker smoke test before changing.
 # nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8001"]
+
+# ── server (default) ──────────────────────────────────────────────────────────
+# Core deps only — suitable for mongodb-local, postgres-local, sqlite, and cloud modes.
+FROM runtime-base AS server
+
+COPY --from=core-deps /app/.venv /app/.venv
+
+# ── server-elasticsearch ──────────────────────────────────────────────────────
+FROM runtime-base AS server-elasticsearch
+
+COPY --from=elasticsearch-deps /app/.venv /app/.venv
+
+# ── server-redis ──────────────────────────────────────────────────────────────
+FROM runtime-base AS server-redis
+
+COPY --from=redis-deps /app/.venv /app/.venv

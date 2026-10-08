@@ -27,7 +27,7 @@ The server reads these. The CLI configs do not contain them.
 | `REDIS_INDEX_PREFIX` | `rpf` → index `rpf:chunks` | Same |
 | `STORAGE_BACKEND` | `sqlite` (default, ADR-008); set `mongodb` or `postgres` to override | `mongodb`, `postgres`, or `sqlite` |
 
-Install the client extra before a host-side server: `uv pip install -e ".[redis]"`. The Compose server image installs that extra only when `SERVER_EXTRAS=redis`.
+Install the client extra before a host-side server: `uv pip install -e ".[redis]"`. The Compose server image installs that extra when built with `SERVER_BUILD_TARGET=server-redis` (set automatically by `./start-services.sh --redis-local` and `--redis-cloud`).
 
 ## Path A — local Docker
 

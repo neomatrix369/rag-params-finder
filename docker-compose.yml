@@ -9,9 +9,9 @@ services:
     build:
       context: .
       dockerfile: docker/server.Dockerfile
+      target: ${SERVER_BUILD_TARGET:-server}
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
-        EXTRAS: ${SERVER_EXTRAS:-}
     image: ${SERVER_IMAGE_NAME:-rag-params-finder-server}
     container_name: ${SERVER_CONTAINER_NAME:-rag-params-finder-server}
     ports:

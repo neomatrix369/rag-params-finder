@@ -28,7 +28,7 @@ The server reads these. The CLI configs do not contain them.
 | `ELASTICSEARCH_INDEX_PREFIX` | `rpf` → index `rpf-chunks` | Same |
 | `STORAGE_BACKEND` | `sqlite` (default, ADR-008); set `mongodb` or `postgres` to override | `mongodb` or `postgres` |
 
-Install the client extra before a host-side server: `uv pip install -e ".[elasticsearch]"`. The Compose server image installs that extra only when `SERVER_EXTRAS=elasticsearch`.
+Install the client extra before a host-side server: `uv pip install -e ".[elasticsearch]"`. The Compose server image installs that extra when built with `SERVER_BUILD_TARGET=server-elasticsearch` (set automatically by `./start-services.sh --elasticsearch-local` and `--elasticsearch-cloud`).
 
 ## Path A — local Docker
 
