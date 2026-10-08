@@ -324,35 +324,37 @@ Old configs still work—they're automatically converted to the new `retrievers`
 
 The `queries_file` field accepts a local path or a URL (downloaded and cached on first use).
 
-**Persona-based format**:
+**Persona-based format** (matches `configs/questions.example.json`):
 ```json
-[
-  {
-    "persona_id": "current-student",
-    "queries": [
-      {
-        "text": "How much can I borrow in student loans?",
-        "focus": "loan_limits"
-      },
-      {
-        "text": "What are the Pell Grant eligibility requirements?",
-        "focus": "grants"
-      }
-    ]
-  },
-  {
-    "persona_id": "prospective-student",
-    "queries": [
-      {
-        "text": "What financial aid is available for first-year students?",
-        "focus": "overview"
-      }
-    ]
-  }
-]
+{
+  "personas": [
+    {
+      "id": "current-student",
+      "questions": [
+        {
+          "text": "How much can I borrow in student loans?",
+          "focus": "loan_limits"
+        },
+        {
+          "text": "What are the Pell Grant eligibility requirements?",
+          "focus": "grants"
+        }
+      ]
+    },
+    {
+      "id": "prospective-student",
+      "questions": [
+        {
+          "text": "What financial aid is available for first-year students?",
+          "focus": "overview"
+        }
+      ]
+    }
+  ]
+}
 ```
 
-Each query is executed independently per run. Results are stored with `persona_id` and `focus` for filtering in the Search Explorer.
+Each query is executed independently per run. Results are stored with `persona_id` (from `id`) and `focus` for filtering in the Search Explorer.
 
 ---
 

@@ -315,12 +315,12 @@ rag-params-finder run --config configs/supabase/example-unified-retrievers.yaml
 rag-params-finder run --config configs/supabase/example-local.yaml
 
 # Elasticsearch (Path E — see docs/user-guide/elasticsearch-setup.md)
-# Pairs a run-state store (default mongodb-local). No env vars by hand.
+# Vector-only, run state on sqlite (default, ADR-008). No env vars by hand.
 ./start-services.sh --elasticsearch-local
 rag-params-finder run --config configs/elasticsearch/example-local.yaml
 
 # Redis (Path F — see docs/user-guide/redis-setup.md)
-# Vector-only, run state on Postgres or MongoDB. No env vars by hand.
+# Vector-only, run state on sqlite (default, ADR-008). No env vars by hand.
 ./start-services.sh --redis-local
 rag-params-finder run --config configs/redis/example-local.yaml
 ```
