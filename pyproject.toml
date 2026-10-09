@@ -6,7 +6,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
-    "pymongo>=4.6.1",
+    "pymongo>=4.18.2",
     "voyageai>=0.2.3",
     "pypdf>=6.16.1",
     "langchain>=0.1.0",
@@ -19,7 +19,6 @@ dependencies = [
     "typer>=0.9.0",
     "httpx>=0.26.0",
     "rich>=13.7.0",
-    "pymongo[srv]>=4.6.1",
     # Postgres/pgvector backend (Supabase hosted + local Docker) — STORAGE_BACKEND=postgres.
     "psycopg[binary,pool]>=3.2.0",
     "pgvector>=0.3.6",

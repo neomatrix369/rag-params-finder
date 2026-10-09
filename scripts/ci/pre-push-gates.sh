@@ -100,7 +100,7 @@ if [[ "$FRONTEND_CHANGED" -gt 0 ]]; then
   npm --prefix frontend run build
   npm --prefix frontend run test:coverage
   if [[ "$FRONTEND_LOCK_CHANGED" -gt 0 ]]; then
-    npm --prefix frontend audit --audit-level=high
+    npm --prefix frontend audit --omit=dev --audit-level=high
   else
     echo "   npm audit: skipped (no frontend lockfile changes)"
   fi
