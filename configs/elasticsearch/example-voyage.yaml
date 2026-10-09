@@ -2,7 +2,7 @@
 #
 # Prerequisite: ./start-services.sh --elasticsearch-local
 #   Starts Elasticsearch 9.5 on 127.0.0.1:9200 (Basic licence, security off, 1 GB heap)
-#   and the paired run-state store (default mongodb-local).
+#   and the paired run-state store (default sqlite, ADR-008).
 #   Install the client extra: uv pip install -e ".[elasticsearch]"
 #   See docs/user-guide/elasticsearch-setup.md
 #
@@ -54,8 +54,8 @@ retrieval:
   retrievers:
     # Each entry is one sweep dimension — one retriever per run (never combined).
     - type: hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
-    - type: dense    # Atlas $vectorSearch (cosine similarity)
-    - type: sparse   # Atlas $search BM25 full-text  ← requires text_search_index
+    - type: dense    # ES kNN (cosine similarity)
+    - type: sparse   # ES BM25 full-text search
     - type: reranker
       provider: voyage
       model: rerank-2.5-lite

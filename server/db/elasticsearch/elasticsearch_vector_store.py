@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -36,7 +37,10 @@ from server.models.enums import RetrievalMethod
 from server.models.results import SearchResult
 from server.settings import settings
 
+log = logging.getLogger(__name__)
+
 _PROVIDER = "elasticsearch"
+_BULK_BATCH_SIZE = 500
 
 
 class ElasticsearchRetrieverBackend:
@@ -105,8 +109,44 @@ class ElasticsearchVectorStore:
     def insert_chunks(self, docs: list[dict]) -> None:
         if not docs:
             return
-        operations = _bulk_operations(self._index, docs)
-        self.call(lambda: self.client().bulk(operations=operations, refresh="wait_for"))
+        run_id: str | None = docs[0].get("run_id") if docs else None
+        batches_indexed = 0
+        try:
+            for start in range(0, len(docs), _BULK_BATCH_SIZE):
+                batch = docs[start : start + _BULK_BATCH_SIZE]
+                operations = _bulk_operations(self._index, batch)
+                response = self.call(
+                    lambda: self.client().bulk(
+                        operations=operations,
+                        refresh="wait_for",
+                        request_timeout=60,
+                    )
+                )
+                _raise_on_bulk_errors(response, len(batch))
+                batches_indexed += 1
+        except Exception:
+            if run_id and batches_indexed > 0:
+                # Delete partial writes so a retry starts clean.
+                try:
+                    self.call(
+                        lambda: self.client().delete_by_query(
+                            index=self._index,
+                            query={"term": {"run_id": run_id}},
+                            refresh=True,
+                        )
+                    )
+                    log.warning(
+                        "ES insert_chunks partial-write cleanup — run_id=%s batches_indexed=%d",
+                        run_id,
+                        batches_indexed,
+                    )
+                except Exception as cleanup_exc:
+                    log.error(
+                        "ES insert_chunks cleanup failed — run_id=%s error=%s",
+                        run_id,
+                        cleanup_exc,
+                    )
+            raise
 
     def delete_chunks_for_experiment(self, experiment_id: str) -> int:
         response = self.call(
@@ -188,6 +228,7 @@ class ElasticsearchVectorStore:
             return False
         except Exception as exc:
             raise_if_unreachable(exc, self.url)
+            log.warning("ES health_check failed: %s", exc)
             return False
 
     def storage_mode(self) -> str:
@@ -302,6 +343,28 @@ def _reject_quantized(mapping_response: dict[str, Any]) -> None:
         raise SearchIndexMismatchError(
             f"{UNQUANTIZED_HNSW_REQUIRED} Quantized fields: {', '.join(quantized)}."
         )
+
+
+class BulkIndexError(RuntimeError):
+    """Raised when one or more documents fail during a bulk index operation."""
+
+
+def _raise_on_bulk_errors(response: Any, expected: int) -> None:
+    body = _body(response)
+    if not body.get("errors"):
+        return
+    items = body.get("items") or []
+    failures = []
+    for item in items:
+        action = item.get("index") or item.get("create") or {}
+        error = action.get("error")
+        if error:
+            failures.append(f"{action.get('_id', '?')}: {error.get('reason', error)}")
+    failed_count = len(failures)
+    sample = "; ".join(failures[:5])
+    raise BulkIndexError(
+        f"{failed_count}/{expected} chunks failed to index. First errors: {sample}"
+    )
 
 
 def _body(response: Any) -> dict[str, Any]:

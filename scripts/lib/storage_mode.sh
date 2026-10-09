@@ -367,19 +367,19 @@ export_storage_backend_for_stack() {
 }
 
 # Vector-only Elasticsearch pairs with a run-state store. The default is
-# mongodb so the ES path does not require psycopg. STORAGE_BACKEND=postgres
-# still pairs Postgres. STORAGE_BACKEND=elasticsearch is rejected.
+# sqlite (ADR-008) so the ES path needs no extra service. STORAGE_BACKEND=postgres
+# or mongodb also work. STORAGE_BACKEND=elasticsearch is rejected.
 _pair_elasticsearch_run_state() {
   local run_state
-  run_state="$(printf '%s' "${STORAGE_BACKEND:-mongodb}" | tr '[:upper:]' '[:lower:]')"
+  run_state="$(printf '%s' "${STORAGE_BACKEND:-sqlite}" | tr '[:upper:]' '[:lower:]')"
   if [[ "$run_state" == "mongo" ]]; then
     run_state=mongodb
   fi
   if [[ "$run_state" == "elasticsearch" ]]; then
-    _stack_mode_error "STORAGE_BACKEND=elasticsearch is not supported: elasticsearch is vector-store-only and cannot host run state. Set STORAGE_BACKEND to 'mongodb' or 'postgres'."
+    _stack_mode_error "STORAGE_BACKEND=elasticsearch is not supported: elasticsearch is vector-store-only and cannot host run state. Set STORAGE_BACKEND to 'sqlite', 'mongodb', or 'postgres'."
     return 1
   fi
-  if [[ "$run_state" != "mongodb" && "$run_state" != "postgres" ]]; then
+  if [[ "$run_state" != "sqlite" && "$run_state" != "mongodb" && "$run_state" != "postgres" ]]; then
     _stack_mode_error "ERROR: unknown STORAGE_BACKEND=${STORAGE_BACKEND:-} for an Elasticsearch vector store."
     return 1
   fi
@@ -397,15 +397,15 @@ _pair_elasticsearch_run_state() {
 
 _pair_redis_run_state() {
   local run_state
-  run_state="$(printf '%s' "${STORAGE_BACKEND:-mongodb}" | tr '[:upper:]' '[:lower:]')"
+  run_state="$(printf '%s' "${STORAGE_BACKEND:-sqlite}" | tr '[:upper:]' '[:lower:]')"
   if [[ "$run_state" == "mongo" ]]; then
     run_state=mongodb
   fi
   if [[ "$run_state" == "redis" ]]; then
-    _stack_mode_error "STORAGE_BACKEND=redis is not supported: redis is vector-store-only and cannot host run state. Set STORAGE_BACKEND to 'mongodb', 'postgres', or 'sqlite'."
+    _stack_mode_error "STORAGE_BACKEND=redis is not supported: redis is vector-store-only and cannot host run state. Set STORAGE_BACKEND to 'sqlite', 'mongodb', or 'postgres'."
     return 1
   fi
-  if [[ "$run_state" != "mongodb" && "$run_state" != "postgres" && "$run_state" != "sqlite" ]]; then
+  if [[ "$run_state" != "sqlite" && "$run_state" != "mongodb" && "$run_state" != "postgres" ]]; then
     _stack_mode_error "ERROR: unknown STORAGE_BACKEND=${STORAGE_BACKEND:-} for a Redis vector store."
     return 1
   fi

@@ -64,7 +64,10 @@ credentials.json
 CLAUDE.local.md
 
 # Input data (PDFs, docs — user-supplied, not committed)
-input_data/
+input_data/*
+!input_data/pdfs/
+input_data/pdfs/*
+!input_data/pdfs/sample.pdf
 
 # Reference predecessor (read-only)
 reference-predecessor/

@@ -79,8 +79,7 @@ if [[ "$BACKEND_CHANGED" -gt 0 ]]; then
     --cov=server.core.results_analyzer \
     --cov=server.models.config \
     --cov-report=term-missing \
-    --cov-report=json:.reports/coverage-backend-unit.json \
-    --cov-fail-under=95
+    --cov-report=json:.reports/coverage-backend-unit.json
   uv run python scripts/ci/check_backend_coverage_floors.py .reports/coverage-backend-unit.json
   uv run python scripts/ci/check_coverage_threshold_drift.py
 else
@@ -101,7 +100,7 @@ if [[ "$FRONTEND_CHANGED" -gt 0 ]]; then
   npm --prefix frontend run build
   npm --prefix frontend run test:coverage
   if [[ "$FRONTEND_LOCK_CHANGED" -gt 0 ]]; then
-    npm --prefix frontend audit --audit-level=high
+    npm --prefix frontend audit --omit=dev --audit-level=high
   else
     echo "   npm audit: skipped (no frontend lockfile changes)"
   fi

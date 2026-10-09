@@ -2,7 +2,7 @@
 #
 # Prerequisite: ./start-services.sh --elasticsearch-local
 #   Starts Elasticsearch 9.5 on 127.0.0.1:9200 (Basic licence, security off, 1 GB heap)
-#   and the paired run-state store (default mongodb-local).
+#   and the paired run-state store (default sqlite, ADR-008).
 #   Install the client extra: uv pip install -e ".[elasticsearch]"
 #   See docs/user-guide/elasticsearch-setup.md
 #

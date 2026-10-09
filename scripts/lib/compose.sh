@@ -88,11 +88,11 @@ compose_local_elasticsearch_profiles() {
 compose_export_local_elasticsearch_env() {
   export RAG_SERVER_ELASTICSEARCH_LOCAL_URL="$RAG_LOCAL_ELASTICSEARCH_URL_DOCKER"
   export VECTOR_STORE_BACKEND=elasticsearch
-  export SERVER_EXTRAS=elasticsearch
+  export SERVER_BUILD_TARGET=server-elasticsearch
 }
 
 compose_clear_local_elasticsearch_env() {
-  unset RAG_SERVER_ELASTICSEARCH_LOCAL_URL SERVER_EXTRAS
+  unset RAG_SERVER_ELASTICSEARCH_LOCAL_URL SERVER_BUILD_TARGET
 }
 
 compose_local_redis_profiles() {
@@ -102,7 +102,7 @@ compose_local_redis_profiles() {
 compose_export_local_redis_env() {
   export RAG_SERVER_REDIS_LOCAL_URL="$RAG_LOCAL_REDIS_URL_DOCKER"
   export VECTOR_STORE_BACKEND=redis
-  export SERVER_EXTRAS=redis
+  export SERVER_BUILD_TARGET=server-redis
 }
 
 compose_clear_local_redis_env() {

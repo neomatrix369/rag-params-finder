@@ -3,18 +3,18 @@
 ![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?logo=elasticsearch&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 
-Use this guide when chunks should live in Elasticsearch and experiment run state stays on MongoDB or Postgres. It is the operator path from a clean clone to a smoke sweep and teardown.
+Use this guide when chunks should live in Elasticsearch and experiment run state stays on SQLite, MongoDB, or Postgres. It is the operator path from a clean clone to a smoke sweep and teardown.
 
 ## Choose your deployment
 
-Pick one location. The default store stays MongoDB; Elasticsearch is opt-in.
+Pick one location. The default run-state store is SQLite (ADR-008); Elasticsearch is opt-in as the vector store.
 
 | Mode | When to use it | Command |
 |---|---|---|
 | `elasticsearch-local` | Laptop, no Elastic Cloud account | `./start-services.sh --elasticsearch-local` |
 | `elasticsearch-cloud` | A cluster you already run | `./start-services.sh --elasticsearch-cloud` |
 
-Local mode pairs a run-state store. The default is `mongodb-local`, which does not need psycopg. Set `STORAGE_BACKEND=postgres` before the command to pair local Postgres instead. `STORAGE_BACKEND=elasticsearch` is rejected: Elasticsearch cannot hold experiments, runs, or results.
+Local mode pairs a run-state store. The default is `sqlite` (ADR-008), which needs no extra service. Set `STORAGE_BACKEND=mongodb` to pair Atlas Local instead, or `STORAGE_BACKEND=postgres` to pair local Postgres. `STORAGE_BACKEND=elasticsearch` is rejected: Elasticsearch cannot hold experiments, runs, or results.
 
 ## Environment variables
 
@@ -26,13 +26,25 @@ The server reads these. The CLI configs do not contain them.
 | `ELASTICSEARCH_CLOUD_URL` / `ELASTICSEARCH_LOCAL_URL` | `http://elasticsearch-local:9200` inside Compose; `http://127.0.0.1:9200` on the host | Your cluster URL |
 | `ELASTICSEARCH_API_KEY` | Empty (security is off) | Set when the cluster requires a key |
 | `ELASTICSEARCH_INDEX_PREFIX` | `rpf` → index `rpf-chunks` | Same |
-| `STORAGE_BACKEND` | `mongodb` unless you set `postgres` | `mongodb` or `postgres` |
+| `STORAGE_BACKEND` | `sqlite` (default, ADR-008); set `mongodb` or `postgres` to override | `mongodb` or `postgres` |
 
-Install the client extra before a host-side server: `uv pip install -e ".[elasticsearch]"`. The Compose server image installs that extra only when `SERVER_EXTRAS=elasticsearch`.
+Install the client extra before a host-side server: `uv pip install -e ".[elasticsearch]"`. The Compose server image installs that extra when built with `SERVER_BUILD_TARGET=server-elasticsearch` (set automatically by `./start-services.sh --elasticsearch-local` and `--elasticsearch-cloud`).
+
+## Prerequisites (Linux only)
+
+Elasticsearch requires `vm.max_map_count ≥ 262144`. Without it the container stays unhealthy with no useful error message.
+
+```bash
+sudo sysctl -w vm.max_map_count=262144
+# Persist across reboots:
+echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
+```
+
+macOS and Windows (Docker Desktop) handle this automatically.
 
 ## Path A — local Docker
 
-This path needs Docker and about 1 GB of heap for Elasticsearch plus the paired MongoDB container. psycopg is not part of this path.
+This path needs Docker (with at least 3 GB memory allocated in Docker Desktop) and about 1 GB of heap for Elasticsearch. The default run-state store is SQLite — no extra container is required. psycopg is not part of this path.
 
 ```bash
 uv pip install -e ".[elasticsearch]"
@@ -47,7 +59,7 @@ Confirm health:
 curl -sS http://127.0.0.1:8001/healthz | python3 -m json.tool
 ```
 
-Expect `storage_mode` `elasticsearch-local`, `run_state_mode` `mongodb-local`, and both `stores.vector.ok` and `stores.run_state.ok` true.
+Expect `storage_mode` `elasticsearch-local`, `run_state_mode` `sqlite`, and both `stores.vector.ok` and `stores.run_state.ok` true.
 
 ## Path B — bring your own
 
@@ -91,7 +103,7 @@ Open the dashboard at `http://localhost:5374`. Store labels read Index and Host.
 
 ## Switching backends
 
-Use the same YAML shape and change only the vector store. The default run-state pair is `mongodb-local`. Set `STORAGE_BACKEND=postgres` before start to keep run state on Postgres.
+Use the same YAML shape and change only the vector store. The default run-state pair is `sqlite` (ADR-008). Set `STORAGE_BACKEND=mongodb` or `STORAGE_BACKEND=postgres` before start to use a different run-state store.
 
 ```bash
 ./start-services.sh --mongodb-local
@@ -127,6 +139,15 @@ curl -sS http://127.0.0.1:8001/api/stores | python3 -m json.tool
 rag-params-finder indexes list
 ./start-services.sh elasticsearch status
 ```
+
+## Known limitations
+
+- **ES version**: Tested with Elasticsearch 9.x (the local Docker profile pins 9.5). ES 8.x is supported by the client library (`>=8.0.0`) and may work, but is not officially tested — quantized-index detection (`bbq_hnsw`/`bbq_flat`) and kNN API shape were verified against 9.x only.
+- **Sparse score comparability**: BM25 sparse scores are unbounded floats and are **not** comparable across stores (MongoDB uses `$searchScore`, Postgres uses `ts_rank`). Dense cosine scores share the `(1+cos)/2` scale and are cross-store comparable.
+- **Aggregation cap**: Dashboard term aggregations are capped at 100 unique values per field. Experiments with >100 distinct values for a field (e.g. >100 runs) silently drop the tail in stats.
+- **Refresh latency**: `refresh: wait_for` blocks until the next index refresh makes indexed documents visible. Correct for correctness-sensitive workloads; high-throughput production deployments may want to tune this setting.
+- **Bulk ingestion timeout**: Bulk indexing uses `request_timeout=60` (per batch of 500 chunks). Very large PDFs (10k+ chunks) may require increasing this further in `elasticsearch_vector_store.py`. The default client timeout for queries is 10 seconds (`client.py`).
+- **Contract tests**: The ES adapter has no automated integration tests. MongoDB and Postgres have dedicated integration test suites; ES coverage is static analysis only (ruff/mypy).
 
 ## Related docs
 

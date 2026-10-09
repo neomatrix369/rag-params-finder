@@ -36,7 +36,7 @@
 
 > Find your optimal RAG configuration — **before** you build your RAG application.
 
-**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods using **MongoDB Atlas Vector Search** (default) or **Postgres/pgvector** (`STORAGE_BACKEND=postgres` — local Docker or **Supabase-hosted Postgres**; dense, sparse, and hybrid). Supports **Voyage AI** (hosted), **local sentence-transformers** (no API key), and **SIE** open-source embeddings (remote gateway preferred; optional self-hosted Docker).
+**RAG parameter sweep experimentation tool** — systematically evaluate embedding models, chunking strategies, and retrieval methods across four vector stores: **MongoDB Atlas**, **Postgres/pgvector**, **Elasticsearch**, and **Redis**. Run state defaults to **SQLite** (ADR-008); each vector store is independent. Supports **Voyage AI** (hosted), **local sentence-transformers** (no API key), and **SIE** open-source embeddings (remote gateway preferred; optional self-hosted Docker).
 
 Most RAG projects start with a guess: pick an embedding model, pick a chunking method, a retrieval method (or a re-ranker), realise it's wrong, refactor. That loop is
 slow and expensive.

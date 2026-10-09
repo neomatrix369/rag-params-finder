@@ -7,14 +7,14 @@ Use this guide when chunks should live in Redis and experiment run state stays o
 
 ## Choose your deployment
 
-Pick one location. The default store stays MongoDB; Redis is opt-in.
+Pick one location. The default run-state store is SQLite (ADR-008); Redis is opt-in as the vector store.
 
 | Mode | When to use it | Command |
 |---|---|---|
 | `redis-local` | Laptop, no managed Redis | `./start-services.sh --redis-local` |
 | `redis-cloud` | A managed Redis (TLS, `rediss://`) endpoint | `./start-services.sh --redis-cloud` |
 
-Local mode pairs a run-state store. The default is `postgres-local` (D5). Set `STORAGE_BACKEND=mongodb` before the command to pair MongoDB instead. `STORAGE_BACKEND=redis` is rejected: Redis cannot hold experiments, runs, or results.
+Local mode pairs a run-state store. The default is `sqlite` (ADR-008), which needs no extra service. Set `STORAGE_BACKEND=mongodb` or `STORAGE_BACKEND=postgres` before the command to use a different run-state store. `STORAGE_BACKEND=redis` is rejected: Redis cannot hold experiments, runs, or results.
 
 ## Environment variables
 
@@ -25,9 +25,9 @@ The server reads these. The CLI configs do not contain them.
 | `VECTOR_STORE_BACKEND` | `redis` (set by the start script) | `redis` |
 | `REDIS_URL` | `redis://redis-local:6379` inside Compose; `redis://127.0.0.1:6379` on the host | `rediss://user:pass@host:6380` |
 | `REDIS_INDEX_PREFIX` | `rpf` → index `rpf:chunks` | Same |
-| `STORAGE_BACKEND` | `postgres` unless you set `mongodb` | `mongodb`, `postgres`, or `sqlite` |
+| `STORAGE_BACKEND` | `sqlite` (default, ADR-008); set `mongodb` or `postgres` to override | `mongodb`, `postgres`, or `sqlite` |
 
-Install the client extra before a host-side server: `uv pip install -e ".[redis]"`. The Compose server image installs that extra only when `SERVER_EXTRAS=redis`.
+Install the client extra before a host-side server: `uv pip install -e ".[redis]"`. The Compose server image installs that extra when built with `SERVER_BUILD_TARGET=server-redis` (set automatically by `./start-services.sh --redis-local` and `--redis-cloud`).
 
 ## Path A — local Docker
 
@@ -91,7 +91,7 @@ Open the dashboard at `http://localhost:5374`. Store labels read Index and Host.
 
 ## Switching backends
 
-Use the same YAML shape and change only the vector store. The default run-state pair is `postgres-local`. Set `STORAGE_BACKEND=mongodb` before start to keep run state on MongoDB.
+Use the same YAML shape and change only the vector store. The default run-state pair is `sqlite` (ADR-008). Set `STORAGE_BACKEND=mongodb` or `STORAGE_BACKEND=postgres` before start to use a different run-state store.
 
 ```bash
 ./start-services.sh --mongodb-local

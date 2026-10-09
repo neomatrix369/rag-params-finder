@@ -11,7 +11,7 @@
 #         DoubleWord run waits for batch completion (watcher polls).
 #
 # Prerequisites:
-#   - ./start-services.sh --mongodb-local
+#   - ./start-services.sh --elasticsearch-local
 #   - DOUBLEWORD_API_KEY in .env (for Qwen3)
 #   - Optional: .rpf_cache/ and .rpf_state/ mounted for restart safety
 

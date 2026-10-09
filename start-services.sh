@@ -320,7 +320,7 @@ apply_stack_profiles() {
     echo "Local Elasticsearch enabled — 127.0.0.1:9200, VECTOR_STORE_BACKEND=elasticsearch"
   elif [[ "$STACK_DB_TYPE" == "elasticsearch" ]]; then
     export VECTOR_STORE_BACKEND=elasticsearch
-    export SERVER_EXTRAS=elasticsearch
+    export SERVER_BUILD_TARGET=server-elasticsearch
     echo "Elasticsearch cloud enabled — VECTOR_STORE_BACKEND=elasticsearch; requires ELASTICSEARCH_CLOUD_URL"
   fi
 
@@ -331,7 +331,7 @@ apply_stack_profiles() {
     echo "Local Redis enabled — 127.0.0.1:6379, VECTOR_STORE_BACKEND=redis"
   elif [[ "$STACK_DB_TYPE" == "redis" ]]; then
     export VECTOR_STORE_BACKEND=redis
-    export SERVER_EXTRAS=redis
+    export SERVER_BUILD_TARGET=server-redis
     echo "Redis cloud enabled — VECTOR_STORE_BACKEND=redis; requires REDIS_URL"
   fi
 }
@@ -421,6 +421,7 @@ resolve_ports() {
   [[ "$LOCAL_POSTGRES" == "1" && "$POSTGRES_PORT"    != "5433"  ]] && echo "Port 5433 in use — Postgres will bind on $POSTGRES_PORT"
   [[ "$LOCAL_ELASTICSEARCH" == "1" && "$ELASTICSEARCH_PORT" != "9200" ]] && echo "Port 9200 in use — Elasticsearch will bind on $ELASTICSEARCH_PORT"
   [[ "${LOCAL_REDIS:-0}" == "1" && "$REDIS_PORT" != "6379" ]] && echo "Port 6379 in use — Redis will bind on $REDIS_PORT"
+  return 0  # bash 3.2: [[ false ]] && echo exits 1; guard callers from set -e
 }
 
 print_unhealthy_server_hint() {
@@ -477,8 +478,8 @@ if docker_compose_needs_build "$SCRIPT_DIR"; then
 else
   echo "Starting containers (reusing existing images)..."
 fi
-if [[ -n "${SERVER_EXTRAS:-}" ]]; then
-  echo "Rebuilding the server image with EXTRAS=${SERVER_EXTRAS}"
+if [[ -n "${SERVER_BUILD_TARGET:-}" ]]; then
+  echo "Rebuilding the server image for target=${SERVER_BUILD_TARGET}"
   UP_ARGS=(--build -d)
 fi
 # VITE_API_URL is baked into the frontend image at build time — force rebuild when server port shifts

@@ -1,8 +1,8 @@
 """Dense kNN, BM25, and client-side RRF hybrid search over one chunks index.
 
 Dense ``_score`` is Elasticsearch cosine similarity, already
-``(1 + cosine) / 2``. It is returned unchanged so it stays comparable with
-Mongo and Postgres.
+``(1 + cosine) / 2``, comparable with Mongo and Postgres dense scores.
+BM25 sparse scores are unbounded and NOT comparable across stores.
 """
 
 from __future__ import annotations
@@ -57,13 +57,14 @@ def dense_search(
     """kNN with filters inside ``knn.filter`` (pre-filter, not a post-filter)."""
     require_top_k(top_k)
     field = field_for_dims(len(query_embedding))
+    num_candidates = min(top_k * CANDIDATES_MULTIPLIER, 10_000)
     response = client.search(
         index=index,
         knn={
             "field": field,
             "query_vector": list(query_embedding),
             "k": top_k,
-            "num_candidates": top_k * CANDIDATES_MULTIPLIER,
+            "num_candidates": num_candidates,
             "filter": {"bool": {"filter": term_filters(experiment_id, embedding_model, run_id)}},
         },
         size=top_k,

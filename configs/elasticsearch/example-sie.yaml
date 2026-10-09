@@ -2,7 +2,7 @@
 #
 # Prerequisite: ./start-services.sh --elasticsearch-local
 #   Starts Elasticsearch 9.5 on 127.0.0.1:9200 (Basic licence, security off, 1 GB heap)
-#   and the paired run-state store (default mongodb-local).
+#   and the paired run-state store (default sqlite, ADR-008).
 #   Install the client extra: uv pip install -e ".[elasticsearch]"
 #   See docs/user-guide/elasticsearch-setup.md
 #
@@ -20,7 +20,7 @@ embedding:
   models:
     - bge-m3       # 1024-dim dense+sparse+multi-vector; flagship multilingual
     - stella-v5    # 1024-dim dense; strong English retrieval
-    # splade-v3: Slice 22 — sparse output + Atlas storage (30522-dim exceeds 4096 limit)
+    # splade-v3: 30522-dim sparse — exceeds ES SUPPORTED_DIMS (384, 1024)
 
 chunking:
   methods:
@@ -38,8 +38,8 @@ retrieval:
   top_k_final: 5     # Final results after reranking
   retrievers:
     # Each entry is one sweep dimension — one retriever per run (never combined).
-    - type: dense    # Atlas $vectorSearch (cosine similarity)
-    - type: sparse   # Atlas $search BM25 full-text  ← requires text_search_index
+    - type: dense    # ES kNN (cosine similarity)
+    - type: sparse   # ES BM25 full-text search
     - type: hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
     - type: cross_encoder
       provider: local

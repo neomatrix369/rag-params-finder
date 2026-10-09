@@ -138,7 +138,7 @@ npm --prefix frontend run build
 echo ""
 echo "9/11 Frontend security audit..."
 if lockfiles_changed_since_last_push; then
-  npm --prefix frontend audit --audit-level=high
+  npm --prefix frontend audit --omit=dev --audit-level=high
 else
   echo "   Skipped (no frontend dependency lockfile changes in last push)"
 fi

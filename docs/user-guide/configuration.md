@@ -324,35 +324,37 @@ Old configs still work—they're automatically converted to the new `retrievers`
 
 The `queries_file` field accepts a local path or a URL (downloaded and cached on first use).
 
-**Persona-based format**:
+**Persona-based format** (matches `configs/questions.example.json`):
 ```json
-[
-  {
-    "persona_id": "current-student",
-    "queries": [
-      {
-        "text": "How much can I borrow in student loans?",
-        "focus": "loan_limits"
-      },
-      {
-        "text": "What are the Pell Grant eligibility requirements?",
-        "focus": "grants"
-      }
-    ]
-  },
-  {
-    "persona_id": "prospective-student",
-    "queries": [
-      {
-        "text": "What financial aid is available for first-year students?",
-        "focus": "overview"
-      }
-    ]
-  }
-]
+{
+  "personas": [
+    {
+      "id": "current-student",
+      "questions": [
+        {
+          "text": "How much can I borrow in student loans?",
+          "focus": "loan_limits"
+        },
+        {
+          "text": "What are the Pell Grant eligibility requirements?",
+          "focus": "grants"
+        }
+      ]
+    },
+    {
+      "id": "prospective-student",
+      "questions": [
+        {
+          "text": "What financial aid is available for first-year students?",
+          "focus": "overview"
+        }
+      ]
+    }
+  ]
+}
 ```
 
-Each query is executed independently per run. Results are stored with `persona_id` and `focus` for filtering in the Search Explorer.
+Each query is executed independently per run. Results are stored with `persona_id` (from `id`) and `focus` for filtering in the Search Explorer.
 
 ---
 
@@ -433,7 +435,7 @@ Two independent axes select storage. Product names are **shorthand for the usual
 | `mongodb-local` | **Atlas Local** |
 | `postgres-cloud` | **Supabase-hosted Postgres** |
 | `postgres-local` | **local pgvector / Postgres** |
-| `elasticsearch-local` | **local Elasticsearch** (vector store only; run state defaults to MongoDB unless `STORAGE_BACKEND=postgres`) |
+| `elasticsearch-local` | **local Elasticsearch** (vector store only; run state defaults to SQLite (ADR-008) unless `STORAGE_BACKEND=mongodb` or `postgres`) |
 | `elasticsearch-cloud` | **hosted Elasticsearch** (vector store only) |
 
 - YAML `database_provider` declares **engine intent** (`mongodb` \| `postgres` \| `elasticsearch`). Deprecated input `supabase` normalizes to `postgres` with a warning.
@@ -444,7 +446,7 @@ Two independent axes select storage. Product names are **shorthand for the usual
 Someone says “I’m on Atlas” → ask: **cloud or Local?**
 Someone says “I’m on Supabase” → engine is Postgres cloud; local Postgres is `postgres-local`, not Supabase.
 
-Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud` / `--elasticsearch-local|cloud`. `--elasticsearch-local` also starts the run-state store (default `mongodb-local`; set `STORAGE_BACKEND=postgres` to pair Postgres). The old `--local` / `--postgres` flag aliases were removed. Env asymmetry: Elasticsearch needs `ELASTICSEARCH_CLOUD_URL` / `ELASTICSEARCH_LOCAL_URL` (and `ELASTICSEARCH_API_KEY` on a secured cloud). It never uses `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` or `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL` for the vector lane.
+Start flags: `./start-services.sh --mongodb-local|cloud` / `--postgres-local|cloud` / `--elasticsearch-local|cloud` / `--redis-local`. `--elasticsearch-local` also starts the run-state store (default `sqlite`, ADR-008; set `STORAGE_BACKEND=mongodb` or `STORAGE_BACKEND=postgres` to override). The old `--local` / `--postgres` flag aliases were removed. Env asymmetry: Elasticsearch needs `ELASTICSEARCH_CLOUD_URL` / `ELASTICSEARCH_LOCAL_URL` (and `ELASTICSEARCH_API_KEY` on a secured cloud). It never uses `MONGODB_ATLAS_CLOUD_URI` / `MONGODB_ATLAS_LOCAL_URI` or `POSTGRES_CLOUD_URL` / `POSTGRES_LOCAL_URL` for the vector lane.
 
 ### Split-store: `VECTOR_STORE_BACKEND` (Slice 49B)
 
