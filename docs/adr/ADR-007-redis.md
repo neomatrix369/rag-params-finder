@@ -25,21 +25,21 @@ Add **Redis 8.0 (or Valkey + valkey-search)** as a **vector-only** adapter behin
 
 | Concern | Choice |
 |---|---|
-| **Role** | Chunks and search only. Run state stays on MongoDB, Postgres, or SQLite (default local pair: `mongodb-local`) |
+| **Role** | Chunks and search only. Run state stays on MongoDB, Postgres, or SQLite (default: `sqlite`, ADR-008) |
 | **Primary implementation** | Redis 8.0 with integrated Query Engine (`FT.CREATE` / `FT.SEARCH` / `FT.HYBRID` commands) |
 | **Alternative** | Valkey (Linux Foundation fork, 2024) + valkey-search module — same API, community-maintained |
 | **Index schema** | One HASH-based index (`rpf:chunks`) with per-dimension vector fields (`embedding_384` HNSW COSINE, `embedding_1024` HNSW COSINE), TAG filters (`experiment_id`, `run_id`, `embedding_model`), TEXT field for BM25 sparse search |
 | **Vector isolation** | Documents carrying only one vector field (e.g., model M1 with 384-dim only) are accepted; filtered KNN on each dimension returns only matching docs (verified in PoC) |
-| **Hybrid search** | `FT.HYBRID` available natively on Redis 8 and Valkey+valkey-search. Client-side reciprocal rank fusion (`k=60`) remains default (D3); server-side hybrid is optional |
+| **Hybrid search** | Client-side reciprocal rank fusion (RRF, `k=60`) over separate dense + sparse queries (D3). `FT.HYBRID` was verified in PoC but the adapter uses client-side RRF for cross-store consistency |
 | **Score conversion** | Redis COSINE distance `d` converts to `score = 1 − d/2`, equivalent to `(1+cos)/2` on [-1, 1] scale (verified within 1e-6 tolerance) |
 | **Persistence** | AOF (Append-Only File) recommended for production (safe writes); RDB (snapshot) optional. Preflight warns if AOF is off |
 | **Memory policy** | `noeviction` (safest; rejects writes when memory limit hit) or `volatile-lru` (cache eviction; risky if vector TTLs misconfigured). Slice 53 preflight enforces `noeviction` or flags `volatile-lru` with warning |
 | **TTL guard** | Vector keys must never expire (TTL -1). Slice 53 mutation-guards `EXPIRE` on vector keys to prevent silent eviction under `volatile-lru` |
-| **Local profile** | Redis 8.0, single-node, no auth (local), `127.0.0.1:6379`, no memory limit (unlimited on docker-compose volume) |
+| **Local profile** | Redis 8.0, single-node, no auth (local), `127.0.0.1:6379`, 256 MB memory limit (docker-compose) |
 | **Managed profile** | Redis Cloud (managed by Redis Inc.) or self-hosted cloud Redis; auth + TLS enforced (`rediss://`). Free tier 40 MB smoke-only (impractical for production sweeps) |
-| **Default store** | **Unchanged**: `STORAGE_BACKEND=mongodb`. Redis is opt-in via `REDIS_URL` + `VECTOR_STORE_BACKEND=redis` or `./start-services.sh --redis-local` |
+| **Default store** | **Unchanged**: `STORAGE_BACKEND=sqlite` (ADR-008). Redis is opt-in via `REDIS_URL` + `VECTOR_STORE_BACKEND=redis` or `./start-services.sh --redis-local` |
 | **Client library** | `redis-py` (official, 8.2M downloads/week, mature) preferred over RedisVL (niche) or langchain-redis |
-| **Licensing** | Redis 8: SSPL (server) + Client Source Available (clients) — permissive for self-hosting. Valkey: Business Source License → Apache 2.0 after 4 years — permissive for self-hosting |
+| **Licensing** | Redis 8: tri-licensed RSALv2 / SSPLv1 / AGPLv3 — permissive for self-hosted use. Valkey: BSD-3-Clause — fully open source (Linux Foundation) |
 
 ---
 
@@ -54,7 +54,7 @@ Add **Redis 8.0 (or Valkey + valkey-search)** as a **vector-only** adapter behin
 
 ### Neutral / Operational
 
-- **Code default is `mongodb` (#130 Won't)**: `server/settings.py`, `scripts/lib/storage_mode.sh`, and `docker-compose.yml` default to `mongodb`. Redis is opt-in via env vars or `--redis-local` flag. No planned flip of default.
+- **Code default is `sqlite` (ADR-008)**: `server/settings.py` defaults to `sqlite` for run state. Redis is opt-in via env vars or `--redis-local` flag. No planned flip of default.
 - **Sizing burden**: Unlike Elasticsearch (which fixes JVM heap once), Redis holds every vector in RAM. Operator must calculate `maxmemory` based on planned sweep size. Slice 52 PoC measured ~2.1 KB per 1024-dim vector in HNSW; typical sweep (36k vectors) needs ~95 MB + overhead.
 - **Managed tier risk**: Redis Cloud free tier (40 MB) is severely limited — cannot host production sweeps. Recommendation: use self-hosted or paid managed tier.
 - **Eviction policy learning curve**: `volatile-lru` requires careful TTL management; naive configuration evicts vector keys silently. Slice 53 guards against this.
@@ -123,8 +123,8 @@ Add **Redis 8.0 (or Valkey + valkey-search)** as a **vector-only** adapter behin
 
 | Product | License | Self-host safe? | Notes |
 |---------|---------|-----------------|-------|
-| Redis 8.0 | SSPL (server) + Client Source Available | ✅ Yes | Permissive for self-hosted OSS projects |
-| Valkey | Business Source License → Apache 2.0 (4yr) | ✅ Yes | Permissive; no restrictions for rag-params-finder |
+| Redis 8.0 | RSALv2 / SSPLv1 / AGPLv3 (tri-licensed) | ✅ Yes | Permissive for self-hosted use |
+| Valkey | BSD-3-Clause | ✅ Yes | Fully open source (Linux Foundation) |
 | Redis Cloud | Redis Inc. Terms of Service | ⚠ Limited | Free tier 40 MB smoke-only; managed service |
 
 ---

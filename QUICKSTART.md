@@ -302,8 +302,10 @@ Full setup: [elasticsearch-setup.md](docs/user-guide/elasticsearch-setup.md).
 
 No Atlas account. Redis 8 runs in Docker; run state defaults to SQLite (ADR-008).
 
+**Prerequisites:** Docker running, `uv pip install -e ".[redis]"`.
+
 ```bash
-cp .env.example .env
+cp .env.example .env   # no values need editing for local Redis
 ./start-services.sh --redis-local
 rag-params-finder run --config configs/redis/example-local.yaml
 ```
