@@ -2,7 +2,7 @@
 
 **MoSCoW:** SHOULD *(owner-confirmed #233; promoted to Must on a Slice 52 Branch A **GO**)*
 **Target time:** ~9–12 h, one branch, may ship as 2 PRs: **53a** adapter core (~5–6 h) · **53b** operability + CI + docs + ADR-007 Accepted (~4–6 h)
-**Status:** 📋 PLANNED
+**Status:** ✅ PASSED
 **Depends on:** **49A/49B** (vector-store port, rewired chunk data path, pairing rule (ii), split-store acceptance test) · **50** (`rrf_fuse()`) · **51** (registry, capabilities, `VECTOR_STORE_BACKEND`, `rrf_fuse()`, `GET /api/stores`, registry-driven FE labels, generalised `stop-services.sh`, docs-parity gate, all on `main`) · **52** (Branch A GO + client/image choice)
 **Branch:** `slice/53-redis-vector-store-adapter`
 **Feature:** Redis as a vector-only store (D1) — ADR-007
@@ -320,4 +320,4 @@ Feature: Redis is a config-selectable vector-only store with full retrieval pari
 
 ## Gate Status
 
-📋 PLANNED — blocked on 49A/49B/50/51 ✅ + 52 GO; amended 2026-09-25 (DECISIONS #240–#249). Then the `nw-distill` step-definition pass before 🔨 IN PROGRESS.
+✅ PASSED — Branch `slice/53-redis-vector-store-adapter`, [PR #218](https://github.com/neomatrix369/rag-params-finder/pull/218) open. 151 unit tests, 99.61% branch coverage; 791 total backend tests. ADR-007 Accepted. Zero-changes diff guard MET. Merge and release stay manual. Gate evidence: `docs/plan/gate-evidence/slice-53.json`.

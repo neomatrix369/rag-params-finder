@@ -31,7 +31,7 @@ Install the client extra before a host-side server: `uv pip install -e ".[redis]
 
 ## Path A — local Docker
 
-This path needs Docker. The local container is Redis 8 with the Query Engine built in, `--appendonly yes`, `--maxmemory 95mb`, and `--maxmemory-policy volatile-lru`.
+This path needs Docker. The local container is Redis 8 with the Query Engine built in, `--appendonly yes`, `--maxmemory 256mb`, and `--maxmemory-policy volatile-lru`.
 
 ```bash
 uv pip install -e ".[redis]"

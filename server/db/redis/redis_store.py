@@ -344,6 +344,12 @@ def _add_to_pipeline(pipeline: Any, doc: dict) -> None:
     """Add a pipelined HSET for one chunk document. No TTL is ever set."""
     embedding = list(doc.get("embedding") or [])
     if not embedding:
+        from server.utils.logger import get_logger
+
+        get_logger(__name__).warning(
+            "insert_chunks: skipped chunk %s (no embedding)",
+            doc.get("chunk_id", "?"),
+        )
         return
     field = field_for_dims(len(embedding))
     import struct

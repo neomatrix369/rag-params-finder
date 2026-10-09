@@ -2,7 +2,7 @@
 
 **MoSCoW:** MUST
 **Target time:** ~6–8 h
-**Status:** 📋 PLANNED
+**Status:** ✅ PASSED
 **Depends on:** 49A (`VectorStore` port + registry + `VECTOR_STORE_BACKEND`) · 49B (chunk data path on the vector port, pairing rule (ii), split-store acceptance test, two-store preflight/health)
 **Branch:** `slice/50-elasticsearch-adapter-core`
 **Feature:** Elasticsearch vector-store adapter (ADR-006)

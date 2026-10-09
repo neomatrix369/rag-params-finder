@@ -2,7 +2,7 @@
 
 **MoSCoW:** MUST *(owner-confirmed, #233)*
 **Target time:** ~6–8 h in six ordered streams (R0 delta ~45 min · R1 candidates ~1 h · R2 adoption ~1 h · R3 PoC ~1.5 h · R4 Branch B ~45 min · R5 scoring + outputs ~2 h)
-**Status:** 📋 PLANNED
+**Status:** ✅ COMPLETE
 **Depends on:** none (hard). Soft: Slice 49A / 49B / 50 / 51 **specs** (read as fixed inputs — their code need not exist; amended 2026-09-25, DECISIONS #240–#249). May run in parallel with Slice 49A/49B execution.
 **Branch:** `slice/52-redis-evaluation-spike`
 **Feature:** Redis as vector store (Branch A) + supporting infrastructure (Branch B) — ADR-007
@@ -247,4 +247,4 @@ Feature: Redis evaluation produces an evidence-backed, owner-decidable recommend
 
 ## Gate Status
 
-📋 PLANNED. MoSCoW confirmed (#233). Next: the `nw-distill` evidence-check pass before 🔨 IN PROGRESS.
+✅ COMPLETE — docs-only slice; research report (REDIS-EVALUATION.md), HTML guide (redis-evaluation.html), and ADR-007 (Proposed) delivered. Owner GO/NO-GO decisions recorded in DECISIONS #272–#273. Branch A GO; Slice 53 unblocked. Gate evidence: `docs/plan/gate-evidence/slice-52.json`.
