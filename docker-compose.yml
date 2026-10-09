@@ -194,7 +194,7 @@ services:
       start_period: 15s
 
   # Local Elasticsearch — opt-in: ./start-services.sh --elasticsearch-local
-  # Vector-only. Run state stays on the paired store (default mongodb-local).
+  # Vector-only. Run state stays on the paired store (default sqlite, ADR-008).
   # Basic licence, security off, 1 GB heap, loopback bind. See ADR-006.
   elasticsearch-local:
     profiles: ["elasticsearch-local"]

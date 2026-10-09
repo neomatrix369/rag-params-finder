@@ -324,7 +324,8 @@ curl -s http://localhost:8001/healthz | python3 -m json.tool
 
 Expect `"ok": true` plus the active backend: `"mongodb": "ok"` (Mongo path),
 `"storage_backend": "postgres"` / `"postgres": "ok"` (Postgres path),
-or `"storage_mode": "elasticsearch-local"` (ES path).
+`"storage_mode": "elasticsearch-local"` (ES path),
+or `"vector_store_backend": "redis-local"` (Redis path).
 When local containers are running, `health-check.sh` also reports each as healthy.
 If the server is unhealthy, see [troubleshooting → Docker](docs/user-guide/troubleshooting.md#docker).
 
