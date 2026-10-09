@@ -55,6 +55,7 @@ def _configured_secrets() -> list[str]:
         settings.database_url,
         settings.atlas_public_key,
         settings.atlas_private_key,
+        settings.redis_url,
     )
     return [value.strip() for value in candidates if value and value.strip()]
 

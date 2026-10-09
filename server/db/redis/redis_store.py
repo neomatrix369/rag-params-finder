@@ -110,10 +110,25 @@ class RedisVectorStore:
     def insert_chunks(self, docs: list[dict]) -> None:
         if not docs:
             return
-        pipeline = self.client().pipeline(transaction=False)
-        for doc in docs:
-            _add_to_pipeline(pipeline, doc)
-        self.call(lambda: pipeline.execute())
+        client = self.client()
+        batch_size = 500
+        for i in range(0, len(docs), batch_size):
+            batch = docs[i : i + batch_size]
+            pipeline = client.pipeline(transaction=False)
+            for doc in batch:
+                _add_to_pipeline(pipeline, doc)
+            results = self.call(lambda: pipeline.execute())
+            if results:
+                for j, result in enumerate(results):
+                    if isinstance(result, Exception):
+                        from server.utils.logger import get_logger
+
+                        get_logger(__name__).error(
+                            "insert_chunks: command %d in batch %d failed: %s",
+                            j,
+                            i // batch_size,
+                            result,
+                        )
 
     def delete_chunks_for_experiment(self, experiment_id: str) -> int:
         """Delete all keys tagged with ``experiment_id``. Returns deleted count."""
@@ -124,7 +139,7 @@ class RedisVectorStore:
         while True:
             cursor, keys = self.call(lambda: client.scan(cursor, match=pattern, count=200))
             if keys:
-                self.call(lambda: client.delete(*keys))
+                self.call(lambda: client.unlink(*keys))
                 deleted += len(keys)
             if cursor == 0:
                 break
@@ -219,6 +234,23 @@ class RedisVectorStore:
             accepted_policies=ACCEPTED_EVICTION_POLICIES,
         )
 
+    def run_config_preflight(self, config: ExperimentConfig) -> None:
+        """Estimate sweep size from config and run all preflight checks."""
+        dims = max(
+            (get_dimensions(m) for m in config.embedding.models),
+            default=384,
+        )
+        num_runs = (
+            len(config.embedding.models)
+            * len(config.chunking.methods)
+            * len(config.chunking.params.chunk_sizes)
+            * len(config.chunking.params.overlaps)
+            * len(config.retrieval.retrievers)
+        )
+        # Conservative estimate: 500 chunks per run for capacity check.
+        planned_vectors = num_runs * 500
+        self.run_preflight(planned_vectors=planned_vectors, dims=dims)
+
     # ── Private helpers ────────────────────────────────────────────────────────
 
     def _index_exists(self) -> bool:
@@ -259,10 +291,14 @@ class RedisVectorStore:
         client = self.client()
         while True:
             cursor, keys = client.scan(cursor, match=pattern, count=200)
-            for key in keys:
-                val = client.hget(key, field)
-                if val:
-                    values.add(val.decode() if isinstance(val, bytes) else str(val))
+            if keys:
+                pipe = client.pipeline(transaction=False)
+                for key in keys:
+                    pipe.hget(key, field)
+                results = pipe.execute()
+                for val in results:
+                    if val:
+                        values.add(val.decode() if isinstance(val, bytes) else str(val))
             if cursor == 0:
                 break
         return list(values)
@@ -274,11 +310,15 @@ class RedisVectorStore:
         client = self.client()
         while True:
             cursor, keys = client.scan(cursor, match=pattern, count=200)
-            for key in keys:
-                val = client.hget(key, field)
-                if val:
-                    k = val.decode() if isinstance(val, bytes) else str(val)
-                    counts[k] = counts.get(k, 0) + 1
+            if keys:
+                pipe = client.pipeline(transaction=False)
+                for key in keys:
+                    pipe.hget(key, field)
+                results = pipe.execute()
+                for val in results:
+                    if val:
+                        k = val.decode() if isinstance(val, bytes) else str(val)
+                        counts[k] = counts.get(k, 0) + 1
             if cursor == 0:
                 break
         return counts
@@ -331,7 +371,7 @@ def _add_to_pipeline(pipeline: Any, doc: dict) -> None:
 
 def _create_index(client: Any, index_name: str) -> None:
     """Create the Redis chunks index via FT.CREATE."""
-    from redis.commands.search.indexDefinition import (  # type: ignore[import-not-found]
+    from redis.commands.search.index_definition import (  # type: ignore[import-not-found]
         IndexDefinition,
         IndexType,
     )
@@ -347,11 +387,12 @@ def _create_index(client: Any, index_name: str) -> None:
 def _is_not_found(exc: BaseException) -> bool:
     """True when the exception indicates the FT index does not exist."""
     msg = str(exc).lower()
+    exc_name = type(exc).__name__.lower()
     return (
         "unknown index name" in msg
         or "no such index" in msg
-        or "responseError" in type(exc).__name__.lower()
-        and "unknown" in msg
+        or "index not found" in msg
+        or ("responseerror" in exc_name and "unknown" in msg)
     )
 
 

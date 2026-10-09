@@ -62,6 +62,15 @@ def _escape_tag(value: str) -> str:
     return value.translate(_TAG_ESCAPE_CHARS)
 
 
+def _escape_text_token(token: str) -> str:
+    """Escape a single word for use in a FT.SEARCH TEXT query (outside quotes).
+
+    RediSearch TEXT field special characters must be escaped or the query
+    parser raises a syntax error.
+    """
+    return token.translate(_TAG_ESCAPE_CHARS)
+
+
 def require_top_k(top_k: int) -> None:
     """Reject non-positive ``top_k`` before any network call."""
     if top_k <= 0:
@@ -98,7 +107,7 @@ def _docs_to_results(
         chunk_id = getattr(doc, "chunk_id", "") or ""
         text = getattr(doc, "text", "") or ""
         embedding_model = getattr(doc, "embedding_model", "") or ""
-        chunk_method = getattr(doc, "chunk_method", "") or getattr(doc, "chunking_method", "") or ""
+        chunk_method = getattr(doc, "chunking_method", "") or getattr(doc, "chunk_method", "") or ""
         score_raw = getattr(doc, distance_field or "__score", None)
         if distance_field and score_raw is not None:
             # Convert COSINE distance → shared (1 + cosine) / 2 scale.
@@ -142,8 +151,9 @@ def dense_search(
     field = field_for_dims(len(query_embedding))
     tag_filter = _tag_filter(experiment_id, embedding_model, run_id)
     k_candidates = top_k * CANDIDATES_MULTIPLIER
+    ef_runtime = max(k_candidates, 50)
     dist_attr = f"__{field}_score"
-    query_str = f"{tag_filter}=>[KNN $K @{field} $BLOB AS {dist_attr}]"
+    query_str = f"{tag_filter}=>[KNN $K @{field} $BLOB EF_RUNTIME $EF AS {dist_attr}]"
 
     from redis.commands.search.query import Query  # type: ignore[import-not-found]
 
@@ -151,12 +161,16 @@ def dense_search(
         Query(query_str)
         .sort_by(dist_attr, asc=True)
         .paging(0, top_k)
-        .return_fields("chunk_id", "text", "embedding_model", "chunk_method", dist_attr)
+        .return_fields("chunk_id", "text", "embedding_model", "chunking_method", dist_attr)
         .dialect(2)
     )
     result = client.ft(index).search(
         q,
-        query_params={"K": k_candidates, "BLOB": _to_bytes(query_embedding)},
+        query_params={
+            "K": k_candidates,
+            "BLOB": _to_bytes(query_embedding),
+            "EF": ef_runtime,
+        },
     )
     return _docs_to_results(result.docs, RetrievalMethod.DENSE.value, distance_field=dist_attr)
 
@@ -171,18 +185,26 @@ def sparse_search(
     run_id: str,
     top_k: int,
 ) -> list[SearchResult]:
-    """BM25 TEXT match on ``text`` field with the same TAG pre-filters."""
+    """BM25 TEXT match on ``text`` field with the same TAG pre-filters.
+
+    Tokenizes the query into individual words joined with ``|`` (OR) so
+    RediSearch scores each document by BM25 relevance rather than requiring
+    an exact-phrase match.
+    """
     require_top_k(top_k)
     tag_filter = _tag_filter(experiment_id, embedding_model, run_id)
-    escaped_text = query_text.replace("\\", "\\\\").replace('"', '\\"')
-    query_str = f'{tag_filter} @text:"{escaped_text}"'
+    tokens = [_escape_text_token(t) for t in query_text.split() if t.strip()]
+    if not tokens:
+        return []
+    query_str = f"{tag_filter} @text:({' | '.join(tokens)})"
 
     from redis.commands.search.query import Query  # type: ignore[import-not-found]
 
     q = (
         Query(query_str)
         .paging(0, top_k)
-        .return_fields("chunk_id", "text", "embedding_model", "chunk_method")
+        .return_fields("chunk_id", "text", "embedding_model", "chunking_method")
+        .with_scores()
         .dialect(2)
     )
     result = client.ft(index).search(q)

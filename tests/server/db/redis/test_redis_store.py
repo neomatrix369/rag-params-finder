@@ -307,7 +307,7 @@ class TestDeleteChunksForExperimentShould:
 
         ### Then
         assert deleted == 4
-        assert client.delete.call_count == 2
+        assert client.unlink.call_count == 2
 
     def test_returns_zero_when_no_keys_found(self) -> None:
         """
@@ -941,11 +941,9 @@ class TestDistinctTagValuesShould:
         ### Given
         client = MagicMock()
         client.scan.return_value = (0, [b"k1", b"k2", b"k3"])
-
-        def hget_side(key: bytes, field: str) -> bytes | None:
-            return {b"k1": b"model-a", b"k2": b"model-b", b"k3": b"model-a"}.get(key)
-
-        client.hget.side_effect = hget_side
+        pipe = MagicMock()
+        client.pipeline.return_value = pipe
+        pipe.execute.return_value = [b"model-a", b"model-b", b"model-a"]
         store = _store(client)
 
         ### When
@@ -962,7 +960,9 @@ class TestDistinctTagValuesShould:
         ### Given
         client = MagicMock()
         client.scan.return_value = (0, [b"k1"])
-        client.hget.return_value = b"some-model"  # bytes value
+        pipe = MagicMock()
+        client.pipeline.return_value = pipe
+        pipe.execute.return_value = [b"some-model"]
         store = _store(client)
 
         ### When
@@ -979,7 +979,9 @@ class TestDistinctTagValuesShould:
         ### Given
         client = MagicMock()
         client.scan.return_value = (0, [b"k1"])
-        client.hget.return_value = None
+        pipe = MagicMock()
+        client.pipeline.return_value = pipe
+        pipe.execute.return_value = [None]
         store = _store(client)
 
         ### When
@@ -998,7 +1000,9 @@ class TestTagCountsShould:
         ### Given
         client = MagicMock()
         client.scan.return_value = (0, [b"k1", b"k2", b"k3"])
-        client.hget.side_effect = [b"recursive", b"recursive", b"fixed"]
+        pipe = MagicMock()
+        client.pipeline.return_value = pipe
+        pipe.execute.return_value = [b"recursive", b"recursive", b"fixed"]
         store = _store(client)
 
         ### When
@@ -1016,7 +1020,9 @@ class TestTagCountsShould:
         ### Given
         client = MagicMock()
         client.scan.return_value = (0, [b"k1"])
-        client.hget.return_value = None
+        pipe = MagicMock()
+        client.pipeline.return_value = pipe
+        pipe.execute.return_value = [None]
         store = _store(client)
 
         ### When

@@ -259,6 +259,10 @@ def _validate_generic_vector_store_indexes(
             raise SearchIndexMismatchError(f"Vector store {backend!r}: {message}")
 
     _validate_vector_capabilities(config, store.capabilities(), backend)
+
+    if hasattr(store, "run_config_preflight"):
+        store.run_config_preflight(config)
+
     return assessment
 
 
