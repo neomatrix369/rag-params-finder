@@ -321,3 +321,5 @@ Feature: Redis is a config-selectable vector-only store with full retrieval pari
 ## Gate Status
 
 ✅ PASSED — Branch `slice/53-redis-vector-store-adapter`, [PR #218](https://github.com/neomatrix369/rag-params-finder/pull/218) open. 151 unit tests, 99.61% branch coverage; 791 total backend tests. ADR-007 Accepted. Zero-changes diff guard MET. Merge and release stay manual. Gate evidence: `docs/plan/gate-evidence/slice-53.json`.
+
+**Post-PASSED remediation** (`fix/redis-readiness-audit-remediation`, 2026-10-09): `index_definition` import fix; `_is_not_found` operator-precedence bug; `insert_chunks` 500-doc batching + per-command error log; `UNLINK` replaces `DEL`; `EF_RUNTIME` in KNN; sparse OR-tokenized query; pipelined HGET in stats helpers; `run_config_preflight()` dispatched via `search_index_guard`; Docker bind `0.0.0.0 --protected-mode no`; `--maxmemory 256mb`; nightly `-m integration` removed + `STORAGE_BACKEND` matrix `mongodb`→`sqlite`; ADR-007 licence + defaults corrected. Audit doc: `docs/_internal/REDIS-READINESS-AUDIT.md`.

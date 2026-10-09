@@ -844,14 +844,14 @@ class TestRetrieverShould:
 
 
 class TestFtInfoOrEmptyShould:
-    def test_returns_empty_dict_on_exception(self) -> None:
+    def test_returns_empty_dict_on_not_found(self) -> None:
         """
-        Scenario: _ft_info_or_empty swallows exceptions and returns {}.
+        Scenario: _ft_info_or_empty returns {} when the index does not exist.
         Slice: 53
         """
         ### Given
         client = MagicMock()
-        client.ft.return_value.info.side_effect = Exception("no index")
+        client.ft.return_value.info.side_effect = Exception("Unknown Index name")
         store = _store(client)
 
         ### When
@@ -859,6 +859,20 @@ class TestFtInfoOrEmptyShould:
 
         ### Then
         assert result == {}
+
+    def test_raises_on_connection_error(self) -> None:
+        """
+        Scenario: _ft_info_or_empty propagates non-not-found exceptions.
+        Slice: 53
+        """
+        ### Given
+        client = MagicMock()
+        client.ft.return_value.info.side_effect = ConnectionError("Connection refused")
+        store = _store(client)
+
+        ### When / Then
+        with pytest.raises(ConnectionError, match="Connection refused"):
+            store._ft_info_or_empty()
 
     def test_returns_dict_when_info_is_dict(self) -> None:
         """

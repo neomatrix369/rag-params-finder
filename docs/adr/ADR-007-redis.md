@@ -117,7 +117,7 @@ Add **Redis 8.0 (or Valkey + valkey-search)** as a **vector-only** adapter behin
 |---------|--------|--------------|------|
 | 1k × 1024-dim (m=6) | 2.3 MB | ~2,300 | Sampled after FT.CREATE + HSET loop |
 | 10k × 1024-dim | 23.1 MB | ~2,310 | Linear scaling confirmed |
-| Extrapolated 36k (typical sweep) | ~83 MB | ~2,305 | + index overhead, metadata → ~95 MB recommended |
+| Extrapolated 36k (typical sweep) | ~83 MB | ~2,305 | + index overhead, metadata → ~95 MB minimum; local container capped at **256 MB** (ADR-007 remediation) |
 
 ### Licensing & IP
 

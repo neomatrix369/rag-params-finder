@@ -267,10 +267,11 @@ class RedisVectorStore:
             info = self.client().ft(self._index).info()
             if isinstance(info, dict):
                 return info
-            # redis-py returns a flat list in older versions
             return {}
-        except Exception:
-            return {}
+        except Exception as exc:
+            if _is_not_found(exc):
+                return {}
+            raise
 
     def _count_for_experiment(self, experiment_id: str) -> int:
         pattern = f"rpf:chunk:{experiment_id}:*"

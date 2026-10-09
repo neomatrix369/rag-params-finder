@@ -2,7 +2,7 @@
 
 **MoSCoW:** COULD *(owner-confirmed #233. Only if Slice 52 finds a concrete need that SQLite can't meet, e.g. a cache shared across hosts/containers — #225)*
 **Target time:** ~3–4 h
-**Status:** 📋 PLANNED
+**Status:** ✅ PASSED
 **Depends on:** **48A** (`server/core/embedding/embedding_cache.py` on `main`) · **52** (Branch B cache GO). Soft: **53** (reuse the `redis-local` compose profile + `REDIS_URL` conventions; otherwise this slice adds a minimal profile).
 **Branch:** `slice/54-cache-backend-port-redis`
 **Feature:** Redis as supporting infrastructure — embedding cache only
@@ -153,4 +153,6 @@ Feature: The embedding cache can live in SQLite or Redis without changing caller
 
 ## Gate Status
 
-📋 PLANNED (Could) — blocked on 48A ✅ + 52 Branch B GO.
+✅ PASSED — Branch `slice/54-cache-backend-port-redis`, [PR #220](https://github.com/neomatrix369/rag-params-finder/pull/220) open. 41 tests, 100% line+branch coverage on both cache modules. Gate evidence: `docs/plan/gate-evidence/slice-54.json`.
+
+**Post-PASSED remediation** (`fix/redis-readiness-audit-remediation`, 2026-10-09): `pipe.execute()` in `RedisCacheBackend.put_many()` wrapped in try/except — cache write failures now log-and-continue instead of propagating (non-fatal; embedder re-runs on next cache miss).
