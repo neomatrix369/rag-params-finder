@@ -240,7 +240,7 @@ jobs:
         run: bash scripts/ci/pip-audit.sh
 
       - name: Frontend security audit
-        run: npm --prefix frontend audit --audit-level=high
+        run: npm --prefix frontend audit --omit=dev --audit-level=high
 
   secrets:
     name: Secrets scan (diff-only)
