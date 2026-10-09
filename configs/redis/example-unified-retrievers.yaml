@@ -9,7 +9,7 @@
 experiment_name: example-redis-unified-retrievers
 
 data_paths:
-  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+  - ./input_data/pdfs/sample.pdf
 
 queries_file: ./configs/questions.example.json
 
@@ -35,7 +35,7 @@ retrieval:
   retrievers:
     # Each entry is one sweep dimension — one retriever per run (never combined).
     - type: dense
-    - type: sparse   # requires text_search_index
+    - type: sparse   # Redis FT.SEARCH BM25
     - type: hybrid
     - type: cross_encoder
       provider: local

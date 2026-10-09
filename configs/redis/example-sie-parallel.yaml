@@ -9,7 +9,7 @@
 experiment_name: example-redis-sie-parallel
 
 data_paths:
-  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+  - ./input_data/pdfs/sample.pdf
 
 queries_file: ./configs/questions.example.json
 
@@ -20,7 +20,7 @@ embedding:
   models:
     - bge-m3       # 1024-dim dense+sparse+multi-vector; flagship multilingual
     - stella-v5    # 1024-dim dense; strong English retrieval
-    # splade-v3: Slice 22 — sparse output + Atlas storage (30522-dim exceeds 4096 limit)
+    # splade-v3: Slice 22 — sparse output + Redis storage (30522-dim exceeds 4096 limit)
 
 chunking:
   methods:
@@ -38,8 +38,8 @@ retrieval:
   top_k_final: 5     # Final results after reranking
   retrievers:
     # Each entry is one sweep dimension — one retriever per run (never combined).
-    - type: dense    # Atlas $vectorSearch (cosine similarity)
-    - type: sparse   # Atlas $search BM25 full-text  ← requires text_search_index
+    - type: dense    # Redis KNN (cosine similarity)
+    - type: sparse   # Redis FT.SEARCH BM25 full-text
     - type: hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
     - type: cross_encoder
       provider: local

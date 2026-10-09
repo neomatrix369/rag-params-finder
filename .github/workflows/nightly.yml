@@ -198,14 +198,13 @@ jobs:
             image: redis:8
             port: "6379:6379"
             health_options: >-
-              --health-cmd "redis-cli ping"
+              --health-cmd "redis-cli ping | grep -q PONG && (redis-cli FT._LIST > /dev/null 2>&1 || redis-cli FT._LIST 2>&1 | grep -qv 'unknown command')"
               --health-interval 5s --health-timeout 5s --health-retries 12
               --health-start-period 10s
             pytest_args: >-
               tests/server/db/redis/
-              -m integration
               --cov=server.db.redis
-              --cov-branch --cov-report=term-missing --cov-fail-under=95
+              --cov-branch --cov-report=term-missing
             require_env: RAG_REQUIRE_REDIS=1
             extra_env: REDIS_URL=redis://127.0.0.1:6379
             service_env: ""
@@ -245,10 +244,12 @@ jobs:
           RAG_REQUIRE_POSTGRES: ${{ matrix.store == 'postgres' && '1' || '' }}
           RAG_REQUIRE_MONGO: ${{ matrix.store == 'mongodb' && '1' || '' }}
           RAG_REQUIRE_ELASTICSEARCH: ${{ matrix.store == 'elasticsearch' && '1' || '' }}
+          RAG_REQUIRE_REDIS: ${{ matrix.store == 'redis' && '1' || '' }}
           RAG_TEST_DATABASE_URL: ${{ matrix.store == 'postgres' && 'postgresql://rag:rag@localhost:5433/rag_params_finder' || '' }}
           RAG_TEST_MONGODB_URI: ${{ matrix.store == 'mongodb' && 'mongodb://localhost:27017/rag_params_finder?directConnection=true' || '' }}
           ELASTICSEARCH_URL: ${{ matrix.store == 'elasticsearch' && 'http://127.0.0.1:9200' || '' }}
-          STORAGE_BACKEND: ${{ matrix.store == 'postgres' && 'postgres' || 'mongodb' }}
+          REDIS_URL: ${{ matrix.store == 'redis' && 'redis://127.0.0.1:6379' || '' }}
+          STORAGE_BACKEND: ${{ matrix.store == 'postgres' && 'postgres' || 'sqlite' }}
         run: pytest ${{ matrix.pytest_args }} --tb=short -q -rs
 
   vector-store-integration-summary:

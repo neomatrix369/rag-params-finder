@@ -470,6 +470,9 @@ fi
 if [[ "${ELASTICSEARCH_PORT}" != "9200" ]]; then
   RAG_LOCAL_ELASTICSEARCH_URL_HOST="http://127.0.0.1:${ELASTICSEARCH_PORT}"
 fi
+if [[ "${REDIS_PORT}" != "6379" ]]; then
+  RAG_LOCAL_REDIS_URL_HOST="redis://127.0.0.1:${REDIS_PORT}"
+fi
 
 UP_ARGS=(-d)
 if docker_compose_needs_build "$SCRIPT_DIR"; then

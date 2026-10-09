@@ -19,7 +19,7 @@ services:
     env_file:
       - .env
     environment:
-      # MongoDB: cloud URI from .env; local URI injected by start-services.sh --mongodb-local
+      # MongoDB: cloud URI from .env; local URI injected by start-services.sh --mongodb-local (ADR-008: default run-state is sqlite)
       MONGODB_ATLAS_CLOUD_URI: ${MONGODB_ATLAS_CLOUD_URI:-}
       MONGODB_ATLAS_LOCAL_URI: ${RAG_SERVER_MONGODB_ATLAS_LOCAL_URI:-}
       MONGODB_STORAGE_LIMIT_MB: ${RAG_MONGODB_STORAGE_LIMIT_MB:-${MONGODB_STORAGE_LIMIT_MB:-}}
@@ -219,8 +219,8 @@ services:
       start_period: 40s
 
   # Local Redis 8 — opt-in: ./start-services.sh --redis-local
-  # Vector-only. Run state stays on the paired store (default mongodb-local).
-  # AOF on, volatile-lru eviction, 95 MB cap, loopback bind. See ADR-007.
+  # Vector-only. Run state stays on the paired store (default sqlite, ADR-008).
+  # AOF on, volatile-lru eviction, 256 MB cap. See ADR-007.
   redis-local:
     profiles: ["redis-local"]
     image: redis:8
@@ -228,16 +228,16 @@ services:
     command: >
       redis-server
       --appendonly yes
-      --maxmemory 95mb
+      --maxmemory 256mb
       --maxmemory-policy volatile-lru
-      --bind 127.0.0.1
+      --bind 0.0.0.0 --protected-mode no
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_local_data:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG && redis-cli FT._LIST > /dev/null 2>&1 || redis-cli FT._LIST 2>&1 | grep -qv 'unknown command'"]
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG && (redis-cli FT._LIST > /dev/null 2>&1 || redis-cli FT._LIST 2>&1 | grep -qv 'unknown command')"]
       interval: 10s
       timeout: 5s
       retries: 12
