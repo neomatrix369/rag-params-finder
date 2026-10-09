@@ -9,7 +9,7 @@
 experiment_name: example-redis-local-bayesian
 
 data_paths:
-  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+  - ./input_data/pdfs/sample.pdf
 
 queries_file: ./configs/questions.example.json
 

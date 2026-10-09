@@ -9,7 +9,7 @@
 experiment_name: example-redis-voyage
 
 data_paths:
-  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+  - ./input_data/pdfs/sample.pdf
 
 queries_file: ./configs/questions.example.json
 
@@ -54,8 +54,8 @@ retrieval:
   retrievers:
     # Each entry is one sweep dimension — one retriever per run (never combined).
     - type: hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
-    - type: dense    # Atlas $vectorSearch (cosine similarity)
-    - type: sparse   # Atlas $search BM25 full-text  ← requires text_search_index
+    - type: dense    # Redis KNN (cosine similarity)
+    - type: sparse   # Redis FT.SEARCH BM25 full-text
     - type: reranker
       provider: voyage
       model: rerank-2.5-lite

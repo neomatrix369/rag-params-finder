@@ -238,4 +238,4 @@ Scenario: A pre-existing or migrated experiment has no snapshot and renders grac
 
 ## Gate Status
 
-📋 PLANNED — spec authored 2026-09-29 from the approved interview + 4-reviewer desk-check plan (`/Users/swami/.claude/plans/currently-the-experiment-run-snoopy-bubble.md`). No code yet. Default-flip clause is PROVISIONAL (see Non-goals) — a follow-up slice must confirm or revisit it.
+✅ COMPLETE — Branch `slice/55-sqlite-run-state-store`, [PR #214](https://github.com/neomatrix369/rag-params-finder/pull/214) merged 2026-09-30. SQLite run-state store shipped; `STORAGE_BACKEND` defaults to `sqlite` per ADR-008. `VectorStoreSnapshot` frozen immutable (post-merge review 2026-09-30). Default-flip clause remains PROVISIONAL — a follow-up slice must confirm or revisit once the sqlite default has real-world mileage.

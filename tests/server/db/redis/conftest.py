@@ -28,7 +28,7 @@ def fake_redis_modules():
 
     fields_mock = MagicMock(name="redis.commands.search.field")
     query_mock = MagicMock(name="redis.commands.search.query")
-    index_def_mock = MagicMock(name="redis.commands.search.indexDefinition")
+    index_def_mock = MagicMock(name="redis.commands.search.index_definition")
 
     mods: dict[str, Any] = {
         "redis": redis_mock,
@@ -36,7 +36,7 @@ def fake_redis_modules():
         "redis.commands.search": MagicMock(),
         "redis.commands.search.field": fields_mock,
         "redis.commands.search.query": query_mock,
-        "redis.commands.search.indexDefinition": index_def_mock,
+        "redis.commands.search.index_definition": index_def_mock,
     }
     originals = {k: sys.modules.get(k) for k in mods}
     sys.modules.update(mods)

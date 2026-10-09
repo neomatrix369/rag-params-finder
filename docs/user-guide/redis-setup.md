@@ -31,7 +31,7 @@ Install the client extra before a host-side server: `uv pip install -e ".[redis]
 
 ## Path A — local Docker
 
-This path needs Docker. The local container is Redis 8 with the Query Engine built in, `--appendonly yes`, `--maxmemory 95mb`, and `--maxmemory-policy volatile-lru`.
+This path needs Docker. The local container is Redis 8 with the Query Engine built in, `--appendonly yes`, `--maxmemory 256mb`, and `--maxmemory-policy volatile-lru`.
 
 ```bash
 uv pip install -e ".[redis]"
@@ -103,7 +103,12 @@ Dense scores use the shared `(1+cos)/2` scale: Redis returns COSINE **distance**
 
 ## Sizing
 
-Redis holds data in RAM. Float32 embeddings use `dim × 4` bytes per vector, plus the HNSW graph (`M=16`). The local container is capped at `--maxmemory 95mb`. Based on Slice 52 measurements (~2.1 KB/vector for 384-dim), 95 MB holds roughly 45 000 384-dim vectors. Preflight rejects a sweep that would exceed `maxmemory - used_memory` before any embedding is written.
+Redis holds data in RAM. Float32 embeddings use `dim × 4` bytes per vector, plus the HNSW graph (`M=16`). The local container is capped at `--maxmemory 256mb`. Estimated capacity:
+
+- **384-dim**: ~120,000 vectors in 256 MB (~2.1 KB/vector)
+- **1024-dim**: ~54,500 vectors in 256 MB (~4.7 KB/vector)
+
+Preflight rejects a sweep that would exceed `maxmemory - used_memory` before any embedding is written.
 
 For production deployments, size Redis to hold peak vectors plus headroom for the HNSW graph. Use `INFO memory` to check `used_memory` and `maxmemory`.
 
@@ -119,7 +124,7 @@ Manual snapshot: `redis-cli -u $REDIS_URL BGSAVE` writes an RDB snapshot. Wait f
 
 | Symptom | What to do |
 |---|---|
-| `FT._LIST` unknown command | Redis is running without the Query Engine. Use Redis 8+ or add the valkey-search module. See [redis-setup.md](redis-setup.md) |
+| `FT._LIST` unknown command | Redis is running without the Query Engine. Use Redis 8+ or add the valkey-search module |
 | HTTP 422 — allkeys-lru policy | Change `maxmemory-policy` to `volatile-lru` (or `noeviction`) and restart Redis |
 | HTTP 422 — insufficient memory | Increase `--maxmemory`, reduce the sweep size, or delete old experiments |
 | Dimension mismatch | Only 384-dim and 1024-dim are supported (not SPLADE 30522-dim) |

@@ -9,7 +9,7 @@
 experiment_name: example-redis-local
 
 data_paths:
-  - ./input_data/pdfs/The_Federal_Pell_Grant_Program.pdf
+  - ./input_data/pdfs/sample.pdf
 
 queries_file: ./configs/questions.example.json
 
@@ -38,8 +38,8 @@ retrieval:
   top_k_final: 5     # Final results after reranking
   retrievers:
     # Each entry is one sweep dimension — one retriever per run (never combined).
-    - type: dense    # Atlas $vectorSearch (cosine similarity)
-    - type: sparse   # Atlas $search BM25 full-text  ← requires text_search_index
+    - type: dense    # Redis KNN (cosine similarity)
+    - type: sparse   # Redis FT.SEARCH BM25 full-text
     - type: hybrid   # Reciprocal Rank Fusion (RRF) of dense + sparse
     - type: cross_encoder
       provider: local

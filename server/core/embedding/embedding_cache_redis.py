@@ -72,7 +72,14 @@ class RedisCacheBackend:
                 pipe.set(full_key, blob, ex=self._ttl_s)
             else:
                 pipe.set(full_key, blob)
-        pipe.execute()
+        try:
+            pipe.execute()
+        except Exception:
+            logger.warning(
+                "Redis cache put_many failed for %d entries — vectors not cached",
+                len(entries),
+                exc_info=True,
+            )
 
     def cached_keys(self, keys: list[str]) -> frozenset[str]:
         """Return the subset of keys already in the cache."""
