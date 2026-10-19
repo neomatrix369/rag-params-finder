@@ -45,7 +45,7 @@
     "vitest": "^5.0.3"
   },
   "optionalDependencies": {
-    "@rollup/rollup-darwin-arm64": "4.62.3",
+    "@rollup/rollup-darwin-arm64": "4.64.7",
     "@rollup/rollup-darwin-x64": "4.63.1"
   },
   "overrides": {
