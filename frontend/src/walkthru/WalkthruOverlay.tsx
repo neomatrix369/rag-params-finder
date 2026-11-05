@@ -23,24 +23,12 @@ export interface WalkthruOverlayProps {
   body: string;
   index: number;
   total: number;
-  paused: boolean;
-  autoplay: boolean;
-  isFirst: boolean;
-  isLast: boolean;
-  onNext: () => void;
-  onBack: () => void;
-  onTogglePause: () => void;
-  onSetAutoplay: (on: boolean) => void;
   onExit: () => void;
 }
 
-const BTN =
-  'min-h-11 rounded-lg border border-line bg-paper px-3 text-sm font-semibold text-ink hover:border-accent disabled:opacity-40';
-
 export default function WalkthruOverlay(props: WalkthruOverlayProps) {
   const {
-    highlight, stepId, title, body, index, total, paused, autoplay, isFirst, isLast,
-    onNext, onBack, onTogglePause, onSetAutoplay, onExit,
+    highlight, stepId, title, body, index, total, onExit,
   } = props;
   const [rect, setRect] = useState<Box | null>(null);
   const calloutRef = useRef<HTMLDivElement>(null);
@@ -54,7 +42,7 @@ export default function WalkthruOverlay(props: WalkthruOverlayProps) {
     if (!el) return;
     const next = { width: el.offsetWidth || 360, height: el.offsetHeight || 200 };
     setSize((prev) => (prev.width === next.width && prev.height === next.height ? prev : next));
-  }, [title, body, stepId, index, isLast, viewport.width, viewport.height]);
+  }, [title, body, stepId, index, viewport.width, viewport.height]);
 
   // Keep the viewport in sync so placement is recomputed on resize/rotation.
   useEffect(() => {
@@ -121,35 +109,7 @@ export default function WalkthruOverlay(props: WalkthruOverlayProps) {
         <p className="mt-2 text-sm leading-relaxed text-ink" aria-live="polite">
           {body}
         </p>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <button type="button" className={BTN} onClick={onBack} disabled={isFirst}>
-            Back
-          </button>
-          {!isLast && (
-            <button type="button" className={BTN} onClick={onTogglePause} aria-pressed={paused}>
-              {paused ? 'Resume' : 'Pause'}
-            </button>
-          )}
-          {isLast ? (
-            <button type="button" className={`${BTN} border-accent bg-accent-soft`} onClick={onExit}>
-              Finish
-            </button>
-          ) : (
-            <button type="button" className={`${BTN} border-accent bg-accent-soft`} onClick={onNext}>
-              Next
-            </button>
-          )}
-          <label className="ml-auto flex min-h-11 items-center gap-2 text-sm text-ink">
-            <input
-              type="checkbox"
-              checked={autoplay}
-              onChange={(event) => onSetAutoplay(event.target.checked)}
-              aria-label="Autoplay"
-            />
-            Autoplay
-          </label>
-        </div>
-        <p className="mt-3 text-xs text-muted">Space pause · ←/→ back/next · Esc exit</p>
+        <p className="mt-3 text-xs text-muted">←/→ back/next · Esc exit</p>
       </div>
     </div>,
     document.body,

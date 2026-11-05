@@ -3,8 +3,8 @@
  *
  * Author: RAG Params Finder contributors
  * Created: 2026-11-05
- * Scope: SLICE-56 Part C2 - keys (Space/arrows/Esc), Autoplay off-by-default + timer advance,
- *        smoke that Next from step 1 reaches step 5, and Esc calls onExit.
+ * Scope: SLICE-56 Part C2 - keys (arrows/Esc), always-on auto-advance, real-button click for
+ *        leaderboard step, smoke that ArrowRight from step 1 reaches step 3, and Esc calls onExit.
  */
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -23,10 +23,10 @@ const press = (key: string) =>
 afterEach(() => vi.useRealTimers());
 
 describe('useWalkthru', () => {
-  it('Given a fresh hook, when started, then it is active at step 1 with Autoplay off', () => {
+  it('Given a fresh hook, when started, then it is active at step 1', () => {
     /**
-     * Scenario: Manual Next is the default; Autoplay never self-starts.
-     * Slice: 56 Part C2 - Autoplay OFF by default
+     * Scenario: Starting the walkthru lands on the first step.
+     * Slice: 56 Part C2 - start
      */
     // -- Given --
     const { result } = renderHook(() => useWalkthru({ steps: STEPS }));
@@ -37,7 +37,6 @@ describe('useWalkthru', () => {
     // -- Then --
     expect(result.current.active).toBe(true);
     expect(result.current.index).toBe(0);
-    expect(result.current.autoplay).toBe(false);
     expect(result.current.step?.id).toBe('s1');
   });
 
@@ -79,22 +78,6 @@ describe('useWalkthru', () => {
     expect(result.current.isFirst).toBe(true);
   });
 
-  it('Given an active Walkthru, when Space is pressed, then paused toggles', () => {
-    /**
-     * Scenario: Space pauses and resumes.
-     * Slice: 56 Part C2 - keyboard pause
-     */
-    // -- Given --
-    const { result } = renderHook(() => useWalkthru({ steps: STEPS }));
-    act(() => result.current.start());
-
-    // -- When / Then --
-    act(() => press(' '));
-    expect(result.current.paused).toBe(true);
-    act(() => press(' '));
-    expect(result.current.paused).toBe(false);
-  });
-
   it('Given focus in a SELECT, when a key is pressed, then the Walkthru ignores it', () => {
     /**
      * Scenario: Keyboard shortcuts never hijack a form control (the run picker is a <select>).
@@ -112,45 +95,6 @@ describe('useWalkthru', () => {
     // -- Then --
     expect(result.current.index).toBe(0);
     select.remove();
-  });
-
-  it('Given focus on a button, when Space is pressed, then pause is not toggled (the button activates itself)', () => {
-    /**
-     * Scenario: Space on a focused Next/Back button must run the button's own click, not pause.
-     * Slice: 56 Part C2 - Space not hijacked on activation targets
-     */
-    // -- Given --
-    const { result } = renderHook(() => useWalkthru({ steps: STEPS }));
-    act(() => result.current.start());
-    const button = document.createElement('button');
-    document.body.appendChild(button);
-
-    // -- When --
-    act(() => button.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true })));
-
-    // -- Then --
-    expect(result.current.paused).toBe(false);
-    button.remove();
-  });
-
-  it('Given focus on a role=button element, when Space is pressed, then pause is not toggled', () => {
-    /**
-     * Scenario: Custom role=button controls activate on Space too.
-     * Slice: 56 Part C2 - Space not hijacked on role=button
-     */
-    // -- Given --
-    const { result } = renderHook(() => useWalkthru({ steps: STEPS }));
-    act(() => result.current.start());
-    const widget = document.createElement('div');
-    widget.setAttribute('role', 'button');
-    document.body.appendChild(widget);
-
-    // -- When --
-    act(() => widget.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true })));
-
-    // -- Then --
-    expect(result.current.paused).toBe(false);
-    widget.remove();
   });
 
   it('Given an open modal dialog, when Esc is pressed, then the Walkthru stays active (the dialog owns Esc)', () => {
@@ -199,33 +143,15 @@ describe('useWalkthru', () => {
     expect(onExit).toHaveBeenCalledTimes(1);
   });
 
-  it('Given Autoplay off, when time passes, then nothing advances', () => {
+  it('Given an active Walkthru, when a step duration elapses, then it auto-advances', () => {
     /**
-     * Scenario: With Autoplay off, the timer never fires.
-     * Slice: 56 Part C2 - Autoplay off means manual only
+     * Scenario: Auto-advance is always on; each step fires after its own duration_s.
+     * Slice: 56 Part C2 - always-on auto-advance
      */
     // -- Given --
     vi.useFakeTimers();
     const { result } = renderHook(() => useWalkthru({ steps: STEPS }));
     act(() => result.current.start());
-
-    // -- When --
-    act(() => vi.advanceTimersByTime(60_000));
-
-    // -- Then --
-    expect(result.current.index).toBe(0);
-  });
-
-  it('Given Autoplay on, when a step duration elapses, then it advances by that duration', () => {
-    /**
-     * Scenario: Autoplay advances on each step's own duration_s.
-     * Slice: 56 Part C2 - Autoplay advances by duration_s
-     */
-    // -- Given --
-    vi.useFakeTimers();
-    const { result } = renderHook(() => useWalkthru({ steps: STEPS }));
-    act(() => result.current.start());
-    act(() => result.current.setAutoplay(true));
 
     // -- When: step 1 is 2 s --
     act(() => vi.advanceTimersByTime(2_000));
@@ -236,28 +162,58 @@ describe('useWalkthru', () => {
     act(() => vi.advanceTimersByTime(3_000));
     // -- Then --
     expect(result.current.index).toBe(2);
-    // The last step never auto-advances.
-    act(() => vi.advanceTimersByTime(10_000));
-    expect(result.current.index).toBe(2);
   });
 
-  it('Given Autoplay on and paused, when time passes, then it does not advance', () => {
+  it('Given the last step, when its duration elapses, then exit is called', () => {
     /**
-     * Scenario: Pausing stops the Autoplay timer.
-     * Slice: 56 Part C2 - pause stops Autoplay
+     * Scenario: The last step auto-exits instead of trying to advance past the end.
+     * Slice: 56 Part C2 - auto-exit on last step
      */
     // -- Given --
     vi.useFakeTimers();
-    const { result } = renderHook(() => useWalkthru({ steps: STEPS }));
+    const onExit = vi.fn();
+    const { result } = renderHook(() => useWalkthru({ steps: STEPS, onExit }));
     act(() => result.current.start());
-    act(() => result.current.setAutoplay(true));
-    act(() => result.current.togglePause());
+    // advance to last step (s3)
+    act(() => vi.advanceTimersByTime(2_000)); // s1 → s2
+    act(() => vi.advanceTimersByTime(3_000)); // s2 → s3
 
-    // -- When --
-    act(() => vi.advanceTimersByTime(10_000));
+    // -- When: step 3 is 4 s --
+    act(() => vi.advanceTimersByTime(4_000));
 
     // -- Then --
-    expect(result.current.index).toBe(0);
+    expect(result.current.active).toBe(false);
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  it('Given the leaderboard step, when its duration elapses, then the suggested button is clicked', () => {
+    /**
+     * Scenario: The leaderboard step simulates clicking the [data-suggested] Select button.
+     * Slice: 56 Part C2 - real-button click for leaderboard step
+     */
+    // -- Given --
+    vi.useFakeTimers();
+    const suggestedRow = document.createElement('tr');
+    suggestedRow.setAttribute('data-suggested', 'true');
+    const btn = document.createElement('button');
+    const clickSpy = vi.fn();
+    btn.addEventListener('click', clickSpy);
+    suggestedRow.appendChild(btn);
+    document.body.appendChild(suggestedRow);
+
+    const leaderboardStep: WalkthruStep = {
+      id: 'leaderboard', title: 'Leaderboard', durationS: 2, route: 'walkthru',
+      highlight: 'leaderboard', choose: { target: 'leaderboard', suggest: 'redis' }, body: 'body',
+    };
+    const { result } = renderHook(() => useWalkthru({ steps: [leaderboardStep, ...STEPS.slice(0, 1)] }));
+    act(() => result.current.start());
+
+    // -- When --
+    act(() => vi.advanceTimersByTime(2_000));
+
+    // -- Then --
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    suggestedRow.remove();
   });
 
   it('Given the default options, when started, then the bundled steps drive it', () => {

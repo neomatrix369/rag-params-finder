@@ -8,8 +8,8 @@
  *
  * Author: RAG Params Finder contributors
  * Created: 2026-11-05
- * Scope: SLICE-56 Part C2 - Space=pause, <-/->=back/next, Esc=exit; manual Next is the default,
- *        Autoplay is OFF by default and advances by each step's duration_s when on.
+ * Scope: SLICE-56 Part C2 - <-/->=back/next, Esc=exit; auto-advance always on, clicking the real
+ *        app button for the step that needs one (leaderboard Select).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { WALKTHRU_STEPS, type WalkthruStep } from './steps';
@@ -20,15 +20,11 @@ export interface Walkthru {
   total: number;
   /** Current step, or undefined before start / with no steps. */
   step: WalkthruStep | undefined;
-  paused: boolean;
-  autoplay: boolean;
   isFirst: boolean;
   isLast: boolean;
   start: () => void;
   next: () => void;
   back: () => void;
-  togglePause: () => void;
-  setAutoplay: (on: boolean) => void;
   exit: () => void;
 }
 
@@ -38,13 +34,13 @@ export interface UseWalkthruOptions {
   onExit?: () => void;
 }
 
-/** Elements whose own Space activation (click) must not be hijacked by the pause shortcut. */
-function isActivationTarget(el: EventTarget | null): boolean {
-  if (!(el instanceof HTMLElement)) return false;
-  const tag = el.tagName;
-  if (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY') return true;
-  return el.getAttribute('role') === 'button';
-}
+/**
+ * CSS selector to click on the real app UI before advancing from a given step.
+ * null means no click — just advance after durationS.
+ */
+const STEP_CLICK: Partial<Record<string, string>> = {
+  leaderboard: '[data-suggested="true"] button',
+};
 
 /** True while a modal dialog (e.g. the About box) is open and should own Esc itself. */
 function modalDialogOpen(): boolean {
@@ -58,8 +54,6 @@ export function useWalkthru(options: UseWalkthruOptions = {}): Walkthru {
 
   const [active, setActive] = useState(false);
   const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [autoplay, setAutoplayState] = useState(false); // OFF by default
 
   const total = steps.length;
   // eslint-disable-next-line security/detect-object-injection -- index is a clamped number state
@@ -69,8 +63,6 @@ export function useWalkthru(options: UseWalkthruOptions = {}): Walkthru {
 
   const start = useCallback(() => {
     setIndex(0);
-    setPaused(false);
-    setAutoplayState(false);
     setActive(true);
   }, []);
 
@@ -82,24 +74,24 @@ export function useWalkthru(options: UseWalkthruOptions = {}): Walkthru {
     setIndex((i) => Math.max(0, i - 1));
   }, []);
 
-  const togglePause = useCallback(() => setPaused((p) => !p), []);
-  const setAutoplay = useCallback((on: boolean) => setAutoplayState(on), []);
-
   const exit = useCallback(() => {
     setActive(false);
-    setPaused(false);
-    setAutoplayState(false);
     onExitRef.current?.();
   }, []);
 
-  // Auto-advance: only while active, Autoplay on, not paused and not on the last step.
+  // Auto-advance: always on. Click the real app button for the step (if any), then advance.
   useEffect(() => {
-    if (!active || !autoplay || paused || isLast || step === undefined) return undefined;
-    const timer = setTimeout(next, step.durationS * 1000);
+    if (!active || step === undefined) return undefined;
+    const selector = STEP_CLICK[step.id] ?? null;
+    const timer = setTimeout(() => {
+      if (selector) document.querySelector<HTMLElement>(selector)?.click();
+      if (isLast) exit();
+      else next();
+    }, step.durationS * 1000);
     return () => clearTimeout(timer);
-  }, [active, autoplay, paused, isLast, index, step, next]);
+  }, [active, index, step, isLast, next, exit]);
 
-  // Keyboard: Space pause, <-/-> back/next, Esc exit. Ignored inside form controls.
+  // Keyboard: <-/-> back/next, Esc exit. Ignored inside form controls.
   useEffect(() => {
     if (!active) return undefined;
     const onKey = (event: KeyboardEvent): void => {
@@ -117,31 +109,22 @@ export function useWalkthru(options: UseWalkthruOptions = {}): Walkthru {
       } else if (event.key === 'ArrowLeft') {
         event.preventDefault();
         back();
-      } else if (event.key === ' ') {
-        // Space activates a focused button/link/summary; don't hijack it into pause there.
-        if (isActivationTarget(el)) return;
-        event.preventDefault();
-        togglePause();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [active, exit, next, back, togglePause]);
+  }, [active, exit, next, back]);
 
   return {
     active,
     index,
     total,
     step,
-    paused,
-    autoplay,
     isFirst,
     isLast,
     start,
     next,
     back,
-    togglePause,
-    setAutoplay,
     exit,
   };
 }
