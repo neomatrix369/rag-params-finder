@@ -8,6 +8,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import InfoTip from './InfoTip';
+import { normalizeIds } from '../../test/helpers/normalizeIds';
 
 describe('InfoTip', () => {
   it('Given a tip, when rendered, then the button points at the hidden tip via aria-describedby', () => {
@@ -24,7 +25,7 @@ describe('InfoTip', () => {
     expect(button).toHaveAttribute('aria-describedby', tip.id);
     expect(tip).toHaveTextContent('Grid = models x sizes');
     expect(tip).not.toBeVisible();
-    expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(button).not.toHaveAttribute('aria-expanded');
   });
 
   it('Given a closed tip, when tapped twice, then it opens and closes', () => {
@@ -40,7 +41,7 @@ describe('InfoTip', () => {
     fireEvent.click(button);
     // -- Then --
     expect(screen.getByRole('tooltip')).toBeVisible();
-    expect(button).toHaveAttribute('aria-expanded', 'true');
+    expect(button).toHaveAttribute('aria-describedby', screen.getByRole('tooltip').id);
 
     // -- When --
     fireEvent.click(button);
@@ -127,7 +128,8 @@ describe('InfoTip', () => {
      * Scenario: No duplicate screen-reader announcement.
      * Slice: 67C — InfoTip
      * The tip is read once through aria-describedby: the button name must not repeat it and the
-     * tip must not be a live region.
+     * tip must not be a live region. The actual double read by assistive technology is not
+     * observable in jsdom; this is checked structurally only (one node, no live region, short name).
      */
     // -- Given / When --
     const { container } = render(<InfoTip label="About Total">Grid = 12</InfoTip>);
@@ -169,11 +171,44 @@ describe('InfoTip', () => {
     );
     // -- When --
     const first = render(tree);
-    const a = first.container.innerHTML;
+    const a = normalizeIds(first.container.innerHTML);
     first.unmount();
-    const b = render(tree).container.innerHTML;
+    const b = normalizeIds(render(tree).container.innerHTML);
     // -- Then --
     expect(b).toBe(a);
+  });
+
+  it('Given the trigger, when reached by keyboard, then it is tabbable, focusable and toggles on Enter and Space', () => {
+    /**
+     * Scenario: Keyboard path Tab, Enter/Space, Escape.
+     * Slice: 67C — InfoTip
+     * user-event is not a dependency, and jsdom does not turn Enter/Space keydown into a click, so
+     * native activation cannot be simulated. We assert what makes it work in browsers: a native
+     * <button type="button"> that is in the tab order (tabIndex >= 0), focusable, and whose click
+     * (what Enter/Space dispatch) toggles the tip; Escape then closes it.
+     */
+    // -- Given --
+    render(<InfoTip label="About Total">Explained</InfoTip>);
+    const button = screen.getByRole('button', { name: 'About Total' });
+    // -- When --
+    button.focus();
+    // -- Then --
+    expect(button.tagName).toBe('BUTTON');
+    expect(button).toHaveAttribute('type', 'button');
+    expect(button.tabIndex).toBeGreaterThanOrEqual(0);
+    expect(button).not.toBeDisabled();
+    expect(document.activeElement).toBe(button);
+
+    // -- When (Enter / Space activate a native button by dispatching click) --
+    fireEvent.click(button);
+    // -- Then --
+    expect(screen.getByRole('tooltip')).toBeVisible();
+
+    // -- When --
+    fireEvent.keyDown(button, { key: 'Escape' });
+    // -- Then --
+    expect(screen.getByRole('tooltip', { hidden: true })).not.toBeVisible();
+    expect(document.activeElement).toBe(button);
   });
 
   it('Given two tips, when rendered, then their ids differ', () => {
@@ -194,52 +229,82 @@ describe('InfoTip', () => {
     expect(a.id).not.toBe(b.id);
   });
 
-  describe('viewport clamping', () => {
+  describe('viewport clamping and dismissal on resize', () => {
     afterEach(() => {
       vi.restoreAllMocks();
     });
 
-    const openWithTipRect = (left: number, right: number) => {
+    // Tip rect as a browser reports it: the applied translateX moves it by `applied`.
+    const mockTipRect = (left: number, right: number) => {
       vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
         const isTip = this.getAttribute('role') === 'tooltip';
-        return { left: isTip ? left : 0, right: isTip ? right : 0, top: 0, bottom: 0, width: right - left, height: 0, x: left, y: 0, toJSON: () => ({}) };
+        const m = /\+ (-?\d+)px/.exec(this.style.transform);
+        const applied = isTip && m ? Number(m[1]) : 0;
+        const l = isTip ? left + applied : 0;
+        const r = isTip ? right + applied : 0;
+        return { left: l, right: r, top: 0, bottom: 0, width: r - l, height: 0, x: l, y: 0, toJSON: () => ({}) };
       });
-      render(<InfoTip label="About Total">Explained</InfoTip>);
-      fireEvent.click(screen.getByRole('button', { name: 'About Total' }));
-      return screen.getByRole('tooltip');
     };
 
-    it('Given a tip overflowing the left edge, when opened, then it is shifted right to an 8 px margin', () => {
+    it('Given a tip overflowing the left edge, when opened, then the clamp nudges it into view', () => {
       /**
-       * Scenario: A tile at the left edge of a 390 px screen must not clip its tip.
+       * Scenario: Integration of the effect with clampShift (unit-tested in infoTipUtils.test.ts).
        * Slice: 67C — InfoTip
+       * jsdom innerWidth is 1024; the tip would sit at -60..196, so it is shifted right by 68.
        */
-      // -- Given / When --
-      const tip = openWithTipRect(-60, 196);
+      // -- Given --
+      mockTipRect(-60, 196);
+      render(<InfoTip label="About Total">Explained</InfoTip>);
+      // -- When --
+      fireEvent.click(screen.getByRole('button', { name: 'About Total' }));
       // -- Then --
-      expect(tip.style.transform).toBe('translateX(calc(-50% + 68px))');
+      expect(screen.getByRole('tooltip').style.transform).toBe('translateX(calc(-50% + 68px))');
     });
 
-    it('Given a tip overflowing the right edge, when opened, then it is shifted left to an 8 px margin', () => {
+    it('Given a nudged tip, when toggled repeatedly, then the nudge is never applied twice', () => {
       /**
-       * Scenario: A tile at the right edge must not clip its tip.
+       * Scenario: Idempotent measurement (the measured rect already includes the applied shift).
        * Slice: 67C — InfoTip
        */
-      // -- Given / When --
-      const tip = openWithTipRect(900, 1156);
+      // -- Given --
+      mockTipRect(-60, 196);
+      render(<InfoTip label="About Total">Explained</InfoTip>);
+      const button = screen.getByRole('button', { name: 'About Total' });
+      // -- When --
+      fireEvent.click(button);
+      fireEvent.click(button);
+      fireEvent.click(button);
       // -- Then --
-      expect(tip.style.transform).toBe(`translateX(calc(-50% + ${window.innerWidth - 8 - 1156}px))`);
+      expect(screen.getByRole('tooltip').style.transform).toBe('translateX(calc(-50% + 68px))');
     });
 
-    it('Given a tip fully inside the viewport, when opened, then it is not shifted', () => {
+    it('Given a tip that fits, when opened, then it is not shifted', () => {
       /**
        * Scenario: No nudge when there is room.
        * Slice: 67C — InfoTip
        */
-      // -- Given / When --
-      const tip = openWithTipRect(100, 356);
+      // -- Given --
+      mockTipRect(100, 356);
+      render(<InfoTip label="About Total">Explained</InfoTip>);
+      // -- When --
+      fireEvent.click(screen.getByRole('button', { name: 'About Total' }));
       // -- Then --
-      expect(tip.style.transform).toBe('translateX(calc(-50% + 0px))');
+      expect(screen.getByRole('tooltip').style.transform).toBe('translateX(calc(-50% + 0px))');
+    });
+
+    it.each(['resize', 'orientationchange'])('Given an open tip, when %s fires, then it closes', (name) => {
+      /**
+       * Scenario: A stale position is never shown after the viewport changes; the tip closes.
+       * Slice: 67C — InfoTip
+       */
+      // -- Given --
+      render(<InfoTip label="About Total">Explained</InfoTip>);
+      fireEvent.click(screen.getByRole('button', { name: 'About Total' }));
+      expect(screen.getByRole('tooltip')).toBeVisible();
+      // -- When --
+      fireEvent(window, new Event(name));
+      // -- Then --
+      expect(screen.getByRole('tooltip', { hidden: true })).not.toBeVisible();
     });
   });
 });

@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { clampShift } from './infoTipUtils';
 
-const VIEWPORT_MARGIN = 8;
-
-type InfoTipProps = {
+export type InfoTipProps = {
   /** Accessible name of the trigger (short, e.g. "About Total"); the tip text is NOT repeated in it. */
   label: string;
   children: ReactNode;
@@ -14,6 +13,8 @@ type InfoTipProps = {
 /**
  * Dependency-free explain affordance (Slice 67C). A native button toggles a tip that stays in the
  * DOM and is linked via aria-describedby, so assistive tech reads it once (no live region).
+ * Tooltip pattern: no aria-expanded on the trigger. The tip closes on Escape, outside tap, resize
+ * and orientation change.
  */
 export default function InfoTip({ label, children, className = '', id }: InfoTipProps) {
   const [open, setOpen] = useState(false);
@@ -22,6 +23,7 @@ export default function InfoTip({ label, children, className = '', id }: InfoTip
   const rootRef = useRef<HTMLSpanElement>(null);
   const tipRef = useRef<HTMLSpanElement>(null);
   const [shift, setShift] = useState(0);
+  const shiftRef = useRef(0);
 
   const toggle = useCallback(() => setOpen((prev) => !prev), []);
 
@@ -29,34 +31,44 @@ export default function InfoTip({ label, children, className = '', id }: InfoTip
     if (event.key === 'Escape') setOpen(false);
   }, []);
 
-  // Keep the tip inside the viewport (8 px margin): measure once per open at shift 0, then nudge.
+  // Thin shell around clampShift. The measured rect already includes the applied shift, so subtract
+  // it to get the untransformed position: re-running the effect can never double-apply the nudge.
   useLayoutEffect(() => {
-    if (!open || !tipRef.current) {
-      setShift(0);
-      return;
+    const tip = tipRef.current;
+    let next = 0;
+    if (open && tip) {
+      const { left, right } = tip.getBoundingClientRect();
+      const applied = shiftRef.current;
+      next = clampShift({ left: left - applied, right: right - applied }, window.innerWidth);
     }
-    const { left, right } = tipRef.current.getBoundingClientRect();
-    if (left < VIEWPORT_MARGIN) setShift(VIEWPORT_MARGIN - left);
-    else if (right > window.innerWidth - VIEWPORT_MARGIN) setShift(window.innerWidth - VIEWPORT_MARGIN - right);
+    shiftRef.current = next;
+    setShift(next);
   }, [open]);
 
   useEffect(() => {
     if (!open) return undefined;
+    const close = () => setOpen(false);
     const onOutside = (event: PointerEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) close();
     };
     document.addEventListener('pointerdown', onOutside);
-    return () => document.removeEventListener('pointerdown', onOutside);
+    window.addEventListener('resize', close);
+    window.addEventListener('orientationchange', close);
+    return () => {
+      document.removeEventListener('pointerdown', onOutside);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('orientationchange', close);
+    };
   }, [open]);
 
   return (
-    <span ref={rootRef} className={`relative inline-flex ${className}`} onKeyDown={onKeyDown}>
+    <span ref={rootRef} className={`relative inline-flex ${className}`}>
       <button
         type="button"
         onClick={toggle}
+        onKeyDown={onKeyDown}
         aria-label={label}
         aria-describedby={tipId}
-        aria-expanded={open}
         className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
       >
         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
