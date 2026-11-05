@@ -4,7 +4,7 @@
  * Scope: Slice 67A — pure builders for the Cartesian "configurations" formula line.
  */
 import { describe, expect, it } from 'vitest';
-import { formulaProduct, pluralize, sweepFormulaFromSummary } from './sweepFormula';
+import { BAYESIAN_SWEEP_NOTE, formulaProduct, pluralize, sweepFormulaFromSummary, sweepNote } from './sweepFormula';
 
 describe('pluralize', () => {
   it('Given a count of 1, when pluralized, then the singular label is kept', () => {
@@ -137,5 +137,40 @@ describe('formulaProduct', () => {
     // -- When / Then --
     expect(formulaProduct([{ count: 2, label: 'a' }, { count: 3, label: 'b' }])).toBe(6);
     expect(formulaProduct([])).toBe(1);
+  });
+});
+
+describe('determinism', () => {
+  it('Given the same summary, when built twice, then both formulas are deeply equal', () => {
+    /**
+     * Scenario: numbers and explanations are pure functions of their input.
+     * Slice: 67 — standing requirement: deterministic numbers and explanations.
+     */
+    // -- Given --
+    const summary = {
+      models: ['m'],
+      chunking_methods: ['a', 'b'],
+      chunk_sizes: [1, 2, 3],
+      overlaps: [0],
+      retrievers: ['dense', 'hybrid'],
+    };
+
+    // -- When --
+    const first = sweepFormulaFromSummary(summary);
+    const second = sweepFormulaFromSummary(structuredClone(summary));
+
+    // -- Then --
+    expect(second).toEqual(first);
+  });
+
+  it('Given a strategy, when the note is requested, then only Bayesian has one and it is the fixed sentence', () => {
+    /**
+     * Scenario: the explanation is a fixed string chosen by strategy, never assembled at render time.
+     * Slice: 67 — deterministic explanations.
+     */
+    // -- When / Then --
+    expect(sweepNote('bayesian')).toBe(BAYESIAN_SWEEP_NOTE);
+    expect(sweepNote('grid')).toBeNull();
+    expect(sweepNote(undefined)).toBeNull();
   });
 });

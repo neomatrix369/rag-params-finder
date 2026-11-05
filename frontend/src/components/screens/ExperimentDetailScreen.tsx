@@ -18,7 +18,7 @@ import ConfirmDeleteModal from '../experiment/ConfirmDeleteModal';
 import CollapsibleCard from '../chrome/CollapsibleCard';
 import Pagination from '../chrome/Pagination';
 import FormulaLine from '../chrome/FormulaLine';
-import { sweepFormulaFromSummary } from '../../utils/sweepFormula';
+import { sweepFormulaFromSummary, sweepNote } from '../../utils/sweepFormula';
 import {
   detailIcons as icons,
   DimensionBadge,
@@ -577,9 +577,9 @@ export default function ExperimentDetailScreen({
               headerExtra={
                 <span className="text-sm font-semibold text-accent-strong">
                   <FormulaLine {...sweepFormulaFromSummary(detail.sweep_summary)} />
-                  {isBayesianStrategy && (
+                  {sweepNote(detail.config?.execution?.search_strategy) && (
                     <span className="block text-xs font-normal text-muted">
-                      Bayesian: varies chunk size × overlap only; uses the first model, method, padding and retriever. The grid above is not run in full.
+                      {sweepNote(detail.config?.execution?.search_strategy)}
                     </span>
                   )}
                 </span>

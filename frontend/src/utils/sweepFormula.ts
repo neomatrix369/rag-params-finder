@@ -47,3 +47,12 @@ export function sweepFormulaFromSummary(summary: SweepFormulaSource): SweepFormu
   ];
   return { terms, unit: 'configuration' };
 }
+
+/** Fixed explanation of what a Bayesian sweep actually runs; the grid product is not run in full. */
+export const BAYESIAN_SWEEP_NOTE =
+  'Bayesian: varies chunk size × overlap only; uses the first model, method, padding and retriever. The grid above is not run in full.';
+
+/** The note that qualifies the formula for a search strategy, or null when the grid runs in full. */
+export function sweepNote(strategy: 'grid' | 'bayesian' | undefined): string | null {
+  return strategy === 'bayesian' ? BAYESIAN_SWEEP_NOTE : null;
+}

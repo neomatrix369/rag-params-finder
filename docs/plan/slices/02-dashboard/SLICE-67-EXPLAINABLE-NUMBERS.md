@@ -29,6 +29,8 @@ Audit findings that justify the slice (code-verified on 2026-11-05):
 | F | Bayesian cards do not add up to Total (Discarded is not a run) | `ExperimentDetailScreen.tsx:405-427` |
 | G | Compare and Walkthru: a lone-run group scores 100.0; silent dedup; the score label hides max-not-average; stats tiles differ per backend; MB estimate unlabeled | `CrossStoreLeaderboard.tsx`, `VectorDbStatsPanel.tsx` |
 
+**Determinism rule (standing, all sub-slices):** every number and every explanation sentence is produced by a named pure function of its inputs (no clock, randomness, I/O, environment, or model-generated text; fixed templates plus numbers; stable ordering). Screens render these values and never compute counts in JSX. Enforced by `frontend/src/utils/deterministicNumbers.guard.test.ts` (extend its module list as helpers land) and, on the backend, by tests that call `sweep_plan()` repeatedly and with equivalent inputs.
+
 Vocabulary decision: **run** = executed · **planned runs** = expected · **configuration** = a distinct parameter set (sweep header) · **trial** = Bayesian only. "Combination" is retired; one glossary in the UI.
 
 ## Non-goals
