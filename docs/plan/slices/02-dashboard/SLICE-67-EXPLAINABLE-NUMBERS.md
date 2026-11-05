@@ -66,10 +66,10 @@ Vocabulary decision: **run** = executed · **planned runs** = expected · **conf
 
 **Oracle (GWT):**
 
-- Given an experiment with 1×5×3×2×1×4 dimensions, When the Detail screen renders, Then the header reads `1 model × 5 chunking methods × 3 sizes × 2 overlaps × 1 padding × 4 retrievers = 120 configurations` and equals the Total tile.
+- Given an experiment with 1×5×3×2×1×4 dimensions, When the Detail screen renders, Then the header reads `1 model × 5 chunking methods × 3 sizes × 2 overlaps × 1 padding × 4 retrievers = 120 configurations` and equals the Total tile. *(67A asserts this for grid sweeps, where Total = `run_count`. Bayesian Total/trial sums are 67D, finding F.)*
 - Given `paddings: []`, When it renders, Then the padding factor is 1, never 0.
 - Given a Bayesian experiment, When it renders, Then the header carries the "varies chunk size × overlap only" note.
-- For every `FormulaLine` fixture, the product of the terms equals the displayed total.
+- For every `FormulaLine` fixture **with a derived total** (no `observedTotal`), the product of the terms equals the displayed total. An `observedTotal` that differs from the product renders as `(observed)`, never as a false `=`. *(Amended 2026-11-05 after 67A review: the Explorer still passes an observed count until 67D, which removes the prop.)*
 
 ### 67B · Backend single source of truth (Must, ~6–8 h)
 
@@ -146,11 +146,10 @@ README (unchanged unless UI described), `docs/user-guide/dashboard-guide.md` (ex
 | Detail | Total / Successful / Failed / Interrupted / Not started / In progress | `utils/experimentStatus.ts` | ✅ grid, ❌ Bayesian sums | 67D |
 | Detail | Duration, progress %, ETA | `experimentDetailProgress.ts` | ⚠️ ignores failed and interrupted | 67D |
 | Detail | Bayesian summary "X/Y trials" | `ExperimentDetailScreen.tsx:624` | ⚠️ `run_count` over `grid_equivalent_count` | 67D |
-| List | "N experiments" header, "N runs configured", RUNS, "N failed", Bayesian counts | `ExperimentsScreen.tsx:381,520,563` | ⚠️ planned vs executed, double subtraction | 67D |
+| List | "N experiments" header (e.g. "120 experiments" = stored experiments, not runs), pagination ("Showing X–Y of N", page size), "N runs configured", RUNS, "N failed", Bayesian counts | `ExperimentsScreen.tsx:381,520,563` | ⚠️ planned vs executed, double subtraction | 67D |
 | Explorer | "(N total configurations)" and the Cartesian line | `ExplorePanels.tsx` | ⚠️ now rendered by shared `FormulaLine` (67A); still observed from completed configs, not planned | 67D |
 | Explorer | tied count, score %, per-query counts, `top_k` | `ExplorePanels.tsx` | ⚠️ two definitions, unexplained normalisation | 67D |
 | Stats | Experiments, Query Results, DB Used, Chunks (Est.), MB | `VectorDbStatsPanel.tsx`, `ExperimentStoredFootprint.tsx` | ⚠️ scope and estimate unlabeled | 67D |
 | Compare | Similarity score, Rank, overlap note, dedup | `CrossStoreLeaderboard.tsx` | ⚠️ lone run = 100, silent dedup | 67D |
 | Walkthru | Improvement percentages, "across N runs" | `ImprovementPanel.tsx` | ⚠️ baseline unstated, primary store only | 67D |
-| List | "120 experiments" header count and pagination ("Showing X–Y of N", page size) | `ExperimentsScreen.tsx`, `chrome/Pagination.tsx` | ⚠️ total of stored experiments vs. filtered/visible rows is unlabeled | 67D |
 | Detail | Sweep Dimensions chips (models, methods, sizes, overlaps, paddings, retrievers) | `ExperimentDetailScreen.tsx` `DimensionBadge` | ✅ values listed; counts now in the formula line | 67A |

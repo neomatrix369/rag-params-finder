@@ -40,7 +40,7 @@ describe('sweepFormulaFromSummary', () => {
 
     // -- Then --
     expect(formula.terms.map((t) => t.count)).toEqual([1, 5, 3, 2, 1, 4]);
-    expect(formula.total).toBe(120);
+    expect(formulaProduct(formula.terms)).toBe(120);
     expect(formula.unit).toBe('configuration');
   });
 
@@ -63,8 +63,8 @@ describe('sweepFormulaFromSummary', () => {
     const formula = sweepFormulaFromSummary(summary);
 
     // -- Then --
-    expect(formula.terms[4]).toEqual({ count: 1, label: 'padding' });
-    expect(formula.total).toBe(1);
+    expect(formula.terms.find((t) => t.label === 'padding')).toEqual({ count: 1, label: 'padding' });
+    expect(formulaProduct(formula.terms)).toBe(1);
   });
 
   it('Given a legacy summary with retrieval_methods only, when built, then they supply the retriever factor', () => {
@@ -85,8 +85,8 @@ describe('sweepFormulaFromSummary', () => {
     const formula = sweepFormulaFromSummary(summary);
 
     // -- Then --
-    expect(formula.terms[5].count).toBe(2);
-    expect(formula.total).toBe(4);
+    expect(formula.terms.find((t) => t.label === 'retriever')?.count).toBe(2);
+    expect(formulaProduct(formula.terms)).toBe(4);
   });
 
   it('Given neither retrievers nor retrieval_methods, when built, then one default dense retriever is assumed', () => {
@@ -101,8 +101,30 @@ describe('sweepFormulaFromSummary', () => {
     const formula = sweepFormulaFromSummary(summary);
 
     // -- Then --
-    expect(formula.terms[5]).toEqual({ count: 1, label: 'retriever' });
-    expect(formula.total).toBe(1);
+    expect(formula.terms.find((t) => t.label === 'retriever')).toEqual({ count: 1, label: 'retriever' });
+    expect(formulaProduct(formula.terms)).toBe(1);
+  });
+
+  it('Given an empty retrievers list and legacy retrieval_methods, when built, then the legacy list supplies the factor', () => {
+    /**
+     * Scenario: `[] ?? x` would keep the empty list and under-count; the backend migrates legacy methods.
+     * Slice: 67A — empty retrievers fallback.
+     */
+    // -- Given --
+    const summary = {
+      models: ['m'],
+      chunking_methods: ['a'],
+      chunk_sizes: [1],
+      overlaps: [0],
+      retrievers: [] as string[],
+      retrieval_methods: ['dense', 'sparse'],
+    };
+
+    // -- When --
+    const formula = sweepFormulaFromSummary(summary);
+
+    // -- Then --
+    expect(formula.terms.find((t) => t.label === 'retriever')?.count).toBe(2);
   });
 });
 

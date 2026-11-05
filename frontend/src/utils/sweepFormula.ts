@@ -1,3 +1,5 @@
+import type { SweepSummary } from '../types';
+
 /**
  * Pure builders for the Cartesian "configurations" formula line (Slice 67A).
  * Mirrors `expand_sweep`: paddings [] → [0], no retrievers → one dense retriever.
@@ -10,21 +12,16 @@ export interface FormulaTerm {
 
 export interface SweepFormula {
   terms: FormulaTerm[];
-  total: number;
-  /** Singular unit of the total, e.g. "configuration". */
+  /** Singular unit of the product, e.g. "configuration". */
   unit: string;
 }
 
-export interface SweepFormulaSource {
-  models: unknown[];
-  chunking_methods: unknown[];
-  chunk_sizes: unknown[];
-  overlaps: unknown[];
-  paddings?: unknown[];
-  retrievers?: unknown[];
-  retrieval_methods?: unknown[];
-}
+export type SweepFormulaSource = Pick<
+  SweepSummary,
+  'models' | 'chunking_methods' | 'chunk_sizes' | 'overlaps' | 'paddings' | 'retrievers' | 'retrieval_methods'
+>;
 
+/** Regular plurals only (adds "s"); every current label fits. */
 export function pluralize(count: number, label: string): string {
   return `${count} ${label}${count === 1 ? '' : 's'}`;
 }
@@ -35,6 +32,10 @@ export function formulaProduct(terms: FormulaTerm[]): number {
 
 const atLeastOne = (items: unknown[] | undefined): number => items?.length || 1;
 
+/** An empty `retrievers` falls back to the legacy list, like the backend's migration. */
+const retrieverList = (summary: SweepFormulaSource): unknown[] | undefined =>
+  summary.retrievers?.length ? summary.retrievers : summary.retrieval_methods;
+
 export function sweepFormulaFromSummary(summary: SweepFormulaSource): SweepFormula {
   const terms: FormulaTerm[] = [
     { count: summary.models.length, label: 'model' },
@@ -42,7 +43,7 @@ export function sweepFormulaFromSummary(summary: SweepFormulaSource): SweepFormu
     { count: summary.chunk_sizes.length, label: 'size' },
     { count: summary.overlaps.length, label: 'overlap' },
     { count: atLeastOne(summary.paddings), label: 'padding' },
-    { count: atLeastOne(summary.retrievers ?? summary.retrieval_methods), label: 'retriever' },
+    { count: atLeastOne(retrieverList(summary)), label: 'retriever' },
   ];
-  return { terms, total: formulaProduct(terms), unit: 'configuration' };
+  return { terms, unit: 'configuration' };
 }

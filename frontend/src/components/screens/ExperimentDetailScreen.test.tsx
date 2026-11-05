@@ -898,6 +898,7 @@ describe('ExperimentDetailScreen sweep-dimensions rendering', () => {
      */
     // -- Given --
     const fixture = detailFixture('complete', [Phase.COMPLETE], {
+      run_count: 120,
       sweep_summary: {
         database_provider: 'mongodb',
         embedding_provider: 'voyage',
@@ -918,9 +919,13 @@ describe('ExperimentDetailScreen sweep-dimensions rendering', () => {
     await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
 
     // -- Then --
-    expect(screen.getByTestId('formula-line')).toHaveTextContent(
-      '1 model × 5 chunking methods × 3 sizes × 2 overlaps × 1 padding × 4 retrievers = 120 configurations',
-    );
+    expect(
+      screen.getByText(
+        '1 model × 5 chunking methods × 3 sizes × 2 overlaps × 1 padding × 4 retrievers = 120 configurations',
+      ),
+    ).toBeInTheDocument();
+    const totalTile = screen.getByText('Total').previousElementSibling;
+    expect(totalTile).toHaveTextContent('120');
     expect(screen.queryByText(/Bayesian: varies chunk size/)).not.toBeInTheDocument();
   });
 
@@ -952,9 +957,12 @@ describe('ExperimentDetailScreen sweep-dimensions rendering', () => {
     await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
 
     // -- Then --
-    expect(screen.getByTestId('formula-line')).toHaveTextContent('1 padding');
-    expect(screen.getByTestId('formula-line')).toHaveTextContent('= 2 configurations');
-    expect(screen.getByText(/Bayesian: varies chunk size × overlap only/)).toBeInTheDocument();
+    expect(screen.getByText(/× 1 padding × 1 retriever = 2 configurations/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Bayesian: varies chunk size × overlap only; uses the first model, method, padding and retriever\./,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('Given a legacy sweep summary without unified retrievers, when rendered, then the retrieval-method fallback badges appear', async () => {

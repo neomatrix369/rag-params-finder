@@ -229,7 +229,6 @@ export default function ExperimentDetailScreen({
 
   const runSummary = summarizeExperimentRuns(detail.runs, detail.run_count);
   const isBayesianStrategy = detail.config?.execution?.search_strategy === 'bayesian';
-  const sweepFormula = detail.sweep_summary ? sweepFormulaFromSummary(detail.sweep_summary) : null;
   const bayesianSummary = detail.bayesian_summary;
   const bayesianPlannedTrials = isBayesianStrategy && typeof bayesianSummary?.planned_trials === 'number'
     ? bayesianSummary.planned_trials
@@ -569,7 +568,7 @@ export default function ExperimentDetailScreen({
         )}
 
         {/* Sweep Dimensions - Visual Grid */}
-        {detail?.sweep_summary && sweepFormula && (
+        {detail?.sweep_summary && (
           <div className="mb-6 rounded-panel border border-line bg-paper p-5 shadow-panel">
             <CollapsibleCard
               title="Sweep Dimensions"
@@ -577,10 +576,10 @@ export default function ExperimentDetailScreen({
               storageKey={`detail-sweep-${experimentId}`}
               headerExtra={
                 <span className="text-sm font-semibold text-accent-strong">
-                  <FormulaLine unit={sweepFormula.unit} terms={sweepFormula.terms} total={sweepFormula.total} />
+                  <FormulaLine {...sweepFormulaFromSummary(detail.sweep_summary)} />
                   {isBayesianStrategy && (
                     <span className="block text-xs font-normal text-muted">
-                      Bayesian: varies chunk size × overlap only; uses the first model, method, padding and retriever.
+                      Bayesian: varies chunk size × overlap only; uses the first model, method, padding and retriever. The grid above is not run in full.
                     </span>
                   )}
                 </span>

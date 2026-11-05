@@ -375,7 +375,7 @@ export function HyperparametersTab({ data }: { data: ExploreResponse }) {
                 <strong>Cartesian product:</strong>{' '}
                 <FormulaLine
                   unit="configuration"
-                  total={totalConfigs}
+                  observedTotal={totalConfigs}
                   terms={[
                     { count: uniqueModels.length, label: 'model' },
                     { count: uniqueChunking.length, label: 'chunking method' },
