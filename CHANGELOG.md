@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Slice 67B — one backend source for sweep counts** — `GET /experiments/{id}` now carries `sweep_plan` (dimension counts, full grid count, Bayesian search space, planned runs, warnings), computed on read from the stored config so old experiments need no backfill.
+  - New pure `sweep_plan()` beside `expand_sweep` in `server/models/config.py`; `full_grid_count` equals `len(expand_sweep(config))` without building the grid.
+  - A failure while computing the plan never fails the read; it is logged once per experiment.
+  - `grid_equivalent_count` keeps its meaning (the Bayesian sampler's control variable).
+  (**IMPLEMENTED** on branch `slice/67b-sweep-plan`; the dashboard does not use it yet, that is 67D.)
 - **Slice 67C — reusable info tip for explaining numbers** — new dependency-free `InfoTip` (a native button with `aria-describedby`, tap, Escape and outside-press to close, 44 px target, kept inside the viewport) and an `explain` prop on `StatTile`, `StatCard` and `CollapsibleCard`.
   - `StatTile` hints that were always-visible text are now behind the info button (tap to reveal).
   - Nothing renders `explain` yet; the screens adopt it in 67D.

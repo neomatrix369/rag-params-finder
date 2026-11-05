@@ -1,4 +1,4 @@
-import type { EnvParams, ExperimentStatus, RunStatus, SweepSummary } from '../../../types';
+import type { EnvParams, ExperimentStatus, RunStatus, SweepPlan, SweepSummary } from '../../../types';
 import { Phase } from '../../../types';
 
 export interface ExperimentDetail {
@@ -41,6 +41,7 @@ export interface ExperimentDetail {
   parallelism?: number;
   on_error?: string;
   sweep_summary?: SweepSummary;
+  sweep_plan?: SweepPlan;
   config?: {
     embedding?: {
       provider?: string;

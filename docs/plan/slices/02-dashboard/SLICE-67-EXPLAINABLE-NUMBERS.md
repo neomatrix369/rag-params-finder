@@ -83,7 +83,8 @@ Vocabulary decision: **run** = executed · **planned runs** = expected · **conf
 
 **Oracle (GWT):**
 
-- Property test: `total_configurations == len(expand_sweep(cfg))` (empty paddings, duplicate retrievers, rerankers).
+- Exhaustive parametrized table: `sweep_plan(cfg)["full_grid_count"] == len(expand_sweep(cfg))` over the cross-product of {1, 2} models × {1, 2, 3} chunking methods × {1, 3} chunk sizes × {1, 2} overlaps × {`[0]`, `[]`, `[0, 10]`} paddings × four retriever shapes (duplicate dense, dense plus reranker, two rerankers), 288 cases, with `expand_sweep` as the independent oracle and every axis varying so dropping any factor fails. Each axis is a closed finite domain, so a table (not a generator) is the right paradigm. *(Amended 2026-11-05 after review: was worded "property test".)*
+- Given the detail endpoint and a stored experiment lacking the new fields, When `GET /experiments/{id}` is called, Then the response carries `sweep_plan` and `sweep_summary.retrievers`, and a failure inside the plan computation never fails the read. *(Added after review: the endpoint wiring must have its own falsifier.)*
 - Given `n_trials` larger than `sizes × overlaps`, the Bayesian stop condition behaves as today.
 - Given an old stored experiment without the new fields, the read path returns a correct `sweep_plan`.
 - Existing `test_bayesian_finalise.py` and the storage contract tests still pass untouched.
@@ -125,9 +126,14 @@ Recorded after execution began, so the plan matches what was built and decided. 
 - Verification so far: full `quality-gates.sh` green; real-browser check on a real 1×5×3×2×1×4 sweep (header = `120 configurations` = Total tile, no sideways overflow at 1280 px and 390 px); two independent reviews, acceptance reviewer APPROVED, code-quality re-review pending.
 - Open suggestions taken into the 67D backlog: a test that the Explorer renders the `(observed)` line; widen the guard's impurity patterns and derive its module lists from a glob.
 
-### 67B — in progress
+### 67B — implemented on branch `slice/67b-sweep-plan`, four reviews approved
 
-Not yet reported. Determinism requirement given to the agent: `sweep_plan()` and its warnings are pure, stable ordering, with tests that call it repeatedly and with equivalent inputs.
+- `server/models/config.py`: pure `sweep_plan(config)` returning a `SweepPlan` TypedDict (`dimension_counts` in fixed key order, `full_grid_count`, `searchable_space` for Bayesian, `planned_runs`, `search_strategy`, `warnings` from fixed templates with sorted numbers). It multiplies counts and never builds the grid. `resolve_bayesian_n_trials` and `grid_equivalent_count` moved here with unchanged semantics; the orchestrator keeps the `_resolve_bayesian_n_trials` re-export that `test_bayesian_finalise.py` imports. `grid_equivalent_count` (the Bayesian sampler's control variable) is untouched.
+- `server/api/experiments_lifecycle.py`: `attach_sweep_plan(doc)` decorates the detail response in place on read, from `doc["config"]`, so old experiments need no backfill. Added after review: the whole computation sits inside one `except Exception`, a failure leaves the document untouched and logs once per experiment id, and validator warnings are suppressed on the read path. The list endpoint does not attach a plan.
+- Types mirrored (optional) in `frontend/src/types/index.ts` and `experimentDetail/types.ts`.
+- Verification: full `quality-gates.sh` green (1293 backend tests, coverage 76.10%, floors hold); mutation checks (dropping the models or chunking-methods factor fails 241 of 306 tests; removing the attach call fails the endpoint test). Reviews: data flow, system design, acceptance coverage and code quality all APPROVED after one round of changes.
+- Deferred follow-ups (reviewed and accepted): route `create_experiment`'s three `expand_sweep` calls and `_planned_run_count` through `sweep_plan` (one planned-run owner); a lenient counts path for configs that fail validation; share the overlap/padding predicates between the validators and the plan warnings; move the once-per-process log suppression onto `log_throttle`; scope `catch_warnings`; a generated property test; attach the plan on the list endpoint if 67D needs it.
+- Operational note: the log wording for the Bayesian cap changed ("capping" instead of "capping at grid-equivalent"); anything searching logs for the old text stops matching.
 
 ### 67C — implemented on branch `slice/67c-infotip`, reviewed
 

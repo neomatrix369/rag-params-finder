@@ -5,12 +5,19 @@ Extracted from ``server.api.experiments`` (Slice 45 fat-surface slim).
 
 from __future__ import annotations
 
+import warnings
 from datetime import UTC, datetime
 from typing import SupportsInt, cast
 
 from server.core.pipeline.experiment_control import is_sweep_in_flight
 from server.db.ports.store_factory import get_storage_backend
-from server.models.config import ExperimentConfig, expand_sweep
+from server.models.config import (
+    ExperimentConfig,
+    expand_sweep,
+    resolve_bayesian_n_trials,
+    retriever_labels,
+    sweep_plan,
+)
 from server.models.enums import ExperimentStatus, Phase
 from server.utils.logger import get_logger
 
@@ -27,27 +34,50 @@ _TERMINAL_PHASES = frozenset(
 
 def _planned_run_count(config: ExperimentConfig) -> int:
     if config.execution.search_strategy == "bayesian":
-        return _resolve_bayesian_n_trials(config)
+        return resolve_bayesian_n_trials(config)
     return len(expand_sweep(config))
 
 
-def _resolve_bayesian_n_trials(config: ExperimentConfig) -> int:
-    grid_equivalent = len(config.chunking.params.chunk_sizes) * len(config.chunking.params.overlaps)
-    configured = config.execution.bayesian.n_trials
-    if configured is None:
-        logger.info(
-            "bayesian n_trials not set; defaulting to grid-equivalent %s",
-            grid_equivalent,
-        )
-        return grid_equivalent
-    if configured > grid_equivalent:
-        logger.warning(
-            "requested bayesian n_trials=%s exceeds grid-equivalent=%s, capping at grid-equivalent",
-            configured,
-            grid_equivalent,
-        )
-        return grid_equivalent
-    return configured
+_plan_failures_logged: set[str] = set()
+
+
+def attach_sweep_plan(experiment: dict) -> None:
+    """Decorate ``experiment`` in place with ``sweep_plan`` and ``sweep_summary.retrievers``.
+
+    Computed on read from ``experiment["config"]`` so experiments stored before
+    Slice 67B are covered. Purely additive: any failure (unparseable or
+    registry-stale config, sweep-history docs) leaves the doc untouched and never
+    raises, because GET /experiments/{id} is polled every 2 s. The failure is
+    logged once per experiment per process; that permanent suppression is intentional
+    (polling must not spam). The broad ``except Exception`` also covers programming
+    errors, which is why the single warning keeps ``exc_info``. Only the pure
+    ``sweep_plan`` is used here (never ``resolve_bayesian_n_trials``, which logs).
+    """
+    raw = experiment.get("config")
+    if not isinstance(raw, dict):
+        return
+    try:
+        with warnings.catch_warnings():
+            # Validators re-emit config warnings; sweep_plan["warnings"] carries them.
+            warnings.simplefilter("ignore")
+            config = ExperimentConfig.model_validate(raw)
+        plan = sweep_plan(config)
+        labels = retriever_labels(config)
+    except Exception as exc:
+        key = str(experiment.get("experiment_id") or experiment.get("_id"))
+        if key not in _plan_failures_logged:
+            _plan_failures_logged.add(key)
+            logger.warning(
+                "sweep_plan skipped — %s: %s",
+                key,
+                str(exc).splitlines()[0] if str(exc) else type(exc).__name__,
+                exc_info=True,
+            )
+        return
+    experiment["sweep_plan"] = plan
+    summary = experiment.get("sweep_summary")
+    if isinstance(summary, dict):
+        summary.setdefault("retrievers", labels)
 
 
 def _to_non_negative_int(value: object) -> int | None:
