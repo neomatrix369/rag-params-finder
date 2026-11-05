@@ -127,6 +127,9 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/db/postgres/postgres_store.py` | Postgres `StorageBackend` impl (Supabase / local pgvector) |
 | `server/db/postgres/postgres_stats.py` | Postgres stats / explore helpers (delegated by `PostgresStorageBackend`) |
 | `server/db/postgres/schema.sql` | Postgres DDL — 4 tables, FK cascade, `embedding_384` / `embedding_1024` |
+| `server/db/sqlite/sqlite_diagnostics.py` | Read-only run-state snapshot (path, inode, journal mode, sizes, `quick_check`, counts) for the boot log and `/healthz` → `stores.run_state.diagnostics`; `checkpoint_truncate()` runs at shutdown (Slice 65B) |
+| `scripts/migrate/merge_run_state_dbs.py` | Merges the host run-state DB and the Docker-volume DB into one file; dry-run default, needs a verified backup manifest, never deletes a source; `--promote` is a separate step (Slice 65A) |
+| `tests/scripts/test_run_state_single_source.py` | Static guard: one run-state volume, one `SQLITE_DB_PATH`, `data/` ignored by git and Docker (runtime check is `find / -name 'run_state*.db'`) |
 | `server/db/ports/store_factory.py` | `get_storage_backend()` (run state) / `get_vector_store()` (chunks); `get_retriever_backend()` delegates to the vector store |
 | `server/core/pipeline/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
 | `server/core/guards/search_index_plan.py` | Pure logic: required Atlas indexes from config + capacity assessment; required Postgres catalog objects (`vector` extension, HNSW/GIN names) |

@@ -108,11 +108,31 @@ Host `uvicorn` runs (no Docker) still use `./data/run_state.db` on the host and 
   "storage_backend": "sqlite",
   "run_state_mode": "sqlite-local",
   "stores": {
-    "run_state": { "provider": "sqlite", "mode": "sqlite-local", "ok": true },
+    "run_state": {
+      "provider": "sqlite", "mode": "sqlite-local", "ok": true,
+      "diagnostics": {
+        "path": "/app/data/run_state.db", "exists": true, "inode": 1234567,
+        "journal_mode": "wal", "db_size_bytes": 59056128, "wal_size_bytes": 0,
+        "quick_check": "ok",
+        "counts": { "experiments": 2, "run_status": 124, "results": 7854 }
+      }
+    },
     "vector":    { "provider": "mongodb", "mode": "mongodb-cloud", "ok": true }
   }
 }
 ```
+
+`diagnostics` (Slice 65B) shows the one DB the server is using: resolved path,
+inode, journal mode, file and `-wal` sizes, `quick_check`, and row counts. A
+count of `-1` means the table does not exist yet. If the path is not
+`/app/data/run_state.db` inside Docker, a second DB has been created.
+
+### Refuse to create a second DB
+
+The default path is anchored to the repo root, so running `uvicorn` from another
+folder no longer creates a stray `data/run_state.db`. For a stricter check, set
+`RUN_STATE_DB_MUST_EXIST=1`: the server then exits at boot instead of creating a
+missing file. It is off by default and `start-services.sh` does not set it yet.
 
 SQLite health is a local writability probe (no network ping). The check creates and removes a
 `.sqlite_health_probe` file in the database's parent directory.

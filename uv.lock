@@ -1820,7 +1820,7 @@ requires-dist = [
     { name = "radon", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "redis", marker = "extra == 'redis'", specifier = ">=5.0.0" },
     { name = "rich", specifier = ">=13.7.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.16.8,<0.17" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.16.8,<0.18" },
     { name = "sentence-transformers", specifier = ">=2.6.0,<4.0.0" },
     { name = "sie-sdk", specifier = ">=0.6.0" },
     { name = "six", marker = "extra == 'dev'", specifier = ">=1.16" },

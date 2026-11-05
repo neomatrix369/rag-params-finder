@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Slice 65 — one run-state DB (65-0, 65A, 65B, 65D on branch; cutover, 66 and 65C pending)** — the run state stays in the Docker named volume (DECISIONS #301):
+  - `scripts/migrate/merge_run_state_dbs.py` merges the host DB into one file (dry-run by default, refuses without a verified backup manifest, idempotent, never deletes a source).
+  - The default `data/run_state.db` path is anchored to the repo root and pinned in compose; opt-in `RUN_STATE_DB_MUST_EXIST=1` stops the server creating a second DB.
+  - `/healthz` → `stores.run_state.diagnostics` shows the DB path, journal mode, `quick_check` and counts; shutdown checkpoints the WAL (`stop_grace_period: 30s`).
+  - Static test `tests/scripts/test_run_state_single_source.py` fails if a second run-state volume or path appears.
+  (**IMPLEMENTED** on branch; the live merge has not been run, so not yet verified end to end.)
+
 - **Slice 56 — meetup demo kit (parts A, C1, B, C3, C2; on branch, not PASSED)** — offline demo for the Redis London meetup built from bundled data:
   - Demo-data exporter `scripts/walkthru/export_walkthru_results.py` reads run state read-only, ranks the union once with `analyze_results`, and writes one deterministic JSON with a manifest of its inputs. Same-config runs on different datasets stay apart (dataset is part of the identity handed to `analyze_results`). The bundled `docs/about/walkthru-results.json` is a provisional export of 6 smoke-experiment runs; the Pell sweep is not in it.
   - In-app About box (`Dialog` primitive, in-repo Markdown renderer, `CollapsibleCard` `open` override). `docs/about` is mirrored into `frontend/src/walkthru/about` by a `prebuild` script.

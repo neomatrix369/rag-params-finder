@@ -156,8 +156,8 @@ class Settings(BaseSettings):
 
     # Opt-in boot guard (Slice 65B): when truthy, the server refuses to start if
     # the SQLite run-state file does not already exist, rather than silently
-    # creating a second empty DB. start-services.sh sets RUN_STATE_DB_MUST_EXIST=1
-    # after the first-run initialization has created the canonical file.
+    # creating a second empty DB. Export RUN_STATE_DB_MUST_EXIST=1 once the
+    # canonical file exists (start-services.sh does not set it yet).
     run_state_db_must_exist: bool = False
 
     # Active vector store. Defaults to storage_backend when unset (empty string
