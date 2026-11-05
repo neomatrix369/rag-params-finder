@@ -13,10 +13,11 @@ export default defineConfig({
     testTimeout: 20_000,
     hookTimeout: 20_000,
     // Explicit parallel execution via child processes (safe with jsdom).
-    // isolate:false reuses workers across files (~10s faster); module state is
-    // reset by setup.ts (vi.useRealTimers, vi.restoreAllMocks) so isolation is preserved.
+    // Keep isolate:true. isolate:false shares module state (vi.mock'd apiClient, timers) between
+    // files in one worker; setup.ts resets timers/mocks but not module registries, so tests failed
+    // depending on how files were distributed (reproduced with --maxWorkers=2, as on CI runners).
     pool: 'forks',
-    isolate: false,
+    isolate: true,
     poolOptions: {
       forks: {
         minForks: 1,
