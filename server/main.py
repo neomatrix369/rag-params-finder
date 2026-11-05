@@ -23,6 +23,31 @@ logger = get_logger(__name__)
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 
+def enforce_run_state_db_present() -> None:
+    """Fail closed when RUN_STATE_DB_MUST_EXIST is set but the DB is missing.
+
+    Slice 65B duplicate-prevention guard: opt-in via ``RUN_STATE_DB_MUST_EXIST``
+    (set by ``start-services.sh`` after first-run init). When armed and the
+    SQLite run-state file does not exist, raise ``SystemExit(1)`` rather than let
+    a later store access silently create a second empty DB. No-op when the flag
+    is off, the file already exists, or the run-state backend is not SQLite.
+    """
+    if normalize_storage_backend(settings.storage_backend) != "sqlite":
+        return
+    if not settings.run_state_db_must_exist:
+        return
+    db_path = Path(settings.sqlite_db_path)
+    if db_path.exists():
+        return
+    logger.error(
+        "boot — RUN_STATE_DB_MUST_EXIST is set but the run-state DB is missing "
+        "at %s; refusing to create a second DB file. Run the initializer "
+        "(start-services.sh / merge) so the canonical file exists first.",
+        db_path,
+    )
+    raise SystemExit(1)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Ensure indexes exist on startup."""
@@ -56,6 +81,17 @@ async def lifespan(app: FastAPI):
     _run_state = normalize_storage_backend(settings.storage_backend)
     if _run_state == "sqlite":
         _sqlite_path = Path(settings.sqlite_db_path)
+        # Slice 65B opt-in guard: fail closed instead of creating a second DB.
+        enforce_run_state_db_present()
+        # Slice 65B boot log: resolved path, inode, journal mode, sizes,
+        # quick_check and counts — one visible record that every component
+        # reads and writes the same file.
+        from server.db.sqlite.sqlite_diagnostics import collect_run_state_diagnostics
+
+        logger.info(
+            "boot — run-state sqlite diagnostics: %s",
+            collect_run_state_diagnostics(settings.sqlite_db_path),
+        )
         _sqlite_is_new = not _sqlite_path.exists() or _sqlite_path.stat().st_size == 0
         _has_source = bool(settings.mongodb_uri.strip()) or bool(settings.database_url.strip())
         if _sqlite_is_new and _has_source:
@@ -130,6 +166,13 @@ async def lifespan(app: FastAPI):
     logger.info("shutdown — server stopping")
     stop_watcher()
     shutdown_executors()
+    # Slice 65B shutdown checkpoint: fold the WAL back into the single DB on a
+    # fresh connection so the file is self-contained after SIGTERM (compose
+    # stop_grace_period: 30s). No-op for non-SQLite run-state backends.
+    if normalize_storage_backend(settings.storage_backend) == "sqlite":
+        from server.db.sqlite.sqlite_diagnostics import checkpoint_truncate
+
+        checkpoint_truncate(settings.sqlite_db_path)
 
 
 app = FastAPI(

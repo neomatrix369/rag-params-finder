@@ -30,6 +30,11 @@ services:
       POSTGRES_LOCAL_URL: ${RAG_SERVER_POSTGRES_LOCAL_URL:-}
       # Empty VECTOR_STORE_BACKEND falls back to STORAGE_BACKEND in settings.
       VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-}
+      # Single SQLite run-state file (Slice 65B, DECISIONS #301 option A). Pinned
+      # literally — never via an env override — so there is exactly one run-state
+      # path and no second DB can be introduced. Matches the sqlite_run_state
+      # named-volume mount target below.
+      SQLITE_DB_PATH: /app/data/run_state.db
       # Elasticsearch: cloud or local URL; local injected by start-services.sh --elasticsearch-local
       ELASTICSEARCH_CLOUD_URL: ${ELASTICSEARCH_CLOUD_URL:-}
       ELASTICSEARCH_LOCAL_URL: ${RAG_SERVER_ELASTICSEARCH_LOCAL_URL:-}
@@ -55,6 +60,9 @@ services:
       # SQLite run-state file (STORAGE_BACKEND=sqlite, Slice 55).
       # Named volume persists the DB across container restarts.
       - sqlite_run_state:/app/data
+    # Slice 65B: give SIGTERM up to 30s so the lifespan shutdown hook can run
+    # wal_checkpoint(TRUNCATE) before Docker sends SIGKILL.
+    stop_grace_period: 30s
     depends_on:
       mongodb-local:
         condition: service_healthy
