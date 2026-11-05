@@ -4,7 +4,7 @@
 // Vitest drift tests keep honest. Without docs/ (Docker build) it is a no-op.
 //
 // Three things are mirrored:
-//   docs/about/*.md + *.svg       -> src/demo/about/           (About-box sections, Part C1)
+//   docs/about/*.md               -> src/demo/about/           (About-box sections, Part C1)
 //   docs/about/walkthru/*.md      -> src/demo/walkthru/        (Walkthru steps, Part C2)
 //   docs/about/demo-results.json  -> src/demo/demo-results.json (bundled demo data, Part C2)
 import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
@@ -21,7 +21,7 @@ if (!existsSync(source)) {
 
 // Numbered section files and static assets only; the Walkthru steps, the exported
 // demo data and RECORDING.md are not About-box content.
-const isAboutFile = (name) => /^\d{2}-.+\.md$/.test(name) || name.endsWith('.svg');
+const isAboutFile = (name) => /^\d{2}-.+\.md$/.test(name);
 const isStepFile = (name) => /^\d{2}-.+\.md$/.test(name);
 
 function mirrorDir(from, to, keep) {

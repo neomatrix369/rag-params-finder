@@ -1,7 +1,7 @@
 /**
  * Bundled About-box content (Slice 56 Part C1).
  *
- * Reads the numbered Markdown sections and the static QR SVG from src/demo/about/, a mirror of
+ * Reads the numbered Markdown sections from src/demo/about/, a mirror of
  * docs/about/ kept in sync by `npm run sync:about` (runs before `npm run build`) and checked for
  * drift by about.test.ts. The mirror exists because docs/ is outside the Vite root and outside
  * the Docker frontend build context. Everything is bundled: no network access at runtime.
@@ -19,12 +19,6 @@ const markdownFiles = import.meta.glob('./about/*.md', {
   eager: true,
 }) as Record<string, string>;
 
-const assetFiles = import.meta.glob('./about/*.svg', {
-  query: '?url',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>;
-
 const fileName = (path: string): string => path.slice(path.lastIndexOf('/') + 1);
 
 /** Sections in file-name order; adding or deleting a numbered file adds or removes a section. */
@@ -34,8 +28,3 @@ export const ABOUT_SECTIONS: AboutSection[] = Object.entries(markdownFiles)
     id: fileName(path).replace(/^\d+-/, '').replace(/\.md$/, ''),
     markdown,
   }));
-
-const ASSETS = new Map(Object.entries(assetFiles).map(([path, url]) => [fileName(path), url]));
-
-/** Maps a Markdown image source (e.g. `qr.svg`) to its bundled URL; unknown sources return undefined. */
-export const resolveAboutAsset = (src: string): string | undefined => ASSETS.get(src);

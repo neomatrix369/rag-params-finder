@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { ABOUT_SECTIONS, resolveAboutAsset, type AboutSection } from '../../demo/about';
+import { ABOUT_SECTIONS, type AboutSection } from '../../demo/about';
 import { useWalkthruActions } from '../../walkthru/WalkthruContext';
 import Dialog from '../chrome/Dialog';
 import MarkdownView from './MarkdownView';
@@ -53,7 +53,7 @@ export default function AboutDialog({
       ) : null}
       {sections.map((section) => (
         <section key={section.id} data-section={section.id} className="mb-6 last:mb-0">
-          <MarkdownView source={section.markdown} headingOffset={2} resolveImage={resolveAboutAsset} />
+          <MarkdownView source={section.markdown} headingOffset={2} />
         </section>
       ))}
     </Dialog>

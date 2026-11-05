@@ -1,8 +1,6 @@
 # Try it, read the code, MIT licence
 
-Everything is open source under the MIT licence: [github.com/neomatrix369/rag-params-finder](https://github.com/neomatrix369/rag-params-finder). Scan the QR code to open the repository.
-
-![QR code linking to github.com/neomatrix369/rag-params-finder](qr.svg)
+Everything is open source under the MIT licence: [github.com/neomatrix369/rag-params-finder](https://github.com/neomatrix369/rag-params-finder).
 
 Quick start with Redis 8:
 

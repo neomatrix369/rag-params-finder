@@ -51,7 +51,7 @@ describe('AboutDialog', () => {
 
   it('Given the open dialog, when read, then problem is a question and the credits are shown', () => {
     /**
-     * Scenario: Key content is present - the problem as a question, repo link, QR image, thanks.
+     * Scenario: Key content is present - the problem as a question, repo link, thanks, and no QR image.
      * Slice: 56 Part C1 - About box
      */
     // -- Given / When --
@@ -59,7 +59,7 @@ describe('AboutDialog', () => {
 
     // -- Then --
     expect(screen.getAllByRole('heading', { name: /\?$/ })[0]).toHaveTextContent(/Which settings/);
-    expect(screen.getByRole('img', { name: /QR code linking to github.com\/neomatrix369\/rag-params-finder/ })).toBeInTheDocument();
+    expect(screen.queryByRole('img')).toBeNull();
     expect(screen.getByText(/Samuel Agbede/)).toBeInTheDocument();
     const repoLinks = screen.getAllByRole('link', { name: 'github.com/neomatrix369/rag-params-finder' });
     expect(repoLinks[0]).toHaveAttribute('href', 'https://github.com/neomatrix369/rag-params-finder');
@@ -93,7 +93,7 @@ describe('AboutDialog', () => {
 
   it('Given fetch throws, when the dialog opens, then all content renders and no request is made', () => {
     /**
-     * Scenario: Network off - Markdown is bundled and the QR is a committed static SVG.
+     * Scenario: Network off - all Markdown is bundled; nothing is fetched.
      * Slice: 56 Part C1 - About box (offline)
      */
     // -- Given --
@@ -108,7 +108,6 @@ describe('AboutDialog', () => {
     // -- Then --
     expect(fetchMock).not.toHaveBeenCalled();
     expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(8);
-    expect(screen.getByRole('img', { name: /QR code/ })).toHaveAttribute('src', expect.stringContaining('qr'));
   });
 
   it('Given the dialog is open, when Close is clicked, then onClose is called', () => {

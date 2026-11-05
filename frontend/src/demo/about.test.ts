@@ -6,7 +6,7 @@
  * Scope: Slice 56 Part C1 - section order, honest-copy rules, docs/about mirror drift
  */
 import { describe, expect, it } from 'vitest';
-import { ABOUT_SECTIONS, resolveAboutAsset } from './about';
+import { ABOUT_SECTIONS } from './about';
 
 const docsMarkdown = import.meta.glob('../../../docs/about/*.md', {
   query: '?raw',
@@ -21,6 +21,12 @@ const docsSvg = import.meta.glob('../../../docs/about/*.svg', {
 }) as Record<string, string>;
 
 const mirrorSvg = import.meta.glob('./about/*.svg', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
+
+const walkthruSteps = import.meta.glob('./walkthru/*.md', {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -100,28 +106,46 @@ describe('ABOUT_SECTIONS', () => {
     // -- When / Then --
     expect(Object.keys(docs).length).toBeGreaterThan(0);
     expect(Object.values(mirror)).toEqual(Object.values(docs));
-    expect(Object.fromEntries(Object.entries(mirrorSvg).map(([p, t]) => [fileName(p), t]))).toEqual(
-      Object.fromEntries(Object.entries(docsSvg).map(([p, t]) => [fileName(p), t])),
-    );
   });
 });
 
-describe('resolveAboutAsset', () => {
-  it('Given the QR file name, when resolved, then a bundled URL is returned', () => {
+describe('QR code removal', () => {
+  it('Given the owner dropped the QR code, when the About sections are read, then none mentions or embeds one', () => {
     /**
-     * Scenario: The committed static QR SVG is served from the bundle.
-     * Slice: 56 Part C1 - offline QR
+     * Scenario: No QR wording or image syntax remains in the About content.
+     * Slice: 56 Part C1 - owner scope change 2026-11-05 (no QR code)
      */
-    // -- Given / When / Then --
-    expect(resolveAboutAsset('qr.svg')).toEqual(expect.stringContaining('qr'));
+    // -- Given / When --
+    const texts = ABOUT_SECTIONS.map((section) => section.markdown);
+
+    // -- Then --
+    expect(texts.length).toBeGreaterThan(0);
+    for (const text of texts) {
+      expect(text).not.toMatch(/\bQR\b/i);
+      expect(text).not.toContain('![');
+    }
   });
 
-  it('Given an unknown name, when resolved, then undefined is returned', () => {
+  it('Given the Walkthru steps, when read, then none points the audience to a QR code', () => {
     /**
-     * Scenario: Unknown assets never fall back to a remote URL.
-     * Slice: 56 Part C1 - offline QR
+     * Scenario: The tour does not promise a QR code the About box no longer has.
+     * Slice: 56 Part C1 - owner scope change 2026-11-05 (no QR code)
      */
     // -- Given / When / Then --
-    expect(resolveAboutAsset('https://example.com/x.svg')).toBeUndefined();
+    const steps = Object.values(walkthruSteps);
+    expect(steps.length).toBeGreaterThan(0);
+    for (const text of steps) {
+      expect(text).not.toMatch(/\bQR\b/i);
+    }
+  });
+
+  it('Given the owner dropped the QR code, when the folders are scanned, then no SVG asset is bundled or mirrored', () => {
+    /**
+     * Scenario: The static QR file is gone from docs/about and its frontend mirror.
+     * Slice: 56 Part C1 - owner scope change 2026-11-05 (no QR code)
+     */
+    // -- Given / When / Then --
+    expect(Object.keys(docsSvg)).toEqual([]);
+    expect(Object.keys(mirrorSvg)).toEqual([]);
   });
 });
