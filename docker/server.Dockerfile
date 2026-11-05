@@ -1,13 +1,18 @@
 # FastAPI server — Python 3.12 + uv
 # Multi-stage layered build:
-#   base-builder          — uv + build tools (shared cache stage)
-#     ├── core-deps        — .venv with no extras (mongodb / postgres / sqlite)
-#     ├── elasticsearch-deps — .venv with --extra elasticsearch
-#     └── redis-deps       — .venv with --extra redis
+#   base-builder          — uv binary (shared cache stage)
+#     └── core-deps        — .venv with no extras (mongodb / postgres / sqlite + torch)
+#         ├── elasticsearch-deps — inherits core-deps .venv; adds --extra elasticsearch only
+#         └── redis-deps         — inherits core-deps .venv; adds --extra redis only
 #   runtime-base          — minimal Python image, source code, ENV, HEALTHCHECK, CMD
 #     ├── server           — runtime-base + core-deps .venv  (default target)
 #     ├── server-elasticsearch — runtime-base + elasticsearch-deps .venv
 #     └── server-redis     — runtime-base + redis-deps .venv
+#
+# Chaining elasticsearch-deps and redis-deps FROM core-deps (not base-builder) means
+# torch (~500 MB) is extracted exactly once into core-deps' read-only layer. The ES
+# and Redis overlay writable layers only hold their small incremental packages, avoiding
+# ENOSPC on constrained build hosts.
 #
 # Select the final image at build time with --target (or build.target in docker-compose.yml).
 # Default: server (no VDB-specific extras).
@@ -20,9 +25,9 @@ FROM python:${PYTHON_VERSION}-slim AS base-builder
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
+# g++ only (no build-essential/curl): `aim` has no linux-arm64 wheel and builds from sdist.
+# Lives in the builder stage only — the runtime image never gets a compiler.
+RUN apt-get update && apt-get install -y --no-install-recommends g++ \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -39,7 +44,7 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     uv sync --frozen --no-install-project --python ${PYTHON_VERSION} --python-preference=only-system
 
 # ── elasticsearch-deps ────────────────────────────────────────────────────────
-FROM base-builder AS elasticsearch-deps
+FROM core-deps AS elasticsearch-deps
 
 ARG PYTHON_VERSION=3.12
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
@@ -47,7 +52,7 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
         --python ${PYTHON_VERSION} --python-preference=only-system
 
 # ── redis-deps ────────────────────────────────────────────────────────────────
-FROM base-builder AS redis-deps
+FROM core-deps AS redis-deps
 
 ARG PYTHON_VERSION=3.12
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
@@ -55,7 +60,7 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
         --python ${PYTHON_VERSION} --python-preference=only-system
 
 # ── runtime-base ──────────────────────────────────────────────────────────────
-# Minimal runtime image: curl (HEALTHCHECK only), ENV vars, source code.
+# Minimal runtime image: ENV vars, source code, HEALTHCHECK via stdlib urllib.
 # No .venv yet — each derived target layers its own.
 FROM python:${PYTHON_VERSION}-slim AS runtime-base
 
@@ -64,9 +69,6 @@ LABEL org.opencontainers.image.revision="${GIT_COMMIT}"
 
 WORKDIR /app
 
-# curl needed for HEALTHCHECK only
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONPATH="/app" \
@@ -81,7 +83,7 @@ COPY cli ./cli
 EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
-  CMD curl -f http://localhost:8001/healthz || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')" || exit 1
 
 # Runs as root today (writes the ./.aim bind mount and the HuggingFace cache). Non-root switch is an owner decision tracked in
 # CHANGELOG (Unreleased/Security) — needs a Docker smoke test before changing.
