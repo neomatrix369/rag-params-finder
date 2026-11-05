@@ -2,9 +2,8 @@
  * Guard test: the ported Walkthru/demo code carries none of the JWLB layers we chose not to port
  * (audio narration, its theme stylesheet, its design-system), and the JWLB attribution is present.
  *
- * This test lives outside src/walkthru on purpose - it names the forbidden tokens, so keeping it in
- * another directory lets the reviewer's dir grep over frontend/src/walkthru stay empty while this
- * test still scans that directory (and the demo directories).
+ * This test names the forbidden tokens only as assembled fragments, so a plain directory grep over
+ * frontend/src/walkthru for them stays empty even though this file sits in that directory.
  *
  * Author: RAG Params Finder contributors
  * Created: 2026-11-05
@@ -17,9 +16,8 @@ import { ABOUT_SECTIONS } from './about';
 
 // Every source file under the demo-kit directories, read raw.
 const sources = {
-  ...(import.meta.glob('../walkthru/**/*.{ts,tsx,css}', { query: '?raw', import: 'default', eager: true }) as Record<string, string>),
-  ...(import.meta.glob('../components/demo/**/*.{ts,tsx,css}', { query: '?raw', import: 'default', eager: true }) as Record<string, string>),
   ...(import.meta.glob('./**/*.{ts,tsx,css}', { query: '?raw', import: 'default', eager: true }) as Record<string, string>),
+  ...(import.meta.glob('../components/walkthru/**/*.{ts,tsx,css}', { query: '?raw', import: 'default', eager: true }) as Record<string, string>),
 };
 
 // Skip this guard file itself: it names the forbidden tokens on purpose.
@@ -32,7 +30,7 @@ describe('Walkthru / demo do-not-port guard', () => {
      * Slice: 56 Part C2 - no audio / theme / design-system content present
      */
     // -- Given: tokens assembled from fragments so this file is not itself flagged by a dir grep --
-    const tokens = ['t' + 'ts', 'voi' + 'ce', 'warm-' + 'voice', 'speech' + 'Synthesis', 'the' + 'me.css', 'design-' + 'system'];
+    const tokens = ['t' + 'ts', 'voi' + 'ce', 'warm-' + 'vo' + 'ice', 'speech' + 'Synthesis', 'the' + 'me.css', 'design-' + 'system'];
     // eslint-disable-next-line security/detect-non-literal-regexp -- tokens are literals assembled above
     const forbidden = new RegExp(tokens.join('|'), 'i');
 

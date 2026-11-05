@@ -7,7 +7,7 @@
  */
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ABOUT_SECTIONS } from '../../demo/about';
+import { ABOUT_SECTIONS } from '../../walkthru/about';
 import { WalkthruContext, type WalkthruActions } from '../../walkthru/WalkthruContext';
 import AboutDialog from './AboutDialog';
 

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Export bundled demo data for the meetup About box / replay / leaderboard (SLICE-56 Part A).
+"""Export bundled walkthru data for the meetup About box / replay / leaderboard (SLICE-56 Part A).
 
 Reads run state from one or more SQLite files (read-only), picks the Redis runs plus the
 same-config runs on every other store, ranks the union with ``analyze_results`` exactly once,
 and writes one deterministic JSON file for the frontend to bundle.
 
 Usage:
-    uv run python scripts/demo/export_demo_results.py \\
+    uv run python scripts/walkthru/export_walkthru_results.py \\
         --db data/run_state.db --db /scratch/volume_run_state.db \\
         --questions configs/questions.example.json \\
-        --out docs/about/demo-results.json
+        --out docs/about/walkthru-results.json
 
     # Docker run state lives in a named volume: copy it out first, never write into the volume
     docker cp rag-params-finder-server:/app/data/run_state.db /scratch/volume_run_state.db
@@ -56,7 +56,7 @@ from server.settings import settings
 
 SCHEMA_VERSION = 1
 PRIMARY_STORE = "redis"
-DEFAULT_OUT = "docs/about/demo-results.json"
+DEFAULT_OUT = "docs/about/walkthru-results.json"
 DEFAULT_MAX_RUNS = 600
 DEFAULT_MAX_BYTES = 5 * 1024 * 1024
 CHUNK_TEXT_MAX = 200
@@ -659,7 +659,7 @@ def build_manifest(
     avg_field = "query_avg_score" if settings.tiebreaker_metric == "query_avg" else "avg_score"
     return {
         "schema_version": SCHEMA_VERSION,
-        "generated_by": "scripts/demo/export_demo_results.py",
+        "generated_by": "scripts/walkthru/export_walkthru_results.py",
         "inputs": {
             "databases": [
                 {"path": label, "sha256": s.sha256}

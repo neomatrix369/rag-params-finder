@@ -1,12 +1,12 @@
-// Copies the demo-kit content from docs/about/ into src/demo/ so the Vite bundle
+// Copies the demo-kit content from docs/about/ into src/walkthru/ so the Vite bundle
 // (and the Docker frontend image, whose build context excludes docs/) can read it.
-// docs/about/ is the single source of truth; the src/demo/ copies are mirrors that
+// docs/about/ is the single source of truth; the src/walkthru/ copies are mirrors that
 // Vitest drift tests keep honest. Without docs/ (Docker build) it is a no-op.
 //
 // Three things are mirrored:
-//   docs/about/*.md               -> src/demo/about/           (About-box sections, Part C1)
-//   docs/about/walkthru/*.md      -> src/demo/walkthru/        (Walkthru steps, Part C2)
-//   docs/about/demo-results.json  -> src/demo/demo-results.json (bundled demo data, Part C2)
+//   docs/about/*.md               -> src/walkthru/about/           (About-box sections, Part C1)
+//   docs/about/walkthru/*.md      -> src/walkthru/steps/           (Walkthru steps, Part C2)
+//   docs/about/walkthru-results.json  -> src/walkthru/walkthru-results.json (bundled demo data, Part C2)
 import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,18 +31,18 @@ function mirrorDir(from, to, keep) {
 }
 
 // 1) About-box sections + assets.
-mirrorDir(source, join(root, 'src', 'demo', 'about'), isAboutFile);
+mirrorDir(source, join(root, 'src', 'walkthru', 'about'), isAboutFile);
 
 // 2) Walkthru step files (Part C2).
 const stepsSource = join(source, 'walkthru');
 if (existsSync(stepsSource)) {
-  mirrorDir(stepsSource, join(root, 'src', 'demo', 'walkthru'), isStepFile);
+  mirrorDir(stepsSource, join(root, 'src', 'walkthru', 'steps'), isStepFile);
 }
 
 // 3) Bundled demo results (Part C2 data loader).
-const dataSource = join(source, 'demo-results.json');
+const dataSource = join(source, 'walkthru-results.json');
 if (existsSync(dataSource)) {
-  copyFileSync(dataSource, join(root, 'src', 'demo', 'demo-results.json'));
+  copyFileSync(dataSource, join(root, 'src', 'walkthru', 'walkthru-results.json'));
 }
 
-console.log('sync-about: mirrored docs/about -> src/demo (about, walkthru, demo-results.json)');
+console.log('sync-about: mirrored docs/about -> src/walkthru (about, steps, walkthru-results.json)');

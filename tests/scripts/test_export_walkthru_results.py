@@ -1,8 +1,8 @@
-"""Verifies the SLICE-56 Part A demo-data exporter against tiny temp SQLite run-state files.
+"""Verifies the SLICE-56 Part A walkthru-data exporter against tiny temp SQLite run-state files.
 
 Author: Mani Sarkar
 Created: 2026-11-05
-Scope: scripts/demo/export_demo_results.py — manifest, selection rule, ranking reuse,
+Scope: scripts/walkthru/export_walkthru_results.py — manifest, selection rule, ranking reuse,
        improvement story, size cap, determinism and read-only access; no live data.
 """
 
@@ -21,7 +21,7 @@ from typing import Any
 
 import pytest
 
-from scripts.demo.export_demo_results import apply_run_id_tiebreak, main
+from scripts.walkthru.export_walkthru_results import apply_run_id_tiebreak, main
 from tests.helpers.repo_paths import repo_root_from
 
 _REPO = repo_root_from(Path(__file__))
@@ -1055,7 +1055,7 @@ def test_given_exporter_imported_when_modules_inspected_then_no_vector_store_cod
     ### Given
     code = (
         "import sys;"
-        "import scripts.demo.export_demo_results;"
+        "import scripts.walkthru.export_walkthru_results;"
         "bad=[m for m in sys.modules if m.startswith(("
         "'server.db.mongo','server.db.postgres','server.core.retrieval',"
         "'server.db.ports.store_factory','pymongo','psycopg','elasticsearch','redis'))];"

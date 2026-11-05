@@ -1,14 +1,14 @@
 /**
- * Shared demo-results fixtures for Vitest suites (SLICE-56 meetup demo kit).
+ * Shared walkthru-results fixtures for Vitest suites (SLICE-56 meetup demo kit).
  *
  * Author: RAG Params Finder contributors
  * Created: 2026-11-05
- * Scope: SLICE-56 — builders for `DemoResults` / `DemoRun`
+ * Scope: SLICE-56 — builders for `WalkthruResults` / `WalkthruRun`
  */
-import type { DemoResults, DemoRun, DemoStoreSummary } from '../../demo/demoResults'
+import type { WalkthruResults, WalkthruRun, WalkthruStoreSummary } from '../../walkthru/walkthruResults'
 
 /** One valid exported run; override any field via Partial. */
-export function makeDemoRun(overrides: Partial<DemoRun> = {}): DemoRun {
+export function makeWalkthruRun(overrides: Partial<WalkthruRun> = {}): WalkthruRun {
   return {
     run_id: 'run-redis-best',
     experiment_id: 'exp-redis',
@@ -56,14 +56,14 @@ export function makeDemoRun(overrides: Partial<DemoRun> = {}): DemoRun {
   }
 }
 
-function summary(best: string, median: string, worst: string, isPrimary: boolean, count: number): DemoStoreSummary {
+function summary(best: string, median: string, worst: string, isPrimary: boolean, count: number): WalkthruStoreSummary {
   return { is_primary: isPrimary, run_count: count, best_run_id: best, median_run_id: median, worst_run_id: worst }
 }
 
 /** Multi-store export: primary `redis` plus `postgres` and `mongodb` runs sharing group ids. */
-export function makeDemoResults(overrides: Partial<DemoResults> = {}): DemoResults {
-  const redisBest = makeDemoRun()
-  const redisWorst = makeDemoRun({
+export function makeWalkthruResults(overrides: Partial<WalkthruResults> = {}): WalkthruResults {
+  const redisBest = makeWalkthruRun()
+  const redisWorst = makeWalkthruRun({
     run_id: 'run-redis-worst',
     group_id: 'group-b',
     rank: 5,
@@ -84,7 +84,7 @@ export function makeDemoResults(overrides: Partial<DemoResults> = {}): DemoResul
     ],
     result_count: 1,
   })
-  const pgBest = makeDemoRun({
+  const pgBest = makeWalkthruRun({
     run_id: 'run-pg-best',
     experiment_id: 'exp-pg',
     experiment_name: 'Postgres Pell sweep',
@@ -95,7 +95,7 @@ export function makeDemoResults(overrides: Partial<DemoResults> = {}): DemoResul
     max_score: 95,
     elapsed_ms: 15000,
   })
-  const pgWorst = makeDemoRun({
+  const pgWorst = makeWalkthruRun({
     run_id: 'run-pg-worst',
     experiment_id: 'exp-pg',
     experiment_name: 'Postgres Pell sweep',
@@ -107,7 +107,7 @@ export function makeDemoResults(overrides: Partial<DemoResults> = {}): DemoResul
     chunk_size: 128,
     max_score: 18,
   })
-  const mongoBest = makeDemoRun({
+  const mongoBest = makeWalkthruRun({
     run_id: 'run-mongo-best',
     experiment_id: 'exp-mongo',
     experiment_name: 'MongoDB Pell sweep',
@@ -118,7 +118,7 @@ export function makeDemoResults(overrides: Partial<DemoResults> = {}): DemoResul
     max_score: 90,
     elapsed_ms: 18000,
   })
-  const mongoWorst = makeDemoRun({
+  const mongoWorst = makeWalkthruRun({
     run_id: 'run-mongo-worst',
     experiment_id: 'exp-mongo',
     experiment_name: 'MongoDB Pell sweep',

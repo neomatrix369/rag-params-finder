@@ -1,5 +1,5 @@
 /**
- * Pure adapter: maps an exported `DemoRun` onto the props the existing explorer components expect
+ * Pure adapter: maps an exported `WalkthruRun` onto the props the existing explorer components expect
  * (`PhaseIndicator`, `BestParamsCard`, `DetailedResultsTab`). No I/O, no network.
  *
  * Author: RAG Params Finder contributors
@@ -8,8 +8,8 @@
  */
 import { Phase } from '../types'
 import type { DetailedResult, RankedConfig } from '../types'
-import { REPLAY_PHASES } from './demoResults'
-import type { DemoResults, DemoRun } from './demoResults'
+import { REPLAY_PHASES } from './walkthruResults'
+import type { WalkthruResults, WalkthruRun } from './walkthruResults'
 
 export type ReplayPhase = (typeof REPLAY_PHASES)[number]
 
@@ -20,18 +20,18 @@ export function toPhase(stage: ReplayPhase): Phase {
 }
 
 /** Run to resolve when none is requested: the primary store's best run, else the first run. */
-export function defaultRun(results: DemoResults): DemoRun | undefined {
+export function defaultRun(results: WalkthruResults): WalkthruRun | undefined {
   const primary = Object.values(results.stores).find((store) => store.is_primary)
   return results.runs.find((run) => run.run_id === primary?.best_run_id) ?? results.runs[0]
 }
 
 /** The run with `runId`, or the default run when `runId` is missing or unknown. */
-export function resolveRun(results: DemoResults, runId?: string): DemoRun | undefined {
+export function resolveRun(results: WalkthruResults, runId?: string): WalkthruRun | undefined {
   return results.runs.find((run) => run.run_id === runId) ?? defaultRun(results)
 }
 
 /** Ranked-config view of one run, for `BestParamsCard`. Scores are the export's normalised similarity scores. */
-export function toRankedConfig(run: DemoRun): RankedConfig {
+export function toRankedConfig(run: WalkthruRun): RankedConfig {
   return {
     rank: run.rank,
     database_provider: run.store,
@@ -51,7 +51,7 @@ export function toRankedConfig(run: DemoRun): RankedConfig {
 }
 
 /** Chunk-level rows for `DetailedResultsTab`; `rank` is the position within the run's exported top results. */
-export function toDetailedResults(run: DemoRun): DetailedResult[] {
+export function toDetailedResults(run: WalkthruRun): DetailedResult[] {
   return run.top_results.map((top, index) => ({
     rank: index + 1,
     score: top.score,
@@ -73,7 +73,7 @@ export function toDetailedResults(run: DemoRun): DetailedResult[] {
 }
 
 /** Picker label, e.g. "redis - rank 1 - all-MiniLM-L6-v2 512/64/0 dense". */
-export function runLabel(run: DemoRun): string {
+export function runLabel(run: WalkthruRun): string {
   const dims = `${run.chunk_size}/${run.overlap}/${run.padding}`
   return `${run.store} - rank ${run.rank} - ${run.embedding_model} ${dims} ${run.retrieval_method}`
 }

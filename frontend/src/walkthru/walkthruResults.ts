@@ -1,12 +1,12 @@
 /**
- * Types for `docs/about/demo-results.json` (schema_version 1), written by
- * `scripts/demo/export_demo_results.py`. Hand-mirrored, like `types/index.ts`.
+ * Types for `docs/about/walkthru-results.json` (schema_version 1), written by
+ * `scripts/walkthru/export_walkthru_results.py`. Hand-mirrored, like `types/index.ts`.
  *
  * Scores are similarity scores min-max normalised across the exported runs
  * (0-100). They say nothing about correctness. Timings are indicative only.
  */
 
-export interface DemoTopResult {
+export interface WalkthruTopResult {
   query_text: string
   score: number
   raw_score: number
@@ -14,7 +14,7 @@ export interface DemoTopResult {
   retrieval_method: string
 }
 
-export interface DemoRun {
+export interface WalkthruRun {
   run_id: string
   experiment_id: string
   experiment_name: string
@@ -48,10 +48,10 @@ export interface DemoRun {
   elapsed_ms: number
   created_at: string
   updated_at: string
-  top_results: DemoTopResult[]
+  top_results: WalkthruTopResult[]
 }
 
-export interface DemoStoreSummary {
+export interface WalkthruStoreSummary {
   is_primary: boolean
   run_count: number
   best_run_id: string
@@ -59,7 +59,7 @@ export interface DemoStoreSummary {
   worst_run_id: string
 }
 
-export interface DemoStoryRunRef {
+export interface WalkthruStoryRunRef {
   run_id: string
   rank: number
   max_score: number
@@ -67,7 +67,7 @@ export interface DemoStoryRunRef {
   avg_score: number
 }
 
-export interface DemoStoryChunk {
+export interface WalkthruStoryChunk {
   run_id: string
   position: number
   score: number
@@ -83,21 +83,21 @@ export interface DemoQuestion {
   gap: number
 }
 
-export interface DemoStory {
+export interface WalkthruStory {
   basis: string
   run_count: number
-  best: DemoStoryRunRef
-  median: DemoStoryRunRef
-  worst: DemoStoryRunRef
+  best: WalkthruStoryRunRef
+  median: WalkthruStoryRunRef
+  worst: WalkthruStoryRunRef
   /** best - worst, per metric (the exporter reports both normalised metrics). */
   spread: { max_score: number; query_avg_score: number }
   /** Null when the best and worst runs share no common question (no per-question comparison). */
   question: DemoQuestion | null
-  best_top_chunks: DemoStoryChunk[]
-  worst_top_chunks: DemoStoryChunk[]
+  best_top_chunks: WalkthruStoryChunk[]
+  worst_top_chunks: WalkthruStoryChunk[]
 }
 
-export interface DemoExclusion {
+export interface WalkthruExclusion {
   scope: string
   reason: string
   count: number
@@ -113,7 +113,7 @@ export interface DemoPartialExperiment {
   runs_total: number
 }
 
-export interface DemoManifest {
+export interface WalkthruManifest {
   schema_version: number
   inputs: {
     databases: { path: string; sha256: string }[]
@@ -124,19 +124,19 @@ export interface DemoManifest {
   ranking: { fields: string[]; source: string; score: string; tiebreak_note: string }
   selection_rule: string
   counts: Record<string, number>
-  exclusions: DemoExclusion[]
+  exclusions: WalkthruExclusion[]
   /** Partially-exported sweeps; optional because older exports / fixtures omit it. */
   partial_experiments?: DemoPartialExperiment[]
   generated_by: string
 }
 
-export interface DemoResults {
+export interface WalkthruResults {
   schema_version: number
-  manifest: DemoManifest
+  manifest: WalkthruManifest
   /** Keyed by store name; the primary store is the Redis 8 one. */
-  stores: Record<string, DemoStoreSummary>
-  runs: DemoRun[]
-  story: DemoStory
+  stores: Record<string, WalkthruStoreSummary>
+  runs: WalkthruRun[]
+  story: WalkthruStory
 }
 
 /** The fixed pipeline stages the replay steps through, in order. */

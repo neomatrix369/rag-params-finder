@@ -8,11 +8,11 @@
  */
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { makeDemoResults } from '../../test/helpers/demoResults';
-import type { DemoStory } from '../../demo/demoResults';
+import { makeWalkthruResults } from '../../test/helpers/walkthruResults';
+import type { WalkthruStory } from '../../walkthru/walkthruResults';
 import ImprovementPanel from './ImprovementPanel';
 
-const story = (): DemoStory => makeDemoResults().story;
+const story = (): WalkthruStory => makeWalkthruResults().story;
 
 describe('ImprovementPanel', () => {
   it('Given the exported story, when rendered, then best/median/worst top-chunk scores and the spread show', () => {
@@ -37,7 +37,7 @@ describe('ImprovementPanel', () => {
      */
     // -- Given --
     const base = story();
-    const withAverages: DemoStory = {
+    const withAverages: WalkthruStory = {
       ...base,
       best: { ...base.best, query_avg_score: 10 },
       worst: { ...base.worst, query_avg_score: 26 },
@@ -57,7 +57,7 @@ describe('ImprovementPanel', () => {
      */
     // -- Given --
     const base = story();
-    const conflicting: DemoStory = {
+    const conflicting: WalkthruStory = {
       ...base,
       best: { ...base.best, query_avg_score: 10 },
       worst: { ...base.worst, query_avg_score: 26 },
@@ -79,7 +79,7 @@ describe('ImprovementPanel', () => {
      */
     // -- Given --
     const base = story();
-    const agreeing: DemoStory = {
+    const agreeing: WalkthruStory = {
       ...base,
       best: { ...base.best, query_avg_score: 30 },
       worst: { ...base.worst, query_avg_score: 10 },
@@ -113,7 +113,7 @@ describe('ImprovementPanel', () => {
      */
     // -- Given --
     const base = story();
-    const noQuestion: DemoStory = { ...base, question: null };
+    const noQuestion: WalkthruStory = { ...base, question: null };
 
     // -- When --
     render(<ImprovementPanel story={noQuestion} />);
@@ -149,7 +149,7 @@ describe('ImprovementPanel', () => {
      */
     // -- Given --
     const base = story();
-    const empty: DemoStory = { ...base, worst_top_chunks: [] };
+    const empty: WalkthruStory = { ...base, worst_top_chunks: [] };
 
     // -- When --
     render(<ImprovementPanel story={empty} />);

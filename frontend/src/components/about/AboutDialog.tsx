@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { ABOUT_SECTIONS, type AboutSection } from '../../demo/about';
+import { ABOUT_SECTIONS, type AboutSection } from '../../walkthru/about';
 import { useWalkthruActions } from '../../walkthru/WalkthruContext';
 import Dialog from '../chrome/Dialog';
 import MarkdownView from './MarkdownView';

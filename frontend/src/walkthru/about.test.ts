@@ -26,7 +26,7 @@ const mirrorSvg = import.meta.glob('./about/*.svg', {
   eager: true,
 }) as Record<string, string>;
 
-const walkthruSteps = import.meta.glob('./walkthru/*.md', {
+const walkthruSteps = import.meta.glob('./steps/*.md', {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -88,7 +88,7 @@ describe('ABOUT_SECTIONS', () => {
 
   it('Given docs/about, when compared with the bundled mirror, then they are identical', () => {
     /**
-     * Scenario: src/demo/about is a mirror of docs/about; drift fails the build early.
+     * Scenario: src/walkthru/about is a mirror of docs/about; drift fails the build early.
      * Slice: 56 Part C1 - Before-Check (docs/ is outside the Docker build context)
      */
     // -- Given --

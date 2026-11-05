@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { DemoResults, DemoRun } from '../../demo/demoResults';
+import type { WalkthruResults, WalkthruRun } from '../../walkthru/walkthruResults';
 import {
   FEW_OVERLAP_THRESHOLD,
   countCrossStoreGroups,
@@ -8,12 +8,12 @@ import {
   primaryStore,
   suggestedRunId,
   type LeaderboardGroup,
-} from '../../demo/leaderboard';
+} from '../../walkthru/leaderboard';
 import { displayDatabaseProvider } from '../../utils/storageLabels';
 import Pagination from '../chrome/Pagination';
 
 export type CrossStoreLeaderboardProps = {
-  results: DemoResults;
+  results: WalkthruResults;
   selectedRunId?: string;
   onSelectRun: (runId: string) => void;
   /** Store highlighted as the suggested pick; defaults to the primary store (Redis 8). */
@@ -40,7 +40,7 @@ function RunRow({
   suggested,
   onSelect,
 }: {
-  run: DemoRun;
+  run: WalkthruRun;
   selected: boolean;
   suggested: boolean;
   onSelect: (runId: string) => void;

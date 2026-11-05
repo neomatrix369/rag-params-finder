@@ -12,9 +12,9 @@
  * Scope: SLICE-56 Part C2 - demo screen + wiring.
  */
 import { useState } from 'react';
-import type { DemoResults } from '../../demo/demoResults';
-import { primaryStore, suggestedRunId } from '../../demo/leaderboard';
-import { resolveRun, toRankedConfig } from '../../demo/replayAdapter';
+import type { WalkthruResults } from '../../walkthru/walkthruResults';
+import { primaryStore, suggestedRunId } from '../../walkthru/leaderboard';
+import { resolveRun, toRankedConfig } from '../../walkthru/replayAdapter';
 import AppPageChrome from '../chrome/AppPageChrome';
 import CollapsibleCard from '../chrome/CollapsibleCard';
 import { BestParamsCard } from '../explore/ExplorePanels';
@@ -22,8 +22,8 @@ import CrossStoreLeaderboard from './CrossStoreLeaderboard';
 import ImprovementPanel from './ImprovementPanel';
 import RunReplay from './RunReplay';
 
-export interface DemoScreenProps {
-  results: DemoResults;
+export interface WalkthruScreenProps {
+  results: WalkthruResults;
   /** `data-tour` anchor the Walkthru is spotlighting, or null; drives the improvement card's open override. */
   activeHighlight?: string | null;
   /** When true (Walkthru Autoplay on) the leaderboard takes its suggested pick. */
@@ -41,7 +41,7 @@ function Panel({ tour, children }: { tour: string; children: React.ReactNode }) 
   );
 }
 
-export default function DemoScreen({ results, activeHighlight, autoplay = false, suggestedStore, onBack }: DemoScreenProps) {
+export default function WalkthruScreen({ results, activeHighlight, autoplay = false, suggestedStore, onBack }: WalkthruScreenProps) {
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>(undefined);
   const suggested = suggestedStore ?? primaryStore(results);
   const bestRun = resolveRun(results, suggestedRunId(results, suggested));

@@ -7,7 +7,7 @@
  */
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { makeDemoResults, makeDemoRun } from '../../test/helpers/demoResults'
+import { makeWalkthruResults, makeWalkthruRun } from '../../test/helpers/walkthruResults'
 import CrossStoreLeaderboard from './CrossStoreLeaderboard'
 
 describe('CrossStoreLeaderboard', () => {
@@ -17,7 +17,7 @@ describe('CrossStoreLeaderboard', () => {
      * Slice: 56 Part C3 - leaderboard rows
      */
     // -- Given --
-    const results = makeDemoResults()
+    const results = makeWalkthruResults()
 
     // -- When --
     render(<CrossStoreLeaderboard results={results} onSelectRun={() => {}} />)
@@ -45,7 +45,7 @@ describe('CrossStoreLeaderboard', () => {
      * Slice: 56 Part C3 - store filter
      */
     // -- Given --
-    render(<CrossStoreLeaderboard results={makeDemoResults()} onSelectRun={() => {}} />)
+    render(<CrossStoreLeaderboard results={makeWalkthruResults()} onSelectRun={() => {}} />)
 
     // -- When --
     fireEvent.click(screen.getByRole('button', { name: 'postgres' }))
@@ -68,9 +68,9 @@ describe('CrossStoreLeaderboard', () => {
      * Slice: 56 Part C3 - timings
      */
     // -- Given --
-    const fastLow = makeDemoRun({ run_id: 'fast-low', store: 'postgres', rank: 2, elapsed_ms: 1000 })
-    const slowTop = makeDemoRun({ run_id: 'slow-top', rank: 1, elapsed_ms: 90000 })
-    const results = makeDemoResults({ runs: [fastLow, slowTop] })
+    const fastLow = makeWalkthruRun({ run_id: 'fast-low', store: 'postgres', rank: 2, elapsed_ms: 1000 })
+    const slowTop = makeWalkthruRun({ run_id: 'slow-top', rank: 1, elapsed_ms: 90000 })
+    const results = makeWalkthruResults({ runs: [fastLow, slowTop] })
 
     // -- When --
     render(<CrossStoreLeaderboard results={results} onSelectRun={() => {}} />)
@@ -92,7 +92,7 @@ describe('CrossStoreLeaderboard', () => {
      */
     // -- Given --
     const onSelectRun = vi.fn()
-    render(<CrossStoreLeaderboard results={makeDemoResults()} selectedRunId="run-pg-best" onSelectRun={onSelectRun} />)
+    render(<CrossStoreLeaderboard results={makeWalkthruResults()} selectedRunId="run-pg-best" onSelectRun={onSelectRun} />)
 
     // -- Then --
     expect(screen.getByTestId('run-row-run-redis-best')).toHaveAttribute('data-suggested', 'true')
@@ -113,7 +113,7 @@ describe('CrossStoreLeaderboard', () => {
      * Slice: 56 Part C3 - choice step
      */
     // -- Given / When --
-    render(<CrossStoreLeaderboard results={makeDemoResults()} suggestedStore="mongodb" onSelectRun={() => {}} />)
+    render(<CrossStoreLeaderboard results={makeWalkthruResults()} suggestedStore="mongodb" onSelectRun={() => {}} />)
 
     // -- Then --
     expect(screen.getByTestId('run-row-run-mongo-best')).toHaveAttribute('data-suggested', 'true')
@@ -127,7 +127,7 @@ describe('CrossStoreLeaderboard', () => {
      */
     // -- Given --
     const onSelectRun = vi.fn()
-    const results = makeDemoResults()
+    const results = makeWalkthruResults()
 
     // -- When --
     const { rerender } = render(<CrossStoreLeaderboard results={results} autoplay onSelectRun={onSelectRun} />)
@@ -147,7 +147,7 @@ describe('CrossStoreLeaderboard', () => {
     const onSelectRun = vi.fn()
 
     // -- When --
-    render(<CrossStoreLeaderboard results={makeDemoResults()} onSelectRun={onSelectRun} />)
+    render(<CrossStoreLeaderboard results={makeWalkthruResults()} onSelectRun={onSelectRun} />)
 
     // -- Then --
     expect(onSelectRun).not.toHaveBeenCalled()
@@ -162,7 +162,7 @@ describe('CrossStoreLeaderboard', () => {
     const onSelectRun = vi.fn()
 
     // -- When --
-    render(<CrossStoreLeaderboard results={makeDemoResults({ stores: {}, runs: [] })} autoplay onSelectRun={onSelectRun} />)
+    render(<CrossStoreLeaderboard results={makeWalkthruResults({ stores: {}, runs: [] })} autoplay onSelectRun={onSelectRun} />)
 
     // -- Then --
     expect(onSelectRun).not.toHaveBeenCalled()
@@ -175,9 +175,9 @@ describe('CrossStoreLeaderboard', () => {
      * Slice: 56 Part C3 - fallback
      */
     // -- Given --
-    const only = makeDemoRun()
-    const base = makeDemoResults()
-    const results = makeDemoResults({ runs: [only], stores: { redis: base.stores.redis } })
+    const only = makeWalkthruRun()
+    const base = makeWalkthruResults()
+    const results = makeWalkthruResults({ runs: [only], stores: { redis: base.stores.redis } })
 
     // -- When --
     render(<CrossStoreLeaderboard results={results} onSelectRun={() => {}} />)
@@ -194,10 +194,10 @@ describe('CrossStoreLeaderboard', () => {
      * Slice: 56 Part C3 - fallback
      */
     // -- Given --
-    const a = makeDemoRun()
-    const b = makeDemoRun({ run_id: 'pg', store: 'postgres', rank: 2 })
-    const solo = makeDemoRun({ run_id: 'solo', group_id: 'group-solo', rank: 3 })
-    const results = makeDemoResults({ runs: [a, b, solo] })
+    const a = makeWalkthruRun()
+    const b = makeWalkthruRun({ run_id: 'pg', store: 'postgres', rank: 2 })
+    const solo = makeWalkthruRun({ run_id: 'solo', group_id: 'group-solo', rank: 3 })
+    const results = makeWalkthruResults({ runs: [a, b, solo] })
 
     // -- When --
     render(<CrossStoreLeaderboard results={results} onSelectRun={() => {}} />)
@@ -213,10 +213,10 @@ describe('CrossStoreLeaderboard', () => {
      * Slice: 56 Part C3 - fallback boundary
      */
     // -- Given --
-    const runs = [makeDemoRun(), makeDemoRun({ run_id: 'pg', store: 'postgres', rank: 2 })]
+    const runs = [makeWalkthruRun(), makeWalkthruRun({ run_id: 'pg', store: 'postgres', rank: 2 })]
 
     // -- When --
-    render(<CrossStoreLeaderboard results={makeDemoResults({ runs })} onSelectRun={() => {}} />)
+    render(<CrossStoreLeaderboard results={makeWalkthruResults({ runs })} onSelectRun={() => {}} />)
 
     // -- Then --
     expect(screen.getByTestId('overlap-note')).toHaveTextContent('1 of 1 config was run on more than one store.')
@@ -229,12 +229,12 @@ describe('CrossStoreLeaderboard', () => {
      */
     // -- Given --
     const runs = ['g1', 'g2', 'g3'].flatMap((g, i) => [
-      makeDemoRun({ run_id: `${g}-r`, group_id: g, rank: i * 2 + 1 }),
-      makeDemoRun({ run_id: `${g}-p`, group_id: g, store: 'postgres', rank: i * 2 + 2 }),
+      makeWalkthruRun({ run_id: `${g}-r`, group_id: g, rank: i * 2 + 1 }),
+      makeWalkthruRun({ run_id: `${g}-p`, group_id: g, store: 'postgres', rank: i * 2 + 2 }),
     ])
 
     // -- When --
-    render(<CrossStoreLeaderboard results={makeDemoResults({ runs })} onSelectRun={() => {}} />)
+    render(<CrossStoreLeaderboard results={makeWalkthruResults({ runs })} onSelectRun={() => {}} />)
 
     // -- Then --
     expect(screen.getByTestId('overlap-note')).toHaveTextContent('3 of 3 configs were run on more than one store.')
@@ -247,12 +247,12 @@ describe('CrossStoreLeaderboard', () => {
      */
     // -- Given --
     const runs = Array.from({ length: 12 }, (_, i) =>
-      makeDemoRun({ run_id: `r${i}`, group_id: `g${String(i).padStart(2, '0')}`, rank: i + 1 }),
+      makeWalkthruRun({ run_id: `r${i}`, group_id: `g${String(i).padStart(2, '0')}`, rank: i + 1 }),
     )
-    const base = makeDemoResults()
+    const base = makeWalkthruResults()
     render(
       <CrossStoreLeaderboard
-        results={makeDemoResults({ runs, stores: { redis: base.stores.redis } })}
+        results={makeWalkthruResults({ runs, stores: { redis: base.stores.redis } })}
         onSelectRun={() => {}}
       />,
     )

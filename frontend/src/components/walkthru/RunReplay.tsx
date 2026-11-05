@@ -7,8 +7,8 @@
  * Scope: SLICE-56 Part B - run replay (DECISIONS #274: real totals only, no per-stage durations)
  */
 import { useEffect, useState } from 'react'
-import { REPLAY_PHASES } from '../../demo/demoResults'
-import type { DemoResults } from '../../demo/demoResults'
+import { REPLAY_PHASES } from '../../walkthru/walkthruResults'
+import type { WalkthruResults } from '../../walkthru/walkthruResults'
 import {
   formatElapsed,
   resolveRun,
@@ -16,12 +16,12 @@ import {
   toDetailedResults,
   toPhase,
   toRankedConfig,
-} from '../../demo/replayAdapter'
+} from '../../walkthru/replayAdapter'
 import { BestParamsCard, DetailedResultsTab } from '../explore/ExplorePanels'
 import { PhaseIndicator } from '../experiment/experimentDetail'
 
 export interface RunReplayProps {
-  results: DemoResults
+  results: WalkthruResults
   /** Selected run; when omitted the primary store's best run is shown. */
   runId?: string
   onSelectRun?: (runId: string) => void

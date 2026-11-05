@@ -39,7 +39,7 @@ export default defineConfig({
     },
   },
   server: {
-    // The About-mirror drift test (src/demo/about.test.ts) reads docs/about/ via import.meta.glob.
+    // The About-mirror drift test (src/walkthru/about.test.ts) reads docs/about/ via import.meta.glob.
     fs: { allow: ['.', '../docs/about'] },
     port: parseInt(process.env.VITE_PORT ?? '5374'),
     proxy: {

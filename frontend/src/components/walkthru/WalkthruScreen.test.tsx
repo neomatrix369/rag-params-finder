@@ -8,17 +8,17 @@
  */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { makeDemoResults } from '../../test/helpers/demoResults';
-import DemoScreen from './DemoScreen';
+import { makeWalkthruResults } from '../../test/helpers/walkthruResults';
+import WalkthruScreen from './WalkthruScreen';
 
-describe('DemoScreen', () => {
+describe('WalkthruScreen', () => {
   it('Given the bundled results, when rendered, then each panel carries its data-tour anchor', () => {
     /**
      * Scenario: The Walkthru spotlights panels by their data-tour anchors.
      * Slice: 56 Part C2 - demo screen anchors
      */
     // -- Given / When --
-    const { container } = render(<DemoScreen results={makeDemoResults()} onBack={() => undefined} />);
+    const { container } = render(<WalkthruScreen results={makeWalkthruResults()} onBack={() => undefined} />);
 
     // -- Then --
     for (const anchor of ['leaderboard', 'replay', 'improvement', 'best-settings']) {
@@ -32,7 +32,7 @@ describe('DemoScreen', () => {
      * Slice: 56 Part C2 - collapsed by default
      */
     // -- Given / When --
-    render(<DemoScreen results={makeDemoResults()} onBack={() => undefined} />);
+    render(<WalkthruScreen results={makeWalkthruResults()} onBack={() => undefined} />);
 
     // -- Then: the card title shows but its inner heading does not --
     expect(screen.getByText('The improvement story')).toBeInTheDocument();
@@ -46,13 +46,13 @@ describe('DemoScreen', () => {
      */
     // -- Given --
     const { rerender } = render(
-      <DemoScreen results={makeDemoResults()} activeHighlight="improvement" onBack={() => undefined} />,
+      <WalkthruScreen results={makeWalkthruResults()} activeHighlight="improvement" onBack={() => undefined} />,
     );
     // -- Then: open --
     expect(screen.getByText('What the best settings changed')).toBeInTheDocument();
 
     // -- When: highlight dropped (Walkthru exit) --
-    rerender(<DemoScreen results={makeDemoResults()} activeHighlight={null} onBack={() => undefined} />);
+    rerender(<WalkthruScreen results={makeWalkthruResults()} activeHighlight={null} onBack={() => undefined} />);
 
     // -- Then: restored to collapsed --
     expect(screen.queryByText('What the best settings changed')).toBeNull();
@@ -65,7 +65,7 @@ describe('DemoScreen', () => {
      */
     // -- Given / When --
     render(
-      <DemoScreen results={makeDemoResults()} autoplay suggestedStore="redis" onBack={() => undefined} />,
+      <WalkthruScreen results={makeWalkthruResults()} autoplay suggestedStore="redis" onBack={() => undefined} />,
     );
 
     // -- Then: the suggested Redis run row shows as selected (the Select button's label is aria-only,
@@ -80,7 +80,7 @@ describe('DemoScreen', () => {
      */
     // -- Given --
     const onBack = vi.fn();
-    render(<DemoScreen results={makeDemoResults()} onBack={onBack} />);
+    render(<WalkthruScreen results={makeWalkthruResults()} onBack={onBack} />);
 
     // -- When --
     fireEvent.click(screen.getByRole('button', { name: 'Back to experiments' }));
@@ -95,10 +95,10 @@ describe('DemoScreen', () => {
      * Slice: 56 Part C2 - fallback
      */
     // -- Given --
-    const empty = makeDemoResults({ runs: [], stores: {} });
+    const empty = makeWalkthruResults({ runs: [], stores: {} });
 
     // -- When --
-    render(<DemoScreen results={empty} onBack={() => undefined} />);
+    render(<WalkthruScreen results={empty} onBack={() => undefined} />);
 
     // -- Then --
     expect(screen.getByText('No runs are bundled with this build.')).toBeInTheDocument();

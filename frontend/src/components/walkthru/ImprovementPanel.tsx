@@ -7,7 +7,7 @@
  * Created: 2026-11-05
  * Scope: SLICE-56 Part C2 - the improvement panel.
  */
-import type { DemoStory, DemoStoryChunk } from '../../demo/demoResults';
+import type { WalkthruStory, WalkthruStoryChunk } from '../../walkthru/walkthruResults';
 
 function StatTile({ label, value }: { label: string; value: string }) {
   return (
@@ -18,7 +18,7 @@ function StatTile({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ChunkColumn({ heading, chunks }: { heading: string; chunks: DemoStoryChunk[] }) {
+function ChunkColumn({ heading, chunks }: { heading: string; chunks: WalkthruStoryChunk[] }) {
   return (
     <div className="flex-1 space-y-2">
       <h4 className="text-sm font-bold text-ink">{heading}</h4>
@@ -38,7 +38,7 @@ function ChunkColumn({ heading, chunks }: { heading: string; chunks: DemoStoryCh
   );
 }
 
-export default function ImprovementPanel({ story }: { story: DemoStory }) {
+export default function ImprovementPanel({ story }: { story: WalkthruStory }) {
   const avgMovesTheOtherWay = story.best.query_avg_score < story.worst.query_avg_score;
 
   return (

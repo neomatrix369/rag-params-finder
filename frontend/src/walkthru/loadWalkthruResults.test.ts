@@ -3,33 +3,33 @@
  *
  * Author: RAG Params Finder contributors
  * Created: 2026-11-05
- * Scope: SLICE-56 Part C2 - typed offline load + demo-results.json drift against docs/about.
+ * Scope: SLICE-56 Part C2 - typed offline load + walkthru-results.json drift against docs/about.
  */
 import { describe, expect, it } from 'vitest';
-import { makeDemoResults } from '../test/helpers/demoResults';
-import { DEMO_RESULTS, assertDemoResults, loadDemoResults } from './loadDemoResults';
+import { makeWalkthruResults } from '../test/helpers/walkthruResults';
+import { DEMO_RESULTS, assertWalkthruResults, loadWalkthruResults } from './loadWalkthruResults';
 
 // Raw text of both the source of truth and the bundled mirror, for the drift check.
-const docsJson = import.meta.glob('../../../docs/about/demo-results.json', {
+const docsJson = import.meta.glob('../../../docs/about/walkthru-results.json', {
   query: '?raw',
   import: 'default',
   eager: true,
 }) as Record<string, string>;
 
-const mirrorJson = import.meta.glob('./demo-results.json', {
+const mirrorJson = import.meta.glob('./walkthru-results.json', {
   query: '?raw',
   import: 'default',
   eager: true,
 }) as Record<string, string>;
 
-describe('loadDemoResults', () => {
-  it('Given the bundled JSON, when loaded, then it is a well-formed DemoResults payload', () => {
+describe('loadWalkthruResults', () => {
+  it('Given the bundled JSON, when loaded, then it is a well-formed WalkthruResults payload', () => {
     /**
      * Scenario: The loader returns real, typed demo data with no network call.
      * Slice: 56 Part C2 - offline data loader
      */
     // -- Given / When --
-    const results = loadDemoResults();
+    const results = loadWalkthruResults();
 
     // -- Then --
     expect(results).toBe(DEMO_RESULTS);
@@ -52,13 +52,13 @@ describe('loadDemoResults', () => {
     expect(primaries).toHaveLength(1);
   });
 
-  it('Given a well-formed payload, when validated, then assertDemoResults accepts it', () => {
+  it('Given a well-formed payload, when validated, then assertWalkthruResults accepts it', () => {
     /**
      * Scenario: The exporter's real shape passes the load-time check.
      * Slice: 56 Part C2 - runtime shape check (happy path)
      */
     // -- Given / When / Then --
-    expect(() => assertDemoResults(makeDemoResults())).not.toThrow();
+    expect(() => assertWalkthruResults(makeWalkthruResults())).not.toThrow();
   });
 
   it.each([
@@ -79,7 +79,7 @@ describe('loadDemoResults', () => {
      * Slice: 56 Part C2 - runtime shape check (sad paths)
      */
     // -- Given / When / Then --
-    expect(() => assertDemoResults(payload)).toThrow(`demo-results.json: missing or malformed "${field}"`);
+    expect(() => assertWalkthruResults(payload)).toThrow(`walkthru-results.json: missing or malformed "${field}"`);
   });
 
   // A minimal payload that passes every check, used as the base for deep bad-shape mutations.
@@ -112,7 +112,7 @@ describe('loadDemoResults', () => {
      * Slice: 56 Part C2 - question may be null (latent-crash fix)
      */
     // -- Given / When / Then --
-    expect(() => assertDemoResults(validPayload())).not.toThrow();
+    expect(() => assertWalkthruResults(validPayload())).not.toThrow();
     const withQuestion = {
       ...validPayload(),
       story: {
@@ -120,7 +120,7 @@ describe('loadDemoResults', () => {
         question: { text: 't', focus: 'f', best_top1: 1, worst_top1: 0, gap: 1 },
       },
     };
-    expect(() => assertDemoResults(withQuestion)).not.toThrow();
+    expect(() => assertWalkthruResults(withQuestion)).not.toThrow();
   });
 
   it.each([
@@ -135,7 +135,7 @@ describe('loadDemoResults', () => {
     const payload = { ...validPayload(), story: { spread: { max_score: 1, query_avg_score: 1 }, ...storyPatch } };
 
     // -- When / Then --
-    expect(() => assertDemoResults(payload)).toThrow(`demo-results.json: missing or malformed "${field}"`);
+    expect(() => assertWalkthruResults(payload)).toThrow(`walkthru-results.json: missing or malformed "${field}"`);
   });
 
   it.each([
@@ -153,7 +153,7 @@ describe('loadDemoResults', () => {
     const payload = { ...validPayload(), ...patch };
 
     // -- When / Then --
-    expect(() => assertDemoResults(payload)).toThrow(`demo-results.json: missing or malformed "${field}"`);
+    expect(() => assertWalkthruResults(payload)).toThrow(`walkthru-results.json: missing or malformed "${field}"`);
   });
 
   it.each([
@@ -168,12 +168,12 @@ describe('loadDemoResults', () => {
     const payload = { ...validPayload(), ...patch };
 
     // -- When / Then --
-    expect(() => assertDemoResults(payload)).toThrow(`demo-results.json: missing or malformed "${field}"`);
+    expect(() => assertWalkthruResults(payload)).toThrow(`walkthru-results.json: missing or malformed "${field}"`);
   });
 
-  it('Given docs/about/demo-results.json, when compared with the bundled mirror, then they are identical', () => {
+  it('Given docs/about/walkthru-results.json, when compared with the bundled mirror, then they are identical', () => {
     /**
-     * Scenario: src/demo/demo-results.json is a byte-for-byte mirror; drift fails the build early.
+     * Scenario: src/walkthru/walkthru-results.json is a byte-for-byte mirror; drift fails the build early.
      * Slice: 56 Part C2 - mirror drift (docs/ is outside the Docker build context)
      */
     // -- Given --

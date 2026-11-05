@@ -8,7 +8,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import RunReplay from './RunReplay'
-import { makeDemoResults } from '../../test/helpers/demoResults'
+import { makeWalkthruResults } from '../../test/helpers/walkthruResults'
 
 const next = () => fireEvent.click(screen.getByRole('button', { name: 'Next stage' }))
 const toEnd = () => Array.from({ length: 7 }).forEach(next)
@@ -24,7 +24,7 @@ describe('RunReplay', () => {
      * Slice: 56 Part B - run replay
      */
     // -- Given --
-    const results = makeDemoResults()
+    const results = makeWalkthruResults()
 
     // -- When --
     render(<RunReplay results={results} />)
@@ -47,7 +47,7 @@ describe('RunReplay', () => {
      * Slice: 56 Part B - run replay
      */
     // -- Given --
-    render(<RunReplay results={makeDemoResults()} />)
+    render(<RunReplay results={makeWalkthruResults()} />)
     const back = screen.getByRole('button', { name: 'Previous stage' })
     expect(back).toBeDisabled()
 
@@ -75,7 +75,7 @@ describe('RunReplay', () => {
      * Slice: 56 Part B - run replay
      */
     // -- Given --
-    render(<RunReplay results={makeDemoResults()} />)
+    render(<RunReplay results={makeWalkthruResults()} />)
 
     // -- When / Then --
     expect(screen.queryByText(/Individual chunk results/)).toBeNull()
@@ -94,7 +94,7 @@ describe('RunReplay', () => {
      * Slice: 56 Part B - run replay
      */
     // -- Given --
-    render(<RunReplay results={makeDemoResults()} runId="run-redis-worst" />)
+    render(<RunReplay results={makeWalkthruResults()} runId="run-redis-worst" />)
 
     // -- When --
     toEnd()
@@ -113,7 +113,7 @@ describe('RunReplay', () => {
      */
     // -- Given --
     const onSelectRun = vi.fn()
-    render(<RunReplay results={makeDemoResults()} onSelectRun={onSelectRun} />)
+    render(<RunReplay results={makeWalkthruResults()} onSelectRun={onSelectRun} />)
     next()
     next()
 
@@ -133,7 +133,7 @@ describe('RunReplay', () => {
      * Slice: 56 Part B - run replay
      */
     // -- Given --
-    const results = makeDemoResults()
+    const results = makeWalkthruResults()
     const { rerender } = render(<RunReplay results={results} runId="run-redis-best" />)
     next()
 
@@ -154,7 +154,7 @@ describe('RunReplay', () => {
      */
     // -- Given --
     vi.useFakeTimers()
-    render(<RunReplay results={makeDemoResults()} autoplayIntervalMs={100} />)
+    render(<RunReplay results={makeWalkthruResults()} autoplayIntervalMs={100} />)
     expect(screen.getByLabelText('Autoplay')).not.toBeChecked()
 
     // -- When --
@@ -173,7 +173,7 @@ describe('RunReplay', () => {
      */
     // -- Given --
     vi.useFakeTimers()
-    render(<RunReplay results={makeDemoResults()} autoplayIntervalMs={100} />)
+    render(<RunReplay results={makeWalkthruResults()} autoplayIntervalMs={100} />)
 
     // -- When --
     fireEvent.click(screen.getByLabelText('Autoplay'))
@@ -218,7 +218,7 @@ describe('RunReplay', () => {
     vi.stubGlobal('fetch', fetchSpy)
 
     // -- When --
-    render(<RunReplay results={makeDemoResults()} />)
+    render(<RunReplay results={makeWalkthruResults()} />)
     toEnd()
     fireEvent.change(screen.getByLabelText('Run'), { target: { value: 'run-pg-best' } })
 
@@ -233,7 +233,7 @@ describe('RunReplay', () => {
      * Slice: 56 Part B - run replay
      */
     // -- Given / When --
-    render(<RunReplay results={makeDemoResults()} />)
+    render(<RunReplay results={makeWalkthruResults()} />)
     const section = screen.getByRole('region', { name: 'Run replay' })
 
     // -- Then --
@@ -251,7 +251,7 @@ describe('RunReplay', () => {
      * Slice: 56 Part B - run replay
      */
     // -- Given / When --
-    render(<RunReplay results={makeDemoResults({ runs: [], stores: {} })} />)
+    render(<RunReplay results={makeWalkthruResults({ runs: [], stores: {} })} />)
 
     // -- Then --
     expect(screen.getByText('No recorded runs are bundled with this build.')).toBeInTheDocument()
@@ -263,7 +263,7 @@ describe('RunReplay', () => {
      * Slice: 56 Part B - run replay
      */
     // -- Given --
-    render(<RunReplay results={makeDemoResults()} />)
+    render(<RunReplay results={makeWalkthruResults()} />)
 
     // -- When --
     toEnd()

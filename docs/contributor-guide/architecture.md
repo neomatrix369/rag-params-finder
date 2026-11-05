@@ -413,7 +413,7 @@ rag-params-finder/
 │   └── conftest.py
 ├── scripts/
 │   ├── ci/                  # quality-gates, repo-lint, hooks, pip-audit, floors
-│   ├── demo/                # export_demo_results.py: run state -> bundled demo JSON (Slice 56)
+│   ├── walkthru/            # export_walkthru_results.py: run state -> bundled walkthru JSON (Slice 56)
 │   ├── docker/              # health-check, aim-ui, cleanup, wait-experiment
 │   ├── release/             # release.sh + bump / GitHub helpers
 │   ├── security/            # security-scan
@@ -424,12 +424,11 @@ rag-params-finder/
     │   ├── screens/         # Experiments, Detail, SearchExplorer (+ tests)
     │   ├── chrome/          # shell, pagination, polling, loading, collapsible
     │   ├── about/           # About button + dialog (Slice 56)
-    │   ├── demo/            # offline demo: leaderboard, replay, improvement panel, demo screen (Slice 56)
     │   ├── experiment/      # controls, progress, delete modal, detail chrome
     │   ├── explore/         # Search Explorer panels
-    │   └── stats/           # vector DB stats + StatTile/Row
-    ├── demo/                # bundled About content + demo-results.json (mirrored from docs/about by prebuild)
-    ├── walkthru/            # guided tour engine and overlay (Slice 56)
+    │   ├── stats/           # vector DB stats + StatTile/Row
+    │   └── walkthru/        # leaderboard, replay, improvement panel, WalkthruScreen (Slice 56)
+    ├── walkthru/            # guided tour engine and overlay, typed loader, and the bundled About content, step files and walkthru-results.json (mirrored from docs/about by prebuild) (Slice 56)
     ├── hooks/
     │   └── useExperimentDetail.ts
     ├── test/helpers/        # shared Vitest builders

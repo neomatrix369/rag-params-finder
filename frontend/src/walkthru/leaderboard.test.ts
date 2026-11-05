@@ -6,7 +6,7 @@
  * Scope: Slice 56 Part C3 - grouping by group_id, rank order, store filter, suggested pick, overlap count
  */
 import { describe, expect, it } from 'vitest'
-import { makeDemoResults, makeDemoRun } from '../test/helpers/demoResults'
+import { makeWalkthruResults, makeWalkthruRun } from '../test/helpers/walkthruResults'
 import {
   FEW_OVERLAP_THRESHOLD,
   countCrossStoreGroups,
@@ -23,7 +23,7 @@ describe('groupRuns', () => {
      * Slice: 56 Part C3 - grouping by group_id
      */
     // -- Given --
-    const { runs } = makeDemoResults()
+    const { runs } = makeWalkthruResults()
 
     // -- When --
     const groups = groupRuns(runs)
@@ -44,9 +44,9 @@ describe('groupRuns', () => {
      * Slice: 56 Part C3 - sort by rank
      */
     // -- Given --
-    const slowTop = makeDemoRun({ run_id: 'slow-top', group_id: 'g2', rank: 1, elapsed_ms: 999999 })
-    const fastLow = makeDemoRun({ run_id: 'fast-low', group_id: 'g2', store: 'postgres', rank: 4, elapsed_ms: 1 })
-    const other = makeDemoRun({ run_id: 'other', group_id: 'g1', rank: 2 })
+    const slowTop = makeWalkthruRun({ run_id: 'slow-top', group_id: 'g2', rank: 1, elapsed_ms: 999999 })
+    const fastLow = makeWalkthruRun({ run_id: 'fast-low', group_id: 'g2', store: 'postgres', rank: 4, elapsed_ms: 1 })
+    const other = makeWalkthruRun({ run_id: 'other', group_id: 'g1', rank: 2 })
 
     // -- When --
     const groups = groupRuns([fastLow, other, slowTop])
@@ -62,8 +62,8 @@ describe('groupRuns', () => {
      * Slice: 56 Part C3 - stable ordering
      */
     // -- Given --
-    const b = makeDemoRun({ run_id: 'b', group_id: 'gb', rank: 1 })
-    const a = makeDemoRun({ run_id: 'a', group_id: 'ga', rank: 1 })
+    const b = makeWalkthruRun({ run_id: 'b', group_id: 'gb', rank: 1 })
+    const a = makeWalkthruRun({ run_id: 'a', group_id: 'ga', rank: 1 })
 
     // -- When --
     const groups = groupRuns([b, a])
@@ -81,8 +81,8 @@ describe('groupRuns ties', () => {
      * Slice: 56 Part C3 - stable ordering
      */
     // -- Given --
-    const z = makeDemoRun({ run_id: 'z', rank: 1 })
-    const a = makeDemoRun({ run_id: 'a', rank: 1, store: 'postgres' })
+    const z = makeWalkthruRun({ run_id: 'z', rank: 1 })
+    const a = makeWalkthruRun({ run_id: 'a', rank: 1, store: 'postgres' })
 
     // -- When --
     const [group] = groupRuns([z, a])
@@ -99,7 +99,7 @@ describe('filterRunsByStore', () => {
      * Slice: 56 Part C3 - store filter
      */
     // -- Given --
-    const { runs } = makeDemoResults()
+    const { runs } = makeWalkthruResults()
 
     // -- When --
     const onlyPg = filterRunsByStore(runs, 'postgres')
@@ -118,8 +118,8 @@ describe('countCrossStoreGroups', () => {
      * Slice: 56 Part C3 - fallback overlap count
      */
     // -- Given --
-    const multi = groupRuns(makeDemoResults().runs)
-    const single = groupRuns([makeDemoRun()])
+    const multi = groupRuns(makeWalkthruResults().runs)
+    const single = groupRuns([makeWalkthruRun()])
 
     // -- When / Then --
     expect(countCrossStoreGroups(multi)).toBe(2)
@@ -135,7 +135,7 @@ describe('primaryStore and suggestedRunId', () => {
      * Slice: 56 Part C3 - choice step
      */
     // -- Given --
-    const results = makeDemoResults()
+    const results = makeWalkthruResults()
 
     // -- When / Then --
     expect(primaryStore(results)).toBe('redis')
@@ -149,7 +149,7 @@ describe('primaryStore and suggestedRunId', () => {
      * Slice: 56 Part C3 - fallback
      */
     // -- Given --
-    const base = makeDemoResults()
+    const base = makeWalkthruResults()
     const stores = Object.fromEntries(
       Object.entries(base.stores).map(([name, s]) => [name, { ...s, is_primary: false }]),
     )
@@ -165,7 +165,7 @@ describe('primaryStore and suggestedRunId', () => {
      * Slice: 56 Part C3 - robustness
      */
     // -- Given --
-    const base = makeDemoResults()
+    const base = makeWalkthruResults()
     const results = {
       ...base,
       stores: { ...base.stores, redis: { ...base.stores.redis, best_run_id: 'gone' } },

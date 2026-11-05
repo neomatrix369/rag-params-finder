@@ -1,7 +1,7 @@
 /**
  * Bundled About-box content (Slice 56 Part C1).
  *
- * Reads the numbered Markdown sections from src/demo/about/, a mirror of
+ * Reads the numbered Markdown sections from src/walkthru/about/, a mirror of
  * docs/about/ kept in sync by `npm run sync:about` (runs before `npm run build`) and checked for
  * drift by about.test.ts. The mirror exists because docs/ is outside the Vite root and outside
  * the Docker frontend build context. Everything is bundled: no network access at runtime.

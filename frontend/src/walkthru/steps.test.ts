@@ -12,7 +12,7 @@ const GOOD = `---
 id: leaderboard
 title: One question, many stores
 duration_s: 11
-route: demo
+route: walkthru
 highlight: leaderboard
 choose:
   target: leaderboard
@@ -35,7 +35,7 @@ describe('parseStep', () => {
       id: 'leaderboard',
       title: 'One question, many stores',
       durationS: 11,
-      route: 'demo',
+      route: 'walkthru',
       highlight: 'leaderboard',
       choose: { target: 'leaderboard', suggest: 'redis' },
       body: 'Same dataset, same questions, different store.',
@@ -52,7 +52,7 @@ describe('parseStep', () => {
 id: try-it
 title: Try it yourself
 duration_s: 9
-route: demo
+route: walkthru
 highlight:
 ---
 Open the About box.
@@ -69,12 +69,12 @@ Open the About box.
   it.each([
     ['no opening fence', 'id: x\n---\nbody', /missing opening/],
     ['no closing fence', '---\nid: x\nbody', /missing closing/],
-    ['missing required key', '---\ntitle: X\nduration_s: 5\nroute: demo\n---\nbody', /missing required key "id"/],
-    ['bad duration', '---\nid: x\ntitle: X\nduration_s: nope\nroute: demo\n---\nbody', /positive number/],
+    ['missing required key', '---\ntitle: X\nduration_s: 5\nroute: walkthru\n---\nbody', /missing required key "id"/],
+    ['bad duration', '---\nid: x\ntitle: X\nduration_s: nope\nroute: walkthru\n---\nbody', /positive number/],
     ['unknown route', '---\nid: x\ntitle: X\nduration_s: 5\nroute: moon\n---\nbody', /unknown route/],
-    ['choice without suggest', '---\nid: x\ntitle: X\nduration_s: 5\nroute: demo\nchoose:\n  target: t\n---\nbody', /both "target" and "suggest"/],
-    ['empty body', '---\nid: x\ntitle: X\nduration_s: 5\nroute: demo\n---\n', /empty body/],
-    ['unparseable line', '---\nid: x\ntitle: X\nduration_s: 5\nroute: demo\n!!bad!!\n---\nbody', /cannot parse line/],
+    ['choice without suggest', '---\nid: x\ntitle: X\nduration_s: 5\nroute: walkthru\nchoose:\n  target: t\n---\nbody', /both "target" and "suggest"/],
+    ['empty body', '---\nid: x\ntitle: X\nduration_s: 5\nroute: walkthru\n---\n', /empty body/],
+    ['unparseable line', '---\nid: x\ntitle: X\nduration_s: 5\nroute: walkthru\n!!bad!!\n---\nbody', /cannot parse line/],
   ])(
     'Given a malformed step (%s), when parsed, then it fails naming the file',
     (_label, raw, expected) => {
@@ -97,7 +97,7 @@ describe('loadSteps / WALKTHRU_STEPS', () => {
      */
     // -- Given --
     const files = {
-      './02-replay.md': '---\nid: replay\ntitle: B\nduration_s: 5\nroute: demo\n---\nbody b',
+      './02-replay.md': '---\nid: replay\ntitle: B\nduration_s: 5\nroute: walkthru\n---\nbody b',
       './01-leaderboard.md': GOOD,
     };
 

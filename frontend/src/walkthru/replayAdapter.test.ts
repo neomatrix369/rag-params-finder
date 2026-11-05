@@ -1,5 +1,5 @@
 /**
- * Tests for the pure replay adapter: DemoRun to the props the explorer components need.
+ * Tests for the pure replay adapter: WalkthruRun to the props the explorer components need.
  *
  * Author: RAG Params Finder contributors
  * Created: 2026-11-05
@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { Phase } from '../types'
-import { REPLAY_PHASES } from './demoResults'
+import { REPLAY_PHASES } from './walkthruResults'
 import {
   defaultRun,
   formatElapsed,
@@ -17,7 +17,7 @@ import {
   toPhase,
   toRankedConfig,
 } from './replayAdapter'
-import { makeDemoResults, makeDemoRun } from '../test/helpers/demoResults'
+import { makeWalkthruResults, makeWalkthruRun } from '../test/helpers/walkthruResults'
 
 describe('replayAdapter', () => {
   it('maps every replay stage to a dashboard phase, in order', () => {
@@ -44,15 +44,15 @@ describe('replayAdapter', () => {
      * Slice: 56 Part B - run replay
      */
     // -- Given --
-    const results = makeDemoResults()
-    const noPrimary = makeDemoResults({
+    const results = makeWalkthruResults()
+    const noPrimary = makeWalkthruResults({
       stores: { redis: { ...results.stores.redis, is_primary: false } },
     })
 
     // -- When / Then --
     expect(defaultRun(results)?.run_id).toBe('run-redis-best')
     expect(defaultRun(noPrimary)?.run_id).toBe(results.runs[0].run_id)
-    expect(defaultRun(makeDemoResults({ runs: [], stores: {} }))).toBeUndefined()
+    expect(defaultRun(makeWalkthruResults({ runs: [], stores: {} }))).toBeUndefined()
   })
 
   it('resolves a known run id, and falls back to the default for unknown or missing ids', () => {
@@ -61,7 +61,7 @@ describe('replayAdapter', () => {
      * Slice: 56 Part B - run replay
      */
     // -- Given --
-    const results = makeDemoResults()
+    const results = makeWalkthruResults()
 
     // -- When / Then --
     expect(resolveRun(results, 'run-pg-best')?.store).toBe('postgres')
@@ -75,7 +75,7 @@ describe('replayAdapter', () => {
      * Slice: 56 Part B - run replay
      */
     // -- Given --
-    const run = makeDemoRun({ store: 'postgres', rank: 4, padding: 2, rerank_provider: 'voyage' })
+    const run = makeWalkthruRun({ store: 'postgres', rank: 4, padding: 2, rerank_provider: 'voyage' })
 
     // -- When --
     const config = toRankedConfig(run)
@@ -102,7 +102,7 @@ describe('replayAdapter', () => {
      * Slice: 56 Part B - run replay
      */
     // -- Given --
-    const run = makeDemoRun()
+    const run = makeWalkthruRun()
 
     // -- When --
     const rows = toDetailedResults(run)
@@ -128,7 +128,7 @@ describe('replayAdapter', () => {
      * Slice: 56 Part B - run replay
      */
     // -- Given / When / Then --
-    expect(runLabel(makeDemoRun())).toBe('redis - rank 1 - all-MiniLM-L6-v2 512/64/0 dense')
+    expect(runLabel(makeWalkthruRun())).toBe('redis - rank 1 - all-MiniLM-L6-v2 512/64/0 dense')
     expect(formatElapsed(12500)).toBe('12.5 s')
   })
 })

@@ -111,8 +111,8 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `scripts/ci/security-scan.sh` | Shim delegating to `scripts/security/security-scan.sh` (local SCA/SAST; nightly.yml runs Semgrep + OSV with the same packs/waivers — `osv-scanner.toml`) |
 | `scripts/docker/` | health-check, aim-ui, docker-cleanup/build-context |
 | `scripts/release/` | `release.sh` + bump/GitHub helpers |
-| `scripts/demo/export_demo_results.py` | Reads run state read-only (repeat `--db`), ranks once via `analyze_results`, writes `docs/about/demo-results.json` (compact, deterministic, manifest of inputs; accepts `partial` experiments; `--data-path-contains` filters the dataset). Never imports vector-store code (Slice 56) |
-| `docs/about/` | Demo source: About sections, Walkthru step files (`walkthru/`), `demo-results.json`. Mirrored into `frontend/src/demo/` by `npm run sync:about` (prebuild) because `docs/` is outside the Docker build context; a drift test fails if they differ. `demo-results.json` is about 1.1 MB (compact) against the repo's 1200 KB large-file hook, so a larger export fails at commit time |
+| `scripts/walkthru/export_walkthru_results.py` | Reads run state read-only (repeat `--db`), ranks once via `analyze_results`, writes `docs/about/walkthru-results.json` (compact, deterministic, manifest of inputs; accepts `partial` experiments; `--data-path-contains` filters the dataset). Never imports vector-store code (Slice 56) |
+| `docs/about/` | Demo source: About sections, Walkthru step files (`walkthru/`), `walkthru-results.json`. Mirrored into `frontend/src/walkthru/` by `npm run sync:about` (prebuild) because `docs/` is outside the Docker build context; a drift test fails if they differ. `walkthru-results.json` is about 1.1 MB (compact) against the repo's 1200 KB large-file hook, so a larger export fails at commit time |
 | `scripts/security/` | `security-scan.sh` |
 | `server/main.py` | FastAPI app entry; lifespan ensures DB indexes + orphan reconciliation |
 | `server/settings.py` | Centralized pydantic-settings config; `storage_backend` defaults to `sqlite` (ADR-008) with `mongodb`/`postgres` as supported alternatives; `vector_store_backend` orthogonal (mongodb/postgres/elasticsearch/redis). See `sqlite-setup.md` |
@@ -173,8 +173,8 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `frontend/src/components/chrome/` | Shell chrome (`DashboardShell`, `AppPageChrome`, `Pagination`, `CollapsibleCard`, …) |
 | `frontend/src/components/experiment/` | Experiment controls/progress/modals + detail chrome |
 | `frontend/src/components/stats/` | List: vector-database panel + store runtime. Detail: `ExperimentStoredFootprint`. Shared `StatTile`/`StatRow` |
-| `frontend/src/components/about/`, `frontend/src/components/demo/` | About button/dialog; offline demo (`CrossStoreLeaderboard`, `RunReplay`, `ImprovementPanel`, `DemoScreen`). No network calls; copy says "similarity score" (Slice 56) |
-| `frontend/src/walkthru/`, `frontend/src/demo/` | Guided tour engine/overlay (JWLB pattern, no voice or theme code) and the typed loader/mirror for the bundled data (`loadDemoResults.ts`, `demoResults.ts`) |
+| `frontend/src/components/about/`, `frontend/src/components/walkthru/` | About button/dialog; offline demo (`CrossStoreLeaderboard`, `RunReplay`, `ImprovementPanel`, `WalkthruScreen`). No network calls; copy says "similarity score" (Slice 56) |
+| `frontend/src/walkthru/` | Guided tour engine/overlay (JWLB pattern, no voice or theme code), the typed loader (`loadWalkthruResults.ts`, `walkthruResults.ts`), and the mirrors of `docs/about/` (`about/`, `steps/`, `walkthru-results.json`) |
 | `frontend/src/hooks/useExperimentDetail.ts` | Detail hydrate/poll plus stored-footprint db-stats (Slice 45) |
 | `frontend/src/test/helpers/` | Shared Vitest builders (`experiments`, `vectorDbStats`, `explore`, `experimentDetail`) |
 | `frontend/src/components/explore/ExplorePanels.tsx` | Search Explorer tabs + sidebar panels |
