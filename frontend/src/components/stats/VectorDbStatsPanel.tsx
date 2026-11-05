@@ -4,7 +4,8 @@ import StatTile from './StatTile';
 import type { VectorDbStatsGroup } from '../../types';
 import { STATS_SCOPE, estimateFormula } from './estimateLabels';
 import { GroupResultsHint } from './ResultsBreakdownView';
-import { groupResultsBreakdown } from './resultsBreakdown';
+import { formatCount, groupResultsBreakdown } from './resultsBreakdown';
+import { usagePercent } from './storageUsage';
 import {
   clusterHostLabel,
   clusterSectionTitle,
@@ -37,10 +38,7 @@ function formatStorageSummary(group: VectorDbStatsGroup): string {
 }
 
 function storageUsagePercent(group: VectorDbStatsGroup): number | null {
-  const used = group.totals.database_used_mb;
-  const limit = group.totals.database_storage_limit_mb;
-  if (used == null || limit == null || limit <= 0) return null;
-  return Math.min(100, Math.round((used / limit) * 100));
+  return usagePercent(group.totals.database_used_mb, group.totals.database_storage_limit_mb);
 }
 
 export default function VectorDbStatsPanel({
@@ -103,7 +101,7 @@ export default function VectorDbStatsPanel({
               <StatTile label="Total Chunks" value={group.totals.total_chunks.toLocaleString()} />
               <StatTile
                 label="Query Results"
-                value={group.totals.total_results.toLocaleString()}
+                value={formatCount(group.totals.total_results)}
                 hint={
                   groupResultsBreakdown(group.totals).kind === 'unavailable' ? undefined : (
                     <GroupResultsHint totals={group.totals} />

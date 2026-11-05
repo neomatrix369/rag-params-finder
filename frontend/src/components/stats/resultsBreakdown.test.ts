@@ -41,6 +41,8 @@ describe('experimentResultsFormula', () => {
       ],
       unit: 'result',
       observedTotal: 480,
+      exact: true,
+      observedText: '480 results (observed) · 12 runs × 40 golden queries',
       sourceNote: null,
     })
   })
@@ -50,6 +52,9 @@ describe('experimentResultsFormula', () => {
     ['null golden (Redis/ES)', { golden_queries: null, golden_queries_source: null }],
     ['null runs', { result_runs: null }],
     ['NaN golden', { golden_queries: Number.NaN }],
+    ['missing total_results', { total_results: undefined }],
+    ['null total_results', { total_results: null }],
+    ['string total_results', { total_results: '480' }],
   ])('Given %s, when built, then there is no formula', (_name, overrides) => {
     /**
      * Scenario: Missing facts hide the breakdown instead of showing 0 or NaN.
@@ -60,6 +65,19 @@ describe('experimentResultsFormula', () => {
 
     // -- Then --
     expect(formula).toBeNull()
+  })
+
+  it('Given a stored total that differs from runs x golden, when built, then the formula is not exact', () => {
+    /**
+     * Scenario: 12 x 40 = 480 but 470 rows are stored.
+     * Slice: 67E - no false "="
+     */
+    // -- Given / When --
+    const formula = experimentResultsFormula(stats({ total_results: 470 }))
+
+    // -- Then --
+    expect(formula?.exact).toBe(false)
+    expect(formula?.observedText).toBe('470 results (observed) · 12 runs × 40 golden queries')
   })
 
   it('Given an inferred golden count, when built, then the source note carries the inferred marker', () => {
@@ -155,6 +173,22 @@ describe('groupResultsBreakdown', () => {
       expect(breakdown.summary).toBe('6,480 results (observed); experiments have 20 to 40 golden queries.')
       expect(breakdown.summary).not.toContain('=')
     }
+  })
+
+  it('Given a uniform group whose product differs from the total, when built, then it is reported as observed', () => {
+    /**
+     * Scenario: 162 x 40 = 6,480 but 6,000 stored.
+     * Slice: 67E - no false "=" at group level
+     */
+    // -- Given / When --
+    const breakdown = groupResultsBreakdown(totals({ total_results: 6000 }))
+
+    // -- Then --
+    expect(breakdown).toEqual({
+      kind: 'mixed',
+      observedTotal: 6000,
+      summary: '6,000 results (observed) · 162 runs × 40 golden queries',
+    })
   })
 
   it.each([

@@ -5,7 +5,7 @@
  * Created: 2026-11-05
  * Scope: Slice 67E - formula line, (observed) semantics, hidden when unavailable, tile fallback.
  */
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { ExperimentDbStats } from '../../types';
 import { vectorDbGroup } from '../../test/helpers/vectorDbStats';
@@ -68,10 +68,12 @@ describe('ExperimentStoredFootprint results breakdown', () => {
 
     // -- Then --
     expect(text('results-formula')).toBe('12 runs × 40 golden queries = 480 results');
+    expect(screen.getByTestId('results-formula')).toBeVisible();
+    expect(screen.queryByTestId('results-source-note')).toBeNull();
     expect(text('results-breakdown')).toContain('One result row per query per run; top-k only sets how many chunks each row holds.');
   });
 
-  it('Given 470 stored results against a 480 product, when rendered, then (observed) replaces a false equality', () => {
+  it('Given 470 stored results against a 480 product, when rendered, then the observed total leads and no "=" is printed', () => {
     /**
      * Scenario: A mismatch must not print a false "=" total.
      * Slice: 67E - observed semantics
@@ -80,7 +82,8 @@ describe('ExperimentStoredFootprint results breakdown', () => {
     render(<ExperimentStoredFootprint stats={footprint({ total_results: 470 })} />);
 
     // -- Then --
-    expect(text('results-formula')).toBe('12 runs × 40 golden queries = 470 results (observed)');
+    expect(text('results-formula')).toBe('470 results (observed) · 12 runs × 40 golden queries');
+    expect(text('results-formula')).not.toContain('=');
   });
 
   it('Given one run and one golden query, when rendered, then singular labels are used', () => {
@@ -95,7 +98,7 @@ describe('ExperimentStoredFootprint results breakdown', () => {
     expect(text('results-formula')).toBe('1 run × 1 golden query = 1 result');
   });
 
-  it('Given zero stored results, when rendered, then the line reads 0 results (observed) with no NaN', () => {
+  it('Given zero stored results, when rendered, then the line reads 0 results (observed) with no NaN or "="', () => {
     /**
      * Scenario: Runs exist but wrote nothing.
      * Slice: 67E - zero results
@@ -104,7 +107,7 @@ describe('ExperimentStoredFootprint results breakdown', () => {
     render(<ExperimentStoredFootprint stats={footprint({ total_results: 0 })} />);
 
     // -- Then --
-    expect(text('results-formula')).toBe('12 runs × 40 golden queries = 0 results (observed)');
+    expect(text('results-formula')).toBe('0 results (observed) · 12 runs × 40 golden queries');
     expect(screen.getByTestId('results-breakdown').textContent).not.toMatch(/NaN|undefined/);
   });
 
@@ -126,6 +129,7 @@ describe('ExperimentStoredFootprint results breakdown', () => {
 
   it.each([
     ['old payload', { result_runs: undefined, golden_queries: undefined, golden_queries_source: undefined, partial_runs: undefined }],
+    ['missing total_results', { total_results: undefined as unknown as number }],
     ['Redis/ES null golden', { golden_queries: null, golden_queries_source: null, partial_runs: null }],
   ])('Given %s, when rendered, then no breakdown and no NaN or undefined appear', (_name, overrides) => {
     /**
@@ -197,6 +201,9 @@ describe('VectorDbStatsPanel Query Results tile', () => {
 
     // -- Then --
     expect(text('results-group-hint')).toContain('162 runs × 40 golden queries = 6,480 results');
+    expect(screen.getByTestId('results-group-hint')).not.toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: /query results/i }));
+    expect(screen.getByTestId('results-group-hint')).toBeVisible();
     expect(screen.getByText('6,480')).toBeInTheDocument();
   });
 
@@ -216,6 +223,41 @@ describe('VectorDbStatsPanel Query Results tile', () => {
     const hint = text('results-group-hint');
     expect(hint).toContain('6,480 results (observed); experiments have 20 to 40 golden queries.');
     expect(hint).not.toContain('=');
+  });
+
+  it('Given a uniform group whose product differs from the stored total, when rendered, then no "=" is printed', () => {
+    /**
+     * Scenario: 162 x 40 = 6,480 but 6,000 rows are stored.
+     * Slice: 67E - no false equality at group level
+     */
+    // -- Given / When --
+    render(
+      <VectorDbStatsPanel
+        groups={[tile({ total_results: 6000, total_result_runs: 162, golden_queries_min: 40, golden_queries_max: 40 })]}
+      />,
+    );
+
+    // -- Then --
+    const hint = text('results-group-hint');
+    expect(hint).toContain('6,000 results (observed) · 162 runs × 40 golden queries');
+    expect(hint).not.toContain('=');
+  });
+
+  it('Given a large total, when the tile renders, then its value uses the same en-US formatter as the hint', () => {
+    /**
+     * Scenario: tile value and hint cannot disagree on grouping.
+     * Slice: 67E - one formatter
+     */
+    // -- Given / When --
+    render(
+      <VectorDbStatsPanel
+        groups={[tile({ total_results: 1234567, total_result_runs: 1, golden_queries_min: 1, golden_queries_max: 2 })]}
+      />,
+    );
+
+    // -- Then --
+    expect(screen.getByText('1,234,567')).toBeInTheDocument();
+    expect(text('results-group-hint')).toContain('1,234,567 results (observed)');
   });
 
   it.each([

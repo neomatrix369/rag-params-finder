@@ -22,12 +22,16 @@ export function ExperimentResultsBreakdown({
   return (
     <div data-testid="results-breakdown" className="space-y-1 break-words text-xs text-slate-800">
       <p data-testid="results-formula" className="font-semibold">
-        <FormulaLine
-          terms={formula.terms}
-          unit={formula.unit}
-          observedTotal={formula.observedTotal}
-          formatCount={formatCount}
-        />
+        {formula.exact ? (
+          <FormulaLine
+            terms={formula.terms}
+            unit={formula.unit}
+            observedTotal={formula.observedTotal}
+            formatCount={formatCount}
+          />
+        ) : (
+          formula.observedText
+        )}
       </p>
       <p className="text-[11px] text-slate-500">{RESULTS_ROW_NOTE}</p>
       {formula.sourceNote ? (

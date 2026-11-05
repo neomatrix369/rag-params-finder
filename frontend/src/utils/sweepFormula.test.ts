@@ -6,6 +6,34 @@
 import { describe, expect, it } from 'vitest';
 import { BAYESIAN_SWEEP_NOTE, formulaProduct, pluralize, sweepFormulaFromSummary, sweepNote } from './sweepFormula';
 
+describe('pluralize labels in use', () => {
+  it.each([
+    ['model', 'models'],
+    ['chunking method', 'chunking methods'],
+    ['size', 'sizes'],
+    ['overlap', 'overlaps'],
+    ['padding', 'paddings'],
+    ['retriever', 'retrievers'],
+    ['configuration', 'configurations'],
+    ['run', 'runs'],
+    ['result', 'results'],
+    ['golden query', 'golden queries'],
+    ['key', 'keys'],
+  ])('Given the label "%s", when pluralized, then it reads "%s" and the singular is unchanged', (label, plural) => {
+    /**
+     * Scenario: every label the formulas use keeps its plural; "key" is the vowel + y control.
+     * Slice: 67E - locks the consonant + y rule against regressions on today's labels.
+     */
+    // -- Given / When --
+    const many = pluralize(2, label);
+    const one = pluralize(1, label);
+
+    // -- Then --
+    expect(many).toBe(`2 ${plural}`);
+    expect(one).toBe(`1 ${label}`);
+  });
+});
+
 describe('pluralize', () => {
   it('Given a count of 1, when pluralized, then the singular label is kept', () => {
     /**

@@ -9,7 +9,7 @@
  * arithmetic in JSX. Numbers are formatted with the fixed 'en-US' locale.
  */
 import type { ExperimentDbStats, VectorDbGroupTotals } from '../../types';
-import type { FormulaTerm } from '../../utils/sweepFormula';
+import { formulaProduct, pluralize, type FormulaTerm } from '../../utils/sweepFormula';
 
 export const RESULTS_ROW_NOTE =
   'One result row per query per run; top-k only sets how many chunks each row holds.';
@@ -26,17 +26,27 @@ export interface ResultsFormula {
   terms: FormulaTerm[];
   unit: 'result';
   observedTotal: number;
+  /** True only when runs x golden queries equals the stored total; only then may a "=" be printed. */
+  exact: boolean;
+  /** `470 results (observed) · 12 runs × 40 golden queries`: the line to print when not exact. */
+  observedText: string;
   /** Set when the golden count was inferred rather than read from the dataset. */
   sourceNote: string | null;
 }
 
 export type GroupResultsBreakdown =
-  | ({ kind: 'uniform' } & Omit<ResultsFormula, 'sourceNote'>)
+  | ({ kind: 'uniform' } & Omit<ResultsFormula, 'sourceNote' | 'exact' | 'observedText'>)
   | { kind: 'mixed'; observedTotal: number; summary: string }
   | { kind: 'unavailable' };
 
 const isCount = (value: number | null | undefined): value is number =>
   typeof value === 'number' && Number.isFinite(value);
+
+const factorsText = (terms: FormulaTerm[]): string =>
+  terms.map((term) => pluralize(term.count, term.label, formatCount)).join(' × ');
+
+const observedLine = (terms: FormulaTerm[], total: number): string =>
+  `${pluralize(total, 'result', formatCount)} (observed) · ${factorsText(terms)}`;
 
 export function experimentResultsFormula(
   stats: Pick<
@@ -44,15 +54,18 @@ export function experimentResultsFormula(
     'result_runs' | 'golden_queries' | 'golden_queries_source' | 'total_results'
   >,
 ): ResultsFormula | null {
-  const { result_runs: runs, golden_queries: golden } = stats;
-  if (!isCount(runs) || !isCount(golden)) return null;
+  const { result_runs: runs, golden_queries: golden, total_results: total } = stats;
+  if (!isCount(runs) || !isCount(golden) || !isCount(total)) return null;
+  const terms: FormulaTerm[] = [
+    { count: runs, label: 'run' },
+    { count: golden, label: 'golden query' },
+  ];
   return {
-    terms: [
-      { count: runs, label: 'run' },
-      { count: golden, label: 'golden query' },
-    ],
+    terms,
     unit: 'result',
-    observedTotal: stats.total_results,
+    observedTotal: total,
+    exact: formulaProduct(terms) === total,
+    observedText: observedLine(terms, total),
     sourceNote: stats.golden_queries_source === 'max_per_run' ? INFERRED_NOTE : null,
   };
 }
@@ -78,17 +91,17 @@ export function groupResultsBreakdown(
 ): GroupResultsBreakdown {
   const { golden_queries_min: min, golden_queries_max: max, total_result_runs: runs } = totals;
   if (!isCount(min) || !isCount(max)) return { kind: 'unavailable' };
+  if (!isCount(totals.total_results)) return { kind: 'unavailable' };
   if (min === max) {
     if (!isCount(runs)) return { kind: 'unavailable' };
-    return {
-      kind: 'uniform',
-      terms: [
-        { count: runs, label: 'run' },
-        { count: min, label: 'golden query' },
-      ],
-      unit: 'result',
-      observedTotal: totals.total_results,
-    };
+    const terms: FormulaTerm[] = [
+      { count: runs, label: 'run' },
+      { count: min, label: 'golden query' },
+    ];
+    if (formulaProduct(terms) !== totals.total_results) {
+      return { kind: 'mixed', observedTotal: totals.total_results, summary: observedLine(terms, totals.total_results) };
+    }
+    return { kind: 'uniform', terms, unit: 'result', observedTotal: totals.total_results };
   }
   return {
     kind: 'mixed',

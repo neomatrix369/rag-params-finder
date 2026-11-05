@@ -1614,6 +1614,52 @@ describe('VectorDbStatsPanel in ExperimentDetailScreen', () => {
   });
 });
 
+describe('ExperimentDetailScreen results breakdown wording', () => {
+  beforeEach(() => {
+    resetAllApiMocks();
+  });
+
+  it.each([
+    ['complete', [Phase.COMPLETE, Phase.COMPLETE, Phase.COMPLETE], 'returned fewer results than the golden count'],
+    ['running', [Phase.EMBEDDING, Phase.EMBEDDING, Phase.EMBEDDING], 'below the golden count so far'],
+  ] as const)('Given a %s experiment with 2 partial runs, when the footprint loads, then the partial-runs note matches its terminal state', async (status, phases, wording) => {
+    /**
+     * Scenario: only a finished experiment may state partial runs as a fact; a running one is "so far".
+     * Slice: 67E - the isTerminal seam between the detail screen and the footprint.
+     * Given the db-stats payload reports 2 partial runs,
+     * When the detail screen renders an experiment in the given state,
+     * Then the footprint note uses the wording for that state.
+     */
+    // -- Given --
+    const fixture = detailFixture(status, [...phases]);
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+    apiMocks.getExperimentDbStats.mockResolvedValue({
+      db_stats: {
+        ...emptyDbStats,
+        total_chunks: 120,
+        total_results: 478,
+        result_runs: 12,
+        golden_queries: 40,
+        golden_queries_source: 'config',
+        partial_runs: 2,
+      },
+    });
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen
+        experimentId={fixture.experiment_id}
+        initialExperiment={fixture}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+
+    // -- Then --
+    expect(await screen.findByTestId('results-partial-note')).toHaveTextContent(wording);
+  });
+});
+
 describe('ExperimentDetailScreen progress and Bayesian totals', () => {
   beforeEach(() => {
     resetAllApiMocks();
