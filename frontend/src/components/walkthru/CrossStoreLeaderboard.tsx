@@ -118,6 +118,7 @@ export default function CrossStoreLeaderboard({
 
   const allGroups = useMemo(() => groupRuns(results.runs), [results.runs]);
   const crossStore = countCrossStoreGroups(allGroups);
+  const groupSizes = new Map(allGroups.map((group) => [group.groupId, group.runs.length]));
   const groups = useMemo(() => groupRuns(filterRunsByStore(results.runs, storeFilter)), [results.runs, storeFilter]);
   const visible = groups.slice((page - 1) * perPage, page * perPage);
 
@@ -207,7 +208,7 @@ export default function CrossStoreLeaderboard({
                       run={run}
                       selected={run.run_id === selectedRunId}
                       suggested={run.store === suggested}
-                      groupRunCount={group.runs.length}
+                      groupRunCount={groupSizes.get(group.groupId) ?? group.runs.length}
                       onSelect={onSelectRun}
                     />
                   ))}

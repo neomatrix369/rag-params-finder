@@ -322,6 +322,25 @@ describe('CrossStoreLeaderboard', () => {
     expect(within(row).queryByText('100.0')).not.toBeInTheDocument()
   })
 
+  it('Given a multi-run group filtered down to one visible row, when rendered, then the row still shows a numeric score', () => {
+    /**
+     * Scenario: the lone-run marker depends on the real group size, not on how many rows the filter leaves.
+     * Slice: 67D - score label stays truthful under the store filter.
+     */
+    // -- Given --
+    const redis = makeWalkthruRun({ run_id: 'redis-1', store: 'redis', group_id: 'shared', rank: 1, max_score: 100 })
+    const pg = makeWalkthruRun({ run_id: 'pg-1', store: 'postgres', group_id: 'shared', rank: 2, max_score: 62.5 })
+    render(<CrossStoreLeaderboard results={makeWalkthruResults({ runs: [redis, pg] })} onSelectRun={() => {}} />)
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'postgres' }))
+
+    // -- Then --
+    const row = screen.getByTestId('run-row-pg-1')
+    expect(within(row).getByText('62.5')).toBeInTheDocument()
+    expect(within(row).queryByText(/only run in this group/i)).not.toBeInTheDocument()
+  })
+
   it('Given any leaderboard, when rendered, then the score is described as the max, normalised per group', () => {
     /**
      * Scenario: The column label hides max-not-average and the normalisation scope.

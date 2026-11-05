@@ -7,6 +7,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { FINISHED_RUN_RULE } from '../experimentDetailProgress';
 import ProgressSubtitle from './ProgressSubtitle';
 
 describe('ProgressSubtitle', () => {
@@ -20,6 +21,7 @@ describe('ProgressSubtitle', () => {
 
     // -- Then --
     expect(screen.getByText('2 of 4 runs completed')).toBeInTheDocument();
+    expect(screen.queryByText(FINISHED_RUN_RULE)).not.toBeInTheDocument();
   });
 
   it('Given failed and interrupted runs, when rendered, then states the finished breakdown', () => {
@@ -34,6 +36,7 @@ describe('ProgressSubtitle', () => {
     expect(
       screen.getByText('4 of 8 runs finished (2 complete, 1 failed, 1 interrupted)'),
     ).toBeInTheDocument();
+    expect(screen.getByText(FINISHED_RUN_RULE)).toBeInTheDocument();
   });
 
   it('Given a start time and an injected clock, when rendered, then elapsed and ETA come from that clock', () => {

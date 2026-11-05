@@ -1,4 +1,4 @@
-import { calculateProgressMetrics, progressSentence } from '../experimentDetailProgress';
+import { FINISHED_RUN_RULE, calculateProgressMetrics, progressSentence } from '../experimentDetailProgress';
 
 export default function ProgressSubtitle({
   completed,
@@ -40,6 +40,9 @@ export default function ProgressSubtitle({
         <span className="text-xs font-semibold uppercase tracking-wide text-accent-strong">ETA</span>
         <span className="font-mono font-semibold text-accent-strong">{etaStr}</span>
       </span>
+      {failed + interrupted > 0 && (
+        <p className="basis-full text-xs text-muted">{FINISHED_RUN_RULE}</p>
+      )}
     </div>
   );
 }

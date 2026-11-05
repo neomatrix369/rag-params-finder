@@ -173,7 +173,6 @@ describe('experimentDetailProgress', () => {
     // -- Then --
     expect(second).toEqual(first);
     expect(calculateProgressPercent(runs)).toBe(calculateProgressPercent(runs));
-    expect(FINISHED_RUN_RULE).toBe(FINISHED_RUN_RULE);
   });
 });
 
