@@ -1,6 +1,6 @@
 # SLICE-67 — Correct and Explainable Dashboard Numbers
 
-**Status:** 📋 PLANNED
+**Status:** 🔨 IN PROGRESS — 67A on branch (reviewed), 67C and 67D-1/2/3 built on branches, 67B in progress; nothing merged yet (see *Execution log and amendments*)
 **MoSCoW:** Must (67A, 67B) · Should (67C, 67D)
 **Depends-on:** none hard · soft: SLICE-66 (Compare screen, partial), SLICE-45 (screen layout)
 **Estimated effort:** ~24–31 h across all sub-slices
@@ -28,6 +28,8 @@ Audit findings that justify the slice (code-verified on 2026-11-05):
 | E | Progress ring and ETA ignore failed and interrupted runs | `ProgressSubtitle.tsx`, `experimentDetailProgress.ts` |
 | F | Bayesian cards do not add up to Total (Discarded is not a run) | `ExperimentDetailScreen.tsx:405-427` |
 | G | Compare and Walkthru: a lone-run group scores 100.0; silent dedup; the score label hides max-not-average; stats tiles differ per backend; MB estimate unlabeled | `CrossStoreLeaderboard.tsx`, `VectorDbStatsPanel.tsx` |
+
+**Determinism rule (standing, all sub-slices):** every number and every explanation sentence is produced by a named pure function of its inputs (no clock, randomness, I/O, environment, or model-generated text; fixed templates plus numbers; stable ordering). Screens render these values and never compute counts in JSX. Enforced by `frontend/src/utils/deterministicNumbers.guard.test.ts` (extend its module list as helpers land) and, on the backend, by tests that call `sweep_plan()` repeatedly and with equivalent inputs.
 
 Vocabulary decision: **run** = executed · **planned runs** = expected · **configuration** = a distinct parameter set (sweep header) · **trial** = Bayesian only. "Combination" is retired; one glossary in the UI.
 
@@ -66,10 +68,10 @@ Vocabulary decision: **run** = executed · **planned runs** = expected · **conf
 
 **Oracle (GWT):**
 
-- Given an experiment with 1×5×3×2×1×4 dimensions, When the Detail screen renders, Then the header reads `1 model × 5 chunking methods × 3 sizes × 2 overlaps × 1 padding × 4 retrievers = 120 configurations` and equals the Total tile.
+- Given an experiment with 1×5×3×2×1×4 dimensions, When the Detail screen renders, Then the header reads `1 model × 5 chunking methods × 3 sizes × 2 overlaps × 1 padding × 4 retrievers = 120 configurations` and equals the Total tile. *(67A asserts this for grid sweeps, where Total = `run_count`. Bayesian Total/trial sums are 67D, finding F.)*
 - Given `paddings: []`, When it renders, Then the padding factor is 1, never 0.
 - Given a Bayesian experiment, When it renders, Then the header carries the "varies chunk size × overlap only" note.
-- For every `FormulaLine` fixture, the product of the terms equals the displayed total.
+- For every `FormulaLine` fixture **with a derived total** (no `observedTotal`), the product of the terms equals the displayed total. An `observedTotal` that differs from the product renders as `(observed)`, never as a false `=`. *(Amended 2026-11-05 after 67A review: the Explorer still passes an observed count until 67D, which removes the prop.)*
 
 ### 67B · Backend single source of truth (Must, ~6–8 h)
 
@@ -103,6 +105,55 @@ Vocabulary decision: **run** = executed · **planned runs** = expected · **conf
 
 ---
 
+## Execution log and amendments (2026-11-05)
+
+Recorded after execution began, so the plan matches what was built and decided. Authoritative per-branch state lives in git; this section explains the deviations from the stub above.
+
+### Standing rules added during execution
+
+- **Determinism rule** (see Context): every number and explanation sentence comes from a named pure function; the clock is an injected argument, never read inside; screens render values and never compute counts in JSX. Enforced by `frontend/src/utils/deterministicNumbers.guard.test.ts` (fails on `Date`/`Math.random`/storage/network/DOM in the listed pure modules, and on `.length *` in the two screens). Known limits, accepted: the guard cannot catch every way to multiply counts (`const n = a.length; n * m`) or impurity reached through an import; its module lists are hand-kept and each sub-slice must extend them.
+- **Bundling:** 67D-1, 67D-2 and 67D-3 ship in **one** 67D PR (owner decision). 67A, 67B and 67C stay separate PRs (67B changes the API shape and needs its own data-flow review).
+- **Parallel execution:** 67B, 67C, 67D-1, 67D-2 and 67D-3 were built in parallel in isolated git worktrees off `main` (branches `slice/67b-sweep-plan`, `slice/67c-infotip`, `slice/67d1-bayesian-not-started`, `slice/67d2-progress-eta`, `slice/67d3-compare-stats-labels`) with disjoint file ownership; 67A is `slice/67a-explainable-headline`. Remaining 67D work (screen wiring, fix F, tips on every card, glossary) waits for 67A, 67B and 67C to land because it edits `ExperimentDetailScreen.tsx`.
+
+### 67A — implemented, with these changes to the stub
+
+- `frontend/src/utils/sweepFormula.ts` (new, pure): `pluralize`, `formulaProduct`, `sweepFormulaFromSummary`, `sweepNote`, `BAYESIAN_SWEEP_NOTE`. Mirrors `expand_sweep`: `paddings []` counts as 1, no retrievers counts as one dense retriever, and an empty `retrievers` list falls back to the legacy `retrieval_methods`.
+- `frontend/src/components/chrome/FormulaLine.tsx` (new): derived total is always the product of the terms. The stub's `total` prop became **`observedTotal`**: when it differs from the product the line reads `… = N configurations (observed)` instead of a false `=`. The Explorer passes it until 67D removes the prop. (`SweepFormula` no longer carries a `total`, so there is a single derivation.)
+- Detail header uses `FormulaLine` plus a fixed Bayesian note: *"Bayesian: varies chunk size × overlap only; uses the first model, method, padding and retriever. The grid above is not run in full."* (the last sentence was added in review so the grid product is not read as a run count).
+- Oracle clauses 1 and 4 amended (see Sub-slices); the Total-tile equality is asserted for grid sweeps (`Total = run_count`) in the Detail test.
+- Out-of-scope fix riding on the branch as its own commit: `tests/server/db/redis/test_preflight.py` built a parametrize list from a set, so pytest-xdist workers collected different tests and the quality gates failed before running any test. Fixed with `sorted(...)`; safe to split out of the 67A PR.
+- Verification so far: full `quality-gates.sh` green; real-browser check on a real 1×5×3×2×1×4 sweep (header = `120 configurations` = Total tile, no sideways overflow at 1280 px and 390 px); two independent reviews, acceptance reviewer APPROVED, code-quality re-review pending.
+- Open suggestions taken into the 67D backlog: a test that the Explorer renders the `(observed)` line; widen the guard's impurity patterns and derive its module lists from a glob.
+
+### 67B — in progress
+
+Not yet reported. Determinism requirement given to the agent: `sweep_plan()` and its warnings are pure, stable ordering, with tests that call it repeatedly and with equivalent inputs.
+
+### 67C — implemented on branch (not yet browser-checked)
+
+- `components/chrome/InfoTip.tsx` (new): native button, `aria-describedby` to a `role="tooltip"` span kept in the DOM and toggled with `hidden` (one screen-reader announcement, no `aria-live`), tap toggles, Escape and outside press close it, `min-h-11 min-w-11` target; id is a caller `id` or React `useId`.
+- `StatTile.hint` renders through `InfoTip`; **UX change:** hints that were always-visible text are now hidden until tapped. `StatTile`, `StatCard` and `CollapsibleCard` gained an `explain` prop (the `CollapsibleCard` tip sits beside the toggle, not inside it).
+- No native `title=` was replaced (none existed in the files it owned); the real ones are in the screens and `ExplorePanels` and belong to 67D.
+- Gaps to close before 67C can merge: real-browser check at 390 px (tip may clip near the left edge); the full gates (the agent's worktree lacked a Python environment, so it ran the frontend checks directly).
+
+### 67D — partly built (three streams, one PR)
+
+- **D-1 (finding D):** pure `bayesianNotStartedCount(planned, attempted, discarded)` in `utils/experimentStatus.ts`; the list screen's `experimentList/labels.ts` uses it and ignores the already-reduced `bayesian_summary.not_started`. **Remaining:** the Detail screen still subtracts inline (lines ~244–246) and must adopt the helper.
+- **D-2 (finding E):** failed and interrupted runs count as finished work. `experimentDetail/ProgressSubtitle.tsx` and `experiment/experimentDetailProgress.ts` gained pure `countFinishedRuns` and `calculateProgressPercent` and a fixed `FINISHED_RUN_RULE` string; `now` is now a required injected argument of `calculateProgressMetrics`. **Remaining:** `ExperimentDetailScreen.tsx` must pass `failed`/`interrupted` to the subtitle and use `calculateProgressPercent` (lines ~448–454).
+- **D-3 (finding G, plain-text labels, no tooltip):** `walkthru/scoreLabels.ts` and `stats/estimateLabels.ts` (pure fixed templates). `CrossStoreLeaderboard` shows "Only run in this group" for a lone run instead of 100.0, a score note (max single-chunk similarity, normalised per group), and a dedup note; `ExperimentStoredFootprint` and `VectorDbStatsPanel` show "est." with the formula and a scope label; `ImprovementPanel` states the baseline and that it is the primary store only. **Remaining:** the dedup note shows the rule only until the compare response carries a `duplicates_collapsed` count (new backend field, `server/core/compare.py`); the component already accepts an optional `collapsedDuplicates`.
+- All three branches' full gates were not green in their worktrees for an environment reason (missing Python dependencies, plus the xdist ordering issue fixed on the 67A branch); each must be re-run before push.
+
+### Added scope (owner request, not yet built)
+
+- **Query Results breakdown by golden-dataset record.** The "Query Results" tile (`total_results`, a 6–7 digit number) must show how it decomposes. Each stored result row is one retrieved chunk for one (run, golden query) pair, so the target line is `N results = R runs × Q golden records × K results each` per experiment, and `N / Q` results per golden record at the group level. Needs: group totals to carry the golden-record count (`unique_queries` exists per experiment in `ExperimentDbStats` but not in `VectorDbGroupTotals` or the grouped summaries), computed in `stats_common.py`/the store stats helpers and rendered through `FormulaLine`. The product will not always equal the stored count (failed runs, differing `top_k_final`), so any non-matching case renders `(observed)` rather than a false `=`. Lands in 67D after 67B.
+
+### Added to the 67D backlog (from review)
+
+- Wire D-1 and D-2 into `ExperimentDetailScreen.tsx` (above); fix finding F (Bayesian cards reconcile, Discarded shown separately).
+- Backend `duplicates_collapsed` in the compare response; remove the Explorer's `observedTotal` once 67B supplies the planned total.
+- Apply `FormulaLine`/`InfoTip` to every inventory row, replace the explanatory native `title=` uses in the screens and `ExplorePanels`, add the glossary.
+- Extend the determinism guard's module lists as each helper lands; add an Explorer test for the `(observed)` line; browser-check `InfoTip` at 390 px.
+
 ## Before-Checks [GATE]
 
 - [ ] Read `docs/plan/slices/PROGRESS.md`, `docs/plan/invariants.md`, `docs/plan/DECISION-OWNERSHIP.md`
@@ -134,21 +185,22 @@ README (unchanged unless UI described), `docs/user-guide/dashboard-guide.md` (ex
 
 ## Gate Status
 
-📋 PLANNED — stub. Gate evidence (`docs/plan/gate-evidence/slice-67.json`) is written by the executor, never pre-created.
+🔨 IN PROGRESS — see *Execution log and amendments*. Gate evidence (`docs/plan/gate-evidence/slice-67.json`) is written by the executor, never pre-created.
 
 ---
 
-## Appendix — number inventory (seed; completed in 67A)
+## Appendix — number inventory (completed in 67A; `FormulaLine` shipped in 67A, tips land in 67C/67D)
 
 | Screen | Card or number | Source | Verdict | Fix lands in |
 |---|---|---|---|---|
-| Detail | "N combinations" header | `ExperimentDetailScreen.tsx:575` | ❌ omits retrievers | 67A |
+| Detail | Sweep Dimensions header (was "N combinations") | `ExperimentDetailScreen.tsx` | ✅ fixed in 67A: `FormulaLine`, retrievers included, `paddings.length \|\| 1`, Bayesian note | 67A |
 | Detail | Total / Successful / Failed / Interrupted / Not started / In progress | `utils/experimentStatus.ts` | ✅ grid, ❌ Bayesian sums | 67D |
 | Detail | Duration, progress %, ETA | `experimentDetailProgress.ts` | ⚠️ ignores failed and interrupted | 67D |
 | Detail | Bayesian summary "X/Y trials" | `ExperimentDetailScreen.tsx:624` | ⚠️ `run_count` over `grid_equivalent_count` | 67D |
-| List | "N experiments" header, "N runs configured", RUNS, "N failed", Bayesian counts | `ExperimentsScreen.tsx:381,520,563` | ⚠️ planned vs executed, double subtraction | 67D |
-| Explorer | "(N total configurations)" and the Cartesian line | `ExplorePanels.tsx:295,374` | ❌ observed not planned | 67A/67D |
+| List | "N experiments" header (e.g. "120 experiments" = stored experiments, not runs), pagination ("Showing X–Y of N", page size), "N runs configured", RUNS, "N failed", Bayesian counts | `ExperimentsScreen.tsx:381,520,563` | ⚠️ planned vs executed, double subtraction | 67D |
+| Explorer | "(N total configurations)" and the Cartesian line | `ExplorePanels.tsx` | ⚠️ now rendered by shared `FormulaLine` (67A); still observed from completed configs, not planned | 67D |
 | Explorer | tied count, score %, per-query counts, `top_k` | `ExplorePanels.tsx` | ⚠️ two definitions, unexplained normalisation | 67D |
 | Stats | Experiments, Query Results, DB Used, Chunks (Est.), MB | `VectorDbStatsPanel.tsx`, `ExperimentStoredFootprint.tsx` | ⚠️ scope and estimate unlabeled | 67D |
 | Compare | Similarity score, Rank, overlap note, dedup | `CrossStoreLeaderboard.tsx` | ⚠️ lone run = 100, silent dedup | 67D |
 | Walkthru | Improvement percentages, "across N runs" | `ImprovementPanel.tsx` | ⚠️ baseline unstated, primary store only | 67D |
+| Detail | Sweep Dimensions chips (models, methods, sizes, overlaps, paddings, retrievers) | `ExperimentDetailScreen.tsx` `DimensionBadge` | ✅ values listed; counts now in the formula line | 67A |

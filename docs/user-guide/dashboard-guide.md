@@ -147,7 +147,7 @@ The Search Explorer has **two tabs**:
 
 **Hyperparameters Tab**:
 
-- **Sweep Dimensions** (collapsible) — Shows what parameters were swept: embedding models, chunking methods, chunk sizes, overlaps, retrievers. Displays the Cartesian product calculation (e.g., "1 model × 5 methods × 3 sizes × 2 overlaps × 4 retrievers = 120 configurations"). Collapsed by default.
+- **Sweep Dimensions** (collapsible) — Shows what parameters were swept: embedding models, chunking methods, chunk sizes, overlaps, paddings, retrievers. Displays the Cartesian product calculation (e.g., "1 model × 5 chunking methods × 3 sizes × 2 overlaps × 1 padding × 4 retrievers = 120 configurations"). Collapsed by default.
 
 - **Best Parameters Card** — The **top-ranked configuration** with:
   - 🟠 **Tie alert** (when multiple configs achieve the same max score): "N configs tied at 100%"

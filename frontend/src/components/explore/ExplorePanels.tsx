@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import Pagination from '../chrome/Pagination';
+import FormulaLine from '../chrome/FormulaLine';
 import type { DetailedResult, ExploreResponse, RankedConfig } from '../../types';
 import { displayDatabaseProvider } from '../../utils/storageLabels';
 import { formatChunkDimensions } from './formatChunkDimensions';
@@ -371,7 +372,19 @@ export function HyperparametersTab({ data }: { data: ExploreResponse }) {
 
             <div className="pt-2 border-t border-slate-100">
               <p className="text-xs text-slate-500">
-                <strong>Cartesian product:</strong> {uniqueModels.length} model{uniqueModels.length !== 1 ? 's' : ''} × {uniqueChunking.length} chunking method{uniqueChunking.length !== 1 ? 's' : ''} × {uniqueSizes.length} size{uniqueSizes.length !== 1 ? 's' : ''} × {uniqueOverlaps.length} overlap{uniqueOverlaps.length !== 1 ? 's' : ''} × {uniquePaddings.length} padding{uniquePaddings.length !== 1 ? 's' : ''} × {uniqueRetrievers.length} retriever{uniqueRetrievers.length !== 1 ? 's' : ''} = {totalConfigs} configuration{totalConfigs !== 1 ? 's' : ''}
+                <strong>Cartesian product:</strong>{' '}
+                <FormulaLine
+                  unit="configuration"
+                  observedTotal={totalConfigs}
+                  terms={[
+                    { count: uniqueModels.length, label: 'model' },
+                    { count: uniqueChunking.length, label: 'chunking method' },
+                    { count: uniqueSizes.length, label: 'size' },
+                    { count: uniqueOverlaps.length, label: 'overlap' },
+                    { count: uniquePaddings.length, label: 'padding' },
+                    { count: uniqueRetrievers.length, label: 'retriever' },
+                  ]}
+                />
               </p>
             </div>
           </div>

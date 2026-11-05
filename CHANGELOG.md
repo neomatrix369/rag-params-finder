@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Slice 67A — dashboard sweep header shows the full formula** — the Detail "Sweep Dimensions" header now reads `1 model × 5 chunking methods × 3 sizes × 2 overlaps × 1 padding × 4 retrievers = 120 configurations`, matching the Total tile. It used to say "N combinations", leave out the retrievers and print 0 for empty paddings.
+  - New pure `frontend/src/utils/sweepFormula.ts` and shared `FormulaLine`, also used by the Explorer's Cartesian line (an observed count that differs from the product is labelled `(observed)`).
+  - Bayesian experiments carry a fixed note that only chunk size × overlap vary and the grid is not run in full.
+  - Static guard `deterministicNumbers.guard.test.ts`: the formula modules read no clock, randomness or network, and the two screens do not multiply counts in JSX.
+  (**IMPLEMENTED** on branch `slice/67a-explainable-headline`; verified in a real browser at 1280 px and 390 px on a real 1×5×3×2×1×4 sweep.)
 - **Slice 65 — one run-state DB (65-0, 65A, 65B, 65D on branch; cutover, 66 and 65C pending)** — the run state stays in the Docker named volume (DECISIONS #301):
   - `scripts/migrate/merge_run_state_dbs.py` merges the host DB into one file (dry-run by default, refuses without a verified backup manifest, idempotent, never deletes a source).
   - The default `data/run_state.db` path is anchored to the repo root and pinned in compose; opt-in `RUN_STATE_DB_MUST_EXIST=1` stops the server creating a second DB.
