@@ -9,7 +9,7 @@
 | # | Folder | Wave | Specs |
 |---|--------|------|-------|
 | 01 | [`01-core-pipeline/`](01-core-pipeline/) | First skateboard → sweep / recovery | 01–07, 10, 16, 18, 29, 57, 60 |
-| 02 | [`02-dashboard/`](02-dashboard/) | List / detail / explorer UX + export | 11, 28, 30–31, 39, 56, 58, 63, 66 |
+| 02 | [`02-dashboard/`](02-dashboard/) | List / detail / explorer UX + export | 11, 28, 30–31, 39, 56, 58, 63, 66, 67 |
 | 03 | [`03-platform/`](03-platform/) | Compose, ports, Atlas local, toolchain, Docker build | 14, 20, 24–25B, 42, 62 |
 | 04 | [`04-sie/`](04-sie/) | SIE skateboard → bicycle | 21–23 |
 | 05 | [`05-storage/`](05-storage/) | Ports → Postgres cutover + Mongo residuals; vector-store registry + Elasticsearch + Redis; single SQLite run-state SSOT | 19, 26–27, 32–38, 43, 49A–49B, 50–53, 55, 61, 65 |
