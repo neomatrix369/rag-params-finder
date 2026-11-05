@@ -9,10 +9,10 @@
 | # | Folder | Wave | Specs |
 |---|--------|------|-------|
 | 01 | [`01-core-pipeline/`](01-core-pipeline/) | First skateboard → sweep / recovery | 01–07, 10, 16, 18, 29, 57, 60 |
-| 02 | [`02-dashboard/`](02-dashboard/) | List / detail / explorer UX + export | 11, 28, 30–31, 39, 56, 58, 63 |
+| 02 | [`02-dashboard/`](02-dashboard/) | List / detail / explorer UX + export | 11, 28, 30–31, 39, 56, 58, 63, 66 |
 | 03 | [`03-platform/`](03-platform/) | Compose, ports, Atlas local, toolchain, Docker build | 14, 20, 24–25B, 42, 62 |
 | 04 | [`04-sie/`](04-sie/) | SIE skateboard → bicycle | 21–23 |
-| 05 | [`05-storage/`](05-storage/) | Ports → Postgres cutover + Mongo residuals; vector-store registry + Elasticsearch + Redis | 19, 26–27, 32–38, 43, 49A–49B, 50–53, 61 |
+| 05 | [`05-storage/`](05-storage/) | Ports → Postgres cutover + Mongo residuals; vector-store registry + Elasticsearch + Redis; single SQLite run-state SSOT | 19, 26–27, 32–38, 43, 49A–49B, 50–53, 55, 61, 65 |
 | 06 | [`06-bayesian/`](06-bayesian/) | Optuna track | 41A–C |
 | 07 | [`07-quality-craft/`](07-quality-craft/) | Docs SSOT + coverage floors + module themes | 40, 44–47, 59 |
 | 08 | [`08-embedding-providers/`](08-embedding-providers/) | New embedding providers + provider-agnostic sweep axes (DoubleWord, batch-first); embedding-cache backend port | 48A–D, 54 |
