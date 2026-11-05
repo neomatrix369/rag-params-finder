@@ -30,7 +30,7 @@ services:
       POSTGRES_LOCAL_URL: ${RAG_SERVER_POSTGRES_LOCAL_URL:-}
       # Empty VECTOR_STORE_BACKEND falls back to STORAGE_BACKEND in settings.
       VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-}
-      # Single SQLite run-state file (Slice 65B, DECISIONS #301 option A). Pinned
+      # Single SQLite run-state file (Slice 65B, DECISIONS #301 (option b — named volume stays)). Pinned
       # literally — never via an env override — so there is exactly one run-state
       # path and no second DB can be introduced. Matches the sqlite_run_state
       # named-volume mount target below.

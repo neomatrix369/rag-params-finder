@@ -1,5 +1,6 @@
 """
-Static "no duplicate run-state DB" guard (Slice 65B, DECISIONS #301 option A).
+Static "no duplicate run-state DB" guard (Slice 65B).
+DECISIONS #301 (option b — named volume stays).
 
 Author: Mani Sarkar
 Created: 2026-11-05
@@ -16,14 +17,16 @@ and ``/healthz`` ``stores.run_state.diagnostics`` (Slice 65B).
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# Option A (DECISIONS #301): the one run-state source is the named volume.
+# DECISIONS #301 (option b — named volume stays): the one run-state source is the named volume.
 RUN_STATE_VOLUME = "sqlite_run_state"
 RUN_STATE_MOUNT_TARGET = "/app/data"
 EXPECTED_SQLITE_DB_PATH = "/app/data/run_state.db"
@@ -76,6 +79,76 @@ def _sqlite_db_path_values(doc: dict) -> list[str]:
     return values
 
 
+def _parse_mount(mount: object) -> tuple[str, str, str] | None:
+    """Return ``(mount_type, source, target)`` for one compose volume entry.
+
+    ``mount_type`` is ``"volume"`` (named volume) or ``"bind"`` (host path).
+    Short syntax (``source:target[:opts]``) infers a bind when the source looks
+    like a path (starts with ``.`` ``/`` ``~`` ``$``), else a named volume — the
+    same rule Docker Compose applies. Long syntax reads ``type``/``source``/
+    ``target`` directly. Returns None for an anonymous or unparseable entry.
+    """
+    if isinstance(mount, str):
+        parts = mount.split(":")
+        if len(parts) < 2:
+            return None
+        source, target = parts[0], parts[1]
+        mount_type = "bind" if source[:1] in {".", "/", "~", "$"} else "volume"
+        return (mount_type, source, target)
+    if isinstance(mount, dict):
+        target = mount.get("target")
+        if not target:
+            return None
+        return (str(mount.get("type") or "volume"), str(mount.get("source") or ""), str(target))
+    return None
+
+
+def _holds_run_state(target: str) -> bool:
+    """True when a mount at ``target`` would hold the single run-state DB file."""
+    norm = target.rstrip("/")
+    if norm == RUN_STATE_MOUNT_TARGET:
+        return True
+    return EXPECTED_SQLITE_DB_PATH == norm or EXPECTED_SQLITE_DB_PATH.startswith(norm + "/")
+
+
+def _run_state_mounts(doc: dict) -> list[tuple[str, str, str]]:
+    """Every service mount (across all services) that holds the run-state DB."""
+    mounts: list[tuple[str, str, str]] = []
+    for service in (doc.get("services") or {}).values():
+        for mount in service.get("volumes") or []:
+            parsed = _parse_mount(mount)
+            if parsed is not None and _holds_run_state(parsed[2]):
+                mounts.append(parsed)
+    return mounts
+
+
+def _app_data_mount_violations(doc: dict) -> list[str]:
+    """Problems with how a compose doc mounts the run-state directory.
+
+    Rejects a bind mount, a named-volume source other than ``sqlite_run_state``,
+    and a source volume that is not declared top-level. An empty list means the
+    doc mounts the run-state DB exclusively via the one declared named volume.
+    """
+    violations: list[str] = []
+    top_level = set((doc.get("volumes") or {}).keys())
+    for mount_type, source, target in _run_state_mounts(doc):
+        if mount_type != "volume":
+            violations.append(
+                f"{target} uses a {mount_type} mount (source={source!r}); "
+                f"must be the named volume {RUN_STATE_VOLUME}"
+            )
+            continue
+        if source != RUN_STATE_VOLUME:
+            violations.append(
+                f"{target} mounts named volume {source!r}; expected {RUN_STATE_VOLUME}"
+            )
+        elif source not in top_level:
+            violations.append(
+                f"{target} mounts {source!r} which is not a declared top-level volume"
+            )
+    return violations
+
+
 def test_given_compose_files_when_parsed_then_single_run_state_volume() -> None:
     """
     Scenario: Exactly one run-state named volume exists across all compose files.
@@ -119,6 +192,78 @@ def test_given_compose_files_when_parsed_then_app_data_target_defined_once() -> 
         assert overlay_targets.count(RUN_STATE_MOUNT_TARGET) == 0, (
             f"{overlay.name} redefines {RUN_STATE_MOUNT_TARGET}"
         )
+
+
+def test_given_base_compose_when_parsed_then_app_data_is_the_named_run_state_volume() -> None:
+    """
+    Scenario: /app/data is mounted via the named run-state volume, not a bind.
+    Slice: 65B
+
+    Given the base compose,
+    When the run-state mount is inspected,
+    Then it is a named volume whose source is the declared sqlite_run_state
+         volume (a bind mount `./data:/app/data` would be rejected).
+    """
+    ### Given / When
+    base = _load_compose(REPO_ROOT / "docker-compose.yml")
+    mounts = _run_state_mounts(base)
+    violations = _app_data_mount_violations(base)
+
+    ### Then
+    assert violations == [], f"run-state mount violations: {violations}"
+    assert any(
+        mount_type == "volume" and source == RUN_STATE_VOLUME for mount_type, source, _ in mounts
+    ), f"no named {RUN_STATE_VOLUME} mount at {RUN_STATE_MOUNT_TARGET}: {mounts}"
+
+
+def test_given_compose_files_when_parsed_then_no_extra_volume_holds_run_state() -> None:
+    """
+    Scenario: No second top-level volume (any name) is mounted where the DB lives.
+    Slice: 65B
+
+    Given every docker-compose*.yml,
+    When the top-level volumes that hold the run-state DB are collected,
+    Then the only such volume is sqlite_run_state regardless of its name — a
+         volume called e.g. `appdata` mounted at /app/data is caught too.
+    """
+    ### Given / When
+    holders: set[str] = set()
+    for path in _compose_files():
+        doc = _load_compose(path)
+        top_level = set((doc.get("volumes") or {}).keys())
+        for mount_type, source, _ in _run_state_mounts(doc):
+            if mount_type == "volume" and source in top_level:
+                holders.add(source)
+
+    ### Then
+    assert holders == {RUN_STATE_VOLUME}, f"unexpected run-state-holding volumes: {holders}"
+
+
+def test_given_bind_mount_compose_when_validated_then_rejected() -> None:
+    """
+    Scenario: A bind mount at /app/data must fail the run-state source check.
+    Slice: 65B
+
+    Given a mutated compose doc that mounts `./data:/app/data` (a host bind),
+    When the run-state mount is validated,
+    Then at least one violation is reported — proving the check can fail and the
+         single-source test is not a silent pass.
+    """
+    ### Given
+    mutated = yaml.safe_load(
+        "services:\n"
+        "  server:\n"
+        "    volumes:\n"
+        "      - ./data:/app/data\n"
+        "volumes:\n"
+        "  sqlite_run_state:\n"
+    )
+
+    ### When
+    violations = _app_data_mount_violations(mutated)
+
+    ### Then
+    assert violations, "a bind mount at /app/data must be rejected"
 
 
 def test_given_compose_files_when_parsed_then_sqlite_db_path_is_single_value() -> None:
@@ -214,7 +359,11 @@ def test_given_git_index_when_listed_then_no_db_files_tracked() -> None:
     When tracked paths are listed,
     Then none ends in .db / .db-wal / .db-shm.
     """
-    ### Given / When
+    ### Given
+    if shutil.which("git") is None or not (REPO_ROOT / ".git").exists():
+        pytest.skip("git or .git directory unavailable — cannot list the index")
+
+    ### When
     result = subprocess.run(
         ["git", "ls-files"],
         cwd=REPO_ROOT,
