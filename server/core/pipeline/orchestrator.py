@@ -434,6 +434,7 @@ def _finalise_bayesian_experiment(
 
 _golden_persisted: set[str] = set()
 _golden_persisted_lock = threading.Lock()
+_golden_failure_traced = False
 
 
 def _persist_golden_query_count(experiment_id: str, golden_queries: int) -> None:
@@ -458,8 +459,15 @@ def _persist_golden_query_count(experiment_id: str, golden_queries: int) -> None
         with _golden_persisted_lock:
             _golden_persisted.add(experiment_id)
     except Exception:
+        global _golden_failure_traced
+        with _golden_persisted_lock:
+            first = not _golden_failure_traced
+            _golden_failure_traced = True
+        # Traceback once per process; later failures stay one line.
         logger.warning(
-            "golden query count not persisted — experiment %s", experiment_id, exc_info=True
+            "golden query count not persisted — experiment %s",
+            experiment_id,
+            exc_info=first,
         )
 
 

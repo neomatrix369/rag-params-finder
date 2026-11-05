@@ -98,6 +98,7 @@ def assemble_experiment_db_stats(
     runs_with_data: int,
     run_breakdown: list[dict],
     results_per_run: list[int] | None = None,
+    results_known: bool = True,
 ) -> dict:
     """Build the per-experiment db-stats dict from already-queried aggregates.
 
@@ -108,6 +109,11 @@ def assemble_experiment_db_stats(
     """
     per_run = sorted(results_per_run or [])
     golden, golden_source, partial_runs = golden_query_facts(experiment, per_run)
+    result_runs: int | None = len(per_run)
+    partial: int | None = partial_runs
+    if not results_known:
+        # The optional per-run fetch failed: report "unknown" (None), never a false 0.
+        result_runs, golden, golden_source, partial = None, None, None, None
     avg_chunks_per_run = round(total_chunks / runs_with_data, 1) if runs_with_data else 0.0
     embedding_mb, metadata_mb, total_mb = storage_breakdown_mb(total_chunks, embedding_models)
 
@@ -134,14 +140,14 @@ def assemble_experiment_db_stats(
         "unique_queries": unique_queries,
         # Runs with >= 1 result row. A run that died before its first query has no
         # rows, so it is neither counted here nor in partial_runs.
-        "result_runs": len(per_run),
+        "result_runs": result_runs,
         "golden_queries": golden,
         "golden_queries_source": golden_source,
         # Runs with fewer rows than golden_queries. A run still in flight counts as
         # partial, so read it as "currently below golden" unless the experiment is
         # terminal. golden_queries is write-once: it goes stale if queries_file
         # changes between pause and resume.
-        "partial_runs": partial_runs,
+        "partial_runs": partial,
         "run_breakdown": run_breakdown,
     }
 
@@ -220,7 +226,7 @@ def merge_group_totals(group: dict, stats: dict) -> None:
     totals["experiment_count"] += 1
     totals["total_chunks"] += stats["total_chunks"]
     totals["total_results"] += stats["total_results"]
-    totals["total_result_runs"] += stats.get("result_runs") or 0
+    totals["total_result_runs"] += stats.get("result_runs") or 0  # None (unknown) is skipped
     golden = stats.get("golden_queries")
     if golden is not None:
         low, high = totals["golden_queries_min"], totals["golden_queries_max"]

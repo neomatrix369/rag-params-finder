@@ -38,8 +38,10 @@ _NEW_KEYS = {"result_runs", "golden_queries", "golden_queries_source", "partial_
 @pytest.fixture(autouse=True)
 def _fresh_golden_memo():
     orchestrator._golden_persisted.clear()
+    orchestrator._golden_failure_traced = False
     yield
     orchestrator._golden_persisted.clear()
+    orchestrator._golden_failure_traced = False
 
 
 def _assemble(experiment: dict | None, per_run: list[int] | None) -> dict:
@@ -137,6 +139,71 @@ class TestSharedAssemblyShould:
         ### Then
         assert (actual["golden_queries"], actual["golden_queries_source"]) == (3, "config")
         assert (actual["result_runs"], actual["partial_runs"]) == (2, 1)
+
+    @pytest.mark.parametrize(
+        ("stored", "per_run", "expected"),
+        [
+            (0, [2], (0, "config", 0)),
+            (True, [3, 2], (3, "max_per_run", 1)),
+        ],
+    )
+    def test_given_edge_stored_values_when_assembled_then_rules_hold(
+        self, stored: object, per_run: list[int], expected: tuple
+    ) -> None:
+        """
+        Scenario: an empty-dataset count of 0 is honoured; a bool is not a count.
+        Slice: 67E
+
+        Given a stored golden of 0, or a stored True
+        When assembled
+        Then 0 gives source config with no partial runs, and True falls through to inference.
+        """
+        ### Given
+        experiment = {"sweep_summary": {"golden_queries": stored}}
+
+        ### When
+        actual = _assemble(experiment, per_run)
+
+        ### Then
+        got = (actual["golden_queries"], actual["golden_queries_source"], actual["partial_runs"])
+        assert got == expected
+
+    def test_given_results_unknown_when_assembled_then_facts_are_none_not_zero(self) -> None:
+        """
+        Scenario: a failed optional fetch reports "unknown", not a false zero.
+        Slice: 67E
+
+        Given an experiment with a stored golden count but results_known=False
+        When assembled and merged into a group
+        Then result_runs, partial_runs and golden facts are None and the totals skip them.
+        """
+        ### Given
+        experiment = {"sweep_summary": {"golden_queries": 3}}
+
+        ### When
+        actual = assemble_experiment_db_stats(
+            experiment,
+            database_provider="x",
+            collection_name="c",
+            cluster_host=None,
+            index_names=[],
+            total_chunks=0,
+            embedding_models=[],
+            chunking_breakdown={},
+            total_results=4,
+            unique_queries=4,
+            runs_with_data=0,
+            run_breakdown=[],
+            results_known=False,
+        )
+        group = new_vector_db_group("k", actual)
+        merge_group_totals(group, actual)
+
+        ### Then
+        assert (actual["result_runs"], actual["partial_runs"]) == (None, None)
+        assert (actual["golden_queries"], actual["golden_queries_source"]) == (None, None)
+        assert group["totals"]["total_result_runs"] == 0
+        assert group["totals"]["golden_queries_min"] is None
 
     def test_given_no_stored_golden_when_assembled_then_inferred_from_max(self) -> None:
         """
@@ -240,9 +307,11 @@ class TestSqliteAdapterShould:
         assert actual["total_results"] == 4
         assert (actual["partial_runs"], actual["golden_queries"]) == (1, 3)
         assert actual["golden_queries_source"] == "config"
-        full_runs = sum(1 for r in actual["run_breakdown"] if r["results"] >= 3)
+        golden = actual["golden_queries"]
+        full_runs = sum(1 for r in actual["run_breakdown"] if r["results"] >= golden)
         assert actual["partial_runs"] <= actual["result_runs"]
         assert full_runs + actual["partial_runs"] == actual["result_runs"]
+        assert store.get_experiment_db_stats("e1") == actual  # repeat-read stability
 
     def test_given_run_with_zero_rows_when_read_then_not_counted_and_not_partial(
         self, store
@@ -318,13 +387,43 @@ class TestSqliteAdapterShould:
         assert "e1" not in orchestrator._golden_persisted
 
 
+class TestPersistenceFailureLoggingShould:
+    def test_given_repeated_failures_when_persisting_then_traceback_only_on_first(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """
+        Scenario: a flapping store cannot flood the log with tracebacks.
+        Slice: 67E
+
+        Given a backend that always raises
+        When two experiments fail to persist
+        Then the first warning carries the traceback and the second is one line.
+        """
+        ### Given
+        backend = MagicMock()
+        backend.find_experiment_by_id.side_effect = RuntimeError("down")
+
+        ### When
+        with (
+            patch.object(orchestrator, "get_storage_backend", return_value=backend),
+            caplog.at_level(logging.WARNING),
+        ):
+            _persist_golden_query_count("e1", 3)
+            _persist_golden_query_count("e2", 3)
+
+        ### Then
+        records = [r for r in caplog.records if "not persisted" in r.message]
+        assert [bool(r.exc_info) for r in records] == [True, False]
+
+
 class TestMongoAdapterShould:
     def test_given_same_data_as_sqlite_when_stats_read_then_golden_facts_equal(self, store) -> None:
         """
         Scenario: Mongo feeds the breakdown it already builds into the shared assembly.
         Slice: 67E
 
-        Given runs of 3 and 1 rows, golden 3 stored, in both SQLite and (mocked) Mongo
+        Given SQLite seeded with runs of 3 and 1 rows and a mocked Mongo breakdown with the
+        same per-run result counts (the mock feeds them; the counts are not re-verified)
         When each adapter computes the single-experiment stats
         Then the four golden facts are equal.
         """
@@ -507,8 +606,8 @@ class TestPostgresAdapterShould:
 
         Given the grouped path where only the per-run results query raises
         When grouped stats are computed
-        Then the group list still returns its old fields, golden facts are empty,
-        and one warning is logged with the traceback.
+        Then the group list still returns its old fields, the new facts are None (unknown,
+        not 0), the group totals skip them, and one warning is logged with the traceback.
         """
         ### Given
         experiment = {"experiment_id": "e1", "experiment_name": "n", "status": "complete"}
@@ -538,7 +637,12 @@ class TestPostgresAdapterShould:
         ### Then
         row = actual["groups"][0]["experiments"][0]
         assert row["total_results"] == 4
-        assert (row["result_runs"], row["golden_queries"]) == (0, None)
+        assert (row["result_runs"], row["partial_runs"], row["golden_queries"]) == (
+            None,
+            None,
+            None,
+        )
+        assert actual["groups"][0]["totals"]["total_result_runs"] == 0
         warnings = [r for r in caplog.records if "per-run result counts" in r.message]
         assert len(warnings) == 1
         assert warnings[0].exc_info is not None

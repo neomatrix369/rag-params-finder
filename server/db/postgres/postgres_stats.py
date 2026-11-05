@@ -124,6 +124,7 @@ def _assemble(
     run_breakdown: list[dict],
     index_names: list[str],
     results_per_run: list[int] | None = None,
+    results_known: bool = True,
 ) -> dict:
     sweep = (experiment or {}).get("sweep_summary") or {}
     return assemble_experiment_db_stats(
@@ -143,6 +144,7 @@ def _assemble(
         runs_with_data=runs_with_data,
         run_breakdown=run_breakdown,
         results_per_run=results_per_run,
+        results_known=results_known,
     )
 
 
@@ -263,15 +265,15 @@ def _bulk_result_aggregates() -> dict[str, dict]:
     }
 
 
-def _bulk_results_per_run() -> dict[str, list[int]]:
-    """Per-run result counts per experiment; optional, so a failure degrades to ``{}``."""
+def _bulk_results_per_run() -> dict[str, list[int]] | None:
+    """Per-run result counts per experiment; optional: a failure yields ``None`` (unknown)."""
     try:
         rows = fetch_all(
             "SELECT experiment_id, count(*) AS rows FROM results GROUP BY experiment_id, run_id"
         )
     except Exception:
         logger.warning("per-run result counts unavailable — golden facts omitted", exc_info=True)
-        return {}
+        return None
     out: dict[str, list[int]] = {}
     for row in rows:
         out.setdefault(str(row["experiment_id"]), []).append(int(row["rows"]))
@@ -320,7 +322,8 @@ def get_vector_db_stats_grouped(find_all_experiments: Callable[[], list[dict]]) 
                 runs_with_data=int(chunk_row.get("runs_with_data") or 0),
                 run_breakdown=[],
                 index_names=index_names,
-                results_per_run=per_run_by_exp.get(experiment_id),
+                results_per_run=(per_run_by_exp or {}).get(experiment_id),
+                results_known=per_run_by_exp is not None,
             )
             group_key = vector_db_group_key(
                 resolve_experiment_storage_mode(

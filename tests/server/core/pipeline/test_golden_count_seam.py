@@ -61,7 +61,8 @@ def test_run_single_persists_golden_count_and_writes_one_row_per_query(
 
     Given a 3-record queries file and an experiment without golden_queries
     When _run_single executes one run with stubbed embedding and retrieval
-    Then sweep_summary.golden_queries is 3 and exactly 3 result rows exist for the run.
+    Then sweep_summary.golden_queries is 3 and exactly 3 result rows exist for the run,
+    each embedding both retrieved hits (rows are per query, not per hit).
     """
     ### Given
     sqlite_store.insert_experiment(
@@ -76,25 +77,28 @@ def test_run_single_persists_golden_count_and_writes_one_row_per_query(
     )
     params = _run_param()
     params.queries_file = _queries_file(tmp_path)
-    hit = SearchResult(
-        chunk=Chunk(
-            id="c1",
-            text="t",
-            index=0,
-            embedding_model="all-MiniLM-L6-v2",
-            chunk_method="recursive",
-        ),
-        dense_score=0.9,
-        rerank_score=None,
-        retrieval_method="dense",
-        rank=1,
-    )
+    hits = [
+        SearchResult(
+            chunk=Chunk(
+                id=f"c{rank}",
+                text="t",
+                index=rank,
+                embedding_model="all-MiniLM-L6-v2",
+                chunk_method="recursive",
+            ),
+            dense_score=0.9,
+            rerank_score=None,
+            retrieval_method="dense",
+            rank=rank,
+        )
+        for rank in (1, 2)
+    ]
 
     with (
         patch("server.core.pipeline.orchestrator.AimLogger"),
         patch(
             "server.core.pipeline.orchestrator._search_traditional_retriever",
-            return_value=([hit], [0.1]),
+            return_value=(hits, [0.1]),
         ),
         patch(
             "server.core.pipeline.orchestrator.get_embedder",
@@ -119,3 +123,4 @@ def test_run_single_persists_golden_count_and_writes_one_row_per_query(
         r for r in sqlite_store.list_results_for_experiment("exp-seam") if r["run_id"] == "run-1"
     ]
     assert len(rows) == 3
+    assert len(rows[0]["results"]) == 2

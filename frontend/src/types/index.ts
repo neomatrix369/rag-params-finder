@@ -284,8 +284,8 @@ export interface ExperimentDbStats {
   avg_chunks_per_run: number;
   total_results: number;
   unique_queries: number;
-  /** Distinct runs that wrote result rows. */
-  result_runs?: number;
+  /** Distinct runs that wrote result rows; null = unknown (per-run fetch failed). */
+  result_runs?: number | null;
   /** Golden-dataset record count (one evaluation query each). */
   golden_queries?: number | null;
   /** 'config' = counted from the dataset; 'max_per_run' = inferred from results. */
@@ -295,7 +295,7 @@ export interface ExperimentDbStats {
    * counts as partial: read it as "currently below golden" unless the
    * experiment is terminal.
    */
-  partial_runs?: number;
+  partial_runs?: number | null;
   run_breakdown: RunDbBreakdown[];
 }
 
