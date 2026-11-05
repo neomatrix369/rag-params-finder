@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -21,6 +22,31 @@ from server.utils.logger import get_logger
 logger = get_logger(__name__)
 
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+
+
+def enforce_run_state_db_present() -> None:
+    """Fail closed when RUN_STATE_DB_MUST_EXIST is set but the DB is missing.
+
+    Slice 65B duplicate-prevention guard: opt-in via ``RUN_STATE_DB_MUST_EXIST``
+    (set by ``start-services.sh`` after first-run init). When armed and the
+    SQLite run-state file does not exist, raise ``SystemExit(1)`` rather than let
+    a later store access silently create a second empty DB. No-op when the flag
+    is off, the file already exists, or the run-state backend is not SQLite.
+    """
+    if normalize_storage_backend(settings.storage_backend) != "sqlite":
+        return
+    if not settings.run_state_db_must_exist:
+        return
+    db_path = Path(settings.sqlite_db_path)
+    if db_path.exists():
+        return
+    logger.error(
+        "boot — RUN_STATE_DB_MUST_EXIST is set but the run-state DB is missing "
+        "at %s; refusing to create a second DB file. Run the initializer "
+        "(start-services.sh / merge) so the canonical file exists first.",
+        db_path,
+    )
+    raise SystemExit(1)
 
 
 @asynccontextmanager
@@ -56,6 +82,19 @@ async def lifespan(app: FastAPI):
     _run_state = normalize_storage_backend(settings.storage_backend)
     if _run_state == "sqlite":
         _sqlite_path = Path(settings.sqlite_db_path)
+        # Slice 65B opt-in guard: fail closed instead of creating a second DB.
+        enforce_run_state_db_present()
+        # Slice 65B boot log: resolved path, inode, journal mode, sizes,
+        # quick_check and counts — one visible record that every component
+        # reads and writes the same file. prime_boot_diagnostics runs the slow
+        # scans (quick_check + counts) once here and caches them so /healthz
+        # reports them cheaply instead of re-scanning the ~600MB DB per call (B1).
+        from server.db.sqlite.sqlite_diagnostics import prime_boot_diagnostics
+
+        logger.info(
+            "boot — run-state sqlite diagnostics: %s",
+            prime_boot_diagnostics(settings.sqlite_db_path),
+        )
         _sqlite_is_new = not _sqlite_path.exists() or _sqlite_path.stat().st_size == 0
         _has_source = bool(settings.mongodb_uri.strip()) or bool(settings.database_url.strip())
         if _sqlite_is_new and _has_source:
@@ -121,15 +160,35 @@ async def lifespan(app: FastAPI):
         )
 
     # Start the DoubleWord watcher (if DOUBLEWORD_API_KEY is set)
-    from server.core.pipeline.doubleword_watcher import start_watcher, stop_watcher
+    from server.core.pipeline.doubleword_watcher import start_watcher
 
     start_watcher()
 
     logger.info("boot OK — server ready")
     yield
     logger.info("shutdown — server stopping")
-    stop_watcher()
-    shutdown_executors()
+    _run_shutdown()
+
+
+def _run_shutdown() -> None:
+    """Shutdown sequence — the WAL checkpoint must run even if teardown raises.
+
+    Slice 65B (S1): a raised exception from ``stop_watcher`` or
+    ``shutdown_executors`` must not skip the ``wal_checkpoint(TRUNCATE)``, or the
+    single run-state DB keeps a dangling ``-wal`` after SIGTERM. The checkpoint
+    therefore runs in a ``finally`` and is a no-op for non-SQLite run-state
+    backends (compose ``stop_grace_period: 30s`` gives it time to complete).
+    """
+    from server.core.pipeline.doubleword_watcher import stop_watcher
+
+    try:
+        stop_watcher()
+        shutdown_executors()
+    finally:
+        if normalize_storage_backend(settings.storage_backend) == "sqlite":
+            from server.db.sqlite.sqlite_diagnostics import checkpoint_truncate
+
+            checkpoint_truncate(settings.sqlite_db_path)
 
 
 app = FastAPI(
@@ -178,8 +237,12 @@ async def healthz():
 
     Docker Compose HEALTHCHECK depends on HTTP 200 here. Probing the wrong
     backend (Mongo while running on pgvector) would mark a working stack unhealthy.
+
+    ``storage_health`` does blocking work (store pings; run-state file stat), so
+    it runs in a threadpool rather than on the event loop — a slow probe must not
+    block the API or the 10s Docker healthcheck (B1).
     """
-    body = storage_health()
+    body = await run_in_threadpool(storage_health)
     if not body["ok"]:
         return JSONResponse(status_code=503, content=body)
     return body

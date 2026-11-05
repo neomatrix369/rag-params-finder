@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from pydantic import SecretStr, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -39,6 +41,15 @@ _KNOWN_VECTOR_STORE_BACKENDS: frozenset[str] = _KNOWN_STORAGE_BACKENDS | {"elast
 # Once an adapter registers, the registry lookup takes over and this entry
 # becomes redundant (harmless — same answer either way).
 _PENDING_VECTOR_ONLY_BACKENDS: frozenset[str] = frozenset({"elasticsearch", "redis"})
+
+# Default SQLite run-state path, anchored to the repo root (``server/`` is
+# ``parents[0]``; ``parents[1]`` is the project root) so it resolves to the same
+# file no matter which directory ``uvicorn`` is launched from (Slice 65B
+# duplicate-prevention guard). Inside the Docker image the code lives under
+# ``/app`` so this resolves to ``/app/data/run_state.db`` — the exact path the
+# compose ``SQLITE_DB_PATH`` pins. A relative ``./data/run_state.db`` would
+# resolve against the working directory and silently create a second DB.
+_DEFAULT_SQLITE_DB_PATH: str = str(Path(__file__).resolve().parents[1] / "data" / "run_state.db")
 
 
 def normalize_storage_backend(value: str) -> str:
@@ -138,7 +149,16 @@ class Settings(BaseSettings):
 
     # Path for the SQLite run-state database (STORAGE_BACKEND=sqlite).
     # Created on first boot; parent directory created automatically.
-    sqlite_db_path: str = "./data/run_state.db"
+    # Default is anchored to the repo root (see _DEFAULT_SQLITE_DB_PATH) so a
+    # uvicorn launched from any directory resolves the same file instead of
+    # creating a second DB. Override via SQLITE_DB_PATH.
+    sqlite_db_path: str = _DEFAULT_SQLITE_DB_PATH
+
+    # Opt-in boot guard (Slice 65B): when truthy, the server refuses to start if
+    # the SQLite run-state file does not already exist, rather than silently
+    # creating a second empty DB. Export RUN_STATE_DB_MUST_EXIST=1 once the
+    # canonical file exists (start-services.sh does not set it yet).
+    run_state_db_must_exist: bool = False
 
     # Active vector store. Defaults to storage_backend when unset (empty string
     # sentinel). Pairing rule (ii) (Slice 49B, DECISIONS #241): a store that
@@ -375,10 +395,8 @@ class Settings(BaseSettings):
             if not db_path:
                 raise ValueError(
                     "STORAGE_BACKEND=sqlite requires SQLITE_DB_PATH (or the default "
-                    "'./data/run_state.db'). Set it in .env or the environment."
+                    "repo-root data/run_state.db). Set it in .env or the environment."
                 )
-            from pathlib import Path
-
             parent = Path(db_path).parent
             try:
                 parent.mkdir(parents=True, exist_ok=True)

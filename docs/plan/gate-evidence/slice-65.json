@@ -1,0 +1,43 @@
+{
+  "slice": 65,
+  "gate_status": "ON_BRANCH",
+  "branch": "slice/65-execute-single-run-state",
+  "pr": "https://github.com/neomatrix369/rag-params-finder/pull/260",
+  "note": "65-0, 65A, 65B, 65D done and the live cutover run on 2026-11-05: one run-state DB in the named volume (23 experiments). 66 and 65C not started, so slice 65 is not closed.",
+  "inferred": false,
+  "phases": {
+    "65-0": "PASS - option (b) named volume recorded as DECISIONS #301",
+    "65A": "PASS - merge script + 23 tests; data-engineer review APPROVED",
+    "65B": "PASS - anchored path, /healthz diagnostics (boot-cached quick_check), shutdown checkpoint, static single-source test; platform review blockers fixed in f6d68b8",
+    "65D": "PASS - docs sweep, sync-docs feature-delta report",
+    "65C": "NOT STARTED - waits for slice 66",
+    "66": "NOT STARTED - separate worktree"
+  },
+  "quality_gates": {
+    "command": "./scripts/ci/quality-gates.sh",
+    "exit_code": 0,
+    "backend_tests": "978 passed, 7 skipped",
+    "backend_coverage": "75.6% (floor 70%)",
+    "frontend_tests": "448 passed (41 files)",
+    "pre_push_gates": "passed"
+  },
+  "runtime_smoke": {
+    "backups": "~/backups/rag-params-finder-run-state-20261105-151018-cutover (SHA256SUMS ok, integrity ok, counts equal live)",
+    "trial_merge_scratch": "23 experiments, 1287 run_status, 94633 results, integrity ok, 0 FK violations, second run no-op",
+    "throwaway_server_on_merged_db": "/experiments 23; detail + results 200 for a Redis and a host experiment",
+    "live_cutover": "/healthz stores.run_state.diagnostics path=/app/data/run_state.db quick_check=ok counts 23/1287/94633; GET /experiments 23 (17 complete, 6 partial); find in container shows one run_state.db plus the archived pre_cutover folder; one sqlite_run_state volume",
+    "not_run": "post-cutover test sweep (Redis at 256 MB cap, DECISIONS #293)"
+  },
+  "review": {
+    "merge_script": "APPROVED (data-engineer reviewer)",
+    "compose_and_guard": "3 blockers found and fixed (quick_check per probe, static test passed with a bind mount, shutdown checkpoint); guard stays opt-in, documented",
+    "code_quality": "no blockers (code-reviewer)",
+    "software_crafter_reviewer": "INDETERMINATE - source-blind role; replaced by code-reviewer"
+  },
+  "deferred": [
+    "RUN_STATE_DB_MUST_EXIST not set by start-services.sh (needs a first-boot story)",
+    "nw-at-completeness-check, nw-gate-evidence-validator and /verify-slice not run",
+    "host data/run_state.db is now a stale copy; owner decides whether to rename it",
+    "slice 66 and 65C"
+  ]
+}

@@ -26,6 +26,9 @@ terminals
 .env.*
 !.env.example
 input_data/
+# SQLite run-state DB lives in a named volume at runtime (Slice 65B); never
+# bake a copy into the image build context.
+data/
 pit-reports
 mutation-reports
 *.log

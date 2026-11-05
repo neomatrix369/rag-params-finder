@@ -193,7 +193,7 @@ def _probe_store(backend: str) -> dict[str, object]:
         start = time.monotonic()
         status = sqlite_health_status()
         ok = status == "ok"
-        return {
+        sqlite_entry: dict[str, object] = {
             "provider": "sqlite",
             "mode": mode,
             "ok": ok,
@@ -201,6 +201,17 @@ def _probe_store(backend: str) -> dict[str, object]:
             "_legacy_key": "sqlite",
             "_legacy_status": status,
         }
+        # Slice 65B: surface the single run-state file's identity and quick_check
+        # so /healthz confirms every component reads/writes the same DB.
+        from server.db.sqlite.sqlite_diagnostics import collect_run_state_diagnostics
+
+        try:
+            sqlite_entry["diagnostics"] = dict(
+                collect_run_state_diagnostics(settings.sqlite_db_path)
+            )
+        except Exception:  # pragma: no cover - diagnostics must never break /healthz
+            logger.warning("run-state diagnostics unavailable for /healthz", exc_info=True)
+        return sqlite_entry
     if _is_postgres_backend(backend):
         start = time.monotonic()
         status = postgres_health_status()
@@ -288,6 +299,8 @@ def _public_probe(probe: dict[str, object]) -> dict[str, object]:
     }
     if "remediation" in probe:
         public["remediation"] = probe["remediation"]
+    if "diagnostics" in probe:
+        public["diagnostics"] = probe["diagnostics"]
     public.update(local_runtime_fields(str(probe["provider"]), str(probe["mode"])))
     return public
 

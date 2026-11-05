@@ -250,6 +250,11 @@ label), and the per-engine key (`mongodb` / `postgres`, including Mongo's
 ending in `-local` also includes `container` and `image`: the Compose default
 container name and image pin. Cloud modes omit those two fields.
 
+When the run-state store is SQLite, `stores.run_state` also carries a `diagnostics`
+object (Slice 65B): resolved `path`, `inode`, `journal_mode`, `db_size_bytes`,
+`wal_size_bytes`, `quick_check`, and table `counts`. See
+[sqlite-setup.md](sqlite-setup.md#health-check).
+
 **Single-store** (e.g. local Postgres — vector and run-state are the same store):
 
 ```json

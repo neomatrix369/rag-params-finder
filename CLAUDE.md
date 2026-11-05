@@ -75,7 +75,7 @@ Backend switching — the start command and the example config change (a YAML `d
 | Hosted Supabase | `STORAGE_BACKEND=postgres` + `POSTGRES_CLOUD_URL` (Session-mode pooler) |
 | Local Elasticsearch | `./start-services.sh --elasticsearch-local` — `VECTOR_STORE_BACKEND=elasticsearch`, `ELASTICSEARCH_LOCAL_URL=http://elasticsearch-local:9200`; run state defaults to sqlite (ADR-008) unless `STORAGE_BACKEND=mongodb` or `STORAGE_BACKEND=postgres` |
 | Local Redis | `./start-services.sh --redis-local` — `VECTOR_STORE_BACKEND=redis`, `REDIS_URL=redis://localhost:6379`; run state defaults to sqlite (ADR-008) unless `STORAGE_BACKEND=mongodb` or `STORAGE_BACKEND=postgres` |
-| SQLite run-state (**default**, ADR-008) | `STORAGE_BACKEND=sqlite` (default) + `VECTOR_STORE_BACKEND` required (mongodb/postgres/elasticsearch/redis). Single-file, no separate service. See [`sqlite-setup.md`](docs/user-guide/sqlite-setup.md), [`SLICE-55`](docs/plan/slices/05-storage/SLICE-55-SQLITE-RUN-STATE-STORE.md), [`ADR-008`](docs/adr/ADR-008-sqlite-central-run-state-store.md) |
+| SQLite run-state (**default**, ADR-008) | `STORAGE_BACKEND=sqlite` (default) + `VECTOR_STORE_BACKEND` required (mongodb/postgres/elasticsearch/redis). Single-file, no separate service. Under Docker the file lives in the named volume at `/app/data` (host tools use `docker exec` backup API, DECISIONS #301). See [`sqlite-setup.md`](docs/user-guide/sqlite-setup.md), [`SLICE-55`](docs/plan/slices/05-storage/SLICE-55-SQLITE-RUN-STATE-STORE.md), [`ADR-008`](docs/adr/ADR-008-sqlite-central-run-state-store.md) |
 
 Host CLI unchanged: `SERVER_URL=http://localhost:8001`. See `docs/plan/slices/03-platform/SLICE-14-DOCKER-COMPOSE.md`, `docs/user-guide/mongodb-setup.md`, and `docs/user-guide/postgres-setup.md`.
 
@@ -127,6 +127,9 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/db/postgres/postgres_store.py` | Postgres `StorageBackend` impl (Supabase / local pgvector) |
 | `server/db/postgres/postgres_stats.py` | Postgres stats / explore helpers (delegated by `PostgresStorageBackend`) |
 | `server/db/postgres/schema.sql` | Postgres DDL — 4 tables, FK cascade, `embedding_384` / `embedding_1024` |
+| `server/db/sqlite/sqlite_diagnostics.py` | Read-only run-state snapshot (path, inode, journal mode, sizes, `quick_check`, counts) for the boot log and `/healthz` → `stores.run_state.diagnostics`; `checkpoint_truncate()` runs at shutdown (Slice 65B) |
+| `scripts/migrate/merge_run_state_dbs.py` | Merges the host run-state DB and the Docker-volume DB into one file; dry-run default, needs a verified backup manifest, never deletes a source; `--promote` is a separate step (Slice 65A) |
+| `tests/scripts/test_run_state_single_source.py` | Static guard: one run-state volume, one `SQLITE_DB_PATH`, `data/` ignored by git and Docker (runtime check is `find / -name 'run_state*.db'`) |
 | `server/db/ports/store_factory.py` | `get_storage_backend()` (run state) / `get_vector_store()` (chunks); `get_retriever_backend()` delegates to the vector store |
 | `server/core/pipeline/orchestrator.py` | End-to-end pipeline executor; preflight search indexes before sweep |
 | `server/core/guards/search_index_plan.py` | Pure logic: required Atlas indexes from config + capacity assessment; required Postgres catalog objects (`vector` extension, HNSW/GIN names) |
