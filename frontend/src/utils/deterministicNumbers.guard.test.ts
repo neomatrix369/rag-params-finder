@@ -9,6 +9,7 @@ const SOURCES = import.meta.glob(
   [
     '/src/utils/sweepFormula.ts',
     '/src/components/chrome/FormulaLine.tsx',
+    '/src/components/chrome/infoTipUtils.ts',
     '/src/components/screens/ExperimentDetailScreen.tsx',
     '/src/components/explore/ExplorePanels.tsx',
   ],
@@ -22,7 +23,7 @@ const read = (relative: string): string => {
 };
 
 /** Modules whose output must depend only on their arguments (extend as 67B-67D add helpers). */
-const PURE_MODULES = ['src/utils/sweepFormula.ts', 'src/components/chrome/FormulaLine.tsx'];
+const PURE_MODULES = ['src/utils/sweepFormula.ts', 'src/components/chrome/FormulaLine.tsx', 'src/components/chrome/infoTipUtils.ts'];
 
 const NON_DETERMINISTIC = /\b(Date\.now|new Date|Math\.random|performance\.now|fetch\(|localStorage|sessionStorage|window\.|document\.)/;
 
