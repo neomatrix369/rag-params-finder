@@ -4,6 +4,7 @@
  * Scope: Slice 67 static guard — dashboard numbers and explanations come from pure functions.
  */
 import { describe, expect, it } from 'vitest';
+import { JSX_COUNT_ARITHMETIC, NON_DETERMINISTIC } from './deterministicNumbers.patterns';
 
 const SOURCES = import.meta.glob(
   [
@@ -11,6 +12,7 @@ const SOURCES = import.meta.glob(
     '/src/components/chrome/FormulaLine.tsx',
     '/src/utils/experimentStatus.ts',
     '/src/components/experiment/experimentDetailProgress.ts',
+    '/src/components/experiment/experimentDetail/ProgressSubtitle.tsx',
     '/src/components/walkthru/scoreLabels.ts',
     '/src/components/stats/estimateLabels.ts',
     '/src/components/screens/ExperimentDetailScreen.tsx',
@@ -32,19 +34,18 @@ const PURE_MODULES = [
   'src/components/chrome/FormulaLine.tsx',
   'src/utils/experimentStatus.ts',
   'src/components/experiment/experimentDetailProgress.ts',
+  'src/components/experiment/experimentDetail/ProgressSubtitle.tsx',
   'src/components/walkthru/scoreLabels.ts',
   'src/components/stats/estimateLabels.ts',
 ];
-
-const NON_DETERMINISTIC = /\b(Date\.now|new Date\(\s*\)|Math\.random|performance\.now|fetch\(|localStorage|sessionStorage|window\.|document\.)/;
 
 /** Screens must render counts produced elsewhere, never multiply them in JSX. */
 const SCREENS = [
   'src/components/screens/ExperimentDetailScreen.tsx',
   'src/components/explore/ExplorePanels.tsx',
   'src/components/screens/ExperimentsScreen.tsx',
+  'src/components/experiment/experimentDetail/ProgressSubtitle.tsx',
 ];
-const JSX_COUNT_ARITHMETIC = /\.length\s*[*×]|[*×]\s*[\w.?]+\.length\b|\.filter\([^\n]*\)\.length|\/\s*[\w.?]+\)?\s*\*\s*100/;
 
 describe('deterministic numbers guard', () => {
   it.each(PURE_MODULES)('Given %s, when scanned, then it reads no clock, randomness, storage, network or DOM', (file) => {
@@ -69,5 +70,24 @@ describe('deterministic numbers guard', () => {
 
     // -- When / Then --
     expect(source).not.toMatch(JSX_COUNT_ARITHMETIC);
+  });
+
+  it('Given the exact expressions this slice removed, when the guard patterns run, then they match, and a parse of a given date does not', () => {
+    /**
+     * Scenario: positive control — the guard can fail; the no-argument Date narrowing is a tested contract.
+     * Slice: 67D — falsifying power for the determinism guard.
+     */
+    // -- Given --
+    const removedArithmetic = [
+      'percent={(runSummary.complete / runSummary.expected) * 100}',
+      "experiments.filter(exp => exp.status !== 'running').length",
+      'const n = items.length * x',
+    ];
+    const clockReads = ['const t = Date.now();', 'const t = new Date();'];
+
+    // -- When / Then --
+    removedArithmetic.forEach((expression) => expect(expression).toMatch(JSX_COUNT_ARITHMETIC));
+    clockReads.forEach((expression) => expect(expression).toMatch(NON_DETERMINISTIC));
+    expect('const start = new Date(startedAt).getTime();').not.toMatch(NON_DETERMINISTIC);
   });
 });
