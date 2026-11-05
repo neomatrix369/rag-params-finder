@@ -11,7 +11,7 @@
 >
 > **2026-09-25 note (Redis walkthrough, docs only):** [`_internal/STORE-E2E-WALKTHROUGH.md`](../_internal/STORE-E2E-WALKTHROUGH.md) traces all four stores. New 49B/51/53 scenarios close its gaps, 52 reuses it in R0, and 50–54 list the official vendor docs to load at slice start. DECISIONS #253–#254.
 >
-> **2026-11-05 note (plan Adds — docs only):** Meetup demo kit **56** (About box, Walkthru, run replay, cross-store leaderboard, release v0.13.0 for the Redis London meetup) and method-catalogue expansion **57A–57E** (queued behind 56); backlog stubs **58–63** for the prompt's later phases. Evidence changed the prompt: no phase-transition history is stored (replay = stage sequence + real totals), the only Redis runs were on `sample.pdf` (a 120-run Pell sweep is Step 0), no expected sources exist, and the Docker server keeps run state in the named volume `sqlite_run_state`. DECISIONS #274–#285.
+> **2026-11-05 note (plan Adds — docs only):** Meetup demo kit **56** (About box, Walkthru, run replay, cross-store leaderboard, release v0.13.0 for the Redis London meetup) and method-catalogue expansion **57A–57E** (queued behind 56); backlog stubs **58–63** for the prompt's later phases. Evidence changed the prompt: no phase-transition history is stored (replay = stage sequence + real totals), the only Redis runs were on `sample.pdf` (a 120-run Pell sweep is Step 0), no expected sources exist, and the Docker server keeps run state in the named volume `sqlite_run_state`. DECISIONS #274–#286.
 
 ## Where We Are
 

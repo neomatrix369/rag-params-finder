@@ -23,7 +23,7 @@
 | Redis vector store *(added 2026-09-24)* | 52 → 53 (+54 Could) | 52 docs-only; 53 waits on 49A/49B/50/51 ✅ + 52 GO. 2026-09-25: the four-store walkthrough's gaps are assigned to 49B/51, and 50–54 carry External references | [`BRIEF-redis-evaluation.md`](../BRIEF-redis-evaluation.md) · #220–#229, #253–#254 |
 | Storage migration | 32 / 33 / 34–38 | Code ✅ on main. **32C** ✅ COMPLETE (2026-09-27). **32B** ✅ COMPLETE (2026-09-27, #257): coverage 100%, mutation waiver, quality-gates backend ✅, gate-evidence on branch. Then **41B** | — |
 | Finished | 22 · 40 · 45 · 44 | ✅ — 44 Residual §4 **IMPLEMENTED** (#163); Nightly artifact VERIFIED pending | — |
-| Deferred / open craft | 26 / 27 / 19 (Mongo QoL) · 46 (backend coverage 80–85%) · 47 (xenon B/A/A) | Genuinely open | — |
+| Deferred / open craft | 26 / 27 / 19 (Mongo QoL) · 46 (backend coverage 80–85%) · 47 (xenon B/A/A) · 64 (SQLite-default follow-up, was 56; Roadmap only) | Genuinely open | — |
 
 **Context:** [`TRAIL.md`](../TRAIL.md) · [`GAP_ANALYSIS.md`](../GAP_ANALYSIS.md) · [`PRD-supabase-pgvector-migration.md`](../PRD-supabase-pgvector-migration.md)
 
@@ -1052,7 +1052,7 @@ Integrate SIE (Superlinked Inference Engine) as a third embedding provider, add 
 | 43 — Supabase config verification | Spec: [`SLICE-43-SUPABASE-CONFIG-VERIFICATION.md`](05-storage/SLICE-43-SUPABASE-CONFIG-VERIFICATION.md) — live smoke of supabase examples; `STORAGE_BACKEND` vs YAML provider docs; hosted short-config guidance | Could | ~1–2 h |
 | 44 — Frontend coverage gate | Spec: [`SLICE-44-FRONTEND-COVERAGE-GATE.md`](07-quality-craft/SLICE-44-FRONTEND-COVERAGE-GATE.md) — Must: embed coverage table/floor in quality-gates + pre-push + CI (**VERIFIED**); Should: FE tests + structure taxonomy (§3) — ✅ COMPLETE 2026-07-27; Residual §4 Nightly Stryker **IMPLEMENTED** (#163; Nightly artifact VERIFIED pending) | Should | ✅ + residual IMPL |
 | ~~45 — Module theme separation + FE/BE craft~~ | Spec: [`SLICE-45-MODULE-THEME-SEPARATION.md`](07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md) — hotspots 1–5 + FE/BE craft + scripts themes; mutation #160 — ✅ COMPLETE 2026-07-28 · [`slice-45.json`](../gate-evidence/slice-45.json) · [PR #130](https://github.com/neomatrix369/rag-params-finder/pull/130) | Could | ✅ Done |
-| 56 — SQLite default confirmation + Mongo/Postgres StorageBackend cleanup | Follow-up to Slice 55/ADR-008: (a) confirm or revisit the `STORAGE_BACKEND=sqlite` default now that it has real-world mileage (PROVISIONAL per Slice 55 Non-goals); (b) decide whether to formally deprecate `mongodb`/`postgres` as `STORAGE_BACKEND` choices (hard cutover) or keep them indefinitely; (c) remove `MongoStorageBackend`/`PostgresStorageBackend`'s now-unused `StorageBackend` method implementations if (b) lands | Should | TBD |
+| 64 — SQLite default confirmation + Mongo/Postgres StorageBackend cleanup *(renumbered from 56 on 2026-11-05 — see DECISIONS #286; DECISIONS #261 still says "Slice 56")* | Follow-up to Slice 55/ADR-008: (a) confirm or revisit the `STORAGE_BACKEND=sqlite` default now that it has real-world mileage (PROVISIONAL per Slice 55 Non-goals); (b) decide whether to formally deprecate `mongodb`/`postgres` as `STORAGE_BACKEND` choices (hard cutover) or keep them indefinitely; (c) remove `MongoStorageBackend`/`PostgresStorageBackend`'s now-unused `StorageBackend` method implementations if (b) lands | Should | TBD |
 
 ---
 
