@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import InfoTip from '../../chrome/InfoTip';
+import { explainLabel } from '../../chrome/infoTipUtils';
 
 export default function StatCard({
   label,
@@ -7,6 +9,7 @@ export default function StatCard({
   trend,
   color = 'blue',
   compact = false,
+  explain,
 }: {
   label: string;
   value: string | number;
@@ -14,6 +17,8 @@ export default function StatCard({
   trend?: string;
   color?: 'blue' | 'green' | 'purple' | 'amber' | 'red' | 'slate';
   compact?: boolean;
+  /** How the number is derived; must come from a pure function, never JSX arithmetic. */
+  explain?: string;
 }) {
   const colors = {
     blue: 'bg-blue-50 text-blue-600 border-blue-200',
@@ -27,6 +32,8 @@ export default function StatCard({
   // eslint-disable-next-line security/detect-object-injection -- keyed by StatCard color prop union
   const colorClass = colors[color];
 
+  const tip = explain ? <InfoTip label={explainLabel(label)}>{explain}</InfoTip> : null;
+
   if (compact) {
     return (
       <div className={`${colorClass} rounded-lg border px-3 py-2.5 min-w-0 h-full`}>
@@ -34,8 +41,9 @@ export default function StatCard({
           <div className="shrink-0 scale-90 opacity-80">{icon}</div>
           <div className="min-w-0 flex-1">
             <div className="text-lg font-bold leading-none tabular-nums truncate">{value}</div>
-            <div className="mt-1 truncate text-xs font-semibold uppercase tracking-wide opacity-75">
+            <div className="mt-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide opacity-75">
               {label}
+              {tip}
             </div>
           </div>
           {trend && (
@@ -56,7 +64,10 @@ export default function StatCard({
       </div>
       <div className="mt-2">
         <div className="text-2xl font-bold">{value}</div>
-        <div className="text-xs font-medium uppercase tracking-wide mt-1 opacity-75">{label}</div>
+        <div className="mt-1 flex items-center gap-1 text-xs font-medium uppercase tracking-wide opacity-75">
+          {label}
+          {tip}
+        </div>
       </div>
     </div>
   );

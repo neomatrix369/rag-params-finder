@@ -60,6 +60,23 @@ export interface RetrieverConfig {
   model?: string;
 }
 
+/** Backend single source of truth for sweep counts (Slice 67B); absent on old responses. */
+export interface SweepPlan {
+  dimension_counts: {
+    models: number;
+    chunking_methods: number;
+    chunk_sizes: number;
+    overlaps: number;
+    paddings: number;
+    retrievers: number;
+  };
+  full_grid_count: number;
+  searchable_space: number | null;  // Bayesian only
+  planned_runs: number;
+  search_strategy: 'grid' | 'bayesian';
+  warnings: string[];
+}
+
 export interface SweepSummary {
   database_provider: string;
   embedding_provider: string;
@@ -128,6 +145,7 @@ export interface Experiment {
   parallelism?: number;
   on_error?: string;
   sweep_summary?: SweepSummary;
+  sweep_plan?: SweepPlan;  // detail responses only; the list endpoint does not attach it
 }
 
 export interface RunStatus {

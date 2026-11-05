@@ -8,6 +8,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import CollapsibleCard from './CollapsibleCard';
+import { aboutLabel } from './infoTipUtils';
 
 describe('CollapsibleCard', () => {
   beforeEach(() => {
@@ -154,5 +155,29 @@ describe('CollapsibleCard', () => {
     // -- Then --
     expect(screen.getByText('Inner')).toBeInTheDocument();
     expect(localStorage.getItem('forced')).toBeNull();
+  });
+
+  it('Given an explain prop, when rendered, then the tip is a sibling button, not nested in the toggle', () => {
+    /**
+     * Scenario: CollapsibleCard.explain adds an InfoTip beside the header without nesting buttons.
+     * Slice: 67C — explain UI.
+     * Given a card with explain,
+     * When the info button is tapped,
+     * Then the tip opens, the card stays expanded, and no button contains another button.
+     */
+    // -- Given --
+    render(
+      <CollapsibleCard title="Stats" explain="How stats are counted">
+        <p>Body</p>
+      </CollapsibleCard>,
+    );
+    const toggle = screen.getByRole('button', { name: /^Stats/ });
+    const info = screen.getByRole('button', { name: aboutLabel('Stats') });
+    // -- When --
+    fireEvent.click(info);
+    // -- Then --
+    expect(screen.getByText('How stats are counted')).toBeVisible();
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle.contains(info)).toBe(false);
   });
 });

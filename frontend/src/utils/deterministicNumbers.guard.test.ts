@@ -10,6 +10,7 @@ const SOURCES = import.meta.glob(
   [
     '/src/utils/sweepFormula.ts',
     '/src/components/chrome/FormulaLine.tsx',
+    '/src/components/chrome/infoTipUtils.ts',
     '/src/utils/experimentStatus.ts',
     '/src/components/experiment/experimentDetailProgress.ts',
     '/src/components/experiment/experimentDetail/ProgressSubtitle.tsx',
@@ -33,6 +34,7 @@ const read = (relative: string): string => {
 const PURE_MODULES = [
   'src/utils/sweepFormula.ts',
   'src/components/chrome/FormulaLine.tsx',
+  'src/components/chrome/infoTipUtils.ts',
   'src/utils/experimentStatus.ts',
   'src/components/experiment/experimentDetailProgress.ts',
   'src/components/experiment/experimentDetail/ProgressSubtitle.tsx',
