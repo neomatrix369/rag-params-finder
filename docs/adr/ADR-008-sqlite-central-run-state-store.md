@@ -26,7 +26,7 @@ Add **SQLite** as a new `StorageBackend` provider — a run-state-**only** engin
 | Concern | Choice |
 |---|---|
 | Runtime select | `STORAGE_BACKEND=sqlite` (new) alongside existing `mongodb` \| `postgres` |
-| Connection | A single file at `SQLITE_DB_PATH` (default `./data/run_state.db`), created on first use; `PRAGMA journal_mode=WAL` + `PRAGMA busy_timeout=5000` on every connection |
+| Connection | A single file at `SQLITE_DB_PATH` (default `./data/run_state.db`), created on first use; `PRAGMA journal_mode=WAL` + `PRAGMA busy_timeout=5000` on every connection. *Note (2026-11-05, SLICE-65 / DECISIONS #301):* under Docker Compose the file lives in the named volume `rag-params-finder_sqlite_run_state` at `/app/data` (`SQLITE_DB_PATH=/app/data/run_state.db`), not a host bind mount, to avoid WAL over file sharing; host tools read it via `docker exec` + the sqlite3 backup API. See [`sqlite-setup.md`](../user-guide/sqlite-setup.md) |
 | Default | **`STORAGE_BACKEND` now defaults to `sqlite`**, reversing ADR-004/DECISIONS #130's "permanent, no default flip" clause for this one setting. `mongodb` and `postgres` remain fully supported, explicit, non-default choices — nothing is removed |
 | Vector pairing | `VECTOR_STORE_BACKEND` must be set **explicitly** when `STORAGE_BACKEND=sqlite` (it can never default to `sqlite`, since sqlite cannot host vectors) |
 | Migration | One-time migration of run-state data (experiments, run_status, results) from MongoDB or Postgres into the SQLite file. Vector data (`chunks`) is never touched — chunks stay in `VECTOR_STORE_BACKEND` |

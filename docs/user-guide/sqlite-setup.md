@@ -23,7 +23,7 @@ Start the server — the SQLite file and its parent directory are created automa
 uvicorn server.main:app --reload --port 8001
 ```
 
-Or with Docker Compose (SQLite file is persisted in the `sqlite_run_state` named volume):
+Or with Docker Compose (SQLite file is persisted in the `rag-params-finder_sqlite_run_state` named volume):
 
 ```bash
 VECTOR_STORE_BACKEND=mongodb ./start-services.sh
@@ -60,7 +60,7 @@ No tuning is required for normal operation. If you observe `SQLITE_BUSY` errors 
 
 ## Docker Compose volume
 
-When running with Docker Compose, the SQLite file lives in the `sqlite_run_state` named volume
+When running with Docker Compose, the SQLite file lives in the `rag-params-finder_sqlite_run_state` named volume
 mounted at `/app/data` inside the server container. This persists the file across container restarts:
 
 ```yaml
@@ -69,11 +69,34 @@ volumes:
   - sqlite_run_state:/app/data
 ```
 
-To inspect or back up the file from outside the container:
+The volume is the single home of the run-state DB for Docker runs (DECISIONS #301). Compose sets
+`SQLITE_DB_PATH=/app/data/run_state.db` explicitly. Do not open the file directly from the host
+and do not use plain `docker cp` on the `.db` file: in WAL mode, recent writes sit in the
+`run_state.db-wal` sidecar, so a bare copy can miss them.
+
+To inspect or back up the file from outside the container, take a consistent snapshot with the
+SQLite backup API inside the container, then copy the snapshot out:
 
 ```bash
-docker cp rag-params-finder-server:/app/data/run_state.db ./run_state.db.bak
+docker exec rag-params-finder-server python -c "
+import sqlite3
+src = sqlite3.connect('file:/app/data/run_state.db?mode=ro', uri=True)
+dst = sqlite3.connect('/tmp/run_state.snapshot.db')
+src.backup(dst)
+dst.close(); src.close()
+"
+docker cp rag-params-finder-server:/tmp/run_state.snapshot.db ./run_state.snapshot.db
+docker exec rag-params-finder-server rm /tmp/run_state.snapshot.db
 ```
+
+The snapshot is a standalone file; open it with any SQLite tool.
+
+| Host | Run-state location | Host access |
+|---|---|---|
+| macOS (Docker Desktop) | Named volume inside the Docker VM; not visible in Finder or the host filesystem | `docker exec` backup recipe above |
+| Linux | Named volume under `/var/lib/docker/volumes/` (root-owned) | Same recipe; do not read the volume path directly |
+
+Host `uvicorn` runs (no Docker) still use `./data/run_state.db` on the host and need no recipe.
 
 ## Health check
 
