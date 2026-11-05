@@ -801,6 +801,31 @@ describe('ExperimentsScreen outcome label edge cases', () => {
     ).toBeInTheDocument();
   });
 
+  it('Given a Bayesian summary whose backend not_started is already net of attempted and discarded, when rendered, then not started is not subtracted twice', async () => {
+    /**
+     * Scenario: The backend ships not_started = planned - attempted - discarded; the list must not subtract again.
+     * Slice: 67D1 — ExperimentsScreen experimentOutcomeLabel (finding D, double subtraction).
+     */
+    // -- Given --
+    const exp = experiment('complete', 0, {
+      config: { execution: { search_strategy: 'bayesian' } },
+      completion_reason: 'completed_with_sampling_shortfall',
+      bayesian_summary: { planned_trials: 20, attempted_trials: 12, discarded_trials: 3, not_started: 5 },
+    });
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(
+      screen.getByText(
+        '3 runs configured · Bayesian: 12 attempted · 3 discarded · 5 not started · completed with sampling shortfall',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('Given a partial Bayesian sweep with an attempted-trials count, when rendered, then attempted and discarded counts are shown', async () => {
     /**
      * Scenario: Once attempted_trials populates, the partial-Bayesian branch reports concrete counts.

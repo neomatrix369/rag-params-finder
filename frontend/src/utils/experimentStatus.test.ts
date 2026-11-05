@@ -11,6 +11,7 @@ import {
   isPausedExperimentStatus,
   isRunningExperimentStatus,
   isTerminalExperimentStatus,
+  bayesianNotStartedCount,
   summarizeExperimentRuns,
 } from './experimentStatus';
 
@@ -298,5 +299,50 @@ describe('experimentStatus', () => {
 
     // -- Then --
     expect(actual[0]).toContain('cross_encoder');
+  });
+});
+
+describe('bayesianNotStartedCount', () => {
+  it('Given planned, attempted (incl. interrupted) and discarded trials, when counted, then not started is the single remainder', () => {
+    /**
+     * Scenario: Not started is planned minus attempted minus discarded, computed once.
+     * Slice: 67D1 — shared helper for list and detail (finding D).
+     */
+    // -- Given --
+    const trials = { planned: 20, attempted: 12, discarded: 3 };
+
+    // -- When --
+    const notStarted = bayesianNotStartedCount(trials.planned, trials.attempted, trials.discarded);
+
+    // -- Then --
+    expect(notStarted).toBe(5);
+  });
+
+  it('Given attempted plus discarded above planned, when counted, then it floors at zero', () => {
+    /**
+     * Scenario: Over-reported trials never produce a negative count.
+     * Slice: 67D1 — shared helper floor.
+     */
+    // -- Given / When --
+    const notStarted = bayesianNotStartedCount(10, 9, 4);
+
+    // -- Then --
+    expect(notStarted).toBe(0);
+  });
+
+  it('Given the same inputs, when counted repeatedly, then the output is identical and inputs are untouched', () => {
+    /**
+     * Scenario: The helper is a pure function of its arguments (no clock, randomness or I/O).
+     * Slice: 67D1 — determinism requirement for slice 67 numbers.
+     */
+    // -- Given --
+    const args = [20, 12, 3] as const;
+
+    // -- When --
+    const results = Array.from({ length: 5 }, () => bayesianNotStartedCount(...args));
+
+    // -- Then --
+    expect(new Set(results)).toEqual(new Set([5]));
+    expect(args).toEqual([20, 12, 3]);
   });
 });

@@ -28,6 +28,18 @@ export function summarizeExperimentRuns(
   return { expected, started, complete, failed, interrupted, neverStarted, inProgress };
 }
 
+/**
+ * Bayesian trials that were planned but neither attempted nor discarded by the sampler.
+ * The one place this subtraction happens; list and detail screens both call it.
+ */
+export function bayesianNotStartedCount(
+  planned: number,
+  attempted: number,
+  discarded: number,
+): number {
+  return Math.max(0, planned - attempted - discarded);
+}
+
 function isCompletedByTimestamp(
   completedAt: string | null | undefined,
 ): boolean {
