@@ -303,4 +303,61 @@ describe('CrossStoreLeaderboard', () => {
     // -- Then --
     expect(screen.getAllByRole('table')).toHaveLength(12)
   })
+
+  it('Given a group with a single run, when rendered, then it says "Only run" and shows no 100.0', () => {
+    /**
+     * Scenario: Scores are min-max normalised within a group, so a lone run is trivially 100.
+     * Slice: 67D - lone-run score is not shown as a result
+     */
+    // -- Given --
+    const lone = makeWalkthruRun({ run_id: 'lone', group_id: 'solo', rank: 1, max_score: 100 })
+    const results = makeWalkthruResults({ runs: [lone] })
+
+    // -- When --
+    render(<CrossStoreLeaderboard results={results} onSelectRun={() => {}} />)
+
+    // -- Then --
+    const row = screen.getByTestId('run-row-lone')
+    expect(within(row).getByText(/only run in this group/i)).toBeInTheDocument()
+    expect(within(row).queryByText('100.0')).not.toBeInTheDocument()
+  })
+
+  it('Given any leaderboard, when rendered, then the score is described as the max, normalised per group', () => {
+    /**
+     * Scenario: The column label hides max-not-average and the normalisation scope.
+     * Slice: 67D - score explanation
+     */
+    // -- Given / When --
+    render(<CrossStoreLeaderboard results={makeWalkthruResults()} onSelectRun={() => {}} />)
+
+    // -- Then --
+    const note = screen.getByTestId('score-note')
+    expect(note).toHaveTextContent(/highest.*not the average/i)
+    expect(note).toHaveTextContent(/normalised per group/i)
+    expect(note).toHaveTextContent(/0.100/)
+  })
+
+  it('Given a reported collapsed count, when rendered, then the note states the number', () => {
+    /**
+     * Scenario: A known dedup count is shown verbatim.
+     * Slice: 67D - dedup count
+     */
+    // -- Given / When --
+    render(<CrossStoreLeaderboard results={makeWalkthruResults()} onSelectRun={() => {}} collapsedDuplicates={2} />)
+
+    // -- Then --
+    expect(screen.getByTestId('dedup-note')).toHaveTextContent(/^2 duplicate rows were collapsed/)
+  })
+
+  it('Given any leaderboard, when rendered, then a visible note says duplicate runs are collapsed to the latest', () => {
+    /**
+     * Scenario: Dedup is visible, not silent. The count is not in the payload, so the rule is stated.
+     * Slice: 67D - dedup note
+     */
+    // -- Given / When --
+    render(<CrossStoreLeaderboard results={makeWalkthruResults()} onSelectRun={() => {}} />)
+
+    // -- Then --
+    expect(screen.getByTestId('dedup-note')).toHaveTextContent(/same config.*more than once.*only the latest run/i)
+  })
 })

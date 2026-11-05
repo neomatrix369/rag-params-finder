@@ -87,4 +87,22 @@ describe('ExperimentStoredFootprint', () => {
     expect(screen.queryByText('elasticsearch-local')).not.toBeInTheDocument();
     expect(screen.queryByText('rpf-chunks')).not.toBeInTheDocument();
   });
+
+  it('Given stored chunks, when the footprint renders, then the MB is marked est. with its formula and scope', () => {
+    /**
+     * Scenario: The MB figure is a calculation, not a measurement.
+     * Slice: 67D - footprint estimate label
+     * Given db-stats with chunks,
+     * When the footprint renders,
+     * Then "est." sits beside the MB, the formula is visible and the scope names this experiment.
+     */
+    // -- Given / When --
+    render(<ExperimentStoredFootprint stats={footprint()} />);
+
+    // -- Then --
+    expect(screen.getByTestId('footprint-summary')).toHaveTextContent(/est\. .* MB/);
+    expect(screen.getByTestId('footprint-formula')).toHaveTextContent(/chunks × dimensions × 4 bytes/);
+    expect(screen.getByTestId('footprint-formula')).toHaveTextContent(/500 bytes/);
+    expect(screen.getByTestId('footprint-scope')).toHaveTextContent(/this experiment only/i);
+  });
 });
