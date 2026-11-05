@@ -89,3 +89,8 @@ Full list: [`invariants.md`](invariants.md).
 - **Delta**: dashboard counts for the sweep header move from inline JSX arithmetic to one pure function (`sweepFormulaFromSummary`) rendered by one component (`FormulaLine`). The Explorer reuses the component and passes its observed count, which renders as `(observed)` when it differs from the product.
 - **L1/L2 impact**: frontend only. No server, port or store change. `expand_sweep` remains the backend truth; the frontend mirror (`paddings []` -> 1, default dense retriever) is replaced by the backend `sweep_plan()` in 67B.
 - **Data-Flow**: `sweep_summary` (API) -> `sweepFormulaFromSummary` -> `FormulaLine`. A static guard test pins the determinism rule for these modules and the two screens.
+
+### 2026-11-05 — Slice 67C: one tooltip primitive
+- **Delta**: explanations of numbers get one primitive (`InfoTip`) with its pure helpers (`clampShift`, label templates) instead of per-card native `title=` attributes or always-visible hint text.
+- **L1/L2 impact**: frontend leaf components only. No data or server change; consumers (`StatTile`, `StatCard`, `CollapsibleCard`) take optional props with unchanged defaults, except that `StatTile.hint` now shows on demand.
+- **Data-Flow**: none new. Explanation strings are produced by pure functions in the calling screens (67D) and passed in as text.

@@ -91,9 +91,9 @@ Vocabulary decision: **run** = executed · **planned runs** = expected · **conf
 ### 67C · Reusable explain UI (Should, ~4–5 h)
 
 - `components/chrome/InfoTip.tsx`: dependency-free; button with `aria-describedby`; Escape closes; target ≥ 44 px; tap toggles at 390 px.
-- `StatTile.hint` renders through `InfoTip`; `explain` prop added to `StatTile`, `StatCard` and `CollapsibleCard.headerExtra`; explanatory native `title=` uses replaced.
+- `StatTile.hint` renders through `InfoTip`; an `explain` prop is added to `StatTile`, `StatCard` and `CollapsibleCard` (on `CollapsibleCard` the tip is a sibling of the toggle, not inside `headerExtra`, which would nest buttons). The tip keeps 8 px inside the viewport (`clampShift`) and closes on resize or orientation change. Explanatory native `title=` uses live in the screens and `ExplorePanels`, so replacing them moves to 67D. *(Amended 2026-11-05 after review.)*
 
-**Oracle (GWT):** keyboard (Tab, Enter, Escape), touch toggle, `aria-describedby` wiring, no duplicate screen-reader announcement; Vitest floors 95/90/95/95 hold.
+**Oracle (GWT):** the trigger is a native `<button type="button">` in the tab order (not disabled, focusable) whose activation toggles the tip, and Escape closes it leaving focus on the trigger; touch toggle; `aria-describedby` wiring (the tooltip pattern, no `aria-expanded`); no duplicate screen-reader announcement (one tip node, no `aria-live`, the button name does not repeat the tip text); the viewport clamp has literal-number tests; Vitest floors 95/90/95/95 hold. Enter and Space activation is user-agent behaviour that jsdom does not simulate (`user-event` is not a dependency); it is observed once in the real-browser keyboard-only pass. *(Amended 2026-11-05 after review: the stub promised Tab and Enter in an executable test, which jsdom cannot honestly provide.)*
 
 ### 67D · Apply to every card and fix the formulas the tips describe (Should, ~10–14 h)
 
@@ -129,12 +129,15 @@ Recorded after execution began, so the plan matches what was built and decided. 
 
 Not yet reported. Determinism requirement given to the agent: `sweep_plan()` and its warnings are pure, stable ordering, with tests that call it repeatedly and with equivalent inputs.
 
-### 67C — implemented on branch (not yet browser-checked)
+### 67C — implemented on branch `slice/67c-infotip`, reviewed
 
-- `components/chrome/InfoTip.tsx` (new): native button, `aria-describedby` to a `role="tooltip"` span kept in the DOM and toggled with `hidden` (one screen-reader announcement, no `aria-live`), tap toggles, Escape and outside press close it, `min-h-11 min-w-11` target; id is a caller `id` or React `useId`.
-- `StatTile.hint` renders through `InfoTip`; **UX change:** hints that were always-visible text are now hidden until tapped. `StatTile`, `StatCard` and `CollapsibleCard` gained an `explain` prop (the `CollapsibleCard` tip sits beside the toggle, not inside it).
-- No native `title=` was replaced (none existed in the files it owned); the real ones are in the screens and `ExplorePanels` and belong to 67D.
-- Gaps to close before 67C can merge: real-browser check at 390 px (tip may clip near the left edge); the full gates (the agent's worktree lacked a Python environment, so it ran the frontend checks directly).
+- `components/chrome/InfoTip.tsx` (new): native button with `aria-describedby` to a `role="tooltip"` span kept in the DOM and toggled with `hidden` (announced once, no `aria-live`, no `aria-expanded`); tap toggles; Escape closes and keeps focus; an outside press, a resize or an orientation change also closes it; `min-h-11 min-w-11` target; the id is a caller `id` or React `useId`.
+- `components/chrome/infoTipUtils.ts` (new, pure, in the determinism guard's module list): `clampShift(rect, viewportWidth)` and the `aboutLabel` / `explainLabel` sentence templates shared by the three consumers and their tests.
+- `StatTile.hint` renders through `InfoTip`; `StatTile`, `StatCard` and `CollapsibleCard` gained an `explain` prop. **UX change (owner to confirm):** hints that were always-visible text (for example the data / index sizes and quota captions on the database stats panel) are now hidden until tapped. The compact `StatCard` label stays a direct text child so the Detail screen's Total lookup keeps working.
+- Verification: full `quality-gates.sh` green (500 frontend tests, coverage 97.4 / 93.01 / 98.44 / 98.59 against 95/90/95/95); real browser at 390 px (tip stays inside the screen at the left and right edges, no sideways overflow) and 1280 px (no overflow, the tip adds no card height, `CollapsibleCard` header toggle 882 × 44 beside a 44 × 44 button), plus a keyboard-only pass (Tab, Enter, Space, Escape, focus stays on the trigger). The browser pass used temporary `explain` props that were reverted, since no screen uses them yet (67D).
+- Reviews: code quality and acceptance coverage, two rounds; every requested change made.
+- Deferred: when both `hint` and `explain` are set a tile shows two 44 px buttons (owner decision in 67D: one tip carrying both sentences); a duplicate-id guard for caller-supplied ids.
+
 
 ### 67D — partly built (three streams, one PR)
 

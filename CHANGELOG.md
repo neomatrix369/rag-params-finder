@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Slice 67C — reusable info tip for explaining numbers** — new dependency-free `InfoTip` (a native button with `aria-describedby`, tap, Escape and outside-press to close, 44 px target, kept inside the viewport) and an `explain` prop on `StatTile`, `StatCard` and `CollapsibleCard`.
+  - `StatTile` hints that were always-visible text are now behind the info button (tap to reveal).
+  - Nothing renders `explain` yet; the screens adopt it in 67D.
+  (**IMPLEMENTED** on branch `slice/67c-infotip`; checked in a real browser at 390 px and 1280 px including a keyboard-only pass.)
 - **Slice 67A — dashboard sweep header shows the full formula** — the Detail "Sweep Dimensions" header now reads `1 model × 5 chunking methods × 3 sizes × 2 overlaps × 1 padding × 4 retrievers = 120 configurations`, matching the Total tile. It used to say "N combinations", leave out the retrievers and print 0 for empty paddings.
   - New pure `frontend/src/utils/sweepFormula.ts` and shared `FormulaLine`, also used by the Explorer's Cartesian line (an observed count that differs from the product is labelled `(observed)`).
   - Bayesian experiments carry a fixed note that only chunk size × overlap vary and the grid is not run in full.
