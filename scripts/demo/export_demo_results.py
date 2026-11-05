@@ -367,9 +367,11 @@ def rank_union(selected: list[Candidate]) -> tuple[list[tuple[dict[str, Any], Ca
         source, run_ids = by_exp[exp_id]
         query_results += read_results(source, exp_id, run_ids)
     query_results.sort(key=lambda d: (d["run_id"], d["query_id"]))
-    run_docs = [c.run for c in selected]
+    # The analyzer's config key has no dataset. Fold the group id (dataset + questions + config)
+    # into the provider slot so same-store, same-config runs on different datasets stay apart.
+    run_docs = [{**c.run, "database_provider": f"{c.store}#{c.group_id}"} for c in selected]
     analysis = analyze_results(query_results, run_docs)
-    lookup = {tuple(_run_config_key(c.run)): c for c in selected}
+    lookup = {tuple(_run_config_key(doc)): c for doc, c in zip(run_docs, selected, strict=True)}
     ranked = [(entry, lookup[_ranked_key(entry)]) for entry in analysis["ranked_configs"]]
     return apply_run_id_tiebreak(ranked), analysis
 

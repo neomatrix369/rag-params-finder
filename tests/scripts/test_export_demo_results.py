@@ -379,6 +379,73 @@ def test_given_union_when_exported_then_ranking_comes_from_analyze_results_once(
     assert [r["rank"] for r in ordered] == list(range(1, len(ordered) + 1))
 
 
+def test_given_same_store_and_config_on_two_datasets_when_exported_then_both_runs_survive(
+    tmp_path: Path, questions: Path
+) -> None:
+    """
+    Scenario: The same config on two datasets never collapses into one run.
+    Slice: 56 (Part A)
+
+    Given two Redis experiments with an identical config and questions file, one on the Pell
+    PDF and one on sample.pdf,
+    When exported,
+    Then both runs appear with distinct group ids, each keeps its own scores, and the manifest
+    count matches the runs written.
+    """
+    ### Given
+    pell_scores = {Q1: [0.9, 0.8], Q2: [0.7, 0.6]}
+    sample_scores = {Q1: [0.3, 0.2], Q2: [0.4, 0.1]}
+    db = make_db(
+        tmp_path / "state.db",
+        [
+            ExperimentSpec("e-pell", "redis", [RunSpec("pell-run", 256, pell_scores)]),
+            ExperimentSpec(
+                "e-sample",
+                "redis",
+                [RunSpec("sample-run", 256, sample_scores)],
+                data_paths=[OTHER_PDF],
+            ),
+        ],
+    )
+
+    ### When
+    code, out = export(tmp_path, [db], questions)
+
+    ### Then
+    assert code == 0
+    payload = load(out)
+    runs = runs_by_id(payload)
+    assert set(runs) == {"pell-run", "sample-run"}
+    assert runs["pell-run"]["group_id"] != runs["sample-run"]["group_id"]
+    assert runs["pell-run"]["max_score"] == 100
+    assert runs["sample-run"]["max_score"] < 100
+    assert payload["manifest"]["counts"]["runs_exported"] == len(payload["runs"]) == 2
+    assert payload["stores"]["redis"]["run_count"] == 2
+
+
+def test_given_run_without_recorded_provider_when_exported_then_experiment_store_is_used(
+    tmp_path: Path, questions: Path
+) -> None:
+    """
+    Scenario: A run missing database_provider falls back to its experiment's store.
+    Slice: 56 (Part A)
+
+    Given a Redis experiment whose run doc has no database_provider,
+    When exported,
+    Then the run is exported as a redis run.
+    """
+    ### Given
+    run = RunSpec("legacy", 256, {Q1: [0.5, 0.4]}, provider_recorded=False)
+    db = make_db(tmp_path / "state.db", [ExperimentSpec("e-redis", "redis", [run])])
+
+    ### When
+    code, out = export(tmp_path, [db], questions)
+
+    ### Then
+    assert code == 0
+    assert runs_by_id(load(out))["legacy"]["store"] == "redis"
+
+
 def test_given_tied_scores_when_exported_then_run_id_is_the_final_tiebreak(
     tmp_path: Path, questions: Path
 ) -> None:
