@@ -613,6 +613,33 @@ def test_given_export_when_story_built_then_it_reports_spread_and_the_widest_gap
     assert Q1 in capsys.readouterr().out
 
 
+def test_given_export_when_written_then_json_is_compact_and_round_trips(
+    tmp_path: Path, cross_store_db: Path, questions: Path
+) -> None:
+    """
+    Scenario: The bundled file is compact so it stays under the large-file hook limit.
+    Slice: 56 (Part A)
+
+    Given a normal export,
+    When the file is written,
+    Then it has no indentation or newlines except one trailing newline, and parsing it gives
+    the same data as re-serialising it with sorted keys.
+    """
+    ### Given
+    db = cross_store_db
+
+    ### When
+    _, out = export(tmp_path, [db], questions)
+
+    ### Then
+    text = out.read_text(encoding="utf-8")
+    assert text.endswith("}\n") and "\n" not in text[:-1]
+    data = json.loads(text)
+    assert (
+        text == json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n"
+    )
+
+
 def test_given_same_inputs_when_exported_twice_then_bytes_are_identical(
     tmp_path: Path, cross_store_db: Path, questions: Path
 ) -> None:

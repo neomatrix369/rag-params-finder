@@ -721,8 +721,8 @@ def build_export(
 
 
 def serialize(payload: dict[str, Any]) -> str:
-    """Deterministic JSON: sorted keys, fixed indent, trailing newline."""
-    return json.dumps(payload, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+    """Deterministic compact JSON (small enough for the large-file hook): sorted keys."""
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n"
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
