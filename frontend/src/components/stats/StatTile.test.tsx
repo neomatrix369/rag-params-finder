@@ -6,8 +6,8 @@
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import StatTile from './StatTile';
-
-const strip = (html: string) => html.replace(/_r_[0-9a-z]+_/g, 'ID'); // React useId counter, not randomness
+import { aboutLabel, explainLabel } from '../chrome/infoTipUtils';
+import { normalizeIds } from '../../test/helpers/normalizeIds';
 
 describe('StatTile', () => {
   it('Given comfortable density, when rendered, then label and value appear', () => {
@@ -52,9 +52,12 @@ describe('StatTile', () => {
     // -- Given / When --
     render(<StatTile label="Chunks" value={12} hint="across runs" />);
     // -- Then --
-    const button = screen.getByRole('button', { name: 'About Chunks' });
+    const button = screen.getByRole('button', { name: aboutLabel('Chunks') });
     expect(button).toHaveAttribute('aria-describedby', screen.getByRole('tooltip', { hidden: true }).id);
     expect(screen.getAllByText('across runs')).toHaveLength(1);
+    // reachable: tapping the button reveals the hint
+    fireEvent.click(button);
+    expect(screen.getByText('across runs')).toBeVisible();
   });
 
   it('Given an explain prop on each density, when tapped, then the formula opens', () => {
@@ -73,8 +76,8 @@ describe('StatTile', () => {
       </>,
     );
     // -- When --
-    fireEvent.click(screen.getByRole('button', { name: 'How Total is calculated' }));
-    fireEvent.click(screen.getByRole('button', { name: 'How Runs is calculated' }));
+    fireEvent.click(screen.getByRole('button', { name: explainLabel('Total') }));
+    fireEvent.click(screen.getByRole('button', { name: explainLabel('Runs') }));
     // -- Then --
     expect(screen.getByText('models x sizes')).toBeVisible();
     expect(screen.getByText('done + failed')).toBeVisible();
@@ -100,9 +103,9 @@ describe('StatTile', () => {
     const props = { label: 'Total', value: 12, hint: 'h', explain: 'e' } as const;
     // -- When --
     const first = render(<StatTile {...props} />);
-    const a = strip(first.container.innerHTML);
+    const a = normalizeIds(first.container.innerHTML);
     first.unmount();
-    const b = strip(render(<StatTile {...props} />).container.innerHTML);
+    const b = normalizeIds(render(<StatTile {...props} />).container.innerHTML);
     // -- Then --
     expect(b).toBe(a);
   });

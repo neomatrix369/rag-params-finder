@@ -1,4 +1,5 @@
 import InfoTip from '../chrome/InfoTip';
+import { aboutLabel, explainLabel } from '../chrome/infoTipUtils';
 
 export type StatTileProps = {
   label: string;
@@ -14,8 +15,8 @@ export type StatTileProps = {
 function TileTips({ label, hint, explain }: Pick<StatTileProps, 'label' | 'hint' | 'explain'>) {
   return (
     <>
-      {hint ? <InfoTip label={`About ${label}`}>{hint}</InfoTip> : null}
-      {explain ? <InfoTip label={`How ${label} is calculated`}>{explain}</InfoTip> : null}
+      {hint ? <InfoTip label={aboutLabel(label)}>{hint}</InfoTip> : null}
+      {explain ? <InfoTip label={explainLabel(label)}>{explain}</InfoTip> : null}
     </>
   );
 }

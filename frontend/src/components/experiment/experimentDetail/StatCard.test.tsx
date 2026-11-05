@@ -8,8 +8,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import StatCard from './StatCard';
-
-const strip = (html: string) => html.replace(/_r_[0-9a-z]+_/g, 'ID'); // React useId counter, not randomness
+import { explainLabel } from '../../chrome/infoTipUtils';
+import { normalizeIds } from '../../../test/helpers/normalizeIds';
 
 describe('StatCard', () => {
   it('Given no explain, when rendered in either layout, then label and value show and no info button exists', () => {
@@ -46,9 +46,9 @@ describe('StatCard', () => {
       </>,
     );
     // -- When --
-    const total = screen.getByRole('button', { name: 'How Total is calculated' });
+    const total = screen.getByRole('button', { name: explainLabel('Total') });
     fireEvent.click(total);
-    fireEvent.click(screen.getByRole('button', { name: 'How Failed is calculated' }));
+    fireEvent.click(screen.getByRole('button', { name: explainLabel('Failed') }));
     // -- Then --
     expect(screen.getByText('models x sizes')).toBeVisible();
     expect(screen.getByText('runs that errored')).toBeVisible();
@@ -64,9 +64,9 @@ describe('StatCard', () => {
     const props = { label: 'Total', value: 12, icon: <i />, explain: 'e' };
     // -- When --
     const first = render(<StatCard {...props} />);
-    const a = strip(first.container.innerHTML);
+    const a = normalizeIds(first.container.innerHTML);
     first.unmount();
-    const b = strip(render(<StatCard {...props} />).container.innerHTML);
+    const b = normalizeIds(render(<StatCard {...props} />).container.innerHTML);
     // -- Then --
     expect(b).toBe(a);
   });

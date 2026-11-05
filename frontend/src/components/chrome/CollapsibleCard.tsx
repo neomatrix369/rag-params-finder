@@ -1,5 +1,6 @@
 import { useCallback, useId, useState, type ReactNode } from 'react';
 import InfoTip from './InfoTip';
+import { aboutLabel } from './infoTipUtils';
 
 type CollapsibleCardProps = {
   title: string;
@@ -55,35 +56,35 @@ export default function CollapsibleCard({
   return (
     <div className={className}>
       <div className="flex items-center">
-      <button
-        type="button"
-        onClick={toggle}
-        className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg text-left"
-        aria-expanded={open}
-        aria-controls={contentId}
-      >
-        <svg
-          className={`h-4 w-4 shrink-0 text-muted transition-transform ${open ? 'rotate-90' : ''}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          aria-hidden
+        <button
+          type="button"
+          onClick={toggle}
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg text-left"
+          aria-expanded={open}
+          aria-controls={contentId}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-        {icon}
-        <h2
-          className={
-            compact
-              ? 'flex-1 text-sm font-bold uppercase tracking-wider text-ink'
-              : 'flex-1 font-display text-lg font-semibold text-ink'
-          }
-        >
-          {title}
-        </h2>
-        {headerExtra}
-      </button>
-      {explain ? <InfoTip label={`About ${title}`}>{explain}</InfoTip> : null}
+          <svg
+            className={`h-4 w-4 shrink-0 text-muted transition-transform ${open ? 'rotate-90' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          {icon}
+          <h2
+            className={
+              compact
+                ? 'flex-1 text-sm font-bold uppercase tracking-wider text-ink'
+                : 'flex-1 font-display text-lg font-semibold text-ink'
+            }
+          >
+            {title}
+          </h2>
+          {headerExtra}
+        </button>
+        {explain ? <InfoTip label={aboutLabel(title)}>{explain}</InfoTip> : null}
       </div>
       {open ? <div id={contentId} className="mt-4">{children}</div> : null}
     </div>

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import InfoTip from '../../chrome/InfoTip';
+import { explainLabel } from '../../chrome/infoTipUtils';
 
 export default function StatCard({
   label,
@@ -31,6 +32,8 @@ export default function StatCard({
   // eslint-disable-next-line security/detect-object-injection -- keyed by StatCard color prop union
   const colorClass = colors[color];
 
+  const tip = explain ? <InfoTip label={explainLabel(label)}>{explain}</InfoTip> : null;
+
   if (compact) {
     return (
       <div className={`${colorClass} rounded-lg border px-3 py-2.5 min-w-0 h-full`}>
@@ -38,11 +41,11 @@ export default function StatCard({
           <div className="shrink-0 scale-90 opacity-80">{icon}</div>
           <div className="min-w-0 flex-1">
             <div className="text-lg font-bold leading-none tabular-nums truncate">{value}</div>
-            <div className="mt-1 truncate text-xs font-semibold uppercase tracking-wide opacity-75">
-              {label}
+            <div className="mt-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide opacity-75">
+              <span className="truncate">{label}</span>
+              {tip}
             </div>
           </div>
-          {explain ? <InfoTip label={`How ${label} is calculated`}>{explain}</InfoTip> : null}
           {trend && (
             <span className="shrink-0 text-xs font-medium opacity-75">{trend}</span>
           )}
@@ -63,7 +66,7 @@ export default function StatCard({
         <div className="text-2xl font-bold">{value}</div>
         <div className="mt-1 flex items-center gap-1 text-xs font-medium uppercase tracking-wide opacity-75">
           {label}
-          {explain ? <InfoTip label={`How ${label} is calculated`}>{explain}</InfoTip> : null}
+          {tip}
         </div>
       </div>
     </div>

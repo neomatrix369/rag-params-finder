@@ -8,6 +8,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import CollapsibleCard from './CollapsibleCard';
+import { aboutLabel } from './infoTipUtils';
 
 describe('CollapsibleCard', () => {
   beforeEach(() => {
@@ -171,7 +172,7 @@ describe('CollapsibleCard', () => {
       </CollapsibleCard>,
     );
     const toggle = screen.getByRole('button', { name: /^Stats/ });
-    const info = screen.getByRole('button', { name: 'About Stats' });
+    const info = screen.getByRole('button', { name: aboutLabel('Stats') });
     // -- When --
     fireEvent.click(info);
     // -- Then --
