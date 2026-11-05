@@ -162,6 +162,12 @@ Built so far (one PR by owner decision). Tips and formula lines on every invento
 
 - **Query Results breakdown by golden-dataset record.** The "Query Results" tile (`total_results`, a 6–7 digit number) must show how it decomposes. Each stored result row is one retrieved chunk for one (run, golden query) pair, so the target line is `N results = R runs × Q golden records × K results each` per experiment, and `N / Q` results per golden record at the group level. Needs: group totals to carry the golden-record count (`unique_queries` exists per experiment in `ExperimentDbStats` but not in `VectorDbGroupTotals` or the grouped summaries), computed in `stats_common.py`/the store stats helpers and rendered through `FormulaLine`. The product will not always equal the stored count (failed runs, differing `top_k_final`), so any non-matching case renders `(observed)` rather than a false `=`. Lands in 67D after 67B.
 
+### 67F — `duplicates_collapsed` in the compare response (branch `slice/67f-duplicates-collapsed`)
+
+- `server/core/compare.py`: pure `count_duplicates_collapsed(slot_keys)` (total `(store, group_id)` keys minus distinct keys); `build_compare` adds `duplicates_collapsed` to the response, counted over all eligible candidates before `_latest_per_store_and_group` keeps one run per slot. Runs dropped for other reasons (no results, no score, unfinished) are not duplicates and are not counted.
+- `CompareResponse` gained an optional `duplicates_collapsed?: number` (type only; `dedupNote(collapsed)` in `scoreLabels.ts` already accepts it, so wiring the UI is a follow-up).
+- Tests: table-driven cases (empty, one, all distinct, one pair, many in one slot, two slots duplicated) plus two `build_compare` cases and the endpoint response.
+
 ### Added to the 67D backlog (from review)
 
 - Backend `duplicates_collapsed` in the compare response; remove the Explorer's `observedTotal` once 67B supplies the planned total.

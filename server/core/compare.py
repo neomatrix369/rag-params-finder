@@ -100,6 +100,12 @@ def _latest_per_store_and_group(candidates: Iterable[_Candidate]) -> list[_Candi
     return [min(members, key=lambda c: (-c.stamp, c.run_id)) for members in slots.values()]
 
 
+def count_duplicates_collapsed(slot_keys: Iterable[tuple[str, str]]) -> int:
+    """Rows removed by the one-run-per-(store, group) rule: total keys minus distinct keys."""
+    keys = list(slot_keys)
+    return len(keys) - len(set(keys))
+
+
 def _rank_group(
     members: list[_Candidate], results_by_run: dict[str, list[dict[str, Any]]]
 ) -> list[dict[str, Any]]:
@@ -172,6 +178,7 @@ def build_compare(
         for qr in results:
             results_by_run[str(qr.get("run_id"))].append(qr)
     candidates = [c for b in bundle_list for c in _candidates(b, sha_of)]
+    duplicates_collapsed = count_duplicates_collapsed((c.store, c.group_id) for c in candidates)
     by_group: dict[str, list[_Candidate]] = defaultdict(list)
     for cand in _latest_per_store_and_group(candidates):
         by_group[cand.group_id].append(cand)
@@ -190,4 +197,5 @@ def build_compare(
         "cross_store_group_count": sum(
             1 for g in groups if len({r["store"] for r in g["runs"]}) > 1
         ),
+        "duplicates_collapsed": duplicates_collapsed,
     }
