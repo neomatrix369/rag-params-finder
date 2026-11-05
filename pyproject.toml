@@ -8,7 +8,7 @@ dependencies = [
     "uvicorn[standard]>=0.27.0",
     "pymongo>=4.18.2",
     "voyageai>=0.2.3",
-    "pypdf>=6.16.1",
+    "pypdf>=6.21.4",
     "langchain>=0.1.0",
     "langchain-text-splitters>=0.0.1",
     "tiktoken>=0.5.0",
@@ -66,14 +66,22 @@ override-dependencies = [
     "starlette>=1.3.1",
     "idna>=3.15",
     "langchain-core>=1.3.3",
-    "aiohttp>=3.14.1",
-    "msgpack>=1.2.1",
-    "pillow>=12.3.0",
+    "aiohttp>=3.14.4",
+    "msgpack>=1.2.3",
+    "pillow>=13.0.0",
     # sentence-transformers pulls torch 2.2.x (NumPy 1.x ABI). Force a build that
     # works with numpy>=2 required by sie-sdk (else: RuntimeError "Numpy is not available").
     "torch>=2.6.0",
-    # virtualenv PYSEC-2026-4011/4012/4013/4014 — fixed in 21.7.x (pre-commit transitive dep)
-    "virtualenv>=21.7.12",
+    # virtualenv — CVE-2026-113714/113715/113717/113718/113720/113722/113723/113725/113732/113776 fixed in 21.14.9
+    "virtualenv>=21.14.9",
+    # certifi — PYSEC-2026-4320 fixed in 2026.10.18
+    "certifi>=2026.10.18",
+    # dnspython — CVE-2026-114605 fixed in 2.9.0
+    "dnspython>=2.9.0",
+    # filelock — CVE-2026-112907/112909/112910/112913/112915/112935/112936/112939/112940 fixed in 4.0.9
+    "filelock>=4.0.9",
+    # setuptools — GHSA-xmj3-9gf7-h52w fixed in 84.1.0
+    "setuptools>=84.1.0",
 ]
 
 # Route torch to the CPU-only PyTorch index on Linux (Docker builds / CI).
