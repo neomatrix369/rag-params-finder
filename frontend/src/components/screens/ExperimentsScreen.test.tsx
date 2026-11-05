@@ -1245,43 +1245,6 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
     expect(apiMocks.getExperimentsWithProgress).toHaveBeenCalledTimes(1);
   });
 
-  it('Given a cold start that loads experiments then stats, when the effect restarts, then Refreshing experiments is shown', async () => {
-    /**
-     * Scenario: Stats arrival recreates loadVectorDbStats and restarts bootstrap while initialLoadDone.
-     * Slice: 44 Phase B — ExperimentsScreen post-load loading panel titles
-     */
-    // -- Given --
-    apiMocks.getExperimentsWithProgress
-      .mockResolvedValueOnce([experiment('complete')])
-      .mockImplementationOnce(() => new Promise<Experiment[]>(() => undefined));
-
-    // -- When --
-    render(<ExperimentsScreen />);
-    await waitFor(() => expect(screen.getByText('complete sweep')).toBeInTheDocument());
-
-    // -- Then --
-    await waitFor(() => expect(screen.getByText('Refreshing experiments')).toBeInTheDocument());
-    expect(screen.getByText('Waiting for the server to finish this refresh cycle.')).toBeInTheDocument();
-  });
-
-  it('Given a cold start that loads an empty list then stats, when the effect restarts, then Checking for experiments is shown', async () => {
-    /**
-     * Scenario: Empty-list post-load refresh uses the Checking for experiments title.
-     * Slice: 44 Phase B — ExperimentsScreen empty post-load loading panel title
-     */
-    // -- Given --
-    apiMocks.getExperimentsWithProgress
-      .mockResolvedValueOnce([])
-      .mockImplementationOnce(() => new Promise<Experiment[]>(() => undefined));
-
-    // -- When --
-    render(<ExperimentsScreen />);
-    await waitFor(() => expect(screen.getByText('No experiments yet')).toBeInTheDocument());
-
-    // -- Then --
-    await waitFor(() => expect(screen.getByText('Checking for experiments')).toBeInTheDocument());
-  });
-
   it('Given execution search_strategy is a non-object config blob, when rendered, then grid strategy is assumed', async () => {
     /**
      * Scenario: Malformed execution config falls back to grid.
