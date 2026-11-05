@@ -169,6 +169,12 @@ Owner decisions (final): a golden record is one record of the golden dataset (th
 - **Known limits:** under the default split-store setup the grouped view never has the golden facts (the grouped view has no run-state overlay, the same pre-existing gap as `total_results`); Mongo is exercised live only by a test that is skipped in PR CI; `partial_runs` also counts runs still in flight; the stored count is write-once and goes stale if `queries_file` changes between pause and resume.
 - **Follow-ups:** an atomic set-field operation for `sweep_summary` (the SQLite read-modify-write can lose a concurrent update; a lost count self-heals through the fallback); merge the two Postgres grouped scans; the Mongo per-experiment `query_ids` document-size ceiling; a Mongo index on `results(experiment_id, run_id)`.
 
+### 67F — `duplicates_collapsed` in the compare response (branch `slice/67f-duplicates-collapsed`)
+
+- `server/core/compare.py`: pure `count_duplicates_collapsed(slot_keys)` (total `(store, group_id)` keys minus distinct keys); `build_compare` adds `duplicates_collapsed` to the response, counted over all eligible candidates before `_latest_per_store_and_group` keeps one run per slot. Runs dropped for other reasons (no results, no score, unfinished) are not duplicates and are not counted.
+- `CompareResponse` gained an optional `duplicates_collapsed?: number` (type only; `dedupNote(collapsed)` in `scoreLabels.ts` already accepts it, so wiring the UI is a follow-up).
+- Tests: table-driven cases (empty, one, all distinct, one pair, many in one slot, two slots duplicated) plus two `build_compare` cases and the endpoint response.
+
 ### Added to the 67D backlog (from review)
 
 - Backend `duplicates_collapsed` in the compare response; remove the Explorer's `observedTotal` once 67B supplies the planned total.

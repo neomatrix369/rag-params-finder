@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Slice 67F — compare reports collapsed duplicates** — `GET /api/v1/compare` now returns `duplicates_collapsed`, the number of earlier runs of the same config on the same store that were dropped in favour of the latest, so the dashboard can explain why a count is smaller than the raw count. Computed by a pure function; no UI change yet.
 - **Slice 67D (first bundle) — dashboard numbers that add up** — the Detail screen, list and Compare/stats panels now agree and say how a number was reached.
   - Bayesian experiments use one denominator everywhere on the Detail screen (Total tile, progress ring, subtitle, totals line, planned trials, overview sentence); the totals line reads `Total 20 = 13 attempted + 4 discarded + 3 not started`.
   - The list screen no longer subtracts the Bayesian "not started" count twice; the progress ring and ETA count failed and interrupted runs as finished.

@@ -11,10 +11,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from unittest.mock import patch
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from server.core.compare import build_compare
+from server.core.compare import build_compare, count_duplicates_collapsed
 
 
 def _experiment(
@@ -270,3 +271,89 @@ def test_given_compare_endpoint_when_called_then_it_returns_grouped_runs_from_ru
     body = response.json()
     assert body["group_count"] == 1
     assert body["groups"][0]["runs"][0]["run_id"] == "r1"
+    assert body["duplicates_collapsed"] == 0
+
+
+def test_given_two_experiments_for_one_slot_when_compared_then_one_duplicate_is_reported() -> None:
+    """
+    Scenario: The response says how many rows the one-run-per-slot rule removed.
+    Slice: 67F
+
+    Given an older and a newer Redis experiment with the same config,
+    When build_compare runs,
+    Then duplicates_collapsed is 1 and the group still lists one run.
+    """
+    ### Given
+    bundles = [
+        _bundle(_experiment("old", "redis", day=1), [_run("r1", "old", "redis")], {"r1": 0.9}),
+        _bundle(_experiment("new", "redis", day=2), [_run("r2", "new", "redis")], {"r2": 0.4}),
+    ]
+
+    ### When
+    out = build_compare(bundles)
+
+    ### Then
+    assert out["duplicates_collapsed"] == 1
+    assert out["run_count"] == 1
+
+
+def test_given_distinct_slots_when_compared_then_no_duplicates_are_reported() -> None:
+    """
+    Scenario: Nothing is collapsed when every (store, group) slot has one run.
+    Slice: 67F
+
+    Given one Redis and one MongoDB experiment with the same config,
+    When build_compare runs,
+    Then duplicates_collapsed is 0.
+    """
+    ### Given
+    bundles = [
+        _bundle(_experiment("a", "redis"), [_run("r1", "a", "redis")], {"r1": 0.9}),
+        _bundle(_experiment("b", "mongodb"), [_run("r2", "b", "mongodb")], {"r2": 0.8}),
+    ]
+
+    ### When
+    out = build_compare(bundles)
+
+    ### Then
+    assert out["duplicates_collapsed"] == 0
+    assert out["run_count"] == 2
+
+
+@pytest.mark.parametrize(
+    ("slot_keys", "expected"),
+    [
+        ([], 0),
+        ([("redis", "g1")], 0),
+        ([("redis", "g1"), ("mongodb", "g1"), ("redis", "g2")], 0),
+        ([("redis", "g1"), ("redis", "g1")], 1),
+        ([("redis", "g1")] * 5, 4),
+        (
+            [
+                ("redis", "g1"),
+                ("redis", "g1"),
+                ("mongodb", "g1"),
+                ("mongodb", "g1"),
+                ("redis", "g2"),
+            ],
+            2,
+        ),
+    ],
+    ids=["empty", "single", "all-distinct", "one-pair", "many-same-slot", "two-slots-duplicated"],
+)
+def test_given_slot_keys_when_counting_then_collapsed_is_total_minus_distinct(
+    slot_keys: list[tuple[str, str]], expected: int
+) -> None:
+    """
+    Scenario: The collapsed count is a pure function of the (store, group) keys.
+    Slice: 67F
+
+    Given a list of (store, group) keys,
+    When count_duplicates_collapsed is called,
+    Then it returns the number of keys beyond the first of each distinct key.
+    """
+    ### Given / When
+    result = count_duplicates_collapsed(slot_keys)
+
+    ### Then
+    assert result == expected

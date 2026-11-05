@@ -380,4 +380,6 @@ export interface CompareResponse {
   group_count: number;
   run_count: number;
   cross_store_group_count: number;
+  /** Rows removed by the one-run-per-(store, group) rule; absent from older servers. */
+  duplicates_collapsed?: number;
 }
