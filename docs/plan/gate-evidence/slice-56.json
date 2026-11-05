@@ -1,0 +1,108 @@
+{
+  "slice": 56,
+  "slice_name": "Meetup Demo Kit (Redis London meetup, 2026-11-05)",
+  "branch": "slice/56-meetup-demo-kit-closeout",
+  "gate_status": "ON_BRANCH",
+  "note": "Closeout branch, follow-up to merged PR #257 (merge commit 0893709). Automated gates and a real-browser smoke pass are green; this file is NOT PASSED. /verify-slice and the owner's merge are what promote it. Part J (golden master) deferred, Parts D and H cut, QR code dropped, all by owner decision.",
+  "head_commit": "a8eada4a2f4aff875a7ef4b7c4846deed356dcf3",
+  "prior_pr": {
+    "number": 257,
+    "merge_commit": "0893709",
+    "state": "merged"
+  },
+  "owner_decisions": {
+    "part_j_golden_master": "deferred - not expected for the meetup",
+    "part_d_recording_doc": "cut - no USB or recording copy",
+    "part_h_release_pr_templates_readme_rows": "cut - merge and tag are manual",
+    "qr_code": "dropped from the About box and the Walkthru",
+    "final_reexport": "owner chose to export the 98 finished Redis runs (sweep ended partial)",
+    "evals_banner_wording": "Proper evaluation is still to come",
+    "rename": "demo -> walkthru for files and folders (DECISIONS #298); audience-facing copy such as 'Open the demo' unchanged"
+  },
+  "quality_gates": {
+    "script": "./scripts/ci/quality-gates.sh",
+    "exit_code": 0,
+    "observed_at_commit": "a8eada4",
+    "backend": {
+      "ruff": "All checks passed",
+      "mypy": "Success: no issues found in 142 source files",
+      "pytest_passed": 921,
+      "pytest_skipped": 7,
+      "pytest_deselected": 1,
+      "coverage_pct": 75.08,
+      "coverage_floor_pct": 70
+    },
+    "frontend": {
+      "lint": "0 errors, max-warnings 0",
+      "typecheck": "0 errors",
+      "build": "built in 2.82s",
+      "test_files_passed": 41,
+      "tests_passed": 448,
+      "coverage_pct": {
+        "statements": 97.34,
+        "branches": 92.49,
+        "functions": 98.54,
+        "lines": 98.78
+      },
+      "coverage_floors_pct": {
+        "statements": 95,
+        "branches": 90,
+        "functions": 95,
+        "lines": 95
+      },
+      "npm_audit": "0 vulnerabilities"
+    },
+    "exporter_script_tests": "45 passed in tests/scripts"
+  },
+  "runtime_smoke": {
+    "registry": "docs/smoke-tests/SMOKE-REGISTRY.md (CAT-9, CAT-10)",
+    "method": "Playwright with real mouse clicks plus an elementFromPoint hit test, against a production build served by vite preview",
+    "viewports": ["1280x800", "390x844"],
+    "observed": [
+      "About opens with 9 sections, no image, Escape returns focus",
+      "Walkthru runs 5 steps by real-mouse Next/Finish; Autoplay is off by default and can be toggled",
+      "Walkthru screen: store filter, run selection drives the replay, replay steps through stages, improvement panel shows the query average",
+      "No horizontal scroll at 390px after the explore-layout fix (1c69964)",
+      "0 backend calls during the tour (calls seen earlier were the Experiments page refetching after the tour closed)",
+      "After the tour: overlay gone, no dialogs left open, real experiment list and detail open normally"
+    ],
+    "defects_found_and_fixed": [
+      "Next button off-screen on short viewports - callout size measured and clamped (8ba44d0)",
+      "390px sideways scroll from the best-parameters card and leaderboard - fixed (1c69964)"
+    ],
+    "backend_healthz": {
+      "ok": true,
+      "storage_backend": "sqlite",
+      "vector_store_backend": "redis",
+      "run_state_mode": "sqlite-local"
+    },
+    "cli_version": "0.12.0"
+  },
+  "data": {
+    "file": "docs/about/walkthru-results.json",
+    "bytes": 1163541,
+    "runs": 400,
+    "runs_by_store": {
+      "redis": 98,
+      "elasticsearch": 98,
+      "mongodb": 98,
+      "postgres": 98,
+      "supabase": 8
+    },
+    "cross_store_groups": 98,
+    "partial_experiments": [
+      {"experiment": "meetup-redis-pell", "exported": 98, "not_complete": 22, "cause": "Redis OOM at the memory cap; handed to the Slice 66 session"},
+      {"experiment": "example-elasticsearch-local", "exported": 98, "not_complete": 20}
+    ]
+  },
+  "not_run": [
+    "/verify-slice (owner-triggered; promotes ON_BRANCH to PASSED)",
+    "nw-gate-evidence-validator",
+    "named nw-* reviewers - replaced by independent oh-my-claudecode code-reviewer agent passes",
+    "formal mutation run - not attempted for this slice"
+  ],
+  "known_gaps": [
+    "Redis sweep is partial (22 runs not complete) because chunk keys have no TTL and volatile-lru cannot evict them; the fix plan lives in Slice 66 (DECISIONS #293)",
+    "Proper evaluation of the parameters is still to come; the About box says so"
+  ]
+}
