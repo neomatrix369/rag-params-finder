@@ -1,10 +1,10 @@
 /**
- * Tests for the Walkthru overlay (callout + spotlight + controls).
+ * Tests for the Walkthru overlay (callout + spotlight).
  *
  * Author: RAG Params Finder contributors
  * Created: 2026-11-05
- * Scope: SLICE-56 Part C2 - overlay rendering, control handlers, visible Autoplay toggle,
- *        centred-vs-spotlight placement, prefers-reduced-motion.
+ * Scope: SLICE-56 Part C2 - overlay rendering, exit button, centred-vs-spotlight placement,
+ *        prefers-reduced-motion. Nav controls removed — tour drives real app buttons.
  */
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -18,14 +18,6 @@ const base = {
   body: 'Same dataset, different store.',
   index: 0,
   total: 5,
-  paused: false,
-  autoplay: false,
-  isFirst: true,
-  isLast: false,
-  onNext: () => undefined,
-  onBack: () => undefined,
-  onTogglePause: () => undefined,
-  onSetAutoplay: () => undefined,
   onExit: () => undefined,
 };
 
@@ -158,96 +150,37 @@ describe('prefersReducedMotion', () => {
 });
 
 describe('WalkthruOverlay', () => {
-  it('Given a mid-walkthru step, when rendered, then the dialog, step counter and controls are present', () => {
+  it('Given a mid-walkthru step, when rendered, then the dialog, step counter and exit button are present', () => {
     /**
-     * Scenario: A presenter steps through the Walkthru with Back / Pause / Next.
-     * Slice: 56 Part C2 - overlay controls
+     * Scenario: The overlay shows step info and an exit button; nav controls are gone.
+     * Slice: 56 Part C2 - overlay callout
      */
-    // -- Given --
-    const onNext = vi.fn();
-    const onBack = vi.fn();
-    const onTogglePause = vi.fn();
-    render(<WalkthruOverlay {...base} index={1} isFirst={false} />);
-
-    // -- When --
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    // -- Given / When --
+    render(<WalkthruOverlay {...base} index={1} />);
 
     // -- Then --
     expect(screen.getByRole('dialog', { name: base.title })).toBeInTheDocument();
     expect(screen.getByText('Step 2 of 5')).toBeInTheDocument();
-    render(<WalkthruOverlay {...base} index={1} isFirst={false} onNext={onNext} onBack={onBack} onTogglePause={onTogglePause} />);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Next' })[1]);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Back' })[1]);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Pause' })[1]);
-    expect(onNext).toHaveBeenCalled();
-    expect(onBack).toHaveBeenCalled();
-    expect(onTogglePause).toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Exit walkthru' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Next' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'Autoplay' })).toBeNull();
   });
 
-  it('Given Autoplay is off, when the toggle is flipped, then onSetAutoplay(true) fires', () => {
+  it('Given the exit button, when clicked, then onExit fires', () => {
     /**
-     * Scenario: The Autoplay toggle is visible and starts unchecked.
-     * Slice: 56 Part C2 - Autoplay OFF by default + visible toggle
-     */
-    // -- Given --
-    const onSetAutoplay = vi.fn();
-    render(<WalkthruOverlay {...base} onSetAutoplay={onSetAutoplay} />);
-    const toggle = screen.getByRole('checkbox', { name: 'Autoplay' });
-
-    // -- Then: visible and unchecked --
-    expect(toggle).toBeInTheDocument();
-    expect(toggle).not.toBeChecked();
-
-    // -- When --
-    fireEvent.click(toggle);
-
-    // -- Then --
-    expect(onSetAutoplay).toHaveBeenCalledWith(true);
-  });
-
-  it('Given the first step, when rendered, then Back is disabled and Pause is shown', () => {
-    /**
-     * Scenario: Nothing to go back to on step 1.
-     * Slice: 56 Part C2 - first-step controls
-     */
-    // -- Given / When --
-    render(<WalkthruOverlay {...base} />);
-
-    // -- Then --
-    expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
-  });
-
-  it('Given paused, when rendered, then the toggle reads Resume', () => {
-    /**
-     * Scenario: The pause control reflects the paused state.
-     * Slice: 56 Part C2 - pause label
-     */
-    // -- Given / When --
-    render(<WalkthruOverlay {...base} paused />);
-
-    // -- Then --
-    expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument();
-  });
-
-  it('Given the last step, when rendered, then Finish exits and Next/Pause are gone', () => {
-    /**
-     * Scenario: The final step offers Finish instead of Next.
-     * Slice: 56 Part C2 - last-step controls
+     * Scenario: The × button is the only manual control in the callout.
+     * Slice: 56 Part C2 - exit control
      */
     // -- Given --
     const onExit = vi.fn();
-    render(<WalkthruOverlay {...base} index={4} isFirst={false} isLast onExit={onExit} />);
+    render(<WalkthruOverlay {...base} onExit={onExit} />);
 
     // -- When --
-    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Exit walkthru' }));
 
     // -- Then --
-    expect(onExit).toHaveBeenCalled();
-    expect(screen.queryByRole('button', { name: 'Next' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+    expect(onExit).toHaveBeenCalledTimes(1);
   });
 
   it('Given no highlight, when rendered, then a dimmed backdrop is shown instead of a spotlight', () => {
@@ -340,18 +273,16 @@ describe('WalkthruOverlay', () => {
     }
   });
 
-  it('Given the overlay, when rendered, then Next, Back and Autoplay all live inside the card element', () => {
+  it('Given the overlay, when rendered, then the exit button lives inside the card element', () => {
     /**
-     * Scenario: The controls must be reachable within the dialog card, not clipped away.
-     * Slice: 56 Part C2 - controls inside the card
+     * Scenario: The exit control must be reachable within the dialog card, not clipped away.
+     * Slice: 56 Part C2 - exit button inside the card
      */
     // -- Given / When --
-    render(<WalkthruOverlay {...base} index={1} isFirst={false} />);
+    render(<WalkthruOverlay {...base} index={1} />);
     const dialog = screen.getByRole('dialog', { name: base.title });
 
     // -- Then --
-    expect(within(dialog).getByRole('button', { name: 'Next' })).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: 'Back' })).toBeInTheDocument();
-    expect(within(dialog).getByRole('checkbox', { name: 'Autoplay' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Exit walkthru' })).toBeInTheDocument();
   });
 });

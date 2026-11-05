@@ -251,13 +251,13 @@ describe('App', () => {
     expect(screen.getByText('RAG settings, store by store')).toBeInTheDocument();
     const overlay = screen.getByTestId('walkthru-root');
     expect(within(overlay).getByText('Step 1 of 5')).toBeInTheDocument();
-    expect(within(overlay).getByRole('checkbox', { name: 'Autoplay' })).not.toBeChecked();
+    expect(within(overlay).getByRole('button', { name: 'Exit walkthru' })).toBeInTheDocument();
   });
 
-  it('Given the Walkthru, when Next is pressed to the end, then it reaches step 5 and Finish exits to the list', () => {
+  it('Given the Walkthru, when ArrowRight is pressed to the end, then it reaches step 5 and Esc exits to the list', () => {
     /**
-     * Scenario: Next walks from step 1 to step 5; Finish restores the starting screen.
-     * Slice: 56 Part C2 - smoke: Next reaches the last step + Esc/Finish restores screen.
+     * Scenario: ArrowRight walks from step 1 to step 5; Esc restores the starting screen.
+     * Slice: 56 Part C2 - smoke: keyboard reaches the last step + Esc restores screen.
      */
     // -- Given --
     render(<App />);
@@ -266,12 +266,12 @@ describe('App', () => {
 
     // -- When --
     for (let i = 0; i < 4; i += 1) {
-      fireEvent.click(within(overlay()).getByRole('button', { name: 'Next' }));
+      fireEvent.keyDown(window, { key: 'ArrowRight' });
     }
 
     // -- Then --
     expect(within(overlay()).getByText('Step 5 of 5')).toBeInTheDocument();
-    fireEvent.click(within(overlay()).getByRole('button', { name: 'Finish' }));
+    fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByTestId('walkthru-root')).toBeNull();
     expect(screen.getByText('Experiments Screen Stub')).toBeInTheDocument();
   });
@@ -307,10 +307,9 @@ describe('App', () => {
     // Improvement content is collapsed initially (step 1).
     expect(screen.queryByText('What the best settings changed')).toBeNull();
 
-    // -- When: advance to step 3 (improvement) --
-    const overlay = () => screen.getByTestId('walkthru-root');
-    fireEvent.click(within(overlay()).getByRole('button', { name: 'Next' }));
-    fireEvent.click(within(overlay()).getByRole('button', { name: 'Next' }));
+    // -- When: advance to step 3 (improvement) via ArrowRight --
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
 
     // -- Then: the card is forced open --
     expect(screen.getByText('What the best settings changed')).toBeInTheDocument();

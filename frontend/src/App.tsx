@@ -121,14 +121,6 @@ export default function App() {
         body={walkthru.step.body}
         index={walkthru.index}
         total={walkthru.total}
-        paused={walkthru.paused}
-        autoplay={walkthru.autoplay}
-        isFirst={walkthru.isFirst}
-        isLast={walkthru.isLast}
-        onNext={walkthru.next}
-        onBack={walkthru.back}
-        onTogglePause={walkthru.togglePause}
-        onSetAutoplay={walkthru.setAutoplay}
         onExit={walkthru.exit}
       />
     ) : null;
@@ -139,7 +131,7 @@ export default function App() {
       <WalkthruScreen
         results={walkthruResults}
         activeHighlight={walkthru.active ? walkthru.step?.highlight ?? null : null}
-        autoplay={walkthru.active && walkthru.autoplay}
+        autoplay={walkthru.active}
         suggestedStore={walkthru.active ? walkthru.step?.choose?.suggest : undefined}
         onBack={leaveDemo}
       />
