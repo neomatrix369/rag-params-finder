@@ -1,5 +1,7 @@
 # SLICE 55 — SQLite Central Run-State Store
 
+> **Plan update (2026-11-05, docs only):** exploration for [SLICE-56](../02-dashboard/SLICE-56-MEETUP-DEMO-KIT.md) found (a) the Docker server stores run state in the named volume `sqlite_run_state` (→ `/app/data`), **not** the host `./data/run_state.db` — the demo exporter therefore takes repeated `--db` and reads `docker cp` copies read-only; (b) `run_status` keeps only the current phase (`update_run_phase` overwrites in place), so no phase-transition history exists (DECISIONS #274, #278).
+
 **MoSCoW:** MUST
 **Target time:** ~8–10 h
 **Status:** 📋 PLANNED

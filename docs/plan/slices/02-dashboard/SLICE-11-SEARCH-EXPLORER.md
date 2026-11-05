@@ -1,5 +1,7 @@
 # Slice 11 — Search Explorer Enhancements (Visualization + Query Filtering)
 
+> **Plan update (2026-11-05, docs only):** [SLICE-56](SLICE-56-MEETUP-DEMO-KIT.md) Part C3 reuses the ranked-config row markup in `HyperparametersTab`; if it is extracted, behaviour must stay identical and covered by tests. Replay (Part B) feeds `BestParamsCard` / `DetailedResultsTab` via props only.
+
 **Status**: 📋 PLANNED
 **Branch**: `slice/11-search-explorer`
 **MoSCoW**: Could

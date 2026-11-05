@@ -1,5 +1,7 @@
 # SLICE 54 — Embedding-Cache Backend Port + Redis Cache Adapter (Branch B)
 
+> **Plan update (2026-11-05, docs only):** [SLICE-61](../05-storage/SLICE-61-PHASE3-VECTOR-STORE-AS-SWEEP-DIMENSION.md) (Phase 3) plans to share embeddings across vector stores through this cache, with a per-store fallback and a visible warning.
+
 **MoSCoW:** COULD *(owner-confirmed #233. Only if Slice 52 finds a concrete need that SQLite can't meet, e.g. a cache shared across hosts/containers — #225)*
 **Target time:** ~3–4 h
 **Status:** ✅ PASSED
