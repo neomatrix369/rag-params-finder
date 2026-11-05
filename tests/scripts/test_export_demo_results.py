@@ -45,6 +45,7 @@ class RunSpec:
     phase: str = "complete"
     chunking_method: str = "fixed"
     provider_recorded: bool = True
+    drop_fields: tuple[str, ...] = ()
 
 
 @dataclass
@@ -120,6 +121,8 @@ def make_db(path: Path, experiments: Sequence[ExperimentSpec]) -> Path:
                 "retrieval_model": None,
                 "elapsed_ms": 1000 + run.chunk_size,
             }
+            for dropped in run.drop_fields:
+                run_doc.pop(dropped)
             if run.provider_recorded:
                 run_doc["database_provider"] = exp.store
             conn.execute(
@@ -515,6 +518,164 @@ def test_given_fully_tied_configs_in_reverse_order_when_tiebroken_then_run_id_as
 
     ### Then
     assert [cand.run_id for _, cand in ordered] == ["a", "b", "c", "0"]
+
+
+def test_given_missing_db_file_when_exported_then_it_fails_cleanly_naming_the_file(
+    tmp_path: Path, questions: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """
+    Scenario: A mistyped --db path is reported, not raised.
+    Slice: 56 (Part A)
+
+    Given a --db path that does not exist,
+    When the exporter runs,
+    Then it exits 1 with a message naming the file and writes no output.
+    """
+    ### Given
+    missing = tmp_path / "nope_run_state.db"
+
+    ### When
+    code, out = export(tmp_path, [missing], questions)
+
+    ### Then
+    assert code == 1
+    assert "nope_run_state.db" in capsys.readouterr().err
+    assert not out.exists()
+
+
+def test_given_missing_questions_file_when_exported_then_it_fails_cleanly_naming_the_file(
+    tmp_path: Path, cross_store_db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """
+    Scenario: A mistyped --questions path is reported, not raised.
+    Slice: 56 (Part A)
+
+    Given a --questions path that does not exist,
+    When the exporter runs,
+    Then it exits 1 with a message naming the file and writes no output.
+    """
+    ### Given
+    missing = tmp_path / "no_such_questions.json"
+
+    ### When
+    code, out = export(tmp_path, [cross_store_db], missing)
+
+    ### Then
+    assert code == 1
+    assert "no_such_questions.json" in capsys.readouterr().err
+    assert not out.exists()
+
+
+@pytest.mark.parametrize(
+    ("content", "problem"),
+    [
+        ("{not json", "not valid JSON"),
+        ("[]", "top level must be an object"),
+        ('{"personas": [{"questions": [{"focus": "General"}]}]}', "missing a text"),
+        ('{"personas": "oops"}', "personas must be a list"),
+    ],
+    ids=["invalid-json", "not-an-object", "question-without-text", "personas-not-a-list"],
+)
+def test_given_malformed_questions_file_when_exported_then_it_fails_with_one_clear_line(
+    tmp_path: Path,
+    cross_store_db: Path,
+    capsys: pytest.CaptureFixture[str],
+    content: str,
+    problem: str,
+) -> None:
+    """
+    Scenario: A malformed questions file ends in a clean message, not a traceback.
+    Slice: 56 (Part A)
+
+    Given a questions file that is invalid JSON, has the wrong shape or lacks a question text,
+    When the exporter runs,
+    Then it exits 1 with a single-line message naming the file and the problem, and writes
+    nothing.
+    """
+    ### Given
+    bad = tmp_path / "bad_questions.json"
+    bad.write_text(content)
+
+    ### When
+    code, out = export(tmp_path, [cross_store_db], bad)
+
+    ### Then
+    assert code == 1
+    err = capsys.readouterr().err.strip()
+    assert "\n" not in err
+    assert "bad_questions.json" in err and problem in err
+    assert not out.exists()
+
+
+def test_given_run_with_incomplete_config_when_exported_then_it_is_excluded_and_counted(
+    tmp_path: Path, questions: Path
+) -> None:
+    """
+    Scenario: One broken run does not sink the export.
+    Slice: 56 (Part A)
+
+    Given three good Redis runs and a fourth whose config lacks chunk_size,
+    When exported,
+    Then the three good runs are exported and the broken run is excluded with the incomplete
+    config reason and counted in the manifest.
+    """
+    ### Given
+    broken = RunSpec("broken", 2048, {Q1: [0.5]}, drop_fields=("chunk_size",))
+    db = make_db(
+        tmp_path / "state.db",
+        [ExperimentSpec("e-redis", "redis", [*three_runs("r"), broken])],
+    )
+
+    ### When
+    code, out = export(tmp_path, [db], questions)
+
+    ### Then
+    assert code == 0
+    payload = load(out)
+    assert set(runs_by_id(payload)) == {"r-a", "r-b", "r-c"}
+    entry = next(
+        e for e in payload["manifest"]["exclusions"] if e["reason"] == "run config is incomplete"
+    )
+    assert (entry["scope"], entry["count"], entry["ids"]) == ("run", 1, ["broken"])
+
+
+def test_given_wal_db_in_read_only_folder_when_exported_then_it_explains_how_to_proceed(
+    tmp_path: Path,
+    questions: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """
+    Scenario: A WAL-mode database in a read-only folder gives guidance, not a traceback.
+    Slice: 56 (Part A)
+
+    Given a WAL-mode run-state file whose folder was made read-only,
+    When the exporter runs,
+    Then it exits 1 with a one-line message naming the file and telling the user to copy the
+    .db with its -wal and -shm files to a writable folder, and writes nothing.
+    """
+    ### Given
+    locked = tmp_path / "locked"
+    locked.mkdir()
+    db = make_db(locked / "wal_state.db", [ExperimentSpec("e-r", "redis", three_runs("r"))])
+    conn = sqlite3.connect(db)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.close()
+    for sidecar in locked.glob("wal_state.db-*"):
+        sidecar.unlink()
+    locked.chmod(0o555)
+
+    ### When
+    try:
+        code, out = export(tmp_path, [db], questions)
+    finally:
+        locked.chmod(0o755)
+
+    ### Then
+    assert code == 1
+    err = capsys.readouterr().err.strip()
+    assert "\n" not in err
+    assert "wal_state.db" in err and "-wal and -shm" in err and "writable folder" in err
+    assert not out.exists()
 
 
 def test_given_no_redis_run_when_exported_then_it_fails_clearly(

@@ -131,12 +131,25 @@ def open_readonly(path: Path) -> sqlite3.Connection:
     return conn
 
 
+def _unreadable_db_message(path: Path, exc: sqlite3.DatabaseError) -> str:
+    if "readonly" in str(exc):
+        return (
+            f"ERROR: {path.name} is a WAL-mode database that cannot be opened read-only in "
+            "place; copy the .db together with its -wal and -shm files to a writable folder "
+            "(or checkpoint first) and pass the copy."
+        )
+    return f"ERROR: {path.name} cannot be read as a run-state SQLite database: {exc}"
+
+
 def read_source(raw_path: str) -> Source:
     path = Path(raw_path)
     if not path.is_file():
         raise ExportError(f"ERROR: --db file not found: {raw_path}", EXIT_NO_PRIMARY)
-    conn = open_readonly(path)
-    rows = conn.execute("SELECT * FROM experiments ORDER BY experiment_id").fetchall()
+    try:
+        conn = open_readonly(path)
+        rows = conn.execute("SELECT * FROM experiments ORDER BY experiment_id").fetchall()
+    except sqlite3.DatabaseError as exc:
+        raise ExportError(_unreadable_db_message(path, exc), EXIT_NO_PRIMARY) from exc
     experiments = [experiment_row_to_doc(dict(r)) for r in rows]
     return Source(raw_path, sha256_file(path), conn, experiments)
 
@@ -167,12 +180,34 @@ def load_questions(path: Path) -> tuple[dict[str, str], str]:
     """Return ({question text: focus}, sha256) for the questions file."""
     if not path.is_file():
         raise ExportError(f"ERROR: --questions file not found: {path}", EXIT_NO_PRIMARY)
-    data = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (ValueError, OSError) as exc:
+        raise ExportError(f"ERROR: {path.name} is not valid JSON ({exc})", EXIT_NO_PRIMARY) from exc
+    return question_focus(data, path.name), sha256_file(path)
+
+
+def question_focus(data: Any, name: str) -> dict[str, str]:
+    """{question text: focus} from the questions JSON; shape errors become ExportError."""
+
+    def bad(problem: str) -> ExportError:
+        return ExportError(f"ERROR: {name}: {problem}", EXIT_NO_PRIMARY)
+
+    if not isinstance(data, dict):
+        raise bad("top level must be an object with a personas list")
+    personas = data.get("personas", [])
+    if not isinstance(personas, list):
+        raise bad("personas must be a list")
     focus: dict[str, str] = {}
-    for persona in data.get("personas", []):
-        for question in persona.get("questions", []):
+    for persona in personas:
+        questions = persona.get("questions", []) if isinstance(persona, dict) else None
+        if not isinstance(questions, list):
+            raise bad("each persona must be an object with a questions list")
+        for question in questions:
+            if not isinstance(question, dict) or not isinstance(question.get("text"), str):
+                raise bad("a question is missing a text string")
             focus.setdefault(question["text"], question.get("focus", ""))
-    return focus, sha256_file(path)
+    return focus
 
 
 # ── Candidates and exclusions ─────────────────────────────────────────────────
