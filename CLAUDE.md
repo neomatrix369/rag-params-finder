@@ -160,7 +160,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/rerank/local_reranker.py` | CrossEncoder reranking (lazy-load) |
 | `server/core/retrieval/retriever_mongo.py` | Atlas Vector Search (dense/sparse/hybrid) — Mongo-only |
 | `server/core/retrieval/retriever_postgres.py` | pgvector dense + tsvector sparse + RRF hybrid; Atlas-scale dense scores; mandatory `embedding_model` filter |
-| `server/models/config.py` | Pydantic experiment config + provider validators |
+| `server/models/config.py` | Pydantic experiment config + provider validators; pure `sweep_plan()` (sweep counts, Slice 67B), `grid_equivalent_count` and `resolve_bayesian_n_trials` |
 | `server/models/enums.py` | ChunkingMethod, RetrievalMethod, Phase |
 | `server/api/experiments.py` | Experiments CRUD, results/explore, db-stats, pause, resume, cancel, delete |
 | `server/api/experiments_lifecycle.py` | Bayesian summary + stale RUNNING reconciliation helpers (Slice 45) |
