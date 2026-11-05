@@ -120,6 +120,7 @@
 | 67B — Explainable numbers: backend `sweep_plan()` | 🔀 ON BRANCH | ~6–8 h | **Must** — one pure function beside `expand_sweep`, computed on read, `grid_equivalent_count` untouched (Bayesian sampler control variable) — [`SLICE-67`](02-dashboard/SLICE-67-EXPLAINABLE-NUMBERS.md) · DECISIONS #305 · branch `slice/67b-sweep-plan`, gates green, four reviews APPROVED · DECISIONS #310 |
 | 67C — Explainable numbers: `InfoTip` + `explain` prop | 🔀 ON BRANCH | ~4–5 h | **Should** — dependency-free, keyboard and touch, one tooltip primitive — [`SLICE-67`](02-dashboard/SLICE-67-EXPLAINABLE-NUMBERS.md) · branch `slice/67c-infotip`, gates green, reviews done · DECISIONS #311 |
 | 67D — Explainable numbers: apply to every card | 🔨 IN PROGRESS | ~10–14 h | **Should** — fix Bayesian not-started, progress/ETA and Bayesian sums before the tips describe them; glossary — [`SLICE-67`](02-dashboard/SLICE-67-EXPLAINABLE-NUMBERS.md) · first bundle (D-1, D-2, D-3, Detail wiring, finding F) on branch `slice/67d-explainable-cards`, gates green; tips on every row, glossary, Explorer planned total still open · DECISIONS #312 |
+| 67E — Query Results breakdown by golden-dataset record | 🔨 IN PROGRESS | ~4–6 h | **Should** — backend (per-experiment and group facts, lazy golden count) on branch `slice/67e-results-breakdown-backend`, gates green, three reviews APPROVED; frontend (`resultsBreakdown` helpers and the tile) in progress — [`SLICE-67`](02-dashboard/SLICE-67-EXPLAINABLE-NUMBERS.md) · DECISIONS #313 |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
 

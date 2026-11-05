@@ -43,6 +43,10 @@ _DB_STATS_KEYS = frozenset(
         "avg_chunks_per_run",
         "total_results",
         "unique_queries",
+        "result_runs",
+        "golden_queries",
+        "golden_queries_source",
+        "partial_runs",
         "run_breakdown",
     }
 )
