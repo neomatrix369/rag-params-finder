@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Slice 67D (first bundle) — dashboard numbers that add up** — the Detail screen, list and Compare/stats panels now agree and say how a number was reached.
+  - Bayesian experiments use one denominator everywhere on the Detail screen (Total tile, progress ring, subtitle, totals line, planned trials, overview sentence); the totals line reads `Total 20 = 13 attempted + 4 discarded + 3 not started`.
+  - The list screen no longer subtracts the Bayesian "not started" count twice; the progress ring and ETA count failed and interrupted runs as finished.
+  - Compare shows "Only run in this group" instead of a misleading 100.0 (also under a store filter), states that the score is the best single chunk, and the stats panels mark estimates ("est.") with their formula and scope.
+  - The determinism guard now covers the progress, count and label helpers.
+  (**IMPLEMENTED** on branch `slice/67d-explainable-cards`; tips on every card, the glossary and the Explorer planned total are still to come.)
 - **Slice 67E (backend) — Query Results breakdown facts** — the db-stats endpoints now report, per experiment, how many runs wrote results, the golden-dataset record count, and how many runs fell short of it (`result_runs`, `golden_queries`, `golden_queries_source`, `partial_runs`), plus group totals (`total_result_runs`, `golden_queries_min`, `golden_queries_max`).
   - The golden count is the number of records in the golden dataset, saved on the experiment when the first run loads it; older experiments are inferred from stored results.
   - Redis and Elasticsearch group totals report nothing new; a failing optional query reports unknown, never zero.

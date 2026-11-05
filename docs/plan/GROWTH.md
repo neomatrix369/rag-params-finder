@@ -100,6 +100,11 @@ Full list: [`invariants.md`](invariants.md).
 - **L1/L2 impact**: frontend leaf components only. No data or server change; consumers (`StatTile`, `StatCard`, `CollapsibleCard`) take optional props with unchanged defaults, except that `StatTile.hint` now shows on demand.
 - **Data-Flow**: none new. Explanation strings are produced by pure functions in the calling screens (67D) and passed in as text.
 
+### 2026-11-05 — Slice 67D (first bundle): one denominator, pure label helpers
+- **Delta**: the Detail, list, Compare and stats screens take their counts and explanation sentences from named pure helpers (`detailDenominator`, `bayesianNotStartedCount`, `bayesianTotalsLine`, `progressSentence`, `scoreLabels`, `estimateLabels`) instead of per-screen arithmetic; the determinism guard grew a positive control and a per-module clock allowance.
+- **L1/L2 impact**: frontend plus one Python contract test; no server behaviour change. `sweep_plan` (67B) and `InfoTip` (67C) are not wired in here yet.
+- **Data-Flow**: API response (`bayesian_summary`, `run_count`, runs) -> pure helpers -> screens. The estimate formula constants are checked against `stats_common.py` by a test so the on-screen explanation cannot drift from the server.
+
 ### 2026-11-05 — Slice 67E (backend): golden-record facts in the stats assembly
 - **Delta**: the backend-agnostic stats assembly (`stats_common.py`) now derives result-run, golden-query and partial-run facts from per-run result counts that each adapter already builds; the orchestrator persists the golden dataset's record count once on the experiment.
 - **L1/L2 impact**: additive fields on the db-stats responses and one best-effort write to `sweep_summary` after the queries load. No new store method or index. Redis and Elasticsearch report nothing new; the run-state overlay carries the facts for every backend on the detail view.

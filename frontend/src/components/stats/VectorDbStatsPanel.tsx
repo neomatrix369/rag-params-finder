@@ -2,6 +2,7 @@ import CollapsibleCard from '../chrome/CollapsibleCard';
 import StatRow from './StatRow';
 import StatTile from './StatTile';
 import type { VectorDbStatsGroup } from '../../types';
+import { STATS_SCOPE, estimateFormula } from './estimateLabels';
 import {
   clusterHostLabel,
   clusterSectionTitle,
@@ -127,11 +128,13 @@ export default function VectorDbStatsPanel({
                 }
               />
               <StatTile
-                label="Chunks (Est.)"
+                label="Chunks (est. MB)"
                 value={`${group.totals.estimated_storage_mb} MB`}
                 hint={`${group.totals.estimated_embedding_mb} MB vectors · ${group.totals.estimated_metadata_mb} MB meta`}
               />
             </div>
+            <p data-testid="stats-scope" className="mb-1 text-[11px] text-slate-500">{STATS_SCOPE}</p>
+            <p data-testid="estimate-formula" className="mb-4 text-[11px] text-slate-500">est. MB = {estimateFormula()}</p>
 
             {storageUsagePercent(group) != null && (
               <div className="mb-4 rounded-lg border border-indigo-200 bg-white p-4">

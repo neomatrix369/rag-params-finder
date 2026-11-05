@@ -1,5 +1,6 @@
 import type { Experiment, ExperimentDbStatsSummary, VectorDbStatsGroup } from '../../../types';
 import { completionReasonLabel } from '../../../utils/completionReason';
+import { bayesianNotStartedCount } from '../../../utils/experimentStatus';
 
 export function statusBadgeClass(status: Experiment['status']): string {
   if (status === 'complete') return 'border-emerald-200 bg-emerald-50 text-emerald-800';
@@ -41,7 +42,6 @@ export function experimentOutcomeLabel(experiment: Experiment): string {
   const plannedTrials = bayesianSummary?.planned_trials;
   const attemptedTrials = bayesianSummary?.attempted_trials;
   const discardedTrials = bayesianSummary?.discarded_trials;
-  const notStartedTrials = bayesianSummary?.not_started;
   const reasonSuffix = experiment.completion_reason
     ? ` · ${completionReasonLabel(experiment.completion_reason)}`
     : '';
@@ -51,10 +51,7 @@ export function experimentOutcomeLabel(experiment: Experiment): string {
   if (experiment.status === 'paused') return `${configuredRuns} · waiting to resume`;
   if (experiment.status === 'complete') {
     if (hasBayesianIncomplete) {
-      const notStarted = Math.max(
-        0,
-        (notStartedTrials ?? plannedTrials ?? 0) - (attemptedTrials ?? 0) - (discardedTrials ?? 0),
-      );
+      const notStarted = bayesianNotStartedCount(plannedTrials, attemptedTrials, discardedTrials ?? 0);
       const notStartedSuffix = notStarted > 0 ? ` · ${notStarted} not started` : '';
       return `${configuredRuns} · Bayesian: ${attemptedTrials} attempted · ${discardedTrials ?? 0} discarded`
         + notStartedSuffix
@@ -71,7 +68,7 @@ export function experimentOutcomeLabel(experiment: Experiment): string {
     if (attempted == null) {
       return `${configuredRuns} · Bayesian sampling incomplete${reasonSuffix}`;
     }
-    const notStarted = Math.max(0, (notStartedTrials ?? plannedTrials ?? 0) - attempted - discarded);
+    const notStarted = bayesianNotStartedCount(plannedTrials ?? 0, attempted, discarded);
     const notStartedSuffix = notStarted > 0 ? ` · ${notStarted} not started` : '';
     return `${configuredRuns} · Bayesian: ${attempted} attempted · ${discarded} discarded${notStartedSuffix}${reasonSuffix}`;
   }

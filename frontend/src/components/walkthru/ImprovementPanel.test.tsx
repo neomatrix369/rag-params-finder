@@ -157,4 +157,20 @@ describe('ImprovementPanel', () => {
     // -- Then --
     expect(screen.getByText('No chunks were exported for this run.')).toBeInTheDocument();
   });
+
+  it('Given the story, when rendered, then the 0-100 baseline, the points-not-percent spread and the primary-store scope are stated', () => {
+    /**
+     * Scenario: Readers can tell what 100 and 0 mean and which runs are included.
+     * Slice: 67D - improvement baselines
+     */
+    // -- Given / When --
+    render(<ImprovementPanel story={story()} />);
+
+    // -- Then --
+    const note = screen.getByTestId('story-baseline');
+    expect(note).toHaveTextContent(/0.100 scale/);
+    expect(note).toHaveTextContent(/lowest-scoring run.*= 0.*highest.*= 100/i);
+    expect(note).toHaveTextContent(/points, not a percentage/i);
+    expect(note).toHaveTextContent(/primary store only/i);
+  });
 });
