@@ -240,10 +240,10 @@ def test_given_inputs_when_exported_then_manifest_records_inputs_ranking_and_rul
     manifest = payload["manifest"]
     assert payload["schema_version"] == manifest["schema_version"] == 1
     assert manifest["inputs"]["databases"] == [
-        {"path": str(db), "sha256": hashlib.sha256(db.read_bytes()).hexdigest()}
+        {"path": db.name, "sha256": hashlib.sha256(db.read_bytes()).hexdigest()}
     ]
     assert manifest["inputs"]["questions"] == {
-        "path": str(questions),
+        "path": questions.name,
         "sha256": hashlib.sha256(questions.read_bytes()).hexdigest(),
     }
     assert manifest["ranking"]["fields"] == [
@@ -663,7 +663,7 @@ def test_given_older_and_incomplete_experiments_when_exported_then_latest_comple
                 "e-part",
                 "redis",
                 three_runs("pt"),
-                status="partial",
+                status="running",
                 created_at="2026-10-02T10:00:00+00:00",
             ),
         ],
@@ -680,6 +680,132 @@ def test_given_older_and_incomplete_experiments_when_exported_then_latest_comple
     assert all(
         e["reason"] and e["count"] == len(e["ids"]) for e in payload["manifest"]["exclusions"]
     )
+
+
+def test_given_partial_experiment_when_exported_then_finished_runs_are_kept_and_disclosed(
+    tmp_path: Path, questions: Path
+) -> None:
+    """
+    Scenario: A sweep that ended partial still contributes its finished runs, honestly labelled.
+    Slice: 56 (Part A)
+
+    Given a partial Redis experiment with two complete runs and one failed run, plus running,
+    failed and cancelled experiments,
+    When exported,
+    Then only the two complete runs are exported, the manifest lists the partial experiment
+    with its exported and not-complete run counts, and the other statuses are excluded with
+    a reason.
+    """
+    ### Given
+    runs = [
+        RunSpec("p-a", 256, {Q1: [0.9, 0.8], Q2: [0.7, 0.6]}),
+        RunSpec("p-b", 512, {Q1: [0.6, 0.5], Q2: [0.6, 0.5]}),
+        RunSpec("p-bad", 1024, {Q1: [0.9]}, phase="failed"),
+    ]
+    others = [
+        ExperimentSpec(f"e-{status}", "redis", three_runs(status), status=status)
+        for status in ("running", "failed", "cancelled")
+    ]
+    db = make_db(
+        tmp_path / "state.db",
+        [ExperimentSpec("e-partial", "redis", runs, status="partial"), *others],
+    )
+
+    ### When
+    code, out = export(tmp_path, [db], questions)
+
+    ### Then
+    assert code == 0
+    payload = load(out)
+    assert set(runs_by_id(payload)) == {"p-a", "p-b"}
+    assert payload["manifest"]["partial_experiments"] == [
+        {
+            "experiment_id": "e-partial",
+            "experiment_name": "e-partial",
+            "runs_total": 3,
+            "runs_exported": 2,
+            "runs_not_complete": 1,
+        }
+    ]
+    status_exclusion = next(
+        e for e in payload["manifest"]["exclusions"] if e["reason"].startswith("experiment status")
+    )
+    assert status_exclusion["ids"] == ["e-cancelled", "e-failed", "e-running"]
+    assert "partial" in payload["manifest"]["selection_rule"]
+
+
+def test_given_data_path_filter_when_exported_then_other_datasets_are_excluded_and_recorded(
+    tmp_path: Path, questions: Path
+) -> None:
+    """
+    Scenario: The dataset filter keeps old smoke runs out of the Redis story.
+    Slice: 56 (Part A)
+
+    Given Redis runs on the Pell PDF and an older Redis smoke experiment on sample.pdf,
+    When exported with and without --data-path-contains Federal_Pell,
+    Then the filter keeps only the Pell runs, counts the excluded experiment with its reason and
+    records the filter, while the unfiltered export keeps both datasets.
+    """
+    ### Given
+    db = make_db(
+        tmp_path / "state.db",
+        [
+            ExperimentSpec("e-pell", "redis", three_runs("pell")),
+            ExperimentSpec(
+                "e-smoke", "redis", [RunSpec("smoke-a", 256, {Q1: [0.5]})], data_paths=[OTHER_PDF]
+            ),
+        ],
+    )
+
+    ### When
+    _, filtered_out = export(
+        tmp_path, [db], questions, "--data-path-contains", "Federal_Pell", name="filtered.json"
+    )
+    _, plain_out = export(tmp_path, [db], questions, name="plain.json")
+
+    ### Then
+    filtered = load(filtered_out)
+    assert set(runs_by_id(filtered)) == {"pell-a", "pell-b", "pell-c"}
+    assert filtered["manifest"]["inputs"]["filters"] == {"data_path_contains": ["Federal_Pell"]}
+    dataset = [
+        e for e in filtered["manifest"]["exclusions"] if "--data-path-contains" in e["reason"]
+    ]
+    assert [(e["scope"], e["count"], e["ids"]) for e in dataset] == [("experiment", 1, ["e-smoke"])]
+    plain = load(plain_out)
+    assert "smoke-a" in runs_by_id(plain)
+    assert plain["manifest"]["inputs"]["filters"] == {"data_path_contains": []}
+
+
+def test_given_inputs_in_different_folders_when_exported_then_manifest_holds_names_not_paths(
+    tmp_path: Path, questions: Path
+) -> None:
+    """
+    Scenario: No local path leaks into the committed file; same-named inputs stay distinct.
+    Slice: 56 (Part A)
+
+    Given two databases both named run_state.db in different folders,
+    When exported,
+    Then the manifest holds only file names, the duplicates carry their input index, and the
+    output text contains no folder path.
+    """
+    ### Given
+    (tmp_path / "host").mkdir()
+    (tmp_path / "volume").mkdir()
+    host = make_db(
+        tmp_path / "host" / "run_state.db", [ExperimentSpec("e-m", "mongodb", three_runs("m"))]
+    )
+    volume = make_db(
+        tmp_path / "volume" / "run_state.db", [ExperimentSpec("e-r", "redis", three_runs("r"))]
+    )
+
+    ### When
+    _, out = export(tmp_path, [host, volume], questions)
+
+    ### Then
+    payload = load(out)
+    listed = payload["manifest"]["inputs"]["databases"]
+    assert [d["path"] for d in listed] == ["1-run_state.db", "2-run_state.db"]
+    assert str(tmp_path) not in out.read_text()
 
 
 def test_given_two_databases_when_exported_then_union_is_used_and_both_are_listed(
@@ -704,7 +830,7 @@ def test_given_two_databases_when_exported_then_union_is_used_and_both_are_liste
     payload = load(out)
     assert {r["store"] for r in payload["runs"]} == {"redis", "mongodb"}
     listed = payload["manifest"]["inputs"]["databases"]
-    assert [d["path"] for d in listed] == [str(host), str(volume)]
+    assert [d["path"] for d in listed] == ["host.db", "volume.db"]
 
 
 def test_given_a_database_when_exported_then_it_is_left_untouched(

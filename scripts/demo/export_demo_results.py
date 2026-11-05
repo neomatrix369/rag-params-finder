@@ -15,8 +15,10 @@ Usage:
     docker cp rag-params-finder-server:/app/data/run_state.db /scratch/volume_run_state.db
 
 Selection rule (also written to the manifest):
-    1. Only runs in phase ``complete`` of experiments with status ``complete`` whose
-       ``queries_file`` has the same file name as ``--questions``.
+    1. Only runs in phase ``complete`` of experiments with status ``complete`` or ``partial``
+       whose ``queries_file`` has the same file name as ``--questions``; optional
+       ``--data-path-contains TEXT`` (repeatable) keeps only experiments with a matching
+       data path. Partial experiments are listed in the manifest with their unfinished runs.
     2. Store = ``run.database_provider``, else the experiment's ``config.database_provider``.
     3. Per (store, config key) the latest completed experiment wins (ties: lowest run id).
     4. Every Redis run is exported, plus every other store's run that shares a Redis config key
@@ -37,6 +39,7 @@ import json
 import sqlite3
 import sys
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -61,7 +64,10 @@ TOP_RESULTS_PER_RUN = 5
 STORY_CHUNKS = 3
 
 SELECTION_RULE = (
-    "Completed runs of completed experiments whose queries_file name matches --questions; "
+    "Runs in phase complete of experiments with status complete or partial (a partial "
+    "experiment is listed under partial_experiments with its not-complete run count) whose "
+    "queries_file name matches --questions and, when --data-path-contains is given, whose "
+    "data_paths include a path containing one of the given texts; "
     "store = run.database_provider else experiment config.database_provider; per (store, "
     "config key) the latest completed experiment wins (ties: lowest run id); every "
     f"{PRIMARY_STORE} run is exported plus every other store's run sharing a {PRIMARY_STORE} "
@@ -69,11 +75,13 @@ SELECTION_RULE = (
     "floor((n-1)/2) and worst run are marked in stores."
 )
 
+ELIGIBLE_STATUSES = ("complete", "partial")
 EXIT_NO_PRIMARY = 1
 EXIT_OVER_CAP = 2
 
 R_DUPLICATE_EXPERIMENT = "duplicate experiment id (an earlier --db already supplied it)"
-R_EXPERIMENT_STATUS = "experiment status is not complete"
+R_EXPERIMENT_STATUS = "experiment status is neither complete nor partial"
+R_DATASET = "dataset differs from --data-path-contains"
 R_QUESTIONS_FILE = "questions file differs from --questions"
 R_RUN_PHASE = "run phase is not complete"
 R_NO_STORE = "no store recorded on the run or in the experiment config"
@@ -228,8 +236,17 @@ def group_id_for(run: dict[str, Any], experiment: dict[str, Any], questions_sha:
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:12]
 
 
+def _matches_dataset(experiment: dict[str, Any], needles: Sequence[str]) -> bool:
+    config = _experiment_config(experiment)
+    paths = config.get("data_paths") or experiment.get("data_paths") or []
+    return any(needle in str(path) for needle in needles for path in paths)
+
+
 def _eligible_experiments(
-    sources: list[Source], questions_name: str, exclusions: Exclusions
+    sources: list[Source],
+    questions_name: str,
+    data_path_contains: Sequence[str],
+    exclusions: Exclusions,
 ) -> list[tuple[Source, dict[str, Any]]]:
     seen: set[str] = set()
     eligible: list[tuple[Source, dict[str, Any]]] = []
@@ -241,10 +258,12 @@ def _eligible_experiments(
                 continue
             seen.add(exp_id)
             queries_file = _experiment_config(exp).get("queries_file") or exp.get("queries_file")
-            if exp.get("status") != "complete":
+            if exp.get("status") not in ELIGIBLE_STATUSES:
                 exclusions.add("experiment", R_EXPERIMENT_STATUS, exp_id)
             elif Path(str(queries_file or "")).name != questions_name:
                 exclusions.add("experiment", R_QUESTIONS_FILE, exp_id)
+            elif data_path_contains and not _matches_dataset(exp, data_path_contains):
+                exclusions.add("experiment", R_DATASET, exp_id)
             else:
                 eligible.append((source, exp))
     return eligible
@@ -283,10 +302,15 @@ def _candidates_for(
 
 
 def collect_candidates(
-    sources: list[Source], questions_name: str, questions_sha: str, exclusions: Exclusions
+    sources: list[Source],
+    questions_name: str,
+    questions_sha: str,
+    data_path_contains: Sequence[str],
+    exclusions: Exclusions,
 ) -> list[Candidate]:
     candidates: list[Candidate] = []
-    for source, experiment in _eligible_experiments(sources, questions_name, exclusions):
+    eligible = _eligible_experiments(sources, questions_name, data_path_contains, exclusions)
+    for source, experiment in eligible:
         candidates += _candidates_for(source, experiment, questions_sha, exclusions)
     return candidates
 
@@ -557,20 +581,57 @@ def build_story(
     }
 
 
+def database_labels(sources: list[Source]) -> list[str]:
+    """File names only (no local paths); duplicate names get their 1-based input index."""
+    names = [Path(s.path).name for s in sources]
+    return [f"{i}-{n}" if names.count(n) > 1 else n for i, n in enumerate(names, start=1)]
+
+
+def partial_experiments(selected: list[Candidate]) -> list[dict[str, Any]]:
+    """For each partial experiment that contributed runs: how many exported, how many unfinished."""
+    exported: dict[str, int] = defaultdict(int)
+    by_id: dict[str, Candidate] = {}
+    for cand in selected:
+        if cand.experiment.get("status") == "partial":
+            exp_id = str(cand.experiment["experiment_id"])
+            exported[exp_id] += 1
+            by_id.setdefault(exp_id, cand)
+    out: list[dict[str, Any]] = []
+    for exp_id in sorted(by_id):
+        cand = by_id[exp_id]
+        runs = read_runs(cand.source, exp_id)
+        out.append(
+            {
+                "experiment_id": exp_id,
+                "experiment_name": cand.experiment.get("experiment_name"),
+                "runs_total": len(runs),
+                "runs_exported": exported[exp_id],
+                "runs_not_complete": sum(1 for r in runs if r.get("phase") != "complete"),
+            }
+        )
+    return out
+
+
 def build_manifest(
     sources: list[Source],
     questions_path: str,
     questions_sha: str,
     exclusions: Exclusions,
     counts: dict[str, int],
+    data_path_contains: Sequence[str],
+    partials: list[dict[str, Any]],
 ) -> dict[str, Any]:
     avg_field = "query_avg_score" if settings.tiebreaker_metric == "query_avg" else "avg_score"
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_by": "scripts/demo/export_demo_results.py",
         "inputs": {
-            "databases": [{"path": s.path, "sha256": s.sha256} for s in sources],
-            "questions": {"path": questions_path, "sha256": questions_sha},
+            "databases": [
+                {"path": label, "sha256": s.sha256}
+                for label, s in zip(database_labels(sources), sources, strict=True)
+            ],
+            "questions": {"path": Path(questions_path).name, "sha256": questions_sha},
+            "filters": {"data_path_contains": sorted(data_path_contains)},
         },
         "ranking": {
             "fields": [
@@ -590,18 +651,24 @@ def build_manifest(
         },
         "selection_rule": SELECTION_RULE,
         "counts": counts,
+        "partial_experiments": partials,
         "exclusions": exclusions.as_list(),
     }
 
 
 def build_export(
-    db_paths: list[str], questions_path: str, max_runs: int
+    db_paths: list[str],
+    questions_path: str,
+    max_runs: int,
+    data_path_contains: Sequence[str] = (),
 ) -> tuple[dict[str, Any], str]:
     """Return (payload, printed story question line); raises ExportError on stop conditions."""
     focus, questions_sha = load_questions(Path(questions_path))
     sources = [read_source(p) for p in db_paths]
     exclusions = Exclusions()
-    candidates = collect_candidates(sources, Path(questions_path).name, questions_sha, exclusions)
+    candidates = collect_candidates(
+        sources, Path(questions_path).name, questions_sha, data_path_contains, exclusions
+    )
     selected = select_candidates(candidates, exclusions)
     if not any(c.store == PRIMARY_STORE for c in selected):
         raise ExportError(
@@ -628,7 +695,15 @@ def build_export(
     }
     payload = {
         "schema_version": SCHEMA_VERSION,
-        "manifest": build_manifest(sources, questions_path, questions_sha, exclusions, counts),
+        "manifest": build_manifest(
+            sources,
+            questions_path,
+            questions_sha,
+            exclusions,
+            counts,
+            data_path_contains,
+            partial_experiments(selected),
+        ),
         "stores": stores,
         "runs": runs,
         "story": story,
@@ -665,6 +740,13 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
     parser.add_argument("--questions", required=True, help="Questions JSON used by the sweeps")
     parser.add_argument("--out", default=DEFAULT_OUT, help=f"Output path (default {DEFAULT_OUT})")
+    parser.add_argument(
+        "--data-path-contains",
+        action="append",
+        default=[],
+        metavar="TEXT",
+        help="Keep only experiments with a data path containing TEXT (repeatable; optional)",
+    )
     parser.add_argument("--max-runs", type=int, default=DEFAULT_MAX_RUNS, help="Run-count cap")
     parser.add_argument("--max-bytes", type=int, default=DEFAULT_MAX_BYTES, help="Output size cap")
     return parser.parse_args(argv)
@@ -673,7 +755,9 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     try:
-        payload, story_line = build_export(args.db, args.questions, args.max_runs)
+        payload, story_line = build_export(
+            args.db, args.questions, args.max_runs, args.data_path_contains
+        )
         text = serialize(payload)
         size = len(text.encode("utf-8"))
         if size > args.max_bytes:
