@@ -33,7 +33,17 @@ function MethodBadge({ method, variant }: { method: string; variant: 'retrieval'
   );
 }
 
-export function BestParamsCard({ config }: { config: RankedConfig }) {
+export function BestParamsCard({
+  config,
+  scoreLabel = 'Relevance Score',
+  heading = 'Best Overall Parameters',
+}: {
+  config: RankedConfig
+  /** Override where "relevance" would overclaim (the meetup demo shows similarity scores). */
+  scoreLabel?: string
+  /** Override where "overall" would overclaim (the meetup demo shows a store's best run). */
+  heading?: string
+}) {
   const hasTies = config.tied_count && config.tied_count > 1;
 
   return (
@@ -42,7 +52,7 @@ export function BestParamsCard({ config }: { config: RankedConfig }) {
         <div className="flex items-center gap-2">
           <span className="text-yellow-400 text-lg">&#127942;</span>
           <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-            Best Overall Parameters
+            {heading}
           </span>
         </div>
         {hasTies && (
@@ -117,7 +127,7 @@ export function BestParamsCard({ config }: { config: RankedConfig }) {
         </div>
 
         <div className="text-right">
-          <div className="text-xs text-slate-400 uppercase tracking-wider">Relevance Score</div>
+          <div className="text-xs text-slate-400 uppercase tracking-wider">{scoreLabel}</div>
           <div className="text-5xl font-black">
             {config.max_score}<span className="text-2xl text-slate-400">%</span>
           </div>
