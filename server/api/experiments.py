@@ -214,6 +214,7 @@ async def create_experiment(config: ExperimentConfig):
         "completed_at": None,
         "status": ExperimentStatus.RUNNING,
         "run_count": runs,
+        # Full grid at creation; new readers use sweep_plan.full_grid_count (Slice 67B).
         "grid_equivalent_count": len(expand_sweep(config)),
         "storage_mode": storage_mode,
         **metadata,

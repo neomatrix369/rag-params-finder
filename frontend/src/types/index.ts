@@ -145,7 +145,7 @@ export interface Experiment {
   parallelism?: number;
   on_error?: string;
   sweep_summary?: SweepSummary;
-  sweep_plan?: SweepPlan;
+  sweep_plan?: SweepPlan;  // detail responses only; the list endpoint does not attach it
 }
 
 export interface RunStatus {

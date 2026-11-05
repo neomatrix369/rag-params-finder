@@ -53,12 +53,8 @@ from server.models.config import (
     ExperimentConfig,
     RunParams,
     expand_sweep,
-)
-from server.models.config import (
-    grid_equivalent_count as _grid_equivalent_count,
-)
-from server.models.config import (
-    resolve_bayesian_n_trials as _resolve_bayesian_n_trials,
+    grid_equivalent_count,
+    resolve_bayesian_n_trials,
 )
 from server.models.enums import ExperimentStatus, Phase, RetrieverType
 from server.models.results import QueryResult
@@ -67,6 +63,9 @@ from server.settings import settings
 from server.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# re-exported: tests/.../test_bayesian_finalise.py imports this name (Slice 67B moved the owner)
+_resolve_bayesian_n_trials = resolve_bayesian_n_trials
 
 _run_start_times: dict[str, float] = {}
 
@@ -173,7 +172,7 @@ def _run_bayesian_inner(
 
     expanded = list(expand_sweep(config))
     template = expanded[0]
-    planned_runs = _resolve_bayesian_n_trials(config)
+    planned_runs = resolve_bayesian_n_trials(config)
     max_optuna_calls = planned_runs * 3
     visited: set[tuple[int, int]] = set()
     if config.execution.parallelism > 1:
@@ -251,7 +250,7 @@ def _run_bayesian_inner(
 
     try:
         for _ in range(max_optuna_calls):
-            if len(visited) >= _grid_equivalent_count(config):
+            if len(visited) >= grid_equivalent_count(config):
                 break
             if len(run_ids) >= planned_runs:
                 break
@@ -386,12 +385,12 @@ def _finalise_bayesian_experiment(
         "run_count": planned_trials,
         "failed_count": failed_count,
         "completed_at": datetime.now(UTC),
-        "grid_equivalent_count": _grid_equivalent_count(config),
+        "grid_equivalent_count": grid_equivalent_count(config),
         "completion_reason": completion_reason,
     }
 
     bayesian_summary: dict[str, object] = {
-        "grid_equivalent_count": _grid_equivalent_count(config),
+        "grid_equivalent_count": grid_equivalent_count(config),
         "planned_trials": planned_trials,
         "attempted_trials": attempted_trials,
         "discarded_trials": discarded_trials,
@@ -434,7 +433,7 @@ def _finalise_bayesian_experiment(
             experiment_id,
             best_trial,
             planned_trials,
-            _grid_equivalent_count(config),
+            grid_equivalent_count(config),
             trial_log,
         )
 
@@ -448,7 +447,7 @@ def _fail_experiment_preflight(
 ) -> dict:
     """Mark experiment failed before any run starts due to search-index preflight."""
     runs = (
-        _resolve_bayesian_n_trials(config)
+        resolve_bayesian_n_trials(config)
         if config.execution.search_strategy == "bayesian"
         else len(expand_sweep(config))
     )

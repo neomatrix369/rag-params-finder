@@ -5,6 +5,7 @@ Extracted from ``server.api.experiments`` (Slice 45 fat-surface slim).
 
 from __future__ import annotations
 
+import warnings
 from datetime import UTC, datetime
 from typing import SupportsInt, cast
 
@@ -37,23 +38,44 @@ def _planned_run_count(config: ExperimentConfig) -> int:
     return len(expand_sweep(config))
 
 
-def attach_sweep_plan(experiment: dict) -> None:
-    """Compute ``sweep_plan`` (and retriever labels) on read from ``experiment["config"]``.
+_plan_failures_logged: set[str] = set()
 
-    Works for experiments stored before Slice 67B; leaves the doc untouched when the
-    stored config cannot be parsed (e.g. sweep-history docs).
+
+def attach_sweep_plan(experiment: dict) -> None:
+    """Decorate ``experiment`` in place with ``sweep_plan`` and ``sweep_summary.retrievers``.
+
+    Computed on read from ``experiment["config"]`` so experiments stored before
+    Slice 67B are covered. Purely additive: any failure (unparseable or
+    registry-stale config, sweep-history docs) leaves the doc untouched and never
+    raises, because GET /experiments/{id} is polled every 2 s. The failure is
+    logged once per experiment. Only the pure ``sweep_plan`` is used here
+    (never ``resolve_bayesian_n_trials``, which logs).
     """
     raw = experiment.get("config")
     if not isinstance(raw, dict):
         return
     try:
-        config = ExperimentConfig.model_validate(raw)
-    except ValueError:
+        with warnings.catch_warnings():
+            # Validators re-emit config warnings; sweep_plan["warnings"] carries them.
+            warnings.simplefilter("ignore")
+            config = ExperimentConfig.model_validate(raw)
+        plan = sweep_plan(config)
+        labels = retriever_labels(config)
+    except Exception as exc:
+        key = str(experiment.get("experiment_id") or experiment.get("_id"))
+        if key not in _plan_failures_logged:
+            _plan_failures_logged.add(key)
+            logger.warning(
+                "sweep_plan skipped — %s: %s",
+                key,
+                str(exc).splitlines()[0] if str(exc) else type(exc).__name__,
+                exc_info=True,
+            )
         return
-    experiment["sweep_plan"] = sweep_plan(config)
+    experiment["sweep_plan"] = plan
     summary = experiment.get("sweep_summary")
     if isinstance(summary, dict):
-        summary.setdefault("retrievers", retriever_labels(config))
+        summary.setdefault("retrievers", labels)
 
 
 def _to_non_negative_int(value: object) -> int | None:

@@ -1,7 +1,7 @@
 import warnings
 from itertools import product
 from math import prod
-from typing import Any, Literal, cast
+from typing import Literal, TypedDict, cast
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -413,31 +413,54 @@ def _plan_warnings(config: ExperimentConfig) -> list[str]:
     return found
 
 
-def sweep_plan(config: ExperimentConfig) -> dict[str, Any]:
+class DimensionCounts(TypedDict):
+    models: int
+    chunking_methods: int
+    chunk_sizes: int
+    overlaps: int
+    paddings: int
+    retrievers: int
+
+
+class SweepPlan(TypedDict):
+    """Shape of ``sweep_plan``; mirrors ``SweepPlan`` in ``frontend/src/types/index.ts``."""
+
+    dimension_counts: DimensionCounts
+    full_grid_count: int
+    searchable_space: int | None
+    planned_runs: int
+    search_strategy: Literal["grid", "bayesian"]
+    warnings: list[str]
+
+
+def sweep_plan(config: ExperimentConfig) -> SweepPlan:
     """Pure count summary of a sweep; ``full_grid_count == len(expand_sweep(config))``.
 
-    ``searchable_space`` is the Bayesian search space (sizes x overlaps), else ``None``.
-    ``planned_runs`` is the expected number of runs for the chosen strategy.
+    ``full_grid_count`` is the grid product even for Bayesian experiments (what a grid
+    sweep of the same config would run). ``searchable_space`` is the Bayesian search
+    space (sizes x overlaps), else ``None``. ``planned_runs`` is the real run count
+    for the chosen strategy (trial budget for Bayesian). Pure and deterministic: no
+    I/O, clock or logging, so it is safe on the read path.
     """
     params = config.chunking.params
-    counts = {
-        "models": len(config.embedding.models),
-        "chunking_methods": len(config.chunking.methods),
-        "chunk_sizes": len(params.chunk_sizes),
-        "overlaps": len(params.overlaps),
-        "paddings": len(params.paddings) or 1,  # mirrors expand_sweep's `or [0]`
-        "retrievers": len(config.retrieval.retrievers) or 1,
-    }
-    full_grid = prod(counts.values())
+    counts = DimensionCounts(
+        models=len(config.embedding.models),
+        chunking_methods=len(config.chunking.methods),
+        chunk_sizes=len(params.chunk_sizes),
+        overlaps=len(params.overlaps),
+        paddings=len(params.paddings) or 1,  # mirrors expand_sweep's `or [0]`
+        retrievers=len(config.retrieval.retrievers) or 1,
+    )
+    full_grid = prod(cast(dict[str, int], counts).values())
     bayesian = config.execution.search_strategy == "bayesian"
-    return {
-        "dimension_counts": counts,
-        "full_grid_count": full_grid,
-        "searchable_space": grid_equivalent_count(config) if bayesian else None,
-        "planned_runs": _bayesian_trial_budget(config) if bayesian else full_grid,
-        "search_strategy": config.execution.search_strategy,
-        "warnings": _plan_warnings(config),
-    }
+    return SweepPlan(
+        dimension_counts=counts,
+        full_grid_count=full_grid,
+        searchable_space=grid_equivalent_count(config) if bayesian else None,
+        planned_runs=_bayesian_trial_budget(config) if bayesian else full_grid,
+        search_strategy=config.execution.search_strategy,
+        warnings=_plan_warnings(config),
+    )
 
 
 def retriever_labels(config: ExperimentConfig) -> list[str]:
