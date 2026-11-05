@@ -175,7 +175,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `frontend/src/components/screens/` | Feature screens (`Experiments`, `Detail`, `SearchExplorer`) + co-located tests |
 | `frontend/src/components/chrome/` | Shell chrome (`DashboardShell`, `AppPageChrome`, `Pagination`, `CollapsibleCard`, …) |
 | `frontend/src/components/experiment/` | Experiment controls/progress/modals + detail chrome |
-| `frontend/src/components/stats/` | List: vector-database panel + store runtime. Detail: `ExperimentStoredFootprint`. Shared `StatTile`/`StatRow` |
+| `frontend/src/components/stats/` | List: store runtime only (`OperationalRuntimeCard`). Detail: `VectorDbStatsPanel` (capacity, loaded on mount) + `ExperimentStoredFootprint`. Shared `StatTile`/`StatRow` |
 | `frontend/src/components/about/`, `frontend/src/components/walkthru/` | About button/dialog; offline demo (`CrossStoreLeaderboard`, `RunReplay`, `ImprovementPanel`, `WalkthruScreen`). No network calls; copy says "similarity score" (Slice 56) |
 | `frontend/src/walkthru/` | Guided tour engine/overlay (JWLB pattern, no voice or theme code), the typed loader (`loadWalkthruResults.ts`, `walkthruResults.ts`), and the mirrors of `docs/about/` (`about/`, `steps/`, `walkthru-results.json`) |
 | `frontend/src/hooks/useExperimentDetail.ts` | Detail hydrate/poll plus stored-footprint db-stats (Slice 45) |
@@ -263,7 +263,7 @@ bash scripts/ci/repo-lint.sh
 # Or individually (same unit ignores as quality-gates / CI backend):
 uv run ruff check .
 uv run mypy server/ cli/
-uv run pytest --tb=short -q \
+uv run pytest --tb=short -q -n auto \
   --ignore=tests/contract \
   --ignore=tests/server/db/test_postgres_store_integration.py \
   --ignore=tests/server/db/test_postgres_dense_retrieval.py \
