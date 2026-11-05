@@ -1,9 +1,12 @@
 import { useCallback, useId, useState, type ReactNode } from 'react';
+import InfoTip from './InfoTip';
 
 type CollapsibleCardProps = {
   title: string;
   icon?: ReactNode;
   headerExtra?: ReactNode;
+  /** Explanation shown in an InfoTip beside the header (a sibling of the toggle, never nested). */
+  explain?: string;
   storageKey?: string;
   defaultOpen?: boolean;
   /**
@@ -28,6 +31,7 @@ export default function CollapsibleCard({
   title,
   icon,
   headerExtra,
+  explain,
   storageKey,
   defaultOpen = true,
   open: openOverride,
@@ -50,10 +54,11 @@ export default function CollapsibleCard({
 
   return (
     <div className={className}>
+      <div className="flex items-center">
       <button
         type="button"
         onClick={toggle}
-        className="flex min-h-11 w-full items-center gap-2 rounded-lg text-left"
+        className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg text-left"
         aria-expanded={open}
         aria-controls={contentId}
       >
@@ -78,6 +83,8 @@ export default function CollapsibleCard({
         </h2>
         {headerExtra}
       </button>
+      {explain ? <InfoTip label={`About ${title}`}>{explain}</InfoTip> : null}
+      </div>
       {open ? <div id={contentId} className="mt-4">{children}</div> : null}
     </div>
   );

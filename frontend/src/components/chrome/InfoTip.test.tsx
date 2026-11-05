@@ -155,6 +155,27 @@ describe('InfoTip', () => {
     expect(button.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
   });
 
+  it('Given identical props, when rendered twice, then the output markup is identical', () => {
+    /**
+     * Scenario: Determinism — InfoTip only renders the text it is given; the aria id is the
+     * caller-supplied id (or React useId by default), never a clock or randomness.
+     * Slice: 67C — InfoTip
+     */
+    // -- Given --
+    const tree = (
+      <InfoTip label="About Total" id="tip-total">
+        Grid = 12
+      </InfoTip>
+    );
+    // -- When --
+    const first = render(tree);
+    const a = first.container.innerHTML;
+    first.unmount();
+    const b = render(tree).container.innerHTML;
+    // -- Then --
+    expect(b).toBe(a);
+  });
+
   it('Given two tips, when rendered, then their ids differ', () => {
     /**
      * Scenario: Unique ids keep aria-describedby unambiguous.

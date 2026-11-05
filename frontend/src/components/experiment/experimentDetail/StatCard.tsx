@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import InfoTip from '../../chrome/InfoTip';
 
 export default function StatCard({
   label,
@@ -7,6 +8,7 @@ export default function StatCard({
   trend,
   color = 'blue',
   compact = false,
+  explain,
 }: {
   label: string;
   value: string | number;
@@ -14,6 +16,8 @@ export default function StatCard({
   trend?: string;
   color?: 'blue' | 'green' | 'purple' | 'amber' | 'red' | 'slate';
   compact?: boolean;
+  /** How the number is derived; must come from a pure function, never JSX arithmetic. */
+  explain?: string;
 }) {
   const colors = {
     blue: 'bg-blue-50 text-blue-600 border-blue-200',
@@ -38,6 +42,7 @@ export default function StatCard({
               {label}
             </div>
           </div>
+          {explain ? <InfoTip label={`How ${label} is calculated`}>{explain}</InfoTip> : null}
           {trend && (
             <span className="shrink-0 text-xs font-medium opacity-75">{trend}</span>
           )}
@@ -56,7 +61,10 @@ export default function StatCard({
       </div>
       <div className="mt-2">
         <div className="text-2xl font-bold">{value}</div>
-        <div className="text-xs font-medium uppercase tracking-wide mt-1 opacity-75">{label}</div>
+        <div className="mt-1 flex items-center gap-1 text-xs font-medium uppercase tracking-wide opacity-75">
+          {label}
+          {explain ? <InfoTip label={`How ${label} is calculated`}>{explain}</InfoTip> : null}
+        </div>
       </div>
     </div>
   );

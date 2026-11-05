@@ -5,15 +5,18 @@ type InfoTipProps = {
   label: string;
   children: ReactNode;
   className?: string;
+  /** Optional caller-supplied tip id; defaults to React useId (deterministic, never random). */
+  id?: string;
 };
 
 /**
  * Dependency-free explain affordance (Slice 67C). A native button toggles a tip that stays in the
  * DOM and is linked via aria-describedby, so assistive tech reads it once (no live region).
  */
-export default function InfoTip({ label, children, className = '' }: InfoTipProps) {
+export default function InfoTip({ label, children, className = '', id }: InfoTipProps) {
   const [open, setOpen] = useState(false);
-  const tipId = useId();
+  const generatedId = useId();
+  const tipId = id ?? generatedId;
   const rootRef = useRef<HTMLSpanElement>(null);
 
   const toggle = useCallback(() => setOpen((prev) => !prev), []);
