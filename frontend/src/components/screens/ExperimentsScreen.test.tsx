@@ -3,22 +3,20 @@
  * Created: 2026-07-19
  * Scope: Slice 39 experiment-list lifecycle copy and control visibility.
  * Scope (Slice 44 Phase B additions): selection/bulk delete, collapse toggle,
- * pagination, bootstrap loading/error/abort paths, background polling
- * (list + vector-db stats), vector-db stats error/loading, and
- * experimentOutcomeLabel/completionReasonLabel edge-case branches.
+ * pagination, bootstrap loading/error/abort paths, background polling (list),
+ * and experimentOutcomeLabel/completionReasonLabel edge-case branches.
+ * Scope (Slice 66): Vector DB stats card moved to ExperimentDetailScreen.
  */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { EXPERIMENTS_POLL_MS, VECTOR_DB_STATS_POLL_MS } from '../../constants';
+import { EXPERIMENTS_POLL_MS } from '../../constants';
 import { experiment } from '../../test/helpers/experiments';
-import { vectorDbGroup } from '../../test/helpers/vectorDbStats';
-import type { Experiment, VectorDbStatsGroup } from '../../types';
+import type { Experiment } from '../../types';
 import ExperimentsScreen from './ExperimentsScreen';
 
 const apiMocks = vi.hoisted(() => ({
   getExperiments: vi.fn(),
   getExperimentsWithProgress: vi.fn(),
-  getVectorDbStatsGrouped: vi.fn(),
   getStores: vi.fn().mockResolvedValue({
     active: 'mongodb',
     stores: [
@@ -38,6 +36,7 @@ const apiMocks = vi.hoisted(() => ({
       },
     ],
   }),
+  getCompare: vi.fn(),
   deleteExperiment: vi.fn(),
   pauseExperiment: vi.fn(),
   resumeExperiment: vi.fn(),
@@ -102,10 +101,8 @@ describe('ExperimentsScreen lifecycle presentation', () => {
   beforeEach(() => {
     apiMocks.getExperiments.mockReset();
     apiMocks.getExperimentsWithProgress.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockReset();
     apiMocks.getExperiments.mockResolvedValue(lifecycleExperiments);
     apiMocks.getExperimentsWithProgress.mockResolvedValue(lifecycleExperiments);
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
   });
 
   it('Given all lifecycle states, when the list renders, then outcome copy and controls match each state', async () => {
@@ -174,7 +171,6 @@ describe('ExperimentsScreen lifecycle presentation', () => {
       <ExperimentsScreen
         cacheReady
         cachedExperiments={lifecycleExperiments}
-        cachedVectorDbGroups={[]}
       />,
     );
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
@@ -190,6 +186,30 @@ describe('ExperimentsScreen lifecycle presentation', () => {
       cancelled: renderedRowPresentation('cancelled sweep'),
     };
     expect(actualLifecyclePresentation).toEqual(expectedLifecyclePresentation);
+  });
+
+  it('Given the list loads, when Compare sweeps is clicked, then onCompare fires and nothing was fetched before', async () => {
+    /**
+     * Scenario: The compare endpoint is only hit after an explicit click (the screen it opens fetches).
+     * Slice: 66 - live cross-store compare button.
+     * Given the list is rendered with an onCompare handler.
+     * When the operator clicks Compare sweeps.
+     * Then onCompare is called once and the list itself never called getCompare.
+     */
+    // -- Given --
+    const onCompare = vi.fn();
+    render(
+      <ExperimentsScreen cacheReady cachedExperiments={lifecycleExperiments} onCompare={onCompare} />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+    expect(onCompare).not.toHaveBeenCalled();
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'Compare sweeps' }));
+
+    // -- Then --
+    expect(onCompare).toHaveBeenCalledOnce();
+    expect(apiMocks.getCompare).not.toHaveBeenCalled();
   });
 
   it('Given no experiments, when the empty state renders, then both storage paths are offered', async () => {
@@ -209,7 +229,6 @@ describe('ExperimentsScreen lifecycle presentation', () => {
       <ExperimentsScreen
         cacheReady
         cachedExperiments={[]}
-        cachedVectorDbGroups={[]}
       />,
     );
 
@@ -252,7 +271,7 @@ describe('ExperimentsScreen lifecycle presentation', () => {
 
     // -- When --
     render(
-      <ExperimentsScreen cacheReady cachedExperiments={[]} cachedVectorDbGroups={[]} />,
+      <ExperimentsScreen cacheReady cachedExperiments={[]} />,
     );
 
     // -- Then --
@@ -277,11 +296,9 @@ describe('ExperimentsScreen selection and bulk delete', () => {
   beforeEach(() => {
     apiMocks.getExperiments.mockReset();
     apiMocks.getExperimentsWithProgress.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockReset();
     apiMocks.deleteExperiment.mockReset();
     apiMocks.getExperiments.mockResolvedValue(selectionExperiments);
     apiMocks.getExperimentsWithProgress.mockResolvedValue(selectionExperiments);
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
     apiMocks.deleteExperiment.mockResolvedValue({ message: 'deleted' });
   });
 
@@ -290,7 +307,6 @@ describe('ExperimentsScreen selection and bulk delete', () => {
       <ExperimentsScreen
         cacheReady
         cachedExperiments={selectionExperiments}
-        cachedVectorDbGroups={[]}
       />,
     );
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
@@ -433,8 +449,6 @@ describe('ExperimentsScreen row collapse and pagination', () => {
   beforeEach(() => {
     apiMocks.getExperiments.mockReset();
     apiMocks.getExperimentsWithProgress.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
   });
 
   it('Given an expanded row, when its collapse chevron is clicked, then details hide and localStorage records the id', async () => {
@@ -450,7 +464,7 @@ describe('ExperimentsScreen row collapse and pagination', () => {
     const single = [experiment('complete')];
     apiMocks.getExperiments.mockResolvedValue(single);
     apiMocks.getExperimentsWithProgress.mockResolvedValue(single);
-    render(<ExperimentsScreen cacheReady cachedExperiments={single} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={single} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
     expect(screen.getByText('Experiment ID')).toBeInTheDocument();
 
@@ -487,7 +501,7 @@ describe('ExperimentsScreen row collapse and pagination', () => {
     );
     apiMocks.getExperiments.mockResolvedValue(many);
     apiMocks.getExperimentsWithProgress.mockResolvedValue(many);
-    render(<ExperimentsScreen cacheReady cachedExperiments={many} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={many} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
     expect(screen.getByText('sweep 0')).toBeInTheDocument();
     expect(screen.queryByText('sweep 16')).not.toBeInTheDocument();
@@ -515,16 +529,15 @@ describe('ExperimentsScreen bootstrap loading and error paths', () => {
   beforeEach(() => {
     apiMocks.getExperiments.mockReset();
     apiMocks.getExperimentsWithProgress.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockReset();
   });
 
-  it('Given no cache, when the initial load succeeds with progress updates, then the loading panel yields to the list and vector stats load', async () => {
+  it('Given no cache, when the initial load succeeds with progress updates, then the loading panel yields to the list', async () => {
     /**
      * Scenario: A cold start shows connecting copy, threads progress updates, then renders the list.
      * Slice: 44 Phase B — ExperimentsScreen bootstrap (cacheReady=false, success).
      * Given no cache is available,
      * When the progress-tracked initial fetch reports a message and a download update before resolving,
-     * Then the loading panel first shows connecting copy, then the list renders and vector DB stats load.
+     * Then the loading panel first shows connecting copy, then the list renders.
      */
     // -- Given --
     const loaded = [experiment('complete')];
@@ -533,7 +546,6 @@ describe('ExperimentsScreen bootstrap loading and error paths', () => {
       onProgress?.({ type: 'downloading', receivedBytes: 500, totalBytes: 1000 });
       return loaded;
     });
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
 
     // -- When --
     render(<ExperimentsScreen />);
@@ -541,7 +553,6 @@ describe('ExperimentsScreen bootstrap loading and error paths', () => {
     // -- Then --
     expect(screen.getByText('Connecting to server')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('complete sweep')).toBeInTheDocument());
-    await waitFor(() => expect(apiMocks.getVectorDbStatsGrouped).toHaveBeenCalled());
   });
 
   it('Given no cache, when the initial load fails, then an error banner shows the failure message', async () => {
@@ -570,7 +581,6 @@ describe('ExperimentsScreen bootstrap loading and error paths', () => {
     // -- Given --
     apiMocks.getExperimentsWithProgress.mockRejectedValue(new DOMException('aborted', 'AbortError'));
     apiMocks.getExperiments.mockResolvedValue([]);
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
 
     // -- When --
     render(<ExperimentsScreen />);
@@ -588,10 +598,9 @@ describe('ExperimentsScreen bootstrap loading and error paths', () => {
     // -- Given --
     const cached = [experiment('complete', 0, { experiment_name: 'cached sweep' })];
     apiMocks.getExperiments.mockRejectedValueOnce(new Error('cache refresh boom'));
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
 
     // -- When --
-    render(<ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={cached} />);
 
     // -- Then --
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
@@ -606,7 +615,6 @@ describe('ExperimentsScreen background polling', () => {
     vi.useFakeTimers();
     apiMocks.getExperiments.mockReset();
     apiMocks.getExperimentsWithProgress.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockReset();
   });
 
   afterEach(() => {
@@ -622,8 +630,7 @@ describe('ExperimentsScreen background polling', () => {
     const initial = [experiment('running')];
     const updated = [experiment('complete')];
     apiMocks.getExperiments.mockResolvedValueOnce(initial).mockResolvedValueOnce(updated);
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
-    render(<ExperimentsScreen cacheReady cachedExperiments={initial} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={initial} />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -649,8 +656,7 @@ describe('ExperimentsScreen background polling', () => {
     apiMocks.getExperiments
       .mockResolvedValueOnce(initial)
       .mockRejectedValueOnce(new Error('poll connection reset'));
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
-    render(<ExperimentsScreen cacheReady cachedExperiments={initial} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={initial} />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -677,8 +683,7 @@ describe('ExperimentsScreen background polling', () => {
     apiMocks.getExperiments
       .mockResolvedValueOnce(initial)
       .mockRejectedValueOnce(new Error('cluster temporarily unavailable'));
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
-    render(<ExperimentsScreen cacheReady cachedExperiments={initial} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={initial} />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -692,113 +697,12 @@ describe('ExperimentsScreen background polling', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('cluster temporarily unavailable');
   });
 
-  it('Given a cache-ready mount, when the vector-db stats poll interval elapses, then stats refresh silently', async () => {
-    /**
-     * Scenario: The slower vector-db stats poll re-fetches without disturbing the list.
-     * Slice: 44 Phase B — ExperimentsScreen polling (vector DB stats).
-     */
-    // -- Given --
-    const cached = [experiment('complete')];
-    apiMocks.getExperiments.mockResolvedValue(cached);
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [vectorDbGroup()] });
-    render(<ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[vectorDbGroup()]} />);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-    const initialCalls = apiMocks.getVectorDbStatsGrouped.mock.calls.length;
-
-    // -- When --
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(VECTOR_DB_STATS_POLL_MS);
-    });
-
-    // -- Then --
-    expect(apiMocks.getVectorDbStatsGrouped.mock.calls.length).toBeGreaterThan(initialCalls);
-  });
-});
-
-describe('ExperimentsScreen vector DB stats panel states', () => {
-  beforeEach(() => {
-    apiMocks.getExperiments.mockReset();
-    apiMocks.getExperimentsWithProgress.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockReset();
-  });
-
-  it('Given the vector DB stats request fails, when it settles, then the panel shows the error message', async () => {
-    /**
-     * Scenario: A vector-DB stats failure is visible without blocking the experiment list.
-     * Slice: 44 Phase B — ExperimentsScreen vector DB stats error path.
-     */
-    // -- Given --
-    const cached = [experiment('complete')];
-    apiMocks.getExperiments.mockResolvedValue(cached);
-    apiMocks.getVectorDbStatsGrouped.mockRejectedValue(new Error('stats aggregation timed out'));
-
-    // -- When --
-    render(<ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />);
-
-    // -- Then --
-    await waitFor(() =>
-      expect(screen.getByText('Could not load vector database stats')).toBeInTheDocument(),
-    );
-    expect(screen.getByText('stats aggregation timed out')).toBeInTheDocument();
-  });
-
-  it('Given vector DB stats for a collapsed experiment, when the row is collapsed, then stored-result counts are shown', async () => {
-    /**
-     * Scenario: Collapsed rows surface a compact "stored results" summary from vector-db stats.
-     * Slice: 44 Phase B — ExperimentsScreen vector DB stats + collapse integration.
-     */
-    // -- Given --
-    const exp = experiment('complete');
-    const group = vectorDbGroup({
-      experiments: [
-        {
-          experiment_id: exp.experiment_id,
-          experiment_name: exp.experiment_name,
-          status: exp.status,
-          created_at: exp.created_at,
-          database_provider: 'mongodb',
-          collection_name: 'chunks',
-          cluster_host: null,
-          total_chunks: 200,
-          unique_documents: 10,
-          embedding_models: ['test-model'],
-          embedding_dimensions: [1024],
-          index_names: ['vector_index_1024'],
-          retrieval_methods: ['dense'],
-          chunking_methods: ['recursive'],
-          chunking_breakdown: {},
-          estimated_storage_mb: 2,
-          estimated_embedding_mb: 1,
-          estimated_metadata_mb: 1,
-          runs_with_data: 1,
-          avg_chunks_per_run: 200,
-          total_results: 1234,
-          unique_queries: 5,
-          run_breakdown: [],
-        },
-      ],
-    });
-    apiMocks.getExperiments.mockResolvedValue([exp]);
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [group] });
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[group]} />);
-    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
-
-    // -- When --
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse complete sweep' }));
-
-    // -- Then --
-    expect(screen.getByText('1,234 stored results')).toBeInTheDocument();
-  });
 });
 
 describe('ExperimentsScreen outcome label edge cases', () => {
   beforeEach(() => {
     apiMocks.getExperiments.mockReset();
     apiMocks.getExperimentsWithProgress.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
   });
 
   it('Given a running experiment with no run_count yet, when rendered, then "Run count pending" is shown', async () => {
@@ -811,7 +715,7 @@ describe('ExperimentsScreen outcome label edge cases', () => {
     apiMocks.getExperiments.mockResolvedValue([exp]);
 
     // -- When --
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- Then --
@@ -828,7 +732,7 @@ describe('ExperimentsScreen outcome label edge cases', () => {
     apiMocks.getExperiments.mockResolvedValue([exp]);
 
     // -- When --
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- Then --
@@ -845,7 +749,7 @@ describe('ExperimentsScreen outcome label edge cases', () => {
     apiMocks.getExperiments.mockResolvedValue([exp]);
 
     // -- When --
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- Then --
@@ -865,7 +769,7 @@ describe('ExperimentsScreen outcome label edge cases', () => {
     apiMocks.getExperiments.mockResolvedValue([exp]);
 
     // -- When --
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- Then --
@@ -886,7 +790,7 @@ describe('ExperimentsScreen outcome label edge cases', () => {
     apiMocks.getExperiments.mockResolvedValue([exp]);
 
     // -- When --
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- Then --
@@ -910,7 +814,7 @@ describe('ExperimentsScreen outcome label edge cases', () => {
     apiMocks.getExperiments.mockResolvedValue([exp]);
 
     // -- When --
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- Then --
@@ -924,8 +828,6 @@ describe('ExperimentsScreen checkbox toggling and onSelect navigation', () => {
   beforeEach(() => {
     apiMocks.getExperiments.mockReset();
     apiMocks.getExperimentsWithProgress.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
   });
 
   it('Given a checked selection checkbox, when it is unchecked, then the experiment is removed from the selection', async () => {
@@ -936,7 +838,7 @@ describe('ExperimentsScreen checkbox toggling and onSelect navigation', () => {
     // -- Given --
     const exp = experiment('complete');
     apiMocks.getExperiments.mockResolvedValue([exp]);
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
     const checkbox = screen.getByRole('checkbox', { name: `Select ${exp.experiment_name}` });
     fireEvent.click(checkbox);
@@ -959,7 +861,7 @@ describe('ExperimentsScreen checkbox toggling and onSelect navigation', () => {
     const exp = experiment('complete');
     apiMocks.getExperiments.mockResolvedValue([exp]);
     const onSelect = vi.fn();
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} onSelect={onSelect} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} onSelect={onSelect} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- When --
@@ -978,7 +880,7 @@ describe('ExperimentsScreen checkbox toggling and onSelect navigation', () => {
     const exp = experiment('complete');
     apiMocks.getExperiments.mockResolvedValue([exp]);
     const onSelect = vi.fn();
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} onSelect={onSelect} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} onSelect={onSelect} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- When --
@@ -993,10 +895,8 @@ describe('ExperimentsScreen row control-button wiring', () => {
   beforeEach(() => {
     apiMocks.getExperiments.mockReset();
     apiMocks.getExperimentsWithProgress.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockReset();
     apiMocks.pauseExperiment.mockReset();
     apiMocks.resumeExperiment.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
     vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
@@ -1015,7 +915,7 @@ describe('ExperimentsScreen row control-button wiring', () => {
     apiMocks.pauseExperiment.mockResolvedValue(undefined);
     const onCacheUpdate = vi.fn();
     render(
-      <ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} onCacheUpdate={onCacheUpdate} />,
+      <ExperimentsScreen cacheReady cachedExperiments={[exp]} onCacheUpdate={onCacheUpdate} />,
     );
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledTimes(1));
 
@@ -1037,7 +937,7 @@ describe('ExperimentsScreen row control-button wiring', () => {
     const exp = experiment('running');
     apiMocks.getExperiments.mockResolvedValue([exp]);
     apiMocks.pauseExperiment.mockRejectedValue(new Error('pause rejected by server'));
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- When --
@@ -1056,7 +956,7 @@ describe('ExperimentsScreen row control-button wiring', () => {
     const exp = experiment('paused');
     apiMocks.getExperiments.mockResolvedValueOnce([exp]).mockResolvedValueOnce([{ ...exp, status: 'running' }]);
     apiMocks.resumeExperiment.mockResolvedValue(undefined);
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledTimes(1));
 
     // -- When --
@@ -1072,9 +972,7 @@ describe('ExperimentsScreen delete modal dismissal', () => {
   beforeEach(() => {
     apiMocks.getExperiments.mockReset();
     apiMocks.getExperimentsWithProgress.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockReset();
     apiMocks.deleteExperiment.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
   });
 
   it('Given the delete-confirmation modal is open, when Cancel is clicked, then it closes without deleting', async () => {
@@ -1085,7 +983,7 @@ describe('ExperimentsScreen delete modal dismissal', () => {
     // -- Given --
     const exp = experiment('complete');
     apiMocks.getExperiments.mockResolvedValue([exp]);
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
     fireEvent.click(screen.getByRole('checkbox', { name: `Select ${exp.experiment_name}` }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete 1' }));
@@ -1104,7 +1002,6 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
   beforeEach(() => {
     apiMocks.getExperiments.mockReset();
     apiMocks.getExperimentsWithProgress.mockReset();
-    apiMocks.getVectorDbStatsGrouped.mockReset();
   });
 
   afterEach(() => {
@@ -1133,80 +1030,6 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
     expect(screen.getByText(/Still waiting/)).toBeInTheDocument();
   });
 
-  it('Given an in-flight stats request, when a second poll fires, then only one network call is active', async () => {
-    /**
-     * Scenario: Concurrent loadVectorDbStats reuses the in-flight promise.
-     * Slice: 44 Phase B — ExperimentsScreen vectorDbStatsInFlightRef
-     */
-    // -- Given --
-    vi.useFakeTimers();
-    const cached = [experiment('complete')];
-    let resolveStats: (value: { groups: VectorDbStatsGroup[] }) => void = () => undefined;
-    apiMocks.getExperiments.mockResolvedValue(cached);
-    apiMocks.getVectorDbStatsGrouped.mockImplementation(
-      () =>
-        new Promise<{ groups: VectorDbStatsGroup[] }>((resolve) => {
-          resolveStats = resolve;
-        }),
-    );
-    render(
-      <ExperimentsScreen
-        cacheReady
-        cachedExperiments={cached}
-        cachedVectorDbGroups={[vectorDbGroup()]}
-      />,
-    );
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-    const callsAfterMount = apiMocks.getVectorDbStatsGrouped.mock.calls.length;
-
-    // -- When --
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(VECTOR_DB_STATS_POLL_MS);
-    });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(VECTOR_DB_STATS_POLL_MS);
-    });
-    await act(async () => {
-      resolveStats({ groups: [vectorDbGroup()] });
-    });
-
-    // -- Then --
-    // First silent refresh starts one in-flight call; a second tick while pending must not stack another.
-    expect(apiMocks.getVectorDbStatsGrouped.mock.calls.length).toBeLessThanOrEqual(callsAfterMount + 1);
-  });
-
-  it('Given a pending stats fetch, when the screen unmounts before settle, then resolve is a no-op', async () => {
-    /**
-     * Scenario: Late stats after unmount are dropped by aliveRef.
-     * Slice: 44 Phase B — ExperimentsScreen stats aliveRef guard
-     */
-    // -- Given --
-    const cached = [experiment('complete')];
-    let resolveLate: (value: { groups: VectorDbStatsGroup[] }) => void = () => undefined;
-    apiMocks.getExperiments.mockResolvedValue(cached);
-    apiMocks.getVectorDbStatsGrouped.mockImplementationOnce(
-      () =>
-        new Promise<{ groups: VectorDbStatsGroup[] }>((resolve) => {
-          resolveLate = resolve;
-        }),
-    );
-    const { unmount } = render(
-      <ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />,
-    );
-    await waitFor(() => expect(apiMocks.getVectorDbStatsGrouped).toHaveBeenCalled());
-
-    // -- When --
-    unmount();
-    await act(async () => {
-      resolveLate({ groups: [vectorDbGroup()] });
-    });
-
-    // -- Then --
-    expect(apiMocks.getVectorDbStatsGrouped).toHaveBeenCalledTimes(1);
-  });
-
   it('Given a pending list poll, when the screen unmounts before settle, then resolve is a no-op', async () => {
     /**
      * Scenario: Late list poll after unmount is dropped by aliveRef.
@@ -1224,9 +1047,8 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
             resolveLate = resolve;
           }),
       );
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
     const { unmount } = render(
-      <ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />,
+      <ExperimentsScreen cacheReady cachedExperiments={cached} />,
     );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
@@ -1258,10 +1080,9 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
       completion_reason: undefined,
     });
     apiMocks.getExperiments.mockResolvedValue([exp]);
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
 
     // -- When --
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- Then --
@@ -1280,8 +1101,7 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
     apiMocks.getExperiments
       .mockResolvedValueOnce(cached)
       .mockRejectedValueOnce('socket reset');
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
-    render(<ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={cached} />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -1304,9 +1124,8 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
     vi.useFakeTimers();
     const cached = [experiment('complete')];
     apiMocks.getExperiments.mockResolvedValue(cached);
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
     const first = render(
-      <ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />,
+      <ExperimentsScreen cacheReady cachedExperiments={cached} />,
     );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
@@ -1314,7 +1133,7 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
 
     // -- When --
     first.unmount();
-    render(<ExperimentsScreen cacheReady cachedExperiments={cached} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={cached} />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -1366,7 +1185,6 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
       onProgress?.({ type: 'downloading', receivedBytes: 10, totalBytes: 100 });
       return [experiment('complete')];
     });
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
 
     // -- When --
     render(<ExperimentsScreen />);
@@ -1436,7 +1254,6 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
     apiMocks.getExperimentsWithProgress
       .mockResolvedValueOnce([experiment('complete')])
       .mockImplementationOnce(() => new Promise<Experiment[]>(() => undefined));
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [vectorDbGroup()] });
 
     // -- When --
     render(<ExperimentsScreen />);
@@ -1456,7 +1273,6 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
     apiMocks.getExperimentsWithProgress
       .mockResolvedValueOnce([])
       .mockImplementationOnce(() => new Promise<Experiment[]>(() => undefined));
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [vectorDbGroup()] });
 
     // -- When --
     render(<ExperimentsScreen />);
@@ -1477,10 +1293,9 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
       config: { execution: 'not-an-object' as unknown as Record<string, unknown> },
     });
     apiMocks.getExperiments.mockResolvedValue([exp]);
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
 
     // -- When --
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- Then --
@@ -1504,10 +1319,9 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
       },
     });
     apiMocks.getExperiments.mockResolvedValue([exp]);
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
 
     // -- When --
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- Then --
@@ -1526,10 +1340,9 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
       completion_reason: 'all_planned_trials_completed',
     });
     apiMocks.getExperiments.mockResolvedValue([exp]);
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
 
     // -- When --
-    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} cachedVectorDbGroups={[]} />);
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- Then --
@@ -1551,12 +1364,10 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
     apiMocks.getExperiments
       .mockResolvedValueOnce([kept, removed])
       .mockResolvedValueOnce([kept]);
-    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
     render(
       <ExperimentsScreen
         cacheReady
         cachedExperiments={[kept, removed]}
-        cachedVectorDbGroups={[]}
       />,
     );
     await act(async () => {

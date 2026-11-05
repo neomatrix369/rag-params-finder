@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 import { makeWalkthruResults, makeWalkthruRun } from '../test/helpers/walkthruResults'
 import {
   FEW_OVERLAP_THRESHOLD,
+  compareToLeaderboard,
   countCrossStoreGroups,
   filterRunsByStore,
   groupRuns,
@@ -56,9 +57,9 @@ describe('groupRuns', () => {
     expect(groups[0].runs.map((r) => r.run_id)).toEqual(['slow-top', 'fast-low'])
   })
 
-  it('Given equal best ranks, when grouped, then group_id breaks the tie deterministically', () => {
+  it('Given equal best ranks, when grouped, then the input (server) order is kept', () => {
     /**
-     * Scenario: Deterministic group order when two groups share a best rank.
+     * Scenario: Groups sharing a best rank keep their first-seen input order (live compare data is server-ordered).
      * Slice: 56 Part C3 - stable ordering
      */
     // -- Given --
@@ -69,7 +70,7 @@ describe('groupRuns', () => {
     const groups = groupRuns([b, a])
 
     // -- Then --
-    expect(groups.map((g) => g.groupId)).toEqual(['ga', 'gb'])
+    expect(groups.map((g) => g.groupId)).toEqual(['gb', 'ga'])
     expect(groups[0].spansStores).toBe(false)
   })
 })
@@ -175,5 +176,38 @@ describe('primaryStore and suggestedRunId', () => {
     expect(suggestedRunId(results, 'redis')).toBe('run-redis-best')
     expect(suggestedRunId(results, 'nope')).toBeUndefined()
     expect(suggestedRunId(results, undefined)).toBeUndefined()
+  })
+})
+
+describe('compareToLeaderboard', () => {
+  it('Given a compare response, when adapted, then runs keep server order and no store is primary', () => {
+    /**
+     * Scenario: The live response becomes leaderboard input without re-scoring or reordering.
+     * Slice: 66 - live cross-store compare adapter
+     */
+    // -- Given --
+    const a1 = makeWalkthruRun({ run_id: 'a1', group_id: 'g-a', store: 'redis', rank: 1 })
+    const a2 = makeWalkthruRun({ run_id: 'a2', group_id: 'g-a', store: 'postgres', rank: 2 })
+    const b1 = makeWalkthruRun({ run_id: 'b1', group_id: 'g-b', store: 'redis', rank: 1 })
+    const response = {
+      groups: [
+        { group_id: 'g-b', runs: [b1] },
+        { group_id: 'g-a', runs: [a1, a2] },
+      ],
+      stores: ['redis', 'postgres'],
+      group_count: 2,
+      run_count: 3,
+      cross_store_group_count: 1,
+    }
+
+    // -- When --
+    const { stores, runs } = compareToLeaderboard(response)
+
+    // -- Then --
+    expect(runs.map((r) => r.run_id)).toEqual(['b1', 'a1', 'a2'])
+    expect(Object.values(stores).every((s) => !s.is_primary)).toBe(true)
+    expect(stores.redis).toMatchObject({ run_count: 2, best_run_id: 'b1', worst_run_id: 'a1' })
+    expect(stores.postgres).toMatchObject({ run_count: 1, best_run_id: 'a2' })
+    expect(groupRuns(runs).map((g) => g.groupId)).toEqual(['g-b', 'g-a'])
   })
 })

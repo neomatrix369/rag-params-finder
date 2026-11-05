@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { WalkthruResults, WalkthruRun } from '../../walkthru/walkthruResults';
+import type { WalkthruRun } from '../../walkthru/walkthruResults';
 import {
   FEW_OVERLAP_THRESHOLD,
   countCrossStoreGroups,
@@ -8,19 +8,27 @@ import {
   primaryStore,
   suggestedRunId,
   type LeaderboardGroup,
+  type LeaderboardInput,
 } from '../../walkthru/leaderboard';
 import { displayDatabaseProvider } from '../../utils/storageLabels';
 import Pagination from '../chrome/Pagination';
 
 export type CrossStoreLeaderboardProps = {
-  results: WalkthruResults;
+  results: LeaderboardInput;
   selectedRunId?: string;
   onSelectRun: (runId: string) => void;
   /** Store highlighted as the suggested pick; defaults to the primary store (Redis 8). */
   suggestedStore?: string;
   /** When true the suggested pick is selected once on mount. */
   autoplay?: boolean;
+  /** When false there is no suggested pick (no badge, no autoplay selection). Defaults to true. */
+  suggest?: boolean;
+  /** Overrides the intro sentence under the heading. */
+  description?: string;
 };
+
+const DEFAULT_DESCRIPTION =
+  'Same dataset, questions and config, run on different stores. Rows are ordered by similarity score (normalised across this export). It measures similarity only.';
 
 const DEFAULT_PER_PAGE = 10;
 
@@ -92,12 +100,14 @@ export default function CrossStoreLeaderboard({
   onSelectRun,
   suggestedStore,
   autoplay = false,
+  suggest = true,
+  description = DEFAULT_DESCRIPTION,
 }: CrossStoreLeaderboardProps) {
   const [storeFilter, setStoreFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
-  const suggested = suggestedStore ?? primaryStore(results);
+  const suggested = suggest ? (suggestedStore ?? primaryStore(results)) : undefined;
   const suggestedId = suggestedRunId(results, suggested);
 
   const allGroups = useMemo(() => groupRuns(results.runs), [results.runs]);
@@ -123,10 +133,7 @@ export default function CrossStoreLeaderboard({
     <section aria-label="Cross-store leaderboard" className="space-y-4">
       <div>
         <h3 className="font-display text-lg font-semibold text-ink">Cross-store leaderboard</h3>
-        <p className="text-sm text-muted">
-          Same dataset, questions and config, run on different stores. Rows are ordered by similarity score
-          (normalised across this export). It measures similarity only.
-        </p>
+        <p className="text-sm text-muted">{description}</p>
       </div>
 
       {allGroups.length === 0 ? (

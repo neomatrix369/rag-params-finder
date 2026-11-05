@@ -57,10 +57,12 @@ vi.mock('./components/screens/ExperimentsScreen', () => ({
   default: ({
     onSelect,
     onCacheUpdate,
+    onCompare,
     cacheReady,
   }: {
     onSelect?: (experiment: Experiment) => void;
     onCacheUpdate?: (update: { experiments: Experiment[]; vectorDbGroups: VectorDbStatsGroup[] }) => void;
+    onCompare?: () => void;
     cacheReady?: boolean;
   }) => (
     <div>
@@ -74,7 +76,17 @@ vi.mock('./components/screens/ExperimentsScreen', () => ({
       >
         Populate Cache
       </button>
+      <button onClick={() => onCompare?.()}>Compare Stub</button>
       <WalkthruStubControls />
+    </div>
+  ),
+}));
+
+vi.mock('./components/screens/CompareScreen', () => ({
+  default: ({ onBack }: { onBack: () => void }) => (
+    <div>
+      <p>Compare Screen Stub</p>
+      <button onClick={onBack}>Back From Compare</button>
     </div>
   ),
 }));
@@ -321,5 +333,26 @@ describe('App', () => {
     expect(screen.getByText('Experiments Screen Stub')).toBeInTheDocument();
     expect(screen.queryByText('What the best settings changed')).toBeNull();
   });
+});
 
+describe('App compare navigation', () => {
+  it('Given the list, when Compare is opened and Back is pressed, then the list returns', () => {
+    /**
+     * Scenario: The compare screen is a first-class screen reachable from and returning to the list.
+     * Slice: 66 - live cross-store compare navigation.
+     * Given the list screen.
+     * When the compare button is clicked and then Back.
+     * Then the compare screen shows, then the list shows again.
+     */
+    // -- Given --
+    render(<App />);
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'Compare Stub' }));
+
+    // -- Then --
+    expect(screen.getByText('Compare Screen Stub')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Back From Compare' }));
+    expect(screen.getByText('Experiments Screen Stub')).toBeInTheDocument();
+  });
 });

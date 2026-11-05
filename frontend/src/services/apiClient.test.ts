@@ -8,6 +8,7 @@ import {
   cancelExperiment,
   deleteExperiment,
   getApiBaseUrl,
+  getCompare,
   getExperiment,
   getExperimentDbStats,
   getExperimentExplore,
@@ -49,6 +50,23 @@ describe('apiClient', () => {
 
     // -- Then --
     expect(actual.length).toBeGreaterThan(0);
+  });
+
+  it('Given a compare payload, when getCompare succeeds, then it hits /api/v1/compare and returns the body', async () => {
+    /**
+     * Scenario: The compare helper calls the v1 endpoint and returns the parsed response.
+     * Slice: 66 - live cross-store compare client.
+     */
+    // -- Given --
+    const body = { groups: [], stores: [], group_count: 0, run_count: 0, cross_store_group_count: 0 };
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(body));
+
+    // -- When --
+    const actual = await getCompare();
+
+    // -- Then --
+    expect(actual).toEqual(body);
+    expect(String(vi.mocked(fetch).mock.calls[0][0])).toMatch(/\/api\/v1\/compare$/);
   });
 
   it('Given experiments payload, when getExperiments succeeds, then the list is returned', async () => {
@@ -330,6 +348,7 @@ describe('apiClient', () => {
     { name: 'getExperimentDbStats', call: () => getExperimentDbStats('exp-1') },
     { name: 'getVectorDbStatsGrouped', call: () => getVectorDbStatsGrouped() },
     { name: 'cancelExperiment', call: () => cancelExperiment('exp-1') },
+    { name: 'getCompare', call: () => getCompare() },
     { name: 'pauseExperiment', call: () => pauseExperiment('exp-1') },
     { name: 'resumeExperiment', call: () => resumeExperiment('exp-1') },
     { name: 'deleteExperiment', call: () => deleteExperiment('exp-1') },
