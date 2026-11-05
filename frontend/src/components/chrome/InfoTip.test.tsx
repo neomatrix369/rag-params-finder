@@ -6,7 +6,7 @@
  * Scope: Slice 67C — aria wiring, tap toggle, Escape, outside dismiss, no duplicate announcement
  */
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import InfoTip from './InfoTip';
 
 describe('InfoTip', () => {
@@ -192,5 +192,54 @@ describe('InfoTip', () => {
     // -- Then --
     const [a, b] = screen.getAllByRole('tooltip', { hidden: true });
     expect(a.id).not.toBe(b.id);
+  });
+
+  describe('viewport clamping', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    const openWithTipRect = (left: number, right: number) => {
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+        const isTip = this.getAttribute('role') === 'tooltip';
+        return { left: isTip ? left : 0, right: isTip ? right : 0, top: 0, bottom: 0, width: right - left, height: 0, x: left, y: 0, toJSON: () => ({}) };
+      });
+      render(<InfoTip label="About Total">Explained</InfoTip>);
+      fireEvent.click(screen.getByRole('button', { name: 'About Total' }));
+      return screen.getByRole('tooltip');
+    };
+
+    it('Given a tip overflowing the left edge, when opened, then it is shifted right to an 8 px margin', () => {
+      /**
+       * Scenario: A tile at the left edge of a 390 px screen must not clip its tip.
+       * Slice: 67C — InfoTip
+       */
+      // -- Given / When --
+      const tip = openWithTipRect(-60, 196);
+      // -- Then --
+      expect(tip.style.transform).toBe('translateX(calc(-50% + 68px))');
+    });
+
+    it('Given a tip overflowing the right edge, when opened, then it is shifted left to an 8 px margin', () => {
+      /**
+       * Scenario: A tile at the right edge must not clip its tip.
+       * Slice: 67C — InfoTip
+       */
+      // -- Given / When --
+      const tip = openWithTipRect(900, 1156);
+      // -- Then --
+      expect(tip.style.transform).toBe(`translateX(calc(-50% + ${window.innerWidth - 8 - 1156}px))`);
+    });
+
+    it('Given a tip fully inside the viewport, when opened, then it is not shifted', () => {
+      /**
+       * Scenario: No nudge when there is room.
+       * Slice: 67C — InfoTip
+       */
+      // -- Given / When --
+      const tip = openWithTipRect(100, 356);
+      // -- Then --
+      expect(tip.style.transform).toBe('translateX(calc(-50% + 0px))');
+    });
   });
 });

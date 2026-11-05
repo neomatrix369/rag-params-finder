@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+
+const VIEWPORT_MARGIN = 8;
 
 type InfoTipProps = {
   /** Accessible name of the trigger (short, e.g. "About Total"); the tip text is NOT repeated in it. */
@@ -18,12 +20,25 @@ export default function InfoTip({ label, children, className = '', id }: InfoTip
   const generatedId = useId();
   const tipId = id ?? generatedId;
   const rootRef = useRef<HTMLSpanElement>(null);
+  const tipRef = useRef<HTMLSpanElement>(null);
+  const [shift, setShift] = useState(0);
 
   const toggle = useCallback(() => setOpen((prev) => !prev), []);
 
   const onKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Escape') setOpen(false);
   }, []);
+
+  // Keep the tip inside the viewport (8 px margin): measure once per open at shift 0, then nudge.
+  useLayoutEffect(() => {
+    if (!open || !tipRef.current) {
+      setShift(0);
+      return;
+    }
+    const { left, right } = tipRef.current.getBoundingClientRect();
+    if (left < VIEWPORT_MARGIN) setShift(VIEWPORT_MARGIN - left);
+    else if (right > window.innerWidth - VIEWPORT_MARGIN) setShift(window.innerWidth - VIEWPORT_MARGIN - right);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -50,10 +65,12 @@ export default function InfoTip({ label, children, className = '', id }: InfoTip
         </svg>
       </button>
       <span
+        ref={tipRef}
         id={tipId}
+        style={{ transform: `translateX(calc(-50% + ${shift}px))` }}
         role="tooltip"
         hidden={!open}
-        className="absolute left-1/2 top-full z-20 mt-1 w-64 max-w-[80vw] -translate-x-1/2 rounded-md border border-slate-200 bg-white p-2 text-left text-xs font-normal normal-case leading-snug tracking-normal text-slate-700 shadow-lg"
+        className="absolute left-1/2 top-full z-20 mt-1 w-64 max-w-[80vw] rounded-md border border-slate-200 bg-white p-2 text-left text-xs font-normal normal-case leading-snug tracking-normal text-slate-700 shadow-lg"
       >
         {children}
       </span>
