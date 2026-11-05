@@ -41,6 +41,7 @@ import {
 import {
   bayesianNotStartedCount,
   bayesianTotalsLine,
+  detailDenominator,
   displayRetrievers,
   isPausedExperimentStatus,
   isRunningExperimentStatus,
@@ -250,15 +251,20 @@ export default function ExperimentDetailScreen({
     ? bayesianNotStartedCount(bayesianPlannedTrials, bayesianAttemptedTrials, bayesianDiscardedCount)
     : runSummary.neverStarted;
   const now = new Date().getTime();
+  const totalPlanned = detailDenominator({
+    isBayesian: isBayesianStrategy,
+    plannedTrials: bayesianPlannedTrials,
+    expectedRuns: runSummary.expected,
+  });
   const progressPercent = calculateProgressPercent({
     complete: runSummary.complete,
     failed: runSummary.failed,
     interrupted: runSummary.interrupted,
-    expected: runSummary.expected,
+    expected: totalPlanned,
   });
-  const totalPlanned = isBayesianStrategy ? bayesianPlannedTrials : runSummary.expected;
+  // attempted trusts bayesian_summary.attempted_trials (backend SSOT after 67B) over the phase-derived cards.
   const bayesianTotals = bayesianTotalsLine({
-    planned: bayesianPlannedTrials,
+    planned: totalPlanned,
     attempted: bayesianAttemptedTrials,
     discarded: bayesianDiscardedCount,
     notStarted: bayesianNotStarted,
@@ -474,7 +480,7 @@ export default function ExperimentDetailScreen({
                   completed={runSummary.complete}
                   failed={runSummary.failed}
                   interrupted={runSummary.interrupted}
-                  total={runSummary.expected}
+                  total={totalPlanned}
                   startedAt={detail.started_at}
                   now={now}
                 />
@@ -558,7 +564,7 @@ export default function ExperimentDetailScreen({
                     <>
                       <MetadataItem
                         label="Planned Bayesian Trials"
-                        value={detail.run_count}
+                        value={totalPlanned}
                       />
                       <MetadataItem
                         label="Grid-Equivalent Count"
@@ -645,7 +651,7 @@ export default function ExperimentDetailScreen({
                 storageKey={`detail-bayesian-summary-${experimentId}`}
                 headerExtra={
                   <span className="text-sm font-semibold text-accent-strong">
-                    {detail.run_count}/{detail.grid_equivalent_count ?? '—'} trials
+                    {totalPlanned}/{detail.grid_equivalent_count ?? '—'} trials
                   </span>
                 }
                 className="mt-3"

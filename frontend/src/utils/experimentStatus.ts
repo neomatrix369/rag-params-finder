@@ -40,6 +40,22 @@ export function bayesianNotStartedCount(
   return Math.max(0, planned - attempted - discarded);
 }
 
+/**
+ * The one denominator every Detail-screen count uses: planned trials for a Bayesian sweep
+ * (run_count can differ), the expected run count for a grid sweep.
+ */
+export function detailDenominator({
+  isBayesian,
+  plannedTrials,
+  expectedRuns,
+}: {
+  isBayesian: boolean;
+  plannedTrials: number;
+  expectedRuns: number;
+}): number {
+  return isBayesian ? plannedTrials : expectedRuns;
+}
+
 /** Ids of experiments that bulk actions may select (running ones are excluded). */
 export function selectableExperimentIds(
   experiments: ReadonlyArray<{ experiment_id: string; status: ExperimentStatus }>,

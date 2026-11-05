@@ -13,6 +13,7 @@ import {
   isTerminalExperimentStatus,
   bayesianNotStartedCount,
   bayesianTotalsLine,
+  detailDenominator,
   selectableExperimentIds,
   summarizeExperimentRuns,
 } from './experimentStatus';
@@ -386,6 +387,18 @@ describe('bayesianTotalsLine with runs in flight', () => {
 
     // -- Then --
     expect(line).toBe('Total 20 = 6 attempted (2 in progress) + 0 discarded + 14 not started. Discarded trials are not runs.');
+  });
+});
+
+describe('detailDenominator', () => {
+  it('Given a Bayesian or a grid sweep, when the denominator is chosen, then Bayesian uses planned trials and grid uses expected runs', () => {
+    /**
+     * Scenario: one denominator for every Detail-screen count.
+     * Slice: 67D - Total tile, ring, subtitle and totals line share it.
+     */
+    // -- Given / When / Then --
+    expect(detailDenominator({ isBayesian: true, plannedTrials: 10, expectedRuns: 12 })).toBe(10);
+    expect(detailDenominator({ isBayesian: false, plannedTrials: 10, expectedRuns: 12 })).toBe(12);
   });
 });
 

@@ -1668,11 +1668,22 @@ describe('ExperimentDetailScreen progress and Bayesian totals', () => {
     const fixture = detailFixture('partial', phases, {
       config: { execution: { search_strategy: 'bayesian' } },
       run_count: 25,
+      sweep_summary: {
+        database_provider: 'mongodb',
+        embedding_provider: 'local',
+        models: ['all-MiniLM-L6-v2'],
+        chunking_methods: ['recursive'],
+        chunk_sizes: [256, 512],
+        overlaps: [25, 50],
+      },
+      grid_equivalent_count: 120,
       bayesian_summary: { planned_trials: 20, attempted_trials: 13, discarded_trials: 4 },
     });
     apiMocks.getExperiment.mockResolvedValue(fixture);
     const tile = (label: string): string | null | undefined =>
       screen.getByText(label, { selector: 'div' }).previousElementSibling?.textContent;
+    const metadata = (label: string): string | null | undefined =>
+      screen.getByText(label).nextElementSibling?.textContent;
 
     // -- When --
     render(
@@ -1690,6 +1701,8 @@ describe('ExperimentDetailScreen progress and Bayesian totals', () => {
       screen.getByText('Total 20 = 13 attempted + 4 discarded + 3 not started. Discarded trials are not runs.'),
     ).toBeInTheDocument();
     expect(tile('Total')).toBe('20');
+    expect(metadata('Planned Bayesian Trials')).toBe('20');
+    expect(screen.getByText('20/120 trials')).toBeInTheDocument();
     expect(tile('Successful')).toBe('8');
     expect(tile('Failed')).toBe('3');
     expect(tile('Interrupted')).toBe('2');
@@ -1706,12 +1719,24 @@ describe('ExperimentDetailScreen progress and Bayesian totals', () => {
     // -- Given --
     const fixture = detailFixture('running', [Phase.COMPLETE, Phase.COMPLETE, Phase.FAILED, Phase.QUERYING], {
       config: { execution: { search_strategy: 'bayesian' } },
-      run_count: 10,
+      run_count: 12,
+      sweep_summary: {
+        database_provider: 'mongodb',
+        embedding_provider: 'local',
+        models: ['all-MiniLM-L6-v2'],
+        chunking_methods: ['recursive'],
+        chunk_sizes: [256, 512],
+        overlaps: [25, 50],
+      },
+      grid_equivalent_count: 120,
+      started_at: '2026-07-20T10:00:00.000Z',
       bayesian_summary: { planned_trials: 10, attempted_trials: 4, discarded_trials: 0 },
     });
     apiMocks.getExperiment.mockResolvedValue(fixture);
     const tile = (label: string): string | null | undefined =>
       screen.getByText(label, { selector: 'div' }).previousElementSibling?.textContent;
+    const metadata = (label: string): string | null | undefined =>
+      screen.getByText(label).nextElementSibling?.textContent;
 
     // -- When --
     render(
@@ -1725,10 +1750,15 @@ describe('ExperimentDetailScreen progress and Bayesian totals', () => {
     await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
 
     // -- Then --
+    // run_count is 12 but planned_trials is 10: every denominator on the screen is 10
+    expect(screen.getByText('3 of 10 runs finished (2 complete, 1 failed, 0 interrupted)')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Experiment completion' })).toHaveAttribute('aria-valuenow', '30');
     expect(
       screen.getByText('Total 10 = 4 attempted (1 in progress) + 0 discarded + 6 not started. Discarded trials are not runs.'),
     ).toBeInTheDocument();
     expect(tile('Total')).toBe('10');
+    expect(metadata('Planned Bayesian Trials')).toBe('10');
+    expect(screen.getByText('10/120 trials')).toBeInTheDocument();
     expect(tile('Not Started')).toBe('6');
     expect(tile('In Progress')).toBe('1');
     expect(
