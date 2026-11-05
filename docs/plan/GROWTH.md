@@ -99,3 +99,8 @@ Full list: [`invariants.md`](invariants.md).
 - **Delta**: explanations of numbers get one primitive (`InfoTip`) with its pure helpers (`clampShift`, label templates) instead of per-card native `title=` attributes or always-visible hint text.
 - **L1/L2 impact**: frontend leaf components only. No data or server change; consumers (`StatTile`, `StatCard`, `CollapsibleCard`) take optional props with unchanged defaults, except that `StatTile.hint` now shows on demand.
 - **Data-Flow**: none new. Explanation strings are produced by pure functions in the calling screens (67D) and passed in as text.
+
+### 2026-11-05 — Slice 67D (first bundle): one denominator, pure label helpers
+- **Delta**: the Detail, list, Compare and stats screens take their counts and explanation sentences from named pure helpers (`detailDenominator`, `bayesianNotStartedCount`, `bayesianTotalsLine`, `progressSentence`, `scoreLabels`, `estimateLabels`) instead of per-screen arithmetic; the determinism guard grew a positive control and a per-module clock allowance.
+- **L1/L2 impact**: frontend plus one Python contract test; no server behaviour change. `sweep_plan` (67B) and `InfoTip` (67C) are not wired in here yet.
+- **Data-Flow**: API response (`bayesian_summary`, `run_count`, runs) -> pure helpers -> screens. The estimate formula constants are checked against `stats_common.py` by a test so the on-screen explanation cannot drift from the server.
