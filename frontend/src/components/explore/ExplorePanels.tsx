@@ -82,9 +82,9 @@ export function BestParamsCard({
         </div>
       )}
 
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-3">
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-x-6 gap-y-3">
             <div>
               <div className="text-xs text-slate-400 uppercase tracking-wider">Database</div>
               <div className="text-sm font-bold uppercase text-indigo-300">{displayDatabaseProvider(config.database_provider)}</div>
@@ -98,7 +98,7 @@ export function BestParamsCard({
               <div className="text-lg font-bold">{config.embedding_model}</div>
             </div>
           </div>
-          <div className="flex gap-8">
+          <div className="flex flex-wrap gap-x-8 gap-y-3">
             <div>
               <div className="text-xs text-slate-400 uppercase tracking-wider">Chunking</div>
               <div className="text-sm font-semibold capitalize">{config.chunking_method}</div>

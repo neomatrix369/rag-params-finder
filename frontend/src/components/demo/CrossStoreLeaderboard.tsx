@@ -170,7 +170,7 @@ export default function CrossStoreLeaderboard({
                 {group.spansStores ? `Run on ${group.stores.length} stores` : `Run on 1 store (${group.stores[0]})`}
               </span>
             </div>
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="w-full min-w-[40rem] text-left">
                 <thead>
                   <tr className="text-xs uppercase tracking-wider text-muted">
