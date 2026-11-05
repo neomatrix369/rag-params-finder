@@ -1,5 +1,7 @@
 # SLICE 53 — Redis Vector Store: Adapter + Full Journey (Branch A)
 
+> **Plan update (2026-11-05, docs only):** [SLICE-56](../02-dashboard/SLICE-56-MEETUP-DEMO-KIT.md) Step 0 runs the first full-grid (120-run) Redis sweep on the Pell PDF. `redis-local` has `--maxmemory 256mb` with `volatile-lru`; a capacity-preflight 422 there is a finding about these defaults, not a reason to edit them silently.
+
 **MoSCoW:** SHOULD *(owner-confirmed #233; promoted to Must on a Slice 52 Branch A **GO**)*
 **Target time:** ~9–12 h, one branch, may ship as 2 PRs: **53a** adapter core (~5–6 h) · **53b** operability + CI + docs + ADR-007 Accepted (~4–6 h)
 **Status:** ✅ PASSED

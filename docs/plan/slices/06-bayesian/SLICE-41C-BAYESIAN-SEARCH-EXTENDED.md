@@ -1,5 +1,7 @@
 # Slice 41C — Bayesian Search: Extended
 
+> **Plan update (2026-11-05, docs only):** the 'RAGAS metrics slice' referenced in Out of scope is now [SLICE-60](../01-core-pipeline/SLICE-60-PHASE2-RETRIEVAL-QUALITY-METRICS.md) (zero-LLM retrieval-quality metrics; LLM-judged Ragas metrics stay out).
+
 **Status**: 📋 PLANNED — all open questions resolved; blocked only on Slice 41B ✅ complete
 
 **MoSCoW**: Could

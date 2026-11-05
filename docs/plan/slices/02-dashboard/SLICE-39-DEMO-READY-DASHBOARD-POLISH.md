@@ -1,5 +1,7 @@
 # Slice 39 — Demo-Ready Dashboard Polish
 
+> **Plan update (2026-11-05, docs only):** [SLICE-56](SLICE-56-MEETUP-DEMO-KIT.md) builds on this polish: About box, Walkthru, run replay and a cross-store leaderboard from bundled data for the Redis London meetup.
+
 **Status**: ✅ COMPLETE — implementation and live regression verification complete
 
 **Branch**: `slice/39-demo-ready-dashboard-polish-implementation`

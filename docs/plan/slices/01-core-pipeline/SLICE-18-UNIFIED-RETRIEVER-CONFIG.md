@@ -1,5 +1,7 @@
 # SLICE-18: Unified Retriever Configuration
 
+> **Plan update (2026-11-05, docs only):** retriever **parameters** (`rrf_k`, `alpha`, `lambda`, `candidates`) extend `RetrieverConfig` in [SLICE-57B](SLICE-57-METHOD-CATALOGUE-EXPANSION.md); the resume signature and analyzer config key grow with them. Existing configs and their run keys stay unchanged.
+
 **Status**: 🔨 IN PROGRESS
 **Created**: 2026-05-23
 **Target**: ~4–6 hours

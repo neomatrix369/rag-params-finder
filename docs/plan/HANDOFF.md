@@ -10,6 +10,8 @@
 > **2026-09-24 note (plan Adds — docs only):** Elasticsearch vector-store track **49 → 50 → 51** (specs under [`slices/05-storage/`](slices/05-storage/), ADR-006, DECISIONS #213–#219) and Redis track **52 → 53** (+ **54** Could) from [`BRIEF-redis-evaluation.md`](BRIEF-redis-evaluation.md) (ADR-007, DECISIONS #220–#229). Slice 52 is a docs-only evaluation spike that can start now; its owner GO / NO-GO gates 53 and 54. MoSCoW confirmed by the owner (#233): 52 Must, 53 Should → Must on Branch A GO, 54 Could.
 >
 > **2026-09-25 note (Redis walkthrough, docs only):** [`_internal/STORE-E2E-WALKTHROUGH.md`](../_internal/STORE-E2E-WALKTHROUGH.md) traces all four stores. New 49B/51/53 scenarios close its gaps, 52 reuses it in R0, and 50–54 list the official vendor docs to load at slice start. DECISIONS #253–#254.
+>
+> **2026-11-05 note (plan Adds — docs only):** Meetup demo kit **56** (About box, Walkthru, run replay, cross-store leaderboard, release v0.13.0 for the Redis London meetup) and method-catalogue expansion **57A–57E** (queued behind 56); backlog stubs **58–63** for the prompt's later phases. Evidence changed the prompt: no phase-transition history is stored (replay = stage sequence + real totals), the only Redis runs were on `sample.pdf` (a 120-run Pell sweep is Step 0), no expected sources exist, and the Docker server keeps run state in the named volume `sqlite_run_state`. DECISIONS #274–#286.
 
 ## Where We Are
 
