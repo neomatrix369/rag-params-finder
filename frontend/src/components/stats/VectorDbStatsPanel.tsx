@@ -3,6 +3,8 @@ import StatRow from './StatRow';
 import StatTile from './StatTile';
 import type { VectorDbStatsGroup } from '../../types';
 import { STATS_SCOPE, estimateFormula } from './estimateLabels';
+import { GroupResultsHint } from './ResultsBreakdownView';
+import { groupResultsBreakdown } from './resultsBreakdown';
 import {
   clusterHostLabel,
   clusterSectionTitle,
@@ -99,7 +101,15 @@ export default function VectorDbStatsPanel({
             <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <StatTile label="Experiments" value={group.totals.experiment_count} />
               <StatTile label="Total Chunks" value={group.totals.total_chunks.toLocaleString()} />
-              <StatTile label="Query Results" value={group.totals.total_results.toLocaleString()} />
+              <StatTile
+                label="Query Results"
+                value={group.totals.total_results.toLocaleString()}
+                hint={
+                  groupResultsBreakdown(group.totals).kind === 'unavailable' ? undefined : (
+                    <GroupResultsHint totals={group.totals} />
+                  )
+                }
+              />
               <StatTile
                 label="DB Used"
                 value={

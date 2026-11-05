@@ -21,9 +21,10 @@ export type SweepFormulaSource = Pick<
   'models' | 'chunking_methods' | 'chunk_sizes' | 'overlaps' | 'paddings' | 'retrievers' | 'retrieval_methods'
 >;
 
-/** Regular plurals only (adds "s"); every current label fits. */
-export function pluralize(count: number, label: string): string {
-  return `${count} ${label}${count === 1 ? '' : 's'}`;
+/** Regular plurals only (adds "s", or "ies" after a consonant + y); every current label fits. */
+export function pluralize(count: number, label: string, format: (count: number) => string = String): string {
+  const noun = count === 1 ? label : label.replace(/([^aeiou])y$/, '$1ie') + 's';
+  return `${format(count)} ${noun}`;
 }
 
 export function formulaProduct(terms: FormulaTerm[]): number {

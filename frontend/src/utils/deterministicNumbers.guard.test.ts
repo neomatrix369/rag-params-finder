@@ -17,6 +17,9 @@ const SOURCES = import.meta.glob(
     '/src/components/explore/scoreCounts.ts',
     '/src/components/walkthru/scoreLabels.ts',
     '/src/components/stats/estimateLabels.ts',
+    '/src/components/stats/resultsBreakdown.ts',
+    '/src/components/stats/ResultsBreakdownView.tsx',
+    '/src/components/stats/ExperimentStoredFootprint.tsx',
     '/src/components/screens/ExperimentDetailScreen.tsx',
     '/src/components/screens/ExperimentsScreen.tsx',
     '/src/components/explore/ExplorePanels.tsx',
@@ -41,6 +44,7 @@ const PURE_MODULES = [
   'src/components/explore/scoreCounts.ts',
   'src/components/walkthru/scoreLabels.ts',
   'src/components/stats/estimateLabels.ts',
+  'src/components/stats/resultsBreakdown.ts',
 ];
 
 /** Screens must render counts produced elsewhere, never multiply them in JSX. */
@@ -49,6 +53,8 @@ const SCREENS = [
   'src/components/explore/ExplorePanels.tsx',
   'src/components/screens/ExperimentsScreen.tsx',
   'src/components/experiment/experimentDetail/ProgressSubtitle.tsx',
+  'src/components/stats/ResultsBreakdownView.tsx',
+  'src/components/stats/ExperimentStoredFootprint.tsx',
 ];
 
 /** Pure parse helpers: the only `new Date(<arg>)` occurrences allowed, with the exact count each may hold. */
