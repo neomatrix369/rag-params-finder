@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CI/nightly `xenon`/`radon` crash (`No module named 'six.moves'`)** — the unlocked CI install (`pip install .[dev]`) backtracked `aim → boto3 → bcdoc` to `six==1.7.3`, whose import hook is broken on Python 3.12. Added a `six>=1.16` floor to the `dev` extra (reproduced and verified in a clean venv: `six 1.17.0`, `xenon` exit 0). This also unblocks the nightly Python-tests and complexity-report jobs.
+- **Nightly dependency audit / OSV** — upgraded `langgraph`, `mako`, `nltk`, `urllib3` (2.8.0) in `uv.lock`; bumped frontend `fast-uri`/`qs` overrides; `osv-scanner.toml` now mirrors the existing `pip-audit.sh` waivers for `sentence-transformers` (CVE-2026-68770) and `transformers` (CVE-2026-80047), and waives dev-only `minimatch` (GHSA-g3hv-75wg-m249; fix is an unsupported 11.x major). `osv-scanner` and `pip-audit.sh` both exit 0.
+
 - **Docker dep-stage ENOSPC on torch** — `elasticsearch-deps` and `redis-deps` now chain FROM `core-deps` instead of `base-builder`. torch (~500 MB, aarch64) is extracted exactly once into `core-deps`' read-only layer; the ES and Redis overlay writable layers hold only their small incremental packages, eliminating the ENOSPC failure on constrained build hosts.
 - **Docker build disk exhaustion** — `apt-get install` removed entirely from `base-builder`; all dependencies use pre-built wheels so no C compiler is needed. `curl` also removed from `runtime-base` (HEALTHCHECK uses Python stdlib `urllib.request`). Eliminates the full 73 MB apt download that exceeded the overlay filesystem free-space limit on constrained build hosts.
 
