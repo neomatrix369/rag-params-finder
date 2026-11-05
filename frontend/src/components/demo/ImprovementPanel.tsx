@@ -70,14 +70,20 @@ export default function ImprovementPanel({ story }: { story: DemoStory }) {
         </p>
       ) : null}
 
-      <div className="rounded-lg border border-line bg-canvas p-3">
-        <p className="text-xs uppercase tracking-wider text-muted">Question ({story.question.focus})</p>
-        <p className="mt-1 text-sm font-medium text-ink">{story.question.text}</p>
-        <p className="mt-1 text-xs text-muted">
-          Top-1 similarity score {story.question.worst_top1.toFixed(1)} → {story.question.best_top1.toFixed(1)}
-          {' '}(gap {story.question.gap.toFixed(1)}).
+      {story.question ? (
+        <div className="rounded-lg border border-line bg-canvas p-3">
+          <p className="text-xs uppercase tracking-wider text-muted">Question ({story.question.focus})</p>
+          <p className="mt-1 text-sm font-medium text-ink">{story.question.text}</p>
+          <p className="mt-1 text-xs text-muted">
+            Top-1 similarity score {story.question.worst_top1.toFixed(1)} → {story.question.best_top1.toFixed(1)}
+            {' '}(gap {story.question.gap.toFixed(1)}).
+          </p>
+        </div>
+      ) : (
+        <p role="note" className="rounded-lg border border-line bg-canvas p-3 text-sm text-ink">
+          The best and worst runs share no common question, so no per-question comparison is shown.
         </p>
-      </div>
+      )}
 
       <div className="flex flex-col gap-4 sm:flex-row">
         <ChunkColumn heading="Best run — top chunks" chunks={story.best_top_chunks} />

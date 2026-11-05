@@ -3,7 +3,7 @@
  *
  * Pattern ported from neomatrix369/japanese-work-life-balancer (ui/src/tour/steps.ts) at commit
  * ccdbee1b4a4501b5e5394aafab225a583d630354, with the owner's permission (DECISIONS #276). The idea
- * is credited to Risako. The audio narration, theme.css and design-system from that repo are NOT ported.
+ * is credited to Risako. The audio narration, bundled stylesheet and component design library from that repo are NOT ported.
  *
  * Author: RAG Params Finder contributors
  * Created: 2026-11-05

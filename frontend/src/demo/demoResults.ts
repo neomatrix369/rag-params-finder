@@ -29,7 +29,8 @@ export interface DemoRun {
   roles: string[]
   embedding_model: string
   embedding_provider: string
-  embedding_dimensions: number
+  /** Null for runs whose embedding dimensions were not recorded. */
+  embedding_dimensions: number | null
   chunking_method: string
   chunk_size: number
   overlap: number
@@ -74,6 +75,14 @@ export interface DemoStoryChunk {
   chunk_text: string
 }
 
+export interface DemoQuestion {
+  text: string
+  focus: string
+  best_top1: number
+  worst_top1: number
+  gap: number
+}
+
 export interface DemoStory {
   basis: string
   run_count: number
@@ -82,7 +91,8 @@ export interface DemoStory {
   worst: DemoStoryRunRef
   /** best - worst, per metric (the exporter reports both normalised metrics). */
   spread: { max_score: number; query_avg_score: number }
-  question: { text: string; focus: string; best_top1: number; worst_top1: number; gap: number }
+  /** Null when the best and worst runs share no common question (no per-question comparison). */
+  question: DemoQuestion | null
   best_top_chunks: DemoStoryChunk[]
   worst_top_chunks: DemoStoryChunk[]
 }
@@ -94,16 +104,29 @@ export interface DemoExclusion {
   ids: string[]
 }
 
+/** A sweep that contributed some but not all of its runs (e.g. mid-run at export time). */
+export interface DemoPartialExperiment {
+  experiment_id: string
+  experiment_name: string
+  runs_exported: number
+  runs_not_complete: number
+  runs_total: number
+}
+
 export interface DemoManifest {
   schema_version: number
   inputs: {
     databases: { path: string; sha256: string }[]
     questions: { path: string; sha256: string }
+    /** Export-time selection filters; optional because older exports / fixtures omit it. */
+    filters?: { data_path_contains: string[] }
   }
   ranking: { fields: string[]; source: string; score: string; tiebreak_note: string }
   selection_rule: string
   counts: Record<string, number>
   exclusions: DemoExclusion[]
+  /** Partially-exported sweeps; optional because older exports / fixtures omit it. */
+  partial_experiments?: DemoPartialExperiment[]
   generated_by: string
 }
 

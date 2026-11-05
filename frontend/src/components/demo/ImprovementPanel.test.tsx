@@ -106,6 +106,27 @@ describe('ImprovementPanel', () => {
     expect(screen.getByText(/gap 85\.0/)).toBeInTheDocument();
   });
 
+  it('Given a null question, when rendered, then an honest line shows while tiles and averages remain', () => {
+    /**
+     * Scenario: Best and worst runs share no common question; the panel must not crash.
+     * Slice: 56 Part C2 - null-question latent-crash fix
+     */
+    // -- Given --
+    const base = story();
+    const noQuestion: DemoStory = { ...base, question: null };
+
+    // -- When --
+    render(<ImprovementPanel story={noQuestion} />);
+
+    // -- Then: honest line, no per-question comparison, but tiles + averages still render --
+    expect(
+      screen.getByText('The best and worst runs share no common question, so no per-question comparison is shown.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Best top-chunk score').nextSibling).toHaveTextContent('100.0');
+    expect(screen.getByText(/best .*, worst /)).toBeInTheDocument();
+    expect(screen.queryByText(/Top-1 similarity score/)).toBeNull();
+  });
+
   it('Given both runs, when rendered, then the best and worst top chunks show side by side', () => {
     /**
      * Scenario: Two columns compare the best and worst runs' retrieved chunks.

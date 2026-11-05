@@ -3,15 +3,15 @@
  *
  * Pattern ported from neomatrix369/japanese-work-life-balancer (ui/src/components/TourOverlay.tsx) at
  * commit ccdbee1b4a4501b5e5394aafab225a583d630354, with the owner's permission (DECISIONS #276); idea
- * credited to Risako. The audio narration, lucide icons, theme.css and design-system from that repo
- * are NOT ported. Styling is Tailwind and the overlay never animates (so it already respects
+ * credited to Risako. The audio narration, lucide icons, bundled stylesheet and component design
+ * library from that repo are NOT ported. Styling is Tailwind and the overlay never animates (so it respects
  * prefers-reduced-motion); only the scroll-into-view behaviour is reduced-motion aware.
  *
  * Author: RAG Params Finder contributors
  * Created: 2026-11-05
  * Scope: SLICE-56 Part C2 - spotlight + callout, manual Next default, visible Autoplay toggle.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { clampToViewport, placeCallout, prefersReducedMotion, sameBox, type Box } from './overlayGeometry';
 
@@ -43,8 +43,25 @@ export default function WalkthruOverlay(props: WalkthruOverlayProps) {
     onNext, onBack, onTogglePause, onSetAutoplay, onExit,
   } = props;
   const [rect, setRect] = useState<Box | null>(null);
-  const size = { width: 360, height: 200 };
-  const viewport = { width: window.innerWidth, height: window.innerHeight };
+  const calloutRef = useRef<HTMLDivElement>(null);
+  // The callout's real measured size; a hard-coded guess pinned the card off-screen (see tests).
+  const [size, setSize] = useState({ width: 360, height: 200 });
+  const [viewport, setViewport] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }));
+
+  // Re-measure the real callout box whenever its content or the viewport changes.
+  useLayoutEffect(() => {
+    const el = calloutRef.current;
+    if (!el) return;
+    const next = { width: el.offsetWidth || 360, height: el.offsetHeight || 200 };
+    setSize((prev) => (prev.width === next.width && prev.height === next.height ? prev : next));
+  }, [title, body, stepId, index, isLast, viewport.width, viewport.height]);
+
+  // Keep the viewport in sync so placement is recomputed on resize/rotation.
+  useEffect(() => {
+    const onResize = (): void => setViewport({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // Track the target's box every frame (panels move as the page scrolls / loads).
   useEffect(() => {
@@ -85,10 +102,11 @@ export default function WalkthruOverlay(props: WalkthruOverlayProps) {
         <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
       )}
       <div
+        ref={calloutRef}
         role="dialog"
         aria-modal="false"
         aria-label={title}
-        className="fixed w-[min(360px,calc(100vw-16px))] rounded-panel border border-line bg-paper p-4 text-ink shadow-lift"
+        className="fixed max-h-[calc(100vh-16px)] w-[min(360px,calc(100vw-16px))] overflow-y-auto rounded-panel border border-line bg-paper p-4 text-ink shadow-lift"
         style={{ top: pos.top, left: pos.left }}
       >
         <div className="mb-2 flex items-center justify-between gap-3">
