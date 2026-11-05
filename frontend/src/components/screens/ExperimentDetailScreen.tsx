@@ -269,6 +269,7 @@ export default function ExperimentDetailScreen({
     discarded: bayesianDiscardedCount,
     notStarted: bayesianNotStarted,
     inProgress: runSummary.inProgress,
+    runRows: runSummary.started,
   });
   const failedRuns = (detail.runs ?? []).filter((r) => r.phase === Phase.FAILED);
   const interruptedRuns = (detail.runs ?? []).filter((r) => r.phase === Phase.INTERRUPTED);
@@ -285,10 +286,10 @@ export default function ExperimentDetailScreen({
   const isCompleteWithBayesianShortfall = detail.status === 'complete' && isBayesianIncomplete;
   const sweepSummary = (() => {
     if (detail.status === 'running') {
-      return `${runSummary.complete} of ${runSummary.expected} runs are complete; stored results can grow as the sweep continues.`;
+      return `${runSummary.complete} of ${totalPlanned} runs are complete; stored results can grow as the sweep continues.`;
     }
     if (detail.status === 'paused') {
-      return `Paused after ${runSummary.complete} of ${runSummary.expected} runs completed; resume to run the remaining parameter combinations.`;
+      return `Paused after ${runSummary.complete} of ${totalPlanned} runs completed; resume to run the remaining parameter combinations.`;
     }
     if (detail.status === 'complete') {
       const reasonSuffix = detail.completion_reason && detail.completion_reason !== 'all_planned_trials_completed'
@@ -299,7 +300,7 @@ export default function ExperimentDetailScreen({
           + `${bayesianAttemptedTrials} attempted: ${bayesianCompletedCount} complete, ${runSummary.interrupted} interrupted, `
           + `${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStarted} not started${reasonSuffix}.`;
       }
-      return `All ${runSummary.expected} configured runs completed${reasonSuffix}; stored results are ready to inspect.`;
+      return `All ${totalPlanned} configured runs completed${reasonSuffix}; stored results are ready to inspect.`;
     }
     const partialReasonSuffix = detail.completion_reason
       ? ` (${completionReasonLabel(detail.completion_reason)})`
@@ -310,12 +311,12 @@ export default function ExperimentDetailScreen({
           + `${bayesianAttemptedTrials} attempted: ${runSummary.complete} complete, ${runSummary.failed} failed, `
           + `${runSummary.interrupted} interrupted, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStarted} not started${partialReasonSuffix}.`;
       }
-      return `${runSummary.complete} of ${runSummary.expected} runs completed${partialReasonSuffix}; treat rankings from completed runs as preliminary results.`;
+      return `${runSummary.complete} of ${totalPlanned} runs completed${partialReasonSuffix}; treat rankings from completed runs as preliminary results.`;
     }
     if (detail.status === 'cancelled') {
-      return `Collection stopped after ${runSummary.complete} of ${runSummary.expected} runs completed.`;
+      return `Collection stopped after ${runSummary.complete} of ${totalPlanned} runs completed.`;
     }
-    return `${runSummary.failed} failed and ${runSummary.complete} completed of ${runSummary.expected} configured runs.`;
+    return `${runSummary.failed} failed and ${runSummary.complete} completed of ${totalPlanned} configured runs.`;
   })();
   const nextStepLabel = runSummary.complete > 0
     ? 'Inspect stored results'
@@ -420,7 +421,7 @@ export default function ExperimentDetailScreen({
               <p className="mt-1 text-sm font-semibold text-ink">
                 {isBayesianStrategy
                   ? `${bayesianAttemptedTrials} attempted · ${bayesianPlannedTrials} planned`
-                  : `${runSummary.complete} complete · ${runSummary.expected} configured`}
+                  : `${runSummary.complete} complete · ${totalPlanned} configured`}
               </p>
             </div>
             <div className="rounded-xl border border-line bg-paper p-3">
@@ -911,7 +912,7 @@ export default function ExperimentDetailScreen({
                 <p className="text-sm text-green-700 mt-1">
                     {isCompleteWithBayesianShortfall
                       ? `Attempted ${bayesianAttemptedTrials} of ${bayesianPlannedTrials} combinations; ${bayesianCompletedCount} completed successfully with no failures${detail.completion_reason && detail.completion_reason !== 'all_planned_trials_completed' ? ` (${completionReasonLabel(detail.completion_reason)})` : ''}.`
-                      : `${runSummary.complete} of ${runSummary.expected} run(s) finished without errors`}
+                      : `${runSummary.complete} of ${totalPlanned} run(s) finished without errors`}
                   </p>
                 </div>
               </div>
@@ -941,7 +942,7 @@ export default function ExperimentDetailScreen({
                     {isBayesianStrategy
                       ? `Bayesian partial: ${bayesianAttemptedTrials} of ${bayesianPlannedTrials} attempted and started, `
                         + `${runSummary.complete} completed successfully, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStarted} not started.`
-                      : `${runSummary.complete} of ${runSummary.expected} run(s) completed successfully.`}
+                      : `${runSummary.complete} of ${totalPlanned} run(s) completed successfully.`}
                     {runSummary.interrupted > 0 && ` ${runSummary.interrupted} interrupted.`}
                     {runSummary.failed > 0 && ` ${runSummary.failed} failed.`}
                     {runSummary.neverStarted > 0 && ` ${runSummary.neverStarted} not started.`}
@@ -983,7 +984,7 @@ export default function ExperimentDetailScreen({
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Experiment Cancelled</h3>
                 <p className="text-sm text-slate-700 mt-1">
-                  {runSummary.complete} of {runSummary.expected} run(s) completed before cancellation.
+                  {runSummary.complete} of {totalPlanned} run(s) completed before cancellation.
                 </p>
               </div>
             </div>
@@ -999,7 +1000,7 @@ export default function ExperimentDetailScreen({
               <div>
                 <h3 className="text-lg font-bold text-violet-900">Experiment Paused</h3>
                 <p className="text-sm text-violet-800 mt-1">
-                  {runSummary.complete} of {runSummary.expected} run(s) completed.
+                  {runSummary.complete} of {totalPlanned} run(s) completed.
                   {runSummary.neverStarted > 0 && ` ${runSummary.neverStarted} not started yet.`}
                 </p>
                 <p className="text-xs text-violet-700 mt-2">

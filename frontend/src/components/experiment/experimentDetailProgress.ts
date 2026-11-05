@@ -2,7 +2,7 @@
  * Progress rule (Slice 67D, finding E): a run is "finished" when it is complete, failed or
  * interrupted. Failed and interrupted runs will not become complete later, so they count
  * as finished work for the progress ring and the ETA. ProgressSubtitle renders this sentence
- * whenever a failed or interrupted run exists.
+ * while a sweep is running and has a failed or interrupted run (the ring and ETA only exist then).
  * Caveat: the ETA averages elapsed time over all finished runs, so fast failures pull it down.
  */
 export const FINISHED_RUN_RULE =

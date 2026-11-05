@@ -258,7 +258,7 @@ describe('VectorDbStatsPanel', () => {
     render(<VectorDbStatsPanel groups={[group()]} />);
 
     // -- Then --
-    expect(screen.getByTestId('estimate-formula')).toHaveTextContent(/chunks × dimensions × 4 bytes/);
+    expect(screen.getByTestId('estimate-formula')).toHaveTextContent(/chunks × average dimensions × 4 bytes/);
     expect(screen.getByTestId('estimate-formula')).toHaveTextContent(/500 bytes/);
     expect(screen.getByText('Chunks (est. MB)')).toBeInTheDocument();
     expect(screen.getByTestId('stats-scope')).toHaveTextContent(/all experiments stored in this database/i);

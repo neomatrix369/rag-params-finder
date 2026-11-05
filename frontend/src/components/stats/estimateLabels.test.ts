@@ -6,7 +6,7 @@
  * Scope: Slice 67D - est. label and formula text are deterministic templates.
  */
 import { describe, expect, it } from 'vitest'
-import { estimateFormula, estimatedMbLabel } from './estimateLabels'
+import { BYTES_PER_DIMENSION, METADATA_BYTES_PER_CHUNK, estimateFormula, estimatedMbLabel } from './estimateLabels'
 
 describe('estimateLabels', () => {
   it('Given the same input, when called twice, then the output is identical and carries the constants', () => {
@@ -21,7 +21,8 @@ describe('estimateLabels', () => {
     // -- Then --
     expect(b).toEqual(a)
     expect(a[0]).toBe('est. 12.5 MB')
-    expect(a[1]).toContain('4 bytes')
-    expect(a[1]).toContain('500 bytes')
+    expect(a[1]).toContain(`${BYTES_PER_DIMENSION} bytes`)
+    expect(a[1]).toContain(`${METADATA_BYTES_PER_CHUNK} bytes`)
+    expect(a[1]).toContain('average dimensions')
   })
 })

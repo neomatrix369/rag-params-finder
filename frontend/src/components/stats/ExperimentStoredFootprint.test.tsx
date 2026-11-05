@@ -101,7 +101,7 @@ describe('ExperimentStoredFootprint', () => {
 
     // -- Then --
     expect(screen.getByTestId('footprint-summary')).toHaveTextContent(/est\. .* MB/);
-    expect(screen.getByTestId('footprint-formula')).toHaveTextContent(/chunks × dimensions × 4 bytes/);
+    expect(screen.getByTestId('footprint-formula')).toHaveTextContent(/chunks × average dimensions × 4 bytes/);
     expect(screen.getByTestId('footprint-formula')).toHaveTextContent(/500 bytes/);
     expect(screen.getByTestId('footprint-scope')).toHaveTextContent(/this experiment only/i);
   });

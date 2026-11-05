@@ -9,7 +9,7 @@ export const BYTES_PER_DIMENSION = 4;
 export const METADATA_BYTES_PER_CHUNK = 500;
 
 export function estimateFormula(): string {
-  return `chunks × dimensions × ${BYTES_PER_DIMENSION} bytes (vectors) + chunks × ${METADATA_BYTES_PER_CHUNK} bytes (metadata); an estimate, not measured on disk.`;
+  return `chunks × average dimensions × ${BYTES_PER_DIMENSION} bytes (vectors) + chunks × ${METADATA_BYTES_PER_CHUNK} bytes (metadata); an estimate, not measured on disk.`;
 }
 
 export function estimatedMbLabel(mb: number): string {

@@ -74,6 +74,7 @@ export function bayesianTotalsLine({
   discarded,
   notStarted,
   inProgress = 0,
+  runRows,
 }: {
   planned: number;
   attempted: number;
@@ -81,8 +82,11 @@ export function bayesianTotalsLine({
   notStarted: number;
   /** Runs still executing; they are part of attempted, so this only annotates it. */
   inProgress?: number;
+  /** Run rows actually loaded; when it differs from attempted the line says so instead of hiding it. */
+  runRows?: number;
 }): string {
-  const note = 'Discarded trials are not runs.';
+  const rowsNote = runRows !== undefined && runRows !== attempted ? ` Run rows show ${runRows} of the ${attempted} attempted.` : '';
+  const note = `Discarded trials are not runs.${rowsNote}`;
   const attemptedText = inProgress > 0 ? `${attempted} attempted (${inProgress} in progress)` : `${attempted} attempted`;
   if (attempted + discarded + notStarted === planned) {
     return `Total ${planned} = ${attemptedText} + ${discarded} discarded + ${notStarted} not started. ${note}`;

@@ -402,6 +402,22 @@ describe('detailDenominator', () => {
   });
 });
 
+describe('bayesianTotalsLine with a run-row disagreement', () => {
+  it('Given loaded run rows that differ from attempted, when explained, then the line states the disagreement', () => {
+    /**
+     * Scenario: attempted comes from the backend summary; fewer or more loaded rows are called out.
+     * Slice: 67D - never a confident false line.
+     */
+    // -- Given / When --
+    const differing = bayesianTotalsLine({ planned: 10, attempted: 6, discarded: 1, notStarted: 3, runRows: 3 });
+    const agreeing = bayesianTotalsLine({ planned: 10, attempted: 6, discarded: 1, notStarted: 3, runRows: 6 });
+
+    // -- Then --
+    expect(differing).toBe('Total 10 = 6 attempted + 1 discarded + 3 not started. Discarded trials are not runs. Run rows show 3 of the 6 attempted.');
+    expect(agreeing).not.toContain('Run rows show');
+  });
+});
+
 describe('selectableExperimentIds', () => {
   it('Given running and finished experiments, when selecting for bulk actions, then running ones are excluded in order', () => {
     /**
