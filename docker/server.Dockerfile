@@ -25,6 +25,11 @@ FROM python:${PYTHON_VERSION}-slim AS base-builder
 
 WORKDIR /app
 
+# g++ only (no build-essential/curl): `aim` has no linux-arm64 wheel and builds from sdist.
+# Lives in the builder stage only — the runtime image never gets a compiler.
+RUN apt-get update && apt-get install -y --no-install-recommends g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Dependency files only — this layer is cached as long as they don't change.
