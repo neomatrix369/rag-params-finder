@@ -12,6 +12,17 @@ export default defineConfig({
     // Coverage + jsdom screen suites routinely exceed the 5s default under load.
     testTimeout: 20_000,
     hookTimeout: 20_000,
+    // Explicit parallel execution via child processes (safe with jsdom).
+    // isolate:false reuses workers across files (~10s faster); module state is
+    // reset by setup.ts (vi.useRealTimers, vi.restoreAllMocks) so isolation is preserved.
+    pool: 'forks',
+    isolate: false,
+    poolOptions: {
+      forks: {
+        minForks: 1,
+        maxForks: 4,
+      },
+    },
     reporters: ['default', ['junit', { outputFile: '../.test-results/frontend-junit.xml' }]],
     coverage: {
       provider: 'v8',

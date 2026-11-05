@@ -73,7 +73,7 @@ uv run vulture
 if [[ "${MODE}" == "quick" ]]; then
   echo ""
   echo "6/9 Backend unit tests (no coverage)..."
-  uv run pytest --tb=short -q \
+  uv run pytest --tb=short -q -n auto \
     --ignore=tests/contract \
     --ignore=tests/server/db/test_postgres_store_integration.py \
     --ignore=tests/server/db/test_postgres_dense_retrieval.py \
@@ -106,7 +106,7 @@ echo "6/11 Backend tests + coverage (full server/ + cli/, unit tier)..."
 # Floor: 61% statements/lines, 47% branches — see pyproject.toml
 # [tool.rag_params_finder.backend_coverage_thresholds].
 mkdir -p .reports/coverage
-uv run pytest --tb=short -q \
+uv run pytest --tb=short -q -n auto \
   --ignore=tests/contract \
   --ignore=tests/server/db/test_postgres_store_integration.py \
   --ignore=tests/server/db/test_postgres_dense_retrieval.py \
