@@ -1,10 +1,32 @@
 # SLICE-66 — Live Cross-Store Compare and Leaderboard
 
-**Status:** 📋 PLANNED
+**Status:** 🔨 IN PROGRESS (partial: compare endpoint + Compare sweeps button; footprint note and delete guard deferred)
 **MoSCoW:** Should
 **Depends-on:** SLICE-65 (single SQLite source of truth; must be cutover first)
-**Estimated effort:** ~12–16 h
+**Estimated effort:** ~12–16 h (full slice)
 **Planned date:** TBD (after 65B ships)
+
+---
+
+## Built so far (2026-11-05)
+
+**Endpoint implementation** (`server/api/compare.py` + `server/core/compare.py`):
+- `GET /api/v1/compare` groups runs by **same dataset + questions file (name+sha) + config** (ignoring `database_provider`), keeps latest per (store, group), ranks each group via `analyze_results` with min-max normalization within a group only
+- Response: `{groups: [{group_id, runs[]}], stores, group_count, run_count, cross_store_group_count}`
+- Reads run state only — works with no vector store healthy
+
+**Dashboard** (on ExperimentsScreen; in progress, see PROGRESS.md for verification state):
+- Added 'Compare sweeps' button; clicking calls the endpoint and renders a new compare view
+- Reuses `CrossStoreLeaderboard` with loading/error/empty states
+- Wired on click only (not on page load)
+
+**Not built yet** (deferred):
+- Detail screen: footprint unavailable note when `database_provider` ≠ active store
+- Delete guard: warning about orphaned chunks in mismatched store
+- Gate evidence: `docs/plan/gate-evidence/slice-66.json` (not created)
+- SLICE-65C exporter retirement (blocks on this slice's full closure)
+
+**Note:** A second spec `SLICE-66-REDIS-PER-RUN-CAPACITY-GUARD` shares the number 66 on branch `slice/66-redis-capacity-guard` — owner to renumber before merging.
 
 ---
 

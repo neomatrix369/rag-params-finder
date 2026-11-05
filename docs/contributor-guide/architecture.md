@@ -378,6 +378,7 @@ rag-params-finder/
 │   │   ├── experiments_lifecycle.py  # Bayesian/stale-status helpers (Slice 45)
 │   │   ├── experiments_shared.py  # StorageBackend helpers (threadpool I/O) incl. db-stats
 │   │   ├── sweep.py         # POST /api/v1/sweep; GET /api/v1/best-config (persisted sweep history)
+│   │   ├── compare.py        # GET /api/v1/compare (cross-store leaderboard, reads run state only; Slice 66)
 │   │   └── runs.py          # GET /runs/{id}/status
 │   ├── core/
 │   │   ├── pipeline/        # orchestrator, executors, experiment_control, search, signatures, …
@@ -711,7 +712,7 @@ See `docs/adr/` for Architecture Decision Records:
 | Cascade delete with confirmation | DELETE endpoint scrubs all collections (experiments, run_status, chunks, results); `ConfirmDeleteModal` shows experiment details + deletion statistics; prevents deletion of running experiments |
 | Boot orphan reconciliation | `BackgroundTasks` sweeps die on process exit; startup marks in-flight runs `interrupted` and sets terminal experiment status — separate from Slice 10 retry |
 | Pause / resume sweeps | Cooperative halt via `_SweepControl` threading events; `resume_sweep()` skips completed parameter signatures; status `paused` is non-terminal |
-| Vector DB stats API + dashboard | `GET /experiments/vector-db-stats` (list: capacity, indexes, optional Atlas quota via `resolve_tier_specs()`) and `/{id}/db-stats` (detail: that experiment’s chunks, models, chunking, per-run counts). Store runtime on the list reads `GET /healthz` |
+| Vector DB stats API + dashboard | `GET /experiments/vector-db-stats` (detail screen: capacity, indexes, optional Atlas quota via `resolve_tier_specs()`, loaded on mount) and `/{id}/db-stats` (detail: that experiment’s chunks, models, chunking, per-run counts). Experiments list shows Store Runtime only via `GET /healthz` |
 | Timezone-aware UTC timestamps | PyMongo `tz_aware=True`; all writes use `datetime.now(timezone.utc)` so JSON includes `Z` and browser elapsed/duration math is correct |
 | `started_at` on first run | Duration and ETA exclude queue time between submission and first pipeline phase |
 | Search index preflight | `required_search_indexes(config)` + cluster snapshot; fail before runs if missing/quota exhausted; HTTP 422 on submit |
@@ -720,8 +721,8 @@ See `docs/adr/` for Architecture Decision Records:
 | Index CLI | `indexes list` is backend-aware (Atlas quota view or Postgres catalog view); `indexes reset` stays Atlas-only — Postgres remediation is a schema-bootstrap restart |
 | Option A scoped logging | `[rag-params-finder] [Scope] operation — details` in server (`scope_log.py`) and dashboard dev console (`devLog.ts`) |
 | Dedicated thread pools (`executors.py`) | Sweeps and heavy Mongo aggregations no longer compete with lightweight `GET /experiments` on the default executor |
-| Batched vector-db-stats queries | Three aggregation pipelines replace per-experiment N+1 round-trips on the experiments list |
-| Decoupled dashboard polling | List 2 s / vector DB stats 60 s / Search Explorer 15 s while running — each with appropriate fetch timeouts in `frontend/src/constants.ts` |
+| Batched vector-db-stats queries | Three aggregation pipelines serve `GET /experiments/vector-db-stats`; called once on detail-screen mount, not polled from the experiments list |
+| Decoupled dashboard polling | List 2 s / Search Explorer 15 s while running — each with appropriate fetch timeouts in `frontend/src/constants.ts`. Vector DB stats loaded once on detail mount (no poll interval) |
 | Search Explorer poll indicator timing | `PollingIndicator` showDelay + minVisibleMs reduce badge flicker on 15 s explore polls |
 
 ---
