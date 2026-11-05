@@ -7,6 +7,7 @@
  * - Enhanced runs table with color-coded badges
  * - Success/failure panels with large visual feedback
  */
+import { useState, useEffect } from 'react';
 import { DETAIL_POLL_MS } from '../../constants';
 import AppPageChrome from '../chrome/AppPageChrome';
 import DashboardShell from '../chrome/DashboardShell';
@@ -27,8 +28,10 @@ import {
 } from '../experiment/experimentDetail';
 import { formatDurationFromRuns } from '../experiment/experimentDetailProgress';
 import ExperimentStoredFootprint from '../stats/ExperimentStoredFootprint';
+import VectorDbStatsPanel from '../stats/VectorDbStatsPanel';
 import { useExperimentDetail } from '../../hooks/useExperimentDetail';
-import { Phase, Experiment, type ExperimentDbStats } from '../../types';
+import { Phase, Experiment, type ExperimentDbStats, type VectorDbStatsGroup } from '../../types';
+import { getVectorDbStatsGrouped } from '../../services/apiClient';
 import {
   displayDatabaseProvider,
   experimentHydratingBlurb,
@@ -80,6 +83,28 @@ export default function ExperimentDetailScreen({
     initialFootprint,
     onDeleted: onBack,
   });
+
+  const [vectorDbGroups, setVectorDbGroups] = useState<VectorDbStatsGroup[]>([]);
+  const [vectorDbLoading, setVectorDbLoading] = useState(true);
+  const [vectorDbError, setVectorDbError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getVectorDbStatsGrouped()
+      .then((payload) => {
+        if (!cancelled) {
+          setVectorDbGroups(payload.groups);
+          setVectorDbLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setVectorDbError(err instanceof Error ? err.message : 'Failed to load vector DB stats');
+          setVectorDbLoading(false);
+        }
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const isTerminal = detail && isTerminalExperimentStatus(detail.status, detail.completed_at);
   const isRunning = isRunningExperimentStatus(detail?.status, detail?.completed_at);
@@ -956,6 +981,11 @@ export default function ExperimentDetailScreen({
         )}
 
         <ExperimentStoredFootprint stats={footprint ?? undefined} loading={footprintLoading && !footprint} />
+        <VectorDbStatsPanel
+          groups={vectorDbGroups}
+          loading={vectorDbLoading}
+          error={vectorDbError}
+        />
 
         {isRunning && (
           <div className="mt-4 text-center text-xs text-muted">

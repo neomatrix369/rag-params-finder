@@ -11,6 +11,7 @@ import {
   run,
   type DetailFixture,
 } from '../../test/helpers/experimentDetail';
+import { vectorDbGroup } from '../../test/helpers/vectorDbStats';
 import { Phase, type ExperimentStatus } from '../../types';
 import ExperimentDetailScreen from './ExperimentDetailScreen';
 import { calculateProgressMetrics } from '../experiment/experimentDetailProgress';
@@ -65,6 +66,7 @@ const apiMocks = vi.hoisted(() => ({
   pauseExperiment: vi.fn(),
   resumeExperiment: vi.fn(),
   cancelExperiment: vi.fn(),
+  getVectorDbStatsGrouped: vi.fn().mockResolvedValue({ groups: [] }),
 }));
 
 vi.mock('../../services/apiClient', async () => {
@@ -101,6 +103,8 @@ function resetAllApiMocks() {
   apiMocks.pauseExperiment.mockReset();
   apiMocks.resumeExperiment.mockReset();
   apiMocks.cancelExperiment.mockReset();
+  apiMocks.getVectorDbStatsGrouped.mockReset();
+  apiMocks.getVectorDbStatsGrouped.mockResolvedValue({ groups: [] });
 }
 
 function renderedActionVisibility(): ActionVisibility {
@@ -1431,5 +1435,107 @@ describe('ExperimentDetailScreen stall and post-control polling', () => {
     await waitFor(() => expect(apiMocks.resumeExperiment).toHaveBeenCalledWith(pausedFixture.experiment_id));
     await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledTimes(2));
     expect(await screen.findByRole('button', { name: /^Pause$/ })).toBeInTheDocument();
+  });
+});
+
+describe('VectorDbStatsPanel in ExperimentDetailScreen', () => {
+  beforeEach(() => {
+    resetAllApiMocks();
+  });
+
+  it('Given the detail screen mounts, when the grouped stats are still in flight, then the vector-DB capacity card shows its loading state', async () => {
+    /**
+     * Scenario: The vector-database capacity card now lives on the experiment detail page and
+     * fetches grouped store stats on mount.
+     * Slice: 66 — the capacity card moved from the experiments list to each experiment run.
+     * Given the detail screen renders with a seeded experiment and the grouped-stats call is pending.
+     * When the component mounts and the fetch has not yet resolved.
+     * Then the Vector Database panel shows its "Loading…" copy rather than an empty gap.
+     */
+    // -- Given --
+    const fixture = detailFixture('complete', [Phase.COMPLETE, Phase.COMPLETE, Phase.COMPLETE]);
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+    apiMocks.getVectorDbStatsGrouped.mockReturnValue(
+      new Promise<{ groups: never[] }>(() => undefined),
+    );
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen
+        experimentId={fixture.experiment_id}
+        initialExperiment={fixture}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+
+    // -- Then --
+    expect(await screen.findByText('Loading vector database stats…')).toBeInTheDocument();
+    expect(apiMocks.getVectorDbStatsGrouped).toHaveBeenCalledOnce();
+  });
+
+  it('Given the grouped stats resolve, when the detail screen settles, then the Vector Database capacity card is shown', async () => {
+    /**
+     * Scenario: A successful grouped-stats fetch renders the per-store capacity card on the detail page.
+     * Slice: 66 — live cross-store capacity surfaced per experiment run.
+     * Given the detail screen renders with a seeded experiment and the grouped-stats call returns one group.
+     * When the fetch resolves after mount.
+     * Then the Vector Database card and its stored-chunk summary are visible.
+     */
+    // -- Given --
+    const fixture = detailFixture('complete', [Phase.COMPLETE, Phase.COMPLETE, Phase.COMPLETE]);
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+    apiMocks.getVectorDbStatsGrouped.mockResolvedValue({
+      groups: [vectorDbGroup({ totals: {
+        experiment_count: 2,
+        total_chunks: 43_581,
+        total_results: 120,
+        estimated_storage_mb: 0,
+        estimated_embedding_mb: 0,
+        estimated_metadata_mb: 0,
+      } })],
+    });
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen
+        experimentId={fixture.experiment_id}
+        initialExperiment={fixture}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+
+    // -- Then --
+    expect(await screen.findByText('Vector Database')).toBeInTheDocument();
+    expect(screen.getByText(/43,581 chunks/)).toBeInTheDocument();
+  });
+
+  it('Given the grouped stats fetch rejects, when the detail screen settles, then the vector-DB error state is shown', async () => {
+    /**
+     * Scenario: A failed grouped-stats fetch surfaces a non-fatal error state, not a crash or empty gap.
+     * Slice: 66 — the capacity card degrades gracefully when the store is unreachable.
+     * Given the detail screen renders with a seeded experiment and the grouped-stats call rejects.
+     * When the fetch rejects after mount.
+     * Then the Vector Database panel shows its "Could not load" copy with the failure message.
+     */
+    // -- Given --
+    const fixture = detailFixture('complete', [Phase.COMPLETE, Phase.COMPLETE, Phase.COMPLETE]);
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+    apiMocks.getVectorDbStatsGrouped.mockRejectedValue(new Error('vector store unreachable'));
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen
+        experimentId={fixture.experiment_id}
+        initialExperiment={fixture}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+
+    // -- Then --
+    expect(await screen.findByText('Could not load vector database stats')).toBeInTheDocument();
+    expect(screen.getByText('vector store unreachable')).toBeInTheDocument();
   });
 });

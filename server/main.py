@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from server.api import experiments, runs
+from server.api.compare import router as compare_router
 from server.api.stores import router as stores_router
 from server.api.sweep import router as sweep_router
 from server.core.health_check import storage_health
@@ -274,3 +275,4 @@ app.include_router(experiments.router, prefix="/experiments", tags=["experiments
 app.include_router(runs.router, prefix="/runs", tags=["runs"])
 app.include_router(stores_router, prefix="/api", tags=["stores"])
 app.include_router(sweep_router, prefix="/api/v1", tags=["sweep"])
+app.include_router(compare_router, prefix="/api/v1", tags=["compare"])

@@ -1,4 +1,4 @@
-import { DeleteExperimentResponse, Experiment, ExperimentDbStatsResponse, ExploreResponse, VectorDbStatsGroupedResponse } from '../types';
+import { CompareResponse, DeleteExperimentResponse, Experiment, ExperimentDbStatsResponse, ExploreResponse, VectorDbStatsGroupedResponse } from '../types';
 import { API_FETCH_TIMEOUT_MS, VECTOR_DB_STATS_FETCH_TIMEOUT_MS } from '../constants';
 import { fetchJsonWithProgress, fetchWithTimeout, type FetchProgressUpdate } from './fetchWithProgress';
 import { devWarn } from '../utils/devLog';
@@ -145,6 +145,18 @@ export async function getStores(signal?: AbortSignal): Promise<StoreCatalog> {
   }
   await assertOk(response, url, 'Failed to load store catalog');
   return response.json() as Promise<StoreCatalog>;
+}
+
+export async function getCompare(signal?: AbortSignal): Promise<CompareResponse> {
+  const url = `${API_BASE_URL}/api/v1/compare`;
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(url, { signal }, API_FETCH_TIMEOUT_MS);
+  } catch (err) {
+    rethrowWithFetchHint(url, err);
+  }
+  await assertOk(response, url, 'Failed to load sweep comparison');
+  return response.json() as Promise<CompareResponse>;
 }
 
 export async function getExperiments(signal?: AbortSignal): Promise<Experiment[]> {

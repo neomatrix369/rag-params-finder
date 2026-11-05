@@ -1,3 +1,4 @@
+import type { WalkthruRun } from '../walkthru/walkthruResults';
 // Experiment-level status (mirrored from server/models/enums.py ExperimentStatus)
 export type ExperimentStatus =
   | 'running'
@@ -337,4 +338,13 @@ export interface VectorDbStatsGroup {
 
 export interface VectorDbStatsGroupedResponse {
   groups: VectorDbStatsGroup[];
+}
+
+/** `GET /api/v1/compare` (Slice 66): live runs grouped by config, best first; `rank` is within the group. */
+export interface CompareResponse {
+  groups: { group_id: string; runs: WalkthruRun[] }[];
+  stores: string[];
+  group_count: number;
+  run_count: number;
+  cross_store_group_count: number;
 }

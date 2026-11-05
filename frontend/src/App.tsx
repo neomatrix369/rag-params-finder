@@ -2,24 +2,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { devInfo } from './utils/devLog';
 import ExperimentsScreen from './components/screens/ExperimentsScreen';
 import ExperimentDetailScreen from './components/screens/ExperimentDetailScreen';
+import CompareScreen from './components/screens/CompareScreen';
 import SearchExplorerScreen from './components/screens/SearchExplorerScreen';
 import WalkthruScreen from './components/walkthru/WalkthruScreen';
-import { experimentStatsMap } from './components/experiment/experimentList/labels';
 import { loadWalkthruResults } from './walkthru/loadWalkthruResults';
 import { useWalkthru } from './walkthru/useWalkthru';
 import WalkthruOverlay from './walkthru/WalkthruOverlay';
 import { WalkthruContext, type WalkthruActions } from './walkthru/WalkthruContext';
-import type { Experiment, ExperimentDbStats, VectorDbStatsGroup } from './types';
+import type { Experiment } from './types';
 
 export type ListCache = {
   experiments: Experiment[];
-  vectorDbGroups: VectorDbStatsGroup[];
   ready: boolean;
 };
 
 type DetailNav = {
   initialExperiment?: Experiment;
-  initialFootprint?: ExperimentDbStats;
 };
 
 type Screen =
@@ -28,16 +26,15 @@ type Screen =
       kind: 'detail';
       experimentId: string;
       initialExperiment?: Experiment;
-      initialFootprint?: ExperimentDbStats;
     }
   | { kind: 'explore'; experimentId: string }
-  | { kind: 'walkthru' };
+  | { kind: 'walkthru' }
+  | { kind: 'compare' };
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ kind: 'list' });
   const [listCache, setListCache] = useState<ListCache>({
     experiments: [],
-    vectorDbGroups: [],
     ready: false,
   });
   const [detailNav, setDetailNav] = useState<DetailNav>({});
@@ -69,11 +66,10 @@ export default function App() {
   );
 
   const handleListCacheUpdate = useCallback(
-    (update: { experiments: Experiment[]; vectorDbGroups: VectorDbStatsGroup[] }) => {
+    (update: { experiments: Experiment[] }) => {
       setListCache((prev) => ({
         ...prev,
         experiments: update.experiments,
-        vectorDbGroups: update.vectorDbGroups,
         ready: true,
       }));
     },
@@ -82,17 +78,15 @@ export default function App() {
 
   const openDetail = useCallback(
     (experiment: Experiment) => {
-      const initialFootprint = experimentStatsMap(listCache.vectorDbGroups).get(experiment.experiment_id);
-      const nav: DetailNav = { initialExperiment: experiment, initialFootprint };
+      const nav: DetailNav = { initialExperiment: experiment };
       setDetailNav(nav);
       setScreen({
         kind: 'detail',
         experimentId: experiment.experiment_id,
         initialExperiment: experiment,
-        initialFootprint,
       });
     },
-    [listCache.vectorDbGroups],
+    [],
   );
 
   useEffect(() => {
@@ -102,6 +96,10 @@ export default function App() {
     }
     if (screen.kind === 'walkthru') {
       devInfo('App', 'navigate — meetup demo');
+      return;
+    }
+    if (screen.kind === 'compare') {
+      devInfo('App', 'navigate — compare sweeps');
       return;
     }
     const id = screen.experimentId.slice(0, 8);
@@ -136,6 +134,8 @@ export default function App() {
         onBack={leaveDemo}
       />
     );
+  } else if (screen.kind === 'compare') {
+    body = <CompareScreen onBack={() => setScreen({ kind: 'list' })} />;
   } else if (screen.kind === 'explore') {
     body = (
       <SearchExplorerScreen
@@ -145,7 +145,6 @@ export default function App() {
             kind: 'detail',
             experimentId: screen.experimentId,
             initialExperiment: detailNav.initialExperiment,
-            initialFootprint: detailNav.initialFootprint,
           })
         }
       />
@@ -155,7 +154,6 @@ export default function App() {
       <ExperimentDetailScreen
         experimentId={screen.experimentId}
         initialExperiment={screen.initialExperiment ?? detailNav.initialExperiment}
-        initialFootprint={screen.initialFootprint ?? detailNav.initialFootprint}
         onBack={() => setScreen({ kind: 'list' })}
         onExplore={() => setScreen({ kind: 'explore', experimentId: screen.experimentId })}
       />
@@ -165,9 +163,9 @@ export default function App() {
       <ExperimentsScreen
         cacheReady={listCache.ready}
         cachedExperiments={listCache.ready ? listCache.experiments : undefined}
-        cachedVectorDbGroups={listCache.ready ? listCache.vectorDbGroups : undefined}
         onCacheUpdate={handleListCacheUpdate}
         onSelect={openDetail}
+        onCompare={() => setScreen({ kind: 'compare' })}
       />
     );
   }

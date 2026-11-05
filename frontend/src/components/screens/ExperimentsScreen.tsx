@@ -4,7 +4,6 @@ import {
   EXPERIMENTS_POLL_MS,
   LOADING_STALL_AFTER_MS,
   LOADING_STALL_REPEAT_MS,
-  VECTOR_DB_STATS_POLL_MS,
 } from '../../constants';
 import AppPageChrome from '../chrome/AppPageChrome';
 import DashboardShell from '../chrome/DashboardShell';
@@ -13,17 +12,15 @@ import PollingIndicator from '../chrome/PollingIndicator';
 import ConfirmDeleteModal from '../experiment/ConfirmDeleteModal';
 import ExperimentControlButtons from '../experiment/ExperimentControlButtons';
 import OperationalRuntimeCard from '../stats/OperationalRuntimeCard';
-import VectorDbStatsPanel from '../stats/VectorDbStatsPanel';
 import Pagination from '../chrome/Pagination';
 import { createStallWatcher, type FetchProgressUpdate } from '../../services/fetchWithProgress';
-import { deleteExperiment, getExperiments, getExperimentsWithProgress, getStores, getVectorDbStatsGrouped, type StoreCatalogEntry } from '../../services/apiClient';
-import { Experiment, VectorDbStatsGroup } from '../../types';
+import { deleteExperiment, getExperiments, getExperimentsWithProgress, getStores, type StoreCatalogEntry } from '../../services/apiClient';
+import { Experiment } from '../../types';
 import { appendFeedEntry } from '../../utils/feedEntries';
 import { devInfo, devInfoThrottled, devWarn } from '../../utils/devLog';
 import { isPausedExperimentStatus, isRunningExperimentStatus } from '../../utils/experimentStatus';
 import {
   experimentOutcomeLabel,
-  experimentStatsMap,
   shouldShowLoadingPanel,
   statusBadgeClass,
   statusEdgeClass,
@@ -68,14 +65,14 @@ export default function ExperimentsScreen({
   onSelect,
   cacheReady = false,
   cachedExperiments,
-  cachedVectorDbGroups,
   onCacheUpdate,
+  onCompare,
 }: {
   onSelect?: (experiment: Experiment) => void;
+  onCompare?: () => void;
   cacheReady?: boolean;
   cachedExperiments?: Experiment[];
-  cachedVectorDbGroups?: VectorDbStatsGroup[];
-  onCacheUpdate?: (update: { experiments: Experiment[]; vectorDbGroups: VectorDbStatsGroup[] }) => void;
+  onCacheUpdate?: (update: { experiments: Experiment[] }) => void;
 }) {
   const [experiments, setExperiments] = useState<Experiment[]>(() => cachedExperiments ?? []);
   const [storeHints, setStoreHints] = useState<StoreCatalogEntry[]>([]);
@@ -97,10 +94,6 @@ export default function ExperimentsScreen({
     const stored = localStorage.getItem('collapsedExperiments');
     return stored ? new Set(JSON.parse(stored)) : new Set();
   });
-  const [vectorDbGroups, setVectorDbGroups] = useState<VectorDbStatsGroup[]>(() => cachedVectorDbGroups ?? []);
-  const [vectorDbLoading, setVectorDbLoading] = useState(false);
-  const [vectorDbError, setVectorDbError] = useState<string | null>(null);
-
   const handleItemsPerPageChange = useCallback((items: number) => {
     setItemsPerPage(items);
     setCurrentPage(1);
@@ -132,9 +125,9 @@ export default function ExperimentsScreen({
   const refreshExperimentList = useCallback(async () => {
     const refreshed = await getExperiments();
     setExperiments(refreshed);
-    onCacheUpdate?.({ experiments: refreshed, vectorDbGroups });
+    onCacheUpdate?.({ experiments: refreshed });
     setError(null);
-  }, [onCacheUpdate, vectorDbGroups]);
+  }, [onCacheUpdate]);
 
   const handleBulkDelete = useCallback(async () => {
     const deleteCount = selectedExperiments.size;
@@ -174,38 +167,7 @@ export default function ExperimentsScreen({
 
   const aliveRef = useRef(true);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const statsPollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollDevLogAtRef = useRef(new Map<string, number>());
-  const vectorDbStatsInFlightRef = useRef<Promise<void> | null>(null);
-
-  const loadVectorDbStats = useCallback(async (options?: { silent?: boolean }) => {
-    if (!aliveRef.current) return;
-    if (vectorDbStatsInFlightRef.current !== null) {
-      return vectorDbStatsInFlightRef.current;
-    }
-
-    const request = (async () => {
-      const showSpinner = !options?.silent && vectorDbGroups.length === 0;
-      if (showSpinner) setVectorDbLoading(true);
-      try {
-        const payload = await getVectorDbStatsGrouped();
-        if (!aliveRef.current) return;
-        setVectorDbGroups(payload.groups);
-        setVectorDbError(null);
-      } catch (err) {
-        if (!aliveRef.current) return;
-        const msg = err instanceof Error ? err.message : 'Failed to load vector DB stats';
-        devWarn('ExperimentsScreen', `vector DB stats load failed — ${msg}`);
-        setVectorDbError(msg);
-      } finally {
-        vectorDbStatsInFlightRef.current = null;
-        if (aliveRef.current && showSpinner) setVectorDbLoading(false);
-      }
-    })();
-
-    vectorDbStatsInFlightRef.current = request;
-    return request;
-  }, [vectorDbGroups.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -223,8 +185,8 @@ export default function ExperimentsScreen({
 
   useEffect(() => {
     if (!initialLoadDone) return;
-    onCacheUpdate?.({ experiments, vectorDbGroups });
-  }, [experiments, vectorDbGroups, initialLoadDone, onCacheUpdate]);
+    onCacheUpdate?.({ experiments });
+  }, [experiments, initialLoadDone, onCacheUpdate]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -266,16 +228,8 @@ export default function ExperimentsScreen({
         }
       }
 
-      async function silentStatsPoll() {
-        if (!aliveRef.current) return;
-        await loadVectorDbStats({ silent: true });
-      }
-
       if (pollTimerRef.current !== null) window.clearInterval(pollTimerRef.current);
       pollTimerRef.current = setInterval(silentPoll, EXPERIMENTS_POLL_MS);
-
-      if (statsPollTimerRef.current !== null) window.clearInterval(statsPollTimerRef.current);
-      statsPollTimerRef.current = setInterval(silentStatsPoll, VECTOR_DB_STATS_POLL_MS);
     }
 
     if (cacheReady) {
@@ -284,7 +238,6 @@ export default function ExperimentsScreen({
         `cache restore — ${cachedExperiments?.length ?? 0} experiment(s), polling every ${EXPERIMENTS_POLL_MS}ms`,
       );
       startPollTimers();
-      void loadVectorDbStats({ silent: (cachedVectorDbGroups?.length ?? 0) > 0 });
       void getExperiments()
         .then((rows) => {
           if (!aliveRef.current) return;
@@ -299,10 +252,6 @@ export default function ExperimentsScreen({
         if (pollTimerRef.current !== null) {
           clearInterval(pollTimerRef.current);
           pollTimerRef.current = null;
-        }
-        if (statsPollTimerRef.current !== null) {
-          clearInterval(statsPollTimerRef.current);
-          statsPollTimerRef.current = null;
         }
       };
     }
@@ -332,9 +281,8 @@ export default function ExperimentsScreen({
         if (!aliveRef.current) return;
         setExperiments(data);
         setError(null);
-        setFeed((f) => appendFeedEntry(f, 'Experiments loaded — vector DB stats loading above.', 'default'));
+        setFeed((f) => appendFeedEntry(f, 'Experiments loaded.', 'default'));
         devInfo('ExperimentsScreen', `list load OK — ${data.length} experiment(s)`);
-        void loadVectorDbStats();
       } catch (err) {
         stall.stop();
         if (!aliveRef.current) return;
@@ -350,7 +298,7 @@ export default function ExperimentsScreen({
           setInitialLoadDone(true);
           devInfo(
             'ExperimentsScreen',
-            `poll started — list every ${EXPERIMENTS_POLL_MS}ms, vector DB stats every ${VECTOR_DB_STATS_POLL_MS}ms`,
+            `poll started — list every ${EXPERIMENTS_POLL_MS}ms`,
           );
           startPollTimers();
         }
@@ -367,12 +315,8 @@ export default function ExperimentsScreen({
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
       }
-      if (statsPollTimerRef.current !== null) {
-        clearInterval(statsPollTimerRef.current);
-        statsPollTimerRef.current = null;
-      }
     };
-  }, [cacheReady, loadVectorDbStats, cachedExperiments?.length, cachedVectorDbGroups?.length]);
+  }, [cacheReady, cachedExperiments?.length]);
 
   const showLoadingPanel = shouldShowLoadingPanel(initialLoadDone, loading, error);
   const showEmptyConfirmed =
@@ -422,6 +366,15 @@ export default function ExperimentsScreen({
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
             Start with lifecycle state and sweep health. Open an experiment to connect its identity and configuration to the runs and stored results already produced.
           </p>
+          {onCompare ? (
+            <button
+              type="button"
+              onClick={onCompare}
+              className="mt-3 min-h-11 rounded-lg border border-line bg-paper px-3 text-sm font-semibold text-ink hover:border-accent"
+            >
+              Compare sweeps
+            </button>
+          ) : null}
         </div>
         <div className="shrink-0 rounded-xl border border-accent bg-accent-soft px-4 py-3 text-right">
           <div className="font-display text-2xl font-semibold text-accent-strong">
@@ -475,8 +428,6 @@ export default function ExperimentsScreen({
           const paginatedExperiments = experiments.slice(startIndex, endIndex);
           const selectableCount = experiments.filter(exp => exp.status !== 'running').length;
           const allSelectableSelected = selectableCount > 0 && selectedExperiments.size === selectableCount;
-          const statsByExperimentId = experimentStatsMap(vectorDbGroups);
-
           return (
             <>
               {selectedExperiments.size > 0 && (
@@ -518,7 +469,6 @@ export default function ExperimentsScreen({
                   const isRunning = isRunningExperimentStatus(exp.status, exp.completed_at);
                   const isPaused = isPausedExperimentStatus(exp.status, exp.completed_at);
                   const isCollapsed = collapsedExperiments.has(exp.experiment_id);
-                  const dbStats = statsByExperimentId.get(exp.experiment_id);
                   const showRowControls = isRunning || isPaused;
                   const detailsRegionId = `experiment-details-${exp.experiment_id}`;
                   return (
@@ -572,7 +522,6 @@ export default function ExperimentsScreen({
                             <span className="font-mono">{exp.experiment_id.slice(0, 8)}…</span>
                             <span>{new Date(exp.created_at).toLocaleString()}</span>
                             {exp.failed_count ? <span className="font-semibold text-red-700">{exp.failed_count} failed</span> : null}
-                            {isCollapsed && dbStats ? <span>{dbStats.total_results.toLocaleString()} stored results</span> : null}
                           </span>
                           <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-accent-strong">
                             View experiment <ArrowRightIcon />
@@ -657,14 +606,9 @@ export default function ExperimentsScreen({
         <p className="text-xs font-bold uppercase tracking-widest text-accent-strong">Progressive disclosure</p>
         <h2 id="operational-context-title" className="mt-1 font-display text-xl font-semibold text-ink">Operational storage context</h2>
         <p className="mb-4 mt-1 text-sm text-muted">
-          Vector database capacity and store runtime are shown once for this server, beside the experiment list.
+          Store runtime is shown here. Open an experiment to see vector database capacity.
         </p>
         <OperationalRuntimeCard />
-        <VectorDbStatsPanel
-          groups={vectorDbGroups}
-          loading={vectorDbLoading}
-          error={vectorDbError}
-        />
       </section>
 
       <ConfirmDeleteModal

@@ -120,6 +120,32 @@ describe('CrossStoreLeaderboard', () => {
     expect(screen.getByTestId('run-row-run-redis-best')).toHaveAttribute('data-suggested', 'false')
   })
 
+  it('Given suggest=false, when rendered with autoplay, then there is no suggested pick and the description is overridden', () => {
+    /**
+     * Scenario: The live compare view has no primary store, so nothing is suggested or auto-selected.
+     * Slice: 66 - live cross-store compare
+     */
+    // -- Given --
+    const onSelectRun = vi.fn()
+
+    // -- When --
+    render(
+      <CrossStoreLeaderboard
+        results={makeWalkthruResults()}
+        suggest={false}
+        autoplay
+        description="Live description."
+        onSelectRun={onSelectRun}
+      />,
+    )
+
+    // -- Then --
+    expect(screen.queryByText('Suggested pick')).not.toBeInTheDocument()
+    expect(screen.getByTestId('run-row-run-redis-best')).toHaveAttribute('data-suggested', 'false')
+    expect(onSelectRun).not.toHaveBeenCalled()
+    expect(screen.getByText('Live description.')).toBeInTheDocument()
+  })
+
   it('Given autoplay, when mounted, then the suggested pick is selected once', () => {
     /**
      * Scenario: Autoplay takes the suggestion automatically, only once even across re-renders.
