@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Compare shows "Only run in this group" instead of a misleading 100.0 (also under a store filter), states that the score is the best single chunk, and the stats panels mark estimates ("est.") with their formula and scope.
   - The determinism guard now covers the progress, count and label helpers.
   (**IMPLEMENTED** on branch `slice/67d-explainable-cards`; tips on every card, the glossary and the Explorer planned total are still to come.)
+- **Slice 67E (frontend) — Query Results breakdown on the dashboard** — the stored footprint of an experiment now reads `162 runs × 40 golden queries = 6,480 results`, and the Query Results tile of the vector-database panel carries the same line behind its info button.
+  - A golden record is one record of the golden dataset. When the stored total is not exactly runs × golden queries the line reads `6,463 results (observed) · 162 runs × 40 golden queries`, never a false "="; a golden count inferred from stored results is marked "(inferred)"; runs below the golden count are noted ("so far" while the experiment is still running).
+  - Hidden when the golden facts are absent (old payloads, Redis and Elasticsearch group totals, an unknown value); the tile keeps its plain total, now formatted with the same fixed `en-US` formatter as the hint.
+  - New pure `resultsBreakdown.ts` and `storageUsage.ts`; `pluralize` now handles "golden query" -> "golden queries"; a Python contract test ties the TypeScript field names to the backend payload; the determinism guard covers the new modules and `VectorDbStatsPanel`.
+  (**IMPLEMENTED** on branch `slice/67e-results-breakdown-frontend`.)
 - **Slice 67E (backend) — Query Results breakdown facts** — the db-stats endpoints now report, per experiment, how many runs wrote results, the golden-dataset record count, and how many runs fell short of it (`result_runs`, `golden_queries`, `golden_queries_source`, `partial_runs`), plus group totals (`total_result_runs`, `golden_queries_min`, `golden_queries_max`).
   - The golden count is the number of records in the golden dataset, saved on the experiment when the first run loads it; older experiments are inferred from stored results.
   - Redis and Elasticsearch group totals report nothing new; a failing optional query reports unknown, never zero.
