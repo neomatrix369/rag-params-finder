@@ -1614,7 +1614,7 @@ describe('VectorDbStatsPanel in ExperimentDetailScreen', () => {
   });
 });
 
-describe('ExperimentDetailScreen slice 67D number wiring', () => {
+describe('ExperimentDetailScreen progress and Bayesian totals', () => {
   beforeEach(() => {
     resetAllApiMocks();
   });
@@ -1631,6 +1631,8 @@ describe('ExperimentDetailScreen slice 67D number wiring', () => {
       { run_count: 8, started_at: '2026-07-20T10:00:00.000Z' },
     );
     apiMocks.getExperiment.mockResolvedValue(fixture);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-07-20T10:02:00.000Z'));
 
     // -- When --
     render(
@@ -1645,13 +1647,17 @@ describe('ExperimentDetailScreen slice 67D number wiring', () => {
 
     // -- Then --
     expect(screen.getByRole('progressbar', { name: 'Experiment completion' })).toHaveAttribute('aria-valuenow', '50');
+    // detail.started_at is forwarded: 4 finished runs in 2 min of 8 gives elapsed 2m 0s and ETA 2m 1s
+    expect(screen.getByText('2m 0s')).toBeInTheDocument();
+    expect(screen.getByText('2m 1s')).toBeInTheDocument();
     expect(screen.getByText('4 of 8 runs finished (2 complete, 1 failed, 1 interrupted)')).toBeInTheDocument();
   });
 
-  it('Given a partial Bayesian sweep, when rendered, then the cards add up to Total with Discarded shown separately', async () => {
+  it('Given a partial Bayesian sweep whose run_count differs from planned_trials, when rendered, then every card agrees with the totals line', async () => {
     /**
-     * Scenario: Total = attempted (successful + failed + interrupted) + discarded + not started.
-     * Slice: 67D — finding F; D-1 not-started comes from the shared helper.
+     * Scenario: Total = attempted (successful + failed + interrupted) + discarded + not started, all from one source.
+     * Slice: 67D - finding F; D-1 not-started comes from the shared helper. run_count (25) differs from
+     * bayesian_summary.planned_trials (20) so the source of the Total tile is observable.
      */
     // -- Given --
     const phases = [
@@ -1661,10 +1667,12 @@ describe('ExperimentDetailScreen slice 67D number wiring', () => {
     ];
     const fixture = detailFixture('partial', phases, {
       config: { execution: { search_strategy: 'bayesian' } },
-      run_count: 20,
+      run_count: 25,
       bayesian_summary: { planned_trials: 20, attempted_trials: 13, discarded_trials: 4 },
     });
     apiMocks.getExperiment.mockResolvedValue(fixture);
+    const tile = (label: string): string | null | undefined =>
+      screen.getByText(label, { selector: 'div' }).previousElementSibling?.textContent;
 
     // -- When --
     render(
@@ -1681,5 +1689,12 @@ describe('ExperimentDetailScreen slice 67D number wiring', () => {
     expect(
       screen.getByText('Total 20 = 13 attempted + 4 discarded + 3 not started. Discarded trials are not runs.'),
     ).toBeInTheDocument();
+    expect(tile('Total')).toBe('20');
+    expect(tile('Successful')).toBe('8');
+    expect(tile('Failed')).toBe('3');
+    expect(tile('Interrupted')).toBe('2');
+    expect(tile('Not Started')).toBe('3');
+    expect(tile('Discarded by Sampler')).toBe('4');
+    expect(Number(tile('Successful')) + Number(tile('Failed')) + Number(tile('Interrupted'))).toBe(13);
   });
 });

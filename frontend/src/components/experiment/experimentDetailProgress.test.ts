@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  progressSentence,
   calculateProgressMetrics,
   calculateProgressPercent,
   countFinishedRuns,
@@ -173,5 +174,27 @@ describe('experimentDetailProgress', () => {
     expect(second).toEqual(first);
     expect(calculateProgressPercent(runs)).toBe(calculateProgressPercent(runs));
     expect(FINISHED_RUN_RULE).toBe(FINISHED_RUN_RULE);
+  });
+});
+
+describe('progressSentence', () => {
+  it('Given only complete runs, when worded, then the "completed" sentence is used', () => {
+    /**
+     * Scenario: no failed or interrupted runs keeps the original wording.
+     * Slice: 67D finding E — wording is a named pure function.
+     */
+    // -- Given / When / Then --
+    expect(progressSentence({ complete: 2, total: 4 })).toBe('2 of 4 runs completed');
+  });
+
+  it('Given failed and interrupted runs, when worded, then the "finished" sentence spells out the split', () => {
+    /**
+     * Scenario: finished count includes failed and interrupted runs.
+     * Slice: 67D finding E.
+     */
+    // -- Given / When / Then --
+    expect(progressSentence({ complete: 2, failed: 1, interrupted: 1, total: 8 })).toBe(
+      '4 of 8 runs finished (2 complete, 1 failed, 1 interrupted)',
+    );
   });
 });

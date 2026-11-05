@@ -249,12 +249,14 @@ export default function ExperimentDetailScreen({
   const bayesianNotStarted = isBayesianStrategy
     ? bayesianNotStartedCount(bayesianPlannedTrials, bayesianAttemptedTrials, bayesianDiscardedCount)
     : runSummary.neverStarted;
+  const now = new Date().getTime();
   const progressPercent = calculateProgressPercent({
     complete: runSummary.complete,
     failed: runSummary.failed,
     interrupted: runSummary.interrupted,
     expected: runSummary.expected,
   });
+  const totalPlanned = isBayesianStrategy ? bayesianPlannedTrials : runSummary.expected;
   const bayesianTotals = bayesianTotalsLine({
     planned: bayesianPlannedTrials,
     attempted: bayesianAttemptedTrials,
@@ -421,13 +423,13 @@ export default function ExperimentDetailScreen({
           </div>
 
           <div className={metricsGridClass}>
-            <StatCard compact label="Total" value={runSummary.expected} icon={icons.grid} color="blue" />
+            <StatCard compact label="Total" value={totalPlanned} icon={icons.grid} color="blue" />
             <StatCard compact label="Successful" value={runSummary.complete} icon={icons.check} color="green" />
             <StatCard compact label="Failed" value={runSummary.failed} icon={icons.x} color="red" />
             <StatCard compact label="Interrupted" value={runSummary.interrupted} icon={icons.x} color="amber" />
             <StatCard
               compact
-              label={isBayesianStrategy ? 'Not Started' : 'Not Started'}
+              label="Not Started"
               value={bayesianNotStarted}
               icon={icons.grid}
               color="slate"
@@ -473,6 +475,7 @@ export default function ExperimentDetailScreen({
                   interrupted={runSummary.interrupted}
                   total={runSummary.expected}
                   startedAt={detail.started_at}
+                  now={now}
                 />
               }
               percent={progressPercent}

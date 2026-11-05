@@ -826,6 +826,28 @@ describe('ExperimentsScreen outcome label edge cases', () => {
     ).toBeInTheDocument();
   });
 
+  it('Given a partial Bayesian summary whose backend not_started is already net, when rendered, then not started is not subtracted twice', async () => {
+    /**
+     * Scenario: the partial-Bayesian call site uses the shared helper and ignores the already-reduced not_started.
+     * Slice: 67D1 - second experimentOutcomeLabel call site (finding D).
+     */
+    // -- Given --
+    const exp = experiment('partial', 0, {
+      config: { execution: { search_strategy: 'bayesian' } },
+      bayesian_summary: { planned_trials: 40, attempted_trials: 30, discarded_trials: 2, not_started: 8 },
+    });
+    apiMocks.getExperiments.mockResolvedValue([exp]);
+
+    // -- When --
+    render(<ExperimentsScreen cacheReady cachedExperiments={[exp]} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(
+      screen.getByText('3 runs configured · Bayesian: 30 attempted · 2 discarded · 8 not started'),
+    ).toBeInTheDocument();
+  });
+
   it('Given a partial Bayesian sweep with an attempted-trials count, when rendered, then attempted and discarded counts are shown', async () => {
     /**
      * Scenario: Once attempted_trials populates, the partial-Bayesian branch reports concrete counts.

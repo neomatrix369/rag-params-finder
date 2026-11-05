@@ -19,6 +19,25 @@ export function countFinishedRuns({
   return complete + failed + interrupted;
 }
 
+/** Fixed-template progress sentence; the "finished" wording appears only when failed or interrupted runs exist. */
+export function progressSentence({
+  complete,
+  failed = 0,
+  interrupted = 0,
+  total,
+}: {
+  complete: number;
+  failed?: number;
+  interrupted?: number;
+  total: number;
+}): string {
+  if (failed + interrupted > 0) {
+    const finished = countFinishedRuns({ complete, failed, interrupted });
+    return `${finished} of ${total} runs finished (${complete} complete, ${failed} failed, ${interrupted} interrupted)`;
+  }
+  return `${complete} of ${total} runs completed`;
+}
+
 export function calculateProgressPercent({
   expected,
   ...runs

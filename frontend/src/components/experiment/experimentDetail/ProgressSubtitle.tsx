@@ -1,4 +1,4 @@
-import { calculateProgressMetrics, countFinishedRuns } from '../experimentDetailProgress';
+import { calculateProgressMetrics, progressSentence } from '../experimentDetailProgress';
 
 export default function ProgressSubtitle({
   completed,
@@ -6,12 +6,15 @@ export default function ProgressSubtitle({
   interrupted = 0,
   total,
   startedAt,
+  now,
 }: {
   completed: number;
   failed?: number;
   interrupted?: number;
   total: number;
   startedAt?: string;
+  /** Injected clock (epoch ms); the screen supplies it, this component never reads the system clock. */
+  now: number;
 }) {
   const { elapsedStr, etaStr } = calculateProgressMetrics({
     completed,
@@ -19,15 +22,13 @@ export default function ProgressSubtitle({
     interrupted,
     total,
     startedAt,
-    now: new Date().getTime(),
+    now,
   });
 
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm">
       <span className="font-medium text-ink">
-        {failed + interrupted > 0
-          ? `${countFinishedRuns({ complete: completed, failed, interrupted })} of ${total} runs finished (${completed} complete, ${failed} failed, ${interrupted} interrupted)`
-          : `${completed} of ${total} runs completed`}
+        {progressSentence({ complete: completed, failed, interrupted, total })}
       </span>
       <span className="text-line">•</span>
       <span className="inline-flex items-center gap-1.5">

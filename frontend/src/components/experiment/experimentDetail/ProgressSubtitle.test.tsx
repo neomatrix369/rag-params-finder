@@ -16,7 +16,7 @@ describe('ProgressSubtitle', () => {
      * Slice: 67D finding E
      */
     // -- Given / When --
-    render(<ProgressSubtitle completed={2} total={4} />);
+    render(<ProgressSubtitle completed={2} total={4} now={0} />);
 
     // -- Then --
     expect(screen.getByText('2 of 4 runs completed')).toBeInTheDocument();
@@ -28,11 +28,28 @@ describe('ProgressSubtitle', () => {
      * Slice: 67D finding E
      */
     // -- Given / When --
-    render(<ProgressSubtitle completed={2} failed={1} interrupted={1} total={8} />);
+    render(<ProgressSubtitle completed={2} failed={1} interrupted={1} total={8} now={0} />);
 
     // -- Then --
     expect(
       screen.getByText('4 of 8 runs finished (2 complete, 1 failed, 1 interrupted)'),
     ).toBeInTheDocument();
+  });
+
+  it('Given a start time and an injected clock, when rendered, then elapsed and ETA come from that clock', () => {
+    /**
+     * Scenario: 4 finished runs in 2 minutes of 8 total leaves 4 runs, so ETA is 2 minutes plus the 1% margin.
+     * Slice: 67D — clock injected, never read inside the component.
+     */
+    // -- Given --
+    const startedAt = '2026-07-20T10:00:00.000Z';
+    const now = new Date('2026-07-20T10:02:00.000Z').getTime();
+
+    // -- When --
+    render(<ProgressSubtitle completed={2} failed={1} interrupted={1} total={8} startedAt={startedAt} now={now} />);
+
+    // -- Then --
+    expect(screen.getByText('2m 0s')).toBeInTheDocument();
+    expect(screen.getByText('2m 1s')).toBeInTheDocument();
   });
 });
