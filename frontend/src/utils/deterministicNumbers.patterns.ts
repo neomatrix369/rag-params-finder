@@ -14,3 +14,6 @@ export const JSX_COUNT_ARITHMETIC =
 
 /** A date parsed from an argument; allowed only through the explicitly listed parse helpers. */
 export const NEW_DATE_WITH_ARGUMENT = /new Date\(\s*[^)\s]/g;
+
+/** Any `new Date` token, with or without parentheses (`+new Date`, `(new Date).getTime()`). */
+export const NEW_DATE_TOKEN = /new Date\b/g;

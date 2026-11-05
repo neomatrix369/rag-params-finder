@@ -4,7 +4,7 @@
  * Scope: Slice 67 static guard — dashboard numbers and explanations come from pure functions.
  */
 import { describe, expect, it } from 'vitest';
-import { JSX_COUNT_ARITHMETIC, NEW_DATE_WITH_ARGUMENT, NON_DETERMINISTIC } from './deterministicNumbers.patterns';
+import { JSX_COUNT_ARITHMETIC, NEW_DATE_TOKEN, NEW_DATE_WITH_ARGUMENT, NON_DETERMINISTIC } from './deterministicNumbers.patterns';
 
 const SOURCES = import.meta.glob(
   [
@@ -71,6 +71,22 @@ describe('deterministic numbers guard', () => {
     expect(parses.length).toBeLessThanOrEqual(DATE_PARSE_ALLOWANCE[file] ?? 0);
   });
 
+  it.each(PURE_MODULES)('Given %s, when scanned, then no `new Date` token exceeds the parse allowance, parenthesised or not', (file) => {
+    /**
+     * Scenario: closes the paren-less clock hole (`+new Date`, `(new Date).getTime()`).
+     * Slice: 67D - per-module count of `new Date` against the allowance.
+     */
+    // -- Given --
+    const source = read(file);
+
+    // -- When --
+    const tokens = source.match(NEW_DATE_TOKEN) ?? [];
+
+    // -- Then --
+    // eslint-disable-next-line security/detect-object-injection -- file comes from the literal PURE_MODULES list
+    expect(tokens.length).toBeLessThanOrEqual(DATE_PARSE_ALLOWANCE[file] ?? 0);
+  });
+
   it.each(PURE_MODULES)('Given %s, when scanned, then it reads no clock, randomness, storage, network or DOM', (file) => {
     /**
      * Scenario: a pure module cannot drift between renders or machines.
@@ -107,10 +123,12 @@ describe('deterministic numbers guard', () => {
       'const n = items.length * x',
     ];
     const clockReads = ['const t = Date.now();', 'const t = new Date();'];
+    const parenLessClockReads = ['const t = +new Date;', 'const t = (new Date).getTime();']
 
     // -- When / Then --
     removedArithmetic.forEach((expression) => expect(expression).toMatch(JSX_COUNT_ARITHMETIC));
     clockReads.forEach((expression) => expect(expression).toMatch(NON_DETERMINISTIC));
+    parenLessClockReads.forEach((expression) => expect(expression).toMatch(NEW_DATE_TOKEN));
     expect('const start = new Date(startedAt).getTime();').not.toMatch(NON_DETERMINISTIC);
     expect('const start = new Date(startedAt).getTime();').toMatch(NEW_DATE_WITH_ARGUMENT);
   });
