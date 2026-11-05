@@ -195,6 +195,10 @@ Slice 10 *(planned)* documents CLI/API **retry** of failed/interrupted runs: [`S
 
 ---
 
+## 🧰 Troubleshooting local builds
+
+**`Cannot find module @rollup/rollup-darwin-arm64` during `npm run build` or the pre-push hook.** `frontend/node_modules` holds native build binaries for the CPU architecture of the Node that ran `npm ci`. On an Apple Silicon Mac, a Node installed under Rosetta (x64, for example an nvm Node) installs only the x64 binaries, so a terminal using an arm64 Node (for example Homebrew's) cannot build. Fix: use the Node pinned in `.nvmrc` (`nvm use`) for every command, or reinstall under the architecture you build with (`rm -rf frontend/node_modules && cd frontend && npm ci`). Check with `node -p process.arch`.
+
 ## 🐛 Debugging Pipeline Failures
 
 ### Check server logs
