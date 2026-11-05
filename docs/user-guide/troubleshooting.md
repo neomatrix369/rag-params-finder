@@ -405,6 +405,8 @@ db.results.deleteMany({experiment_id: exp_id})
 | Missing `input_data/` | Create `input_data/pdfs/` and add PDFs referenced in your config YAML |
 | Prod dashboard API errors | Browser must use `http://localhost:8001` — set via `VITE_API_URL` at image build time (default in Compose) |
 | Dev profile proxy errors | Ensure `vite.config.ts` proxy targets `http://server:8001` (Compose service name, not `127.0.0.1`) |
+| Build fails with ``No such file or directory: 'g++'`` while building `aim` (Apple Silicon / linux-arm64) | `aim` has no arm64 wheel and compiles from source. The server image's builder stage installs `g++` for this; if you see the error, rebuild with `./start-services.sh --force-build` and make sure `docker/server.Dockerfile` still has the `g++` install in `base-builder` |
+| Server shows `unhealthy` and the dashboard never starts, though `curl localhost:8001/healthz` works | The server image has no `curl`; Compose healthchecks must use Python (`python -c "import urllib.request; ..."`). A healthcheck calling `curl` fails with `executable file not found` — check `docker inspect rag-params-finder-server --format '{{json .State.Health}}'` |
 
 **Logs**:
 

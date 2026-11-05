@@ -306,7 +306,7 @@ cd frontend && npm run lint && npm run test && npm run typecheck && npm run buil
 
 **Frontend** (2026-08-07 — Slice 45 COMPLETE + floors #142 + 3 gap scenarios; harness #185):
 - `npm run lint` → 0 errors (eslint + security plugin)
-- `npm run test` → **264** tests across **24** files (Vitest + React Testing Library)
+- `npm run test` → **261** tests across **24** files (Vitest + React Testing Library)
 - `npm run test:coverage` / `test:ci` → v8 thresholds **95/90/95/95** stmts/br/fn/lines (`all: true`; DECISIONS #142); measured ≈98.4% / 93.11% / 100% / 99.69% — wired into `quality-gates.sh`, `pre-push-gates.sh`, and CI frontend job (**VERIFIED**)
 - Vitest: `testTimeout`/`hookTimeout` **20s**; setup restores `vi.useRealTimers()` every test (DECISIONS #185)
 - `npm run typecheck` → 0 errors

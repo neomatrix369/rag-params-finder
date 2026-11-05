@@ -447,7 +447,7 @@ GitHub Actions splits PR gates from expensive scheduled work (see `.github/workf
 
 | Workflow | Cron | Jobs |
 |----------|------|------|
-| **A — `nightly.yml`** | daily `0 2 * * *` | unit/cov snapshots · complexity · **vector-store-integration** (mongodb, postgres, elasticsearch; skipped ≠ green) · **docker-build** · TruffleHog full · dep-audit · gitleaks full · **Semgrep SAST** · **OSV SCA** (waivers: `osv-scanner.toml`) · frontend knip/jscpd report (not a gate) |
+| **A — `nightly.yml`** | daily `0 2 * * *` | unit/cov snapshots · complexity · **vector-store-integration** (mongodb, postgres, elasticsearch, redis; skipped ≠ green) · **docker-build** · TruffleHog full · dep-audit · gitleaks full · **Semgrep SAST** · **OSV SCA** (waivers: `osv-scanner.toml`) · frontend knip/jscpd report (not a gate) |
 | **B — `supply-chain.yml`** | Mondays `0 3 * * 1` | `sbom` (CycloneDX + Trivy license) · **Meterian** OSS SCA (`oss: true`; archives `meterian-<run>`; exclusions in [`.meterian`](../../.meterian); Trivy image parity [`.trivyignore`](../../.trivyignore)) · `container-scan` · `chalk` |
 | **C — `mutation.yml`** | 1st + 15th `0 2 1,15 * *` | `mutation-tests-python` (mutmut, advisory) · `mutation-tests-node` (Stryker) |
 | **D — `code-review-graph.yml`** | daily `0 2 * * *` | graph review (`fail-on-risk: none`; no PR comments) |
