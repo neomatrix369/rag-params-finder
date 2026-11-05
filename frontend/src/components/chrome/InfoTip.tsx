@@ -23,7 +23,6 @@ export default function InfoTip({ label, children, className = '', id }: InfoTip
   const rootRef = useRef<HTMLSpanElement>(null);
   const tipRef = useRef<HTMLSpanElement>(null);
   const [shift, setShift] = useState(0);
-  const shiftRef = useRef(0);
 
   const toggle = useCallback(() => setOpen((prev) => !prev), []);
 
@@ -31,18 +30,12 @@ export default function InfoTip({ label, children, className = '', id }: InfoTip
     if (event.key === 'Escape') setOpen(false);
   }, []);
 
-  // Thin shell around clampShift. The measured rect already includes the applied shift, so subtract
-  // it to get the untransformed position: re-running the effect can never double-apply the nudge.
+  // Thin shell around clampShift. The shift is reset to 0 on every close, so at the moment of
+  // opening the tip is always untransformed and the measured rect is the baseline (the effect only
+  // re-runs when `open` changes, so it never measures an already-nudged tip).
   useLayoutEffect(() => {
     const tip = tipRef.current;
-    let next = 0;
-    if (open && tip) {
-      const { left, right } = tip.getBoundingClientRect();
-      const applied = shiftRef.current;
-      next = clampShift({ left: left - applied, right: right - applied }, window.innerWidth);
-    }
-    shiftRef.current = next;
-    setShift(next);
+    setShift(open && tip ? clampShift(tip.getBoundingClientRect(), window.innerWidth) : 0);
   }, [open]);
 
   useEffect(() => {

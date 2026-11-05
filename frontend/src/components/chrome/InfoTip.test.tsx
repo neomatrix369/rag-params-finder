@@ -261,9 +261,10 @@ describe('InfoTip', () => {
       expect(screen.getByRole('tooltip').style.transform).toBe('translateX(calc(-50% + 68px))');
     });
 
-    it('Given a nudged tip, when toggled repeatedly, then the nudge is never applied twice', () => {
+    it('Given a nudged tip, when closed and reopened, then it is measured from its unshifted position', () => {
       /**
-       * Scenario: Idempotent measurement (the measured rect already includes the applied shift).
+       * Scenario: The shift resets on close, so each open measures an untransformed tip and the
+       * nudge is the same every time (the mocked rect moves with the applied shift, like a browser).
        * Slice: 67C — InfoTip
        */
       // -- Given --
