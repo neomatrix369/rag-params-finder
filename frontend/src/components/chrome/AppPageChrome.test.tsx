@@ -5,7 +5,7 @@
  * Created: 2026-07-27
  * Scope: Slice 44 Phase B — canvas/darkFrame, footnote, meta/hint slots
  */
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import AppPageChrome from './AppPageChrome';
 
@@ -53,5 +53,20 @@ describe('AppPageChrome', () => {
     // -- Then --
     expect(screen.getByText('Detail')).toBeInTheDocument();
     expect(screen.queryByText(/CLI/i)).toBeNull();
+  });
+
+  it('Given any tone, when rendered, then the header offers an About button that opens the dialog', () => {
+    /**
+     * Scenario: The About box is reachable from the app header on every page.
+     * Slice: 56 Part C1 - About box (header placement)
+     */
+    // -- Given --
+    render(<AppPageChrome pageTitle="Anywhere" tone="darkFrame" />);
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'About' }));
+
+    // -- Then --
+    expect(screen.getByRole('dialog', { name: 'About RAG Params Finder' })).toBeInTheDocument();
   });
 });

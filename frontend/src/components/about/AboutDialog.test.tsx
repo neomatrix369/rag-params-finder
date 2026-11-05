@@ -1,0 +1,128 @@
+/**
+ * Tests for AboutDialog content: section order, banner removal, offline rendering.
+ *
+ * Author: RAG Params Finder contributors
+ * Created: 2026-11-05
+ * Scope: Slice 56 Part C1 - About box GWT scenarios (sections, banner, network off)
+ */
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ABOUT_SECTIONS } from '../../demo/about';
+import AboutDialog from './AboutDialog';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe('AboutDialog', () => {
+  it('Given the dialog is closed, when rendered, then nothing is shown', () => {
+    /**
+     * Scenario: Closed About dialog mounts nothing.
+     * Slice: 56 Part C1 - About box
+     */
+    // -- Given / When --
+    render(<AboutDialog open={false} onClose={vi.fn()} />);
+
+    // -- Then --
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('Given the dialog is open, when rendered, then the nine shipped sections appear in order', () => {
+    /**
+     * Scenario: Sections 1-9 render in spec order; section 10 (golden master, Part J) is absent.
+     * Slice: 56 Part C1 - About box ("10 sections in order", link only if Part J shipped)
+     */
+    // -- Given / When --
+    render(<AboutDialog open onClose={vi.fn()} />);
+
+    // -- Then --
+    const dialog = screen.getByRole('dialog', { name: 'About RAG Params Finder' });
+    const sections = Array.from(dialog.querySelectorAll('section[data-section]')).map((el) =>
+      el.getAttribute('data-section'),
+    );
+    expect(sections).toEqual(ABOUT_SECTIONS.map((section) => section.id));
+    expect(sections).toHaveLength(9);
+    expect(sections[0]).toBe('problem');
+    expect(sections[4]).toBe('evals-underway');
+    expect(within(dialog).getByRole('heading', { level: 3, name: /Which settings should my RAG app use/ })).toBeVisible();
+    expect(within(dialog).queryByText(/golden master/i)).toBeNull();
+  });
+
+  it('Given the open dialog, when read, then problem is a question and the credits are shown', () => {
+    /**
+     * Scenario: Key content is present - the problem as a question, repo link, QR image, thanks.
+     * Slice: 56 Part C1 - About box
+     */
+    // -- Given / When --
+    render(<AboutDialog open onClose={vi.fn()} />);
+
+    // -- Then --
+    expect(screen.getAllByRole('heading', { name: /\?$/ })[0]).toHaveTextContent(/Which settings/);
+    expect(screen.getByRole('img', { name: /QR code linking to github.com\/neomatrix369\/rag-params-finder/ })).toBeInTheDocument();
+    expect(screen.getByText(/Samuel Agbede/)).toBeInTheDocument();
+    const repoLinks = screen.getAllByRole('link', { name: 'github.com/neomatrix369/rag-params-finder' });
+    expect(repoLinks[0]).toHaveAttribute('href', 'https://github.com/neomatrix369/rag-params-finder');
+    expect(screen.getByRole('link', { name: 'japanese-work-life-balancer' })).toBeInTheDocument();
+  });
+
+  it('Given the evals banner section, when it is left out of the sections, then the banner is gone', () => {
+    /**
+     * Scenario: The banner is removable by one change - deleting docs/about/05-evals-underway.md,
+     *   which here is the same as dropping that entry from the section list.
+     * Slice: 56 Part C1 - About box (banner removable)
+     */
+    // -- Given --
+    const withBanner = render(<AboutDialog open onClose={vi.fn()} />);
+    expect(screen.getByText(/Evaluations are underway/)).toBeInTheDocument();
+    withBanner.unmount();
+
+    // -- When --
+    render(
+      <AboutDialog
+        open
+        onClose={vi.fn()}
+        sections={ABOUT_SECTIONS.filter((section) => section.id !== 'evals-underway')}
+      />,
+    );
+
+    // -- Then --
+    expect(screen.queryByText(/Evaluations are underway/)).toBeNull();
+    expect(screen.getByRole('heading', { name: /Which settings/ })).toBeInTheDocument();
+  });
+
+  it('Given fetch throws, when the dialog opens, then all content renders and no request is made', () => {
+    /**
+     * Scenario: Network off - Markdown is bundled and the QR is a committed static SVG.
+     * Slice: 56 Part C1 - About box (offline)
+     */
+    // -- Given --
+    const fetchMock = vi.fn(() => {
+      throw new Error('network is off');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    // -- When --
+    render(<AboutDialog open onClose={vi.fn()} />);
+
+    // -- Then --
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(8);
+    expect(screen.getByRole('img', { name: /QR code/ })).toHaveAttribute('src', expect.stringContaining('qr'));
+  });
+
+  it('Given the dialog is open, when Close is clicked, then onClose is called', () => {
+    /**
+     * Scenario: The About dialog forwards close requests.
+     * Slice: 56 Part C1 - About box
+     */
+    // -- Given --
+    const onClose = vi.fn();
+    render(<AboutDialog open onClose={onClose} />);
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    // -- Then --
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});

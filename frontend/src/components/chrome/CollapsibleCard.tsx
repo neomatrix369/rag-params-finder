@@ -6,6 +6,12 @@ type CollapsibleCardProps = {
   headerExtra?: ReactNode;
   storageKey?: string;
   defaultOpen?: boolean;
+  /**
+   * Optional override (Slice 56 Part C1). When defined it forces the card open or closed and
+   * ignores header clicks (nothing is written to storage); when undefined the card behaves exactly
+   * as before, so dropping the override restores the card's own state.
+   */
+  open?: boolean;
   compact?: boolean;
   className?: string;
   children: ReactNode;
@@ -24,20 +30,23 @@ export default function CollapsibleCard({
   headerExtra,
   storageKey,
   defaultOpen = true,
+  open: openOverride,
   compact = false,
   className = '',
   children,
 }: CollapsibleCardProps) {
-  const [open, setOpen] = useState(() => readStoredOpen(storageKey, defaultOpen));
+  const [ownOpen, setOpen] = useState(() => readStoredOpen(storageKey, defaultOpen));
+  const open = openOverride ?? ownOpen;
   const contentId = useId();
 
   const toggle = useCallback(() => {
+    if (openOverride !== undefined) return;
     setOpen((prev) => {
       const next = !prev;
       if (storageKey) localStorage.setItem(storageKey, String(next));
       return next;
     });
-  }, [storageKey]);
+  }, [storageKey, openOverride]);
 
   return (
     <div className={className}>
