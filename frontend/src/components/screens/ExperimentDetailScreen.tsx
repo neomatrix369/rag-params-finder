@@ -229,6 +229,7 @@ export default function ExperimentDetailScreen({
 
   const runSummary = summarizeExperimentRuns(detail.runs, detail.run_count);
   const isBayesianStrategy = detail.config?.execution?.search_strategy === 'bayesian';
+  const sweepNoteText = sweepNote(detail.config?.execution?.search_strategy);
   const bayesianSummary = detail.bayesian_summary;
   const bayesianPlannedTrials = isBayesianStrategy && typeof bayesianSummary?.planned_trials === 'number'
     ? bayesianSummary.planned_trials
@@ -577,11 +578,7 @@ export default function ExperimentDetailScreen({
               headerExtra={
                 <span className="text-sm font-semibold text-accent-strong">
                   <FormulaLine {...sweepFormulaFromSummary(detail.sweep_summary)} />
-                  {sweepNote(detail.config?.execution?.search_strategy) && (
-                    <span className="block text-xs font-normal text-muted">
-                      {sweepNote(detail.config?.execution?.search_strategy)}
-                    </span>
-                  )}
+                  {sweepNoteText && <span className="block text-xs font-normal text-muted">{sweepNoteText}</span>}
                 </span>
               }
             >

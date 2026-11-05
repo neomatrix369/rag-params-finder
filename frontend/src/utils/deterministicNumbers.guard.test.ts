@@ -43,7 +43,7 @@ describe('deterministic numbers guard', () => {
     expect(source).not.toMatch(NON_DETERMINISTIC);
   });
 
-  it.each(SCREENS)('Given %s, when scanned, then no count is multiplied in JSX', (file) => {
+  it.each(SCREENS)('Given %s, when scanned, then no .length is multiplied in JSX (67D widens this to every count expression)', (file) => {
     /**
      * Scenario: every shown count is derived by a named pure function, not inline arithmetic.
      * Slice: 67 — 'no count is computed as JSX arithmetic' oracle.
