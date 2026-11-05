@@ -1697,4 +1697,42 @@ describe('ExperimentDetailScreen progress and Bayesian totals', () => {
     expect(tile('Discarded by Sampler')).toBe('4');
     expect(Number(tile('Successful')) + Number(tile('Failed')) + Number(tile('Interrupted'))).toBe(13);
   });
+
+  it('Given a running Bayesian sweep with an in-progress run, when rendered, then the line and every card still agree', async () => {
+    /**
+     * Scenario: mid-run, In Progress is part of attempted and appears in the totals line.
+     * Slice: 67D - finding F while a sweep is running.
+     */
+    // -- Given --
+    const fixture = detailFixture('running', [Phase.COMPLETE, Phase.COMPLETE, Phase.FAILED, Phase.QUERYING], {
+      config: { execution: { search_strategy: 'bayesian' } },
+      run_count: 10,
+      bayesian_summary: { planned_trials: 10, attempted_trials: 4, discarded_trials: 0 },
+    });
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+    const tile = (label: string): string | null | undefined =>
+      screen.getByText(label, { selector: 'div' }).previousElementSibling?.textContent;
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen
+        experimentId={fixture.experiment_id}
+        initialExperiment={fixture}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(
+      screen.getByText('Total 10 = 4 attempted (1 in progress) + 0 discarded + 6 not started. Discarded trials are not runs.'),
+    ).toBeInTheDocument();
+    expect(tile('Total')).toBe('10');
+    expect(tile('Not Started')).toBe('6');
+    expect(tile('In Progress')).toBe('1');
+    expect(
+      Number(tile('Successful')) + Number(tile('Failed')) + Number(tile('Interrupted')) + Number(tile('In Progress')),
+    ).toBe(4);
+  });
 });

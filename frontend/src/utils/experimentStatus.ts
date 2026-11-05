@@ -57,17 +57,22 @@ export function bayesianTotalsLine({
   attempted,
   discarded,
   notStarted,
+  inProgress = 0,
 }: {
   planned: number;
   attempted: number;
   discarded: number;
   notStarted: number;
+  /** Runs still executing; they are part of attempted, so this only annotates it. */
+  inProgress?: number;
 }): string {
   const note = 'Discarded trials are not runs.';
+  const attemptedText = inProgress > 0 ? `${attempted} attempted (${inProgress} in progress)` : `${attempted} attempted`;
   if (attempted + discarded + notStarted === planned) {
-    return `Total ${planned} = ${attempted} attempted + ${discarded} discarded + ${notStarted} not started. ${note}`;
+    return `Total ${planned} = ${attemptedText} + ${discarded} discarded + ${notStarted} not started. ${note}`;
   }
-  return `Total ${planned}; attempted ${attempted}, discarded ${discarded}, not started ${notStarted} (parts do not add up yet). ${note}`;
+  const attemptedList = inProgress > 0 ? `attempted ${attempted} (${inProgress} in progress)` : `attempted ${attempted}`;
+  return `Total ${planned}; ${attemptedList}, discarded ${discarded}, not started ${notStarted} (parts do not add up yet). ${note}`;
 }
 
 function isCompletedByTimestamp(

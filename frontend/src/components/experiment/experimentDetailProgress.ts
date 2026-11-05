@@ -2,6 +2,7 @@
  * Progress rule (Slice 67D, finding E): a run is "finished" when it is complete, failed or
  * interrupted. Failed and interrupted runs will not become complete later, so they count
  * as finished work for the progress ring and the ETA. Tooltips quote this constant.
+ * Caveat: the ETA averages elapsed time over all finished runs, so fast failures pull it down.
  */
 export const FINISHED_RUN_RULE =
   'Progress and ETA count a run as finished when it is complete, failed or interrupted; ' +
@@ -47,7 +48,7 @@ export function calculateProgressPercent({
   interrupted?: number;
   expected: number;
 }): number {
-  return expected > 0 ? (countFinishedRuns(runs) / expected) * 100 : 0;
+  return expected > 0 ? Math.min(100, (countFinishedRuns(runs) / expected) * 100) : 0;
 }
 
 export function calculateProgressMetrics({
@@ -66,7 +67,7 @@ export function calculateProgressMetrics({
   /** Injected clock (epoch ms); this function never reads the system clock. */
   now: number;
 }): { elapsedStr: string; etaStr: string } {
-  const start = startedAt ? new Date(startedAt).getTime() : null;
+  const start = parseSafeTimestamp(startedAt);
 
   let elapsedStr = '—';
   let etaStr = '—';
@@ -79,7 +80,7 @@ export function calculateProgressMetrics({
     elapsedStr = formatTimeWithUnits(elapsedSecs);
 
     const avgTimePerRun = elapsedMs / finished;
-    const remainingRuns = total - finished;
+    const remainingRuns = Math.max(0, total - finished);
     const rawEtaMs = avgTimePerRun * remainingRuns;
     const etaMs = rawEtaMs * 1.01;
     const etaSecs = etaMs / 1000;
@@ -106,10 +107,16 @@ export function formatTimeWithUnits(totalSeconds: number): string {
 
 export function formatDuration(startedAt?: string, completedAt?: string | null): string {
   if (!startedAt || !completedAt) return '—';
-  const ms = new Date(completedAt).getTime() - new Date(startedAt).getTime();
+  const ms = (parseSafeTimestamp(completedAt) ?? NaN) - (parseSafeTimestamp(startedAt) ?? NaN);
+  return formatElapsedMs(ms);
+}
+
+function formatElapsedMs(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   return formatTimeWithUnits(ms / 1000);
 }
+
+/** The only place a date string is parsed in this module (the determinism guard allows exactly one date parse in this file). */
 
 export function parseSafeTimestamp(value: string | undefined): number | null {
   if (!value) return null;
@@ -134,7 +141,7 @@ export function formatDurationFromRuns(
     Number.isFinite(runStartedAt) && Number.isFinite(runCompletedAt) && runCompletedAt >= runStartedAt;
 
   if (allRunsHaveTimestamps) {
-    return formatDuration(new Date(runStartedAt).toISOString(), new Date(runCompletedAt).toISOString());
+    return formatElapsedMs(runCompletedAt - runStartedAt);
   }
 
   return formatDuration(startedAt, completedAt);

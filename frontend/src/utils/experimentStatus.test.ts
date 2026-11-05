@@ -375,6 +375,20 @@ describe('bayesianTotalsLine', () => {
   });
 });
 
+describe('bayesianTotalsLine with runs in flight', () => {
+  it('Given runs still executing, when explained, then they are annotated inside attempted and the sum still holds', () => {
+    /**
+     * Scenario: a running Bayesian sweep has in-progress runs that count as attempted.
+     * Slice: 67D — line and cards agree mid-run.
+     */
+    // -- Given / When --
+    const line = bayesianTotalsLine({ planned: 20, attempted: 6, discarded: 0, notStarted: 14, inProgress: 2 });
+
+    // -- Then --
+    expect(line).toBe('Total 20 = 6 attempted (2 in progress) + 0 discarded + 14 not started. Discarded trials are not runs.');
+  });
+});
+
 describe('selectableExperimentIds', () => {
   it('Given running and finished experiments, when selecting for bulk actions, then running ones are excluded in order', () => {
     /**

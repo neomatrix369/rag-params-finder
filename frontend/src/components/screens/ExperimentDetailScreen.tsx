@@ -262,6 +262,7 @@ export default function ExperimentDetailScreen({
     attempted: bayesianAttemptedTrials,
     discarded: bayesianDiscardedCount,
     notStarted: bayesianNotStarted,
+    inProgress: runSummary.inProgress,
   });
   const failedRuns = (detail.runs ?? []).filter((r) => r.phase === Phase.FAILED);
   const interruptedRuns = (detail.runs ?? []).filter((r) => r.phase === Phase.INTERRUPTED);

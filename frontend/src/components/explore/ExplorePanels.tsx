@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import Pagination from '../chrome/Pagination';
 import FormulaLine from '../chrome/FormulaLine';
 import type { DetailedResult, ExploreResponse, RankedConfig } from '../../types';
-import { countConfigsAtScore } from '../../utils/sweepFormula';
+import { countConfigsAtScore } from './scoreCounts';
 import { displayDatabaseProvider } from '../../utils/storageLabels';
 import { formatChunkDimensions } from './formatChunkDimensions';
 

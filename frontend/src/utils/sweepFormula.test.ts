@@ -4,7 +4,7 @@
  * Scope: Slice 67A — pure builders for the Cartesian "configurations" formula line.
  */
 import { describe, expect, it } from 'vitest';
-import { BAYESIAN_SWEEP_NOTE, countConfigsAtScore, formulaProduct, pluralize, sweepFormulaFromSummary, sweepNote } from './sweepFormula';
+import { BAYESIAN_SWEEP_NOTE, formulaProduct, pluralize, sweepFormulaFromSummary, sweepNote } from './sweepFormula';
 
 describe('pluralize', () => {
   it('Given a count of 1, when pluralized, then the singular label is kept', () => {
@@ -172,19 +172,5 @@ describe('determinism', () => {
     expect(sweepNote('bayesian')).toBe(BAYESIAN_SWEEP_NOTE);
     expect(sweepNote('grid')).toBeNull();
     expect(sweepNote(undefined)).toBeNull();
-  });
-});
-
-describe('countConfigsAtScore', () => {
-  it('Given configs with a shared top score, when counted at that score, then only exact ties are counted', () => {
-    /**
-     * Scenario: the Explorer tie count is a named pure function, not inline filtering.
-     * Slice: 67D — determinism guard widening.
-     */
-    // -- Given --
-    const configs = [{ max_score: 91 }, { max_score: 91 }, { max_score: 80 }];
-
-    // -- When / Then --
-    expect(countConfigsAtScore(configs, 91)).toBe(2);
   });
 });

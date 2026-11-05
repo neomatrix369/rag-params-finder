@@ -177,6 +177,26 @@ describe('experimentDetailProgress', () => {
   });
 });
 
+describe('progress clamps', () => {
+  it('Given finished runs above the expected total, when measured, then percent caps at 100 and ETA never goes negative', () => {
+    /**
+     * Scenario: an under-reported run_count cannot produce >100% or a negative ETA.
+     * Slice: 67D — clamp in the pure helpers.
+     */
+    // -- Given --
+    const startedAt = '2026-07-20T10:00:00.000Z';
+    const now = new Date('2026-07-20T10:02:00.000Z').getTime();
+
+    // -- When --
+    const percent = calculateProgressPercent({ complete: 9, failed: 1, interrupted: 0, expected: 8 });
+    const { etaStr } = calculateProgressMetrics({ completed: 9, failed: 1, total: 8, startedAt, now });
+
+    // -- Then --
+    expect(percent).toBe(100);
+    expect(etaStr).toBe('0s');
+  });
+});
+
 describe('progressSentence', () => {
   it('Given only complete runs, when worded, then the "completed" sentence is used', () => {
     /**

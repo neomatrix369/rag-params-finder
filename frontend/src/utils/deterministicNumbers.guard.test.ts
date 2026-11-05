@@ -4,7 +4,7 @@
  * Scope: Slice 67 static guard — dashboard numbers and explanations come from pure functions.
  */
 import { describe, expect, it } from 'vitest';
-import { JSX_COUNT_ARITHMETIC, NON_DETERMINISTIC } from './deterministicNumbers.patterns';
+import { JSX_COUNT_ARITHMETIC, NEW_DATE_WITH_ARGUMENT, NON_DETERMINISTIC } from './deterministicNumbers.patterns';
 
 const SOURCES = import.meta.glob(
   [
@@ -13,6 +13,7 @@ const SOURCES = import.meta.glob(
     '/src/utils/experimentStatus.ts',
     '/src/components/experiment/experimentDetailProgress.ts',
     '/src/components/experiment/experimentDetail/ProgressSubtitle.tsx',
+    '/src/components/explore/scoreCounts.ts',
     '/src/components/walkthru/scoreLabels.ts',
     '/src/components/stats/estimateLabels.ts',
     '/src/components/screens/ExperimentDetailScreen.tsx',
@@ -35,6 +36,7 @@ const PURE_MODULES = [
   'src/utils/experimentStatus.ts',
   'src/components/experiment/experimentDetailProgress.ts',
   'src/components/experiment/experimentDetail/ProgressSubtitle.tsx',
+  'src/components/explore/scoreCounts.ts',
   'src/components/walkthru/scoreLabels.ts',
   'src/components/stats/estimateLabels.ts',
 ];
@@ -47,7 +49,28 @@ const SCREENS = [
   'src/components/experiment/experimentDetail/ProgressSubtitle.tsx',
 ];
 
+/** Pure parse helpers: the only `new Date(<arg>)` occurrences allowed, with the exact count each may hold. */
+const DATE_PARSE_ALLOWANCE: Record<string, number> = {
+  'src/components/experiment/experimentDetailProgress.ts': 1, // parseSafeTimestamp
+};
+
 describe('deterministic numbers guard', () => {
+  it.each(PURE_MODULES)('Given %s, when scanned, then date strings are parsed only through the listed parse helper', (file) => {
+    /**
+     * Scenario: a clock-free module may still parse a given date string, but only in one named place.
+     * Slice: 67D — keeps `new Date(arg)` an explicit, counted exception.
+     */
+    // -- Given --
+    const source = read(file);
+
+    // -- When --
+    const parses = source.match(NEW_DATE_WITH_ARGUMENT) ?? [];
+
+    // -- Then --
+    // eslint-disable-next-line security/detect-object-injection -- file comes from the literal PURE_MODULES list
+    expect(parses.length).toBeLessThanOrEqual(DATE_PARSE_ALLOWANCE[file] ?? 0);
+  });
+
   it.each(PURE_MODULES)('Given %s, when scanned, then it reads no clock, randomness, storage, network or DOM', (file) => {
     /**
      * Scenario: a pure module cannot drift between renders or machines.
@@ -89,5 +112,6 @@ describe('deterministic numbers guard', () => {
     removedArithmetic.forEach((expression) => expect(expression).toMatch(JSX_COUNT_ARITHMETIC));
     clockReads.forEach((expression) => expect(expression).toMatch(NON_DETERMINISTIC));
     expect('const start = new Date(startedAt).getTime();').not.toMatch(NON_DETERMINISTIC);
+    expect('const start = new Date(startedAt).getTime();').toMatch(NEW_DATE_WITH_ARGUMENT);
   });
 });

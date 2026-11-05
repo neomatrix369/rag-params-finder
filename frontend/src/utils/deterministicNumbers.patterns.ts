@@ -11,3 +11,6 @@ export const NON_DETERMINISTIC =
 /** Screens must render counts produced elsewhere, never compute them inline. */
 export const JSX_COUNT_ARITHMETIC =
   /\.length\s*[*×]|[*×]\s*[\w.?]+\.length\b|\.filter\([^\n]*\)\.length|\/\s*[\w.?]+\)?\s*\*\s*100/;
+
+/** A date parsed from an argument; allowed only through the explicitly listed parse helpers. */
+export const NEW_DATE_WITH_ARGUMENT = /new Date\(\s*[^)\s]/g;
