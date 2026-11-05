@@ -160,7 +160,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/core/rerank/local_reranker.py` | CrossEncoder reranking (lazy-load) |
 | `server/core/retrieval/retriever_mongo.py` | Atlas Vector Search (dense/sparse/hybrid) — Mongo-only |
 | `server/core/retrieval/retriever_postgres.py` | pgvector dense + tsvector sparse + RRF hybrid; Atlas-scale dense scores; mandatory `embedding_model` filter |
-| `server/models/config.py` | Pydantic experiment config + provider validators |
+| `server/models/config.py` | Pydantic experiment config + provider validators; pure `sweep_plan()` (sweep counts, Slice 67B), `grid_equivalent_count` and `resolve_bayesian_n_trials` |
 | `server/models/enums.py` | ChunkingMethod, RetrievalMethod, Phase |
 | `server/api/experiments.py` | Experiments CRUD, results/explore, db-stats, pause, resume, cancel, delete |
 | `server/api/experiments_lifecycle.py` | Bayesian summary + stale RUNNING reconciliation helpers (Slice 45) |
@@ -186,6 +186,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `frontend/src/utils/feedEntries.ts` | Shared loading-feed append helper |
 | `frontend/src/utils/sweepFormula.ts` | Pure Cartesian formula builders (`sweepFormulaFromSummary`, `formulaProduct`, `pluralize`, `sweepNote`); mirrors `expand_sweep` (Slice 67A) |
 | `frontend/src/components/chrome/FormulaLine.tsx` | Shared `terms = total` line; `observedTotal` renders `(observed)` when it differs from the product (Slice 67A) |
+| `frontend/src/components/chrome/InfoTip.tsx` | Dependency-free explain tip (native button, `aria-describedby`, Escape/outside/resize close, viewport clamp); pure helpers `clampShift`, `aboutLabel`, `explainLabel` in `infoTipUtils.ts` (Slice 67C) |
 | `frontend/src/utils/deterministicNumbers.guard.test.ts` | Static guard: formula modules are pure, screens do not multiply counts in JSX (Slice 67; extend per sub-slice) |
 | `frontend/src/types/index.ts` | Hand-mirrored TypeScript types from Python models |
 | `frontend/src/services/apiClient.ts` | Fetch wrapper (all server API calls, including DELETE) |
