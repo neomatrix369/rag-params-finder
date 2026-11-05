@@ -1,0 +1,119 @@
+/**
+ * Author: RAG Params Finder contributors
+ * Created: 2026-11-05
+ * Scope: Slice 67A — pure builders for the Cartesian "configurations" formula line.
+ */
+import { describe, expect, it } from 'vitest';
+import { formulaProduct, pluralize, sweepFormulaFromSummary } from './sweepFormula';
+
+describe('pluralize', () => {
+  it('Given a count of 1, when pluralized, then the singular label is kept', () => {
+    /**
+     * Scenario: one pluralizer serves every term.
+     * Slice: 67A — FormulaLine pluralization.
+     */
+    // -- When / Then --
+    expect(pluralize(1, 'model')).toBe('1 model');
+    expect(pluralize(5, 'chunking method')).toBe('5 chunking methods');
+    expect(pluralize(0, 'padding')).toBe('0 paddings');
+  });
+});
+
+describe('sweepFormulaFromSummary', () => {
+  it('Given 1x5x3x2x1x4 dimensions, when built, then the product is 120 and every term is present', () => {
+    /**
+     * Scenario: the owner-quoted sweep reads as one Cartesian line that equals the Total tile.
+     * Slice: 67A — Detail header formula.
+     */
+    // -- Given --
+    const summary = {
+      models: ['m'],
+      chunking_methods: ['a', 'b', 'c', 'd', 'e'],
+      chunk_sizes: [1, 2, 3],
+      overlaps: [0, 1],
+      paddings: [0],
+      retrievers: ['dense', 'sparse', 'hybrid', 'reranker'],
+    };
+
+    // -- When --
+    const formula = sweepFormulaFromSummary(summary);
+
+    // -- Then --
+    expect(formula.terms.map((t) => t.count)).toEqual([1, 5, 3, 2, 1, 4]);
+    expect(formula.total).toBe(120);
+    expect(formula.unit).toBe('configuration');
+  });
+
+  it('Given empty paddings, when built, then the padding factor is 1, never 0', () => {
+    /**
+     * Scenario: the backend treats paddings [] as [0], so the UI must too.
+     * Slice: 67A — empty-padding oracle.
+     */
+    // -- Given --
+    const summary = {
+      models: ['m'],
+      chunking_methods: ['a'],
+      chunk_sizes: [1],
+      overlaps: [0],
+      paddings: [] as number[],
+      retrievers: ['dense'],
+    };
+
+    // -- When --
+    const formula = sweepFormulaFromSummary(summary);
+
+    // -- Then --
+    expect(formula.terms[4]).toEqual({ count: 1, label: 'padding' });
+    expect(formula.total).toBe(1);
+  });
+
+  it('Given a legacy summary with retrieval_methods only, when built, then they supply the retriever factor', () => {
+    /**
+     * Scenario: older experiments lack `retrievers`.
+     * Slice: 67A — retrievers ?? retrieval_methods fallback.
+     */
+    // -- Given --
+    const summary = {
+      models: ['m'],
+      chunking_methods: ['a'],
+      chunk_sizes: [1, 2],
+      overlaps: [0],
+      retrieval_methods: ['dense', 'sparse'],
+    };
+
+    // -- When --
+    const formula = sweepFormulaFromSummary(summary);
+
+    // -- Then --
+    expect(formula.terms[5].count).toBe(2);
+    expect(formula.total).toBe(4);
+  });
+
+  it('Given neither retrievers nor retrieval_methods, when built, then one default dense retriever is assumed', () => {
+    /**
+     * Scenario: expand_sweep falls back to a single dense retriever.
+     * Slice: 67A — retriever default.
+     */
+    // -- Given --
+    const summary = { models: ['m'], chunking_methods: ['a'], chunk_sizes: [1], overlaps: [0] };
+
+    // -- When --
+    const formula = sweepFormulaFromSummary(summary);
+
+    // -- Then --
+    expect(formula.terms[5]).toEqual({ count: 1, label: 'retriever' });
+    expect(formula.total).toBe(1);
+  });
+});
+
+describe('formulaProduct', () => {
+  it('Given any set of terms, when multiplied, then the result equals the product of the counts', () => {
+    /**
+     * Scenario: the displayed total can never drift from its terms.
+     * Slice: 67A — FormulaLine invariant.
+     */
+    // -- When / Then --
+    expect(formulaProduct([{ count: 2, label: 'a' }, { count: 3, label: 'b' }])).toBe(6);
+    expect(formulaProduct([])).toBe(1);
+  });
+});

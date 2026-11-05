@@ -891,6 +891,72 @@ describe('ExperimentDetailScreen sweep-dimensions rendering', () => {
     expect(screen.getByText('hybrid')).toBeInTheDocument();
   });
 
+  it('Given a 1x5x3x2x1x4 sweep, when the Detail screen renders, then the header is the Cartesian line ending in 120 configurations', async () => {
+    /**
+     * Scenario: the header includes retrievers and says configurations.
+     * Slice: 67A — Detail header formula oracle.
+     */
+    // -- Given --
+    const fixture = detailFixture('complete', [Phase.COMPLETE], {
+      sweep_summary: {
+        database_provider: 'mongodb',
+        embedding_provider: 'voyage',
+        models: ['voyage-3.5-lite'],
+        chunking_methods: ['a', 'b', 'c', 'd', 'e'],
+        chunk_sizes: [256, 512, 1024],
+        overlaps: [25, 50],
+        paddings: [0],
+        retrievers: ['dense', 'sparse', 'hybrid', 'reranker'],
+      },
+    });
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen experimentId={fixture.experiment_id} initialExperiment={fixture} onBack={vi.fn()} onExplore={vi.fn()} />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(screen.getByTestId('formula-line')).toHaveTextContent(
+      '1 model × 5 chunking methods × 3 sizes × 2 overlaps × 1 padding × 4 retrievers = 120 configurations',
+    );
+    expect(screen.queryByText(/Bayesian: varies chunk size/)).not.toBeInTheDocument();
+  });
+
+  it('Given empty paddings on a Bayesian experiment, when rendered, then the padding factor is 1 and the Bayesian note shows', async () => {
+    /**
+     * Scenario: [] paddings never print 0; Bayesian wording is attached.
+     * Slice: 67A — Detail header formula oracle.
+     */
+    // -- Given --
+    const fixture = detailFixture('complete', [Phase.COMPLETE], {
+      config: { execution: { search_strategy: 'bayesian' } },
+      sweep_summary: {
+        database_provider: 'mongodb',
+        embedding_provider: 'voyage',
+        models: ['m'],
+        chunking_methods: ['recursive'],
+        chunk_sizes: [256, 512],
+        overlaps: [25],
+        paddings: [],
+        retrievers: ['dense'],
+      },
+    });
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen experimentId={fixture.experiment_id} initialExperiment={fixture} onBack={vi.fn()} onExplore={vi.fn()} />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(screen.getByTestId('formula-line')).toHaveTextContent('1 padding');
+    expect(screen.getByTestId('formula-line')).toHaveTextContent('= 2 configurations');
+    expect(screen.getByText(/Bayesian: varies chunk size × overlap only/)).toBeInTheDocument();
+  });
+
   it('Given a legacy sweep summary without unified retrievers, when rendered, then the retrieval-method fallback badges appear', async () => {
     /**
      * Scenario: Older experiments lack `retrievers` and fall back to retrieval_methods + retrieval_provider.

@@ -138,17 +138,19 @@ README (unchanged unless UI described), `docs/user-guide/dashboard-guide.md` (ex
 
 ---
 
-## Appendix — number inventory (seed; completed in 67A)
+## Appendix — number inventory (completed in 67A; `FormulaLine` shipped in 67A, tips land in 67C/67D)
 
 | Screen | Card or number | Source | Verdict | Fix lands in |
 |---|---|---|---|---|
-| Detail | "N combinations" header | `ExperimentDetailScreen.tsx:575` | ❌ omits retrievers | 67A |
+| Detail | Sweep Dimensions header (was "N combinations") | `ExperimentDetailScreen.tsx` | ✅ fixed in 67A: `FormulaLine`, retrievers included, `paddings.length \|\| 1`, Bayesian note | 67A |
 | Detail | Total / Successful / Failed / Interrupted / Not started / In progress | `utils/experimentStatus.ts` | ✅ grid, ❌ Bayesian sums | 67D |
 | Detail | Duration, progress %, ETA | `experimentDetailProgress.ts` | ⚠️ ignores failed and interrupted | 67D |
 | Detail | Bayesian summary "X/Y trials" | `ExperimentDetailScreen.tsx:624` | ⚠️ `run_count` over `grid_equivalent_count` | 67D |
 | List | "N experiments" header, "N runs configured", RUNS, "N failed", Bayesian counts | `ExperimentsScreen.tsx:381,520,563` | ⚠️ planned vs executed, double subtraction | 67D |
-| Explorer | "(N total configurations)" and the Cartesian line | `ExplorePanels.tsx:295,374` | ❌ observed not planned | 67A/67D |
+| Explorer | "(N total configurations)" and the Cartesian line | `ExplorePanels.tsx` | ⚠️ now rendered by shared `FormulaLine` (67A); still observed from completed configs, not planned | 67D |
 | Explorer | tied count, score %, per-query counts, `top_k` | `ExplorePanels.tsx` | ⚠️ two definitions, unexplained normalisation | 67D |
 | Stats | Experiments, Query Results, DB Used, Chunks (Est.), MB | `VectorDbStatsPanel.tsx`, `ExperimentStoredFootprint.tsx` | ⚠️ scope and estimate unlabeled | 67D |
 | Compare | Similarity score, Rank, overlap note, dedup | `CrossStoreLeaderboard.tsx` | ⚠️ lone run = 100, silent dedup | 67D |
 | Walkthru | Improvement percentages, "across N runs" | `ImprovementPanel.tsx` | ⚠️ baseline unstated, primary store only | 67D |
+| List | "120 experiments" header count and pagination ("Showing X–Y of N", page size) | `ExperimentsScreen.tsx`, `chrome/Pagination.tsx` | ⚠️ total of stored experiments vs. filtered/visible rows is unlabeled | 67D |
+| Detail | Sweep Dimensions chips (models, methods, sizes, overlaps, paddings, retrievers) | `ExperimentDetailScreen.tsx` `DimensionBadge` | ✅ values listed; counts now in the formula line | 67A |

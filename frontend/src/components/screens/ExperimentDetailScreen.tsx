@@ -17,6 +17,8 @@ import ExperimentControlButtons from '../experiment/ExperimentControlButtons';
 import ConfirmDeleteModal from '../experiment/ConfirmDeleteModal';
 import CollapsibleCard from '../chrome/CollapsibleCard';
 import Pagination from '../chrome/Pagination';
+import FormulaLine from '../chrome/FormulaLine';
+import { sweepFormulaFromSummary } from '../../utils/sweepFormula';
 import {
   detailIcons as icons,
   DimensionBadge,
@@ -227,6 +229,7 @@ export default function ExperimentDetailScreen({
 
   const runSummary = summarizeExperimentRuns(detail.runs, detail.run_count);
   const isBayesianStrategy = detail.config?.execution?.search_strategy === 'bayesian';
+  const sweepFormula = detail.sweep_summary ? sweepFormulaFromSummary(detail.sweep_summary) : null;
   const bayesianSummary = detail.bayesian_summary;
   const bayesianPlannedTrials = isBayesianStrategy && typeof bayesianSummary?.planned_trials === 'number'
     ? bayesianSummary.planned_trials
@@ -566,7 +569,7 @@ export default function ExperimentDetailScreen({
         )}
 
         {/* Sweep Dimensions - Visual Grid */}
-        {detail?.sweep_summary && (
+        {detail?.sweep_summary && sweepFormula && (
           <div className="mb-6 rounded-panel border border-line bg-paper p-5 shadow-panel">
             <CollapsibleCard
               title="Sweep Dimensions"
@@ -574,12 +577,12 @@ export default function ExperimentDetailScreen({
               storageKey={`detail-sweep-${experimentId}`}
               headerExtra={
                 <span className="text-sm font-semibold text-accent-strong">
-                  {detail.sweep_summary.models.length *
-                    detail.sweep_summary.chunking_methods.length *
-                    detail.sweep_summary.chunk_sizes.length *
-                    detail.sweep_summary.overlaps.length *
-                    (detail.sweep_summary.paddings?.length ?? 1)}{' '}
-                  combinations
+                  <FormulaLine unit={sweepFormula.unit} terms={sweepFormula.terms} total={sweepFormula.total} />
+                  {isBayesianStrategy && (
+                    <span className="block text-xs font-normal text-muted">
+                      Bayesian: varies chunk size × overlap only; uses the first model, method, padding and retriever.
+                    </span>
+                  )}
                 </span>
               }
             >
