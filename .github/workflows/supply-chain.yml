@@ -51,7 +51,7 @@ jobs:
       - name: Prepare Meterian report directory
         run: mkdir -p meterian-reports
       - name: Meterian Scanner
-        uses: MeterianHQ/meterian-github-action@v1.0.17
+        uses: MeterianHQ/meterian-github-action@v1.0.18
         with:
           oss: true
           cli_args: >-
