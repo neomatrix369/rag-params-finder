@@ -12,6 +12,8 @@ import {
   isRunningExperimentStatus,
   isTerminalExperimentStatus,
   bayesianNotStartedCount,
+  bayesianTotalsLine,
+  selectableExperimentIds,
   summarizeExperimentRuns,
 } from './experimentStatus';
 
@@ -344,5 +346,49 @@ describe('bayesianNotStartedCount', () => {
     // -- Then --
     expect(new Set(results)).toEqual(new Set([5]));
     expect(args).toEqual([20, 12, 3]);
+  });
+});
+
+describe('bayesianTotalsLine', () => {
+  it('Given planned, attempted, discarded and not-started trials that add up, when explained, then the line states the sum with no caveat', () => {
+    /**
+     * Scenario: Total = attempted + discarded + not started, with Discarded shown separately from runs.
+     * Slice: 67D — finding F, Bayesian cards reconcile.
+     */
+    // -- Given / When --
+    const line = bayesianTotalsLine({ planned: 20, attempted: 13, discarded: 4, notStarted: 3 });
+
+    // -- Then --
+    expect(line).toBe('Total 20 = 13 attempted + 4 discarded + 3 not started. Discarded trials are not runs.');
+  });
+
+  it('Given parts that do not add up to planned, when explained, then the line says so instead of a false equals', () => {
+    /**
+     * Scenario: A stale summary never prints a sum that is false.
+     * Slice: 67D — finding F.
+     */
+    // -- Given / When --
+    const line = bayesianTotalsLine({ planned: 20, attempted: 18, discarded: 4, notStarted: 0 });
+
+    // -- Then --
+    expect(line).toBe('Total 20; attempted 18, discarded 4, not started 0 (parts do not add up yet). Discarded trials are not runs.');
+  });
+});
+
+describe('selectableExperimentIds', () => {
+  it('Given running and finished experiments, when selecting for bulk actions, then running ones are excluded in order', () => {
+    /**
+     * Scenario: Bulk select skips running experiments.
+     * Slice: 67D — replaces inline filter-and-count in ExperimentsScreen.
+     */
+    // -- Given --
+    const experiments = [
+      { experiment_id: 'a', status: 'complete' as const },
+      { experiment_id: 'b', status: 'running' as const },
+      { experiment_id: 'c', status: 'failed' as const },
+    ];
+
+    // -- When / Then --
+    expect(selectableExperimentIds(experiments)).toEqual(['a', 'c']);
   });
 });

@@ -40,6 +40,36 @@ export function bayesianNotStartedCount(
   return Math.max(0, planned - attempted - discarded);
 }
 
+/** Ids of experiments that bulk actions may select (running ones are excluded). */
+export function selectableExperimentIds(
+  experiments: ReadonlyArray<{ experiment_id: string; status: ExperimentStatus }>,
+): string[] {
+  return experiments.filter((exp) => exp.status !== 'running').map((exp) => exp.experiment_id);
+}
+
+/**
+ * Fixed-template sentence showing how the Bayesian Total splits. Discarded trials are
+ * sampler decisions, not runs, so they are listed apart from the run cards.
+ * Prints "=" only when the parts really add up to planned.
+ */
+export function bayesianTotalsLine({
+  planned,
+  attempted,
+  discarded,
+  notStarted,
+}: {
+  planned: number;
+  attempted: number;
+  discarded: number;
+  notStarted: number;
+}): string {
+  const note = 'Discarded trials are not runs.';
+  if (attempted + discarded + notStarted === planned) {
+    return `Total ${planned} = ${attempted} attempted + ${discarded} discarded + ${notStarted} not started. ${note}`;
+  }
+  return `Total ${planned}; attempted ${attempted}, discarded ${discarded}, not started ${notStarted} (parts do not add up yet). ${note}`;
+}
+
 function isCompletedByTimestamp(
   completedAt: string | null | undefined,
 ): boolean {

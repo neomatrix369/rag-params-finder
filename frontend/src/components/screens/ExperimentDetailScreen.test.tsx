@@ -1613,3 +1613,73 @@ describe('VectorDbStatsPanel in ExperimentDetailScreen', () => {
     expect(screen.getByText('vector store unreachable')).toBeInTheDocument();
   });
 });
+
+describe('ExperimentDetailScreen slice 67D number wiring', () => {
+  beforeEach(() => {
+    resetAllApiMocks();
+  });
+
+  it('Given a running sweep with failed and interrupted runs, when rendered, then the ring and subtitle count them as finished', async () => {
+    /**
+     * Scenario: Failed and interrupted runs will not complete later, so progress counts them as finished.
+     * Slice: 67D-2 — finding E wired into the detail screen.
+     */
+    // -- Given --
+    const fixture = detailFixture(
+      'running',
+      [Phase.COMPLETE, Phase.COMPLETE, Phase.FAILED, Phase.INTERRUPTED, Phase.QUERYING, Phase.QUERYING, Phase.QUERYING, Phase.QUERYING],
+      { run_count: 8, started_at: '2026-07-20T10:00:00.000Z' },
+    );
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen
+        experimentId={fixture.experiment_id}
+        initialExperiment={fixture}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(screen.getByRole('progressbar', { name: 'Experiment completion' })).toHaveAttribute('aria-valuenow', '50');
+    expect(screen.getByText('4 of 8 runs finished (2 complete, 1 failed, 1 interrupted)')).toBeInTheDocument();
+  });
+
+  it('Given a partial Bayesian sweep, when rendered, then the cards add up to Total with Discarded shown separately', async () => {
+    /**
+     * Scenario: Total = attempted (successful + failed + interrupted) + discarded + not started.
+     * Slice: 67D — finding F; D-1 not-started comes from the shared helper.
+     */
+    // -- Given --
+    const phases = [
+      ...Array<Phase>(8).fill(Phase.COMPLETE),
+      ...Array<Phase>(3).fill(Phase.FAILED),
+      ...Array<Phase>(2).fill(Phase.INTERRUPTED),
+    ];
+    const fixture = detailFixture('partial', phases, {
+      config: { execution: { search_strategy: 'bayesian' } },
+      run_count: 20,
+      bayesian_summary: { planned_trials: 20, attempted_trials: 13, discarded_trials: 4 },
+    });
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen
+        experimentId={fixture.experiment_id}
+        initialExperiment={fixture}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(
+      screen.getByText('Total 20 = 13 attempted + 4 discarded + 3 not started. Discarded trials are not runs.'),
+    ).toBeInTheDocument();
+  });
+});

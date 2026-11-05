@@ -28,7 +28,7 @@ import {
   StatCard,
   StatusBadge,
 } from '../experiment/experimentDetail';
-import { formatDurationFromRuns } from '../experiment/experimentDetailProgress';
+import { calculateProgressPercent, formatDurationFromRuns } from '../experiment/experimentDetailProgress';
 import ExperimentStoredFootprint from '../stats/ExperimentStoredFootprint';
 import VectorDbStatsPanel from '../stats/VectorDbStatsPanel';
 import { useExperimentDetail } from '../../hooks/useExperimentDetail';
@@ -39,6 +39,8 @@ import {
   experimentHydratingBlurb,
 } from '../../utils/storageLabels';
 import {
+  bayesianNotStartedCount,
+  bayesianTotalsLine,
   displayRetrievers,
   isPausedExperimentStatus,
   isRunningExperimentStatus,
@@ -244,9 +246,23 @@ export default function ExperimentDetailScreen({
   const bayesianDiscardedCount = isBayesianStrategy
     ? Math.max(0, bayesianSummary?.discarded_trials ?? 0)
     : 0;
-  const bayesianNotStartedCount = isBayesianStrategy
-    ? Math.max(0, bayesianPlannedTrials - bayesianAttemptedTrials - bayesianDiscardedCount)
+  const bayesianNotStarted = isBayesianStrategy
+    ? bayesianNotStartedCount(bayesianPlannedTrials, bayesianAttemptedTrials, bayesianDiscardedCount)
     : runSummary.neverStarted;
+  const progressPercent = calculateProgressPercent({
+    complete: runSummary.complete,
+    failed: runSummary.failed,
+    interrupted: runSummary.interrupted,
+    expected: runSummary.expected,
+  });
+  const bayesianTotals = bayesianTotalsLine({
+    planned: bayesianPlannedTrials,
+    attempted: bayesianAttemptedTrials,
+    discarded: bayesianDiscardedCount,
+    notStarted: bayesianNotStarted,
+  });
+  const failedRuns = (detail.runs ?? []).filter((r) => r.phase === Phase.FAILED);
+  const interruptedRuns = (detail.runs ?? []).filter((r) => r.phase === Phase.INTERRUPTED);
   const isBayesianIncomplete = isBayesianStrategy
     && bayesianAttemptedTrials < bayesianPlannedTrials;
   const hasShortfallCompletionReason = detail.completion_reason
@@ -272,7 +288,7 @@ export default function ExperimentDetailScreen({
       if (isBayesianIncomplete) {
         return `Planned ${bayesianPlannedTrials} Bayesian combinations. `
           + `${bayesianAttemptedTrials} attempted: ${bayesianCompletedCount} complete, ${runSummary.interrupted} interrupted, `
-          + `${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started${reasonSuffix}.`;
+          + `${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStarted} not started${reasonSuffix}.`;
       }
       return `All ${runSummary.expected} configured runs completed${reasonSuffix}; stored results are ready to inspect.`;
     }
@@ -283,7 +299,7 @@ export default function ExperimentDetailScreen({
       if (isBayesianStrategy) {
         return `Planned ${bayesianPlannedTrials} Bayesian combinations. `
           + `${bayesianAttemptedTrials} attempted: ${runSummary.complete} complete, ${runSummary.failed} failed, `
-          + `${runSummary.interrupted} interrupted, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started${partialReasonSuffix}.`;
+          + `${runSummary.interrupted} interrupted, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStarted} not started${partialReasonSuffix}.`;
       }
       return `${runSummary.complete} of ${runSummary.expected} runs completed${partialReasonSuffix}; treat rankings from completed runs as preliminary results.`;
     }
@@ -412,7 +428,7 @@ export default function ExperimentDetailScreen({
             <StatCard
               compact
               label={isBayesianStrategy ? 'Not Started' : 'Not Started'}
-              value={isBayesianStrategy ? bayesianNotStartedCount : runSummary.neverStarted}
+              value={bayesianNotStarted}
               icon={icons.grid}
               color="slate"
             />
@@ -440,6 +456,9 @@ export default function ExperimentDetailScreen({
               color="purple"
             />
           </div>
+          {isBayesianStrategy && (
+            <p className="border-t border-line bg-canvas px-4 py-2 text-xs text-muted">{bayesianTotals}</p>
+          )}
         </section>
 
         {/* Progress visualization for running experiments */}
@@ -450,11 +469,13 @@ export default function ExperimentDetailScreen({
               subtitle={
                 <ProgressSubtitle
                   completed={runSummary.complete}
+                  failed={runSummary.failed}
+                  interrupted={runSummary.interrupted}
                   total={runSummary.expected}
                   startedAt={detail.started_at}
                 />
               }
-              percent={runSummary.expected > 0 ? (runSummary.complete / runSummary.expected) * 100 : 0}
+              percent={progressPercent}
               variant="default"
             />
           </div>
@@ -799,7 +820,7 @@ export default function ExperimentDetailScreen({
               </h2>
             </div>
             <div className="space-y-3">
-              {detail.runs.filter((run) => run.phase === Phase.INTERRUPTED).map((run) => (
+              {interruptedRuns.map((run) => (
                 <div key={run.run_id} className="rounded-lg border border-l-4 border-amber-200 border-l-amber-400 bg-paper p-4 shadow-sm">
                   <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                     <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-mono font-bold rounded">
@@ -821,18 +842,18 @@ export default function ExperimentDetailScreen({
         )}
 
         {/* Failed runs detail */}
-        {detail?.runs && detail.runs.filter(r => r.phase === Phase.FAILED).length > 0 && (
+        {detail?.runs && failedRuns.length > 0 && (
           <div className="mt-6 rounded-panel border border-red-200 bg-red-50 p-5 shadow-panel sm:p-6">
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500 text-white">
                 {icons.x}
               </div>
               <h2 className="text-lg font-bold text-red-900">
-                Failed Runs ({detail.runs.filter(r => r.phase === Phase.FAILED).length})
+                Failed Runs ({failedRuns.length})
               </h2>
             </div>
             <div className="space-y-3">
-              {detail.runs.filter(r => r.phase === Phase.FAILED).map(run => (
+              {failedRuns.map(run => (
                 <div key={run.run_id} className="rounded-lg border border-l-4 border-red-200 border-l-red-400 bg-paper p-4 shadow-sm">
                   <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                     <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-mono font-bold rounded">
@@ -909,7 +930,7 @@ export default function ExperimentDetailScreen({
                   <p className="text-sm text-amber-800 mt-1">
                     {isBayesianStrategy
                       ? `Bayesian partial: ${bayesianAttemptedTrials} of ${bayesianPlannedTrials} attempted and started, `
-                        + `${runSummary.complete} completed successfully, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started.`
+                        + `${runSummary.complete} completed successfully, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStarted} not started.`
                       : `${runSummary.complete} of ${runSummary.expected} run(s) completed successfully.`}
                     {runSummary.interrupted > 0 && ` ${runSummary.interrupted} interrupted.`}
                     {runSummary.failed > 0 && ` ${runSummary.failed} failed.`}
@@ -925,7 +946,7 @@ export default function ExperimentDetailScreen({
                   </p>
                   <p className="text-xs text-amber-700 mt-2">
                     {isBayesianStrategy
-                      ? `Bayesian sweep configured ${bayesianPlannedTrials} candidate combinations: ${bayesianAttemptedTrials} attempted, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStartedCount} not started.`
+                      ? `Bayesian sweep configured ${bayesianPlannedTrials} candidate combinations: ${bayesianAttemptedTrials} attempted, ${bayesianDiscardedCount} discarded by sampler, ${bayesianNotStarted} not started.`
                       : 'The experiment stopped before every parameter combination ran — often after a server restart or cancellation mid-sweep.'}
                   </p>
                 </div>
