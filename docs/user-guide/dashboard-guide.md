@@ -222,6 +222,27 @@ This allows direct comparison of configs that used different models or retrieval
 
 ---
 
+## 📖 Glossary
+
+Every screen has a **Glossary** button under the app name (next to **About**). It opens a dialog (Escape closes it and focus returns to the button). The terms, in the order shown:
+
+| Term | Meaning |
+|---|---|
+| Run | One executed pipeline pass: parse, chunk, embed, store, query. |
+| Planned runs | Runs the sweep is expected to execute, worked out from the config before it starts. |
+| Configuration | One distinct set of parameters (model, chunking, size, overlap, retriever). The sweep header counts configurations. |
+| Trial | One Bayesian-search attempt. Only Bayesian sweeps have trials. |
+| Query result | The top-K chunks a run returned for one query. |
+| Golden query / record | A query with a known good answer in the dataset. |
+| Similarity score | Highest single-chunk similarity in a run (max, not average), normalised per group to 0 to 100. |
+| Lone run = 100 | A group with one run has nothing to compare against, so min-max normalisation makes it 100 by construction. |
+| Observed vs planned | Observed is what stored data shows now; planned is what the config says should happen. |
+| Est. (estimated) | Derived from a fixed formula, not measured. |
+
+The wording lives in `frontend/src/components/chrome/glossary.ts`.
+
+---
+
 ## 🔄 Polling Behavior
 
 | Screen | Polls | Interval | Stops When |
