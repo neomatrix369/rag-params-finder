@@ -652,9 +652,15 @@ class TestMongoStorageBackendShould:
                 {"_id": {"experiment_id": None, "chunk_method": "fixed"}, "count": 1},
             ],
         ]
+        # One grouped pipeline yields totals and per-run counts (Slice 67E).
         results.aggregate.return_value = [
-            {"_id": "e1", "total_results": 10, "query_ids": ["q1"]},
-            {"_id": "e2", "total_results": 5, "query_ids": ["q2", "q3"]},
+            {"_id": "e1", "total_results": 10, "query_ids": [["q1"]], "run_counts": [10]},
+            {
+                "_id": "e2",
+                "total_results": 5,
+                "query_ids": [["q2"], ["q3"]],
+                "run_counts": [3, 2],
+            },
         ]
 
         collections = {
@@ -698,6 +704,9 @@ class TestMongoStorageBackendShould:
         group = groups[0]
         assert group["cluster_host"] == "cluster0.abc.mongodb.net"
         assert group["totals"]["experiment_count"] == 2
+        assert group["totals"]["total_result_runs"] == 3
+        assert group["totals"]["golden_queries_min"] == 3  # inferred: max rows per run
+        assert group["totals"]["golden_queries_max"] == 10
         assert group["totals"]["total_chunks"] == 80
         assert group["totals"]["total_results"] == 15
         assert group["totals"]["database_storage_limit_mb"] == 512.0

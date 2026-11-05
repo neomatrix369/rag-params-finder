@@ -17,6 +17,17 @@ logger = get_logger(__name__)
 _INTERNAL_EXPERIMENT_TYPES = {"tier1_sweep"}
 
 
+# Result facts live in run state; value is the fallback when neither store reports it.
+_RUN_STATE_RESULT_FACTS: dict[str, object] = {
+    "total_results": 0,
+    "unique_queries": 0,
+    "result_runs": 0,
+    "golden_queries": None,
+    "golden_queries_source": None,
+    "partial_runs": 0,
+}
+
+
 def list_all_experiment_docs():
     return [
         doc
@@ -78,8 +89,8 @@ def get_experiment_db_stats(experiment_id: str) -> dict:
     result facts from run state (DECISIONS #240). Response shape unchanged."""
     stats = dict(store_factory.get_vector_store().get_experiment_db_stats(experiment_id))
     run_state_stats = get_storage_backend().get_experiment_db_stats(experiment_id)
-    stats["total_results"] = run_state_stats.get("total_results", stats.get("total_results", 0))
-    stats["unique_queries"] = run_state_stats.get("unique_queries", stats.get("unique_queries", 0))
+    for key, default in _RUN_STATE_RESULT_FACTS.items():
+        stats[key] = run_state_stats.get(key, stats.get(key, default))
     return stats
 
 

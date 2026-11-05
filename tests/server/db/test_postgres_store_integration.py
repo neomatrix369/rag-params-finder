@@ -684,11 +684,61 @@ class TestPostgresStatsShould:
         assert actual["chunking_breakdown"] == {"recursive": 2}
         assert actual["run_breakdown"] == [{"run_id": _RUN_ID, "chunks": 2, "results": 1}]
         assert actual["collection_name"] == "chunks"
+        # Slice 67E: derived from the run breakdown, no extra results scan.
+        assert (actual["result_runs"], actual["partial_runs"]) == (1, 0)
+        assert (actual["golden_queries"], actual["golden_queries_source"]) == (1, "max_per_run")
         # A two-chunk experiment is ~3 KB, which rounds to 0.0 MB; the invariant
         # that holds at every scale is that the parts sum to the whole.
         assert actual["estimated_storage_mb"] == pytest.approx(
             actual["estimated_embedding_mb"] + actual["estimated_metadata_mb"], abs=0.01
         )
+
+    def test_given_full_partial_and_chunk_only_runs_when_stats_computed_then_golden_facts_hold(
+        self, store: PostgresStorageBackend
+    ) -> None:
+        """
+        Scenario: golden facts come from the run breakdown, excluding chunk-only runs.
+        Slice: 67E
+
+        Given golden 3 stored, a full run, a run with 1 result, and a chunk-only run
+        When get_experiment_db_stats and get_vector_db_stats_grouped are called
+        Then result_runs is 2 (the chunk-only run is not counted), partial_runs is 1,
+        and the group totals carry total_result_runs and golden min/max.
+        """
+        ### Given
+        store.insert_experiment(
+            _experiment_doc(sweep_summary={"database_provider": "postgres", "golden_queries": 3})
+        )
+        for run_id in ("run-full", "run-part", "run-chunks-only"):
+            store.insert_run_status(_run_doc(run_id=run_id))
+            store.insert_chunks([_chunk_doc(f"c-{run_id}", 384, run_id=run_id)])
+        for run_id, rows in (("run-full", 3), ("run-part", 1)):
+            for n in range(rows):
+                store.insert_result(
+                    {
+                        "experiment_id": _EXP_ID,
+                        "run_id": run_id,
+                        "query_id": f"{run_id}-q{n}",
+                        "query_text": "q",
+                    }
+                )
+
+        ### When
+        actual = store.get_experiment_db_stats(_EXP_ID)
+        grouped = store.get_vector_db_stats_grouped()
+
+        ### Then
+        assert actual["total_results"] == 4
+        assert (actual["result_runs"], actual["partial_runs"]) == (2, 1)
+        assert (actual["golden_queries"], actual["golden_queries_source"]) == (3, "config")
+        row = next(
+            r for g in grouped["groups"] for r in g["experiments"] if r["experiment_id"] == _EXP_ID
+        )
+        assert (row["result_runs"], row["partial_runs"], row["golden_queries"]) == (2, 1, 3)
+        totals = next(g["totals"] for g in grouped["groups"] if row in g["experiments"])
+        assert totals["total_result_runs"] >= 2
+        assert totals["golden_queries_min"] is not None
+        assert totals["golden_queries_max"] is not None
 
     def test_given_experiment_when_explore_source_loaded_then_three_parts_return(
         self, store: PostgresStorageBackend

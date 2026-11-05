@@ -62,6 +62,10 @@ _DB_STATS_KEYS = frozenset(
         "avg_chunks_per_run",
         "total_results",
         "unique_queries",
+        "result_runs",
+        "golden_queries",
+        "golden_queries_source",
+        "partial_runs",
         "run_breakdown",
     }
 )
@@ -88,6 +92,10 @@ def _golden_db_stats(provider: str) -> dict:
         "avg_chunks_per_run": 42.0,
         "total_results": 0,
         "unique_queries": 0,
+        "result_runs": 0,
+        "golden_queries": None,
+        "golden_queries_source": None,
+        "partial_runs": 0,
         "run_breakdown": {},
     }
 
