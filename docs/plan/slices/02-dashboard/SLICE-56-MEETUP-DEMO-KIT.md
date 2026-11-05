@@ -31,26 +31,26 @@ The host's brief: state the problem as a question; quick demo of finding the bes
 | 6 | **The Docker server keeps run state in a named volume** (`sqlite_run_state` → `/app/data`), **not** the host `data/run_state.db`. A sweep submitted to the Docker server lands in the volume. | Exporter accepts **repeated `--db`** (union; manifest lists each file + sha) so volume-copied and host DBs can be combined. Step 0 Before-Check inspects where the Redis runs landed (`docker cp` the volume DB out; do not write into the volume). |
 | 7 | Frontend: no light/dark toggle (only per-component `tone`), no generic dialog primitive with Esc / focus trap (`frontend/src/components/experiment/ConfirmDeleteModal.tsx` is a plain `isOpen` modal that closes on backdrop click only), no Markdown renderer, no `data-tour`; `CollapsibleCard` open state is internal; the within-store runs table is inline JSX with no ranking; the ranked view is `HyperparametersTab` / `BestParamsCard` (pure props). | Build a small `Dialog` primitive (portal, `role="dialog"`, Esc, focus trap) using `ConfirmDeleteModal` as prior art — migrating that modal to `Dialog` is optional and only if its tests stay green; light tokens only; add an `open` override to `CollapsibleCard`; feed existing components by props through a pure adapter (no `apiClient` change). |
 | 8 | JWLB (`neomatrix369/japanese-work-life-balancer`) has **no root LICENSE/NOTICE**; same author; README credits Risako for the idea. | **Decision (#276):** port with the owner's permission; attribution in CHANGELOG, About box, file headers. Port the pattern only; **do not port** voice/TTS (`tts-plugin.ts`, `voice.ts`, `useTourVoice`, `VoicePicker`, `VoiceToggle`, `.tts-cache`, `warm-voice`), `theme.css`, `design-system/`. |
-| 9 | `docs/` is outside the Vite root; no `?raw` usage; Docker frontend build context unverified. | Part C1 Before-Check; fallback is a `prebuild` copy into `frontend/src/demo/` (no new dependency). |
+| 9 | `docs/` is outside the Vite root; no `?raw` usage; Docker frontend build context unverified. | Part C1 Before-Check; fallback is a `prebuild` copy into `frontend/src/walkthru/` (no new dependency). |
 | 10 | Release is `./scripts/release/release.sh minor` → `release/v0.13.0` PR; tag + GitHub release after merge; merge/release is Human-owned. | The QR/link 404s until Mani merges and tags. Part H ends with that HITL step. |
 
 ## Non-goals
 
-- Any backend change beyond `scripts/demo/export_demo_results.py` (no new API, no phase-event recording, no orchestrator change).
+- Any backend change beyond `scripts/walkthru/export_walkthru_results.py` (no new API, no phase-event recording, no orchestrator change).
 - New chunking or retrieval methods → SLICE-57.
 - Retrieval-quality metrics (Recall@k, MRR, nDCG), expected-sources derivation → Phase 2.
 - Production concerns (latency, false positives) → a possible future full talk; only a "Coming next" line.
 - A global dark mode or theme system; voice/audio/TTS; the Mermaid "how it works" diagram (Phase 1).
 - Choice steps on lists other than the cross-store leaderboard (configs, results, golden-master questions).
-- A frontend schema-validation test for `demo-results.json`, choice steps on other lists, the in-app Mermaid diagram → [SLICE-58](SLICE-58-PHASE0-LEFTOVERS.md) (`schema_version` is recorded now).
+- A frontend schema-validation test for `walkthru-results.json`, choice steps on other lists, the in-app Mermaid diagram → [SLICE-58](SLICE-58-PHASE0-LEFTOVERS.md) (`schema_version` is recorded now).
 - Later phases from the prompt: docs reader paths → [SLICE-59](../07-quality-craft/SLICE-59-PHASE1-DOCS-READER-PATHS.md), relevance metrics → [SLICE-60](../01-core-pipeline/SLICE-60-PHASE2-RETRIEVAL-QUALITY-METRICS.md), store as sweep dimension → [SLICE-61](../05-storage/SLICE-61-PHASE3-VECTOR-STORE-AS-SWEEP-DIMENSION.md), setup manager → [SLICE-62](../03-platform/SLICE-62-PHASE4-SETUP-MANAGER.md), WCAG AA → [SLICE-63](SLICE-63-PHASE5-UIUX-WCAG-AA.md).
 - Ranking stores by speed. Timings, if shown, are labelled indicative.
 
 ## Output contract
 
-- **Baseline:** `git ls-files docs/about scripts/demo` → empty; `grep -rn "data-tour" frontend/src` → empty; no About button in the header.
-- `docs/about/demo-results.json` exists, deterministic (two exports → identical bytes), with a manifest (inputs + sha, ranking field/direction, selection rule, exclusions with reasons, `schema_version`).
-- An **About** button in the app header opens a dialog with the 10 sections in order, rendered from `docs/about/*.md`, working with the network off.
+- **Baseline:** `git ls-files docs/about scripts/walkthru` → empty; `grep -rn "data-tour" frontend/src` → empty; no About button in the header.
+- `docs/about/walkthru-results.json` exists, deterministic (two exports → identical bytes), with a manifest (inputs + sha, ranking field/direction, selection rule, exclusions with reasons, `schema_version`).
+- An **About** button in the app header opens a dialog with the 9 sections in order, rendered from `docs/about/*.md`, working with the network off.
 - **▶ Start Walkthru** runs 5 steps with Next/Back/Space/Esc, Autoplay **off** by default, Esc restores the UI state.
 - The cross-store leaderboard renders offline, groups same-config runs across stores, sorts by score, filters by store; picking a run drives the replay.
 - `docs/about/RECORDING.md` exists; a Next-by-Next recording is kept by the owner.
@@ -102,7 +102,7 @@ If time slips, cut Walkthru **step 4 then step 5** first (keep leaderboard, repl
 
 ### Part A — Demo data export
 
-- **Given** one or more `--db` files and a `--questions` file **when** the exporter runs **then** `docs/about/demo-results.json` has a manifest (inputs + sha256, ranking `max_score` DESC → `query_avg_score` DESC → chunk_size/overlap/padding ASC, then run id as the exporter's own final tie-break (`analyze_results` does not apply it), selection rule, exclusions, `schema_version`).
+- **Given** one or more `--db` files and a `--questions` file **when** the exporter runs **then** `docs/about/walkthru-results.json` has a manifest (inputs + sha256, ranking `max_score` DESC → `query_avg_score` DESC → chunk_size/overlap/padding ASC, then run id as the exporter's own final tie-break (`analyze_results` does not apply it), selection rule, exclusions, `schema_version`).
 - **Given** Redis 8 runs and the same configs on other stores **when** exported **then** every Redis 8 run is present, each exported config key also carries its runs on every other store (same dataset + questions + config only), and each other store contributes best / median (`floor((n-1)/2)`) / worst.
 - **Given** no Redis 8 run is exportable **when** the exporter runs **then** it fails with a clear message.
 - **Given** the output would exceed the size cap (default 5 MB / 600 runs) **when** exporting **then** it stops and asks for a selection rule; no run is silently dropped.
@@ -111,10 +111,10 @@ If time slips, cut Walkthru **step 4 then step 5** first (keep leaderboard, repl
 
 ### Part C1 — About box
 
-- **Given** the app header **when** the user clicks About **then** a dialog opens with the 10 sections in order (problem as a question, how it works, the improvement, Redis 8, evals-underway banner, coming next, try it + repo + QR + MIT, feedback, thanks to Samuel Agbede and Redis, golden-master link only if Part J shipped).
+- **Given** the app header **when** the user clicks About **then** a dialog opens with the 9 sections in order (problem as a question, how it works, the improvement, Redis 8, evals-underway banner, coming next, try it + repo + MIT, feedback, thanks to Samuel Agbede and Redis; the golden-master section was dropped with Part J and the QR code by owner decision).
 - **Given** the dialog is open **when** Esc is pressed **then** it closes and focus returns to the About button; focus is trapped while open.
 - **Given** the evals banner **when** removed **then** one line or block change removes it.
-- **Given** the network is off **when** the dialog opens **then** all content renders (Markdown bundled, QR is a committed static SVG).
+- **Given** the network is off **when** the dialog opens **then** all content renders (Markdown bundled; no image assets).
 - **Given** `prefers-reduced-motion` **when** the dialog opens **then** no animation runs.
 
 ### Part B — Run replay
@@ -169,7 +169,7 @@ If time slips, cut Walkthru **step 4 then step 5** first (keep leaderboard, repl
 
 - [ ] Every **automatable** GWT scenario above has ≥1 test (Specification coverage); essential error paths covered. Manual / HITL scenarios (Step 0 sweep, Part D recording, Part H merge-and-tag) are N/A for tests and each gets a recorded manual check instead.
 - [ ] `./scripts/ci/quality-gates.sh` green; frontend coverage 95/90/95/95 unchanged; backend floors unchanged.
-- [ ] `ruff check .` and `ruff format --check .` pass on `scripts/demo/` (mypy/xenon/vulture do not cover `scripts/`).
+- [ ] `ruff check .` and `ruff format --check .` pass on `scripts/walkthru/` (mypy/xenon/vulture do not cover `scripts/`).
 - [ ] Complexity evidence: policy **reporting** for frontend (ESLint) and the export script; local report command and reviewer-summary location recorded in PROGRESS; baseline recorded.
 - [ ] Browser at 1280 px and 390 px with Docker and the server stopped: About renders, Walkthru runs 5 steps by Next, Autoplay off by default, Esc restores, **no network requests**.
 - [ ] `grep -ri "tts\|voice\|warm-voice" frontend/src/walkthru` → empty; attribution present.
@@ -204,4 +204,4 @@ These supersede the parts below; the GWT body is unchanged. See DECISIONS #287�
 - Part H (release v0.13.0 PR, issue templates, README rows) cut; release and any tag are manual by the owner; CHANGELOG stays under `[Unreleased]`.
 - QR code not wanted; removed from the About box, the repo link stays as text.
 - Final real export on the finished sweep skipped; the exporter manifest records its inputs.
-- Bundled `docs/about/demo-results.json` is the real export: 400 runs (98 each from redis, elasticsearch, mongodb and postgres, 8 from supabase) over 98 config groups that each span 2+ stores, restricted to the Pell PDF. Owner decision 2026-11-05: export the 98 finished runs of the `partial` Redis sweep (22 failed on the Redis memory cap, see #293); the exporter now accepts `partial` experiments, records them in the manifest (`partial_experiments`) and takes `--data-path-contains`. (DECISIONS #292, #293).
+- Bundled `docs/about/walkthru-results.json` is the real export: 400 runs (98 each from redis, elasticsearch, mongodb and postgres, 8 from supabase) over 98 config groups that each span 2+ stores, restricted to the Pell PDF. Owner decision 2026-11-05: export the 98 finished runs of the `partial` Redis sweep (22 failed on the Redis memory cap, see #293); the exporter now accepts `partial` experiments, records them in the manifest (`partial_experiments`) and takes `--data-path-contains`. (DECISIONS #292, #293).

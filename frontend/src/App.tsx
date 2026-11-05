@@ -3,9 +3,9 @@ import { devInfo } from './utils/devLog';
 import ExperimentsScreen from './components/screens/ExperimentsScreen';
 import ExperimentDetailScreen from './components/screens/ExperimentDetailScreen';
 import SearchExplorerScreen from './components/screens/SearchExplorerScreen';
-import DemoScreen from './components/demo/DemoScreen';
+import WalkthruScreen from './components/walkthru/WalkthruScreen';
 import { experimentStatsMap } from './components/experiment/experimentList/labels';
-import { loadDemoResults } from './demo/loadDemoResults';
+import { loadWalkthruResults } from './walkthru/loadWalkthruResults';
 import { useWalkthru } from './walkthru/useWalkthru';
 import WalkthruOverlay from './walkthru/WalkthruOverlay';
 import { WalkthruContext, type WalkthruActions } from './walkthru/WalkthruContext';
@@ -31,7 +31,7 @@ type Screen =
       initialFootprint?: ExperimentDbStats;
     }
   | { kind: 'explore'; experimentId: string }
-  | { kind: 'demo' };
+  | { kind: 'walkthru' };
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ kind: 'list' });
@@ -42,7 +42,7 @@ export default function App() {
   });
   const [detailNav, setDetailNav] = useState<DetailNav>({});
 
-  const demoResults = loadDemoResults();
+  const walkthruResults = loadWalkthruResults();
   // The screen to return to when the Walkthru exits (it is started from the global About box).
   const returnScreen = useRef<Screen>({ kind: 'list' });
 
@@ -51,12 +51,12 @@ export default function App() {
   });
 
   const startWalkthru = useCallback(() => {
-    returnScreen.current = screen.kind === 'demo' ? { kind: 'list' } : screen;
-    setScreen({ kind: 'demo' });
+    returnScreen.current = screen.kind === 'walkthru' ? { kind: 'list' } : screen;
+    setScreen({ kind: 'walkthru' });
     walkthru.start();
   }, [screen, walkthru]);
 
-  const openDemo = useCallback(() => setScreen({ kind: 'demo' }), []);
+  const openDemo = useCallback(() => setScreen({ kind: 'walkthru' }), []);
 
   const leaveDemo = useCallback(() => {
     if (walkthru.active) walkthru.exit();
@@ -100,7 +100,7 @@ export default function App() {
       devInfo('App', 'navigate — experiments list');
       return;
     }
-    if (screen.kind === 'demo') {
+    if (screen.kind === 'walkthru') {
       devInfo('App', 'navigate — meetup demo');
       return;
     }
@@ -134,10 +134,10 @@ export default function App() {
     ) : null;
 
   let body: React.ReactNode;
-  if (screen.kind === 'demo') {
+  if (screen.kind === 'walkthru') {
     body = (
-      <DemoScreen
-        results={demoResults}
+      <WalkthruScreen
+        results={walkthruResults}
         activeHighlight={walkthru.active ? walkthru.step?.highlight ?? null : null}
         autoplay={walkthru.active && walkthru.autoplay}
         suggestedStore={walkthru.active ? walkthru.step?.choose?.suggest : undefined}

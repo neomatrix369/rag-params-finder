@@ -18,7 +18,7 @@
 - New embedding providers (e.g. DoubleWord, Slice 48) are opt-in behind a fail-closed readiness guard (HTTP 422 at submit); configs that don't use them must behave byte-identically without their keys (#192).
 - `SWEEP_EXECUTOR` has **one worker**: nothing may block it waiting on an external async job (e.g. DoubleWord batches) — submit, release, and resume via a detached watcher (#200).
 - Secrets (`VOYAGE_API_KEY`, `DOUBLEWORD_API_KEY`, `MONGODB_URI`, `DATABASE_URL` / `SUPABASE_URI`) stay server-side — never in CLI configs or commits.
-- Demo/About content (SLICE-56) comes only from `docs/about/` and the bundled `demo-results.json`; the replay and Walkthru make **no network calls**. Copy says 'similarity score', never 'correct/hit', until SLICE-60 ships relevance metrics. Phase events are never invented — only recorded totals are shown (#274).
+- Demo/About content (SLICE-56) comes only from `docs/about/` and the bundled `walkthru-results.json`; the replay and Walkthru make **no network calls**. Copy says 'similarity score', never 'correct/hit', until SLICE-60 ships relevance metrics. Phase events are never invented — only recorded totals are shown (#274).
 - New chunking/retrieval methods (SLICE-57) ship via **new opt-in example YAMLs** only; the 44 existing example YAMLs (11 per store) and their run counts are not edited (#281). Results mixing new retrieval methods are not published before 57D closes (#282).
 → Source: `docs/plan/DECISIONS.md` (#114–#130, #166–#170); `docs/adr/ADR-004-*.md`
 
@@ -72,7 +72,7 @@ Resolves a slice stub's `Depends-on:` ids to the concrete outputs a fresh execut
 | 50/51 — Elasticsearch adapter | ES adapter under `server/db/` (per ADR-006, pending); `scripts/lib/stores.tsv` | nightly matrix job (skipped ≠ green) |
 | 48A — DoubleWord provider | `server/core/embedding/embedder_factory.py` dispatch; DoubleWord embedder module | `uv run pytest tests/server/core/embedding -q` |
 | 52 — Redis (docs-only) | `docs/plan/BRIEF-redis-evaluation.md` | n/a (brief) |
-| 56 — Meetup demo kit | `scripts/demo/export_demo_results.py`, `docs/about/`, `frontend/src/{components/about,components/demo,demo,walkthru}` | `uv run python scripts/demo/export_demo_results.py --db … --questions configs/questions.example.json`; `cd frontend && npm run test` |
+| 56 — Meetup demo kit | `scripts/walkthru/export_walkthru_results.py`, `docs/about/`, `frontend/src/{components/about,components/walkthru,walkthru}` | `uv run python scripts/walkthru/export_walkthru_results.py --db … --questions configs/questions.example.json`; `cd frontend && npm run test` |
 | 57A–57D — Method expansion | `server/core/chunkers/`, `server/models/{enums,config}.py`, `server/core/pipeline/{search,signatures}.py`, `server/core/retrieval/fusion.py`, `server/core/results_analyzer.py` | `uv run pytest tests/server/models tests/server/core -q` |
 
 → Source: `CLAUDE.md` § Key Files; `docs/plan/slices/05-storage/`, `08-embedding-providers/`

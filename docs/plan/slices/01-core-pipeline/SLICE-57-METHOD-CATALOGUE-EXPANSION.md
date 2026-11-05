@@ -5,7 +5,7 @@
 **Status:** 📋 PLANNED — **queued behind SLICE-56 (the meetup demo kit); no code until SLICE-56 is merged** (owner decision, 2026-11-05)
 **Depends on:** **55** · 57C and 57D depend on **57B** · 57D also leans on [SLICE-60](SLICE-60-PHASE2-RETRIEVAL-QUALITY-METRICS.md) (Phase 2 relevance metrics) for real comparability
 **Branch:** one branch per part: `slice/57a-extra-chunkers`, `slice/57b-retriever-params`, `slice/57d-method-comparability`, `slice/57c-hybrid-rerank-mmr`
-**Order after the talk:** **57A → 57B → 57D → 57C →** re-sweep the four stores on the extended YAMLs → refresh `docs/about/demo-results.json`.
+**Order after the talk:** **57A → 57B → 57D → 57C →** re-sweep the four stores on the extended YAMLs → refresh `docs/about/walkthru-results.json`.
 
 > Priorities are the agent's proposal; the owner confirms MoSCoW (DECISION-OWNERSHIP).
 

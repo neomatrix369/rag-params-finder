@@ -2,7 +2,7 @@
 id: leaderboard
 title: One question, many stores
 duration_s: 11
-route: demo
+route: walkthru
 highlight: leaderboard
 choose:
   target: leaderboard

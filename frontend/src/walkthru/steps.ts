@@ -3,21 +3,21 @@
  *
  * Pattern ported from neomatrix369/japanese-work-life-balancer (ui/src/tour/steps.ts) at commit
  * ccdbee1b4a4501b5e5394aafab225a583d630354, with the owner's permission (DECISIONS #276). The idea
- * is credited to Risako. The audio narration, theme.css and design-system from that repo are NOT ported.
+ * is credited to Risako. The audio narration, bundled stylesheet and component design library from that repo are NOT ported.
  *
  * Author: RAG Params Finder contributors
  * Created: 2026-11-05
  * Scope: SLICE-56 Part C2 - tiny front-matter parser (no new dependency); a malformed file fails
  *        the parse with its own file name.
  *
- * Each step is one Markdown file in docs/about/walkthru/, mirrored to src/demo/walkthru/ by
+ * Each step is one Markdown file in docs/about/walkthru/, mirrored to src/walkthru/steps/ by
  * `npm run sync:about`. Front-matter keys are flat (id, title, duration_s, route, highlight) plus a
  * nested `choose: {target, suggest}` block. The body is short honest copy; the numbers are read
  * from the bundled demo data at render time, never typed into the step.
  */
 
 /** Screen a step runs on; App maps this onto its own screen state. */
-export type WalkthruRoute = 'demo';
+export type WalkthruRoute = 'walkthru';
 
 export interface WalkthruChoice {
   /** `data-tour` anchor of the list the choice is made on. */
@@ -40,7 +40,7 @@ export interface WalkthruStep {
   body: string;
 }
 
-const ROUTES: readonly WalkthruRoute[] = ['demo'];
+const ROUTES: readonly WalkthruRoute[] = ['walkthru'];
 
 function fail(fileName: string, reason: string): never {
   throw new Error(`Malformed walkthru step "${fileName}": ${reason}`);
@@ -142,7 +142,7 @@ export function loadSteps(files: Record<string, string>): WalkthruStep[] {
     .map(([path, raw]) => parseStep(fileName(path), raw));
 }
 
-const stepFiles = import.meta.glob('../demo/walkthru/*.md', {
+const stepFiles = import.meta.glob('./steps/*.md', {
   query: '?raw',
   import: 'default',
   eager: true,

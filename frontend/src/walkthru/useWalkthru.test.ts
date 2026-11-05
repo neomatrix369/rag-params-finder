@@ -12,9 +12,9 @@ import { useWalkthru } from './useWalkthru';
 import type { WalkthruStep } from './steps';
 
 const STEPS: WalkthruStep[] = [
-  { id: 's1', title: 'One', durationS: 2, route: 'demo', highlight: 'a', choose: null, body: 'one' },
-  { id: 's2', title: 'Two', durationS: 3, route: 'demo', highlight: 'b', choose: null, body: 'two' },
-  { id: 's3', title: 'Three', durationS: 4, route: 'demo', highlight: null, choose: null, body: 'three' },
+  { id: 's1', title: 'One', durationS: 2, route: 'walkthru', highlight: 'a', choose: null, body: 'one' },
+  { id: 's2', title: 'Two', durationS: 3, route: 'walkthru', highlight: 'b', choose: null, body: 'two' },
+  { id: 's3', title: 'Three', durationS: 4, route: 'walkthru', highlight: null, choose: null, body: 'three' },
 ];
 
 const press = (key: string) =>

@@ -47,17 +47,20 @@ export function placeCallout(
   viewport: { width: number; height: number },
 ): { top: number; left: number; side: 'below' | 'above' | 'inside' | 'center' } {
   const { width: vw, height: vh } = viewport;
+  // Keep the whole card on-screen: top in [MARGIN, vh - height - MARGIN]. If the card is taller than
+  // the viewport the upper bound collapses to MARGIN (the card then scrolls via overflow-y-auto).
+  const clampTop = (top: number): number => Math.min(Math.max(MARGIN, top), Math.max(MARGIN, vh - size.height - MARGIN));
   if (!rect) {
     return {
-      top: Math.max(MARGIN, (vh - size.height) / 2),
+      top: clampTop((vh - size.height) / 2),
       left: Math.max(MARGIN, (vw - size.width) / 2),
       side: 'center',
     };
   }
   const left = Math.min(Math.max(MARGIN, rect.left), Math.max(MARGIN, vw - size.width - MARGIN));
   const below = rect.top + rect.height + GAP;
-  if (below + size.height <= vh - MARGIN) return { top: below, left, side: 'below' };
+  if (below + size.height <= vh - MARGIN) return { top: clampTop(below), left, side: 'below' };
   const above = rect.top - GAP - size.height;
-  if (above >= MARGIN) return { top: above, left, side: 'above' };
-  return { top: Math.max(MARGIN, vh - size.height - MARGIN), left, side: 'inside' };
+  if (above >= MARGIN) return { top: clampTop(above), left, side: 'above' };
+  return { top: clampTop(vh - size.height - MARGIN), left, side: 'inside' };
 }
