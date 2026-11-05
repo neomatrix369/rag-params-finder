@@ -76,6 +76,20 @@ override-dependencies = [
     "virtualenv>=21.7.12",
 ]
 
+# Route torch to the CPU-only PyTorch index on Linux (Docker builds / CI).
+# torch>=2.6 on Linux otherwise pulls nvidia-cublas/cudnn (~4 GB of CUDA libraries)
+# that fill the Docker layer cache and are unused in CPU-only inference containers.
+# macOS ARM wheels from PyPI are already CPU-only, so no source override is needed there.
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'linux'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
