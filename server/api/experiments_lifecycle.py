@@ -48,8 +48,10 @@ def attach_sweep_plan(experiment: dict) -> None:
     Slice 67B are covered. Purely additive: any failure (unparseable or
     registry-stale config, sweep-history docs) leaves the doc untouched and never
     raises, because GET /experiments/{id} is polled every 2 s. The failure is
-    logged once per experiment. Only the pure ``sweep_plan`` is used here
-    (never ``resolve_bayesian_n_trials``, which logs).
+    logged once per experiment per process; that permanent suppression is intentional
+    (polling must not spam). The broad ``except Exception`` also covers programming
+    errors, which is why the single warning keeps ``exc_info``. Only the pure
+    ``sweep_plan`` is used here (never ``resolve_bayesian_n_trials``, which logs).
     """
     raw = experiment.get("config")
     if not isinstance(raw, dict):

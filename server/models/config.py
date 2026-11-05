@@ -414,6 +414,7 @@ def _plan_warnings(config: ExperimentConfig) -> list[str]:
 
 
 class DimensionCounts(TypedDict):
+    # Every field is a multiplicative sweep axis; full_grid_count is their product.
     models: int
     chunking_methods: int
     chunk_sizes: int

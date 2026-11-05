@@ -52,6 +52,12 @@ _TWO_METHODS = [ChunkingMethod.RECURSIVE, ChunkingMethod.FIXED]
 _THREE_METHODS = [ChunkingMethod.RECURSIVE, ChunkingMethod.FIXED, ChunkingMethod.SENTENCE]
 
 
+@pytest.fixture(autouse=True)
+def _reset_plan_failure_log() -> None:
+    """Each test starts with an empty once-per-experiment failure log."""
+    lifecycle._plan_failures_logged.clear()
+
+
 def _config(
     *,
     sizes: list[int],
@@ -117,10 +123,11 @@ def test_full_grid_count_equals_expand_sweep(
 
     ### When
     plan = sweep_plan(cfg)
+    expected_runs = len(expand_sweep(cfg))
 
     ### Then
-    assert plan["full_grid_count"] == len(expand_sweep(cfg))
-    assert plan["planned_runs"] == len(expand_sweep(cfg))
+    assert plan["full_grid_count"] == expected_runs
+    assert plan["planned_runs"] == expected_runs
     assert plan["search_strategy"] == "grid"
     assert plan["searchable_space"] is None
 
@@ -299,6 +306,10 @@ def test_sweep_plan_is_quiet_for_bayesian(caplog: pytest.LogCaptureFixture) -> N
 
     ### Then
     assert caplog.records == []
+    # positive control: the logging resolver under the same caplog does emit a record
+    with caplog.at_level(logging.DEBUG, logger=config_module.logger.name):
+        resolve_bayesian_n_trials(cfg)
+    assert caplog.records != []
 
 
 def test_sweep_plan_is_deterministic() -> None:
@@ -429,7 +440,6 @@ def test_unparseable_config_leaves_doc_untouched_and_logs(
     Then no sweep_plan key is added and exactly one warning is logged.
     """
     ### Given
-    lifecycle._plan_failures_logged.clear()
     doc = {"experiment_id": "bad-config", "config": {"nonsense": 1}}
 
     ### When
@@ -455,7 +465,6 @@ def test_unexpected_failure_never_escapes_and_leaves_doc_untouched(
     Then nothing escapes and the doc has neither sweep_plan nor new retrievers labels.
     """
     ### Given
-    lifecycle._plan_failures_logged.clear()
     cfg = _config(sizes=[256], overlaps=[50], paddings=[0], retrievers=[_DENSE])
 
     def boom(_: ExperimentConfig) -> None:
@@ -547,7 +556,6 @@ def test_get_experiment_endpoint_survives_plan_failure(monkeypatch: pytest.Monke
     Then it still returns 200 without sweep_plan.
     """
     ### Given
-    lifecycle._plan_failures_logged.clear()
 
     def boom(_: ExperimentConfig) -> None:
         raise RuntimeError("boom")
@@ -562,3 +570,24 @@ def test_get_experiment_endpoint_survives_plan_failure(monkeypatch: pytest.Monke
     ### Then
     assert response.status_code == 200
     assert "sweep_plan" not in response.json()
+
+
+def test_list_endpoint_does_not_attach_sweep_plan() -> None:
+    """
+    Scenario: sweep_plan is a detail-only decoration.
+    Slice: 67B
+
+    Given a stored doc with a parseable config
+    When the list endpoint is called
+    Then the listed experiment has no sweep_plan.
+    """
+    ### Given
+    doc = _stored_doc({})
+
+    ### When
+    with patch("server.api.experiments.list_all_experiment_docs", return_value=[doc]):
+        body = _client().get("/experiments").json()
+
+    ### Then
+    assert [e["experiment_id"] for e in body["experiments"]] == ["exp-1"]
+    assert "sweep_plan" not in body["experiments"][0]

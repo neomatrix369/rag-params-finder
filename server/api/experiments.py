@@ -235,6 +235,7 @@ async def create_experiment(config: ExperimentConfig):
             "chunk_sizes": config.chunking.params.chunk_sizes,
             "overlaps": config.chunking.params.overlaps,
             "paddings": config.chunking.params.paddings,
+            # Deliberately redundant with the read path (attach_sweep_plan setdefault).
             "retrievers": retriever_labels(config),
             "retrieval_methods": retrieval_methods_for_summary,
             "retrieval_provider": retrieval_provider_for_summary,
