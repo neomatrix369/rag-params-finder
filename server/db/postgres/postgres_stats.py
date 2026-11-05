@@ -123,6 +123,8 @@ def _assemble(
     runs_with_data: int,
     run_breakdown: list[dict],
     index_names: list[str],
+    results_per_run: list[int] | None = None,
+    results_known: bool = True,
 ) -> dict:
     sweep = (experiment or {}).get("sweep_summary") or {}
     return assemble_experiment_db_stats(
@@ -141,6 +143,8 @@ def _assemble(
         unique_queries=unique_queries,
         runs_with_data=runs_with_data,
         run_breakdown=run_breakdown,
+        results_per_run=results_per_run,
+        results_known=results_known,
     )
 
 
@@ -196,6 +200,8 @@ def get_experiment_db_stats(experiment_id: str) -> dict:
             (experiment_id,),
         ) or {"total_results": 0, "unique_queries": 0}
         run_breakdown = _run_breakdown(experiment_id)
+        # _run_breakdown's FULL OUTER JOIN also returns chunk-only runs: keep runs with results.
+        results_per_run = [r["results"] for r in run_breakdown if r["results"] > 0]
 
         stats = _assemble(
             experiment,
@@ -207,6 +213,7 @@ def get_experiment_db_stats(experiment_id: str) -> dict:
             runs_with_data=len(run_breakdown),
             run_breakdown=run_breakdown,
             index_names=_chunks_index_names(),
+            results_per_run=results_per_run,
         )
     except Exception:
         logger.error("db stats compute failed — experiment %s", experiment_id, exc_info=True)
@@ -258,6 +265,21 @@ def _bulk_result_aggregates() -> dict[str, dict]:
     }
 
 
+def _bulk_results_per_run() -> dict[str, list[int]] | None:
+    """Per-run result counts per experiment; optional: a failure yields ``None`` (unknown)."""
+    try:
+        rows = fetch_all(
+            "SELECT experiment_id, count(*) AS rows FROM results GROUP BY experiment_id, run_id"
+        )
+    except Exception:
+        logger.warning("per-run result counts unavailable — golden facts omitted", exc_info=True)
+        return None
+    out: dict[str, list[int]] = {}
+    for row in rows:
+        out.setdefault(str(row["experiment_id"]), []).append(int(row["rows"]))
+    return out
+
+
 def _bulk_chunking_breakdown() -> dict[str, dict[str, int]]:
     rows = fetch_all(
         "SELECT experiment_id, chunk_method, count(*) AS count "
@@ -281,6 +303,7 @@ def get_vector_db_stats_grouped(find_all_experiments: Callable[[], list[dict]]) 
         chunk_by_exp = _bulk_chunk_aggregates()
         result_by_exp = _bulk_result_aggregates()
         chunking_by_exp = _bulk_chunking_breakdown()
+        per_run_by_exp = _bulk_results_per_run()
         cluster_storage = _cluster_storage_mb()
         index_names = _chunks_index_names()
         groups: dict[str, dict] = {}
@@ -299,6 +322,8 @@ def get_vector_db_stats_grouped(find_all_experiments: Callable[[], list[dict]]) 
                 runs_with_data=int(chunk_row.get("runs_with_data") or 0),
                 run_breakdown=[],
                 index_names=index_names,
+                results_per_run=(per_run_by_exp or {}).get(experiment_id),
+                results_known=per_run_by_exp is not None,
             )
             group_key = vector_db_group_key(
                 resolve_experiment_storage_mode(

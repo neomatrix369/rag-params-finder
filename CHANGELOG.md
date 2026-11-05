@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Compare shows "Only run in this group" instead of a misleading 100.0 (also under a store filter), states that the score is the best single chunk, and the stats panels mark estimates ("est.") with their formula and scope.
   - The determinism guard now covers the progress, count and label helpers.
   (**IMPLEMENTED** on branch `slice/67d-explainable-cards`; tips on every card, the glossary and the Explorer planned total are still to come.)
+- **Slice 67E (backend) — Query Results breakdown facts** — the db-stats endpoints now report, per experiment, how many runs wrote results, the golden-dataset record count, and how many runs fell short of it (`result_runs`, `golden_queries`, `golden_queries_source`, `partial_runs`), plus group totals (`total_result_runs`, `golden_queries_min`, `golden_queries_max`).
+  - The golden count is the number of records in the golden dataset, saved on the experiment when the first run loads it; older experiments are inferred from stored results.
+  - Redis and Elasticsearch group totals report nothing new; a failing optional query reports unknown, never zero.
+  (**IMPLEMENTED** on branch `slice/67e-results-breakdown-backend`; the dashboard tile that shows the breakdown is the frontend half.)
 - **Slice 67B — one backend source for sweep counts** — `GET /experiments/{id}` now carries `sweep_plan` (dimension counts, full grid count, Bayesian search space, planned runs, warnings), computed on read from the stored config so old experiments need no backfill.
   - New pure `sweep_plan()` beside `expand_sweep` in `server/models/config.py`; `full_grid_count` equals `len(expand_sweep(config))` without building the grid.
   - A failure while computing the plan never fails the read; it is logged once per experiment.

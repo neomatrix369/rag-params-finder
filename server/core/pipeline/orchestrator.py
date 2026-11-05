@@ -7,6 +7,7 @@ on the orchestrator namespace continues to affect ``_update_phase``.
 
 from __future__ import annotations
 
+import threading
 import time
 import uuid
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
@@ -438,6 +439,45 @@ def _finalise_bayesian_experiment(
         )
 
     return final_status, failed_count
+
+
+_golden_persisted: set[str] = set()
+_golden_persisted_lock = threading.Lock()
+_golden_failure_traced = False
+
+
+def _persist_golden_query_count(experiment_id: str, golden_queries: int) -> None:
+    """Store the golden-dataset record count once, when the first run loads queries.
+
+    ``golden_queries`` is ``len(load_queries(...))`` — the same loader that decides
+    how many result rows each run writes. Write-once and idempotent: a stored value
+    is never rewritten, so it goes stale if ``queries_file`` changes between pause
+    and resume. A process-local memo limits the read to once per experiment per
+    process. Best effort: stats fall back to inference if this fails.
+    """
+    with _golden_persisted_lock:
+        if experiment_id in _golden_persisted:
+            return
+    try:
+        backend = get_storage_backend()
+        experiment = backend.find_experiment_by_id(experiment_id) or {}
+        sweep = dict(experiment.get("sweep_summary") or {})
+        if sweep.get("golden_queries") is None:
+            sweep["golden_queries"] = golden_queries
+            backend.update_experiment(experiment_id, {"sweep_summary": sweep})
+        with _golden_persisted_lock:
+            _golden_persisted.add(experiment_id)
+    except Exception:
+        global _golden_failure_traced
+        with _golden_persisted_lock:
+            first = not _golden_failure_traced
+            _golden_failure_traced = True
+        # Traceback once per process; later failures stay one line.
+        logger.warning(
+            "golden query count not persisted — experiment %s",
+            experiment_id,
+            exc_info=first,
+        )
 
 
 def _fail_experiment_preflight(
@@ -938,6 +978,7 @@ def _run_single(
         _update_phase(run_id, Phase.QUERYING)
         queries = load_queries(params.queries_file)
         logger.info("query phase — run %s, %s queries", run_id, len(queries))
+        _persist_golden_query_count(experiment_id, len(queries))
 
         for i, q in enumerate(queries, start=1):
             check_control(experiment_id)
