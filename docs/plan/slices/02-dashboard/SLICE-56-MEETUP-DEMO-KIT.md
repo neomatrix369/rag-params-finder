@@ -50,7 +50,7 @@ The host's brief: state the problem as a question; quick demo of finding the bes
 
 - **Baseline:** `git ls-files docs/about scripts/demo` → empty; `grep -rn "data-tour" frontend/src` → empty; no About button in the header.
 - `docs/about/demo-results.json` exists, deterministic (two exports → identical bytes), with a manifest (inputs + sha, ranking field/direction, selection rule, exclusions with reasons, `schema_version`).
-- An **About** button in the app header opens a dialog with the 10 sections in order, rendered from `docs/about/*.md`, working with the network off.
+- An **About** button in the app header opens a dialog with the 9 sections in order, rendered from `docs/about/*.md`, working with the network off.
 - **▶ Start Walkthru** runs 5 steps with Next/Back/Space/Esc, Autoplay **off** by default, Esc restores the UI state.
 - The cross-store leaderboard renders offline, groups same-config runs across stores, sorts by score, filters by store; picking a run drives the replay.
 - `docs/about/RECORDING.md` exists; a Next-by-Next recording is kept by the owner.
@@ -111,10 +111,10 @@ If time slips, cut Walkthru **step 4 then step 5** first (keep leaderboard, repl
 
 ### Part C1 — About box
 
-- **Given** the app header **when** the user clicks About **then** a dialog opens with the 10 sections in order (problem as a question, how it works, the improvement, Redis 8, evals-underway banner, coming next, try it + repo + QR + MIT, feedback, thanks to Samuel Agbede and Redis, golden-master link only if Part J shipped).
+- **Given** the app header **when** the user clicks About **then** a dialog opens with the 9 sections in order (problem as a question, how it works, the improvement, Redis 8, evals-underway banner, coming next, try it + repo + MIT, feedback, thanks to Samuel Agbede and Redis; the golden-master section was dropped with Part J and the QR code by owner decision).
 - **Given** the dialog is open **when** Esc is pressed **then** it closes and focus returns to the About button; focus is trapped while open.
 - **Given** the evals banner **when** removed **then** one line or block change removes it.
-- **Given** the network is off **when** the dialog opens **then** all content renders (Markdown bundled, QR is a committed static SVG).
+- **Given** the network is off **when** the dialog opens **then** all content renders (Markdown bundled; no image assets).
 - **Given** `prefers-reduced-motion` **when** the dialog opens **then** no animation runs.
 
 ### Part B — Run replay
