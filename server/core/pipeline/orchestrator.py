@@ -431,6 +431,25 @@ def _finalise_bayesian_experiment(
     return final_status, failed_count
 
 
+def _persist_golden_query_count(experiment_id: str, golden_queries: int) -> None:
+    """Store the golden-dataset record count once, when the first run loads queries.
+
+    ``golden_queries`` is ``len(load_queries(...))`` — the same loader that decides
+    how many result rows each run writes. Idempotent: a stored value is never
+    rewritten. Best effort: stats fall back to inference if this fails.
+    """
+    try:
+        backend = get_storage_backend()
+        experiment = backend.find_experiment_by_id(experiment_id) or {}
+        sweep = dict(experiment.get("sweep_summary") or {})
+        if sweep.get("golden_queries") is not None:
+            return
+        sweep["golden_queries"] = golden_queries
+        backend.update_experiment(experiment_id, {"sweep_summary": sweep})
+    except Exception:
+        logger.warning("golden query count not persisted — experiment %s", experiment_id)
+
+
 def _fail_experiment_preflight(
     experiment_id: str,
     config: ExperimentConfig,
@@ -952,6 +971,7 @@ def _run_single(
         _update_phase(run_id, Phase.QUERYING)
         queries = load_queries(params.queries_file)
         logger.info("query phase — run %s, %s queries", run_id, len(queries))
+        _persist_golden_query_count(experiment_id, len(queries))
 
         for i, q in enumerate(queries, start=1):
             check_control(experiment_id)

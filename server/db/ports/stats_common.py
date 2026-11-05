@@ -63,6 +63,25 @@ def retrieval_methods_for_experiment(experiment: dict | None) -> list[str]:
     return []
 
 
+def golden_query_facts(
+    experiment: dict | None, results_per_run: list[int]
+) -> tuple[int | None, str | None, int]:
+    """Return ``(golden_queries, source, partial_runs)``.
+
+    A golden record is one evaluation query. The count is persisted lazily on
+    ``sweep_summary.golden_queries`` (source ``config``); older experiments fall
+    back to the largest per-run result-row count (source ``max_per_run``, an
+    inference). ``partial_runs`` counts runs with fewer rows than the golden count.
+    """
+    stored = ((experiment or {}).get("sweep_summary") or {}).get("golden_queries")
+    if isinstance(stored, int) and not isinstance(stored, bool) and stored >= 0:
+        return stored, "config", sum(1 for rows in results_per_run if rows < stored)
+    inferred = max(results_per_run, default=0)
+    if inferred > 0:
+        return inferred, "max_per_run", sum(1 for rows in results_per_run if rows < inferred)
+    return None, None, 0
+
+
 def assemble_experiment_db_stats(
     experiment: dict | None,
     *,
@@ -77,8 +96,17 @@ def assemble_experiment_db_stats(
     unique_queries: int,
     runs_with_data: int,
     run_breakdown: list[dict],
+    results_per_run: list[int] | None = None,
 ) -> dict:
-    """Build the per-experiment db-stats dict from already-queried aggregates."""
+    """Build the per-experiment db-stats dict from already-queried aggregates.
+
+    ``results_per_run`` is the result-row count of every run that has results
+    (adapters supply it from their own ``GROUP BY run_id``); it feeds
+    ``result_runs`` / ``golden_queries`` / ``partial_runs``. Vector stores that
+    hold no results (Redis, ES) omit it.
+    """
+    per_run = sorted(results_per_run or [])
+    golden, golden_source, partial_runs = golden_query_facts(experiment, per_run)
     avg_chunks_per_run = round(total_chunks / runs_with_data, 1) if runs_with_data else 0.0
     embedding_mb, metadata_mb, total_mb = storage_breakdown_mb(total_chunks, embedding_models)
 
@@ -100,7 +128,13 @@ def assemble_experiment_db_stats(
         "runs_with_data": runs_with_data,
         "avg_chunks_per_run": avg_chunks_per_run,
         "total_results": total_results,
+        # NB: query_id is a uuid4 per query per run, so unique_queries equals
+        # total_results. It is not the golden-record count; see golden_queries.
         "unique_queries": unique_queries,
+        "result_runs": len(per_run),
+        "golden_queries": golden,
+        "golden_queries_source": golden_source,
+        "partial_runs": partial_runs,
         "run_breakdown": run_breakdown,
     }
 
@@ -156,6 +190,9 @@ def new_vector_db_group(group_key: str, stats: dict) -> dict:
             "experiment_count": 0,
             "total_chunks": 0,
             "total_results": 0,
+            "total_result_runs": 0,
+            "golden_queries_min": None,
+            "golden_queries_max": None,
             "estimated_storage_mb": 0.0,
             "estimated_embedding_mb": 0.0,
             "estimated_metadata_mb": 0.0,
@@ -169,6 +206,12 @@ def merge_group_totals(group: dict, stats: dict) -> None:
     totals["experiment_count"] += 1
     totals["total_chunks"] += stats["total_chunks"]
     totals["total_results"] += stats["total_results"]
+    totals["total_result_runs"] += stats.get("result_runs") or 0
+    golden = stats.get("golden_queries")
+    if golden is not None:
+        low, high = totals["golden_queries_min"], totals["golden_queries_max"]
+        totals["golden_queries_min"] = golden if low is None else min(low, golden)
+        totals["golden_queries_max"] = golden if high is None else max(high, golden)
     for key in ("estimated_storage_mb", "estimated_embedding_mb", "estimated_metadata_mb"):
         totals[key] = round(totals[key] + stats[key], 2)
     group["index_names"] = sorted(set(group["index_names"]) | set(stats["index_names"]))

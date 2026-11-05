@@ -162,6 +162,7 @@ def _assemble_experiment_db_stats(
     unique_queries: int,
     runs_with_data: int,
     run_breakdown: list[dict],
+    results_per_run: list[int] | None = None,
 ) -> dict:
     sweep = (experiment or {}).get("sweep_summary") or {}
     return assemble_experiment_db_stats(
@@ -180,6 +181,7 @@ def _assemble_experiment_db_stats(
         unique_queries=unique_queries,
         runs_with_data=runs_with_data,
         run_breakdown=run_breakdown,
+        results_per_run=results_per_run,
     )
 
 
@@ -234,6 +236,18 @@ def _bulk_result_aggregates() -> dict[str, dict]:
     return out
 
 
+def _bulk_results_per_run() -> dict[str, list[int]]:
+    pipeline = [
+        {"$group": {"_id": {"e": "$experiment_id", "r": "$run_id"}, "rows": {"$sum": 1}}},
+    ]
+    out: dict[str, list[int]] = {}
+    for row in get_collection(RESULTS_COLLECTION).aggregate(pipeline, allowDiskUse=True):
+        key = row.get("_id") or {}
+        if key.get("e") and key.get("r"):
+            out.setdefault(str(key["e"]), []).append(int(row["rows"]))
+    return out
+
+
 def _bulk_chunking_breakdown() -> dict[str, dict[str, int]]:
     chunks_coll = get_collection(CHUNKS_COLLECTION)
     pipeline = [
@@ -264,6 +278,7 @@ def _summary_db_stats_for_experiment(
     chunk_row: dict | None,
     result_row: dict | None,
     chunking_breakdown: dict[str, int],
+    results_per_run: list[int] | None = None,
 ) -> dict:
     total_chunks = int((chunk_row or {}).get("total_chunks") or 0)
     embedding_models = list((chunk_row or {}).get("embedding_models") or [])
@@ -279,6 +294,7 @@ def _summary_db_stats_for_experiment(
         unique_queries=unique_queries,
         runs_with_data=runs_with_data,
         run_breakdown=[],
+        results_per_run=results_per_run,
     )
 
 
@@ -335,6 +351,7 @@ def get_experiment_db_stats(experiment_id: str) -> dict:
             unique_queries=unique_queries,
             runs_with_data=len(run_breakdown),
             run_breakdown=run_breakdown,
+            results_per_run=list(_document_counts_by_run_id(results_coll, experiment_id).values()),
         )
     except Exception:
         logger.error("db stats compute failed — experiment %s", experiment_id, exc_info=True)
@@ -362,6 +379,7 @@ def get_vector_db_stats_grouped(
         chunk_by_exp = _bulk_chunk_aggregates()
         result_by_exp = _bulk_result_aggregates()
         chunking_by_exp = _bulk_chunking_breakdown()
+        per_run_by_exp = _bulk_results_per_run()
         cluster_storage = _mongodb_cluster_storage_mb()
         groups: dict[str, dict] = {}
 
@@ -372,6 +390,7 @@ def get_vector_db_stats_grouped(
                 chunk_by_exp.get(experiment_id),
                 result_by_exp.get(experiment_id),
                 chunking_by_exp.get(experiment_id, {}),
+                per_run_by_exp.get(experiment_id),
             )
             group_key = vector_db_group_key(
                 resolve_experiment_storage_mode(

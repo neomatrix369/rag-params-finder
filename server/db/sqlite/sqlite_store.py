@@ -505,6 +505,7 @@ class SQLiteStorageBackend:
             unique_queries=int(result_row["unique_queries"] or 0),
             runs_with_data=len(run_breakdown),
             run_breakdown=run_breakdown,
+            results_per_run=[row["results"] for row in run_breakdown],
         )
 
     def get_vector_db_stats_grouped(self) -> dict:

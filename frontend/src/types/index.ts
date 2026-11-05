@@ -284,6 +284,14 @@ export interface ExperimentDbStats {
   avg_chunks_per_run: number;
   total_results: number;
   unique_queries: number;
+  /** Distinct runs that wrote result rows. */
+  result_runs?: number;
+  /** Golden-dataset record count (one evaluation query each). */
+  golden_queries?: number | null;
+  /** 'config' = counted from the dataset; 'max_per_run' = inferred from results. */
+  golden_queries_source?: 'config' | 'max_per_run' | null;
+  /** Runs whose result rows are fewer than golden_queries. */
+  partial_runs?: number;
   run_breakdown: RunDbBreakdown[];
 }
 
@@ -293,6 +301,9 @@ export interface ExperimentDbStatsResponse {
 }
 
 export interface VectorDbGroupTotals {
+  total_result_runs?: number;
+  golden_queries_min?: number | null;
+  golden_queries_max?: number | null;
   experiment_count: number;
   total_chunks: number;
   total_results: number;
