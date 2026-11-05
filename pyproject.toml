@@ -48,6 +48,10 @@ dev = [
     "bandit>=1.7.8",
     "radon>=6.0.0",
     "xenon>=0.9.0",
+    # mando (radon/xenon) imports six.moves but does not declare a floor. Without one, the
+    # unlocked CI install (`pip install .[dev]`) backtracks aim->boto3->bcdoc to six==1.7.3,
+    # whose import hook is broken on Python 3.12 ("No module named 'six.moves'").
+    "six>=1.16",
     "vulture>=2.11",
     "pip>=26.2",
 ]
