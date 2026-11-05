@@ -74,7 +74,8 @@ describe('AboutDialog', () => {
      */
     // -- Given --
     const withBanner = render(<AboutDialog open onClose={vi.fn()} />);
-    expect(screen.getByText(/Evaluations are underway/)).toBeInTheDocument();
+    expect(screen.getByText(/Proper evaluation is still to come/)).toBeInTheDocument();
+    expect(screen.queryByText(/underway/i)).toBeNull();
     withBanner.unmount();
 
     // -- When --
@@ -87,7 +88,7 @@ describe('AboutDialog', () => {
     );
 
     // -- Then --
-    expect(screen.queryByText(/Evaluations are underway/)).toBeNull();
+    expect(screen.queryByText(/Proper evaluation is still to come/)).toBeNull();
     expect(screen.getByRole('heading', { name: /Which settings/ })).toBeInTheDocument();
   });
 

@@ -74,7 +74,8 @@ describe('ABOUT_SECTIONS', () => {
     claimingSections.forEach((section) => {
       expect(section.markdown).not.toMatch(/accura|correct|\bhit\b/i);
     });
-    expect(banner?.markdown).toMatch(/Evaluations are underway/);
+    expect(banner?.markdown).toMatch(/Proper evaluation is still to come/);
+    expect(banner?.markdown).not.toMatch(/underway/i);
     expect(banner?.markdown).toMatch(/not accuracy, correctness or hit-rate/);
     expect(all).toMatch(/similarity score/i);
     expect(all).toContain('Samuel Agbede');
