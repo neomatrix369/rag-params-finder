@@ -9,9 +9,11 @@ import {
   suggestedRunId,
   type LeaderboardGroup,
   type LeaderboardInput,
+  groupSize,
 } from '../../walkthru/leaderboard';
 import { displayDatabaseProvider } from '../../utils/storageLabels';
 import Pagination from '../chrome/Pagination';
+import { SCORE_NOTE, dedupNote, scoreCellLabel } from './scoreLabels';
 
 export type CrossStoreLeaderboardProps = {
   results: LeaderboardInput;
@@ -25,6 +27,8 @@ export type CrossStoreLeaderboardProps = {
   suggest?: boolean;
   /** Overrides the intro sentence under the heading. */
   description?: string;
+  /** Duplicate rows removed upstream, when the source reports it; the note states the rule either way. */
+  collapsedDuplicates?: number;
 };
 
 const DEFAULT_DESCRIPTION =
@@ -46,9 +50,11 @@ function RunRow({
   run,
   selected,
   suggested,
+  groupRunCount,
   onSelect,
 }: {
   run: WalkthruRun;
+  groupRunCount: number;
   selected: boolean;
   suggested: boolean;
   onSelect: (runId: string) => void;
@@ -71,7 +77,7 @@ function RunRow({
       <td className="px-3 py-2 text-sm capitalize text-ink">{run.chunking_method}</td>
       <td className="px-3 py-2 text-sm text-ink">{run.chunk_size}</td>
       <td className="px-3 py-2 text-sm text-ink">{run.retrieval_method}</td>
-      <td className="px-3 py-2 text-sm font-semibold text-ink">{run.max_score.toFixed(1)}</td>
+      <td className="px-3 py-2 text-sm font-semibold text-ink">{scoreCellLabel(run.max_score, groupRunCount)}</td>
       <td className="px-3 py-2 text-sm text-ink">#{run.rank}</td>
       <td className="px-3 py-2 text-sm text-muted">{(run.elapsed_ms / 1000).toFixed(1)}s</td>
       <td className="px-3 py-2 text-right">
@@ -102,6 +108,7 @@ export default function CrossStoreLeaderboard({
   autoplay = false,
   suggest = true,
   description = DEFAULT_DESCRIPTION,
+  collapsedDuplicates,
 }: CrossStoreLeaderboardProps) {
   const [storeFilter, setStoreFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -166,6 +173,8 @@ export default function CrossStoreLeaderboard({
         ))}
       </div>
 
+      <p data-testid="score-note" className="text-xs text-muted">{SCORE_NOTE}</p>
+      <p data-testid="dedup-note" className="text-xs text-muted">{dedupNote(collapsedDuplicates)}</p>
       <p className="text-xs text-muted">Elapsed time is indicative — runs were not timing-controlled.</p>
 
       <div className="space-y-4">
@@ -199,6 +208,7 @@ export default function CrossStoreLeaderboard({
                       run={run}
                       selected={run.run_id === selectedRunId}
                       suggested={run.store === suggested}
+                      groupRunCount={groupSize(results.runs, group.groupId)}
                       onSelect={onSelectRun}
                     />
                   ))}

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import Pagination from '../chrome/Pagination';
 import FormulaLine from '../chrome/FormulaLine';
 import type { DetailedResult, ExploreResponse, RankedConfig } from '../../types';
+import { countConfigsAtScore } from './scoreCounts';
 import { displayDatabaseProvider } from '../../utils/storageLabels';
 import { formatChunkDimensions } from './formatChunkDimensions';
 
@@ -250,7 +251,7 @@ export function HyperparametersTab({ data }: { data: ExploreResponse }) {
 
   // Detect ties: count how many of the top configs share the #1 max score
   const bestMaxScore = data.best_params?.max_score ?? 0;
-  const tiedInTop3 = topConfigs.filter((c) => c.max_score === bestMaxScore).length;
+  const tiedInTop3 = countConfigsAtScore(topConfigs, bestMaxScore);
   const hasTies = tiedInTop3 > 1;
 
   // Extract sweep dimensions from ranked_configs

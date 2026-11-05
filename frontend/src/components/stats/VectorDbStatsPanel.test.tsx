@@ -248,4 +248,20 @@ describe('VectorDbStatsPanel', () => {
     expect(screen.getByText('network timeout contacting vector database')).toBeInTheDocument();
     expect(screen.queryByText(/Refreshing vector database stats/)).not.toBeInTheDocument();
   });
+
+  it('Given a group, when rendered, then the estimate tile carries the formula and a scope label is visible', () => {
+    /**
+     * Scenario: The Chunks (Est.) MB is labelled est. with a formula; tiles are scoped per backend.
+     * Slice: 67D - stats scope and estimate labels
+     */
+    // -- Given / When --
+    render(<VectorDbStatsPanel groups={[group()]} />);
+
+    // -- Then --
+    expect(screen.getByTestId('estimate-formula')).toHaveTextContent(/chunks × average dimensions × 4 bytes/);
+    expect(screen.getByTestId('estimate-formula')).toHaveTextContent(/500 bytes/);
+    expect(screen.getByText('Chunks (est. MB)')).toBeInTheDocument();
+    expect(screen.getByTestId('stats-scope')).toHaveTextContent(/all experiments stored in this database/i);
+    expect(screen.getByTestId('stats-scope')).toHaveTextContent(/tiles that this backend does not report show —/i);
+  });
 });

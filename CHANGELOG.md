@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Slice 67D (first bundle) — dashboard numbers that add up** — the Detail screen, list and Compare/stats panels now agree and say how a number was reached.
+  - Bayesian experiments use one denominator everywhere on the Detail screen (Total tile, progress ring, subtitle, totals line, planned trials, overview sentence); the totals line reads `Total 20 = 13 attempted + 4 discarded + 3 not started`.
+  - The list screen no longer subtracts the Bayesian "not started" count twice; the progress ring and ETA count failed and interrupted runs as finished.
+  - Compare shows "Only run in this group" instead of a misleading 100.0 (also under a store filter), states that the score is the best single chunk, and the stats panels mark estimates ("est.") with their formula and scope.
+  - The determinism guard now covers the progress, count and label helpers.
+  (**IMPLEMENTED** on branch `slice/67d-explainable-cards`; tips on every card, the glossary and the Explorer planned total are still to come.)
 - **Slice 67B — one backend source for sweep counts** — `GET /experiments/{id}` now carries `sweep_plan` (dimension counts, full grid count, Bayesian search space, planned runs, warnings), computed on read from the stored config so old experiments need no backfill.
   - New pure `sweep_plan()` beside `expand_sweep` in `server/models/config.py`; `full_grid_count` equals `len(expand_sweep(config))` without building the grid.
   - A failure while computing the plan never fails the read; it is logged once per experiment.

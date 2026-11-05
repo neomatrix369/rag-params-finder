@@ -8,6 +8,7 @@
  * Scope: SLICE-56 Part C2 - the improvement panel.
  */
 import type { WalkthruStory, WalkthruStoryChunk } from '../../walkthru/walkthruResults';
+import { STORY_BASELINE_NOTE } from './scoreLabels';
 
 function StatTile({ label, value }: { label: string; value: string }) {
   return (
@@ -50,6 +51,8 @@ export default function ImprovementPanel({ story }: { story: WalkthruStory }) {
           chunk sits closer to the question in embedding space; it does not prove the chunk is the right answer.
         </p>
       </div>
+
+      <p data-testid="story-baseline" className="text-xs text-muted">{STORY_BASELINE_NOTE}</p>
 
       <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <StatTile label="Best top-chunk score" value={story.best.max_score.toFixed(1)} />

@@ -1613,3 +1613,221 @@ describe('VectorDbStatsPanel in ExperimentDetailScreen', () => {
     expect(screen.getByText('vector store unreachable')).toBeInTheDocument();
   });
 });
+
+describe('ExperimentDetailScreen progress and Bayesian totals', () => {
+  beforeEach(() => {
+    resetAllApiMocks();
+  });
+
+  it('Given a running sweep with failed and interrupted runs, when rendered, then the ring and subtitle count them as finished', async () => {
+    /**
+     * Scenario: Failed and interrupted runs will not complete later, so progress counts them as finished.
+     * Slice: 67D-2 — finding E wired into the detail screen.
+     */
+    // -- Given --
+    const fixture = detailFixture(
+      'running',
+      [Phase.COMPLETE, Phase.COMPLETE, Phase.FAILED, Phase.INTERRUPTED, Phase.QUERYING, Phase.QUERYING, Phase.QUERYING, Phase.QUERYING],
+      { run_count: 8, started_at: '2026-07-20T10:00:00.000Z' },
+    );
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-07-20T10:02:00.000Z'));
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen
+        experimentId={fixture.experiment_id}
+        initialExperiment={fixture}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(screen.getByRole('progressbar', { name: 'Experiment completion' })).toHaveAttribute('aria-valuenow', '50');
+    // detail.started_at is forwarded: 4 finished runs in 2 min of 8 gives elapsed 2m 0s and ETA 2m 1s
+    expect(screen.getByText('2m 0s')).toBeInTheDocument();
+    expect(screen.getByText('2m 1s')).toBeInTheDocument();
+    expect(screen.getByText('4 of 8 runs finished (2 complete, 1 failed, 1 interrupted)')).toBeInTheDocument();
+  });
+
+  it('Given a partial Bayesian sweep whose run_count differs from planned_trials, when rendered, then every card agrees with the totals line', async () => {
+    /**
+     * Scenario: Total = attempted (successful + failed + interrupted) + discarded + not started, all from one source.
+     * Slice: 67D - finding F; D-1 not-started comes from the shared helper. run_count (25) differs from
+     * bayesian_summary.planned_trials (20) so the source of the Total tile is observable.
+     */
+    // -- Given --
+    const phases = [
+      ...Array<Phase>(8).fill(Phase.COMPLETE),
+      ...Array<Phase>(3).fill(Phase.FAILED),
+      ...Array<Phase>(2).fill(Phase.INTERRUPTED),
+    ];
+    const fixture = detailFixture('partial', phases, {
+      config: { execution: { search_strategy: 'bayesian' } },
+      run_count: 25,
+      sweep_summary: {
+        database_provider: 'mongodb',
+        embedding_provider: 'local',
+        models: ['all-MiniLM-L6-v2'],
+        chunking_methods: ['recursive'],
+        chunk_sizes: [256, 512],
+        overlaps: [25, 50],
+      },
+      grid_equivalent_count: 120,
+      bayesian_summary: { planned_trials: 20, attempted_trials: 13, discarded_trials: 4 },
+    });
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+    const tile = (label: string): string | null | undefined =>
+      screen.getByText(label, { selector: 'div' }).previousElementSibling?.textContent;
+    const metadata = (label: string): string | null | undefined =>
+      screen.getByText(label).nextElementSibling?.textContent;
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen
+        experimentId={fixture.experiment_id}
+        initialExperiment={fixture}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(
+      screen.getByText('Total 20 = 13 attempted + 4 discarded + 3 not started. Discarded trials are not runs.'),
+    ).toBeInTheDocument();
+    expect(tile('Total')).toBe('20');
+    expect(metadata('Planned Bayesian Trials')).toBe('20');
+    expect(screen.getByText('20/120 trials')).toBeInTheDocument();
+    expect(tile('Successful')).toBe('8');
+    expect(tile('Failed')).toBe('3');
+    expect(tile('Interrupted')).toBe('2');
+    expect(tile('Not Started')).toBe('3');
+    expect(tile('Discarded by Sampler')).toBe('4');
+    expect(Number(tile('Successful')) + Number(tile('Failed')) + Number(tile('Interrupted'))).toBe(13);
+  });
+
+  it('Given a running Bayesian sweep with an in-progress run, when rendered, then the line and every card still agree', async () => {
+    /**
+     * Scenario: mid-run, In Progress is part of attempted and appears in the totals line.
+     * Slice: 67D - finding F while a sweep is running.
+     */
+    // -- Given --
+    const fixture = detailFixture('running', [Phase.COMPLETE, Phase.COMPLETE, Phase.FAILED, Phase.QUERYING], {
+      config: { execution: { search_strategy: 'bayesian' } },
+      run_count: 12,
+      sweep_summary: {
+        database_provider: 'mongodb',
+        embedding_provider: 'local',
+        models: ['all-MiniLM-L6-v2'],
+        chunking_methods: ['recursive'],
+        chunk_sizes: [256, 512],
+        overlaps: [25, 50],
+      },
+      grid_equivalent_count: 120,
+      started_at: '2026-07-20T10:00:00.000Z',
+      bayesian_summary: { planned_trials: 10, attempted_trials: 4, discarded_trials: 0 },
+    });
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+    const tile = (label: string): string | null | undefined =>
+      screen.getByText(label, { selector: 'div' }).previousElementSibling?.textContent;
+    const metadata = (label: string): string | null | undefined =>
+      screen.getByText(label).nextElementSibling?.textContent;
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen
+        experimentId={fixture.experiment_id}
+        initialExperiment={fixture}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
+
+    // -- Then --
+    // run_count is 12 but planned_trials is 10: every denominator on the screen is 10
+    expect(screen.getByText('3 of 10 runs finished (2 complete, 1 failed, 0 interrupted)')).toBeInTheDocument();
+    expect(screen.getByText('2 of 10 runs are complete; stored results can grow as the sweep continues.')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Experiment completion' })).toHaveAttribute('aria-valuenow', '30');
+    expect(
+      screen.getByText('Total 10 = 4 attempted (1 in progress) + 0 discarded + 6 not started. Discarded trials are not runs.'),
+    ).toBeInTheDocument();
+    expect(tile('Total')).toBe('10');
+    expect(metadata('Planned Bayesian Trials')).toBe('10');
+    expect(screen.getByText('10/120 trials')).toBeInTheDocument();
+    expect(tile('Not Started')).toBe('6');
+    expect(tile('In Progress')).toBe('1');
+    expect(
+      Number(tile('Successful')) + Number(tile('Failed')) + Number(tile('Interrupted')) + Number(tile('In Progress')),
+    ).toBe(4);
+  });
+
+  it.each([
+    ['paused', 'Paused after 2 of 10 runs completed; resume to run the remaining parameter combinations.'],
+    ['cancelled', 'Collection stopped after 2 of 10 runs completed.'],
+    ['failed', '1 failed and 2 completed of 10 configured runs.'],
+  ] as const)('Given a %s Bayesian sweep whose run_count differs from planned_trials, when rendered, then the overview sentence uses planned trials', async (status, sentence) => {
+    /**
+     * Scenario: every sweep-overview arm shares the planned-trials denominator (run_count 12, planned_trials 10).
+     * Slice: 67D - denominator rule on the lifecycle sentences.
+     */
+    // -- Given --
+    const fixture = detailFixture(status, [Phase.COMPLETE, Phase.COMPLETE, Phase.FAILED], {
+      config: { execution: { search_strategy: 'bayesian' } },
+      run_count: 12,
+      bayesian_summary: { planned_trials: 10, attempted_trials: 3, discarded_trials: 0 },
+    });
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen
+        experimentId={fixture.experiment_id}
+        initialExperiment={fixture}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(screen.getByText(sentence)).toBeInTheDocument();
+  });
+
+  it('Given a Bayesian summary whose attempted_trials differs from the loaded run rows, when rendered, then the totals line says so', async () => {
+    /**
+     * Scenario: the backend summary is the source of truth; a disagreement with the rows is stated, not hidden.
+     * Slice: 67D - honest caveat on the totals line.
+     */
+    // -- Given --
+    const fixture = detailFixture('partial', [Phase.COMPLETE, Phase.COMPLETE, Phase.FAILED], {
+      config: { execution: { search_strategy: 'bayesian' } },
+      run_count: 12,
+      bayesian_summary: { planned_trials: 10, attempted_trials: 6, discarded_trials: 1 },
+    });
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen
+        experimentId={fixture.experiment_id}
+        initialExperiment={fixture}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
+
+    // -- Then --
+    expect(
+      screen.getByText(
+        'Total 10 = 6 attempted + 1 discarded + 3 not started. Discarded trials are not runs. Run rows show 3 of the 6 attempted.',
+      ),
+    ).toBeInTheDocument();
+  });
+});

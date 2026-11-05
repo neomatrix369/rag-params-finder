@@ -28,6 +28,73 @@ export function summarizeExperimentRuns(
   return { expected, started, complete, failed, interrupted, neverStarted, inProgress };
 }
 
+/**
+ * Bayesian trials that were planned but neither attempted nor discarded by the sampler.
+ * The one place this subtraction happens; list and detail screens both call it.
+ */
+export function bayesianNotStartedCount(
+  planned: number,
+  attempted: number,
+  discarded: number,
+): number {
+  return Math.max(0, planned - attempted - discarded);
+}
+
+/**
+ * The one denominator every Detail-screen count uses: planned trials for a Bayesian sweep
+ * (run_count can differ), the expected run count for a grid sweep.
+ */
+export function detailDenominator({
+  isBayesian,
+  plannedTrials,
+  expectedRuns,
+}: {
+  isBayesian: boolean;
+  plannedTrials: number;
+  expectedRuns: number;
+}): number {
+  return isBayesian ? plannedTrials : expectedRuns;
+}
+
+/** Ids of experiments that bulk actions may select (running ones are excluded). */
+export function selectableExperimentIds(
+  experiments: ReadonlyArray<{ experiment_id: string; status: ExperimentStatus }>,
+): string[] {
+  return experiments.filter((exp) => exp.status !== 'running').map((exp) => exp.experiment_id);
+}
+
+/**
+ * Fixed-template sentence showing how the Bayesian Total splits. Discarded trials are
+ * sampler decisions, not runs, so they are listed apart from the run cards.
+ * Prints "=" only when the parts really add up to planned.
+ */
+export function bayesianTotalsLine({
+  planned,
+  attempted,
+  discarded,
+  notStarted,
+  inProgress = 0,
+  runRows,
+}: {
+  planned: number;
+  attempted: number;
+  discarded: number;
+  notStarted: number;
+  /** Runs still executing; they are part of attempted, so this only annotates it. */
+  inProgress?: number;
+  /** Run rows actually loaded; when it differs from attempted the line says so instead of hiding it. */
+  runRows?: number;
+}): string {
+  const rowsNote = runRows !== undefined && runRows !== attempted ? ` Run rows show ${runRows} of the ${attempted} attempted.` : '';
+  const note = `Discarded trials are not runs.${rowsNote}`;
+  const attemptedText = inProgress > 0 ? `${attempted} attempted (${inProgress} in progress)` : `${attempted} attempted`;
+  if (attempted + discarded + notStarted === planned) {
+    return `Total ${planned} = ${attemptedText} + ${discarded} discarded + ${notStarted} not started. ${note}`;
+  }
+  const attemptedList = inProgress > 0 ? `attempted ${attempted} (${inProgress} in progress)` : `attempted ${attempted}`;
+  return `Total ${planned}; ${attemptedList}, discarded ${discarded}, not started ${notStarted} (parts do not add up yet). ${note}`;
+}
+
 function isCompletedByTimestamp(
   completedAt: string | null | undefined,
 ): boolean {

@@ -28,6 +28,11 @@ export function filterRunsByStore(runs: WalkthruRun[], store: string | null): Wa
   return store === null ? runs : runs.filter((run) => run.store === store)
 }
 
+/** Size of a group among all runs (not the filtered view), so a lone-run marker stays truthful. */
+export function groupSize(runs: WalkthruRun[], groupId: string): number {
+  return runs.filter((run) => run.group_id === groupId).length
+}
+
 export function groupRuns(runs: WalkthruRun[]): LeaderboardGroup[] {
   const groupIds = [...new Set(runs.map((run) => run.group_id))]
   return groupIds

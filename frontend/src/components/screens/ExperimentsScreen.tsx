@@ -18,7 +18,7 @@ import { deleteExperiment, getExperiments, getExperimentsWithProgress, getStores
 import { Experiment } from '../../types';
 import { appendFeedEntry } from '../../utils/feedEntries';
 import { devInfo, devInfoThrottled, devWarn } from '../../utils/devLog';
-import { isPausedExperimentStatus, isRunningExperimentStatus } from '../../utils/experimentStatus';
+import { isPausedExperimentStatus, isRunningExperimentStatus, selectableExperimentIds } from '../../utils/experimentStatus';
 import {
   experimentOutcomeLabel,
   shouldShowLoadingPanel,
@@ -113,9 +113,7 @@ export default function ExperimentsScreen({
 
   const handleSelectAll = useCallback((checked: boolean) => {
     if (checked) {
-      const selectableIds = experiments
-        .filter(exp => exp.status !== 'running')
-        .map(exp => exp.experiment_id);
+      const selectableIds = selectableExperimentIds(experiments);
       setSelectedExperiments(new Set(selectableIds));
     } else {
       setSelectedExperiments(new Set());
@@ -426,7 +424,7 @@ export default function ExperimentsScreen({
           const startIndex = (currentPage - 1) * itemsPerPage;
           const endIndex = startIndex + itemsPerPage;
           const paginatedExperiments = experiments.slice(startIndex, endIndex);
-          const selectableCount = experiments.filter(exp => exp.status !== 'running').length;
+          const selectableCount = selectableExperimentIds(experiments).length;
           const allSelectableSelected = selectableCount > 0 && selectedExperiments.size === selectableCount;
           return (
             <>

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ExperimentDbStats } from '../../types';
+import { FOOTPRINT_SCOPE, estimateFormula, estimatedMbLabel } from './estimateLabels';
 
 type ExperimentStoredFootprintProps = {
   stats?: ExperimentDbStats;
@@ -41,9 +42,11 @@ function FootprintBody({ stats, loading }: ExperimentStoredFootprintProps) {
 
   return (
     <div className="mt-3 space-y-3 rounded-lg border border-indigo-100 bg-indigo-50/60 px-4 py-3">
-      <p className="text-sm font-semibold text-indigo-800">
-        {stats.total_chunks.toLocaleString()} chunks · {stats.estimated_storage_mb} MB
+      <p data-testid="footprint-summary" className="text-sm font-semibold text-indigo-800">
+        {stats.total_chunks.toLocaleString()} chunks · {estimatedMbLabel(stats.estimated_storage_mb)}
       </p>
+      <p data-testid="footprint-formula" className="text-[11px] text-slate-500">{estimateFormula()}</p>
+      <p data-testid="footprint-scope" className="text-[11px] text-slate-500">{FOOTPRINT_SCOPE}</p>
       <FootprintList title="Models" empty={stats.embedding_models.length === 0}>
         {stats.embedding_models.map((model) => (
           <span key={model} className="font-mono text-xs text-slate-800">
