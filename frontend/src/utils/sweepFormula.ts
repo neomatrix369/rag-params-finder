@@ -56,3 +56,8 @@ export const BAYESIAN_SWEEP_NOTE =
 export function sweepNote(strategy: 'grid' | 'bayesian' | undefined): string | null {
   return strategy === 'bayesian' ? BAYESIAN_SWEEP_NOTE : null;
 }
+
+/** How many of the given configurations share exactly this max score (the "tied at #1" count). */
+export function countConfigsAtScore(configs: ReadonlyArray<{ max_score: number }>, score: number): number {
+  return configs.filter((config) => config.max_score === score).length;
+}

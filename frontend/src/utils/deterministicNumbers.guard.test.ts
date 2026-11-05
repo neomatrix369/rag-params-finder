@@ -9,7 +9,12 @@ const SOURCES = import.meta.glob(
   [
     '/src/utils/sweepFormula.ts',
     '/src/components/chrome/FormulaLine.tsx',
+    '/src/utils/experimentStatus.ts',
+    '/src/components/experiment/experimentDetailProgress.ts',
+    '/src/components/walkthru/scoreLabels.ts',
+    '/src/components/stats/estimateLabels.ts',
     '/src/components/screens/ExperimentDetailScreen.tsx',
+    '/src/components/screens/ExperimentsScreen.tsx',
     '/src/components/explore/ExplorePanels.tsx',
   ],
   { query: '?raw', import: 'default', eager: true },
@@ -22,13 +27,24 @@ const read = (relative: string): string => {
 };
 
 /** Modules whose output must depend only on their arguments (extend as 67B-67D add helpers). */
-const PURE_MODULES = ['src/utils/sweepFormula.ts', 'src/components/chrome/FormulaLine.tsx'];
+const PURE_MODULES = [
+  'src/utils/sweepFormula.ts',
+  'src/components/chrome/FormulaLine.tsx',
+  'src/utils/experimentStatus.ts',
+  'src/components/experiment/experimentDetailProgress.ts',
+  'src/components/walkthru/scoreLabels.ts',
+  'src/components/stats/estimateLabels.ts',
+];
 
-const NON_DETERMINISTIC = /\b(Date\.now|new Date|Math\.random|performance\.now|fetch\(|localStorage|sessionStorage|window\.|document\.)/;
+const NON_DETERMINISTIC = /\b(Date\.now|new Date\(\s*\)|Math\.random|performance\.now|fetch\(|localStorage|sessionStorage|window\.|document\.)/;
 
 /** Screens must render counts produced elsewhere, never multiply them in JSX. */
-const SCREENS = ['src/components/screens/ExperimentDetailScreen.tsx', 'src/components/explore/ExplorePanels.tsx'];
-const JSX_COUNT_ARITHMETIC = /\.length\s*[*×]|[*×]\s*[\w.?]+\.length\b/;
+const SCREENS = [
+  'src/components/screens/ExperimentDetailScreen.tsx',
+  'src/components/explore/ExplorePanels.tsx',
+  'src/components/screens/ExperimentsScreen.tsx',
+];
+const JSX_COUNT_ARITHMETIC = /\.length\s*[*×]|[*×]\s*[\w.?]+\.length\b|\.filter\([^\n]*\)\.length|\/\s*[\w.?]+\)?\s*\*\s*100/;
 
 describe('deterministic numbers guard', () => {
   it.each(PURE_MODULES)('Given %s, when scanned, then it reads no clock, randomness, storage, network or DOM', (file) => {
@@ -43,7 +59,7 @@ describe('deterministic numbers guard', () => {
     expect(source).not.toMatch(NON_DETERMINISTIC);
   });
 
-  it.each(SCREENS)('Given %s, when scanned, then no .length is multiplied in JSX (67D widens this to every count expression)', (file) => {
+  it.each(SCREENS)('Given %s, when scanned, then no count is multiplied, filtered-and-counted or turned into a percentage inline', (file) => {
     /**
      * Scenario: every shown count is derived by a named pure function, not inline arithmetic.
      * Slice: 67 — 'no count is computed as JSX arithmetic' oracle.
