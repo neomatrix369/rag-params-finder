@@ -163,7 +163,7 @@ export function makeDemoResults(overrides: Partial<DemoResults> = {}): DemoResul
       best: { run_id: 'run-redis-best', rank: 1, max_score: 100, query_avg_score: 80, avg_score: 72.5 },
       median: { run_id: 'run-pg-best', rank: 2, max_score: 95, query_avg_score: 80, avg_score: 72.5 },
       worst: { run_id: 'run-mongo-worst', rank: 7, max_score: 15, query_avg_score: 80, avg_score: 72.5 },
-      spread: 85,
+      spread: { max_score: 85, query_avg_score: 68 },
       question: {
         text: 'What is the Pell Grant deadline?',
         focus: 'deadlines',

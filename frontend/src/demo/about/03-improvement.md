@@ -6,4 +6,4 @@ The demo compares the best-scoring and the worst-scoring configuration on one Fe
 
 A higher similarity score means the chunk is closer to the question in embedding space. It does not prove the chunk is the right answer; judging that is up to you. Relevance metrics are planned.
 
-The side-by-side view is planned as part of the guided Walkthru.
+The side-by-side view is step 3 of the guided Walkthru.

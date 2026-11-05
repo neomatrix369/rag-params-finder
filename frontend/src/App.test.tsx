@@ -5,13 +5,25 @@
  * navigation and list-cache propagation (onCacheUpdate)
  * without exercising the real screen components (each is stubbed to a minimal test double).
  */
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type {
   Experiment,
   VectorDbStatsGroup,
 } from './types';
 import App from './App';
+import { useWalkthruActions } from './walkthru/WalkthruContext';
+
+/** Minimal in-stub control panel so App tests can reach the Walkthru entry points. */
+function WalkthruStubControls() {
+  const { startWalkthru, openDemo } = useWalkthruActions();
+  return (
+    <div>
+      <button onClick={startWalkthru}>Start Walkthru Stub</button>
+      <button onClick={openDemo}>Open Demo Stub</button>
+    </div>
+  );
+}
 
 const mockExperiment: Experiment = {
   experiment_id: 'exp-app-1',
@@ -62,6 +74,7 @@ vi.mock('./components/screens/ExperimentsScreen', () => ({
       >
         Populate Cache
       </button>
+      <WalkthruStubControls />
     </div>
   ),
 }));
@@ -80,6 +93,7 @@ vi.mock('./components/screens/ExperimentDetailScreen', () => ({
       <p>Detail Screen Stub — {experimentId}</p>
       <button onClick={onBack}>Back To List</button>
       <button onClick={onExplore}>Go Explore</button>
+      <WalkthruStubControls />
     </div>
   ),
 }));
@@ -204,6 +218,109 @@ describe('App', () => {
 
     // -- Then --
     expect(screen.getByText('Experiments Screen Stub')).toBeInTheDocument();
+  });
+
+  it('Given the list, when Open the demo is clicked, then the demo screen renders without a Walkthru overlay', () => {
+    /**
+     * Scenario: The demo screen is reachable directly, not only through the Walkthru.
+     * Slice: 56 Part C2 - demo entry point.
+     */
+    // -- Given --
+    render(<App />);
+
+    // -- When --
+    fireEvent.click(screen.getByText('Open Demo Stub'));
+
+    // -- Then --
+    expect(screen.getByText('RAG settings, store by store')).toBeInTheDocument();
+    expect(screen.queryByTestId('walkthru-root')).toBeNull();
+  });
+
+  it('Given the list, when Start Walkthru is clicked, then the demo screen and the overlay at step 1 appear', () => {
+    /**
+     * Scenario: Starting the Walkthru routes to the demo screen and opens the overlay.
+     * Slice: 56 Part C2 - Walkthru start wiring.
+     */
+    // -- Given --
+    render(<App />);
+
+    // -- When --
+    fireEvent.click(screen.getByText('Start Walkthru Stub'));
+
+    // -- Then --
+    expect(screen.getByText('RAG settings, store by store')).toBeInTheDocument();
+    const overlay = screen.getByTestId('walkthru-root');
+    expect(within(overlay).getByText('Step 1 of 5')).toBeInTheDocument();
+    expect(within(overlay).getByRole('checkbox', { name: 'Autoplay' })).not.toBeChecked();
+  });
+
+  it('Given the Walkthru, when Next is pressed to the end, then it reaches step 5 and Finish exits to the list', () => {
+    /**
+     * Scenario: Next walks from step 1 to step 5; Finish restores the starting screen.
+     * Slice: 56 Part C2 - smoke: Next reaches the last step + Esc/Finish restores screen.
+     */
+    // -- Given --
+    render(<App />);
+    fireEvent.click(screen.getByText('Start Walkthru Stub'));
+    const overlay = () => screen.getByTestId('walkthru-root');
+
+    // -- When --
+    for (let i = 0; i < 4; i += 1) {
+      fireEvent.click(within(overlay()).getByRole('button', { name: 'Next' }));
+    }
+
+    // -- Then --
+    expect(within(overlay()).getByText('Step 5 of 5')).toBeInTheDocument();
+    fireEvent.click(within(overlay()).getByRole('button', { name: 'Finish' }));
+    expect(screen.queryByTestId('walkthru-root')).toBeNull();
+    expect(screen.getByText('Experiments Screen Stub')).toBeInTheDocument();
+  });
+
+  it('Given the Walkthru started from the detail screen, when Esc is pressed, then the detail screen is restored', () => {
+    /**
+     * Scenario: Esc mid-Walkthru returns to the exact screen the user started from, not the list.
+     * Slice: 56 Part C2 - Esc restores the previous screen.
+     */
+    // -- Given: go list → detail, then start the Walkthru from there --
+    render(<App />);
+    fireEvent.click(screen.getByText('Select Experiment'));
+    expect(screen.getByText(`Detail Screen Stub — ${mockExperiment.experiment_id}`)).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Start Walkthru Stub'));
+    expect(screen.getByTestId('walkthru-root')).toBeInTheDocument();
+
+    // -- When --
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    // -- Then: the previous (detail) screen is back, not the list --
+    expect(screen.queryByTestId('walkthru-root')).toBeNull();
+    expect(screen.getByText(`Detail Screen Stub — ${mockExperiment.experiment_id}`)).toBeInTheDocument();
+  });
+
+  it('Given the improvement step, when reached, then the collapsed card opens and Esc restores it', () => {
+    /**
+     * Scenario: A step targeting a collapsed CollapsibleCard opens it; exit restores the collapse.
+     * Slice: 56 Part C2 - collapsed-card open + restore on exit.
+     */
+    // -- Given --
+    render(<App />);
+    fireEvent.click(screen.getByText('Start Walkthru Stub'));
+    // Improvement content is collapsed initially (step 1).
+    expect(screen.queryByText('What the best settings changed')).toBeNull();
+
+    // -- When: advance to step 3 (improvement) --
+    const overlay = () => screen.getByTestId('walkthru-root');
+    fireEvent.click(within(overlay()).getByRole('button', { name: 'Next' }));
+    fireEvent.click(within(overlay()).getByRole('button', { name: 'Next' }));
+
+    // -- Then: the card is forced open --
+    expect(screen.getByText('What the best settings changed')).toBeInTheDocument();
+
+    // -- When: exit with Esc --
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    // -- Then: back on the list and the card override is dropped --
+    expect(screen.getByText('Experiments Screen Stub')).toBeInTheDocument();
+    expect(screen.queryByText('What the best settings changed')).toBeNull();
   });
 
 });

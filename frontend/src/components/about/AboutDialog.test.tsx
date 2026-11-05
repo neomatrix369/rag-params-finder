@@ -8,6 +8,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ABOUT_SECTIONS } from '../../demo/about';
+import { WalkthruContext, type WalkthruActions } from '../../walkthru/WalkthruContext';
 import AboutDialog from './AboutDialog';
 
 afterEach(() => {
@@ -124,5 +125,45 @@ describe('AboutDialog', () => {
 
     // -- Then --
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('Given no Walkthru provider, when opened, then the demo entry buttons are hidden', () => {
+    /**
+     * Scenario: Rendered outside the App, the About box shows content only (no dangling controls).
+     * Slice: 56 Part C2 - demo buttons gated on the context being available
+     */
+    // -- Given / When --
+    render(<AboutDialog open onClose={vi.fn()} />);
+
+    // -- Then --
+    expect(screen.queryByRole('button', { name: /Start Walkthru/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open the demo' })).toBeNull();
+  });
+
+  it('Given the Walkthru context, when the demo buttons are clicked, then they close the dialog and act', () => {
+    /**
+     * Scenario: Start Walkthru and Open the demo both close the About box, then run their action.
+     * Slice: 56 Part C2 - enabled Start Walkthru button + demo entry point
+     */
+    // -- Given --
+    const onClose = vi.fn();
+    const actions: WalkthruActions = { startWalkthru: vi.fn(), openDemo: vi.fn(), available: true };
+    render(
+      <WalkthruContext.Provider value={actions}>
+        <AboutDialog open onClose={onClose} />
+      </WalkthruContext.Provider>,
+    );
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: /Start Walkthru/ }));
+    // -- Then --
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(actions.startWalkthru).toHaveBeenCalledTimes(1);
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: 'Open the demo' }));
+    // -- Then --
+    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(actions.openDemo).toHaveBeenCalledTimes(1);
   });
 });

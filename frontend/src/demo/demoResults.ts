@@ -80,7 +80,8 @@ export interface DemoStory {
   best: DemoStoryRunRef
   median: DemoStoryRunRef
   worst: DemoStoryRunRef
-  spread: number
+  /** best - worst, per metric (the exporter reports both normalised metrics). */
+  spread: { max_score: number; query_avg_score: number }
   question: { text: string; focus: string; best_top1: number; worst_top1: number; gap: number }
   best_top_chunks: DemoStoryChunk[]
   worst_top_chunks: DemoStoryChunk[]
