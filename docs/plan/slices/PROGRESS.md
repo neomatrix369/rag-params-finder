@@ -114,7 +114,7 @@
 | 61 — Phase 3 vector store as a sweep dimension | 📋 PLANNED | ~16–24 h | **Could** — [`SLICE-61`](05-storage/SLICE-61-PHASE3-VECTOR-STORE-AS-SWEEP-DIMENSION.md) |
 | 62 — Phase 4 setup manager (CLI, then UI wizard) | 📋 PLANNED | ~12–16 h | **Could** — [`SLICE-62`](03-platform/SLICE-62-PHASE4-SETUP-MANAGER.md) |
 | 63 — Phase 5 UI/UX pass to WCAG AA | 📋 PLANNED | ~10–14 h | **Could** — [`SLICE-63`](02-dashboard/SLICE-63-PHASE5-UIUX-WCAG-AA.md) |
-| 65 — Single SQLite run-state DB | 🔨 IN PROGRESS | ~16–24 h | **Must** — 65-0, 65A, 65B and 65D done and cutover run 2026-11-05 (one DB in the named volume, 23 experiments, DECISIONS #301/#302; [PR #260](https://github.com/neomatrix369/rag-params-finder/pull/260)); gate evidence and `/verify-slice` pending; 66 and 65C not started — [`SLICE-65`](05-storage/SLICE-65-SINGLE-SQLITE-RUN-STATE.md) |
+| 65 — Single SQLite run-state DB | 🔨 IN PROGRESS | ~16–24 h | **Must** — 65-0, 65A, 65B and 65D done and cutover run 2026-11-05 (one DB in the named volume, 23 experiments, DECISIONS #301/#302; [PR #260](https://github.com/neomatrix369/rag-params-finder/pull/260)); gate evidence ON_BRANCH ([`slice-65.json`](../gate-evidence/slice-65.json)), PR not merged; `/verify-slice` not run; 66 and 65C not started — [`SLICE-65`](05-storage/SLICE-65-SINGLE-SQLITE-RUN-STATE.md) |
 | 66 — Live cross-store compare and leaderboard | 📋 PLANNED | — | **Should**, prerequisite for 65C |
 
 **Legend**: 📋 PLANNED, 🔨 IN PROGRESS, ✅ COMPLETE, 🔀 BRANCH, 📦 DEFERRED
