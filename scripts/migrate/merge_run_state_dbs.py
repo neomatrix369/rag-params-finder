@@ -147,6 +147,10 @@ def verify_backup_manifest(folder: Path) -> BackupManifest:
     Every file listed in SHA256SUMS must exist in the folder and hash to the
     recorded value, or a MergeError is raised. The host DB is the merge base and
     the volume DB is the source whose experiments are merged in.
+
+    This checks the manifest, SHA256SUMS and file hashes only. It does NOT re-run
+    ``PRAGMA integrity_check``: the backups are assumed to have been
+    integrity-checked by the backup step (SLICE-65 B1/B2).
     """
     folder = folder.resolve()
     manifest_txt = folder / "MANIFEST.txt"
@@ -233,6 +237,8 @@ def assert_schema_parity(sources: dict[str, sqlite3.Connection]) -> None:
 
     ``sources`` maps a human label (e.g. 'host', 'volume') to a connection.
     Raises MergeError naming the differing columns on the first mismatch.
+    Foreign keys and indexes are not compared (FKs are enforced at runtime by
+    the merge transaction).
     """
     labels = list(sources)
     reference_label = labels[0]
@@ -332,7 +338,10 @@ def _plan_moves(
 ) -> tuple[list[str], list[str]]:
     """Return (to_move, to_skip) comparing volume experiments against the base.
 
-    Collision (id in both): identical digest -> skip; differing digest -> abort.
+    Collision (same experiment_id in both): an identical content digest means a
+    duplicate copy of the same experiment, so it is skipped; a differing digest
+    is a genuine collision and a hard stop (ids are uuid4, so this should never
+    happen by chance).
     """
     base_ids = set(_experiment_ids(base))
     to_move: list[str] = []
@@ -464,6 +473,10 @@ def promote_merged(merged_path: Path, target_db: Path, *, dry_run: bool) -> Prom
     Checkpoints and switches the merged file to a DELETE journal, then moves the
     old ``.db``/``-wal``/``-shm`` together into a timestamped folder before moving
     the merged file into place. Nothing is deleted.
+
+    Assumes the server is stopped and the target DB is not open. The moves are
+    not atomic: a crash between them leaves files split across the archive
+    folder and the target directory.
     """
     if not merged_path.is_file():
         raise MergeError(f"merged file not found (run the merge first): {merged_path}")
@@ -495,6 +508,9 @@ def promote_merged(merged_path: Path, target_db: Path, *, dry_run: bool) -> Prom
         shutil.move(str(path), str(archive_dir / path.name))
         archived.append(path.name)
     shutil.move(str(merged_path), str(target_db))
+    for suffix in ("-wal", "-shm"):
+        if Path(str(target_db) + suffix).exists():
+            raise MergeError(f"stale {target_db.name}{suffix} remains next to the promoted DB")
     return PromoteReport(
         dry_run=False,
         merged_path=merged_path,

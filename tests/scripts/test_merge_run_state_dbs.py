@@ -205,6 +205,34 @@ def test_given_a_missing_sha256sums_when_verified_then_it_refuses(tmp_path: Path
         verify_backup_manifest(folder)
 
 
+@pytest.mark.parametrize(
+    "bad_line",
+    ["abc123  host_run_state.db", "0" * 64],
+    ids=["wrong-hex-length", "missing-name"],
+)
+def test_given_a_malformed_sha256sums_line_when_verified_then_it_refuses(
+    tmp_path: Path, bad_line: str
+) -> None:
+    """
+    Scenario: A malformed SHA256SUMS line refuses the merge.
+    Slice: 65A
+
+    Given a SHA256SUMS file with a short hex digest or a digest without a name,
+    When the manifest is verified,
+    Then a MergeError about the malformed line is raised.
+    """
+    ### Given
+    folder = make_backup_folder(
+        tmp_path / "bk", host=[ExperimentSpec("h1")], volume=[ExperimentSpec("v1")]
+    )
+    sha_file = folder / "SHA256SUMS"
+    sha_file.write_text(sha_file.read_text() + bad_line + "\n")
+
+    ### When / Then
+    with pytest.raises(MergeError, match="malformed SHA256SUMS line"):
+        verify_backup_manifest(folder)
+
+
 # ── Dry-run ────────────────────────────────────────────────────────────────────────
 
 
@@ -279,6 +307,34 @@ def test_given_disjoint_dbs_when_executed_then_merged_holds_all_experiments(
         )
     finally:
         conn.close()
+
+
+def test_given_an_experiment_without_runs_when_executed_then_it_merges_with_zero_counts(
+    tmp_path: Path,
+) -> None:
+    """
+    Scenario: An experiment with no runs or results still merges cleanly.
+    Slice: 65A
+
+    Given a volume experiment with zero runs and zero results,
+    When the merge executes,
+    Then it is moved and reports zero run_status and results counts.
+    """
+    ### Given
+    folder = make_backup_folder(
+        tmp_path / "bk",
+        host=[ExperimentSpec("h1")],
+        volume=[ExperimentSpec("empty", run_ids=[], results_per_run=0)],
+    )
+    manifest = verify_backup_manifest(folder)
+    merged = tmp_path / "run_state.merged.db"
+
+    ### When
+    report = merge_run_state(manifest.host_db, manifest.volume_db, merged, dry_run=False)
+
+    ### Then
+    assert report.moved == ["empty"]
+    assert report.per_experiment_counts["empty"] == {"run_status": 0, "results": 0}
 
 
 def test_given_originals_when_executed_then_they_are_never_mutated(tmp_path: Path) -> None:
@@ -564,6 +620,72 @@ def test_given_a_merged_file_when_promoted_then_old_triplet_is_archived(
         assert conn.execute("PRAGMA journal_mode").fetchone()[0] == "delete"
     finally:
         conn.close()
+
+
+def test_given_a_full_old_triplet_when_promoted_then_no_stale_sidecars_remain(
+    tmp_path: Path,
+) -> None:
+    """
+    Scenario: The old -wal/-shm never survive next to the promoted DB.
+    Slice: 65A
+
+    Given a live DB with -wal and -shm sidecars and a merged file,
+    When promotion executes,
+    Then no sidecar sits next to the new target and both are in the archive.
+    """
+    ### Given
+    target = tmp_path / "run_state.db"
+    make_db(target, [ExperimentSpec("old")])
+    Path(str(target) + "-wal").write_bytes(b"wal")
+    Path(str(target) + "-shm").write_bytes(b"shm")
+    merged = make_db(tmp_path / "run_state.merged.db", [ExperimentSpec("new")])
+
+    ### When
+    report = promote_merged(merged, target, dry_run=False)
+
+    ### Then
+    assert not Path(str(target) + "-wal").exists()
+    assert not Path(str(target) + "-shm").exists()
+    assert report.archive_dir is not None
+    assert (report.archive_dir / "run_state.db-wal").read_bytes() == b"wal"
+    assert (report.archive_dir / "run_state.db-shm").read_bytes() == b"shm"
+
+
+def test_given_only_the_db_file_when_promoted_then_only_it_is_archived(
+    tmp_path: Path,
+) -> None:
+    """
+    Scenario: Promotion copes with an old DB that has no -wal/-shm sidecars.
+    Slice: 65A
+
+    Given a live DB with no sidecars and a merged file,
+    When promotion executes,
+    Then only the .db is archived, the merged file becomes the target and
+         nothing is deleted.
+    """
+    ### Given
+    target = tmp_path / "run_state.db"
+    make_db(target, [ExperimentSpec("old")])
+    merged = make_db(tmp_path / "run_state.merged.db", [ExperimentSpec("new")])
+
+    ### When
+    report = promote_merged(merged, target, dry_run=False)
+
+    ### Then
+    assert report.archived == ["run_state.db"]
+    assert report.archive_dir is not None
+    assert sorted(p.name for p in report.archive_dir.iterdir()) == ["run_state.db"]
+    assert not merged.exists()
+    conn = sqlite3.connect(target)
+    try:
+        assert conn.execute("SELECT experiment_id FROM experiments").fetchone()[0] == "new"
+    finally:
+        conn.close()
+    archived = sqlite3.connect(report.archive_dir / "run_state.db")
+    try:
+        assert archived.execute("SELECT experiment_id FROM experiments").fetchone()[0] == "old"
+    finally:
+        archived.close()
 
 
 def test_given_no_merged_file_when_promoted_then_it_refuses(tmp_path: Path) -> None:
