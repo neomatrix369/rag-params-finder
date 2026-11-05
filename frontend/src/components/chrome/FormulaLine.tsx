@@ -9,16 +9,18 @@ interface FormulaLineProps {
    * product the line says "(observed)" instead of printing a false equality. Slice 67D removes it.
    */
   observedTotal?: number;
+  /** Number formatter for every count; defaults to plain digits. */
+  formatCount?: (count: number) => string;
 }
 
 /** Renders `2 models × 3 sizes = 6 configurations`; the total is the product of the terms. */
-export default function FormulaLine({ terms, unit, observedTotal }: FormulaLineProps) {
+export default function FormulaLine({ terms, unit, observedTotal, formatCount }: FormulaLineProps) {
   const product = formulaProduct(terms);
-  const factors = terms.map((term) => pluralize(term.count, term.label)).join(' × ');
+  const factors = terms.map((term) => pluralize(term.count, term.label, formatCount)).join(' × ');
   const isObserved = observedTotal !== undefined && observedTotal !== product;
   return (
     <span>
-      {factors} = {pluralize(isObserved ? observedTotal : product, unit)}
+      {factors} = {pluralize(isObserved ? observedTotal : product, unit, formatCount)}
       {isObserved ? ' (observed)' : ''}
     </span>
   );

@@ -109,3 +109,8 @@ Full list: [`invariants.md`](invariants.md).
 - **Delta**: the backend-agnostic stats assembly (`stats_common.py`) now derives result-run, golden-query and partial-run facts from per-run result counts that each adapter already builds; the orchestrator persists the golden dataset's record count once on the experiment.
 - **L1/L2 impact**: additive fields on the db-stats responses and one best-effort write to `sweep_summary` after the queries load. No new store method or index. Redis and Elasticsearch report nothing new; the run-state overlay carries the facts for every backend on the detail view.
 - **Data-Flow**: `load_queries` -> `sweep_summary.golden_queries` (write once) -> adapters' per-run counts -> `assemble_experiment_db_stats` -> db-stats response -> (frontend half) the Query Results breakdown.
+
+### 2026-11-05 — Slice 67E (frontend): the Query Results breakdown as pure helpers
+- **Delta**: `resultsBreakdown.ts` turns the golden-record facts into a formula, an "(observed)" line, a group summary and a partial-runs note; `ResultsBreakdownView.tsx` renders them with the shared `FormulaLine`; `storageUsage.ts` takes the last arithmetic out of `VectorDbStatsPanel`.
+- **L1/L2 impact**: frontend only, plus one Python contract test (`test_results_breakdown_types_contract.py`) that compares `types/index.ts` with the keys the real stats assembly emits. `pluralize` and `FormulaLine` gain an optional number formatter; `StatTile.hint` accepts a node.
+- **Data-Flow**: db-stats response (`result_runs`, `golden_queries`, `golden_queries_source`, `partial_runs`, `total_results`) or group totals -> pure builders -> footprint line / tile hint; absent facts render nothing.

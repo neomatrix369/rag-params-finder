@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react';
 import type { ExperimentDbStats } from '../../types';
+import { ExperimentResultsBreakdown } from './ResultsBreakdownView';
 import { FOOTPRINT_SCOPE, estimateFormula, estimatedMbLabel } from './estimateLabels';
 
 type ExperimentStoredFootprintProps = {
   stats?: ExperimentDbStats;
   loading?: boolean;
+  /** True once the experiment has finished; decides how partial runs are worded. */
+  isTerminal?: boolean;
 };
 
 const RUN_PREVIEW = 4;
@@ -16,6 +19,7 @@ function hasStoredData(stats: ExperimentDbStats): boolean {
 export default function ExperimentStoredFootprint({
   stats,
   loading = false,
+  isTerminal = false,
 }: ExperimentStoredFootprintProps) {
   return (
     <section className="mt-8 border-t border-line pt-6" aria-labelledby="stored-footprint-title">
@@ -23,12 +27,12 @@ export default function ExperimentStoredFootprint({
       <h2 id="stored-footprint-title" className="mt-1 font-display text-xl font-semibold text-ink">
         Stored footprint
       </h2>
-      <FootprintBody stats={stats} loading={loading} />
+      <FootprintBody stats={stats} loading={loading} isTerminal={isTerminal} />
     </section>
   );
 }
 
-function FootprintBody({ stats, loading }: ExperimentStoredFootprintProps) {
+function FootprintBody({ stats, loading, isTerminal = false }: ExperimentStoredFootprintProps) {
   if (loading && !stats) {
     return <p className="mt-2 text-sm text-muted">Loading stored footprint…</p>;
   }
@@ -45,6 +49,7 @@ function FootprintBody({ stats, loading }: ExperimentStoredFootprintProps) {
       <p data-testid="footprint-summary" className="text-sm font-semibold text-indigo-800">
         {stats.total_chunks.toLocaleString()} chunks · {estimatedMbLabel(stats.estimated_storage_mb)}
       </p>
+      <ExperimentResultsBreakdown stats={stats} isTerminal={isTerminal} />
       <p data-testid="footprint-formula" className="text-[11px] text-slate-500">{estimateFormula()}</p>
       <p data-testid="footprint-scope" className="text-[11px] text-slate-500">{FOOTPRINT_SCOPE}</p>
       <FootprintList title="Models" empty={stats.embedding_models.length === 0}>

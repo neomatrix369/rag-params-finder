@@ -190,6 +190,9 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `frontend/src/utils/deterministicNumbers.guard.test.ts` | Static guard: formula modules are pure, screens do not multiply counts in JSX (Slice 67; extend per sub-slice) |
 | `frontend/src/utils/experimentStatus.ts`, `frontend/src/components/experiment/experimentDetailProgress.ts` | Pure Detail-screen helpers: `detailDenominator`, `bayesianNotStartedCount`, `bayesianTotalsLine`; progress `calculateProgressPercent`, `progressSentence`, `FINISHED_RUN_RULE` (Slice 67D) |
 | `frontend/src/components/walkthru/scoreLabels.ts`, `frontend/src/components/stats/estimateLabels.ts` | Pure fixed-template labels for Compare/Walkthru scores and the stats estimate formula; `tests/server/db/ports/test_estimate_constants_contract.py` keeps the byte constants in sync with the server (Slice 67D) |
+| `frontend/src/components/stats/resultsBreakdown.ts` | Pure Query Results breakdown: `experimentResultsFormula`, `groupResultsBreakdown`, `partialRunsNote`, `formatCount` (fixed `en-US`); a total that is not runs × golden queries prints "(observed)", never "=" (Slice 67E) |
+| `frontend/src/components/stats/ResultsBreakdownView.tsx` | Renders the breakdown: visible line in `ExperimentStoredFootprint`, hint behind the Query Results tile's info button; hidden when golden facts are absent (Slice 67E) |
+| `frontend/src/components/stats/storageUsage.ts` | Pure `usagePercent` for the cluster storage bar, kept out of `VectorDbStatsPanel` JSX; `tests/server/db/ports/test_results_breakdown_types_contract.py` ties `types/index.ts` to the backend stats keys (Slice 67E) |
 | `frontend/src/types/index.ts` | Hand-mirrored TypeScript types from Python models |
 | `frontend/src/services/apiClient.ts` | Fetch wrapper (all server API calls, including DELETE) |
 | `frontend/src/services/fetchWithProgress.ts` | ReadableStream-based fetch with progress tracking |

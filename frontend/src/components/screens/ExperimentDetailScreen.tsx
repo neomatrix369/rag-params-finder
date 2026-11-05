@@ -1011,7 +1011,11 @@ export default function ExperimentDetailScreen({
           </div>
         )}
 
-        <ExperimentStoredFootprint stats={footprint ?? undefined} loading={footprintLoading && !footprint} />
+        <ExperimentStoredFootprint
+          stats={footprint ?? undefined}
+          loading={footprintLoading && !footprint}
+          isTerminal={Boolean(isTerminal)}
+        />
         <VectorDbStatsPanel
           groups={vectorDbGroups}
           loading={vectorDbLoading}

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import InfoTip from '../chrome/InfoTip';
 import { aboutLabel, explainLabel } from '../chrome/infoTipUtils';
 
@@ -5,7 +6,7 @@ export type StatTileProps = {
   label: string;
   value: string | number;
   /** Short note about the tile; rendered through InfoTip. */
-  hint?: string;
+  hint?: ReactNode;
   /** How the number is derived. Must come from a pure function, never JSX arithmetic. */
   explain?: string;
   /** `comfortable` for panel tiles; `compact` for dense experiment cards. */
