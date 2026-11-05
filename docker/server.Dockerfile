@@ -20,11 +20,6 @@ FROM python:${PYTHON_VERSION}-slim AS base-builder
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Dependency files only — this layer is cached as long as they don't change.
@@ -55,7 +50,7 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
         --python ${PYTHON_VERSION} --python-preference=only-system
 
 # ── runtime-base ──────────────────────────────────────────────────────────────
-# Minimal runtime image: curl (HEALTHCHECK only), ENV vars, source code.
+# Minimal runtime image: ENV vars, source code, HEALTHCHECK via stdlib urllib.
 # No .venv yet — each derived target layers its own.
 FROM python:${PYTHON_VERSION}-slim AS runtime-base
 
@@ -64,9 +59,6 @@ LABEL org.opencontainers.image.revision="${GIT_COMMIT}"
 
 WORKDIR /app
 
-# curl needed for HEALTHCHECK only
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONPATH="/app" \
@@ -81,7 +73,7 @@ COPY cli ./cli
 EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
-  CMD curl -f http://localhost:8001/healthz || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')" || exit 1
 
 # Runs as root today (writes the ./.aim bind mount and the HuggingFace cache). Non-root switch is an owner decision tracked in
 # CHANGELOG (Unreleased/Security) — needs a Docker smoke test before changing.
