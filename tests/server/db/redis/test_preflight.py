@@ -105,7 +105,7 @@ class TestCheckQueryEngineShould:
 
 
 class TestCheckEvictionPolicyShould:
-    @pytest.mark.parametrize("policy", list(ACCEPTED_EVICTION_POLICIES))
+    @pytest.mark.parametrize("policy", sorted(ACCEPTED_EVICTION_POLICIES))
     def test_returns_policy_for_accepted_values(self, policy: str) -> None:
         """
         Scenario: Accepted eviction policies are returned without error.
