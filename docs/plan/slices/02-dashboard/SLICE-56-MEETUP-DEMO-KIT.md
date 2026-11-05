@@ -2,9 +2,9 @@
 
 **MoSCoW:** MUST (parts A, C1, B, C2, C3, D, H) · COULD (part J, blocked)
 **Target time:** ~8 h total (A 1 h · C1 1 h · B 1.5 h · C2 2 h · C3 1 h · D 0.5 h · H 0.75 h · buffer 0.25 h); stop and ask if any part overruns its budget by more than 50%.
-**Status:** 📋 PLANNED
+**Status:** 🔀 ON BRANCH (not PASSED; gate evidence pending)
 **Depends on:** **55** (SQLite run state is the export source) · soft: **53** (Redis vector store; the Step 0 sweep needs it healthy)
-**Branch:** `slice/56-meetup-demo-kit` — one branch, one commit per part, review stop after each part, one PR to `main`
+**Branch:** `slice/56-meetup-demo-kit-build` (a new branch from `main`; the planning branch `slice/56-meetup-demo-kit` merged as PR #255) — one branch, one commit per part, review stop after each part, one PR to `main`
 **Feature:** Redis London meetup (Thu 5 Nov 2026, host Samuel Agbede): in-app About box → guided Walkthru, replayed run on Redis 8, "what the best settings changed" story, cross-store leaderboard — all offline from bundled data of existing runs on the Fed Loan (Pell Grant) corpus.
 
 > **Source:** "Phase 0 Master Prompt v3" (pasted by owner, 2026-11-04), reshaped by the evidence below. Planning record: `~/.claude/plans/lets-apply-enhanced-flow-planner-to-cozy-pelican.md`.
@@ -191,4 +191,17 @@ CHANGELOG `[Unreleased]` per part; README (Built With, Who is this for?, Issues 
 
 ## Gate Status
 
-📋 PLANNED — not started. Gate evidence will be `docs/plan/gate-evidence/slice-56.json` (do not create a `PASSED` stub before the executor writes real evidence).
+🔀 ON BRANCH, not PASSED; gate evidence pending. Gate evidence will be `docs/plan/gate-evidence/slice-56.json` (do not create a `PASSED` stub before real evidence is written).
+
+Committed on `slice/56-meetup-demo-kit-build`: A `fcb522b` (+ fix `449c701`), C1 `00cb68f`, B `d29dfa0`, C3 `724477a`. Each got an independent read-only code review (A: COMMENT, one latent bug fixed; C1: APPROVE; B: COMMENT, heading fixed; C3: APPROVE, nit fixed). C2 (Walkthru) is in progress.
+
+### Owner scope changes (2026-11-05)
+
+These supersede the parts below; the GWT body is unchanged. See DECISIONS #287–#291.
+
+- Part J (golden-master resources) deferred; About section 10 omitted.
+- Part D (`RECORDING.md` fallback recording doc) cut; no USB-copy step.
+- Part H (release v0.13.0 PR, issue templates, README rows) cut; release and any tag are manual by the owner; CHANGELOG stays under `[Unreleased]`.
+- QR code not wanted; removed from the About box, the repo link stays as text.
+- Final real export on the finished sweep skipped; the exporter manifest records its inputs.
+- Bundled `docs/about/demo-results.json` is the real export: 400 runs (98 each from redis, elasticsearch, mongodb and postgres, 8 from supabase) over 98 config groups that each span 2+ stores, restricted to the Pell PDF. Owner decision 2026-11-05: export the 98 finished runs of the `partial` Redis sweep (22 failed on the Redis memory cap, see #293); the exporter now accepts `partial` experiments, records them in the manifest (`partial_experiments`) and takes `--data-path-contains`. (DECISIONS #292, #293).
