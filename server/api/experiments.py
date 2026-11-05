@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 from server.api.experiments_lifecycle import (
     _normalize_stale_running_status,
     _planned_run_count,
+    attach_sweep_plan,
 )
 from server.api.experiments_shared import (
     delete_experiment_data,
@@ -45,7 +46,7 @@ from server.core.search_index_guard import validate_experiment_search_indexes
 from server.core.search_index_plan import SearchIndexMismatchError
 from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
 from server.db.ports.store_factory import build_vector_store_snapshot, get_storage_backend
-from server.models.config import ExperimentConfig, expand_sweep
+from server.models.config import ExperimentConfig, expand_sweep, retriever_labels
 from server.models.enums import ExperimentStatus, RetrieverType
 from server.utils.log_throttle import info_throttled
 from server.utils.logger import get_logger
@@ -213,6 +214,7 @@ async def create_experiment(config: ExperimentConfig):
         "completed_at": None,
         "status": ExperimentStatus.RUNNING,
         "run_count": runs,
+        # Full grid at creation; new readers use sweep_plan.full_grid_count (Slice 67B).
         "grid_equivalent_count": len(expand_sweep(config)),
         "storage_mode": storage_mode,
         **metadata,
@@ -233,6 +235,8 @@ async def create_experiment(config: ExperimentConfig):
             "chunk_sizes": config.chunking.params.chunk_sizes,
             "overlaps": config.chunking.params.overlaps,
             "paddings": config.chunking.params.paddings,
+            # Deliberately redundant with the read path (attach_sweep_plan setdefault).
+            "retrievers": retriever_labels(config),
             "retrieval_methods": retrieval_methods_for_summary,
             "retrieval_provider": retrieval_provider_for_summary,
             "vector_store_snapshot": vector_store_snapshot.model_dump(),
@@ -294,6 +298,7 @@ async def get_experiment(experiment_id: str):
 
     runs = experiment["runs"]
     _normalize_stale_running_status(experiment)
+    attach_sweep_plan(experiment)
     logger.debug(
         "detail OK — %s status=%s, %s run row(s)",
         experiment_id,

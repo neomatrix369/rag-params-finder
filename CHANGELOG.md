@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Slice 67B — one backend source for sweep counts** — `GET /experiments/{id}` now carries `sweep_plan` (dimension counts, full grid count, Bayesian search space, planned runs, warnings), computed on read from the stored config so old experiments need no backfill.
+  - New pure `sweep_plan()` beside `expand_sweep` in `server/models/config.py`; `full_grid_count` equals `len(expand_sweep(config))` without building the grid.
+  - A failure while computing the plan never fails the read; it is logged once per experiment.
+  - `grid_equivalent_count` keeps its meaning (the Bayesian sampler's control variable).
+  (**IMPLEMENTED** on branch `slice/67b-sweep-plan`; the dashboard does not use it yet, that is 67D.)
 - **Slice 67A — dashboard sweep header shows the full formula** — the Detail "Sweep Dimensions" header now reads `1 model × 5 chunking methods × 3 sizes × 2 overlaps × 1 padding × 4 retrievers = 120 configurations`, matching the Total tile. It used to say "N combinations", leave out the retrievers and print 0 for empty paddings.
   - New pure `frontend/src/utils/sweepFormula.ts` and shared `FormulaLine`, also used by the Explorer's Cartesian line (an observed count that differs from the product is labelled `(observed)`).
   - Bayesian experiments carry a fixed note that only chunk size × overlap vary and the grid is not run in full.

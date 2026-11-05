@@ -1,11 +1,15 @@
 import warnings
 from itertools import product
-from typing import Literal, cast
+from math import prod
+from typing import Literal, TypedDict, cast
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from server.core.model_registry import EMBEDDING_MODELS, RERANKER_MODELS, provider_for_model
 from server.models.enums import ChunkingMethod, RetrievalMethod, RetrieverType
+from server.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 Provider = Literal["local", "voyage", "sie", "kimchi", "doubleword"]
 # ``supabase`` remains a deprecated YAML input alias for Postgres (Slice 37).
@@ -361,3 +365,108 @@ def expand_sweep(config: ExperimentConfig) -> list[RunParams]:
         )
 
     return runs
+
+
+def grid_equivalent_count(config: ExperimentConfig) -> int:
+    """Bayesian search space: chunk sizes x overlaps (the sampler's control variable)."""
+    return len(config.chunking.params.chunk_sizes) * len(config.chunking.params.overlaps)
+
+
+def _bayesian_trial_budget(config: ExperimentConfig) -> int:
+    """Pure trial budget: configured ``n_trials`` capped at the search space."""
+    space = grid_equivalent_count(config)
+    configured = config.execution.bayesian.n_trials
+    return space if configured is None else min(configured, space)
+
+
+def resolve_bayesian_n_trials(config: ExperimentConfig) -> int:
+    """Trial budget for a Bayesian sweep, logging when ``n_trials`` is defaulted or capped."""
+    grid_equivalent = grid_equivalent_count(config)
+    configured = config.execution.bayesian.n_trials
+    if configured is None:
+        logger.info(
+            "bayesian n_trials not set; defaulting to grid-equivalent %s",
+            grid_equivalent,
+        )
+    elif configured > grid_equivalent:
+        logger.warning(
+            "requested bayesian n_trials=%s exceeds grid-equivalent=%s, capping",
+            configured,
+            grid_equivalent,
+        )
+    return _bayesian_trial_budget(config)
+
+
+def _plan_warnings(config: ExperimentConfig) -> list[str]:
+    """Fixed-template warnings built from sorted, de-duplicated numbers (deterministic)."""
+    params = config.chunking.params
+    found: list[str] = []
+    bad_overlaps = sorted({o for s in params.chunk_sizes for o in params.overlaps if o >= s})
+    if bad_overlaps:
+        found.append(
+            f"overlap {bad_overlaps} is >= a chunk size in {sorted(set(params.chunk_sizes))}"
+        )
+    smallest = min(params.chunk_sizes)
+    bad_paddings = sorted({p for p in params.paddings if p > smallest})
+    if bad_paddings:
+        found.append(f"padding {bad_paddings} is larger than the smallest chunk size {smallest}")
+    return found
+
+
+class DimensionCounts(TypedDict):
+    # Every field is a multiplicative sweep axis; full_grid_count is their product.
+    models: int
+    chunking_methods: int
+    chunk_sizes: int
+    overlaps: int
+    paddings: int
+    retrievers: int
+
+
+class SweepPlan(TypedDict):
+    """Shape of ``sweep_plan``; mirrors ``SweepPlan`` in ``frontend/src/types/index.ts``."""
+
+    dimension_counts: DimensionCounts
+    full_grid_count: int
+    searchable_space: int | None
+    planned_runs: int
+    search_strategy: Literal["grid", "bayesian"]
+    warnings: list[str]
+
+
+def sweep_plan(config: ExperimentConfig) -> SweepPlan:
+    """Pure count summary of a sweep; ``full_grid_count == len(expand_sweep(config))``.
+
+    ``full_grid_count`` is the grid product even for Bayesian experiments (what a grid
+    sweep of the same config would run). ``searchable_space`` is the Bayesian search
+    space (sizes x overlaps), else ``None``. ``planned_runs`` is the real run count
+    for the chosen strategy (trial budget for Bayesian). Pure and deterministic: no
+    I/O, clock or logging, so it is safe on the read path.
+    """
+    params = config.chunking.params
+    counts = DimensionCounts(
+        models=len(config.embedding.models),
+        chunking_methods=len(config.chunking.methods),
+        chunk_sizes=len(params.chunk_sizes),
+        overlaps=len(params.overlaps),
+        paddings=len(params.paddings) or 1,  # mirrors expand_sweep's `or [0]`
+        retrievers=len(config.retrieval.retrievers) or 1,
+    )
+    full_grid = prod(cast(dict[str, int], counts).values())
+    bayesian = config.execution.search_strategy == "bayesian"
+    return SweepPlan(
+        dimension_counts=counts,
+        full_grid_count=full_grid,
+        searchable_space=grid_equivalent_count(config) if bayesian else None,
+        planned_runs=_bayesian_trial_budget(config) if bayesian else full_grid,
+        search_strategy=config.execution.search_strategy,
+        warnings=_plan_warnings(config),
+    )
+
+
+def retriever_labels(config: ExperimentConfig) -> list[str]:
+    """Human labels per retriever entry (reranker entries carry their model)."""
+    return [
+        f"{r.type.value}: {r.model}" if r.type in _RERANKER_TYPES and r.model else r.type.value
+        for r in config.retrieval.retrievers
+    ]
