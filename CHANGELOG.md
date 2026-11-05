@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Docker dep-stage ENOSPC on torch** — `elasticsearch-deps` and `redis-deps` now chain FROM `core-deps` instead of `base-builder`. torch (~500 MB, aarch64) is extracted exactly once into `core-deps`' read-only layer; the ES and Redis overlay writable layers hold only their small incremental packages, eliminating the ENOSPC failure on constrained build hosts.
 - **Docker build disk exhaustion** — `apt-get install` removed entirely from `base-builder`; all dependencies use pre-built wheels so no C compiler is needed. `curl` also removed from `runtime-base` (HEALTHCHECK uses Python stdlib `urllib.request`). Eliminates the full 73 MB apt download that exceeded the overlay filesystem free-space limit on constrained build hosts.
 
 - **CI `ruff format --check` failed on Markdown code blocks** — CI installs `.[dev]` without the lockfile, so it picked up ruff 0.16.8 (formats Python in `.md`) while `uv.lock` had 0.15.12 and pre-commit v0.11.4. Aligned all three on 0.16.8 (`pyproject` now `ruff>=0.16.8,<0.17` so CI cannot drift a minor ahead), reformatted the one affected snippet in `BRIEF-doubleword-embedder.md`, and renamed the pre-commit hook to `ruff-check` (**IMPLEMENTED**; `ruff format --check` 274 files, `ruff check` clean).

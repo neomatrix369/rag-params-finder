@@ -1,13 +1,18 @@
 # FastAPI server — Python 3.12 + uv
 # Multi-stage layered build:
-#   base-builder          — uv + build tools (shared cache stage)
-#     ├── core-deps        — .venv with no extras (mongodb / postgres / sqlite)
-#     ├── elasticsearch-deps — .venv with --extra elasticsearch
-#     └── redis-deps       — .venv with --extra redis
+#   base-builder          — uv binary (shared cache stage)
+#     └── core-deps        — .venv with no extras (mongodb / postgres / sqlite + torch)
+#         ├── elasticsearch-deps — inherits core-deps .venv; adds --extra elasticsearch only
+#         └── redis-deps         — inherits core-deps .venv; adds --extra redis only
 #   runtime-base          — minimal Python image, source code, ENV, HEALTHCHECK, CMD
 #     ├── server           — runtime-base + core-deps .venv  (default target)
 #     ├── server-elasticsearch — runtime-base + elasticsearch-deps .venv
 #     └── server-redis     — runtime-base + redis-deps .venv
+#
+# Chaining elasticsearch-deps and redis-deps FROM core-deps (not base-builder) means
+# torch (~500 MB) is extracted exactly once into core-deps' read-only layer. The ES
+# and Redis overlay writable layers only hold their small incremental packages, avoiding
+# ENOSPC on constrained build hosts.
 #
 # Select the final image at build time with --target (or build.target in docker-compose.yml).
 # Default: server (no VDB-specific extras).
@@ -34,7 +39,7 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     uv sync --frozen --no-install-project --python ${PYTHON_VERSION} --python-preference=only-system
 
 # ── elasticsearch-deps ────────────────────────────────────────────────────────
-FROM base-builder AS elasticsearch-deps
+FROM core-deps AS elasticsearch-deps
 
 ARG PYTHON_VERSION=3.12
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
@@ -42,7 +47,7 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
         --python ${PYTHON_VERSION} --python-preference=only-system
 
 # ── redis-deps ────────────────────────────────────────────────────────────────
-FROM base-builder AS redis-deps
+FROM core-deps AS redis-deps
 
 ARG PYTHON_VERSION=3.12
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
