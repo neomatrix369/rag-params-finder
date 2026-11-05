@@ -70,4 +70,89 @@ describe('CollapsibleCard', () => {
     expect(screen.queryByText('Hidden')).toBeNull();
     expect(screen.getByRole('button', { name: /Stored/ })).toHaveAttribute('aria-expanded', 'false');
   });
+
+  it('Given a collapsed card, when open=true is passed, then children show and the card is expanded', () => {
+    /**
+     * Scenario: An open override forces a collapsed card open (Walkthru step entry, Part C2).
+     * Slice: 56 Part C1 - CollapsibleCard open override
+     */
+    // -- Given --
+    const { rerender } = render(
+      <CollapsibleCard title="Panel" defaultOpen={false}>
+        <span>Inner</span>
+      </CollapsibleCard>,
+    );
+    expect(screen.queryByText('Inner')).toBeNull();
+
+    // -- When --
+    rerender(
+      <CollapsibleCard title="Panel" defaultOpen={false} open>
+        <span>Inner</span>
+      </CollapsibleCard>,
+    );
+
+    // -- Then --
+    expect(screen.getByText('Inner')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Panel/ })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('Given an open card, when open=false is passed, then children hide', () => {
+    /**
+     * Scenario: The override can also force a card closed.
+     * Slice: 56 Part C1 - CollapsibleCard open override
+     */
+    // -- Given / When --
+    render(
+      <CollapsibleCard title="Panel" defaultOpen open={false}>
+        <span>Inner</span>
+      </CollapsibleCard>,
+    );
+
+    // -- Then --
+    expect(screen.queryByText('Inner')).toBeNull();
+  });
+
+  it('Given a forced-open card, when the override is removed, then the user state returns', () => {
+    /**
+     * Scenario: Dropping the override restores the card's own state with no bookkeeping.
+     * Slice: 56 Part C1 - CollapsibleCard open override (restore on Walkthru exit)
+     */
+    // -- Given --
+    const { rerender } = render(
+      <CollapsibleCard title="Panel" defaultOpen={false} open>
+        <span>Inner</span>
+      </CollapsibleCard>,
+    );
+    expect(screen.getByText('Inner')).toBeInTheDocument();
+
+    // -- When --
+    rerender(
+      <CollapsibleCard title="Panel" defaultOpen={false}>
+        <span>Inner</span>
+      </CollapsibleCard>,
+    );
+
+    // -- Then --
+    expect(screen.queryByText('Inner')).toBeNull();
+  });
+
+  it('Given an override, when the header is clicked, then state and storage are untouched', () => {
+    /**
+     * Scenario: While overridden, toggling does nothing and writes nothing to localStorage.
+     * Slice: 56 Part C1 - CollapsibleCard open override
+     */
+    // -- Given --
+    render(
+      <CollapsibleCard title="Panel" storageKey="forced" defaultOpen={false} open>
+        <span>Inner</span>
+      </CollapsibleCard>,
+    );
+
+    // -- When --
+    fireEvent.click(screen.getByRole('button', { name: /Panel/ }));
+
+    // -- Then --
+    expect(screen.getByText('Inner')).toBeInTheDocument();
+    expect(localStorage.getItem('forced')).toBeNull();
+  });
 });

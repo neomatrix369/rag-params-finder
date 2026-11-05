@@ -39,6 +39,8 @@ export default defineConfig({
     },
   },
   server: {
+    // The About-mirror drift test (src/demo/about.test.ts) reads docs/about/ via import.meta.glob.
+    fs: { allow: ['.', '../docs/about'] },
     port: parseInt(process.env.VITE_PORT ?? '5374'),
     proxy: {
       // Same-origin `/api/*` → FastAPI (127.0.0.1 on host; `server` service name in Docker dev).
