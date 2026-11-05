@@ -1,11 +1,15 @@
 import warnings
 from itertools import product
-from typing import Literal, cast
+from math import prod
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from server.core.model_registry import EMBEDDING_MODELS, RERANKER_MODELS, provider_for_model
 from server.models.enums import ChunkingMethod, RetrievalMethod, RetrieverType
+from server.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 Provider = Literal["local", "voyage", "sie", "kimchi", "doubleword"]
 # ``supabase`` remains a deprecated YAML input alias for Postgres (Slice 37).
@@ -361,3 +365,84 @@ def expand_sweep(config: ExperimentConfig) -> list[RunParams]:
         )
 
     return runs
+
+
+def grid_equivalent_count(config: ExperimentConfig) -> int:
+    """Bayesian search space: chunk sizes x overlaps (the sampler's control variable)."""
+    return len(config.chunking.params.chunk_sizes) * len(config.chunking.params.overlaps)
+
+
+def _bayesian_trial_budget(config: ExperimentConfig) -> int:
+    """Pure trial budget: configured ``n_trials`` capped at the search space."""
+    space = grid_equivalent_count(config)
+    configured = config.execution.bayesian.n_trials
+    return space if configured is None else min(configured, space)
+
+
+def resolve_bayesian_n_trials(config: ExperimentConfig) -> int:
+    """Trial budget for a Bayesian sweep, logging when ``n_trials`` is defaulted or capped."""
+    grid_equivalent = grid_equivalent_count(config)
+    configured = config.execution.bayesian.n_trials
+    if configured is None:
+        logger.info(
+            "bayesian n_trials not set; defaulting to grid-equivalent %s",
+            grid_equivalent,
+        )
+    elif configured > grid_equivalent:
+        logger.warning(
+            "requested bayesian n_trials=%s exceeds grid-equivalent=%s, capping",
+            configured,
+            grid_equivalent,
+        )
+    return _bayesian_trial_budget(config)
+
+
+def _plan_warnings(config: ExperimentConfig) -> list[str]:
+    """Fixed-template warnings built from sorted, de-duplicated numbers (deterministic)."""
+    params = config.chunking.params
+    found: list[str] = []
+    bad_overlaps = sorted({o for s in params.chunk_sizes for o in params.overlaps if o >= s})
+    if bad_overlaps:
+        found.append(
+            f"overlap {bad_overlaps} is >= a chunk size in {sorted(set(params.chunk_sizes))}"
+        )
+    smallest = min(params.chunk_sizes)
+    bad_paddings = sorted({p for p in params.paddings if p > smallest})
+    if bad_paddings:
+        found.append(f"padding {bad_paddings} is larger than the smallest chunk size {smallest}")
+    return found
+
+
+def sweep_plan(config: ExperimentConfig) -> dict[str, Any]:
+    """Pure count summary of a sweep; ``full_grid_count == len(expand_sweep(config))``.
+
+    ``searchable_space`` is the Bayesian search space (sizes x overlaps), else ``None``.
+    ``planned_runs`` is the expected number of runs for the chosen strategy.
+    """
+    params = config.chunking.params
+    counts = {
+        "models": len(config.embedding.models),
+        "chunking_methods": len(config.chunking.methods),
+        "chunk_sizes": len(params.chunk_sizes),
+        "overlaps": len(params.overlaps),
+        "paddings": len(params.paddings) or 1,  # mirrors expand_sweep's `or [0]`
+        "retrievers": len(config.retrieval.retrievers) or 1,
+    }
+    full_grid = prod(counts.values())
+    bayesian = config.execution.search_strategy == "bayesian"
+    return {
+        "dimension_counts": counts,
+        "full_grid_count": full_grid,
+        "searchable_space": grid_equivalent_count(config) if bayesian else None,
+        "planned_runs": _bayesian_trial_budget(config) if bayesian else full_grid,
+        "search_strategy": config.execution.search_strategy,
+        "warnings": _plan_warnings(config),
+    }
+
+
+def retriever_labels(config: ExperimentConfig) -> list[str]:
+    """Human labels per retriever entry (reranker entries carry their model)."""
+    return [
+        f"{r.type.value}: {r.model}" if r.type in _RERANKER_TYPES and r.model else r.type.value
+        for r in config.retrieval.retrievers
+    ]

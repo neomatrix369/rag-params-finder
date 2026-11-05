@@ -49,7 +49,17 @@ from server.core.search_index_plan import SearchIndexMismatchError
 from server.core.sie_guard import SIEUnavailableError, validate_sie_readiness
 from server.db.ports import store_factory
 from server.db.ports.store_factory import get_storage_backend
-from server.models.config import ExperimentConfig, RunParams, expand_sweep
+from server.models.config import (
+    ExperimentConfig,
+    RunParams,
+    expand_sweep,
+)
+from server.models.config import (
+    grid_equivalent_count as _grid_equivalent_count,
+)
+from server.models.config import (
+    resolve_bayesian_n_trials as _resolve_bayesian_n_trials,
+)
 from server.models.enums import ExperimentStatus, Phase, RetrieverType
 from server.models.results import QueryResult
 from server.models.status import RunStatus
@@ -466,10 +476,6 @@ def _fail_experiment_preflight(
     }
 
 
-def _grid_equivalent_count(config: ExperimentConfig) -> int:
-    return len(config.chunking.params.chunk_sizes) * len(config.chunking.params.overlaps)
-
-
 def _bayesian_trial_to_run_params(
     config: ExperimentConfig,
     template_run: RunParams,
@@ -525,25 +531,6 @@ def _run_best_trial_payload(experiment_id: str) -> dict | None:
     if not best:
         return None
     return best
-
-
-def _resolve_bayesian_n_trials(config: ExperimentConfig) -> int:
-    grid_equivalent = _grid_equivalent_count(config)
-    configured = config.execution.bayesian.n_trials
-    if configured is None:
-        logger.info(
-            "bayesian n_trials not set; defaulting to grid-equivalent %s",
-            grid_equivalent,
-        )
-        return grid_equivalent
-    if configured > grid_equivalent:
-        logger.warning(
-            "requested bayesian n_trials=%s exceeds grid-equivalent=%s, capping",
-            configured,
-            grid_equivalent,
-        )
-        return grid_equivalent
-    return configured
 
 
 def _log_bayesian_summary(

@@ -10,7 +10,13 @@ from typing import SupportsInt, cast
 
 from server.core.pipeline.experiment_control import is_sweep_in_flight
 from server.db.ports.store_factory import get_storage_backend
-from server.models.config import ExperimentConfig, expand_sweep
+from server.models.config import (
+    ExperimentConfig,
+    expand_sweep,
+    resolve_bayesian_n_trials,
+    retriever_labels,
+    sweep_plan,
+)
 from server.models.enums import ExperimentStatus, Phase
 from server.utils.logger import get_logger
 
@@ -27,27 +33,27 @@ _TERMINAL_PHASES = frozenset(
 
 def _planned_run_count(config: ExperimentConfig) -> int:
     if config.execution.search_strategy == "bayesian":
-        return _resolve_bayesian_n_trials(config)
+        return resolve_bayesian_n_trials(config)
     return len(expand_sweep(config))
 
 
-def _resolve_bayesian_n_trials(config: ExperimentConfig) -> int:
-    grid_equivalent = len(config.chunking.params.chunk_sizes) * len(config.chunking.params.overlaps)
-    configured = config.execution.bayesian.n_trials
-    if configured is None:
-        logger.info(
-            "bayesian n_trials not set; defaulting to grid-equivalent %s",
-            grid_equivalent,
-        )
-        return grid_equivalent
-    if configured > grid_equivalent:
-        logger.warning(
-            "requested bayesian n_trials=%s exceeds grid-equivalent=%s, capping at grid-equivalent",
-            configured,
-            grid_equivalent,
-        )
-        return grid_equivalent
-    return configured
+def attach_sweep_plan(experiment: dict) -> None:
+    """Compute ``sweep_plan`` (and retriever labels) on read from ``experiment["config"]``.
+
+    Works for experiments stored before Slice 67B; leaves the doc untouched when the
+    stored config cannot be parsed (e.g. sweep-history docs).
+    """
+    raw = experiment.get("config")
+    if not isinstance(raw, dict):
+        return
+    try:
+        config = ExperimentConfig.model_validate(raw)
+    except ValueError:
+        return
+    experiment["sweep_plan"] = sweep_plan(config)
+    summary = experiment.get("sweep_summary")
+    if isinstance(summary, dict):
+        summary.setdefault("retrievers", retriever_labels(config))
 
 
 def _to_non_negative_int(value: object) -> int | None:
