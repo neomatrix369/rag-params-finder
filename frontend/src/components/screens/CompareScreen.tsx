@@ -27,7 +27,9 @@ export default function CompareScreen({ onBack }: { onBack: () => void }) {
     const controller = new AbortController();
     setState({ kind: 'loading' });
     getCompare(controller.signal)
-      .then((data) => setState({ kind: 'ready', data }))
+      .then((data) => {
+        if (!controller.signal.aborted) setState({ kind: 'ready', data });
+      })
       .catch((err: unknown) => {
         if (controller.signal.aborted) return;
         setState({ kind: 'error', message: err instanceof Error ? err.message : 'Failed to load sweep comparison' });
