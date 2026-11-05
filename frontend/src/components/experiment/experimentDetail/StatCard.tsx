@@ -42,7 +42,7 @@ export default function StatCard({
           <div className="min-w-0 flex-1">
             <div className="text-lg font-bold leading-none tabular-nums truncate">{value}</div>
             <div className="mt-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide opacity-75">
-              <span className="truncate">{label}</span>
+              {label}
               {tip}
             </div>
           </div>
