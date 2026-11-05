@@ -198,13 +198,8 @@ def get_experiment_db_stats(experiment_id: str) -> dict:
             (experiment_id,),
         ) or {"total_results": 0, "unique_queries": 0}
         run_breakdown = _run_breakdown(experiment_id)
-        results_per_run = [
-            int(r["rows"])
-            for r in fetch_all(
-                "SELECT count(*) AS rows FROM results WHERE experiment_id = %s GROUP BY run_id",
-                (experiment_id,),
-            )
-        ]
+        # _run_breakdown's FULL OUTER JOIN also returns chunk-only runs: keep runs with results.
+        results_per_run = [r["results"] for r in run_breakdown if r["results"] > 0]
 
         stats = _assemble(
             experiment,
@@ -269,9 +264,14 @@ def _bulk_result_aggregates() -> dict[str, dict]:
 
 
 def _bulk_results_per_run() -> dict[str, list[int]]:
-    rows = fetch_all(
-        "SELECT experiment_id, count(*) AS rows FROM results GROUP BY experiment_id, run_id"
-    )
+    """Per-run result counts per experiment; optional, so a failure degrades to ``{}``."""
+    try:
+        rows = fetch_all(
+            "SELECT experiment_id, count(*) AS rows FROM results GROUP BY experiment_id, run_id"
+        )
+    except Exception:
+        logger.warning("per-run result counts unavailable — golden facts omitted", exc_info=True)
+        return {}
     out: dict[str, list[int]] = {}
     for row in rows:
         out.setdefault(str(row["experiment_id"]), []).append(int(row["rows"]))

@@ -7,6 +7,7 @@ on the orchestrator namespace continues to affect ``_update_phase``.
 
 from __future__ import annotations
 
+import threading
 import time
 import uuid
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
@@ -431,23 +432,35 @@ def _finalise_bayesian_experiment(
     return final_status, failed_count
 
 
+_golden_persisted: set[str] = set()
+_golden_persisted_lock = threading.Lock()
+
+
 def _persist_golden_query_count(experiment_id: str, golden_queries: int) -> None:
     """Store the golden-dataset record count once, when the first run loads queries.
 
     ``golden_queries`` is ``len(load_queries(...))`` — the same loader that decides
-    how many result rows each run writes. Idempotent: a stored value is never
-    rewritten. Best effort: stats fall back to inference if this fails.
+    how many result rows each run writes. Write-once and idempotent: a stored value
+    is never rewritten, so it goes stale if ``queries_file`` changes between pause
+    and resume. A process-local memo limits the read to once per experiment per
+    process. Best effort: stats fall back to inference if this fails.
     """
+    with _golden_persisted_lock:
+        if experiment_id in _golden_persisted:
+            return
     try:
         backend = get_storage_backend()
         experiment = backend.find_experiment_by_id(experiment_id) or {}
         sweep = dict(experiment.get("sweep_summary") or {})
-        if sweep.get("golden_queries") is not None:
-            return
-        sweep["golden_queries"] = golden_queries
-        backend.update_experiment(experiment_id, {"sweep_summary": sweep})
+        if sweep.get("golden_queries") is None:
+            sweep["golden_queries"] = golden_queries
+            backend.update_experiment(experiment_id, {"sweep_summary": sweep})
+        with _golden_persisted_lock:
+            _golden_persisted.add(experiment_id)
     except Exception:
-        logger.warning("golden query count not persisted — experiment %s", experiment_id)
+        logger.warning(
+            "golden query count not persisted — experiment %s", experiment_id, exc_info=True
+        )
 
 
 def _fail_experiment_preflight(

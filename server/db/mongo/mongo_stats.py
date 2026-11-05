@@ -214,37 +214,35 @@ def _bulk_chunk_aggregates() -> dict[str, dict]:
 
 def _bulk_result_aggregates() -> dict[str, dict]:
     results_coll = get_collection(RESULTS_COLLECTION)
+    # One scan: group per (experiment, run) first, then roll runs up per experiment.
     pipeline = [
         {
             "$group": {
-                "_id": "$experiment_id",
-                "total_results": {"$sum": 1},
+                "_id": {"experiment_id": "$experiment_id", "run_id": "$run_id"},
+                "rows": {"$sum": 1},
                 "query_ids": {"$addToSet": "$query_id"},
             }
-        }
+        },
+        {
+            "$group": {
+                "_id": "$_id.experiment_id",
+                "total_results": {"$sum": "$rows"},
+                "run_counts": {"$push": "$rows"},
+                "query_ids": {"$push": "$query_ids"},
+            }
+        },
     ]
     out: dict[str, dict] = {}
     for row in results_coll.aggregate(pipeline, allowDiskUse=True):
         exp_id = row.get("_id")
         if not exp_id:
             continue
-        query_ids = [q for q in row.get("query_ids") or [] if q]
+        query_ids = {q for ids in row.get("query_ids") or [] for q in ids if q}
         out[str(exp_id)] = {
             "total_results": int(row["total_results"]),
             "unique_queries": len(query_ids),
+            "results_per_run": [int(n) for n in row.get("run_counts") or []],
         }
-    return out
-
-
-def _bulk_results_per_run() -> dict[str, list[int]]:
-    pipeline = [
-        {"$group": {"_id": {"e": "$experiment_id", "r": "$run_id"}, "rows": {"$sum": 1}}},
-    ]
-    out: dict[str, list[int]] = {}
-    for row in get_collection(RESULTS_COLLECTION).aggregate(pipeline, allowDiskUse=True):
-        key = row.get("_id") or {}
-        if key.get("e") and key.get("r"):
-            out.setdefault(str(key["e"]), []).append(int(row["rows"]))
     return out
 
 
@@ -278,7 +276,6 @@ def _summary_db_stats_for_experiment(
     chunk_row: dict | None,
     result_row: dict | None,
     chunking_breakdown: dict[str, int],
-    results_per_run: list[int] | None = None,
 ) -> dict:
     total_chunks = int((chunk_row or {}).get("total_chunks") or 0)
     embedding_models = list((chunk_row or {}).get("embedding_models") or [])
@@ -294,7 +291,7 @@ def _summary_db_stats_for_experiment(
         unique_queries=unique_queries,
         runs_with_data=runs_with_data,
         run_breakdown=[],
-        results_per_run=results_per_run,
+        results_per_run=list((result_row or {}).get("results_per_run") or []),
     )
 
 
@@ -351,7 +348,7 @@ def get_experiment_db_stats(experiment_id: str) -> dict:
             unique_queries=unique_queries,
             runs_with_data=len(run_breakdown),
             run_breakdown=run_breakdown,
-            results_per_run=list(_document_counts_by_run_id(results_coll, experiment_id).values()),
+            results_per_run=[r["results"] for r in run_breakdown if r["results"] > 0],
         )
     except Exception:
         logger.error("db stats compute failed — experiment %s", experiment_id, exc_info=True)
@@ -379,7 +376,6 @@ def get_vector_db_stats_grouped(
         chunk_by_exp = _bulk_chunk_aggregates()
         result_by_exp = _bulk_result_aggregates()
         chunking_by_exp = _bulk_chunking_breakdown()
-        per_run_by_exp = _bulk_results_per_run()
         cluster_storage = _mongodb_cluster_storage_mb()
         groups: dict[str, dict] = {}
 
@@ -390,7 +386,6 @@ def get_vector_db_stats_grouped(
                 chunk_by_exp.get(experiment_id),
                 result_by_exp.get(experiment_id),
                 chunking_by_exp.get(experiment_id, {}),
-                per_run_by_exp.get(experiment_id),
             )
             group_key = vector_db_group_key(
                 resolve_experiment_storage_mode(

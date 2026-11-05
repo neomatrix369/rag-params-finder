@@ -652,17 +652,15 @@ class TestMongoStorageBackendShould:
                 {"_id": {"experiment_id": None, "chunk_method": "fixed"}, "count": 1},
             ],
         ]
-        # bulk result aggregates, then results-per-run (Slice 67E)
-        results.aggregate.side_effect = [
-            [
-                {"_id": "e1", "total_results": 10, "query_ids": ["q1"]},
-                {"_id": "e2", "total_results": 5, "query_ids": ["q2", "q3"]},
-            ],
-            [
-                {"_id": {"e": "e1", "r": "r1"}, "rows": 10},
-                {"_id": {"e": "e2", "r": "r2"}, "rows": 3},
-                {"_id": {"e": "e2", "r": "r3"}, "rows": 2},
-            ],
+        # One grouped pipeline yields totals and per-run counts (Slice 67E).
+        results.aggregate.return_value = [
+            {"_id": "e1", "total_results": 10, "query_ids": [["q1"]], "run_counts": [10]},
+            {
+                "_id": "e2",
+                "total_results": 5,
+                "query_ids": [["q2"], ["q3"]],
+                "run_counts": [3, 2],
+            },
         ]
 
         collections = {

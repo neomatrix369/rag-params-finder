@@ -290,7 +290,11 @@ export interface ExperimentDbStats {
   golden_queries?: number | null;
   /** 'config' = counted from the dataset; 'max_per_run' = inferred from results. */
   golden_queries_source?: 'config' | 'max_per_run' | null;
-  /** Runs whose result rows are fewer than golden_queries. */
+  /**
+   * Runs whose result rows are fewer than golden_queries. A run still in flight
+   * counts as partial: read it as "currently below golden" unless the
+   * experiment is terminal.
+   */
   partial_runs?: number;
   run_breakdown: RunDbBreakdown[];
 }

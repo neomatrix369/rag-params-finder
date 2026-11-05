@@ -74,6 +74,7 @@ def golden_query_facts(
     inference). ``partial_runs`` counts runs with fewer rows than the golden count.
     """
     stored = ((experiment or {}).get("sweep_summary") or {}).get("golden_queries")
+    # An empty dataset stores 0: source stays 'config' and no run is partial.
     if isinstance(stored, int) and not isinstance(stored, bool) and stored >= 0:
         return stored, "config", sum(1 for rows in results_per_run if rows < stored)
     inferred = max(results_per_run, default=0)
@@ -131,9 +132,15 @@ def assemble_experiment_db_stats(
         # NB: query_id is a uuid4 per query per run, so unique_queries equals
         # total_results. It is not the golden-record count; see golden_queries.
         "unique_queries": unique_queries,
+        # Runs with >= 1 result row. A run that died before its first query has no
+        # rows, so it is neither counted here nor in partial_runs.
         "result_runs": len(per_run),
         "golden_queries": golden,
         "golden_queries_source": golden_source,
+        # Runs with fewer rows than golden_queries. A run still in flight counts as
+        # partial, so read it as "currently below golden" unless the experiment is
+        # terminal. golden_queries is write-once: it goes stale if queries_file
+        # changes between pause and resume.
         "partial_runs": partial_runs,
         "run_breakdown": run_breakdown,
     }
@@ -179,6 +186,13 @@ def vector_db_group_key(storage_mode: str, cluster_host: str | None) -> str:
 
 
 def new_vector_db_group(group_key: str, stats: dict) -> dict:
+    """Empty group for the grouped view.
+
+    ``total_result_runs`` / ``golden_queries_min`` / ``golden_queries_max`` (like
+    ``total_results``) only populate when the vector store and run state are the
+    same backend: the grouped view has no run-state overlay (owner decision). The
+    single-experiment detail view does overlay run-state facts for every backend.
+    """
     return {
         "vector_db_id": group_key,
         "database_provider": stats["database_provider"],

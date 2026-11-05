@@ -4,13 +4,15 @@ Tests for the golden-record breakdown facts in db-stats (Slice 67E, backend).
 Author: Mani Sarkar
 Created: 2026-11-05
 Scope: result_runs / golden_queries / golden_queries_source / partial_runs in the
-       shared assembly, group totals, SQLite and Mongo adapters, the run-state
-       overlay, and lazy idempotent persistence of the golden count.
+       shared assembly, group totals, SQLite, Mongo and Postgres adapters (query
+       counts, failure isolation), the run-state overlay, and lazy idempotent
+       persistence of the golden count.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -18,16 +20,26 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from server.api import experiments_shared
-from server.core.orchestrator import _persist_golden_query_count
+from server.core.pipeline import orchestrator
+from server.core.pipeline.orchestrator import _persist_golden_query_count
 from server.core.query_loader import load_queries
+from server.db.mongo import mongo_stats
 from server.db.ports.stats_common import (
     assemble_experiment_db_stats,
     merge_group_totals,
     new_vector_db_group,
 )
+from server.db.postgres import postgres_stats
 from server.models.enums import ExperimentStatus
 
 _NEW_KEYS = {"result_runs", "golden_queries", "golden_queries_source", "partial_runs"}
+
+
+@pytest.fixture(autouse=True)
+def _fresh_golden_memo():
+    orchestrator._golden_persisted.clear()
+    yield
+    orchestrator._golden_persisted.clear()
 
 
 def _assemble(experiment: dict | None, per_run: list[int] | None) -> dict:
@@ -192,7 +204,8 @@ class TestSqliteAdapterShould:
 
         Given 3 queries x 2 runs with 5 or 10 hits per row
         When stats are read
-        Then total_results is 6, result_runs 2, golden 3 (inferred), no partial run.
+        Then total_results and unique_queries are 6, result_runs 2, golden 3 (inferred),
+        and no run is partial.
         """
         ### Given
         _seed(store, {"r1": 3, "r2": 3}, hits=hits)
@@ -201,7 +214,7 @@ class TestSqliteAdapterShould:
         actual = store.get_experiment_db_stats("e1")
 
         ### Then
-        assert actual["total_results"] == 6
+        assert (actual["total_results"], actual["unique_queries"]) == (6, 6)
         assert (actual["result_runs"], actual["golden_queries"]) == (2, 3)
         assert (actual["golden_queries_source"], actual["partial_runs"]) == ("max_per_run", 0)
 
@@ -214,7 +227,8 @@ class TestSqliteAdapterShould:
 
         Given golden 3 persisted, one full run and one run with 1 row
         When stats are read
-        Then total_results 4, partial_runs 1, golden 3 from config.
+        Then total_results 4, partial_runs 1, golden 3 from config, and the runs conserve:
+        partial <= result_runs and full + partial == result_runs.
         """
         ### Given
         _seed(store, {"r1": 3, "r2": 1}, golden=3)
@@ -226,6 +240,32 @@ class TestSqliteAdapterShould:
         assert actual["total_results"] == 4
         assert (actual["partial_runs"], actual["golden_queries"]) == (1, 3)
         assert actual["golden_queries_source"] == "config"
+        full_runs = sum(1 for r in actual["run_breakdown"] if r["results"] >= 3)
+        assert actual["partial_runs"] <= actual["result_runs"]
+        assert full_runs + actual["partial_runs"] == actual["result_runs"]
+
+    def test_given_run_with_zero_rows_when_read_then_not_counted_and_not_partial(
+        self, store
+    ) -> None:
+        """
+        Scenario: a run that died before query 1 is invisible to the result facts.
+        Slice: 67E
+
+        Given golden 3, one full run and a run_status row with no result rows
+        When stats are read
+        Then result_runs is 1 and partial_runs is 0.
+        """
+        ### Given
+        _seed(store, {"r1": 3}, golden=3)
+        store.insert_run_status(
+            {"run_id": "r-dead", "experiment_id": "e1", "phase": "failed", "created_at": None}
+        )
+
+        ### When
+        actual = store.get_experiment_db_stats("e1")
+
+        ### Then
+        assert (actual["result_runs"], actual["partial_runs"]) == (1, 0)
 
     def test_given_experiment_when_grouped_then_row_and_totals_carry_facts(self, store) -> None:
         """
@@ -248,54 +288,285 @@ class TestSqliteAdapterShould:
         assert totals["total_result_runs"] == 2
         assert (totals["golden_queries_min"], totals["golden_queries_max"]) == (3, 3)
 
-
-class TestMongoAdapterShould:
-    def test_given_counts_per_run_when_stats_read_then_facts_match_sqlite(self) -> None:
+    def test_given_persistence_backend_raises_when_stats_read_then_falls_back_to_inferred(
+        self, store, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """
-        Scenario: Mongo feeds the same per-run counts into the shared assembly.
+        Scenario: a failing golden-count write is silent but visible in the log.
         Slice: 67E
 
-        Given result counts of 3 and 1 rows per run and golden 3 stored
-        When the Mongo single-experiment stats are computed
-        Then they equal the SQLite facts for the same data.
+        Given a backend whose find_experiment_by_id raises and an experiment with no count
+        When the count is persisted and the stats are then read
+        Then no exception escapes, a warning is logged, and golden comes from max_per_run.
         """
         ### Given
-        from server.db.mongo import mongo_stats
+        _seed(store, {"r1": 3, "r2": 2})
+        backend = MagicMock()
+        backend.find_experiment_by_id.side_effect = RuntimeError("store down")
 
+        ### When
+        with (
+            patch.object(orchestrator, "get_storage_backend", return_value=backend),
+            caplog.at_level(logging.WARNING),
+        ):
+            _persist_golden_query_count("e1", 3)
+        actual = store.get_experiment_db_stats("e1")
+
+        ### Then
+        assert any("golden query count not persisted" in r.message for r in caplog.records)
+        assert (actual["golden_queries"], actual["golden_queries_source"]) == (3, "max_per_run")
+        assert "e1" not in orchestrator._golden_persisted
+
+
+class TestMongoAdapterShould:
+    def test_given_same_data_as_sqlite_when_stats_read_then_golden_facts_equal(self, store) -> None:
+        """
+        Scenario: Mongo feeds the breakdown it already builds into the shared assembly.
+        Slice: 67E
+
+        Given runs of 3 and 1 rows, golden 3 stored, in both SQLite and (mocked) Mongo
+        When each adapter computes the single-experiment stats
+        Then the four golden facts are equal.
+        """
+        ### Given
+        _seed(store, {"r1": 3, "r2": 1}, golden=3)
+        expected = store.get_experiment_db_stats("e1")
         coll = MagicMock()
         coll.find_one.return_value = {"sweep_summary": {"golden_queries": 3}}
         coll.count_documents.return_value = 0
         coll.distinct.return_value = []
+        breakdown = [
+            {"run_id": "r1", "chunks": 5, "results": 3},
+            {"run_id": "r2", "chunks": 5, "results": 1},
+        ]
         with (
             patch.object(mongo_stats, "get_collection", return_value=coll),
-            patch.object(mongo_stats, "_document_counts_by_run_id", return_value={"a": 3, "b": 1}),
-            patch.object(mongo_stats, "_run_breakdown_for_experiment", return_value=[]),
+            patch.object(mongo_stats, "_run_breakdown_for_experiment", return_value=breakdown),
             patch.object(mongo_stats, "_chunking_breakdown", return_value={}),
         ):
             ### When
             actual = mongo_stats.get_experiment_db_stats("e1")
 
         ### Then
-        assert (actual["result_runs"], actual["golden_queries"]) == (2, 3)
-        assert (actual["partial_runs"], actual["golden_queries_source"]) == (1, "config")
+        assert {k: actual[k] for k in _NEW_KEYS} == {k: expected[k] for k in _NEW_KEYS}
 
-
-class TestRedisAndElasticsearchShould:
-    def test_given_vector_store_without_results_when_assembled_then_nothing_new(self) -> None:
+    def test_given_chunk_only_run_when_stats_read_then_not_counted(self) -> None:
         """
-        Scenario: Redis/ES hold no results and pass no per-run counts.
+        Scenario: runs with chunks but no result rows are excluded from result facts.
         Slice: 67E
 
-        Given an assembly call as the Redis/ES stores make it (no experiment, no counts)
-        When assembled
-        Then result_runs is 0 and golden_queries is None.
+        Given a breakdown with a full run and a chunk-only run
+        When Mongo stats are computed
+        Then result_runs is 1 and partial_runs is 0.
         """
-        ### Given / When
-        actual = _assemble(None, None)
+        ### Given
+        coll = MagicMock()
+        coll.find_one.return_value = {"sweep_summary": {"golden_queries": 3}}
+        coll.count_documents.return_value = 0
+        coll.distinct.return_value = []
+        breakdown = [
+            {"run_id": "r1", "chunks": 5, "results": 3},
+            {"run_id": "r2", "chunks": 5, "results": 0},
+        ]
+        with (
+            patch.object(mongo_stats, "get_collection", return_value=coll),
+            patch.object(mongo_stats, "_run_breakdown_for_experiment", return_value=breakdown),
+            patch.object(mongo_stats, "_chunking_breakdown", return_value={}),
+        ):
+            ### When
+            actual = mongo_stats.get_experiment_db_stats("e1")
 
         ### Then
-        assert actual["result_runs"] == 0
-        assert actual["golden_queries"] is None
+        assert (actual["result_runs"], actual["partial_runs"]) == (1, 0)
+
+    def test_given_single_experiment_when_stats_read_then_aggregate_call_count_unchanged(
+        self,
+    ) -> None:
+        """
+        Scenario: the breakdown feeds the golden facts; no extra results scan.
+        Slice: 67E
+
+        Given a collection mock that counts aggregate calls
+        When the single-experiment stats are computed
+        Then aggregate ran exactly twice per collection pair (chunks + results counts by run),
+        the count it ran before this slice.
+        """
+        ### Given
+        coll = MagicMock()
+        coll.find_one.return_value = None
+        coll.count_documents.return_value = 0
+        coll.distinct.return_value = []
+        coll.aggregate.return_value = []
+
+        ### When
+        with patch.object(mongo_stats, "get_collection", return_value=coll):
+            mongo_stats.get_experiment_db_stats("e1")
+
+        ### Then
+        # chunk counts + result counts (_run_breakdown_for_experiment) + chunking breakdown
+        assert coll.aggregate.call_count == 3
+
+    def test_given_grouped_stats_when_results_aggregated_then_one_pipeline_groups_by_exp_and_run(
+        self,
+    ) -> None:
+        """
+        Scenario: per-run counts ride the existing results scan.
+        Slice: 67E
+
+        Given an aggregate that answers by pipeline content, not by call order
+        When the bulk result aggregates are built
+        Then exactly one pipeline ran, grouping by experiment_id and run_id first, and the
+        per-run counts and distinct query ids roll up per experiment.
+        """
+        ### Given
+        seen: list[list[dict]] = []
+
+        def aggregate(pipeline: list[dict], **_kwargs: object) -> list[dict]:
+            seen.append(pipeline)
+            return [
+                {
+                    "_id": "e1",
+                    "total_results": 4,
+                    "run_counts": [3, 1],
+                    "query_ids": [["a", "b", "c"], ["d"]],
+                }
+            ]
+
+        coll = MagicMock()
+        coll.aggregate.side_effect = aggregate
+
+        ### When
+        with patch.object(mongo_stats, "get_collection", return_value=coll):
+            actual = mongo_stats._bulk_result_aggregates()
+
+        ### Then
+        assert len(seen) == 1
+        assert seen[0][0]["$group"]["_id"] == {
+            "experiment_id": "$experiment_id",
+            "run_id": "$run_id",
+        }
+        assert actual["e1"] == {
+            "total_results": 4,
+            "unique_queries": 4,
+            "results_per_run": [3, 1],
+        }
+
+
+class TestPostgresAdapterShould:
+    def test_given_single_experiment_when_stats_read_then_results_table_scanned_twice_only(
+        self,
+    ) -> None:
+        """
+        Scenario: the run breakdown feeds the golden facts; no third results GROUP BY.
+        Slice: 67E
+
+        Given recorded SQL for every query the single-experiment path issues
+        When the stats are computed
+        Then SQL touching the results table ran exactly twice (totals + breakdown join),
+        and a chunk-only run is not counted in result_runs.
+        """
+        ### Given
+        sql_seen: list[str] = []
+
+        def fetch_one(sql: str, params: tuple = ()) -> dict | None:
+            sql_seen.append(sql)
+            if "FROM experiments" in sql:
+                return None
+            if "FROM chunks" in sql:
+                return {"total_chunks": 0, "embedding_models": []}
+            return {"total_results": 3, "unique_queries": 3}
+
+        def fetch_all(sql: str, params: tuple = ()) -> list[dict]:
+            sql_seen.append(sql)
+            if "FULL OUTER JOIN" in sql:
+                return [
+                    {"run_id": "r1", "chunks": 2, "results": 3},
+                    {"run_id": "r2", "chunks": 2, "results": 0},
+                ]
+            return []
+
+        ### When
+        with (
+            patch.object(postgres_stats, "fetch_one", side_effect=fetch_one),
+            patch.object(postgres_stats, "fetch_all", side_effect=fetch_all),
+            patch.object(postgres_stats, "_chunks_index_names", return_value=[]),
+            patch.object(postgres_stats, "_cluster_host", return_value=None),
+        ):
+            actual = postgres_stats.get_experiment_db_stats("e1")
+
+        ### Then
+        assert sum(1 for sql in sql_seen if "results" in sql) == 2
+        assert (actual["result_runs"], actual["partial_runs"]) == (1, 0)
+
+    def test_given_per_run_fetch_raises_when_grouped_then_old_fields_still_returned(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """
+        Scenario: the optional per-run query cannot take the group list down.
+        Slice: 67E
+
+        Given the grouped path where only the per-run results query raises
+        When grouped stats are computed
+        Then the group list still returns its old fields, golden facts are empty,
+        and one warning is logged with the traceback.
+        """
+        ### Given
+        experiment = {"experiment_id": "e1", "experiment_name": "n", "status": "complete"}
+
+        def fetch_all(sql: str, params: tuple = ()) -> list[dict]:
+            if "GROUP BY experiment_id, run_id" in sql:
+                raise RuntimeError("boom")
+            return []
+
+        ### When
+        with (
+            patch.object(postgres_stats, "fetch_all", side_effect=fetch_all),
+            patch.object(postgres_stats, "_bulk_chunk_aggregates", return_value={}),
+            patch.object(
+                postgres_stats,
+                "_bulk_result_aggregates",
+                return_value={"e1": {"total_results": 4, "unique_queries": 4}},
+            ),
+            patch.object(postgres_stats, "_bulk_chunking_breakdown", return_value={}),
+            patch.object(postgres_stats, "_cluster_storage_mb", return_value={}),
+            patch.object(postgres_stats, "_chunks_index_names", return_value=[]),
+            patch.object(postgres_stats, "_cluster_host", return_value=None),
+            caplog.at_level(logging.WARNING),
+        ):
+            actual = postgres_stats.get_vector_db_stats_grouped(lambda: [experiment])
+
+        ### Then
+        row = actual["groups"][0]["experiments"][0]
+        assert row["total_results"] == 4
+        assert (row["result_runs"], row["golden_queries"]) == (0, None)
+        warnings = [r for r in caplog.records if "per-run result counts" in r.message]
+        assert len(warnings) == 1
+        assert warnings[0].exc_info is not None
+
+
+class TestGroupedViewForStoresWithoutResultsShould:
+    def test_given_vector_store_without_results_when_grouped_then_nothing_new_is_reported(
+        self,
+    ) -> None:
+        """
+        Scenario: Redis/ES group totals show nothing new (owner decision: no grouped overlay).
+        Slice: 67E
+
+        Given stats as the Redis/ES vector stores assemble them (no results, no experiment)
+        When a group is created and merged
+        Then total_result_runs is 0 and golden min/max stay None.
+        """
+        ### Given
+        stats = _assemble(None, None)
+        group = new_vector_db_group("redis-local:host", stats)
+
+        ### When
+        merge_group_totals(group, stats)
+
+        ### Then
+        totals = group["totals"]
+        assert totals["total_result_runs"] == 0
+        assert (totals["golden_queries_min"], totals["golden_queries_max"]) == (None, None)
 
 
 def _zeros() -> dict:
@@ -312,7 +583,8 @@ def _zeros() -> dict:
 class TestRunStateOverlayShould:
     def test_given_run_state_facts_when_composed_then_they_override_vector_store(self) -> None:
         """
-        Scenario: the overlay carries the new fields from run state.
+        Scenario: the single-experiment detail view overlays run-state facts for every
+        vector backend (Redis/ES included); only the grouped view has no overlay.
         Slice: 67E
 
         Given a vector store reporting zeros and run state reporting golden facts
@@ -361,7 +633,7 @@ class TestGoldenCountPersistenceShould:
         backend.find_experiment_by_id.return_value = {"sweep_summary": {"golden_queries": 3}}
 
         ### When
-        with patch("server.core.orchestrator.get_storage_backend", return_value=backend):
+        with patch.object(orchestrator, "get_storage_backend", return_value=backend):
             _persist_golden_query_count("e1", 99)
 
         ### Then
@@ -381,13 +653,36 @@ class TestGoldenCountPersistenceShould:
         backend.find_experiment_by_id.return_value = {"sweep_summary": {"models": ["m"]}}
 
         ### When
-        with patch("server.core.orchestrator.get_storage_backend", return_value=backend):
+        with patch.object(orchestrator, "get_storage_backend", return_value=backend):
             _persist_golden_query_count("e1", 3)
 
         ### Then
         backend.update_experiment.assert_called_once_with(
             "e1", {"sweep_summary": {"models": ["m"], "golden_queries": 3}}
         )
+
+    def test_given_count_already_persisted_when_second_run_loads_then_no_read_happens(self) -> None:
+        """
+        Scenario: the process-local memo caps the read at once per experiment.
+        Slice: 67E
+
+        Given the first run persisted the count
+        When a second run asks to persist again
+        Then no further read or write reaches the backend.
+        """
+        ### Given
+        backend = MagicMock()
+        backend.find_experiment_by_id.return_value = {"sweep_summary": {}}
+        with patch.object(orchestrator, "get_storage_backend", return_value=backend):
+            _persist_golden_query_count("e1", 3)
+            backend.reset_mock()
+
+            ### When
+            _persist_golden_query_count("e1", 3)
+
+        ### Then
+        backend.find_experiment_by_id.assert_not_called()
+        backend.update_experiment.assert_not_called()
 
     @pytest.mark.parametrize(
         ("personas", "expected"),
@@ -423,7 +718,7 @@ class TestGoldenCountPersistenceShould:
         backend.find_experiment_by_id.return_value = {"sweep_summary": {}}
 
         ### When
-        with patch("server.core.orchestrator.get_storage_backend", return_value=backend):
+        with patch.object(orchestrator, "get_storage_backend", return_value=backend):
             _persist_golden_query_count("e1", len(load_queries(str(path))))
 
         ### Then
