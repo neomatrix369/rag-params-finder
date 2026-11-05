@@ -99,3 +99,8 @@ Full list: [`invariants.md`](invariants.md).
 - **Delta**: explanations of numbers get one primitive (`InfoTip`) with its pure helpers (`clampShift`, label templates) instead of per-card native `title=` attributes or always-visible hint text.
 - **L1/L2 impact**: frontend leaf components only. No data or server change; consumers (`StatTile`, `StatCard`, `CollapsibleCard`) take optional props with unchanged defaults, except that `StatTile.hint` now shows on demand.
 - **Data-Flow**: none new. Explanation strings are produced by pure functions in the calling screens (67D) and passed in as text.
+
+### 2026-11-05 — Slice 67E (backend): golden-record facts in the stats assembly
+- **Delta**: the backend-agnostic stats assembly (`stats_common.py`) now derives result-run, golden-query and partial-run facts from per-run result counts that each adapter already builds; the orchestrator persists the golden dataset's record count once on the experiment.
+- **L1/L2 impact**: additive fields on the db-stats responses and one best-effort write to `sweep_summary` after the queries load. No new store method or index. Redis and Elasticsearch report nothing new; the run-state overlay carries the facts for every backend on the detail view.
+- **Data-Flow**: `load_queries` -> `sweep_summary.golden_queries` (write once) -> adapters' per-run counts -> `assemble_experiment_db_stats` -> db-stats response -> (frontend half) the Query Results breakdown.

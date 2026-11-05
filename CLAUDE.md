@@ -120,7 +120,7 @@ List/detail: dashboard or `GET /experiments` / `GET /experiments/{id}` (see `htt
 | `server/db/ports/retriever_backend.py` | `RetrieverBackend` Protocol — dense/sparse/hybrid search port |
 | `server/db/mongo/mongo_store.py` | Mongo adapters for both ports (Atlas / Atlas Local) |
 | `server/db/mongo/mongo_stats.py` | Stats / explore / vector-db helpers (delegated by `MongoStorageBackend`) |
-| `server/db/ports/stats_common.py` | Backend-agnostic db-stats assembly shared by Mongo and Postgres |
+| `server/db/ports/stats_common.py` | Backend-agnostic db-stats assembly shared by Mongo, Postgres and SQLite; also derives the golden-record facts (`golden_query_facts`, Slice 67E) |
 | `server/db/postgres/postgres.py` | Postgres pool, idempotent `schema.sql` bootstrap, query helpers |
 | `server/db/postgres/postgres_uri.py` | Supabase vs local-pgvector detection; TLS only for hosted; `postgres_storage_mode()` → `postgres-local` \| `postgres-cloud` |
 | `server/db/postgres/postgres_docs.py` | Document ↔ row mapping (promoted columns + `doc` JSONB) |
