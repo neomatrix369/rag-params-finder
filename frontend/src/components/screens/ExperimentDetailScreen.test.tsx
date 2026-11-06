@@ -15,6 +15,19 @@ import { vectorDbGroup } from '../../test/helpers/vectorDbStats';
 import { Phase, type ExperimentStatus } from '../../types';
 import ExperimentDetailScreen from './ExperimentDetailScreen';
 import { calculateProgressMetrics } from '../experiment/experimentDetailProgress';
+import { aboutLabel, explainLabel } from '../chrome/infoTipUtils';
+import {
+  bayesianTrialsExplain,
+  discardedExplain,
+  durationExplain,
+  exploreHint,
+  failedExplain,
+  inProgressExplain,
+  interruptedExplain,
+  notStartedExplain,
+  successfulExplain,
+  totalExplain,
+} from './detailExplain';
 
 const emptyDbStats = {
   database_provider: 'mongodb',
@@ -1875,5 +1888,91 @@ describe('ExperimentDetailScreen progress and Bayesian totals', () => {
         'Total 10 = 6 attempted + 1 discarded + 3 not started. Discarded trials are not runs. Run rows show 3 of the 6 attempted.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('Given a partial Bayesian sweep, when rendered, then every Detail stat card and the trials header carry a pure explain sentence', async () => {
+    /**
+     * Scenario: every inventory row of the Detail screen is explained (Bayesian arm, with Discarded).
+     * Slice: 67G-A - Detail tips.
+     * Given a partial Bayesian fixture (planned 20, attempted 13, discarded 4, grid 120),
+     * When the screen renders,
+     * Then each card's tip holds the fixed sentence for its own number and the Bayesian Summary tip names 20 of 120.
+     */
+    // -- Given --
+    const phases = [
+      ...Array<Phase>(8).fill(Phase.COMPLETE),
+      ...Array<Phase>(3).fill(Phase.FAILED),
+      ...Array<Phase>(2).fill(Phase.INTERRUPTED),
+    ];
+    const fixture = detailFixture('partial', phases, {
+      config: { execution: { search_strategy: 'bayesian' } },
+      run_count: 25,
+      sweep_summary: {
+        database_provider: 'mongodb',
+        embedding_provider: 'local',
+        models: ['all-MiniLM-L6-v2'],
+        chunking_methods: ['recursive'],
+        chunk_sizes: [256, 512],
+        overlaps: [25, 50],
+      },
+      grid_equivalent_count: 120,
+      bayesian_summary: { planned_trials: 20, attempted_trials: 13, discarded_trials: 4 },
+    });
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen experimentId={fixture.experiment_id} initialExperiment={fixture} onBack={vi.fn()} />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
+
+    // -- Then --
+    const tipText = (button: HTMLElement): string =>
+      document.getElementById(button.getAttribute('aria-describedby') ?? '')?.textContent ?? '';
+    const explainFor = (label: string): string => tipText(screen.getByRole('button', { name: explainLabel(label) }));
+    expect(explainFor('Total')).toBe(totalExplain(true, 20));
+    expect(explainFor('Successful')).toBe(successfulExplain(8));
+    expect(explainFor('Failed')).toBe(failedExplain(3));
+    expect(explainFor('Interrupted')).toBe(interruptedExplain(2));
+    expect(explainFor('Not Started')).toBe(notStartedExplain(true, 3));
+    expect(explainFor('Discarded by Sampler')).toBe(discardedExplain(4));
+    expect(explainFor('Duration')).toBe(durationExplain(false));
+    expect(tipText(screen.getByRole('button', { name: aboutLabel('Bayesian Summary') }))).toBe(
+      bayesianTrialsExplain(20, 120),
+    );
+  });
+
+  it('Given a running grid sweep with a run in progress, when rendered, then In Progress and Duration are explained and Explore uses an info tip, not a native title', async () => {
+    /**
+     * Scenario: grid arm, live sweep: In Progress, Duration (dash while live), Explore hint.
+     * Slice: 67G-A - Detail tips; replaces the native title on the Explore button.
+     * Given a running grid fixture with one querying run,
+     * When rendered with onExplore,
+     * Then the In Progress tip counts 1, the Duration tip says dash-while-live, the Explore hint is an
+     *   InfoTip, and no button carries a title attribute.
+     */
+    // -- Given --
+    const fixture = detailFixture('running', [Phase.COMPLETE, Phase.QUERYING]);
+    apiMocks.getExperiment.mockResolvedValue(fixture);
+
+    // -- When --
+    render(
+      <ExperimentDetailScreen
+        experimentId={fixture.experiment_id}
+        initialExperiment={fixture}
+        onBack={vi.fn()}
+        onExplore={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(apiMocks.getExperiment).toHaveBeenCalledOnce());
+
+    // -- Then --
+    const tipText = (button: HTMLElement): string =>
+      document.getElementById(button.getAttribute('aria-describedby') ?? '')?.textContent ?? '';
+    expect(tipText(screen.getByRole('button', { name: explainLabel('In Progress') }))).toBe(inProgressExplain(1));
+    expect(tipText(screen.getByRole('button', { name: explainLabel('Duration') }))).toBe(durationExplain(true));
+    expect(tipText(screen.getByRole('button', { name: explainLabel('Not Started') }))).toBe(notStartedExplain(false, 1));
+    expect(tipText(screen.getByRole('button', { name: aboutLabel('Explore live results') }))).toBe(exploreHint(true, false));
+    expect(screen.getByRole('button', { name: 'Explore live results' })).not.toHaveAttribute('title');
   });
 });

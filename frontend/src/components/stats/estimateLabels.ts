@@ -20,3 +20,16 @@ export const FOOTPRINT_SCOPE = 'Scope: this experiment only, as currently stored
 
 export const STATS_SCOPE =
   'Scope: all experiments stored in this database. Tiles that this backend does not report show —.';
+
+/** Tile explanations for the whole-store stats panel (Slice 67G-A); each names its scope. */
+export const experimentsExplain = (): string =>
+  'Experiments stored in this database, not runs. Scope: whole store.';
+
+export const queryResultsExplain = (): string =>
+  'Result rows stored for every experiment here: one row per golden-dataset query per run. Scope: whole store.';
+
+export const dbUsedExplain = (): string =>
+  'Space the database reports as used (data plus indexes); measured by the store, not estimated. Scope: whole store.';
+
+export const chunksEstimateExplain = (): string =>
+  `est. MB = ${estimateFormula()} Scope: whole store.`;

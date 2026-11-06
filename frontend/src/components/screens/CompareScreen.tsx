@@ -85,6 +85,8 @@ export default function CompareScreen({ onBack }: { onBack: () => void }) {
               onSelectRun={setSelectedRunId}
               suggest={false}
               description={LIVE_DESCRIPTION}
+              collapsedDuplicates={state.data.duplicates_collapsed}
+              rankScope="group"
             />
           </section>
         ) : null}

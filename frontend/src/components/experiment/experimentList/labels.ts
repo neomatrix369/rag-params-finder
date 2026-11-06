@@ -33,11 +33,19 @@ export function resolveSearchStrategy(experiment: Experiment): 'grid' | 'bayesia
   return 'grid';
 }
 
+/** Planned runs: planned trials for a Bayesian sweep (run_count can differ), run_count for a grid sweep. */
+export function plannedRunCount(experiment: Experiment): number | null {
+  const plannedTrials = experiment.bayesian_summary?.planned_trials;
+  if (resolveSearchStrategy(experiment) === 'bayesian' && plannedTrials != null) return plannedTrials;
+  return experiment.run_count ?? null;
+}
+
 export function experimentOutcomeLabel(experiment: Experiment): string {
   const bayesianSummary = experiment.bayesian_summary;
-  const configuredRuns = experiment.run_count == null
+  const planned = plannedRunCount(experiment);
+  const configuredRuns = planned == null
     ? 'Run count pending'
-    : `${experiment.run_count} run${experiment.run_count === 1 ? '' : 's'} configured`;
+    : `${planned} run${planned === 1 ? '' : 's'} configured`;
   const isBayesianStrategy = resolveSearchStrategy(experiment) === 'bayesian';
   const plannedTrials = bayesianSummary?.planned_trials;
   const attemptedTrials = bayesianSummary?.attempted_trials;

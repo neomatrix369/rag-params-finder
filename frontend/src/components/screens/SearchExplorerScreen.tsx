@@ -17,13 +17,17 @@ import {
   type ExperimentProgressCallback,
 } from '../../services/apiClient';
 import { createStallWatcher, formatBytes, type FetchProgressUpdate } from '../../services/fetchWithProgress';
-import type { ExploreResponse } from '../../types';
+import type { Experiment, ExploreResponse } from '../../types';
 import { appendFeedEntry } from '../../utils/feedEntries';
 import { devInfo, devInfoThrottled, devWarn } from '../../utils/devLog';
 import {
   explorerFetchFeedText,
   explorerPayloadHint,
 } from '../../utils/storageLabels';
+import InfoTip from '../chrome/InfoTip';
+import { explainLabel } from '../chrome/infoTipUtils';
+import { matchesExplain } from '../explore/explorerLabels';
+import { explorerPlan } from '../explore/explorerPlan';
 import {
   ConfigSidebar,
   DetailedResultsTab,
@@ -51,6 +55,8 @@ export default function SearchExplorerScreen({
   const [feed, setFeed] = useState<FeedEntry[]>([]);
   const [receivedBytes, setReceivedBytes] = useState<number | null>(null);
   const [totalBytes, setTotalBytes] = useState<number | null>(null);
+  /** Source of the planned total (sweep_plan); the explore payload does not carry it. */
+  const [experiment, setExperiment] = useState<Experiment | null>(null);
 
   const selectedQueryRef = useRef(selectedQuery);
   selectedQueryRef.current = selectedQuery;
@@ -62,6 +68,19 @@ export default function SearchExplorerScreen({
   useEffect(() => {
     setPollWhileRunning(true);
     setSelectedQuery('');
+  }, [experimentId]);
+
+  useEffect(() => {
+    const abort = new AbortController();
+    setExperiment(null);
+    getExperiment(experimentId, abort.signal)
+      .then((loaded) => {
+        if (!abort.signal.aborted) setExperiment(loaded ?? null);
+      })
+      .catch((err: unknown) => {
+        devWarn('SearchExplorerScreen', `plan fetch failed — ${experimentId.slice(0, 8)}… — ${String(err)}`);
+      });
+    return () => abort.abort();
   }, [experimentId]);
 
   useEffect(() => {
@@ -166,6 +185,7 @@ export default function SearchExplorerScreen({
         setIsPolling(true);
         try {
           const exp = await getExperiment(experimentId);
+          setExperiment(exp);
           if (exp.status !== 'running') {
             setPollWhileRunning(false);
             return;
@@ -338,6 +358,9 @@ export default function SearchExplorerScreen({
             {data && (
               <span className="ml-auto text-xs text-slate-400">
                 {filteredResults.length} MATCHES
+                <InfoTip label={explainLabel('matches')}>
+                  {matchesExplain(filteredResults.length, data.query_count, experiment?.top_k_final)}
+                </InfoTip>
               </span>
             )}
           </div>
@@ -389,7 +412,12 @@ export default function SearchExplorerScreen({
 
           {/* Content */}
           {filteredData && activeTab === 'hyperparameters' && (
-            <HyperparametersTab data={filteredData} />
+            <HyperparametersTab
+              data={filteredData}
+              plan={experiment ? explorerPlan(experiment) : null}
+              configsWithResults={data?.ranked_configs.length}
+              topKFinal={experiment?.top_k_final}
+            />
           )}
 
           {filteredData && activeTab === 'detailed' && (

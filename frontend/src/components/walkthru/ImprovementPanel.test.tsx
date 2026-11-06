@@ -173,4 +173,23 @@ describe('ImprovementPanel', () => {
     expect(note).toHaveTextContent(/points, not a percentage/i);
     expect(note).toHaveTextContent(/primary store only/i);
   });
+
+  it('Given the story, when rendered, then each tile and the run count carry an explanation', () => {
+    /**
+     * Scenario: Percentage baselines are explained: primary store only, across N runs, spread in points.
+     * Slice: 67G - improvement baselines
+     */
+    // -- Given --
+    const base = story();
+
+    // -- When --
+    render(<ImprovementPanel story={base} />);
+
+    // -- Then --
+    expect(screen.getByRole('button', { name: 'About Best top-chunk score' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'About Top-chunk spread' })).toBeInTheDocument();
+    expect(screen.getByText(/not a percentage improvement/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: `About these ${base.run_count} runs` })).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes(`summarises ${base.run_count} run`) && content.includes('from the primary store only'))).toBeInTheDocument();
+  });
 });

@@ -13,12 +13,14 @@ export type StatTileProps = {
   density?: 'comfortable' | 'compact';
 };
 
+/** One tip per tile: the explain sentence first, then the hint (owner decision, Slice 67G-A). */
 function TileTips({ label, hint, explain }: Pick<StatTileProps, 'label' | 'hint' | 'explain'>) {
+  if (!hint && !explain) return null;
   return (
-    <>
-      {hint ? <InfoTip label={aboutLabel(label)}>{hint}</InfoTip> : null}
-      {explain ? <InfoTip label={explainLabel(label)}>{explain}</InfoTip> : null}
-    </>
+    <InfoTip label={explain ? explainLabel(label) : aboutLabel(label)}>
+      {explain ? <span className="block">{explain}</span> : null}
+      {hint ? <span className={explain ? 'mt-1 block' : 'block'}>{hint}</span> : null}
+    </InfoTip>
   );
 }
 

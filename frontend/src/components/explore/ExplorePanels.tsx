@@ -1,8 +1,20 @@
 import { useCallback, useState } from 'react';
 import Pagination from '../chrome/Pagination';
 import FormulaLine from '../chrome/FormulaLine';
+import InfoTip from '../chrome/InfoTip';
+import { explainLabel } from '../chrome/infoTipUtils';
 import type { DetailedResult, ExploreResponse, RankedConfig } from '../../types';
 import { countConfigsAtScore } from './scoreCounts';
+import {
+  chunkAvgExplain,
+  maxScoreExplain,
+  plannedResultsLine,
+  queryAvgExplain,
+  resultsColumnExplain,
+  tiedConfigCount,
+  tiedExplain,
+} from './explorerLabels';
+import type { ExplorerPlan } from './explorerPlan';
 import { displayDatabaseProvider } from '../../utils/storageLabels';
 import { formatChunkDimensions } from './formatChunkDimensions';
 
@@ -65,6 +77,9 @@ export function BestParamsCard({
             <span className="text-xs text-amber-300 font-medium">
               {config.tied_count} configs tied at {config.max_score}%
             </span>
+            <InfoTip label={explainLabel('tied count')} className="text-amber-300">
+              {tiedExplain(config.tied_count ?? 0, config.max_score)}
+            </InfoTip>
           </div>
         )}
       </div>
@@ -129,7 +144,10 @@ export function BestParamsCard({
         </div>
 
         <div className="text-right">
-          <div className="text-xs text-slate-400 uppercase tracking-wider">{scoreLabel}</div>
+          <div className="flex items-center justify-end gap-1 text-xs text-slate-400 uppercase tracking-wider">
+            {scoreLabel}
+            <InfoTip label={explainLabel('score')}>{maxScoreExplain()}</InfoTip>
+          </div>
           <div className="text-5xl font-black">
             {config.max_score}<span className="text-2xl text-slate-400">%</span>
           </div>
@@ -137,11 +155,12 @@ export function BestParamsCard({
             <div className="flex items-center justify-end gap-1">
               <span className="text-slate-400">Query Avg:</span>
               <span className="font-semibold text-white">{config.query_avg_score}%</span>
-              <span className="inline-flex items-center justify-center w-3 h-3 rounded-full bg-green-500/20 text-green-300 text-[10px]" title="Weighted per-query average (fairer)">✓</span>
+              <InfoTip label={explainLabel('query avg')}>{queryAvgExplain()}</InfoTip>
             </div>
             <div className="flex items-center justify-end gap-1">
               <span className="text-slate-400">Chunk Avg:</span>
               <span className="text-slate-300">{config.avg_score}%</span>
+              <InfoTip label={explainLabel('chunk avg')}>{chunkAvgExplain()}</InfoTip>
             </div>
           </div>
         </div>
@@ -222,7 +241,7 @@ function ConfigCard({ config, badge, annotation }: {
             <span className="text-xs text-slate-400 uppercase tracking-wider">Query Avg</span>
             <div className="flex items-center gap-1">
               <span className="font-semibold text-slate-700">{config.query_avg_score}%</span>
-              <span className="inline-flex items-center justify-center w-3 h-3 rounded-full bg-green-500/20 text-green-600 text-[9px]" title="Weighted per-query average (fairer)">✓</span>
+              <InfoTip label={explainLabel('query avg')}>{queryAvgExplain()}</InfoTip>
             </div>
           </div>
           <div>
@@ -235,7 +254,19 @@ function ConfigCard({ config, badge, annotation }: {
   );
 }
 
-export function HyperparametersTab({ data }: { data: ExploreResponse }) {
+export function HyperparametersTab({
+  data,
+  plan = null,
+  configsWithResults,
+  topKFinal,
+}: {
+  data: ExploreResponse;
+  /** Planned total and formula from the server's sweep_plan; absent until the experiment loads. */
+  plan?: ExplorerPlan | null;
+  /** Configurations that have results before the retrieval-method filter; defaults to the visible ones. */
+  configsWithResults?: number;
+  topKFinal?: number;
+}) {
   const topConfigs = data.ranked_configs.slice(0, 3);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
@@ -253,6 +284,7 @@ export function HyperparametersTab({ data }: { data: ExploreResponse }) {
   const bestMaxScore = data.best_params?.max_score ?? 0;
   const tiedInTop3 = countConfigsAtScore(topConfigs, bestMaxScore);
   const hasTies = tiedInTop3 > 1;
+  const tiedTotal = tiedConfigCount(data.best_params, data.ranked_configs);
 
   // Extract sweep dimensions from ranked_configs
   const uniqueModels = [...new Set(data.ranked_configs.map((c) => c.embedding_model))];
@@ -261,7 +293,7 @@ export function HyperparametersTab({ data }: { data: ExploreResponse }) {
   const uniqueOverlaps = [...new Set(data.ranked_configs.map((c) => c.overlap))].sort((a, b) => a - b);
   const uniquePaddings = [...new Set(data.ranked_configs.map((c) => c.padding ?? 0))].sort((a, b) => a - b);
   const uniqueRetrievers = [...new Set(data.ranked_configs.map((c) => c.retrieval_method))];
-  const totalConfigs = data.ranked_configs.length;
+  const resultConfigs = configsWithResults ?? data.ranked_configs.length;
 
   const [sweepExpanded, setSweepExpanded] = useState(false);
 
@@ -270,7 +302,7 @@ export function HyperparametersTab({ data }: { data: ExploreResponse }) {
       {/* Explanatory header */}
       <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
         <p className="text-sm text-purple-800">
-          <strong>Aggregated configuration performance</strong> — Each card represents one unique parameter combination
+          <strong>Aggregated configuration performance</strong> — Each card represents one configuration
           (chunking method + chunk size + overlap + padding + model + retrieval). Scores are averaged across all queries.
           See <strong>Detailed Results</strong> tab for individual chunk-level results.
         </p>
@@ -294,7 +326,7 @@ export function HyperparametersTab({ data }: { data: ExploreResponse }) {
             <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">
               Sweep Dimensions
             </span>
-            <span className="text-xs text-slate-500">({totalConfigs} total configurations)</span>
+            <span className="text-xs text-slate-500">({plannedResultsLine(resultConfigs, plan?.plannedTotal ?? null, plan?.isBayesian ?? false)})</span>
           </div>
           <span className="text-xs text-slate-400">Click to {sweepExpanded ? 'collapse' : 'expand'}</span>
         </button>
@@ -372,21 +404,27 @@ export function HyperparametersTab({ data }: { data: ExploreResponse }) {
             </div>
 
             <div className="pt-2 border-t border-slate-100">
-              <p className="text-xs text-slate-500">
-                <strong>Cartesian product:</strong>{' '}
-                <FormulaLine
-                  unit="configuration"
-                  observedTotal={totalConfigs}
-                  terms={[
-                    { count: uniqueModels.length, label: 'model' },
-                    { count: uniqueChunking.length, label: 'chunking method' },
-                    { count: uniqueSizes.length, label: 'size' },
-                    { count: uniqueOverlaps.length, label: 'overlap' },
-                    { count: uniquePaddings.length, label: 'padding' },
-                    { count: uniqueRetrievers.length, label: 'retriever' },
-                  ]}
-                />
-              </p>
+              {plan?.formula ? (
+                <p className="text-xs text-slate-500">
+                  <strong>Cartesian product:</strong> <FormulaLine {...plan.formula} />
+                  {plan.note ? <span className="block mt-1">{plan.note}</span> : null}
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  <strong>Cartesian product of the values seen in results:</strong>{' '}
+                  <FormulaLine
+                    unit="configuration"
+                    terms={[
+                      { count: uniqueModels.length, label: 'model' },
+                      { count: uniqueChunking.length, label: 'chunking method' },
+                      { count: uniqueSizes.length, label: 'size' },
+                      { count: uniqueOverlaps.length, label: 'overlap' },
+                      { count: uniquePaddings.length, label: 'padding' },
+                      { count: uniqueRetrievers.length, label: 'retriever' },
+                    ]}
+                  />
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -397,7 +435,8 @@ export function HyperparametersTab({ data }: { data: ExploreResponse }) {
         <p className="text-sm text-slate-500">
           {hasTies ? (
             <>
-              <strong>{tiedInTop3} configurations achieved {bestMaxScore}% max score.</strong>{' '}
+              <strong>{tiedTotal} configurations achieved {bestMaxScore}% max score.</strong>{' '}
+              <InfoTip label={explainLabel('tied count')}>{tiedExplain(tiedTotal, bestMaxScore)}</InfoTip>{' '}
               Ranked by query avg (weighted per-query average), then chunk size (smaller = faster), then overlap (smaller = less storage), then padding (smaller = less merge-forward).
             </>
           ) : (
@@ -482,9 +521,15 @@ export function HyperparametersTab({ data }: { data: ExploreResponse }) {
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Size/Overlap/Pad</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Retrieval</th>
                 <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Retrieval Prov</th>
-                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Max Score</th>
-                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Avg Score</th>
-                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Results</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">
+                  Max Score <InfoTip label={explainLabel('max score')}>{maxScoreExplain()}</InfoTip>
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">
+                  Avg Score <InfoTip label={explainLabel('avg score')}>{chunkAvgExplain()}</InfoTip>
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">
+                  Results <InfoTip label={explainLabel('results')}>{resultsColumnExplain(topKFinal)}</InfoTip>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

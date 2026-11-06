@@ -12,6 +12,7 @@ import PollingIndicator from '../chrome/PollingIndicator';
 import ConfirmDeleteModal from '../experiment/ConfirmDeleteModal';
 import ExperimentControlButtons from '../experiment/ExperimentControlButtons';
 import OperationalRuntimeCard from '../stats/OperationalRuntimeCard';
+import InfoTip from '../chrome/InfoTip';
 import Pagination from '../chrome/Pagination';
 import { createStallWatcher, type FetchProgressUpdate } from '../../services/fetchWithProgress';
 import { deleteExperiment, getExperiments, getExperimentsWithProgress, getStores, type StoreCatalogEntry } from '../../services/apiClient';
@@ -23,8 +24,17 @@ import {
   experimentOutcomeLabel,
   shouldShowLoadingPanel,
   statusBadgeClass,
+  plannedRunCount,
   statusEdgeClass,
 } from '../experiment/experimentList/labels';
+import {
+  RUNNING_DELETE_EXPLAIN,
+  experimentBayesianExplain,
+  experimentsCountExplain,
+  failedRunsExplain,
+  paginationExplain,
+  plannedRunsExplain,
+} from '../experiment/experimentList/explainLabels';
 
 function ArrowRightIcon() {
   return (
@@ -378,7 +388,12 @@ export default function ExperimentsScreen({
           <div className="font-display text-2xl font-semibold text-accent-strong">
             {initialLoadDone ? experiments.length : '—'}
           </div>
-          <div className="text-xs font-bold uppercase tracking-widest text-accent-strong">Experiments</div>
+          <div className="flex items-center justify-end gap-1 text-xs font-bold uppercase tracking-widest text-accent-strong">
+            Experiments
+            {initialLoadDone ? (
+              <InfoTip label="About the experiment count">{experimentsCountExplain(experiments.length)}</InfoTip>
+            ) : null}
+          </div>
         </div>
       </section>
 
@@ -468,6 +483,7 @@ export default function ExperimentsScreen({
                   const isPaused = isPausedExperimentStatus(exp.status, exp.completed_at);
                   const isCollapsed = collapsedExperiments.has(exp.experiment_id);
                   const showRowControls = isRunning || isPaused;
+                  const bayesianExplain = experimentBayesianExplain(exp);
                   const detailsRegionId = `experiment-details-${exp.experiment_id}`;
                   return (
                     <div
@@ -479,7 +495,6 @@ export default function ExperimentsScreen({
                       <div className="flex flex-wrap items-start gap-2 p-4">
                         <label
                           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${isRunning ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-canvas'}`}
-                          title={isRunning ? 'Cannot delete running experiment' : 'Select experiment for deletion'}
                         >
                           <span className="sr-only">Select {exp.experiment_name}</span>
                           <input
@@ -490,6 +505,9 @@ export default function ExperimentsScreen({
                             className="h-5 w-5 rounded border-line text-accent disabled:cursor-not-allowed disabled:opacity-40"
                           />
                         </label>
+                        {isRunning ? (
+                          <InfoTip label={`About deleting ${exp.experiment_name}`}>{RUNNING_DELETE_EXPLAIN}</InfoTip>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => toggleCollapse(exp.experiment_id)}
@@ -556,13 +574,27 @@ export default function ExperimentsScreen({
                               </button>
                             </div>
                             <div>
-                              <div className="text-xs font-bold uppercase tracking-wider text-muted">Runs</div>
-                              <div className="mt-2 text-sm text-ink">
-                                {exp.run_count ?? '—'}
+                              <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-muted">
+                                Runs
+                                <InfoTip label={`About planned runs for ${exp.experiment_name}`}>{plannedRunsExplain(exp)}</InfoTip>
+                              </div>
+                              <div className="mt-2 flex flex-wrap items-center gap-x-1 text-sm text-ink">
+                                {plannedRunCount(exp) ?? '—'}
                                 {exp.failed_count ? (
-                                  <span className="ml-1 text-red-500">({exp.failed_count} failed)</span>
+                                  <>
+                                    <span className="ml-1 text-red-500">({exp.failed_count} failed)</span>
+                                    <InfoTip label={`About failed runs for ${exp.experiment_name}`}>
+                                      {failedRunsExplain(exp.failed_count, plannedRunCount(exp))}
+                                    </InfoTip>
+                                  </>
                                 ) : null}
                               </div>
+                              {bayesianExplain ? (
+                                <div className="flex items-center gap-1 text-xs text-muted">
+                                  Bayesian trials
+                                  <InfoTip label={`About Bayesian trials for ${exp.experiment_name}`}>{bayesianExplain}</InfoTip>
+                                </div>
+                              ) : null}
                             </div>
                             <div>
                               <div className="text-xs font-bold uppercase tracking-wider text-muted">Git Commit</div>
@@ -580,6 +612,10 @@ export default function ExperimentsScreen({
                 })}
               </div>
               <div className="overflow-hidden rounded-panel border border-line bg-paper shadow-panel">
+                <div className="flex items-center gap-1 px-4 pt-2 text-xs text-muted">
+                  Pagination
+                  <InfoTip label="About pagination">{paginationExplain(currentPage, itemsPerPage, experiments.length)}</InfoTip>
+                </div>
                 <Pagination
                   currentPage={currentPage}
                   totalItems={experiments.length}

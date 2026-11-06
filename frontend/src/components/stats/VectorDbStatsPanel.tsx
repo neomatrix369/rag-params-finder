@@ -2,7 +2,14 @@ import CollapsibleCard from '../chrome/CollapsibleCard';
 import StatRow from './StatRow';
 import StatTile from './StatTile';
 import type { VectorDbStatsGroup } from '../../types';
-import { STATS_SCOPE, estimateFormula } from './estimateLabels';
+import {
+  STATS_SCOPE,
+  chunksEstimateExplain,
+  dbUsedExplain,
+  estimateFormula,
+  experimentsExplain,
+  queryResultsExplain,
+} from './estimateLabels';
 import { GroupResultsHint } from './ResultsBreakdownView';
 import { formatCount, groupResultsBreakdown } from './resultsBreakdown';
 import { usagePercent } from './storageUsage';
@@ -97,11 +104,16 @@ export default function VectorDbStatsPanel({
             }
           >
             <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <StatTile label="Experiments" value={group.totals.experiment_count} />
+              <StatTile
+                label="Experiments"
+                value={group.totals.experiment_count}
+                explain={experimentsExplain()}
+              />
               <StatTile label="Total Chunks" value={group.totals.total_chunks.toLocaleString()} />
               <StatTile
                 label="Query Results"
                 value={formatCount(group.totals.total_results)}
+                explain={queryResultsExplain()}
                 hint={
                   groupResultsBreakdown(group.totals).kind === 'unavailable' ? undefined : (
                     <GroupResultsHint totals={group.totals} />
@@ -115,6 +127,7 @@ export default function VectorDbStatsPanel({
                     ? `${group.totals.database_used_mb} MB`
                     : '—'
                 }
+                explain={dbUsedExplain()}
                 hint={
                   group.totals.database_data_mb != null
                     ? `${group.totals.database_data_mb} MB data · ${group.totals.database_index_mb} MB indexes`
@@ -138,6 +151,7 @@ export default function VectorDbStatsPanel({
               <StatTile
                 label="Chunks (est. MB)"
                 value={`${group.totals.estimated_storage_mb} MB`}
+                explain={chunksEstimateExplain()}
                 hint={`${group.totals.estimated_embedding_mb} MB vectors · ${group.totals.estimated_metadata_mb} MB meta`}
               />
             </div>

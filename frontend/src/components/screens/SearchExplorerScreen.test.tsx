@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EXPLORE_POLL_MS } from '../../constants';
 import type { ExperimentProgressCallback } from '../../services/apiClient';
 import { buildConfig, buildDetailedResult } from '../../test/helpers/explore';
-import type { DetailedResult, Experiment, ExploreResponse, RankedConfig } from '../../types';
+import type { DetailedResult, Experiment, ExploreResponse, RankedConfig, SweepPlan } from '../../types';
 import SearchExplorerScreen from './SearchExplorerScreen';
 
 const apiMocks = vi.hoisted(() => ({
@@ -286,6 +286,7 @@ function minimalExperiment(status: Experiment['status']): Experiment {
 describe('SearchExplorerScreen', () => {
   beforeEach(() => {
     apiMocks.getExperiment.mockReset();
+    apiMocks.getExperiment.mockResolvedValue(null);
     apiMocks.getExperimentExplore.mockReset();
     apiMocks.getExperimentExploreWithProgress.mockReset();
   });
@@ -353,7 +354,7 @@ describe('SearchExplorerScreen', () => {
     fireEvent.click(screen.getByText('Sweep Dimensions'));
 
     // -- Then --
-    expect(screen.getByText(/Cartesian product:/)).toBeInTheDocument();
+    expect(screen.getByText(/Cartesian product of the values seen in results:/)).toBeInTheDocument();
 
     // -- When --
     expect(getByFullText('Showing 1 to 15 of 17')).toBeInTheDocument();
@@ -712,7 +713,8 @@ describe('SearchExplorerScreen', () => {
     // -- Given --
     vi.useFakeTimers();
     apiMocks.getExperimentExploreWithProgress.mockResolvedValueOnce(richExploreResponse);
-    apiMocks.getExperiment.mockResolvedValueOnce(minimalExperiment('complete'));
+    apiMocks.getExperiment.mockResolvedValueOnce(minimalExperiment('complete')); // plan fetch on mount
+    apiMocks.getExperiment.mockResolvedValueOnce(minimalExperiment('complete')); // background poll
     render(<SearchExplorerScreen experimentId={richExploreResponse.experiment_id} onBack={vi.fn()} />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
@@ -725,7 +727,7 @@ describe('SearchExplorerScreen', () => {
     });
 
     // -- Then --
-    expect(apiMocks.getExperiment).toHaveBeenCalledTimes(1);
+    expect(apiMocks.getExperiment).toHaveBeenCalledTimes(2);
     expect(apiMocks.getExperimentExplore).not.toHaveBeenCalled();
   });
 
@@ -740,7 +742,8 @@ describe('SearchExplorerScreen', () => {
     // -- Given --
     vi.useFakeTimers();
     apiMocks.getExperimentExploreWithProgress.mockResolvedValueOnce(richExploreResponse);
-    apiMocks.getExperiment.mockResolvedValueOnce(minimalExperiment('running'));
+    apiMocks.getExperiment.mockResolvedValueOnce(minimalExperiment('running')); // plan fetch on mount
+    apiMocks.getExperiment.mockResolvedValueOnce(minimalExperiment('running')); // background poll
     const polledResponse: ExploreResponse = {
       ...richExploreResponse,
       ranked_configs: [...rankedConfigs, buildConfig(18)],
@@ -904,7 +907,8 @@ describe('SearchExplorerScreen', () => {
     // -- Given --
     vi.useFakeTimers();
     apiMocks.getExperimentExploreWithProgress.mockResolvedValueOnce(richExploreResponse);
-    apiMocks.getExperiment.mockResolvedValueOnce(minimalExperiment('running'));
+    apiMocks.getExperiment.mockResolvedValueOnce(minimalExperiment('running')); // plan fetch on mount
+    apiMocks.getExperiment.mockResolvedValueOnce(minimalExperiment('running')); // background poll
     apiMocks.getExperimentExplore.mockRejectedValueOnce(new Error('poll boom'));
     render(<SearchExplorerScreen experimentId={richExploreResponse.experiment_id} onBack={vi.fn()} />);
     await act(async () => {
@@ -941,7 +945,8 @@ describe('SearchExplorerScreen', () => {
         return new Promise<ExploreResponse>(() => undefined);
       },
     );
-    apiMocks.getExperiment.mockResolvedValueOnce(minimalExperiment('running'));
+    apiMocks.getExperiment.mockResolvedValueOnce(minimalExperiment('running')); // plan fetch on mount
+    apiMocks.getExperiment.mockResolvedValueOnce(minimalExperiment('running')); // background poll
     apiMocks.getExperimentExplore.mockResolvedValueOnce(richExploreResponse);
     render(<SearchExplorerScreen experimentId={richExploreResponse.experiment_id} onBack={vi.fn()} />);
     expect(screen.getByText('Loading results…')).toBeInTheDocument();
@@ -1017,5 +1022,146 @@ describe('SearchExplorerScreen', () => {
 
     // -- Then --
     expect(screen.getByText(/Still waiting/)).toBeInTheDocument();
+  });
+
+  describe('planned total and explanations (Slice 67G-B)', () => {
+    const sweepSummary = {
+      database_provider: 'mongodb',
+      embedding_provider: 'voyage',
+      models: ['voyage-3.5-lite', 'voyage-3.5'],
+      chunking_methods: ['fixed', 'recursive'],
+      chunk_sizes: [256, 512],
+      overlaps: [20],
+      paddings: [],
+      retrievers: ['dense', 'sparse', 'hybrid'],
+    };
+    const gridPlan: SweepPlan = {
+      dimension_counts: { models: 2, chunking_methods: 2, chunk_sizes: 2, overlaps: 1, paddings: 1, retrievers: 3 },
+      full_grid_count: 24,
+      searchable_space: null,
+      planned_runs: 24,
+      search_strategy: 'grid',
+      warnings: [],
+    };
+    const planned = (overrides: Partial<Experiment> = {}): Experiment => ({
+      ...minimalExperiment('complete'),
+      sweep_summary: sweepSummary,
+      sweep_plan: gridPlan,
+      run_count: 24,
+      top_k_final: 5,
+      ...overrides,
+    });
+
+    async function openExplorer() {
+      apiMocks.getExperimentExploreWithProgress.mockResolvedValueOnce(richExploreResponse);
+      render(<SearchExplorerScreen experimentId={richExploreResponse.experiment_id} onBack={vi.fn()} />);
+      await screen.findByText('All Configurations (17)');
+    }
+
+    it('Given a grid sweep_plan of 24, when the Explorer renders, then it says 17 of 24 planned runs have results and the formula equals 24 with no (observed)', async () => {
+      /**
+       * Scenario: the Explorer denominator is the planned total, and the formula is the planned grid.
+       * Slice: 67G-B - replaces the observedTotal line.
+       */
+      // -- Given --
+      apiMocks.getExperiment.mockResolvedValue(planned());
+
+      // -- When --
+      await openExplorer();
+      await screen.findByText('(17 of 24 planned runs have results)');
+      fireEvent.click(screen.getByText('Sweep Dimensions'));
+
+      // -- Then --
+      expect(
+        screen.getByText('2 models × 2 chunking methods × 2 sizes × 1 overlap × 1 padding × 3 retrievers = 24 configurations'),
+      ).toBeInTheDocument();
+      expect(document.body.textContent).not.toContain('(observed)');
+      expect(document.body.textContent).not.toContain('total configurations');
+    });
+
+    it('Given a Bayesian plan of 5 planned trials, when the Explorer renders, then M is 5 trials and the grid note is shown', async () => {
+      /**
+       * Scenario: Bayesian M = planned_runs, never the grid product or the count of completed configs.
+       * Slice: 67G-B.
+       */
+      // -- Given --
+      apiMocks.getExperiment.mockResolvedValue(
+        planned({
+          sweep_plan: { ...gridPlan, search_strategy: 'bayesian', planned_runs: 5, searchable_space: 2 },
+          run_count: 99,
+          bayesian_summary: { planned_trials: 5 },
+        }),
+      );
+
+      // -- When --
+      await openExplorer();
+      await screen.findByText('(17 of 5 planned trials have results)');
+      fireEvent.click(screen.getByText('Sweep Dimensions'));
+
+      // -- Then --
+      expect(screen.getByText(/The grid above is not run in full/)).toBeInTheDocument();
+      expect(screen.getByText(/= 24 configurations$/)).toBeInTheDocument();
+    });
+
+    it('Given the experiment cannot be loaded, when the Explorer renders, then it states only the observed count and labels the values-seen product', async () => {
+      /**
+       * Scenario: no plan means no denominator and no false equality.
+       * Slice: 67G-B.
+       */
+      // -- Given --
+      apiMocks.getExperiment.mockRejectedValue(new Error('boom'));
+
+      // -- When --
+      await openExplorer();
+      fireEvent.click(screen.getByText('Sweep Dimensions'));
+
+      // -- Then --
+      expect(screen.getByText('(17 configurations have results)')).toBeInTheDocument();
+      expect(screen.getByText(/Cartesian product of the values seen in results:/)).toBeInTheDocument();
+      expect(document.body.textContent).not.toContain('(observed)');
+    });
+
+    it('Given the server reports 5 tied configs but only 3 sit in the top three, when the Explorer renders, then every tied count says 5', async () => {
+      /**
+       * Scenario: one definition of tied across the badge, the sentence and the tip.
+       * Slice: 67G-B - the sentence used to count only the top three.
+       */
+      // -- Given --
+      apiMocks.getExperiment.mockResolvedValue(planned());
+      apiMocks.getExperimentExploreWithProgress.mockResolvedValueOnce({
+        ...richExploreResponse,
+        best_params: { ...richExploreResponse.best_params!, tied_count: 5 },
+      });
+
+      // -- When --
+      render(<SearchExplorerScreen experimentId={richExploreResponse.experiment_id} onBack={vi.fn()} />);
+      await screen.findByText('5 configurations achieved 92% max score.');
+
+      // -- Then --
+      expect(screen.getByText('5 configs tied at 92%')).toBeInTheDocument();
+      const tips = screen.getAllByRole('tooltip', { hidden: true }).map((tip) => tip.textContent);
+      expect(tips.filter((text) => text?.startsWith('5 configurations share the top max score of 92%.')).length).toBe(2);
+    });
+
+    it('Given the Explorer rows, when rendered, then the old native title tooltips are gone and the score, query avg and matches tips carry the definitions', async () => {
+      /**
+       * Scenario: explanatory text lives in InfoTip, not in a native title attribute.
+       * Slice: 67G-B.
+       */
+      // -- Given --
+      apiMocks.getExperiment.mockResolvedValue(planned());
+
+      // -- When --
+      await openExplorer();
+      await waitFor(() => expect(screen.getByText(/at most 5 chunks per query \(top_k_final\)/)).toBeInTheDocument());
+
+      // -- Then --
+      expect(document.querySelector('[title*="Weighted per-query average"]')).toBeNull();
+      const tips = screen.getAllByRole('tooltip', { hidden: true }).map((tip) => tip.textContent ?? '');
+      expect(tips.some((text) => text.startsWith('Scores are min-max normalised to 0-100'))).toBe(true);
+      expect(tips.some((text) => text.startsWith('Query avg first takes the mean chunk score of each query'))).toBe(true);
+      expect(tips.some((text) => text.startsWith('18 matches') || text.startsWith('17 matches'))).toBe(true);
+      expect(tips.some((text) => text.startsWith('Results counts the chunk rows') && text.includes('at most 5 per query'))).toBe(true);
+    });
   });
 });

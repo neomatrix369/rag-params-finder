@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import AboutButton from '../about/AboutButton';
+import GlossaryButton from './GlossaryButton';
 import { APP_FOOTNOTE_SUMMARY, APP_NAME, APP_READ_ONLY_NOTE, APP_TAGLINE } from '../../constants';
 
 /** canvas: warm page treatment · darkFrame: shared ink application frame */
@@ -35,7 +36,10 @@ function BrandBlock({ isDark }: { isDark: boolean }) {
         <p className={`mt-2 max-w-md text-xs leading-relaxed sm:text-sm ${isDark ? 'text-slate-300' : 'text-muted'}`}>
           {APP_TAGLINE}
         </p>
-        <AboutButton isDark={isDark} />
+        <div className="flex flex-wrap gap-2">
+          <AboutButton isDark={isDark} />
+          <GlossaryButton isDark={isDark} />
+        </div>
       </div>
     </div>
   );

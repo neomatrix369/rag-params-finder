@@ -83,6 +83,27 @@ describe('StatTile', () => {
     expect(screen.getByText('done + failed')).toBeVisible();
   });
 
+  it('Given both hint and explain, when rendered, then ONE tip carries both sentences', () => {
+    /**
+     * Scenario: a tile with hint and explain shows a single info button (owner decision).
+     * Slice: 67G-A - one tip per tile.
+     * Given a tile with a hint and an explain sentence,
+     * When rendered and the single button is tapped,
+     * Then there is exactly one button, one tooltip, and both sentences are inside it, explain first.
+     */
+    // -- Given / When --
+    render(<StatTile label="Total" value={12} hint="the hint" explain="the formula" />);
+    // -- Then --
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    const button = screen.getByRole('button', { name: explainLabel('Total') });
+    const tip = screen.getByRole('tooltip', { hidden: true });
+    expect(button).toHaveAttribute('aria-describedby', tip.id);
+    fireEvent.click(button);
+    expect(tip.textContent).toBe('the formulathe hint');
+    expect(screen.getByText('the hint')).toBeVisible();
+    expect(screen.getByText('the formula')).toBeVisible();
+  });
+
   it('Given no hint and no explain, when rendered, then there is no info button', () => {
     /**
      * Scenario: Self-explanatory tiles stay clean.

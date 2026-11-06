@@ -379,4 +379,63 @@ describe('CrossStoreLeaderboard', () => {
     // -- Then --
     expect(screen.getByTestId('dedup-note')).toHaveTextContent(/same config.*more than once.*only the latest run/i)
   })
+
+  it('Given collapsedDuplicates of 0 and 1, when rendered, then each count is stated with the right noun', () => {
+    /**
+     * Scenario: 0 and 1 are real counts, not "absent".
+     * Slice: 67G - dedup visibility
+     */
+    // -- Given / When --
+    const { rerender } = render(
+      <CrossStoreLeaderboard results={makeWalkthruResults()} onSelectRun={() => {}} collapsedDuplicates={0} />,
+    )
+    const zero = screen.getByTestId('dedup-note').textContent
+    rerender(<CrossStoreLeaderboard results={makeWalkthruResults()} onSelectRun={() => {}} collapsedDuplicates={1} />)
+
+    // -- Then --
+    expect(zero).toMatch(/^0 duplicate rows were collapsed/)
+    expect(screen.getByTestId('dedup-note')).toHaveTextContent(/^1 duplicate row was collapsed/)
+  })
+
+  it('Given the leaderboard, when rendered, then score, rank and overlap each carry an InfoTip', () => {
+    /**
+     * Scenario: Score normalisation, lone-run, rank and overlap are explained in tips.
+     * Slice: 67G - Compare/Walkthru explanations
+     */
+    // -- Given / When --
+    render(<CrossStoreLeaderboard results={makeWalkthruResults()} onSelectRun={() => {}} />)
+
+    // -- Then --
+    expect(screen.getAllByRole('button', { name: 'About the similarity score' }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: 'About the rank' }).length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: 'About the store overlap' })).toBeInTheDocument()
+    expect(screen.getAllByText(/lowest run in the group is 0 and the highest is 100/).length).toBeGreaterThan(0)
+  })
+
+  it.each([
+    ['group' as const, 'counted inside its group'],
+    ['export' as const, 'counted across the whole export'],
+  ])('Given rankScope %s, when rendered, then the rank tip says "%s"', (rankScope, phrase) => {
+    /**
+     * Scenario: The rank tip names where rank is counted.
+     * Slice: 67G - rank scope
+     */
+    // -- Given / When --
+    render(<CrossStoreLeaderboard results={makeWalkthruResults()} onSelectRun={() => {}} rankScope={rankScope} />)
+
+    // -- Then --
+    expect(screen.getAllByText((content) => content.includes(phrase)).length).toBeGreaterThan(0)
+  })
+
+  it('Given no rankScope, when rendered, then the Walkthru default (whole export) applies', () => {
+    /**
+     * Scenario: Walkthru passes no prop; rank spans the export.
+     * Slice: 67G - rank scope default
+     */
+    // -- Given / When --
+    render(<CrossStoreLeaderboard results={makeWalkthruResults()} onSelectRun={() => {}} />)
+
+    // -- Then --
+    expect(screen.queryByText(/counted inside its group/)).not.toBeInTheDocument()
+  })
 })

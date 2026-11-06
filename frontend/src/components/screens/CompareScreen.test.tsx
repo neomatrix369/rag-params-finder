@@ -143,4 +143,57 @@ describe('CompareScreen', () => {
     // -- Then --
     await waitFor(() => expect(signal?.aborted).toBe(true));
   });
+
+  it.each([
+    [0, /^0 duplicate rows were collapsed/],
+    [1, /^1 duplicate row was collapsed/],
+    [9, /^9 duplicate rows were collapsed/],
+  ])('Given duplicates_collapsed=%i, when the screen renders, then the dedup note states the count', async (collapsed, expected) => {
+    /**
+     * Scenario: The backend count reaches the visible dedup sentence.
+     * Slice: 67G - duplicates_collapsed wiring
+     */
+    // -- Given --
+    apiMocks.getCompare.mockResolvedValue({ ...populated, duplicates_collapsed: collapsed });
+
+    // -- When --
+    render(<CompareScreen onBack={() => {}} />);
+
+    // -- Then --
+    expect(await screen.findByTestId('dedup-note')).toHaveTextContent(expected);
+  });
+
+  it('Given an older server without duplicates_collapsed, when the screen renders, then only the rule is shown, no count', async () => {
+    /**
+     * Scenario: An absent field never invents a number.
+     * Slice: 67G - duplicates_collapsed wiring (older server)
+     */
+    // -- Given --
+    apiMocks.getCompare.mockResolvedValue(populated);
+
+    // -- When --
+    render(<CompareScreen onBack={() => {}} />);
+
+    // -- Then --
+    const note = await screen.findByTestId('dedup-note');
+    expect(note).toHaveTextContent(/^When a store ran the same config more than once/);
+    expect(note.textContent).not.toMatch(/\d/);
+  });
+
+  it('Given the live Compare screen, when it renders, then the rank tip says rank is counted inside each group', async () => {
+    /**
+     * Scenario: Live rank is within a group.
+     * Slice: 67G - rank scope
+     */
+    // -- Given --
+    apiMocks.getCompare.mockResolvedValue(populated);
+
+    // -- When --
+    render(<CompareScreen onBack={() => {}} />);
+
+    // -- Then --
+    await screen.findByTestId('group-g-a');
+    expect(screen.getAllByText(/counted inside its group/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/counted across the whole export/)).not.toBeInTheDocument();
+  });
 });
