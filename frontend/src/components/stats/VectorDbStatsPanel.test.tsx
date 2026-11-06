@@ -7,6 +7,8 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { vectorDbGroup } from '../../test/helpers/vectorDbStats';
 import VectorDbStatsPanel from './VectorDbStatsPanel';
+import { aboutLabel, explainLabel } from '../chrome/infoTipUtils';
+import { dbUsedExplain, experimentsExplain, queryResultsExplain } from './estimateLabels';
 
 function group(
   overrides: Parameters<typeof vectorDbGroup>[0] = {},
@@ -263,5 +265,33 @@ describe('VectorDbStatsPanel', () => {
     expect(screen.getByText('Chunks (est. MB)')).toBeInTheDocument();
     expect(screen.getByTestId('stats-scope')).toHaveTextContent(/all experiments stored in this database/i);
     expect(screen.getByTestId('stats-scope')).toHaveTextContent(/tiles that this backend does not report show —/i);
+  });
+
+  it('Given a group, when rendered, then every inventory tile has an explain tip that names its scope', () => {
+    /**
+     * Scenario: Experiments, Query Results, DB Used and Chunks (est. MB) are each explained.
+     * Slice: 67G-A - stats tips
+     * Given a group with data and index sizes,
+     * When the panel renders,
+     * Then each of the four tiles has one explain button whose tooltip ends with the whole-store scope,
+     *   the estimate tile says est. with the formula, and DB Used carries its hint in the SAME tip.
+     */
+    // -- Given / When --
+    render(
+      <VectorDbStatsPanel
+        groups={[group({ totals: { ...group().totals, database_data_mb: 30, database_index_mb: 10 } })]}
+      />,
+    );
+
+    // -- Then --
+    const tip = (tile: string) => {
+      const button = screen.getByRole('button', { name: explainLabel(tile) });
+      return document.getElementById(button.getAttribute('aria-describedby') ?? '')?.textContent ?? '';
+    };
+    expect(tip('Experiments')).toBe(experimentsExplain());
+    expect(tip('Query Results')).toBe(queryResultsExplain());
+    expect(tip('DB Used')).toBe(`${dbUsedExplain()}30 MB data · 10 MB indexes`);
+    expect(tip('Chunks (est. MB)')).toMatch(/^est\. MB = chunks × average dimensions × 4 bytes.*Scope: whole store\./);
+    expect(screen.queryByRole('button', { name: aboutLabel('DB Used') })).toBeNull();
   });
 });

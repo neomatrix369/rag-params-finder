@@ -18,6 +18,20 @@ import ConfirmDeleteModal from '../experiment/ConfirmDeleteModal';
 import CollapsibleCard from '../chrome/CollapsibleCard';
 import Pagination from '../chrome/Pagination';
 import FormulaLine from '../chrome/FormulaLine';
+import InfoTip from '../chrome/InfoTip';
+import { aboutLabel } from '../chrome/infoTipUtils';
+import {
+  bayesianTrialsExplain,
+  discardedExplain,
+  durationExplain,
+  exploreHint,
+  failedExplain,
+  inProgressExplain,
+  interruptedExplain,
+  notStartedExplain,
+  successfulExplain,
+  totalExplain,
+} from './detailExplain';
 import { sweepFormulaFromSummary, sweepNote } from '../../utils/sweepFormula';
 import {
   detailIcons as icons,
@@ -323,6 +337,8 @@ export default function ExperimentDetailScreen({
     : isRunning
       ? 'Await first completed run'
       : 'No completed results';
+  const exploreTip = exploreHint(isRunning, isPaused);
+  const exploreLabel = isRunning ? 'Explore live results' : 'Explore results';
   const metricsGridClass = runSummary.inProgress > 0
     ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 p-4'
     : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 p-4';
@@ -387,18 +403,14 @@ export default function ExperimentDetailScreen({
                 <button
                   type="button"
                   onClick={onExplore}
-                  title={
-                    isRunning
-                      ? 'Opens Search Explorer with data stored so far; more results appear as runs finish.'
-                      : isPaused
-                        ? 'Explore results from completed runs; resume to continue the sweep.'
-                        : undefined
-                  }
                   className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-strong"
                 >
-                  {icons.search} {isRunning ? 'Explore live results' : 'Explore results'}
+                  {icons.search} {exploreLabel}
                 </button>
               )}
+              {canExplore && exploreTip ? (
+                <InfoTip label={aboutLabel(exploreLabel)}>{exploreTip}</InfoTip>
+              ) : null}
               {canDelete && (
                 <button
                   type="button"
@@ -431,16 +443,45 @@ export default function ExperimentDetailScreen({
           </div>
 
           <div className={metricsGridClass}>
-            <StatCard compact label="Total" value={totalPlanned} icon={icons.grid} color="blue" />
-            <StatCard compact label="Successful" value={runSummary.complete} icon={icons.check} color="green" />
-            <StatCard compact label="Failed" value={runSummary.failed} icon={icons.x} color="red" />
-            <StatCard compact label="Interrupted" value={runSummary.interrupted} icon={icons.x} color="amber" />
+            <StatCard
+              compact
+              label="Total"
+              value={totalPlanned}
+              icon={icons.grid}
+              color="blue"
+              explain={totalExplain(isBayesianStrategy, totalPlanned)}
+            />
+            <StatCard
+              compact
+              label="Successful"
+              value={runSummary.complete}
+              icon={icons.check}
+              color="green"
+              explain={successfulExplain(runSummary.complete)}
+            />
+            <StatCard
+              compact
+              label="Failed"
+              value={runSummary.failed}
+              icon={icons.x}
+              color="red"
+              explain={failedExplain(runSummary.failed)}
+            />
+            <StatCard
+              compact
+              label="Interrupted"
+              value={runSummary.interrupted}
+              icon={icons.x}
+              color="amber"
+              explain={interruptedExplain(runSummary.interrupted)}
+            />
             <StatCard
               compact
               label="Not Started"
               value={bayesianNotStarted}
               icon={icons.grid}
               color="slate"
+              explain={notStartedExplain(isBayesianStrategy, bayesianNotStarted)}
             />
             {isBayesianStrategy && (
               <StatCard
@@ -449,10 +490,18 @@ export default function ExperimentDetailScreen({
                 value={bayesianDiscardedCount}
                 icon={icons.x}
                 color="slate"
+                explain={discardedExplain(bayesianDiscardedCount)}
               />
             )}
             {runSummary.inProgress > 0 && (
-              <StatCard compact label="In Progress" value={runSummary.inProgress} icon={icons.play} color="purple" />
+              <StatCard
+                compact
+                label="In Progress"
+                value={runSummary.inProgress}
+                icon={icons.play}
+                color="purple"
+                explain={inProgressExplain(runSummary.inProgress)}
+              />
             )}
             <StatCard
               compact
@@ -464,6 +513,7 @@ export default function ExperimentDetailScreen({
               }
               icon={icons.clock}
               color="purple"
+              explain={durationExplain(isRunning || isPaused)}
             />
           </div>
           {isBayesianStrategy && (
@@ -649,6 +699,7 @@ export default function ExperimentDetailScreen({
               <CollapsibleCard
                 title="Bayesian Summary"
                 icon={icons.grid}
+                explain={bayesianTrialsExplain(totalPlanned, detail.grid_equivalent_count)}
                 storageKey={`detail-bayesian-summary-${experimentId}`}
                 headerExtra={
                   <span className="text-sm font-semibold text-accent-strong">
