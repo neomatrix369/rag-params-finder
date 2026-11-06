@@ -26,7 +26,7 @@ const SOURCES = import.meta.glob(
     '/src/components/experiment/experimentList/explainLabels.ts',
     '/src/components/walkthru/CrossStoreLeaderboard.tsx',
     '/src/components/walkthru/ImprovementPanel.tsx',
-    '/src/components/screens/CompareScreen.tsx',
+
     '/src/components/stats/estimateLabels.ts',
     '/src/components/stats/resultsBreakdown.ts',
     '/src/components/stats/ResultsBreakdownView.tsx',
@@ -76,7 +76,6 @@ const SCREENS = [
   'src/components/screens/ExperimentsScreen.tsx',
   'src/components/walkthru/CrossStoreLeaderboard.tsx',
   'src/components/walkthru/ImprovementPanel.tsx',
-  'src/components/screens/CompareScreen.tsx',
   'src/components/experiment/experimentDetail/ProgressSubtitle.tsx',
   'src/components/stats/ResultsBreakdownView.tsx',
   'src/components/stats/ExperimentStoredFootprint.tsx',

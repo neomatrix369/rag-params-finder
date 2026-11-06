@@ -159,6 +159,23 @@ export async function getCompare(signal?: AbortSignal): Promise<CompareResponse>
   return response.json() as Promise<CompareResponse>;
 }
 
+export async function getExploreMulti(
+  ids: string[],
+  signal?: AbortSignal,
+): Promise<ExploreResponse> {
+  const params = new URLSearchParams();
+  for (const id of ids) params.append('ids', id);
+  const url = `${API_BASE_URL}/api/v1/explore/multi?${params.toString()}`;
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(url, { signal }, API_FETCH_TIMEOUT_MS);
+  } catch (err) {
+    rethrowWithFetchHint(url, err);
+  }
+  await assertOk(response, url, 'Failed to load multi-experiment comparison');
+  return response.json() as Promise<ExploreResponse>;
+}
+
 export async function getExperiments(signal?: AbortSignal): Promise<Experiment[]> {
   let response: Response;
   try {

@@ -14,6 +14,7 @@ import {
   getExperiment,
   getExperimentExplore,
   getExperimentExploreWithProgress,
+  getExploreMulti,
   type ExperimentProgressCallback,
 } from '../../services/apiClient';
 import { createStallWatcher, formatBytes, type FetchProgressUpdate } from '../../services/fetchWithProgress';
@@ -38,11 +39,15 @@ type Tab = 'hyperparameters' | 'detailed';
 
 export default function SearchExplorerScreen({
   experimentId,
+  experimentIds,
   onBack,
 }: {
   experimentId: string;
+  /** When provided, compare mode: fetch merged results for all IDs, no polling. */
+  experimentIds?: string[];
   onBack: () => void;
 }) {
+  const isMulti = experimentIds !== undefined && experimentIds.length >= 2;
   const [data, setData] = useState<ExploreResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   /** True on first paint so we never flash an empty canvas before the fetch effect runs */
@@ -71,6 +76,7 @@ export default function SearchExplorerScreen({
   }, [experimentId]);
 
   useEffect(() => {
+    if (isMulti) return;
     const abort = new AbortController();
     setExperiment(null);
     getExperiment(experimentId, abort.signal)
@@ -81,7 +87,7 @@ export default function SearchExplorerScreen({
         devWarn('SearchExplorerScreen', `plan fetch failed — ${experimentId.slice(0, 8)}… — ${String(err)}`);
       });
     return () => abort.abort();
-  }, [experimentId]);
+  }, [experimentId, isMulti]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -114,7 +120,9 @@ export default function SearchExplorerScreen({
     async function fetchExplore() {
       devInfo(
         'SearchExplorerScreen',
-        `hydrate started — ${experimentId.slice(0, 8)}…${selectedQuery ? ' (filtered query)' : ''}`,
+        isMulti
+          ? `compare hydrate started — ${experimentIds!.length} experiments`
+          : `hydrate started — ${experimentId.slice(0, 8)}…${selectedQuery ? ' (filtered query)' : ''}`,
       );
       setLoading(true);
       setReceivedBytes(null);
@@ -133,12 +141,14 @@ export default function SearchExplorerScreen({
       setError(null);
       stall.start();
       try {
-        const payload = await getExperimentExploreWithProgress(
-          experimentId,
-          selectedQuery || undefined,
-          applyProg,
-          abort.signal,
-        );
+        const payload = isMulti
+          ? await getExploreMulti(experimentIds!, abort.signal)
+          : await getExperimentExploreWithProgress(
+              experimentId,
+              selectedQuery || undefined,
+              applyProg,
+              abort.signal,
+            );
         stall.stop();
         if (!aliveRef.current) return;
         setFeed((f) => appendFeedEntry(f, 'Explorer snapshot ready.', 'default'));
@@ -174,12 +184,11 @@ export default function SearchExplorerScreen({
       abort.abort();
       stall.stop();
     };
-  }, [experimentId, selectedQuery]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [experimentId, isMulti, selectedQuery]);
 
   useEffect(() => {
-    if (!pollWhileRunning) {
-      return;
-    }
+    if (!pollWhileRunning || isMulti) return;
     const id = window.setInterval(() => {
       void (async () => {
         setIsPolling(true);
@@ -217,7 +226,7 @@ export default function SearchExplorerScreen({
       })();
     }, EXPLORE_POLL_MS);
     return () => window.clearInterval(id);
-  }, [experimentId, pollWhileRunning]);
+  }, [experimentId, isMulti, pollWhileRunning]);
 
   const handleToggleMethod = useCallback((method: string) => {
     setSelectedMethods((prev) => {
@@ -277,7 +286,11 @@ export default function SearchExplorerScreen({
         <AppPageChrome
           tone="darkFrame"
           pageTitle="Search explorer"
-          pageHint={`Aggregates for experiment ${experimentId.slice(0, 8)}… — ranked configs, optional query filter, and per-hit scores. Sidebar controls retrieval-method visibility.`}
+          pageHint={
+            isMulti
+              ? `Comparing ${experimentIds!.length} experiments — merged ranked configs, optional query filter, and per-hit scores. database_provider column shows which store each config came from.`
+              : `Aggregates for experiment ${experimentId.slice(0, 8)}… — ranked configs, optional query filter, and per-hit scores. Sidebar controls retrieval-method visibility.`
+          }
           topRight={
             pollWhileRunning ? (
               <PollingIndicator active={isPolling} showDelayMs={600} minVisibleMs={1000} tone="dark" />
