@@ -188,28 +188,34 @@ describe('ExperimentsScreen lifecycle presentation', () => {
     expect(actualLifecyclePresentation).toEqual(expectedLifecyclePresentation);
   });
 
-  it('Given the list loads, when Compare sweeps is clicked, then onCompare fires and nothing was fetched before', async () => {
+  it('Given two experiments selected, when Compare is clicked, then onCompare fires with their IDs', async () => {
     /**
-     * Scenario: The compare endpoint is only hit after an explicit click (the screen it opens fetches).
-     * Slice: 66 - live cross-store compare button.
-     * Given the list is rendered with an onCompare handler.
-     * When the operator clicks Compare sweeps.
-     * Then onCompare is called once and the list itself never called getCompare.
+     * Scenario: Selecting 2+ experiments and clicking Compare triggers the merged leaderboard.
+     * Slice: 66 - selection-based merged leaderboard.
+     * Given two completed experiments and an onCompare handler.
+     * When both are selected and the Compare button is clicked.
+     * Then onCompare is called with both experiment IDs.
      */
     // -- Given --
+    const exp1 = experiment('complete');
+    const exp2 = experiment('complete', 0, { experiment_id: 'experiment-complete-2', experiment_name: 'complete sweep 2' });
+    apiMocks.getExperiments.mockResolvedValue([exp1, exp2]);
+    apiMocks.getExperimentsWithProgress.mockResolvedValue([exp1, exp2]);
     const onCompare = vi.fn();
     render(
-      <ExperimentsScreen cacheReady cachedExperiments={lifecycleExperiments} onCompare={onCompare} />,
+      <ExperimentsScreen cacheReady cachedExperiments={[exp1, exp2]} onCompare={onCompare} />,
     );
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
     expect(onCompare).not.toHaveBeenCalled();
 
     // -- When --
-    fireEvent.click(screen.getByRole('button', { name: 'Compare sweeps' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: `Select ${exp1.experiment_name}` }));
+    fireEvent.click(screen.getByRole('checkbox', { name: `Select ${exp2.experiment_name}` }));
+    fireEvent.click(screen.getByRole('button', { name: 'Compare 2' }));
 
     // -- Then --
     expect(onCompare).toHaveBeenCalledOnce();
-    expect(apiMocks.getCompare).not.toHaveBeenCalled();
+    expect(onCompare).toHaveBeenCalledWith(expect.arrayContaining([exp1.experiment_id, exp2.experiment_id]));
   });
 
   it('Given no experiments, when the empty state renders, then both storage paths are offered', async () => {

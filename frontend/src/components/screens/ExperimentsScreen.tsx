@@ -79,7 +79,7 @@ export default function ExperimentsScreen({
   onCompare,
 }: {
   onSelect?: (experiment: Experiment) => void;
-  onCompare?: () => void;
+  onCompare?: (ids: string[]) => void;
   cacheReady?: boolean;
   cachedExperiments?: Experiment[];
   onCacheUpdate?: (update: { experiments: Experiment[] }) => void;
@@ -374,15 +374,6 @@ export default function ExperimentsScreen({
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
             Start with lifecycle state and sweep health. Open an experiment to connect its identity and configuration to the runs and stored results already produced.
           </p>
-          {onCompare ? (
-            <button
-              type="button"
-              onClick={onCompare}
-              className="mt-3 min-h-11 rounded-lg border border-line bg-paper px-3 text-sm font-semibold text-ink hover:border-accent"
-            >
-              Compare sweeps
-            </button>
-          ) : null}
         </div>
         <div className="shrink-0 rounded-xl border border-accent bg-accent-soft px-4 py-3 text-right">
           <div className="font-display text-2xl font-semibold text-accent-strong">
@@ -457,14 +448,25 @@ export default function ExperimentsScreen({
                       Clear selection
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteModal(true)}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 text-sm font-semibold text-red-800 transition-colors hover:bg-red-100"
-                  >
-                    <TrashIcon />
-                    Delete {selectedExperiments.size}
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    {onCompare && selectedExperiments.size >= 2 && (
+                      <button
+                        type="button"
+                        onClick={() => onCompare(Array.from(selectedExperiments))}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-accent bg-accent-soft px-4 text-sm font-semibold text-accent-strong transition-colors hover:bg-accent/20"
+                      >
+                        Compare {selectedExperiments.size}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteModal(true)}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 text-sm font-semibold text-red-800 transition-colors hover:bg-red-100"
+                    >
+                      <TrashIcon />
+                      Delete {selectedExperiments.size}
+                    </button>
+                  </div>
                 </div>
               )}
               <label className="mb-3 flex min-h-11 w-fit cursor-pointer items-center gap-3 rounded-lg border border-line bg-paper px-3 text-xs font-bold uppercase tracking-wider text-muted shadow-panel">
