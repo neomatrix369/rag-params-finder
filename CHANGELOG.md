@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Slice 67G — tips on every dashboard number, Glossary, Explorer planned total** — completes Slice 67 "Correct and Explainable Dashboard Numbers".
+  - `GlossaryButton` mounted on every screen via `AppPageChrome`; 10 fixed terms (Run, Planned runs, Configuration, Trial, Query result, Golden query/record, Similarity score, Lone run = 100, Observed vs planned, Est.) live in pure `glossary.ts`.
+  - Detail screen: `detailExplain.ts` (10 pure explain functions) on every stat card; `StatTile` renders one `InfoTip`; `estimateLabels.ts` expanded with scope-annotated estimates.
+  - Explorer: `explorerPlan.ts` maps `sweep_plan` → planned-total + formula; `ExplorePanels` header prints `(N of M planned runs have results)`; `FormulaLine` replaces the `observedTotal` prop; Explorer and Detail totals verified by a 5-fixture agreement test.
+  - List screen: `explainLabels.ts` — experiment count, pagination, Bayesian trials, delete-when-running tips.
+  - Compare screen: wires `duplicates_collapsed` + `rankScope="group"` to the leaderboard.
+  - Walkthru: `scoreLabels.ts` expanded; `CrossStoreLeaderboard` and `ImprovementPanel` carry score, rank, overlap and baseline tips.
+  - Determinism guard (`deterministicNumbers.guard.test.ts`) extended to cover all new pure modules and screens.
+  - "combination" vocabulary retired in favour of "configuration" throughout.
 - **Slice 67F — compare reports collapsed duplicates** — `GET /api/v1/compare` now returns `duplicates_collapsed`, the number of earlier runs of the same config on the same store that were dropped in favour of the latest, so the dashboard can explain why a count is smaller than the raw count. Computed by a pure function; no UI change yet.
 - **Slice 67D (first bundle) — dashboard numbers that add up** — the Detail screen, list and Compare/stats panels now agree and say how a number was reached.
   - Bayesian experiments use one denominator everywhere on the Detail screen (Total tile, progress ring, subtitle, totals line, planned trials, overview sentence); the totals line reads `Total 20 = 13 attempted + 4 discarded + 3 not started`.

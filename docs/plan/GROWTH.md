@@ -114,3 +114,18 @@ Full list: [`invariants.md`](invariants.md).
 - **Delta**: `resultsBreakdown.ts` turns the golden-record facts into a formula, an "(observed)" line, a group summary and a partial-runs note; `ResultsBreakdownView.tsx` renders them with the shared `FormulaLine`; `storageUsage.ts` takes the last arithmetic out of `VectorDbStatsPanel`.
 - **L1/L2 impact**: frontend only, plus one Python contract test (`test_results_breakdown_types_contract.py`) that compares `types/index.ts` with the keys the real stats assembly emits. `pluralize` and `FormulaLine` gain an optional number formatter; `StatTile.hint` accepts a node.
 - **Data-Flow**: db-stats response (`result_runs`, `golden_queries`, `golden_queries_source`, `partial_runs`, `total_results`) or group totals -> pure builders -> footprint line / tile hint; absent facts render nothing.
+
+### 2026-11-06 — Slice 67F: pure duplicate-count function in compare
+- **Delta**: a pure `count_duplicates_collapsed(slot_keys)` in `server/core/compare.py` replaces the implicit understanding that the leaderboard is smaller than the raw result set; `build_compare` attaches `duplicates_collapsed` to the response so the dashboard can show the difference.
+- **L1/L2 impact**: server + TypeScript type only. No schema or store change; no frontend rendering yet.
+- **Data-Flow**: compare slot keys -> `count_duplicates_collapsed` -> `CompareResponse.duplicates_collapsed` -> (67G) `CompareScreen`.
+
+### 2026-11-06 — Slice 67G: explain every dashboard number
+- **Delta**: the remaining Slice 67 items land as one bundled PR via four parallel worktrees (A/B/C/D) with disjoint file ownership. Every screen now has: a Glossary button (10 fixed terms), an `InfoTip` on each stat card or count, and a planned-total line that comes from `sweep_plan` rather than JSX arithmetic.
+  - **Glossary**: `glossary.ts` (pure data), `GlossaryButton.tsx` (keyboard-accessible dialog), mounted on `AppPageChrome`.
+  - **Detail + Stats tips**: `detailExplain.ts` (10 pure functions), `StatTile` one-tip-per-tile rule, `estimateLabels.ts` expanded.
+  - **Explorer planned total**: `explorerPlan.ts` maps `sweep_plan` → `{plannedTotal, isBayesian, formula}`; `FormulaLine` replaces the retired `observedTotal` prop; agreement test over 5 fixtures.
+  - **List/Compare/Walkthru tips**: `explainLabels.ts` for the list screen; `CompareScreen` wires `duplicates_collapsed`; `scoreLabels.ts` expanded for Walkthru.
+  - **Determinism guard**: `deterministicNumbers.guard.test.ts` now covers all new pure modules and the new screens.
+- **L1/L2 impact**: frontend only (all four sub-streams). No server, store or API change; "combination" vocabulary retired.
+- **Data-Flow**: `sweep_plan` (API) -> `explorerPlan` -> `FormulaLine` / `InfoTip`; pure label functions -> `InfoTip.explain`; `duplicates_collapsed` -> `CompareScreen` tip.
