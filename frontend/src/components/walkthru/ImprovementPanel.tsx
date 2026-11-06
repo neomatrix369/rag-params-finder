@@ -8,12 +8,16 @@
  * Scope: SLICE-56 Part C2 - the improvement panel.
  */
 import type { WalkthruStory, WalkthruStoryChunk } from '../../walkthru/walkthruResults';
-import { STORY_BASELINE_NOTE } from './scoreLabels';
+import InfoTip from '../chrome/InfoTip';
+import { STORY_BASELINE_NOTE, storyRunsExplain, storyTileExplain, type StoryTile } from './scoreLabels';
 
-function StatTile({ label, value }: { label: string; value: string }) {
+function StatTile({ label, value, tile }: { label: string; value: string; tile: StoryTile }) {
   return (
     <div className="rounded-lg border border-line bg-paper px-3 py-2">
-      <dt className="text-xs uppercase tracking-wider text-muted">{label}</dt>
+      <dt className="flex items-center gap-1 text-xs uppercase tracking-wider text-muted">
+        {label}
+        <InfoTip label={`About ${label}`}>{storyTileExplain(tile)}</InfoTip>
+      </dt>
       <dd className="text-lg font-semibold text-ink">{value}</dd>
     </div>
   );
@@ -52,13 +56,16 @@ export default function ImprovementPanel({ story }: { story: WalkthruStory }) {
         </p>
       </div>
 
-      <p data-testid="story-baseline" className="text-xs text-muted">{STORY_BASELINE_NOTE}</p>
+      <p data-testid="story-baseline" className="flex items-center gap-1 text-xs text-muted">
+        {STORY_BASELINE_NOTE}
+        <InfoTip label={`About these ${story.run_count} runs`}>{storyRunsExplain(story.run_count)}</InfoTip>
+      </p>
 
       <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <StatTile label="Best top-chunk score" value={story.best.max_score.toFixed(1)} />
-        <StatTile label="Median top-chunk score" value={story.median.max_score.toFixed(1)} />
-        <StatTile label="Worst top-chunk score" value={story.worst.max_score.toFixed(1)} />
-        <StatTile label="Top-chunk spread" value={story.spread.max_score.toFixed(1)} />
+        <StatTile label="Best top-chunk score" tile="best" value={story.best.max_score.toFixed(1)} />
+        <StatTile label="Median top-chunk score" tile="median" value={story.median.max_score.toFixed(1)} />
+        <StatTile label="Worst top-chunk score" tile="worst" value={story.worst.max_score.toFixed(1)} />
+        <StatTile label="Top-chunk spread" tile="spread" value={story.spread.max_score.toFixed(1)} />
       </dl>
 
       <p className="text-sm text-muted">

@@ -773,7 +773,7 @@ describe('ExperimentsScreen outcome label edge cases', () => {
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- Then --
-    expect(screen.getByText('3 runs configured · Bayesian sampling incomplete')).toBeInTheDocument();
+    expect(screen.getByText('40 runs configured · Bayesian sampling incomplete')).toBeInTheDocument();
   });
 
   it('Given a completed Bayesian sweep that stopped short of its planned trials, when rendered, then the "not started" remainder is called out', async () => {
@@ -796,7 +796,7 @@ describe('ExperimentsScreen outcome label edge cases', () => {
     // -- Then --
     expect(
       screen.getByText(
-        '3 runs configured · Bayesian: 12 attempted · 3 discarded · 5 not started · completed with sampling shortfall',
+        '20 runs configured · Bayesian: 12 attempted · 3 discarded · 5 not started · completed with sampling shortfall',
       ),
     ).toBeInTheDocument();
   });
@@ -821,7 +821,7 @@ describe('ExperimentsScreen outcome label edge cases', () => {
     // -- Then --
     expect(
       screen.getByText(
-        '3 runs configured · Bayesian: 12 attempted · 3 discarded · 5 not started · completed with sampling shortfall',
+        '20 runs configured · Bayesian: 12 attempted · 3 discarded · 5 not started · completed with sampling shortfall',
       ),
     ).toBeInTheDocument();
   });
@@ -844,7 +844,7 @@ describe('ExperimentsScreen outcome label edge cases', () => {
 
     // -- Then --
     expect(
-      screen.getByText('3 runs configured · Bayesian: 30 attempted · 2 discarded · 8 not started'),
+      screen.getByText('40 runs configured · Bayesian: 30 attempted · 2 discarded · 8 not started'),
     ).toBeInTheDocument();
   });
 
@@ -866,7 +866,7 @@ describe('ExperimentsScreen outcome label edge cases', () => {
 
     // -- Then --
     expect(
-      screen.getByText('3 runs configured · Bayesian: 30 attempted · 2 discarded · 8 not started'),
+      screen.getByText('40 runs configured · Bayesian: 30 attempted · 2 discarded · 8 not started'),
     ).toBeInTheDocument();
   });
 });
@@ -1335,8 +1335,8 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
     await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalledOnce());
 
     // -- Then --
-    expect(screen.getByText(/Bayesian: 8 attempted · 2 discarded/)).toBeInTheDocument();
-    expect(screen.queryByText(/not started/)).not.toBeInTheDocument();
+    const outcome = screen.getByText(/Bayesian: 8 attempted · 2 discarded/);
+    expect(outcome.textContent).not.toContain('not started');
   });
 
   it('Given complete with all_planned_trials_completed, when rendered, then the plain sweep-complete copy is used', async () => {
@@ -1393,5 +1393,118 @@ describe('ExperimentsScreen stall, unmount, and in-flight stats', () => {
 
     // -- Then --
     expect(screen.getByText('Delete Experiment?')).toBeInTheDocument();
+  });
+});
+
+describe('ExperimentsScreen explanations (Slice 67G)', () => {
+  const renderList = async (experiments: Experiment[]) => {
+    apiMocks.getExperiments.mockResolvedValue(experiments);
+    render(<ExperimentsScreen cacheReady cachedExperiments={experiments} />);
+    await waitFor(() => expect(apiMocks.getExperiments).toHaveBeenCalled());
+  };
+
+  it('Given 120 stored experiments, when the list renders, then the headline tip says stored experiments, not runs', async () => {
+    /**
+     * Scenario: "120 experiments" is a count of stored experiments.
+     * Slice: 67G - list headline
+     */
+    // -- Given --
+    const many = Array.from({ length: 120 }, (_, i) =>
+      experiment('complete', 0, { experiment_id: `id-${i}`, experiment_name: `exp ${i}` }),
+    );
+
+    // -- When --
+    await renderList(many);
+
+    // -- Then --
+    expect(screen.getByRole('button', { name: 'About the experiment count' })).toBeInTheDocument();
+    expect(screen.getByText(/120 experiments are stored on the server/)).toBeInTheDocument();
+  });
+
+  it('Given 120 experiments at 15 per page, when the list renders, then the pagination tip states range, total and page size', async () => {
+    /**
+     * Scenario: "Showing X-Y of N" counts experiments.
+     * Slice: 67G - pagination
+     */
+    // -- Given --
+    const many = Array.from({ length: 120 }, (_, i) =>
+      experiment('complete', 0, { experiment_id: `id-${i}`, experiment_name: `exp ${i}` }),
+    );
+
+    // -- When --
+    await renderList(many);
+
+    // -- Then --
+    expect(screen.getByRole('button', { name: 'About pagination' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Showing 1–15 of 120 experiments, 15 per page. Pagination counts experiments, not runs.'),
+    ).toBeInTheDocument();
+  });
+
+  it('Given a failed grid experiment, when the row renders, then planned-run and failed tips are attached', async () => {
+    /**
+     * Scenario: "N runs configured" is the plan; "N failed" is against that plan.
+     * Slice: 67G - runs and failed
+     */
+    // -- Given --
+    const failed = experiment('failed', 2, { experiment_name: 'grid failed' });
+
+    // -- When --
+    await renderList([failed]);
+
+    // -- Then --
+    expect(screen.getByRole('button', { name: 'About planned runs for grid failed' })).toBeInTheDocument();
+    expect(screen.getByText(/3 runs are planned/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'About failed runs for grid failed' })).toBeInTheDocument();
+    expect(screen.getByText('2 of the 3 planned runs ended in failure.')).toBeInTheDocument();
+  });
+
+  it('Given a Bayesian experiment with run_count 25 and planned trials 20, when the row renders, then 20 is shown and explained', async () => {
+    /**
+     * Scenario: planned vs executed - Bayesian rows show planned trials, never run_count.
+     * Slice: 67G - planned vs executed
+     */
+    // -- Given --
+    const bayesian = experiment('partial', 0, {
+      experiment_name: 'bayes',
+      run_count: 25,
+      config: { execution: { search_strategy: 'bayesian' } },
+      bayesian_summary: { planned_trials: 20, attempted_trials: 12, discarded_trials: 3, not_started: 5 },
+    });
+
+    // -- When --
+    await renderList([bayesian]);
+
+    // -- Then --
+    expect(screen.getByText(/20 runs configured/)).toBeInTheDocument();
+    expect(screen.queryByText(/25 runs configured/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Total 20 = 12 attempted \+ 3 discarded \+ 5 not started\./)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'About Bayesian trials for bayes' })).toBeInTheDocument();
+  });
+
+  it('Given a grid experiment, when the row renders, then there is no Bayesian trials tip', async () => {
+    /**
+     * Scenario: Only Bayesian rows get the trial split.
+     * Slice: 67G - Bayesian counts
+     */
+    // -- Given / When --
+    await renderList([experiment('complete', 0, { experiment_name: 'grid ok' })]);
+
+    // -- Then --
+    expect(screen.queryByRole('button', { name: /About Bayesian trials/ })).not.toBeInTheDocument();
+  });
+
+  it('Given a running experiment, when the row renders, then the delete reason is an InfoTip and no native title remains', async () => {
+    /**
+     * Scenario: The delete-disabled reason moved from title= to InfoTip.
+     * Slice: 67G - title replacement
+     */
+    // -- Given / When --
+    await renderList([experiment('running', 0, { experiment_name: 'busy' })]);
+
+    // -- Then --
+    expect(screen.getByRole('button', { name: 'About deleting busy' })).toBeInTheDocument();
+    expect(screen.getByText(/cannot be selected for deletion/)).toBeInTheDocument();
+    expect(document.querySelector('label[title]')).toBeNull();
   });
 });

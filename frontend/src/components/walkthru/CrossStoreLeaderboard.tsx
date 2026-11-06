@@ -12,8 +12,17 @@ import {
   groupSize,
 } from '../../walkthru/leaderboard';
 import { displayDatabaseProvider } from '../../utils/storageLabels';
+import InfoTip from '../chrome/InfoTip';
 import Pagination from '../chrome/Pagination';
-import { SCORE_NOTE, dedupNote, scoreCellLabel } from './scoreLabels';
+import {
+  OVERLAP_EXPLAIN,
+  SCORE_COLUMN_EXPLAIN,
+  SCORE_NOTE,
+  dedupNote,
+  rankExplain,
+  scoreCellLabel,
+  type RankScope,
+} from './scoreLabels';
 
 export type CrossStoreLeaderboardProps = {
   results: LeaderboardInput;
@@ -29,6 +38,8 @@ export type CrossStoreLeaderboardProps = {
   description?: string;
   /** Duplicate rows removed upstream, when the source reports it; the note states the rule either way. */
   collapsedDuplicates?: number;
+  /** Where the rank column is counted: 'export' (default, Walkthru) or 'group' (live Compare). */
+  rankScope?: RankScope;
 };
 
 const DEFAULT_DESCRIPTION =
@@ -109,6 +120,7 @@ export default function CrossStoreLeaderboard({
   suggest = true,
   description = DEFAULT_DESCRIPTION,
   collapsedDuplicates,
+  rankScope = 'export',
 }: CrossStoreLeaderboardProps) {
   const [storeFilter, setStoreFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -151,11 +163,12 @@ export default function CrossStoreLeaderboard({
         <p
           role="note"
           data-testid="overlap-note"
-          className="rounded-lg border border-line bg-canvas p-3 text-sm text-ink"
+          className="flex items-center justify-between gap-2 rounded-lg border border-line bg-canvas p-3 text-sm text-ink"
         >
           {crossStore < FEW_OVERLAP_THRESHOLD && crossStore < allGroups.length
             ? overlapNote(crossStore, allGroups.length)
             : `${crossStore} of ${allGroups.length} ${allGroups.length === 1 ? 'config was' : 'configs were'} run on more than one store.`}
+          <InfoTip label="About the store overlap">{OVERLAP_EXPLAIN}</InfoTip>
         </p>
       )}
 
@@ -195,8 +208,18 @@ export default function CrossStoreLeaderboard({
                     <th scope="col" className="px-3 py-1">Chunking</th>
                     <th scope="col" className="px-3 py-1">Chunk size</th>
                     <th scope="col" className="px-3 py-1">Retrieval</th>
-                    <th scope="col" className="px-3 py-1">Similarity score</th>
-                    <th scope="col" className="px-3 py-1">Rank</th>
+                    <th scope="col" className="px-3 py-1">
+                      <span className="inline-flex items-center gap-1">
+                        Similarity score
+                        <InfoTip label="About the similarity score">{SCORE_COLUMN_EXPLAIN}</InfoTip>
+                      </span>
+                    </th>
+                    <th scope="col" className="px-3 py-1">
+                      <span className="inline-flex items-center gap-1">
+                        Rank
+                        <InfoTip label="About the rank">{rankExplain(rankScope)}</InfoTip>
+                      </span>
+                    </th>
                     <th scope="col" className="px-3 py-1">Elapsed (indicative)</th>
                     <th scope="col" className="px-3 py-1"><span className="sr-only">Choose</span></th>
                   </tr>
