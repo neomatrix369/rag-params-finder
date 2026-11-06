@@ -53,6 +53,11 @@ Container-only:
   elasticsearch start|stop|reset|status    Local Elasticsearch container
   redis start|stop|reset|status            Local Redis 8 container
 
+Rebuild individual app containers (no DB restart):
+  rebuild server                           Rebuild + restart only the server container
+  rebuild frontend                         Rebuild + restart only the frontend container
+  rebuild all                              Rebuild + restart both server and frontend
+
 Environment:
   RAG_MONGODB_LOCAL=1          Same as --mongodb-local
   RAG_MONGODB_CLOUD=1          Same as --mongodb-cloud
@@ -188,6 +193,44 @@ cmd_store_status() {
   fi
 }
 
+cmd_rebuild() {
+  local target="${1:-}"
+  case "$target" in
+    server | frontend | all) ;;
+    *)
+      echo "Usage: ./start-services.sh rebuild server|frontend|all" >&2
+      exit 1
+      ;;
+  esac
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "Docker is not installed. See https://docs.docker.com/get-docker/" >&2
+    exit 1
+  fi
+  compose_require_docker_daemon || exit 1
+  compose_detect
+  compose_files
+  # Load .env so build args (e.g. VITE_API_URL) are available to the builder
+  if [[ -f .env ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source .env
+    set +a
+  fi
+  local services=()
+  if [[ "$target" == "all" ]]; then
+    services=(server frontend)
+  else
+    services=("$target")
+  fi
+  for svc in "${services[@]}"; do
+    echo "Building ${svc}..."
+    "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" build "$svc"
+    echo "Restarting ${svc} (leaving other containers untouched)..."
+    "${DOCKER_COMPOSE[@]}" "${COMPOSE_FILES[@]}" up -d --no-deps "$svc"
+    echo "${svc} rebuilt and restarted."
+  done
+}
+
 parse_args() {
   if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     usage
@@ -238,6 +281,12 @@ run_named_store_command() {
   COMPOSE_PROFILES=(--profile "$profile")
   "$fn" "$provider"
 }
+
+if [[ "${1:-}" == "rebuild" ]]; then
+  shift
+  cmd_rebuild "${1:-}"
+  exit 0
+fi
 
 if store_is_provider "${1:-}"; then
   provider="$1"
