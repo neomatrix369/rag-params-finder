@@ -15,6 +15,11 @@ from collections.abc import Callable
 EmbedDocsFn = Callable[..., list[list[float]]]
 EmbedQueryFn = Callable[[str, str], list[float]]
 
+# Fixed Qwen3 query prefix (V9). Single owner: every cache_key(role="query") for
+# the doubleword provider — pre-embed planning and run-time lookup alike — must
+# use this exact literal, or the two sides compute different cache keys.
+QWEN3_QUERY_INSTRUCTION = "Instruct: Retrieve relevant passages for the query.\nQuery: "
+
 
 class DoublewordCacheMissError(Exception):
     """Raised when doubleword run-time embedder finds uncached texts."""
@@ -82,8 +87,7 @@ def get_embedder(provider: str) -> tuple[EmbedDocsFn, EmbedQueryFn]:
         def embed_query_doubleword(text: str, model_id: str) -> list[float]:
             cache = get_embedding_cache()
             dim = get_dimensions(model_id)
-            # Query prefix is fixed for Qwen3 (V9)
-            instruction = "Instruct: Retrieve relevant passages for the query.\nQuery: "
+            instruction = QWEN3_QUERY_INSTRUCTION
             key = cache_key(
                 text,
                 provider="doubleword",

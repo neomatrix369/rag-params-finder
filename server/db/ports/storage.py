@@ -3,6 +3,14 @@
 Call sites (orchestrator, experiments API, startup reconciliation) depend on this
 port, never on pymongo or psycopg directly.
 
+Interface Segregation: the surface is declared as four narrow Protocols —
+``ExperimentStore`` (experiment CRUD, cascade delete, boot reconciliation),
+``RunStore`` (run-status tracking), ``ResultStore`` (query results) and
+``StatsReporter`` (explore + db-stats reporting). ``StorageBackend`` is their
+composition and stays the name every adapter, factory and annotation uses, so
+this split is behaviour-preserving; a consumer may narrow its annotation to the
+one port it calls whenever it is touched next.
+
 Chunk methods (``insert_chunks`` / ``delete_chunks_for_experiment``) are NOT part
 of this Protocol (Slice 49B, DECISIONS #240) — chunk write/delete/stats/search go
 only through ``server.db.ports.vector_store.VectorStore`` (``get_vector_store()``).
@@ -16,8 +24,14 @@ from typing import Protocol, runtime_checkable
 
 
 @runtime_checkable
-class StorageBackend(Protocol):
-    """Port for experiment/run/result CRUD, cascade delete, and boot reconciliation."""
+class ExperimentStore(Protocol):
+    """Experiment-document concern: CRUD, lifecycle flags, cascade delete, reconciliation.
+
+    Cascade delete and boot reconciliation live here because both are owned by
+    the experiment aggregate: ``delete_experiment_data`` removes an experiment
+    and everything hanging off it, and reconciliation reads and rewrites
+    experiment documents whose ``running`` status outlived the process.
+    """
 
     # ── Experiment CRUD ───────────────────────────────────────────────────────
 
@@ -39,7 +53,28 @@ class StorageBackend(Protocol):
 
     def is_experiment_cancelled(self, experiment_id: str) -> bool: ...
 
-    # ── Run status ────────────────────────────────────────────────────────────
+    # ── Cascade delete ────────────────────────────────────────────────────────
+
+    def delete_experiment_data(self, experiment_id: str) -> dict[str, int]: ...
+
+    # ── Boot reconciliation ───────────────────────────────────────────────────
+
+    def find_running_experiments(self) -> list[dict]: ...
+
+    def update_experiment_reconciled(
+        self,
+        experiment_id: str,
+        *,
+        status: object,
+        failed_count: int,
+        completion_reason: str,
+        completed_at: datetime,
+    ) -> None: ...
+
+
+@runtime_checkable
+class RunStore(Protocol):
+    """Run-status concern: per-run phase tracking, resume signatures, interruption."""
 
     def insert_run_status(self, doc: dict) -> None: ...
 
@@ -71,7 +106,10 @@ class StorageBackend(Protocol):
         error_message: str,
     ) -> None: ...
 
-    # ── Results ───────────────────────────────────────────────────────────────
+
+@runtime_checkable
+class ResultStore(Protocol):
+    """Query-result concern: per-run result writes and projected reads."""
 
     def insert_result(self, doc: dict) -> None: ...
 
@@ -81,31 +119,14 @@ class StorageBackend(Protocol):
 
     def delete_results_for_experiment(self, experiment_id: str) -> int: ...
 
-    # ── Cascade delete ────────────────────────────────────────────────────────
 
-    def delete_experiment_data(self, experiment_id: str) -> dict[str, int]: ...
+@runtime_checkable
+class StatsReporter(Protocol):
+    """Reporting concern: the explore screen and the db-stats screens.
 
-    # ── Boot reconciliation ───────────────────────────────────────────────────
-
-    def find_running_experiments(self) -> list[dict]: ...
-
-    def update_experiment_reconciled(
-        self,
-        experiment_id: str,
-        *,
-        status: object,
-        failed_count: int,
-        completion_reason: str,
-        completed_at: datetime,
-    ) -> None: ...
-
-    # ── API helpers ───────────────────────────────────────────────────────────
-    #
-    # Interface Segregation note: the four methods below form an API-helper
-    # cluster serving the explore and db-stats screens rather than core CRUD.
-    # They are kept on StorageBackend because every adapter must answer them for
-    # the dashboard to render; splitting them into a second port is deferred
-    # until a backend needs one without the other.
+    These four reads serve the dashboard rather than the pipeline; a consumer
+    that only renders statistics depends on this port alone.
+    """
 
     def load_explore_source(self, experiment_id: str) -> tuple[dict | None, list[dict], list[dict]]:
         """Load the raw source rows behind the Search Explorer screen.
@@ -165,3 +186,14 @@ class StorageBackend(Protocol):
         ``experiment_id``, ``experiment_name``, ``status``, and ``created_at``.
         """
         ...
+
+
+@runtime_checkable
+class StorageBackend(ExperimentStore, RunStore, ResultStore, StatsReporter, Protocol):
+    """The whole run-state port — the composition of the four narrow ports above.
+
+    Adapters and the ``get_storage_backend()`` factory keep using this name, so
+    existing annotations and ``isinstance`` checks are unchanged. New consumers
+    should annotate the narrowest port they actually call (``RunStore``,
+    ``StatsReporter``, …) rather than the full surface.
+    """

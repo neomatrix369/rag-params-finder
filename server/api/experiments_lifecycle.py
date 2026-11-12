@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 from typing import SupportsInt, cast
 
 from server.core.pipeline.experiment_control import is_sweep_in_flight
+from server.core.pipeline.outcome import CompletionReason, RunTally, tally_runs
+from server.db.ports.storage import StorageBackend
 from server.db.ports.store_factory import get_storage_backend
 from server.models.config import (
     ExperimentConfig,
@@ -122,11 +124,7 @@ def _ensure_bayesian_summary(
     else:
         attempted_trials = 0
 
-    if "discarded_trials" in existing_summary:
-        discarded_trials = _to_non_negative_int(existing_summary["discarded_trials"]) or 0
-    else:
-        discarded_trials = existing_summary.get("discarded_trials", 0)
-        discarded_trials = _to_non_negative_int(discarded_trials) or 0
+    discarded_trials = _to_non_negative_int(existing_summary.get("discarded_trials", 0)) or 0
 
     not_started = max(
         0,
@@ -149,67 +147,112 @@ def _ensure_bayesian_summary(
     experiment["bayesian_summary"] = existing_summary
 
 
-def _normalize_stale_running_status(experiment: dict) -> dict:
-    """If status is still RUNNING but no active sweep exists, reconcile from run status."""
-    runs = experiment.get("runs")
-    if not isinstance(runs, list):
-        runs = []
-    if experiment.get("status") != ExperimentStatus.RUNNING:
-        _ensure_bayesian_summary(experiment, runs=runs)
-        return experiment
+def _classify_without_failures(expected: int, tally: RunTally) -> tuple[ExperimentStatus, str]:
+    """Pure: outcome when no run failed. ``tally.failed`` is 0."""
+    complete, interrupted = tally.complete, tally.interrupted
+    if complete == expected:
+        return ExperimentStatus.COMPLETE, CompletionReason.ALL_PLANNED_TRIALS_COMPLETED.value
+    if interrupted == 0 and complete < expected and complete > 0:
+        return ExperimentStatus.COMPLETE, CompletionReason.COMPLETED_WITH_SAMPLING_SHORTFALL.value
+    if expected == 0:
+        # Preserves the historic ``failed == expected`` arm, which with no
+        # failures can only fire for an experiment that planned 0 runs.
+        return ExperimentStatus.FAILED, CompletionReason.ALL_TRIALS_FAILED.value
+    if interrupted > 0 and complete > 0:
+        return ExperimentStatus.PARTIAL, CompletionReason.INTERRUPTED_BEFORE_COMPLETION.value
+    # Owned by startup_reconciliation's vocabulary, not CompletionReason.
+    return ExperimentStatus.PARTIAL, "incomplete_before_completion"
 
-    experiment_id = experiment.get("experiment_id") or experiment.get("_id")
-    if not experiment_id or is_sweep_in_flight(experiment_id):
-        # Still expose Bayesian progress while a sweep is in flight; do not touch storage.
-        _ensure_bayesian_summary(experiment, runs=runs)
-        return experiment
 
-    runs = list(runs)
-    storage = None
+def _classify_with_failures(
+    expected: int,
+    total_runs: int,
+    tally: RunTally,
+) -> tuple[ExperimentStatus, str]:
+    """Pure: outcome when at least one run failed."""
+    if tally.failed == expected or (tally.complete == 0 and tally.failed == total_runs):
+        return ExperimentStatus.FAILED, CompletionReason.ALL_TRIALS_FAILED.value
+    return ExperimentStatus.PARTIAL, CompletionReason.PARTIAL_FAILURES.value
+
+
+def _classify_stale_outcome(
+    expected: int,
+    total_runs: int,
+    tally: RunTally,
+) -> tuple[ExperimentStatus, str]:
+    """Pure: resolved status + ``completion_reason`` for an all-terminal run set."""
+    if tally.failed == 0:
+        return _classify_without_failures(expected, tally)
+    return _classify_with_failures(expected, total_runs, tally)
+
+
+def _stale_outcome(
+    experiment: dict,
+    runs: list[dict],
+) -> tuple[ExperimentStatus, str, int] | None:
+    """Pure query: ``(status, completion_reason, failed_count)``, or None if unresolvable.
+
+    Unresolvable means there are no runs at all, or at least one run has not
+    reached a terminal phase.
+    """
     if not runs:
-        storage = get_storage_backend()
-        runs = storage.find_run_statuses(experiment_id)
-    _ensure_bayesian_summary(experiment, runs=runs)
-    if not runs:
-        return experiment
-
+        return None
     if any(run.get("phase") not in _TERMINAL_PHASES for run in runs):
-        return experiment
-
+        return None
+    tally = tally_runs(runs)
     expected = int(experiment.get("run_count") or 0)
-    complete = sum(1 for run in runs if run.get("phase") == Phase.COMPLETE.value)
-    failed = sum(1 for run in runs if run.get("phase") == Phase.FAILED.value)
-    interrupted = sum(1 for run in runs if run.get("phase") == Phase.INTERRUPTED.value)
+    status, reason = _classify_stale_outcome(expected, len(runs), tally)
+    return status, reason, tally.failed
 
-    if complete == expected and failed == 0:
-        resolved_status = ExperimentStatus.COMPLETE
-        completion_reason = "all_planned_trials_completed"
-    elif failed == 0 and interrupted == 0 and complete < expected and complete > 0:
-        resolved_status = ExperimentStatus.COMPLETE
-        completion_reason = "completed_with_sampling_shortfall"
-    elif failed == expected or (failed > 0 and complete == 0 and failed == len(runs)):
-        resolved_status = ExperimentStatus.FAILED
-        completion_reason = "all_trials_failed"
-    elif failed == 0 and interrupted > 0 and complete > 0:
-        resolved_status = ExperimentStatus.PARTIAL
-        completion_reason = "interrupted_before_completion"
-    elif failed > 0:
-        resolved_status = ExperimentStatus.PARTIAL
-        completion_reason = "partial_failures"
-    else:
-        resolved_status = ExperimentStatus.PARTIAL
-        completion_reason = "incomplete_before_completion"
 
-    now = datetime.now(UTC)
+def _persist_stale_outcome(
+    experiment: dict,
+    experiment_id: str,
+    outcome: tuple[ExperimentStatus, str, int],
+    storage: StorageBackend | None = None,
+) -> None:
+    """Command: write the resolved fields to storage and onto ``experiment`` in place."""
+    status, completion_reason, failed_count = outcome
     resolved = {
-        "status": resolved_status,
-        "failed_count": failed,
+        "status": status,
+        "failed_count": failed_count,
         "completion_reason": completion_reason,
-        "completed_at": now,
+        "completed_at": datetime.now(UTC),
     }
     if storage is None:
         storage = get_storage_backend()
     storage.update_experiment(experiment_id, resolved)
     experiment.update(resolved)
+
+
+def _normalize_stale_running_status(experiment: dict) -> dict:
+    """If status is still RUNNING but no active sweep exists, reconcile from run status.
+
+    Mutates ``experiment`` in place (both callers in ``server.api.experiments``
+    ignore the return value) and also returns it.
+    """
+    runs = experiment.get("runs")
+    if not isinstance(runs, list):
+        runs = []
+    experiment_id = cast(str, experiment.get("experiment_id") or experiment.get("_id"))
+    # A sweep still in flight keeps its RUNNING status; expose Bayesian progress
+    # only and never touch storage.
+    stale = bool(
+        experiment.get("status") == ExperimentStatus.RUNNING
+        and experiment_id
+        and not is_sweep_in_flight(experiment_id)
+    )
+
+    storage = None
+    if stale:
+        runs = list(runs)
+        if not runs:
+            storage = get_storage_backend()
+            runs = storage.find_run_statuses(experiment_id)
+
     _ensure_bayesian_summary(experiment, runs=runs)
+
+    outcome = _stale_outcome(experiment, runs) if stale else None
+    if outcome is not None:
+        _persist_stale_outcome(experiment, experiment_id, outcome, storage)
     return experiment

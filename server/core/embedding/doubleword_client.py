@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+DASHBOARD_URL_TEMPLATE = "https://app.doubleword.ai/batches/{batch_id}"
+
 
 @dataclass
 class BatchSnapshot:
@@ -34,7 +36,7 @@ class BatchSnapshot:
     @property
     def dashboard_url(self) -> str:
         """DoubleWord dashboard URL for this batch."""
-        return f"https://app.doubleword.ai/batches/{self.batch_id}"
+        return DASHBOARD_URL_TEMPLATE.format(batch_id=self.batch_id)
 
 
 def create_async_client() -> AsyncOpenAI:

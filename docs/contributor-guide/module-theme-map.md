@@ -2,6 +2,7 @@
 
 > Behavior | Feature | Function taxonomy for `rag-params-finder`.
 > Taxonomy from Slice 44 Should audit (2026-07-27). **All five ranked hotspot folder moves are IMPLEMENTED** on Slice 45 (thin compatibility shims remain at old `scripts/*.sh` paths for one minor). Spec: [`SLICE-45-MODULE-THEME-SEPARATION.md`](../plan/slices/07-quality-craft/SLICE-45-MODULE-THEME-SEPARATION.md).
+> RPP L1-L6 refactor record (before/after, measured CC): [`rpp-refactor-l1-l6.md`](rpp-refactor-l1-l6.md).
 > Optional IDE canvas name: `project-structure-taxonomy.canvas.tsx` (not required in-repo).
 
 ## Theme labels

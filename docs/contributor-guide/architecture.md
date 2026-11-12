@@ -486,6 +486,8 @@ Provider flows explicitly through `RunParams` → `orchestrator` → `embedder_f
 
 ## 🧩 Storage Ports (C4 Component)
 
+> Refactor record: the `StorageBackend` port is now composed from narrow protocols. See [`rpp-refactor-l1-l6.md`](rpp-refactor-l1-l6.md).
+
 Two ports split run state from vector data (Slice 49A, DECISIONS #240): `StorageBackend`
 owns experiments/runs/results CRUD + boot reconciliation; `VectorStore` owns chunk
 write/delete/stats, search (via `retriever()`), index planning, health, and declared

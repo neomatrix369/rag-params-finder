@@ -10,8 +10,13 @@ import threading
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
+from server.core.embedding.doubleword_client import DASHBOARD_URL_TEMPLATE
 from server.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from server.models.config import ExperimentConfig
 
 logger = get_logger(__name__)
 
@@ -51,6 +56,23 @@ class SubmittedJob:
     role: str
     n: int
     submitted_at: str  # ISO
+
+    @property
+    def dashboard_url(self) -> str:
+        """DoubleWord dashboard URL for this batch."""
+        return DASHBOARD_URL_TEMPLATE.format(batch_id=self.batch_id)
+
+
+@dataclass(frozen=True)
+class PreparedEmbeddings:
+    """Outcome of preparing embeddings for an experiment.
+
+    `ready_to_run` is True when the sweep may start immediately (no DoubleWord
+    model, or every text already cached). When it is False the experiment has
+    been marked `pre_embed.state = "waiting"` and the watcher resumes it.
+    """
+
+    ready_to_run: bool
 
 
 class CheckpointStore:
@@ -225,3 +247,104 @@ async def submit_pre_embed(
         await asyncio.to_thread(checkpoint_store.add_entries, checkpoint_entries)
 
     return submitted
+
+
+async def prepare_embeddings(experiment_id: str, config: ExperimentConfig) -> PreparedEmbeddings:
+    """Decide whether an experiment can run now, pre-embedding with DoubleWord first.
+
+    Owns the whole DoubleWord decision: whether the config uses a DoubleWord
+    model, which texts are still uncached, batch submission, and marking the
+    experiment `pre_embed.state = "waiting"`. Callers only act on
+    `ready_to_run`.
+    """
+    from server.core.data_loader import load_all_files
+    from server.core.embedding.embedder_factory import QWEN3_QUERY_INSTRUCTION
+    from server.core.embedding.embedding_cache import cache_key, get_embedding_cache
+    from server.core.model_registry import get_dimensions, provider_for_model
+    from server.core.query_loader import load_queries
+    from server.db.ports.store_factory import get_storage_backend
+    from server.settings import settings
+
+    dw_models = [m for m in config.embedding.models if provider_for_model(m) == "doubleword"]
+    if not dw_models:
+        return PreparedEmbeddings(ready_to_run=True)
+
+    dw_model = dw_models[0]  # one doubleword model per S1 design
+    dim = get_dimensions(dw_model)
+
+    # Load data to compute cache keys
+    source_texts_str = await asyncio.to_thread(load_all_files, config.data_paths)
+    # Split on double newlines to get individual text chunks
+    source_texts = [t.strip() for t in source_texts_str.split("\n\n") if t.strip()]
+
+    queries_data = await asyncio.to_thread(load_queries, config.queries_file)
+    queries = [q.text for q in queries_data]
+
+    # Check cache
+    cache = get_embedding_cache()
+    doc_keys = [
+        cache_key(
+            t,
+            provider="doubleword",
+            model=dw_model,
+            dim=dim,
+            instruction="",
+            role="doc",
+        )
+        for t in source_texts
+    ]
+    query_keys = [
+        cache_key(
+            t,
+            provider="doubleword",
+            model=dw_model,
+            dim=dim,
+            instruction=QWEN3_QUERY_INSTRUCTION,
+            role="query",
+        )
+        for t in queries
+    ]
+    all_keys = doc_keys + query_keys
+    cached = cache.cached_keys(all_keys)
+
+    plan = plan_pre_embed(
+        experiment_id,
+        dw_model,
+        source_texts,
+        queries,
+        cached,
+        dimensions=dim,
+        instruction=QWEN3_QUERY_INSTRUCTION,
+    )
+
+    if plan.is_empty:
+        # Everything cached — proceed immediately
+        return PreparedEmbeddings(ready_to_run=True)
+
+    # Submit batches and set pre_embed.state = "waiting"
+    submitted = await submit_pre_embed(
+        plan, dimensions=dim, window=settings.doubleword_completion_window
+    )
+    batch_records = [
+        {
+            "batch_id": j.batch_id,
+            "role": j.role,
+            "status": "in_progress",
+            "completed": 0,
+            "total": j.n,
+            "dashboard_url": j.dashboard_url,
+        }
+        for j in submitted
+    ]
+
+    get_storage_backend().update_experiment(
+        experiment_id, {"pre_embed": {"state": "waiting", "batches": batch_records}}
+    )
+
+    logger.info(
+        "experiment pre_embed waiting — experiment=%s batches=%s",
+        experiment_id,
+        len(submitted),
+    )
+
+    return PreparedEmbeddings(ready_to_run=False)
