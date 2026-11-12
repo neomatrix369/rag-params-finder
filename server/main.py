@@ -208,7 +208,7 @@ def _boot_steps() -> tuple[BootStep, ...]:
             "boot — orphan reconciliation failed: %s",
             exc_info=True,
         ),
-        BootStep("recover-on-boot-notice", _announce_recover_on_boot, FailurePolicy.FATAL),
+        BootStep("recover-on-boot-notice", _announce_recover_on_boot, FailurePolicy.WARN_CONTINUE),
         BootStep("doubleword-watcher", _start_doubleword_watcher, FailurePolicy.FATAL),
     )
 

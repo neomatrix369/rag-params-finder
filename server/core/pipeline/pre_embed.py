@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from server.core.embedding.doubleword_client import DASHBOARD_URL_TEMPLATE
 from server.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -20,7 +21,6 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 CHECKPOINT_PATH = ".rpf_state/doubleword_batches.json"
-DASHBOARD_URL_TEMPLATE = "https://app.doubleword.ai/batches/{batch_id}"
 _CHECKPOINT_LOCK = threading.Lock()
 
 
@@ -73,7 +73,6 @@ class PreparedEmbeddings:
     """
 
     ready_to_run: bool
-    submitted: tuple[SubmittedJob, ...] = ()
 
 
 class CheckpointStore:
@@ -348,4 +347,4 @@ async def prepare_embeddings(experiment_id: str, config: ExperimentConfig) -> Pr
         len(submitted),
     )
 
-    return PreparedEmbeddings(ready_to_run=False, submitted=tuple(submitted))
+    return PreparedEmbeddings(ready_to_run=False)
