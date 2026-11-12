@@ -26,6 +26,7 @@ from server.core.pipeline.experiment_control import (
     register_sweep_control,
     unregister_sweep_control,
 )
+from server.core.pipeline.outcome import CompletionReason, RunTally, tally_runs
 from server.core.pipeline.search import (
     _RERANKER_RETRIEVER_TYPES,
     _TRADITIONAL_RETRIEVER_TYPES,
@@ -338,6 +339,67 @@ def _run_bayesian_inner(
     }
 
 
+def _bayesian_completion_reason(
+    final_status: ExperimentStatus,
+    failed_count: int,
+    planned_trials: int,
+    attempted_trials: int,
+) -> CompletionReason:
+    """Bayesian reason rules (unchanged from the inline finaliser block)."""
+    if final_status == ExperimentStatus.COMPLETE and attempted_trials < planned_trials:
+        return CompletionReason.COMPLETED_WITH_SAMPLING_SHORTFALL
+    if final_status == ExperimentStatus.COMPLETE:
+        return CompletionReason.ALL_PLANNED_TRIALS_COMPLETED
+    if final_status == ExperimentStatus.FAILED and failed_count == planned_trials:
+        return CompletionReason.ALL_TRIALS_FAILED
+    if final_status == ExperimentStatus.FAILED:
+        return CompletionReason.PARTIAL_FAILURES
+    return CompletionReason.PARTIAL_COMPLETION
+
+
+def _attempted_bayesian_outcome(
+    experiment_id: str,
+    planned_trials: int,
+    attempted_trials: int,
+) -> tuple[ExperimentStatus, int, CompletionReason]:
+    """Outcome for a Bayesian study that attempted at least one trial."""
+    final_status, failed_count = _compute_final_status(experiment_id, planned_trials)
+    if final_status == ExperimentStatus.PARTIAL and failed_count == 0:
+        final_status = ExperimentStatus.COMPLETE
+
+    reason = _bayesian_completion_reason(
+        final_status, failed_count, planned_trials, attempted_trials
+    )
+    if failed_count == planned_trials and final_status != ExperimentStatus.FAILED:
+        return ExperimentStatus.FAILED, failed_count, CompletionReason.ALL_TRIALS_FAILED
+    return final_status, failed_count, reason
+
+
+def _resolve_bayesian_outcome(
+    experiment_id: str,
+    planned_trials: int,
+    cancelled: bool,
+    paused: bool,
+    run_ids: list[str],
+    attempted_trials: int,
+) -> tuple[ExperimentStatus, int, CompletionReason]:
+    if cancelled:
+        return (
+            ExperimentStatus.CANCELLED,
+            _count_failed_runs(experiment_id),
+            CompletionReason.CANCELLED_BY_USER,
+        )
+    if paused:
+        return (
+            ExperimentStatus.PAUSED,
+            _count_failed_runs(experiment_id),
+            CompletionReason.PAUSED_BY_USER,
+        )
+    if not run_ids:
+        return ExperimentStatus.CANCELLED, 0, CompletionReason.CANCELLED_BEFORE_ATTEMPT
+    return _attempted_bayesian_outcome(experiment_id, planned_trials, attempted_trials)
+
+
 def _finalise_bayesian_experiment(
     experiment_id: str,
     config: ExperimentConfig,
@@ -351,35 +413,14 @@ def _finalise_bayesian_experiment(
     infrastructure_error: str | None,
     trial_log: list[dict[str, object]] | None = None,
 ) -> tuple[ExperimentStatus, int]:
-    if cancelled:
-        final_status = ExperimentStatus.CANCELLED
-        failed_count = _count_failed_runs(experiment_id)
-        completion_reason = "cancelled_by_user"
-    elif paused:
-        final_status = ExperimentStatus.PAUSED
-        failed_count = _count_failed_runs(experiment_id)
-        completion_reason = "paused_by_user"
-    elif run_ids:
-        final_status, failed_count = _compute_final_status(experiment_id, planned_trials)
-        if final_status == ExperimentStatus.PARTIAL and failed_count == 0:
-            final_status = ExperimentStatus.COMPLETE
-        if final_status == ExperimentStatus.COMPLETE and attempted_trials < planned_trials:
-            completion_reason = "completed_with_sampling_shortfall"
-        elif final_status == ExperimentStatus.COMPLETE:
-            completion_reason = "all_planned_trials_completed"
-        elif final_status == ExperimentStatus.FAILED and failed_count == planned_trials:
-            completion_reason = "all_trials_failed"
-        elif final_status == ExperimentStatus.FAILED:
-            completion_reason = "partial_failures"
-        else:
-            completion_reason = "partial_completion"
-        if failed_count == planned_trials and final_status != ExperimentStatus.FAILED:
-            final_status = ExperimentStatus.FAILED
-            completion_reason = "all_trials_failed"
-    else:
-        final_status = ExperimentStatus.CANCELLED
-        failed_count = 0
-        completion_reason = "cancelled_before_attempt"
+    final_status, failed_count, completion_reason = _resolve_bayesian_outcome(
+        experiment_id,
+        planned_trials,
+        cancelled,
+        paused,
+        run_ids,
+        attempted_trials,
+    )
 
     experiment_update: dict = {
         "status": final_status,
@@ -387,7 +428,7 @@ def _finalise_bayesian_experiment(
         "failed_count": failed_count,
         "completed_at": datetime.now(UTC),
         "grid_equivalent_count": grid_equivalent_count(config),
-        "completion_reason": completion_reason,
+        "completion_reason": completion_reason.value,
     }
 
     bayesian_summary: dict[str, object] = {
@@ -425,7 +466,7 @@ def _finalise_bayesian_experiment(
         if final_status not in {ExperimentStatus.CANCELLED, ExperimentStatus.PAUSED}:
             final_status = ExperimentStatus.FAILED
             experiment_update["status"] = final_status
-            experiment_update["completion_reason"] = "infrastructure_error"
+            experiment_update["completion_reason"] = CompletionReason.INFRASTRUCTURE_ERROR.value
 
     get_storage_backend().update_experiment(experiment_id, experiment_update)
     _log_failed_run_summary(experiment_id, failed_count)
@@ -497,7 +538,7 @@ def _fail_experiment_preflight(
             "status": ExperimentStatus.FAILED,
             "run_count": runs,
             "failed_count": 0,
-            "completion_reason": "infrastructure_error",
+            "completion_reason": CompletionReason.INFRASTRUCTURE_ERROR.value,
             "completed_at": datetime.now(UTC),
             "error_message": error_message,
         },
@@ -618,6 +659,258 @@ def _log_bayesian_summary(
             )
 
 
+class _SweepControl:
+    """Control flags a sweep accumulates while its runs execute.
+
+    Replaces the four ``nonlocal`` flags the scheduler used to mutate. The
+    recorded transitions are unchanged: a control signal both records itself
+    and stops further submission.
+    """
+
+    def __init__(self) -> None:
+        self.cancelled = False
+        self.paused = False
+        self.stop_after_failure = False
+        self.infrastructure_error: str | None = None
+
+    @property
+    def interrupted(self) -> bool:
+        return self.cancelled or self.paused
+
+    def may_continue(self, experiment_id: str) -> bool:
+        """Poll the control channel; record cancel/pause and stop the sweep."""
+        try:
+            check_control(experiment_id)
+        except ExperimentCancelledError:
+            self.cancelled = True
+            self.stop_after_failure = True
+            return False
+        except ExperimentPausedError:
+            self.paused = True
+            self.stop_after_failure = True
+            return False
+        return True
+
+    def note_infrastructure_error(self, message: str) -> None:
+        self.infrastructure_error = message
+        self.stop_after_failure = True
+
+    def note_run_failure(self, on_error: str) -> None:
+        if on_error == "stop":
+            self.stop_after_failure = True
+
+
+class _SweepScheduler:
+    """Bounded-concurrency submission loop for one sweep's runs."""
+
+    def __init__(
+        self,
+        experiment_id: str,
+        config: ExperimentConfig,
+        runs: list[RunParams],
+        control: _SweepControl,
+        executor: ThreadPoolExecutor,
+    ) -> None:
+        self._experiment_id = experiment_id
+        self._config = config
+        self._run_iter = iter(runs)
+        self._control = control
+        self._executor = executor
+        self._futures: dict[Future, tuple[str, RunParams]] = {}
+        self._started_at_set = False
+        self.run_ids: list[str] = []
+
+    def drain(self) -> None:
+        """Keep ``parallelism`` runs in flight until the sweep ends or stops."""
+        for _ in range(self._config.execution.parallelism):
+            if not self._submit_next():
+                break
+
+        while self._futures:
+            done, _ = wait(self._futures.keys(), return_when=FIRST_COMPLETED)
+            if not done:
+                break
+
+            self._collect(done)
+            if self._control.stop_after_failure:
+                continue
+            if not self._control.may_continue(self._experiment_id):
+                continue
+
+            while self._submit_next():
+                pass
+
+    def _collect(self, done: set[Future]) -> None:
+        for future in done:
+            run_id, _ = self._futures.pop(future)
+            self._record_run_outcome(future, run_id)
+            if self._control.interrupted:
+                self._control.stop_after_failure = True
+
+    def _record_run_outcome(self, future: Future, run_id: str) -> None:
+        try:
+            future.result()
+        except ExperimentCancelledError:
+            self._control.cancelled = True
+            logger.info("experiment cancelled — %s during run %s", self._experiment_id, run_id)
+        except ExperimentPausedError:
+            self._control.paused = True
+            logger.info("experiment paused — %s during run %s", self._experiment_id, run_id)
+        except SIEUnavailableError as exc:
+            self._control.note_infrastructure_error(str(exc))
+            logger.error(
+                "SIE unavailable — stopping experiment %s after run %s: %s",
+                self._experiment_id,
+                run_id,
+                exc,
+            )
+        except Exception as e:
+            logger.error("run failed — %s: %s", run_id, e, exc_info=True)
+            self._control.note_run_failure(self._config.execution.on_error)
+
+    def _submit_next(self) -> bool:
+        """Submit exactly one run if available and control allows execution."""
+        if self._control.stop_after_failure:
+            return False
+
+        try:
+            params = next(self._run_iter)
+        except StopIteration:
+            return False
+
+        if not self._control.may_continue(self._experiment_id):
+            return False
+
+        self._mark_started()
+        run_id = str(uuid.uuid4())
+        self.run_ids.append(run_id)
+        logger.info("run submitted — experiment %s, run_id=%s", self._experiment_id, run_id)
+        self._futures[
+            self._executor.submit(
+                _run_single,
+                self._experiment_id,
+                run_id,
+                params,
+                self._config.execution.parallelism,
+            )
+        ] = (run_id, params)
+        return True
+
+    def _mark_started(self) -> None:
+        if self._started_at_set:
+            return
+        get_storage_backend().update_experiment(
+            self._experiment_id, {"started_at": datetime.now(UTC)}
+        )
+        self._started_at_set = True
+
+
+def _cancelled_experiment_result(experiment_id: str) -> dict:
+    return {
+        "experiment_id": experiment_id,
+        "run_ids": [],
+        "status": ExperimentStatus.CANCELLED,
+    }
+
+
+def _cancel_signalled_before_start(experiment_id: str) -> bool:
+    """True when the control channel already holds a cancel for this sweep."""
+    try:
+        check_control(experiment_id)
+    except ExperimentCancelledError:
+        return True
+    return False
+
+
+def _sweep_completion_reason(
+    final_status: ExperimentStatus,
+    failed_count: int,
+    tally: RunTally,
+    expected_run_count: int,
+) -> CompletionReason:
+    """Grid-sweep reason rules (unchanged from the inline decision block)."""
+    if final_status == ExperimentStatus.COMPLETE:
+        return CompletionReason.ALL_PLANNED_TRIALS_COMPLETED
+    if final_status == ExperimentStatus.FAILED:
+        return _failed_sweep_reason(failed_count, tally, expected_run_count)
+    if final_status == ExperimentStatus.PARTIAL:
+        return _partial_sweep_reason(failed_count, tally)
+    return CompletionReason.PARTIAL_OUTCOMES
+
+
+def _failed_sweep_reason(
+    failed_count: int,
+    tally: RunTally,
+    expected_run_count: int,
+) -> CompletionReason:
+    if failed_count == 0 and tally.complete == 0:
+        return CompletionReason.INTERRUPTED_BEFORE_COMPLETION
+    if failed_count == expected_run_count:
+        return CompletionReason.ALL_TRIALS_FAILED
+    return CompletionReason.PARTIAL_OUTCOMES
+
+
+def _partial_sweep_reason(failed_count: int, tally: RunTally) -> CompletionReason:
+    if failed_count == 0 and tally.interrupted > 0:
+        return CompletionReason.PAUSED_OR_INTERRUPTED_BEFORE_COMPLETION
+    if failed_count > 0:
+        return CompletionReason.MIXED_OUTCOMES
+    return CompletionReason.PARTIAL_OUTCOMES
+
+
+def _resolve_sweep_outcome(
+    experiment_id: str,
+    control: _SweepControl,
+    expected_run_count: int,
+) -> tuple[ExperimentStatus, int, CompletionReason]:
+    """Final status, failed count and reason for a grid sweep."""
+    if control.cancelled:
+        return (
+            ExperimentStatus.CANCELLED,
+            _count_failed_runs(experiment_id),
+            CompletionReason.CANCELLED_BY_USER,
+        )
+    if control.paused:
+        return (
+            ExperimentStatus.PAUSED,
+            _count_failed_runs(experiment_id),
+            CompletionReason.PAUSED_BY_USER,
+        )
+
+    final_status, failed_count = _compute_final_status(experiment_id, expected_run_count)
+    tally = tally_runs(get_storage_backend().find_run_statuses(experiment_id))
+    reason = _sweep_completion_reason(final_status, failed_count, tally, expected_run_count)
+    return final_status, failed_count, reason
+
+
+def _persist_sweep_outcome(
+    experiment_id: str,
+    control: _SweepControl,
+    expected_run_count: int,
+) -> ExperimentStatus:
+    final_status, failed_count, completion_reason = _resolve_sweep_outcome(
+        experiment_id, control, expected_run_count
+    )
+
+    experiment_update: dict = {
+        "status": final_status,
+        "run_count": expected_run_count,
+        "failed_count": failed_count,
+        "completion_reason": completion_reason.value,
+        "completed_at": datetime.now(UTC),
+    }
+    if control.infrastructure_error:
+        experiment_update["error_message"] = control.infrastructure_error
+        if final_status not in {ExperimentStatus.CANCELLED, ExperimentStatus.PAUSED}:
+            final_status = ExperimentStatus.FAILED
+            experiment_update["status"] = final_status
+            experiment_update["completion_reason"] = CompletionReason.INFRASTRUCTURE_ERROR.value
+
+    get_storage_backend().update_experiment(experiment_id, experiment_update)
+    _log_failed_run_summary(experiment_id, failed_count)
+    return final_status
+
+
 def _run_sweep_inner(
     experiment_id: str,
     config: ExperimentConfig,
@@ -625,27 +918,16 @@ def _run_sweep_inner(
 ) -> dict:
     if _experiment_cancelled_in_db(experiment_id):
         logger.info("sweep skipped — experiment %s already cancelled", experiment_id)
-        return {
-            "experiment_id": experiment_id,
-            "run_ids": [],
-            "status": ExperimentStatus.CANCELLED,
-        }
+        return _cancelled_experiment_result(experiment_id)
 
-    try:
-        check_control(experiment_id)
-    except ExperimentCancelledError:
+    if _cancel_signalled_before_start(experiment_id):
         logger.info("sweep skipped — experiment %s cancel signalled before start", experiment_id)
-        return {
-            "experiment_id": experiment_id,
-            "run_ids": [],
-            "status": ExperimentStatus.CANCELLED,
-        }
+        return _cancelled_experiment_result(experiment_id)
 
     validate_experiment_search_indexes(config)
     validate_sie_readiness(config)
     all_runs = list(expand_sweep(config))
     runs = [params for params in all_runs if _params_signature(params) not in skip_signatures]
-    run_ids: list[str] = []
     logger.info(
         "sweep scheduled — experiment %s, %s runnable run(s) of %s total",
         experiment_id,
@@ -653,166 +935,22 @@ def _run_sweep_inner(
         len(all_runs),
     )
 
-    cancelled = False
-    paused = False
-    infrastructure_error: str | None = None
-    stop_after_failure = False
-    max_workers = config.execution.parallelism
-
-    run_iter = iter(runs)
-    futures: dict[Future, tuple[str, RunParams]] = {}
-    first_run_set = False
-
-    def _submit_next() -> bool:
-        """Submit exactly one run if available and control allows execution."""
-        nonlocal first_run_set
-        nonlocal cancelled
-        nonlocal paused
-        nonlocal stop_after_failure
-
-        if stop_after_failure:
-            return False
-
-        try:
-            params = next(run_iter)
-        except StopIteration:
-            return False
-
-        try:
-            check_control(experiment_id)
-        except ExperimentCancelledError:
-            cancelled = True
-            stop_after_failure = True
-            return False
-        except ExperimentPausedError:
-            paused = True
-            stop_after_failure = True
-            return False
-
-        if not first_run_set:
-            get_storage_backend().update_experiment(
-                experiment_id, {"started_at": datetime.now(UTC)}
-            )
-            first_run_set = True
-
-        run_id = str(uuid.uuid4())
-        run_ids.append(run_id)
-        logger.info("run submitted — experiment %s, run_id=%s", experiment_id, run_id)
-        futures[
-            executor.submit(
-                _run_single,
-                experiment_id,
-                run_id,
-                params,
-                config.execution.parallelism,
-            )
-        ] = (run_id, params)
-        return True
-
+    control = _SweepControl()
     with ThreadPoolExecutor(
-        max_workers=max_workers, thread_name_prefix=f"sweep-{experiment_id[:8]}"
+        max_workers=config.execution.parallelism,
+        thread_name_prefix=f"sweep-{experiment_id[:8]}",
     ) as executor:
-        for _ in range(max_workers):
-            if not _submit_next():
-                break
+        scheduler = _SweepScheduler(experiment_id, config, runs, control, executor)
+        scheduler.drain()
 
-        while futures:
-            done, _ = wait(futures.keys(), return_when=FIRST_COMPLETED)
-            if not done:
-                break
-
-            for future in done:
-                run_id, _ = futures.pop(future)
-                try:
-                    future.result()
-                except ExperimentCancelledError:
-                    cancelled = True
-                    logger.info("experiment cancelled — %s during run %s", experiment_id, run_id)
-                except ExperimentPausedError:
-                    paused = True
-                    logger.info("experiment paused — %s during run %s", experiment_id, run_id)
-                except SIEUnavailableError as exc:
-                    infrastructure_error = str(exc)
-                    stop_after_failure = True
-                    logger.error(
-                        "SIE unavailable — stopping experiment %s after run %s: %s",
-                        experiment_id,
-                        run_id,
-                        exc,
-                    )
-                except Exception as e:
-                    logger.error("run failed — %s: %s", run_id, e, exc_info=True)
-                    if config.execution.on_error == "stop":
-                        stop_after_failure = True
-
-                if cancelled or paused:
-                    stop_after_failure = True
-
-            if stop_after_failure:
-                continue
-
-            try:
-                check_control(experiment_id)
-            except ExperimentCancelledError:
-                cancelled = True
-                stop_after_failure = True
-                continue
-            except ExperimentPausedError:
-                paused = True
-                stop_after_failure = True
-                continue
-
-            submitted = True
-            while submitted:
-                submitted = _submit_next()
-
-    if cancelled:
-        final_status = ExperimentStatus.CANCELLED
-        failed_count = _count_failed_runs(experiment_id)
-        completion_reason = "cancelled_by_user"
-    elif paused:
-        final_status = ExperimentStatus.PAUSED
-        failed_count = _count_failed_runs(experiment_id)
-        completion_reason = "paused_by_user"
-    else:
-        final_status, failed_count = _compute_final_status(experiment_id, len(all_runs))
-        run_summaries = get_storage_backend().find_run_statuses(experiment_id)
-        complete = sum(1 for run in run_summaries if run.get("phase") == Phase.COMPLETE.value)
-        interrupted = sum(1 for run in run_summaries if run.get("phase") == Phase.INTERRUPTED.value)
-
-        if final_status == ExperimentStatus.COMPLETE:
-            completion_reason = "all_planned_trials_completed"
-        elif final_status == ExperimentStatus.FAILED and failed_count == 0 and complete == 0:
-            completion_reason = "interrupted_before_completion"
-        elif final_status == ExperimentStatus.PARTIAL and failed_count == 0 and interrupted > 0:
-            completion_reason = "paused_or_interrupted_before_completion"
-        elif final_status == ExperimentStatus.PARTIAL and failed_count > 0:
-            completion_reason = "mixed_outcomes"
-        elif final_status == ExperimentStatus.FAILED and failed_count == len(all_runs):
-            completion_reason = "all_trials_failed"
-        else:
-            completion_reason = "partial_outcomes"
-
-    completed_at = datetime.now(UTC)
-    experiment_update: dict = {
-        "status": final_status,
-        "run_count": len(all_runs),
-        "failed_count": failed_count,
-        "completion_reason": completion_reason,
-        "completed_at": completed_at,
-    }
-    if infrastructure_error:
-        experiment_update["error_message"] = infrastructure_error
-        if final_status not in {ExperimentStatus.CANCELLED, ExperimentStatus.PAUSED}:
-            final_status = ExperimentStatus.FAILED
-            experiment_update["status"] = final_status
-            experiment_update["completion_reason"] = "infrastructure_error"
-
-    get_storage_backend().update_experiment(experiment_id, experiment_update)
-    _log_failed_run_summary(experiment_id, failed_count)
+    final_status = _persist_sweep_outcome(experiment_id, control, len(all_runs))
     logger.info("sweep finished — experiment %s, status=%s", experiment_id, final_status)
 
-    return {"experiment_id": experiment_id, "run_ids": run_ids, "status": final_status}
+    return {
+        "experiment_id": experiment_id,
+        "run_ids": scheduler.run_ids,
+        "status": final_status,
+    }
 
 
 def _count_failed_runs(experiment_id: str) -> int:
@@ -849,9 +987,8 @@ def _compute_final_status(
     experiment_id: str,
     expected_run_count: int,
 ) -> tuple[ExperimentStatus, int]:
-    runs = get_storage_backend().find_run_statuses(experiment_id)
-    complete = sum(1 for run in runs if run.get("phase") == Phase.COMPLETE.value)
-    failed = sum(1 for run in runs if run.get("phase") == Phase.FAILED.value)
+    tally = tally_runs(get_storage_backend().find_run_statuses(experiment_id))
+    complete, failed = tally.complete, tally.failed
 
     if complete == expected_run_count and failed == 0:
         return ExperimentStatus.COMPLETE, failed
