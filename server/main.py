@@ -1,5 +1,8 @@
 import logging
+from collections.abc import Callable
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -16,7 +19,7 @@ from server.core.pipeline.executors import shutdown_executors
 from server.core.pipeline.startup_reconciliation import reconcile_orphaned_experiments
 from server.core.sie_guard import check_sie_health
 from server.db.mongo.indexes import bootstrap_indexes
-from server.db.ports.registry import resolve_adapter
+from server.db.ports.registry import is_same_adapter
 from server.settings import LOCALHOST_CORS_ORIGIN_REGEX, normalize_storage_backend, settings
 from server.utils.logger import get_logger
 
@@ -50,121 +53,186 @@ def enforce_run_state_db_present() -> None:
     raise SystemExit(1)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Ensure indexes exist on startup."""
-    logger.info("boot — server starting")
-    settings.ensure_storage_ready()
-    # Atlas search indexes are a Mongo concern, and Mongo only owns them when
-    # it is the *vector* store (Slice 49B, site 7) — a split setup
-    # (VECTOR_STORE_BACKEND=elasticsearch, STORAGE_BACKEND=mongodb) must not
-    # bootstrap an unused `chunks` search index that nothing ever reads.
-    # Postgres applies schema.sql (including HNSW) when its pool opens —
-    # reaching for Mongo here would fail a --postgres-local / --postgres-cloud
-    # stack that has no MONGODB_URI and no Atlas Local container.
-    _backend = normalize_storage_backend(settings.vector_store_backend or settings.storage_backend)
-    try:
-        _is_mongodb = resolve_adapter(_backend) is resolve_adapter("mongodb")
-    except ValueError:
-        _is_mongodb = False
-    if _is_mongodb:
-        try:
-            bootstrap_indexes()
-        except Exception as e:
-            logger.warning(
-                "boot — index check failed (starting without indexes): %s", e, exc_info=True
-            )
-    else:
+class FailurePolicy(Enum):
+    """What a boot step's failure does to startup.
+
+    One named policy per behaviour the boot sequence already had, so the
+    sequence is data (ordered steps) and the handling is one loop instead of
+    six ad-hoc ``try``/``except`` blocks.
+    """
+
+    FATAL = "fatal"  # exception propagates unchanged — startup dies
+    ABORT = "abort"  # log the error, then exit the process with status 1
+    ERROR_CONTINUE = "error-continue"  # log at error level, keep booting
+    WARN_CONTINUE = "warn-continue"  # log at warning level, keep booting
+
+
+@dataclass(frozen=True)
+class BootStep:
+    """One named startup concern plus the policy for its failure."""
+
+    name: str
+    run: Callable[[], object]  # any return value is ignored — steps act, not compute
+    policy: FailurePolicy
+    message: str = ""
+    exc_info: bool = False
+
+
+def _bootstrap_atlas_indexes() -> None:
+    """Create Atlas search indexes when Mongo is the *vector* store.
+
+    Mongo only owns them in that case (Slice 49B, site 7) — a split setup
+    (VECTOR_STORE_BACKEND=elasticsearch, STORAGE_BACKEND=mongodb) must not
+    bootstrap an unused `chunks` search index that nothing ever reads.
+    Postgres applies schema.sql (including HNSW) when its pool opens —
+    reaching for Mongo here would fail a --postgres-local / --postgres-cloud
+    stack that has no MONGODB_URI and no Atlas Local container.
+    """
+    backend = normalize_storage_backend(settings.vector_store_backend or settings.storage_backend)
+    if not is_same_adapter(backend, "mongodb"):
         logger.info(
             "boot — skipping Atlas index bootstrap (storage_backend=%s)",
             settings.storage_backend,
         )
-    # Slice 55: warn when SQLite is new/empty but an older backend still has data.
-    _run_state = normalize_storage_backend(settings.storage_backend)
-    if _run_state == "sqlite":
-        _sqlite_path = Path(settings.sqlite_db_path)
-        # Slice 65B opt-in guard: fail closed instead of creating a second DB.
-        enforce_run_state_db_present()
-        # Slice 65B boot log: resolved path, inode, journal mode, sizes,
-        # quick_check and counts — one visible record that every component
-        # reads and writes the same file. prime_boot_diagnostics runs the slow
-        # scans (quick_check + counts) once here and caches them so /healthz
-        # reports them cheaply instead of re-scanning the ~600MB DB per call (B1).
-        from server.db.sqlite.sqlite_diagnostics import prime_boot_diagnostics
+        return
+    bootstrap_indexes()
 
-        logger.info(
-            "boot — run-state sqlite diagnostics: %s",
-            prime_boot_diagnostics(settings.sqlite_db_path),
-        )
-        _sqlite_is_new = not _sqlite_path.exists() or _sqlite_path.stat().st_size == 0
-        _has_source = bool(settings.mongodb_uri.strip()) or bool(settings.database_url.strip())
-        if _sqlite_is_new and _has_source:
-            logger.warning(
-                "boot — SQLite run-state file is new/empty but "
-                "MONGODB_ATLAS_CLOUD_URI / MONGODB_ATLAS_LOCAL_URI or "
-                "POSTGRES_CLOUD_URL / POSTGRES_LOCAL_URL is configured. "
-                "Existing experiments in MongoDB/Postgres are not visible "
-                "until their run-state data has been copied into the SQLite file."
-            )
 
-    # Warn (non-fatal) when the vector store is Elasticsearch and the cluster
-    # is not reachable — lazy init means the first experiment submit would fail
-    # mid-pipeline without this early signal.
-    _vs_backend = normalize_storage_backend(
-        settings.vector_store_backend or settings.storage_backend
+def _check_sqlite_run_state() -> None:
+    """Guard and report on the SQLite run-state file (Slices 55 / 65B)."""
+    if normalize_storage_backend(settings.storage_backend) != "sqlite":
+        return
+    sqlite_path = Path(settings.sqlite_db_path)
+    # Slice 65B opt-in guard: fail closed instead of creating a second DB.
+    enforce_run_state_db_present()
+    # Slice 65B boot log: resolved path, inode, journal mode, sizes,
+    # quick_check and counts — one visible record that every component
+    # reads and writes the same file. prime_boot_diagnostics runs the slow
+    # scans (quick_check + counts) once here and caches them so /healthz
+    # reports them cheaply instead of re-scanning the ~600MB DB per call (B1).
+    from server.db.sqlite.sqlite_diagnostics import prime_boot_diagnostics
+
+    logger.info(
+        "boot — run-state sqlite diagnostics: %s",
+        prime_boot_diagnostics(settings.sqlite_db_path),
     )
-    try:
-        _is_elasticsearch = resolve_adapter(_vs_backend) is resolve_adapter("elasticsearch")
-    except ValueError:
-        _is_elasticsearch = False
-    if _is_elasticsearch:
-        try:
-            from server.db.ports.store_factory import get_vector_store
+    # Slice 55: warn when SQLite is new/empty but an older backend still has data.
+    sqlite_is_new = not sqlite_path.exists() or sqlite_path.stat().st_size == 0
+    has_source = bool(settings.mongodb_uri.strip()) or bool(settings.database_url.strip())
+    if sqlite_is_new and has_source:
+        logger.warning(
+            "boot — SQLite run-state file is new/empty but "
+            "MONGODB_ATLAS_CLOUD_URI / MONGODB_ATLAS_LOCAL_URI or "
+            "POSTGRES_CLOUD_URL / POSTGRES_LOCAL_URL is configured. "
+            "Existing experiments in MongoDB/Postgres are not visible "
+            "until their run-state data has been copied into the SQLite file."
+        )
 
-            _es_store = get_vector_store()
-            if not _es_store.health_check():
-                logger.warning(
-                    "boot — Elasticsearch unreachable at %s; "
-                    "sweep submissions will fail until the cluster is reachable.",
-                    settings.elasticsearch_url,
-                )
-            else:
-                logger.info("boot — Elasticsearch reachable at %s", settings.elasticsearch_url)
-        except Exception as _es_boot_exc:
-            logger.warning(
-                "boot — Elasticsearch connectivity check failed: %s "
-                "(server starts but sweep submissions may fail)",
-                _es_boot_exc,
-            )
 
-    # Probe the embedding cache backend — fail-closed when EMBEDDING_CACHE_BACKEND=redis
-    # and the service is unreachable (GWT: "process exits non-zero").
-    settings.ensure_cache_backend_ready()
-    if settings.embedding_cache_backend.strip().lower() != "sqlite":
-        from server.core.embedding.embedding_cache import get_cache_backend
+def _check_elasticsearch_reachable() -> None:
+    """Report (non-fatally) whether an Elasticsearch vector store is reachable.
 
-        try:
-            get_cache_backend()
-            logger.info("boot — embedding cache backend=%s ready", settings.embedding_cache_backend)
-        except Exception as _cache_exc:
-            logger.error("boot — embedding cache backend unreachable: %s", _cache_exc)
-            raise SystemExit(1) from _cache_exc
+    Lazy init means the first experiment submit would otherwise fail
+    mid-pipeline without this early signal.
+    """
+    backend = normalize_storage_backend(settings.vector_store_backend or settings.storage_backend)
+    if not is_same_adapter(backend, "elasticsearch"):
+        return
+    from server.db.ports.store_factory import get_vector_store
 
-    try:
-        reconcile_orphaned_experiments()
-    except Exception as e:
-        logger.error("boot — orphan reconciliation failed: %s", e, exc_info=True)
+    if not get_vector_store().health_check():
+        logger.warning(
+            "boot — Elasticsearch unreachable at %s; "
+            "sweep submissions will fail until the cluster is reachable.",
+            settings.elasticsearch_url,
+        )
+    else:
+        logger.info("boot — Elasticsearch reachable at %s", settings.elasticsearch_url)
+
+
+def _probe_embedding_cache() -> None:
+    """Probe a non-SQLite embedding cache backend (fail-closed via ABORT)."""
+    if settings.embedding_cache_backend.strip().lower() == "sqlite":
+        return
+    from server.core.embedding.embedding_cache import get_cache_backend
+
+    get_cache_backend()
+    logger.info("boot — embedding cache backend=%s ready", settings.embedding_cache_backend)
+
+
+def _announce_recover_on_boot() -> None:
     if settings.recover_on_boot:
         logger.info(
             "boot — RECOVER_ON_BOOT enabled; automatic retry not implemented "
             "(see docs/plan/slices/01-core-pipeline/SLICE-10-RUN-RECOVERY.md)"
         )
 
-    # Start the DoubleWord watcher (if DOUBLEWORD_API_KEY is set)
+
+def _start_doubleword_watcher() -> None:
+    """Start the DoubleWord watcher (if DOUBLEWORD_API_KEY is set)."""
     from server.core.pipeline.doubleword_watcher import start_watcher
 
     start_watcher()
 
+
+def _boot_steps() -> tuple[BootStep, ...]:
+    """The startup sequence, in order. Order and policies are the contract."""
+    return (
+        BootStep("storage-ready", settings.ensure_storage_ready, FailurePolicy.FATAL),
+        BootStep(
+            "atlas-index-bootstrap",
+            _bootstrap_atlas_indexes,
+            FailurePolicy.WARN_CONTINUE,
+            "boot — index check failed (starting without indexes): %s",
+            exc_info=True,
+        ),
+        BootStep("sqlite-run-state", _check_sqlite_run_state, FailurePolicy.FATAL),
+        BootStep(
+            "elasticsearch-reachable",
+            _check_elasticsearch_reachable,
+            FailurePolicy.WARN_CONTINUE,
+            "boot — Elasticsearch connectivity check failed: %s "
+            "(server starts but sweep submissions may fail)",
+        ),
+        BootStep("cache-backend-ready", settings.ensure_cache_backend_ready, FailurePolicy.FATAL),
+        BootStep(
+            "embedding-cache-probe",
+            _probe_embedding_cache,
+            FailurePolicy.ABORT,
+            "boot — embedding cache backend unreachable: %s",
+        ),
+        BootStep(
+            "orphan-reconciliation",
+            reconcile_orphaned_experiments,
+            FailurePolicy.ERROR_CONTINUE,
+            "boot — orphan reconciliation failed: %s",
+            exc_info=True,
+        ),
+        BootStep("recover-on-boot-notice", _announce_recover_on_boot, FailurePolicy.FATAL),
+        BootStep("doubleword-watcher", _start_doubleword_watcher, FailurePolicy.FATAL),
+    )
+
+
+def _run_boot_steps(steps: tuple[BootStep, ...]) -> None:
+    """Run each step in order and apply its declared failure policy."""
+    for step in steps:
+        try:
+            step.run()
+        except Exception as exc:
+            if step.policy is FailurePolicy.FATAL:
+                raise
+            if step.policy is FailurePolicy.ABORT:
+                logger.error(step.message, exc)
+                raise SystemExit(1) from exc
+            log = logger.warning if step.policy is FailurePolicy.WARN_CONTINUE else logger.error
+            log(step.message, exc, exc_info=step.exc_info)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Run the ordered boot sequence, serve, then shut down."""
+    logger.info("boot — server starting")
+    _run_boot_steps(_boot_steps())
     logger.info("boot OK — server ready")
     yield
     logger.info("shutdown — server stopping")
