@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { devInfo } from './utils/devLog';
 import ExperimentsScreen from './components/screens/ExperimentsScreen';
 import ExperimentDetailScreen from './components/screens/ExperimentDetailScreen';
-import CompareScreen from './components/screens/CompareScreen';
 import SearchExplorerScreen from './components/screens/SearchExplorerScreen';
 import WalkthruScreen from './components/walkthru/WalkthruScreen';
 import { loadWalkthruResults } from './walkthru/loadWalkthruResults';
@@ -28,8 +27,8 @@ type Screen =
       initialExperiment?: Experiment;
     }
   | { kind: 'explore'; experimentId: string }
-  | { kind: 'walkthru' }
-  | { kind: 'compare' };
+  | { kind: 'explore-multi'; experimentIds: string[] }
+  | { kind: 'walkthru' };
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ kind: 'list' });
@@ -98,8 +97,8 @@ export default function App() {
       devInfo('App', 'navigate — meetup demo');
       return;
     }
-    if (screen.kind === 'compare') {
-      devInfo('App', 'navigate — compare sweeps');
+    if (screen.kind === 'explore-multi') {
+      devInfo('App', `navigate — compare experiments (${screen.experimentIds.length})`);
       return;
     }
     const id = screen.experimentId.slice(0, 8);
@@ -134,8 +133,14 @@ export default function App() {
         onBack={leaveDemo}
       />
     );
-  } else if (screen.kind === 'compare') {
-    body = <CompareScreen onBack={() => setScreen({ kind: 'list' })} />;
+  } else if (screen.kind === 'explore-multi') {
+    body = (
+      <SearchExplorerScreen
+        experimentId={screen.experimentIds[0]}
+        experimentIds={screen.experimentIds}
+        onBack={() => setScreen({ kind: 'list' })}
+      />
+    );
   } else if (screen.kind === 'explore') {
     body = (
       <SearchExplorerScreen
@@ -165,7 +170,7 @@ export default function App() {
         cachedExperiments={listCache.ready ? listCache.experiments : undefined}
         onCacheUpdate={handleListCacheUpdate}
         onSelect={openDetail}
-        onCompare={() => setScreen({ kind: 'compare' })}
+        onCompare={(ids: string[]) => setScreen({ kind: 'explore-multi', experimentIds: ids })}
       />
     );
   }

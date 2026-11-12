@@ -253,6 +253,9 @@ export interface DetailedResult {
 export interface ExploreResponse {
   experiment_id: string;
   experiment_name: string;
+  /** Present in multi-experiment compare responses. */
+  experiment_ids?: string[];
+  experiment_names?: string[];
   query_count: number;
   total_matches: number;
   queries: string[];

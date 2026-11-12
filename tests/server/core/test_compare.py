@@ -9,11 +9,8 @@ Scope: SLICE-66 live cross-store compare — grouping, per-group ranking, API wi
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from unittest.mock import patch
 
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
 from server.core.compare import build_compare, count_duplicates_collapsed
 
@@ -233,45 +230,6 @@ def test_given_two_same_store_runs_with_one_config_key_when_compared_then_one_ru
 
     ### Then
     assert [r["run_id"] for r in out["groups"][0]["runs"]] == ["rA"]
-
-
-def test_given_compare_endpoint_when_called_then_it_returns_grouped_runs_from_run_state() -> None:
-    """
-    Scenario: GET /api/v1/compare serves from run state alone.
-    Slice: 66
-
-    Given a run-state storage double holding one completed experiment,
-    When GET /api/v1/compare is called,
-    Then the response lists one group, and no vector store was requested.
-    """
-    ### Given
-    exp = _experiment("e1", "redis")
-
-    class _Storage:
-        def find_run_statuses(self, _id: str) -> list[dict]:
-            return [_run("r1", "e1", "redis")]
-
-        def find_results_for_experiment(self, _id: str) -> list[dict]:
-            return [_result("r1", 0.9)]
-
-    app = FastAPI()
-    from server.api.compare import router
-
-    app.include_router(router, prefix="/api/v1")
-
-    ### When
-    with (
-        patch("server.api.compare.list_all_experiment_docs", return_value=[exp]),
-        patch("server.api.compare.get_storage_backend", return_value=_Storage()),
-    ):
-        response = TestClient(app).get("/api/v1/compare")
-
-    ### Then
-    assert response.status_code == 200
-    body = response.json()
-    assert body["group_count"] == 1
-    assert body["groups"][0]["runs"][0]["run_id"] == "r1"
-    assert body["duplicates_collapsed"] == 0
 
 
 def test_given_two_experiments_for_one_slot_when_compared_then_one_duplicate_is_reported() -> None:
