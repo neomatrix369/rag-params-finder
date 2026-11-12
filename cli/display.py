@@ -6,6 +6,7 @@ Extracted from ``cli.main`` (Slice 45 fat-surface slim).
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass
 
 from rich.console import Console
 from rich.live import Live
@@ -13,6 +14,8 @@ from rich.panel import Panel
 from rich.table import Table
 
 from cli.api_client import get_experiment
+from server.core.pipeline.outcome import tally_runs
+from server.models.enums import Phase
 from server.utils.logger import get_logger
 
 console = Console()
@@ -26,6 +29,14 @@ _TRIAL_STATE_STYLES: dict[str, str] = {
     "pruned": "dim",
     "interrupted": "yellow",
 }
+_STATUS_STYLES: dict[str, str] = {
+    "complete": "green",
+    "partial": "yellow",
+    "failed": "red",
+    "cancelled": "yellow",
+    "paused": "magenta",
+}
+_DEFAULT_STATUS_STYLE = "cyan"
 
 
 def _build_runs_table(runs: list[dict]) -> Table:
@@ -185,44 +196,51 @@ def _format_bayesian_lines(bayesian_summary: dict, grid_equivalent_count: object
     return lines
 
 
-def _print_summary(data: dict) -> None:
-    """Print a final summary panel with success/failure breakdown."""
-    status = data.get("status", "unknown")
-    runs = data.get("runs", [])
+@dataclass(frozen=True, slots=True)
+class ExperimentSummary:
+    """Everything the summary panel needs, derived without any I/O."""
+
+    experiment_id: str
+    status: str
+    status_style: str
+    lines: list[str]
+
+
+def _format_headline_lines(data: dict, status: str, status_style: str) -> list[str]:
+    """Status headline plus the passed/failed/other run breakdown."""
     name = data.get("experiment_name", "?")
+    runs = data.get("runs", [])
+    tally = tally_runs(runs)
+    other = len(runs) - tally.complete - tally.failed
+    return [
+        f"[{status_style} bold]{status.upper()}[/{status_style} bold]  {name}",
+        f"  [green]{tally.complete} passed[/green]  "
+        f"[red]{tally.failed} failed[/red]  "
+        f"[dim]{other} other[/dim]",
+    ]
 
-    completed = [r for r in runs if r.get("phase") == "complete"]
-    failed = [r for r in runs if r.get("phase") == "failed"]
-    other = [r for r in runs if r.get("phase") not in ("complete", "failed")]
 
-    status_style = {
-        "complete": "green",
-        "partial": "yellow",
-        "failed": "red",
-        "cancelled": "yellow",
-        "paused": "magenta",
-    }.get(status, "cyan")
-
-    lines = [f"[{status_style} bold]{status.upper()}[/{status_style} bold]  {name}"]
-    lines.append(
-        f"  [green]{len(completed)} passed[/green]  "
-        f"[red]{len(failed)} failed[/red]  "
-        f"[dim]{len(other)} other[/dim]"
-    )
-
+def _format_git_line(data: dict) -> str | None:
+    """Git provenance line, or ``None`` when no commit was recorded."""
     git_commit = data.get("git_commit")
+    if not git_commit:
+        return None
+    dirty_flag = " [yellow](dirty)[/yellow]" if data.get("git_dirty", False) else ""
     git_branch = data.get("git_branch")
-    git_dirty = data.get("git_dirty", False)
+    branch_info = f" ({git_branch})" if git_branch else ""
+    return f"  Git: [cyan]{git_commit}{branch_info}[/cyan]{dirty_flag}"
+
+
+def _format_metadata_lines(data: dict) -> list[str]:
+    """Metadata section — git, versions, timestamps, rate limits."""
     started_at = data.get("started_at")
     completed_at = data.get("completed_at")
     env_params = data.get("env_params", {})
 
-    lines.append("")
-    lines.append("[bold]Metadata[/bold]")
-    if git_commit:
-        dirty_flag = " [yellow](dirty)[/yellow]" if git_dirty else ""
-        branch_info = f" ({git_branch})" if git_branch else ""
-        lines.append(f"  Git: [cyan]{git_commit}{branch_info}[/cyan]{dirty_flag}")
+    lines = ["", "[bold]Metadata[/bold]"]
+    git_line = _format_git_line(data)
+    if git_line:
+        lines.append(git_line)
     app_ver = data.get("app_version")
     py_ver = data.get("python_version")
     if app_ver or py_ver:
@@ -236,9 +254,12 @@ def _print_summary(data: dict) -> None:
         rpm = env_params.get("voyage_rpm_limit", "?")
         tpm = env_params.get("voyage_tpm_limit", "?")
         lines.append(f"  RPM/TPM:  {rpm}/{tpm}")
+    return lines
 
-    lines.append("")
-    lines.append("[bold]Config[/bold]")
+
+def _format_config_lines(data: dict) -> list[str]:
+    """Config section — data paths, queries, rerank, top-K, sweep axes."""
+    lines = ["", "[bold]Config[/bold]"]
     data_paths = data.get("data_paths", [])
     lines.append(f"  Data:     {len(data_paths)} path(s)")
     for p in data_paths:
@@ -260,31 +281,62 @@ def _print_summary(data: dict) -> None:
             f"sizes {sweep.get('chunk_sizes', [])} × "
             f"overlaps {sweep.get('overlaps', [])}"
         )
+    return lines
 
+
+def _format_strategy_lines(data: dict) -> list[str]:
+    """Bayesian section when the experiment used that search strategy."""
     search_strategy = (data.get("config") or {}).get("execution", {}).get("search_strategy", "grid")
     bayesian_summary = data.get("bayesian_summary") if search_strategy == "bayesian" else None
-    if bayesian_summary:
-        lines.extend(
-            _format_bayesian_lines(
-                bayesian_summary,
-                data.get("grid_equivalent_count", "?"),
-            )
-        )
+    if not bayesian_summary:
+        return []
+    return _format_bayesian_lines(bayesian_summary, data.get("grid_equivalent_count", "?"))
 
-    if failed:
-        lines.append("")
-        lines.append("[red bold]Failures:[/red bold]")
-        for r in failed:
-            run_id = r.get("run_id", "?")[:8]
-            model = r.get("embedding_model", "?")
-            err = r.get("error_message") or "unknown error"
-            lines.append(f"  [dim]{run_id}[/dim] ({model}): {err}")
 
-    logger.info("watch finished — experiment %s status=%s", data.get("experiment_id", "?"), status)
+def _format_failure_lines(runs: list[dict]) -> list[str]:
+    """Per-run failure detail, empty when no run failed."""
+    failed = [r for r in runs if r.get("phase") == Phase.FAILED.value]
+    if not failed:
+        return []
+    lines = ["", "[red bold]Failures:[/red bold]"]
+    for r in failed:
+        run_id = r.get("run_id", "?")[:8]
+        model = r.get("embedding_model", "?")
+        err = r.get("error_message") or "unknown error"
+        lines.append(f"  [dim]{run_id}[/dim] ({model}): {err}")
+    return lines
+
+
+def summarize_experiment(data: dict) -> ExperimentSummary:
+    """Derive the final summary panel content — pure, no console or logging."""
+    status = data.get("status", "unknown")
+    status_style = _STATUS_STYLES.get(status, _DEFAULT_STATUS_STYLE)
+    lines = _format_headline_lines(data, status, status_style)
+    lines.extend(_format_metadata_lines(data))
+    lines.extend(_format_config_lines(data))
+    lines.extend(_format_strategy_lines(data))
+    lines.extend(_format_failure_lines(data.get("runs", [])))
+    return ExperimentSummary(
+        experiment_id=data.get("experiment_id", "?"),
+        status=status,
+        status_style=status_style,
+        lines=lines,
+    )
+
+
+def render_experiment_summary(summary: ExperimentSummary) -> None:
+    """Print the summary panel built by :func:`summarize_experiment`."""
     console.print(
         Panel.fit(
-            "\n".join(lines),
+            "\n".join(summary.lines),
             title="Experiment Result",
-            border_style=status_style,
+            border_style=summary.status_style,
         )
     )
+
+
+def _print_summary(data: dict) -> None:
+    """Print a final summary panel with success/failure breakdown."""
+    summary = summarize_experiment(data)
+    logger.info("watch finished — experiment %s status=%s", summary.experiment_id, summary.status)
+    render_experiment_summary(summary)
